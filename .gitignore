@@ -1,0 +1,103 @@
+# .gitignore for WindBoard (WPF .NET) project
+# 生成于: 自动生成 - 适配 Visual Studio / .NET / Rider / VS Code
+
+# Visual Studio
+.vs/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# Build artifacts
+[Bb]in/
+[Oo]bj/
+build/
+artifacts/
+
+# Debug / Release outputs
+Debug/
+Release/
+
+# NuGet
+*.nupkg
+packages/
+project.lock.json
+project.fragment.lock.json
+*.snupkg
+
+# Rider
+.idea/
+*.sln.iml
+
+# Resharper
+_ReSharper*/
+*._ReSharper.*
+*.DotSettings.user
+
+# VS Code
+.vscode/
+
+# Test results
+TestResults/
+*.TestResults
+
+# Coverage and profiling
+coverage/
+*.coverage
+*.coveragexml
+*.coverage.xml
+coverage*.xml
+*.lcov
+
+# Logs
+*.log
+*.tlog
+
+# Temporary / backup files
+*.tmp
+*.temp
+*.bak
+*~
+*.swp
+
+# OS files
+Thumbs.db
+desktop.ini
+.DS_Store
+ehthumbs.db
+
+# Dotnet publish / pack
+publish/
+**/publish/
+*.vsix
+
+# NuGet packages and cache
+package.lock.json
+.nuget/
+
+# Generated files (usually in bin/obj)
+*.g.cs
+*.g.i.cs
+*.generated.cs
+*.designer.cs
+
+# Secret / user-specific settings
+secrets.json
+appsettings.*.Local.json
+
+# Other IDEs / tools
+*.sublime-workspace
+.idea/
+.vscode/
+
+# Ignore JetBrains Rider caches
+.idea/
+.cache/
+
+# Ignore Intellij project files
+*.iml
+
+# Ignore specific temp files that appear in this workspace
+*.wpftmp.*
+
+# End

@@ -1,0 +1,183 @@
+﻿<Window x:Class="WindBoard.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+        Title="WindBoard" Height="450" Width="800"
+        WindowState="Maximized">
+    
+    <Grid>
+        <Grid.Resources>
+            <Style x:Key="BottomButtonBaseStyle" TargetType="Control">
+                <Setter Property="Foreground" Value="#E0E0E0"/>
+                <Setter Property="Background" Value="Transparent"/>
+                <Setter Property="BorderThickness" Value="0"/>
+                <Setter Property="Margin" Value="2,0"/>
+                <Setter Property="Padding" Value="12,8"/>
+                <Setter Property="Height" Value="Auto"/>
+                <Setter Property="Width" Value="Auto"/>
+                <Setter Property="MinWidth" Value="60"/>
+            </Style>
+
+            <Style x:Key="BottomRadioButtonStyle" TargetType="RadioButton" BasedOn="{StaticResource BottomButtonBaseStyle}">
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="RadioButton">
+                            <Border Background="{TemplateBinding Background}"
+                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                    CornerRadius="8">
+                                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Margin="{TemplateBinding Padding}">
+                                    <materialDesign:PackIcon Kind="{Binding Tag, RelativeSource={RelativeSource TemplatedParent}}"
+                                                             Width="24" Height="24"
+                                                             HorizontalAlignment="Center"
+                                                             Margin="0,0,0,4"/>
+                                    <TextBlock Text="{TemplateBinding Content}"
+                                               FontSize="12"
+                                               HorizontalAlignment="Center"/>
+                                </StackPanel>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsChecked" Value="True">
+                                    <Setter Property="Background" Value="#3E3F43"/>
+                                    <Setter Property="Foreground" Value="White"/>
+                                </Trigger>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter Property="Background" Value="#35363A"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <Style x:Key="BottomButtonStyle" TargetType="Button" BasedOn="{StaticResource BottomButtonBaseStyle}">
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Button">
+                            <Border Background="{TemplateBinding Background}"
+                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                    CornerRadius="8">
+                                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Margin="{TemplateBinding Padding}">
+                                    <materialDesign:PackIcon Kind="{Binding Tag, RelativeSource={RelativeSource TemplatedParent}}"
+                                                             Width="24" Height="24"
+                                                             HorizontalAlignment="Center"
+                                                             Margin="0,0,0,4"/>
+                                    <TextBlock Text="{TemplateBinding Content}"
+                                               FontSize="12"
+                                               HorizontalAlignment="Center"/>
+                                </StackPanel>
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsPressed" Value="True">
+                                    <Setter Property="Background" Value="#3E3F43"/>
+                                </Trigger>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter Property="Background" Value="#35363A"/>
+                                </Trigger>
+                                <Trigger Property="IsEnabled" Value="False">
+                                    <Setter Property="Opacity" Value="0.3"/>
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+        </Grid.Resources>
+
+        <!-- 核心白板控件 -->
+        <InkCanvas Name="MyCanvas" Background="#2E2F33">
+            <InkCanvas.DefaultDrawingAttributes>
+                <!-- 默认笔迹：白色，粗细为 8 -->
+                <DrawingAttributes Color="White" Width="8" Height="8"/>
+            </InkCanvas.DefaultDrawingAttributes>
+        </InkCanvas>
+
+        <!-- 悬浮工具栏 -->
+        <Border VerticalAlignment="Bottom" HorizontalAlignment="Center" Margin="0,0,0,30"
+                Background="#25262A" CornerRadius="12" Padding="5" Effect="{StaticResource MaterialDesignShadowDepth2}">
+            <StackPanel Orientation="Horizontal">
+                <RadioButton Name="RadioPen" Content="书写" Tag="Pen" GroupName="Tools" IsChecked="True"
+                             Style="{StaticResource BottomRadioButtonStyle}"
+                             Checked="RadioPen_Checked"
+                             PreviewMouseLeftButtonDown="RadioPen_PreviewMouseLeftButtonDown"
+                             ToolTip="双击设置画笔"/>
+                
+                <RadioButton Name="RadioEraser" Content="擦除" Tag="Eraser" GroupName="Tools"
+                             Style="{StaticResource BottomRadioButtonStyle}"
+                             Checked="RadioEraser_Checked"/>
+                
+                <RadioButton Name="RadioSelect" Content="选择" Tag="CursorDefault" GroupName="Tools"
+                             Style="{StaticResource BottomRadioButtonStyle}"
+                             Checked="RadioSelect_Checked"/>
+
+                <Rectangle Width="1" Height="24" Fill="#505050" Margin="8,0" VerticalAlignment="Center"/>
+
+                <Button Name="BtnUndo" Content="撤销" Tag="Undo"
+                        Style="{StaticResource BottomButtonStyle}"
+                        Command="{x:Static ApplicationCommands.Undo}"
+                        CommandTarget="{Binding ElementName=MyCanvas}"/>
+
+                <Button Name="BtnRedo" Content="恢复" Tag="Redo"
+                        Style="{StaticResource BottomButtonStyle}"
+                        Command="{x:Static ApplicationCommands.Redo}"
+                        CommandTarget="{Binding ElementName=MyCanvas}"/>
+            </StackPanel>
+        </Border>
+
+        <!-- 笔设置弹窗 -->
+        <Popup Name="PopupPenSettings" PlacementTarget="{Binding ElementName=RadioPen}"
+               Placement="Top" StaysOpen="False" AllowsTransparency="True">
+            <Border Background="#2A6952" CornerRadius="12" Padding="15" Margin="0,0,0,10" Effect="{StaticResource MaterialDesignShadowDepth2}">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <!-- 粗细选择 (左侧) -->
+                    <StackPanel Grid.Column="0" Margin="0,0,15,0" VerticalAlignment="Center">
+                        <RadioButton GroupName="Thickness" Tag="8" Checked="Thickness_Checked" IsChecked="True" Margin="0,0,0,15"
+                                     Style="{StaticResource MaterialDesignToolRadioButton}">
+                            <materialDesign:PackIcon Kind="Brush" Width="24" Height="24" Foreground="White"/>
+                        </RadioButton>
+                        <RadioButton GroupName="Thickness" Tag="16" Checked="Thickness_Checked" Margin="0,0,0,15"
+                                     Style="{StaticResource MaterialDesignToolRadioButton}">
+                            <materialDesign:PackIcon Kind="Brush" Width="24" Height="24" Foreground="White" RenderTransformOrigin="0.5,0.5">
+                                <materialDesign:PackIcon.RenderTransform>
+                                    <ScaleTransform ScaleX="1.2" ScaleY="1.2"/>
+                                </materialDesign:PackIcon.RenderTransform>
+                            </materialDesign:PackIcon>
+                        </RadioButton>
+                        <RadioButton GroupName="Thickness" Tag="24" Checked="Thickness_Checked"
+                                     Style="{StaticResource MaterialDesignToolRadioButton}">
+                            <materialDesign:PackIcon Kind="Brush" Width="24" Height="24" Foreground="White" RenderTransformOrigin="0.5,0.5">
+                                <materialDesign:PackIcon.RenderTransform>
+                                    <ScaleTransform ScaleX="1.5" ScaleY="1.5"/>
+                                </materialDesign:PackIcon.RenderTransform>
+                            </materialDesign:PackIcon>
+                        </RadioButton>
+                    </StackPanel>
+
+                    <!-- 颜色选择 (右侧 3x3 网格) -->
+                    <UniformGrid Grid.Column="1" Columns="3" Rows="3" Width="150" Height="150">
+                        <!-- 第一行 -->
+                        <Button Background="White" BorderBrush="White" Width="36" Height="36" Margin="5" Click="Color_Click" Tag="White" Style="{StaticResource MaterialDesignFloatingActionMiniButton}"/>
+                        <Button Background="Red" BorderBrush="Red" Width="36" Height="36" Margin="5" Click="Color_Click" Tag="Red" Style="{StaticResource MaterialDesignFloatingActionMiniButton}"/>
+                        <Button Background="#FFD700" BorderBrush="#FFD700" Width="36" Height="36" Margin="5" Click="Color_Click" Tag="#FFD700" Style="{StaticResource MaterialDesignFloatingActionMiniButton}"/>
+
+                        <!-- 第二行 -->
+                        <Button Background="#00C853" BorderBrush="#00C853" Width="36" Height="36" Margin="5" Click="Color_Click" Tag="#00C853" Style="{StaticResource MaterialDesignFloatingActionMiniButton}"/>
+                        <Button Background="#00E5FF" BorderBrush="#00E5FF" Width="36" Height="36" Margin="5" Click="Color_Click" Tag="#00E5FF" Style="{StaticResource MaterialDesignFloatingActionMiniButton}"/>
+                        <Button Background="#2962FF" BorderBrush="#2962FF" Width="36" Height="36" Margin="5" Click="Color_Click" Tag="#2962FF" Style="{StaticResource MaterialDesignFloatingActionMiniButton}"/>
+
+                        <!-- 第三行 -->
+                        <Button Background="#AA00FF" BorderBrush="#AA00FF" Width="36" Height="36" Margin="5" Click="Color_Click" Tag="#AA00FF" Style="{StaticResource MaterialDesignFloatingActionMiniButton}"/>
+                        <Button Background="#C51162" BorderBrush="#C51162" Width="36" Height="36" Margin="5" Click="Color_Click" Tag="#C51162" Style="{StaticResource MaterialDesignFloatingActionMiniButton}"/>
+                        <Button Background="Black" BorderBrush="Black" Width="36" Height="36" Margin="5" Click="Color_Click" Tag="Black" Style="{StaticResource MaterialDesignFloatingActionMiniButton}"/>
+                    </UniformGrid>
+                </Grid>
+            </Border>
+        </Popup>
+    </Grid>
+</Window>
