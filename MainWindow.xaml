@@ -3,9 +3,10 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
         Title="WindBoard" Height="450" Width="800"
-        WindowState="Maximized">
-    
-    <Grid>
+        WindowState="Maximized"
+        Loaded="Window_Loaded">
+
+    <Grid x:Name="RootGrid" Background="#2E2F33" ClipToBounds="False">
         <Grid.Resources>
             <Style x:Key="BottomButtonBaseStyle" TargetType="Control">
                 <Setter Property="Foreground" Value="#E0E0E0"/>
@@ -85,40 +86,60 @@
             </Style>
         </Grid.Resources>
 
-        <!-- 核心白板控件 -->
-        <InkCanvas Name="MyCanvas" Background="#2E2F33"
-                   IsManipulationEnabled="False"
-                   TouchDown="MyCanvas_TouchDown"
-                   TouchMove="MyCanvas_TouchMove"
-                   TouchUp="MyCanvas_TouchUp"
-                   TouchLeave="MyCanvas_TouchUp"
-                   MouseWheel="MyCanvas_MouseWheel"
-                   MouseDown="MyCanvas_MouseDown"
-                   MouseMove="MyCanvas_MouseMove"
-                   MouseUp="MyCanvas_MouseUp">
-            <InkCanvas.RenderTransform>
-                <MatrixTransform x:Name="CanvasTransform"/>
-            </InkCanvas.RenderTransform>
-            <InkCanvas.DefaultDrawingAttributes>
-                <!-- 默认笔迹：白色，粗细为 6；启用高平滑（FitToCurve） -->
-                <DrawingAttributes Color="White" Width="3" Height="3" IgnorePressure="True" FitToCurve="True"/>
-            </InkCanvas.DefaultDrawingAttributes>
-        </InkCanvas>
+        <!-- 视口：负责“看哪里” -->
+        <ScrollViewer x:Name="Viewport"
+                      Background="#2E2F33"
+                      HorizontalScrollBarVisibility="Hidden"
+                      VerticalScrollBarVisibility="Hidden"
+                      CanContentScroll="False"
+                      PanningMode="None"
+                      IsManipulationEnabled="False">
 
-        <!-- 悬浮工具栏 -->
+            <!-- 承载层：负责整体缩放（不要缩放 InkCanvas 自己） -->
+            <Grid x:Name="CanvasHost" Background="#2E2F33">
+                <Grid.LayoutTransform>
+                    <ScaleTransform x:Name="ZoomTransform" ScaleX="1" ScaleY="1"/>
+                </Grid.LayoutTransform>
+
+                <!-- 核心白板控件：不再使用 RenderTransform -->
+                <InkCanvas Name="MyCanvas"
+                           Background="#2E2F33"
+                           Width="8000" Height="8000"
+                           HorizontalAlignment="Left" VerticalAlignment="Top"
+                           Margin="0"
+                           IsManipulationEnabled="False"
+                           TouchDown="MyCanvas_TouchDown"
+                           TouchMove="MyCanvas_TouchMove"
+                           TouchUp="MyCanvas_TouchUp"
+                           TouchLeave="MyCanvas_TouchUp"
+                           MouseWheel="MyCanvas_MouseWheel"
+                           MouseDown="MyCanvas_MouseDown"
+                           MouseMove="MyCanvas_MouseMove"
+                           MouseUp="MyCanvas_MouseUp">
+
+                    <InkCanvas.DefaultDrawingAttributes>
+                        <DrawingAttributes Color="White" Width="3" Height="3" IgnorePressure="True" FitToCurve="True"/>
+                    </InkCanvas.DefaultDrawingAttributes>
+                </InkCanvas>
+            </Grid>
+        </ScrollViewer>
+
+        <!-- 悬浮工具栏（覆盖在视口之上，不参与缩放） -->
         <Border VerticalAlignment="Bottom" HorizontalAlignment="Center" Margin="0,0,0,30"
-                Background="#25262A" CornerRadius="12" Padding="5" Effect="{StaticResource MaterialDesignShadowDepth2}">
+                Background="#25262A" CornerRadius="12" Padding="5"
+                Effect="{StaticResource MaterialDesignShadowDepth2}"
+                Panel.ZIndex="10">
             <StackPanel Orientation="Horizontal">
                 <RadioButton Name="RadioPen" Content="书写" Tag="Pen" GroupName="Tools" IsChecked="True"
                              Style="{StaticResource BottomRadioButtonStyle}"
                              Checked="RadioPen_Checked"
                              PreviewMouseLeftButtonDown="RadioPen_PreviewMouseLeftButtonDown"
                              ToolTip="再次单击设置画笔"/>
-                
+
                 <RadioButton Name="RadioEraser" Content="擦除" Tag="Eraser" GroupName="Tools"
                              Style="{StaticResource BottomRadioButtonStyle}"
                              Checked="RadioEraser_Checked"/>
-                
+
                 <RadioButton Name="RadioSelect" Content="选择" Tag="CursorDefault" GroupName="Tools"
                              Style="{StaticResource BottomRadioButtonStyle}"
                              Checked="RadioSelect_Checked"/>
@@ -139,8 +160,10 @@
 
         <!-- 笔设置弹窗 -->
         <Popup Name="PopupPenSettings" PlacementTarget="{Binding ElementName=RadioPen}"
-               Placement="Top" StaysOpen="False" AllowsTransparency="True">
-            <Border Background="#2A6952" CornerRadius="12" Padding="15" Margin="0,0,0,10" Effect="{StaticResource MaterialDesignShadowDepth2}">
+               Placement="Top" StaysOpen="False" AllowsTransparency="True"
+               Panel.ZIndex="20">
+            <Border Background="#2A6952" CornerRadius="12" Padding="15" Margin="0,0,0,10"
+                    Effect="{StaticResource MaterialDesignShadowDepth2}">
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto"/>
@@ -173,17 +196,14 @@
 
                     <!-- 颜色选择 (右侧 3x3 网格) -->
                     <UniformGrid Grid.Column="1" Columns="3" Rows="3" Width="150" Height="150">
-                        <!-- 第一行 -->
                         <Button Background="White" BorderBrush="White" Width="36" Height="36" Margin="5" Click="Color_Click" Tag="White" Style="{StaticResource MaterialDesignFloatingActionMiniButton}"/>
                         <Button Background="Red" BorderBrush="Red" Width="36" Height="36" Margin="5" Click="Color_Click" Tag="Red" Style="{StaticResource MaterialDesignFloatingActionMiniButton}"/>
                         <Button Background="#FFD700" BorderBrush="#FFD700" Width="36" Height="36" Margin="5" Click="Color_Click" Tag="#FFD700" Style="{StaticResource MaterialDesignFloatingActionMiniButton}"/>
 
-                        <!-- 第二行 -->
                         <Button Background="#00C853" BorderBrush="#00C853" Width="36" Height="36" Margin="5" Click="Color_Click" Tag="#00C853" Style="{StaticResource MaterialDesignFloatingActionMiniButton}"/>
                         <Button Background="#00E5FF" BorderBrush="#00E5FF" Width="36" Height="36" Margin="5" Click="Color_Click" Tag="#00E5FF" Style="{StaticResource MaterialDesignFloatingActionMiniButton}"/>
                         <Button Background="#2962FF" BorderBrush="#2962FF" Width="36" Height="36" Margin="5" Click="Color_Click" Tag="#2962FF" Style="{StaticResource MaterialDesignFloatingActionMiniButton}"/>
 
-                        <!-- 第三行 -->
                         <Button Background="#AA00FF" BorderBrush="#AA00FF" Width="36" Height="36" Margin="5" Click="Color_Click" Tag="#AA00FF" Style="{StaticResource MaterialDesignFloatingActionMiniButton}"/>
                         <Button Background="#C51162" BorderBrush="#C51162" Width="36" Height="36" Margin="5" Click="Color_Click" Tag="#C51162" Style="{StaticResource MaterialDesignFloatingActionMiniButton}"/>
                         <Button Background="Black" BorderBrush="Black" Width="36" Height="36" Margin="5" Click="Color_Click" Tag="Black" Style="{StaticResource MaterialDesignFloatingActionMiniButton}"/>
@@ -191,5 +211,6 @@
                 </Grid>
             </Border>
         </Popup>
+
     </Grid>
 </Window>
