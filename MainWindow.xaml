@@ -86,10 +86,22 @@
         </Grid.Resources>
 
         <!-- 核心白板控件 -->
-        <InkCanvas Name="MyCanvas" Background="#2E2F33">
+        <InkCanvas Name="MyCanvas" Background="#2E2F33"
+                   IsManipulationEnabled="False"
+                   TouchDown="MyCanvas_TouchDown"
+                   TouchMove="MyCanvas_TouchMove"
+                   TouchUp="MyCanvas_TouchUp"
+                   TouchLeave="MyCanvas_TouchUp"
+                   MouseWheel="MyCanvas_MouseWheel"
+                   MouseDown="MyCanvas_MouseDown"
+                   MouseMove="MyCanvas_MouseMove"
+                   MouseUp="MyCanvas_MouseUp">
+            <InkCanvas.RenderTransform>
+                <MatrixTransform x:Name="CanvasTransform"/>
+            </InkCanvas.RenderTransform>
             <InkCanvas.DefaultDrawingAttributes>
-                <!-- 默认笔迹：白色，粗细为 8 -->
-                <DrawingAttributes Color="White" Width="8" Height="8"/>
+                <!-- 默认笔迹：白色，粗细为 6；启用高平滑（FitToCurve） -->
+                <DrawingAttributes Color="White" Width="3" Height="3" IgnorePressure="True" FitToCurve="True"/>
             </InkCanvas.DefaultDrawingAttributes>
         </InkCanvas>
 
@@ -101,7 +113,7 @@
                              Style="{StaticResource BottomRadioButtonStyle}"
                              Checked="RadioPen_Checked"
                              PreviewMouseLeftButtonDown="RadioPen_PreviewMouseLeftButtonDown"
-                             ToolTip="双击设置画笔"/>
+                             ToolTip="再次单击设置画笔"/>
                 
                 <RadioButton Name="RadioEraser" Content="擦除" Tag="Eraser" GroupName="Tools"
                              Style="{StaticResource BottomRadioButtonStyle}"
@@ -137,11 +149,11 @@
 
                     <!-- 粗细选择 (左侧) -->
                     <StackPanel Grid.Column="0" Margin="0,0,15,0" VerticalAlignment="Center">
-                        <RadioButton GroupName="Thickness" Tag="8" Checked="Thickness_Checked" IsChecked="True" Margin="0,0,0,15"
+                        <RadioButton GroupName="Thickness" Tag="3" Checked="Thickness_Checked" IsChecked="True" Margin="0,0,0,15"
                                      Style="{StaticResource MaterialDesignToolRadioButton}">
                             <materialDesign:PackIcon Kind="Brush" Width="24" Height="24" Foreground="White"/>
                         </RadioButton>
-                        <RadioButton GroupName="Thickness" Tag="16" Checked="Thickness_Checked" Margin="0,0,0,15"
+                        <RadioButton GroupName="Thickness" Tag="6" Checked="Thickness_Checked" Margin="0,0,0,15"
                                      Style="{StaticResource MaterialDesignToolRadioButton}">
                             <materialDesign:PackIcon Kind="Brush" Width="24" Height="24" Foreground="White" RenderTransformOrigin="0.5,0.5">
                                 <materialDesign:PackIcon.RenderTransform>
@@ -149,7 +161,7 @@
                                 </materialDesign:PackIcon.RenderTransform>
                             </materialDesign:PackIcon>
                         </RadioButton>
-                        <RadioButton GroupName="Thickness" Tag="24" Checked="Thickness_Checked"
+                        <RadioButton GroupName="Thickness" Tag="9" Checked="Thickness_Checked"
                                      Style="{StaticResource MaterialDesignToolRadioButton}">
                             <materialDesign:PackIcon Kind="Brush" Width="24" Height="24" Foreground="White" RenderTransformOrigin="0.5,0.5">
                                 <materialDesign:PackIcon.RenderTransform>
