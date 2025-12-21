@@ -39,6 +39,10 @@ namespace WindBoard
         private bool _isPanning = false;
         private Point _lastMousePosition;
 
+        // 左/上扩容需要“内容平移”的延迟量（避免正在书写时平移导致动态笔迹不同步）
+        private double _pendingShiftX = 0;
+        private double _pendingShiftY = 0;
+
         // 触摸点集合：DeviceId -> Point (Viewport坐标)
         private readonly Dictionary<int, Point> _activeTouches = new Dictionary<int, Point>();
 
@@ -51,6 +55,7 @@ namespace WindBoard
         public MainWindow()
         {
             InitializeComponent();
+            MyCanvas.StrokeCollected += MyCanvas_StrokeCollected;
             _eraserOverlay = (Canvas)FindName("EraserOverlay");
             _eraserCursorRect = (Border)FindName("EraserCursorRect");
 
@@ -228,6 +233,9 @@ private void MyCanvas_TouchMove(object sender, TouchEventArgs e)
     var p = e.GetTouchPoint(Viewport).Position;
     _activeTouches[e.TouchDevice.Id] = p;
 
+    // 自动扩容检测
+    AutoExpandCanvas(e.GetTouchPoint(MyCanvas).Position);
+
     // 橡皮擦模式下的单指移动：仅在按下时显示并跟随（不拦截事件）
     if (!_gestureActive && RadioEraser.IsChecked == true && _activeTouches.Count == 1 && _isEraserPressed)
     {
@@ -372,7 +380,6 @@ private void MyCanvas_TouchUp(object sender, TouchEventArgs e)
                 _isMouseErasing = true;
                 MyCanvas.Cursor = Cursors.Arrow;
                 Point p = e.GetPosition(MyCanvas);
-                System.Diagnostics.Debug.WriteLine($"[DEBUG] MouseDown(Erase): p={p}");
                 UpdateEraserVisual(p);
                 // 不设置 Handled，交由 InkCanvas 执行擦除
             }
@@ -380,6 +387,12 @@ private void MyCanvas_TouchUp(object sender, TouchEventArgs e)
 
         private void MyCanvas_MouseMove(object sender, MouseEventArgs e)
         {
+            // 仅在按下左键（书写/擦除/拖拽）时检测扩容
+            if (e.LeftButton == MouseButtonState.Pressed)
+            {
+                AutoExpandCanvas(e.GetPosition(MyCanvas));
+            }
+
             if (_isPanning)
             {
                 Point currentPosition = e.GetPosition(Viewport);
@@ -415,6 +428,101 @@ private void MyCanvas_TouchUp(object sender, TouchEventArgs e)
                 MyCanvas.Cursor = Cursors.Arrow;
                 UpdateEraserVisual(null);
             }
+        }
+
+        #endregion
+
+        #region Auto Expansion
+
+        /// 自动扩容补丁函数：当操作点接近画布边缘时，自动增加画布尺寸
+        /// <param name="currentContentPosition">当前操作点在 MyCanvas 内部的坐标</param>
+        private void AutoExpandCanvas(Point currentContentPosition)
+        {
+            // 阈值/步长（内容坐标）
+            const double ExpansionThreshold = 1000.0;
+            const double ExpansionStep = 2000.0;
+
+            double expandLeft = 0, expandTop = 0, expandRight = 0, expandBottom = 0;
+
+            if (currentContentPosition.X < ExpansionThreshold) expandLeft = ExpansionStep;
+            if (currentContentPosition.Y < ExpansionThreshold) expandTop = ExpansionStep;
+
+            if (currentContentPosition.X > MyCanvas.Width - ExpansionThreshold) expandRight = ExpansionStep;
+            if (currentContentPosition.Y > MyCanvas.Height - ExpansionThreshold) expandBottom = ExpansionStep;
+
+            if (expandLeft == 0 && expandTop == 0 && expandRight == 0 && expandBottom == 0)
+                return;
+
+            // 先扩尺寸：左/上扩容也需要先把 Width/Height 变大，否则平移后内容可能被推到边界外
+            double newW = MyCanvas.Width + expandLeft + expandRight;
+            double newH = MyCanvas.Height + expandTop + expandBottom;
+            double newSize = Math.Max(newW, newH); // 保持正方形
+
+            if (newSize > MyCanvas.Width || newSize > MyCanvas.Height)
+            {
+                MyCanvas.Width = newSize;
+                MyCanvas.Height = newSize;
+            }
+
+            // 左/上扩容：需要把已有内容整体往右/下挪，才能“腾出”左/上空间
+            if (expandLeft > 0 || expandTop > 0)
+            {
+                // 正在书写(Ink)时，立刻 Transform 可能导致“动态笔迹”和最终笔迹错位
+                bool inkingActive = (MyCanvas.EditingMode == InkCanvasEditingMode.Ink) &&
+                                    (Mouse.LeftButton == MouseButtonState.Pressed || _activeTouches.Count > 0);
+
+                if (inkingActive)
+                {
+                    _pendingShiftX += expandLeft;
+                    _pendingShiftY += expandTop;
+                }
+                else
+                {
+                    ShiftCanvasContent(expandLeft, expandTop);
+                }
+            }
+
+            System.Diagnostics.Debug.WriteLine(
+                $"[AutoExpand] expand L{expandLeft} T{expandTop} R{expandRight} B{expandBottom} -> {MyCanvas.Width:F0}x{MyCanvas.Height:F0}");
+        }
+
+        // 平移内容（笔迹 + 子元素 + 视口补偿）
+        private void ShiftCanvasContent(double dx, double dy)
+        {
+            if (dx == 0 && dy == 0) return;
+
+            // 平移笔迹
+            var m = Matrix.Identity;
+            m.Translate(dx, dy);
+            MyCanvas.Strokes.Transform(m, false); 
+
+            // 平移 InkCanvas.Children（如果你未来往 InkCanvas 里加 UIElement，也能一起挪）
+            foreach (UIElement child in MyCanvas.Children)
+            {
+                double left = InkCanvas.GetLeft(child);
+                double top = InkCanvas.GetTop(child);
+                if (double.IsNaN(left)) left = 0;
+                if (double.IsNaN(top)) top = 0;
+
+                InkCanvas.SetLeft(child, left + dx);
+                InkCanvas.SetTop(child, top + dy);
+            }
+
+            // 关键：内容整体向右/下挪了，为了让用户“视野不跳”，ScrollViewer 的 offset 也要补偿
+            Viewport.UpdateLayout();
+            Viewport.ScrollToHorizontalOffset(Viewport.HorizontalOffset + dx * _zoom);
+            Viewport.ScrollToVerticalOffset(Viewport.VerticalOffset + dy * _zoom);
+        }
+
+        private void MyCanvas_StrokeCollected(object sender, InkCanvasStrokeCollectedEventArgs e)
+        {
+            if (_pendingShiftX == 0 && _pendingShiftY == 0) return;
+
+            double dx = _pendingShiftX;
+            double dy = _pendingShiftY;
+            _pendingShiftX = _pendingShiftY = 0;
+
+            ShiftCanvasContent(dx, dy);
         }
 
         #endregion
