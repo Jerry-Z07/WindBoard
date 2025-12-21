@@ -121,6 +121,21 @@
                         <DrawingAttributes Color="White" Width="3" Height="3" IgnorePressure="True" FitToCurve="True"/>
                     </InkCanvas.DefaultDrawingAttributes>
                 </InkCanvas>
+
+                <!-- 自定义橡皮擦游标覆盖层：跟随内容缩放（不拦截输入） -->
+                <Canvas x:Name="EraserOverlay"
+                        Width="{Binding ElementName=MyCanvas, Path=Width}"
+                        Height="{Binding ElementName=MyCanvas, Path=Height}"
+                        IsHitTestVisible="False"
+                        Visibility="Collapsed"
+                        Panel.ZIndex="5">
+                    <Border x:Name="EraserCursorRect"
+                            Background="White"
+                            CornerRadius="6"
+                            Width="40"
+                            Height="80"
+                            Opacity="1.0"/>
+                </Canvas>
             </Grid>
         </ScrollViewer>
 

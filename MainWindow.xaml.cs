@@ -15,6 +15,15 @@ namespace WindBoard
         private InkCanvasEditingMode _lastEditingMode = InkCanvasEditingMode.Ink;
         private double _baseThickness = 3.0;
 
+        // 橡皮擦基准尺寸（屏幕上看到的尺寸，随缩放保持一致）
+        private double _eraserBaseWidth = 40.0;
+        private double _eraserBaseHeight = 80.0;
+
+        // XAML 命名元素缓存，避免编译器未生成字段导致的引用错误
+        private Canvas _eraserOverlay;
+        private Border _eraserCursorRect;
+        private bool _isEraserPressed = false;
+
         // Zoom（视口缩放）
         private double _zoom = 1.0;
         private const double MinZoom = 0.5;
@@ -36,6 +45,8 @@ namespace WindBoard
         public MainWindow()
         {
             InitializeComponent();
+            _eraserOverlay = (Canvas)FindName("EraserOverlay");
+            _eraserCursorRect = (Border)FindName("EraserCursorRect");
         }
 
         private void Window_Loaded(object sender, RoutedEventArgs e)
@@ -53,6 +64,7 @@ namespace WindBoard
                 Viewport.ScrollToVerticalOffset((extentH - Viewport.ViewportHeight) / 2.0);
 
                 UpdatePenThickness(_zoom);
+                UpdateEraserVisual(null);
             }, System.Windows.Threading.DispatcherPriority.Loaded);
         }
 
@@ -83,6 +95,7 @@ namespace WindBoard
             Viewport.ScrollToVerticalOffset(contentY * _zoom - viewportPoint.Y);
 
             UpdatePenThickness(_zoom);
+            UpdateEraserVisual(null);
         }
 
         private void PanBy(Vector deltaViewport)
@@ -104,6 +117,42 @@ namespace WindBoard
             da.Height = newThickness;
         }
 
+        // 更新橡皮擦的可视化与命中测试形状（保持屏幕尺寸固定）
+        private void UpdateEraserVisual(Point? center)
+        {
+            double wContent = _eraserBaseWidth / _zoom;
+            double hContent = _eraserBaseHeight / _zoom;
+
+            // 更新可视游标大小与位置
+            if (_eraserCursorRect != null)
+            {
+                _eraserCursorRect.Width = wContent;
+                _eraserCursorRect.Height = hContent;
+
+                if (center.HasValue)
+                {
+                    double left = center.Value.X - wContent / 2.0;
+                    double top = center.Value.Y - hContent / 2.0;
+                    Canvas.SetLeft(_eraserCursorRect, left);
+                    Canvas.SetTop(_eraserCursorRect, top);
+                }
+            }
+
+            // 更新 InkCanvas 的橡皮擦形状
+            if (RadioEraser != null && RadioEraser.IsChecked == true)
+            {
+                MyCanvas.EraserShape = new RectangleStylusShape(wContent, hContent);
+            }
+
+            // 覆盖层显隐（仅在按下时显示）
+            if (_eraserOverlay != null)
+            {
+                _eraserOverlay.Visibility = (RadioEraser != null && RadioEraser.IsChecked == true && _isEraserPressed)
+                    ? Visibility.Visible
+                    : Visibility.Collapsed;
+            }
+        }
+
         #endregion
 
 #region Touch Handlers (Pinch Zoom & Pan - Snapshot Based)
@@ -114,6 +163,14 @@ private void MyCanvas_TouchDown(object sender, TouchEventArgs e)
 
     var p = e.GetTouchPoint(Viewport).Position;
     _activeTouches[e.TouchDevice.Id] = p;
+
+    // 单指擦除：按下时显示游标
+    if (RadioEraser.IsChecked == true && _activeTouches.Count == 1)
+    {
+        _isEraserPressed = true;
+        var pContent = (_eraserOverlay != null ? e.GetTouchPoint(_eraserOverlay) : e.GetTouchPoint(MyCanvas)).Position;
+        UpdateEraserVisual(pContent);
+    }
 
     if (_activeTouches.Count == 2)
     {
@@ -130,6 +187,10 @@ private void MyCanvas_TouchDown(object sender, TouchEventArgs e)
         _lastGestureP2 = _activeTouches[_gestureId2];
         _gestureActive = true;
 
+        // 双指开始，隐藏橡皮擦游标
+        _isEraserPressed = false;
+        UpdateEraserVisual(null);
+
         // 关键：双指时必须 Handled，阻止触摸被“提升”为鼠标/滚动等副作用
         e.Handled = true;
     }
@@ -143,6 +204,13 @@ private void MyCanvas_TouchMove(object sender, TouchEventArgs e)
     // 更新当前触点（Viewport 坐标）
     var p = e.GetTouchPoint(Viewport).Position;
     _activeTouches[e.TouchDevice.Id] = p;
+
+    // 橡皮擦模式下的单指移动：仅在按下时显示并跟随（不拦截事件）
+    if (!_gestureActive && RadioEraser.IsChecked == true && _activeTouches.Count == 1 && _isEraserPressed)
+    {
+        var pContent = (_eraserOverlay != null ? e.GetTouchPoint(_eraserOverlay) : e.GetTouchPoint(MyCanvas)).Position;
+        UpdateEraserVisual(pContent);
+    }
 
     if (!(_gestureActive && _activeTouches.Count == 2
           && _activeTouches.ContainsKey(_gestureId1)
@@ -194,6 +262,7 @@ private void MyCanvas_TouchMove(object sender, TouchEventArgs e)
     Viewport.ScrollToVerticalOffset(contentY * _zoom - newCenter.Y);
 
     UpdatePenThickness(_zoom);
+    UpdateEraserVisual(null);
 
     // 更新快照
     _lastGestureP1 = p1New;
@@ -218,6 +287,10 @@ private void MyCanvas_TouchUp(object sender, TouchEventArgs e)
         // 恢复之前的编辑模式
         if (MyCanvas.EditingMode == InkCanvasEditingMode.None)
             MyCanvas.EditingMode = _lastEditingMode;
+
+        // 松开触点：隐藏橡皮擦游标
+        _isEraserPressed = false;
+        UpdateEraserVisual(null);
 
         // 双指结束也 Handled 一下，减少“提升为鼠标事件”引发的杂音
         e.Handled = true;
@@ -268,6 +341,15 @@ private void MyCanvas_TouchUp(object sender, TouchEventArgs e)
                 MyCanvas.CaptureMouse();
                 e.Handled = true;
             }
+            else if (MyCanvas.EditingMode == InkCanvasEditingMode.EraseByPoint && e.ChangedButton == MouseButton.Left)
+            {
+                // 按下时显示自定义橡皮擦游标，并隐藏系统光标
+                _isEraserPressed = true;
+                MyCanvas.Cursor = Cursors.None;
+                Point p = _eraserOverlay != null ? e.GetPosition(_eraserOverlay) : e.GetPosition(MyCanvas);
+                UpdateEraserVisual(p);
+                // 不设置 Handled，交由 InkCanvas 执行擦除
+            }
         }
 
         private void MyCanvas_MouseMove(object sender, MouseEventArgs e)
@@ -282,6 +364,12 @@ private void MyCanvas_TouchUp(object sender, TouchEventArgs e)
                 _lastMousePosition = currentPosition;
                 e.Handled = true;
             }
+            else if (MyCanvas.EditingMode == InkCanvasEditingMode.EraseByPoint && _isEraserPressed)
+            {
+                // 更新橡皮擦游标到鼠标位置（内容坐标）
+                Point p = _eraserOverlay != null ? e.GetPosition(_eraserOverlay) : e.GetPosition(MyCanvas);
+                UpdateEraserVisual(p);
+            }
         }
 
         private void MyCanvas_MouseUp(object sender, MouseButtonEventArgs e)
@@ -293,6 +381,12 @@ private void MyCanvas_TouchUp(object sender, TouchEventArgs e)
 
                 MyCanvas.EditingMode = _lastEditingMode;
                 e.Handled = true;
+            }
+            else if (MyCanvas.EditingMode == InkCanvasEditingMode.EraseByPoint && e.ChangedButton == MouseButton.Left)
+            {
+                _isEraserPressed = false;
+                MyCanvas.Cursor = Cursors.Arrow;
+                UpdateEraserVisual(null);
             }
         }
 
@@ -315,17 +409,29 @@ private void MyCanvas_TouchUp(object sender, TouchEventArgs e)
         private void RadioPen_Checked(object sender, RoutedEventArgs e)
         {
             MyCanvas.EditingMode = InkCanvasEditingMode.Ink;
+            MyCanvas.UseCustomCursor = false;
+            MyCanvas.ClearValue(CursorProperty);
+            if (_eraserOverlay != null)
+                _eraserOverlay.Visibility = Visibility.Collapsed;
         }
 
         private void RadioEraser_Checked(object sender, RoutedEventArgs e)
         {
             MyCanvas.EditingMode = InkCanvasEditingMode.EraseByPoint;
-            MyCanvas.EraserShape = new EllipseStylusShape(16, 16);
+            // 启用自定义光标：未按下时显示箭头，按下时隐藏（在 MouseDown/Up 中切换）
+            MyCanvas.UseCustomCursor = true;
+            MyCanvas.Cursor = Cursors.Arrow;
+            _isEraserPressed = false;
+            UpdateEraserVisual(null);
         }
 
         private void RadioSelect_Checked(object sender, RoutedEventArgs e)
         {
             MyCanvas.EditingMode = InkCanvasEditingMode.Select;
+            MyCanvas.UseCustomCursor = false;
+            MyCanvas.ClearValue(CursorProperty);
+            if (_eraserOverlay != null)
+                _eraserOverlay.Visibility = Visibility.Collapsed;
         }
 
         private void Thickness_Checked(object sender, RoutedEventArgs e)
