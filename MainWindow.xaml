@@ -128,7 +128,7 @@
                         Panel.ZIndex="5">
                     <Border x:Name="EraserCursorRect"
                             Background="#FFFAFA"
-                            CornerRadius="6"
+                            CornerRadius="0"
                             Width="40"
                             Height="80"
                             Opacity="1.0"/>

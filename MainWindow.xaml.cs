@@ -18,6 +18,8 @@ namespace WindBoard
         // 橡皮擦基准尺寸（屏幕上看到的尺寸，随缩放保持一致）
         private double _eraserBaseWidth = 40.0;
         private double _eraserBaseHeight = 80.0;
+        // 橡皮擦浮标圆角（屏幕上看到的圆角，随缩放保持一致）
+        private double _eraserBaseCornerRadius = 6.0;
         // 鼠标浮标与箭头的垂直偏移（屏幕像素）
         private double _eraserCursorOffsetY = 12.0;
 
@@ -136,11 +138,17 @@ namespace WindBoard
             // 将屏幕偏移换算到内容坐标，确保缩放后仍是固定屏幕距离
             double offsetYContent = _eraserCursorOffsetY / _zoom;
 
+            // 新增：圆角也要按 zoom 反算，保证屏幕圆角恒定
+            double radiusContent = _eraserBaseCornerRadius / _zoom;
+
             // 更新可视游标大小与位置
             if (_eraserCursorRect != null)
             {
                 _eraserCursorRect.Width = wContent;
                 _eraserCursorRect.Height = hContent;
+
+                // 新增：更新圆角
+                _eraserCursorRect.CornerRadius = new CornerRadius(radiusContent);
 
                 if (center.HasValue)
                 {
