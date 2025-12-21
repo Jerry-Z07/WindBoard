@@ -112,10 +112,7 @@
                            TouchMove="MyCanvas_TouchMove"
                            TouchUp="MyCanvas_TouchUp"
                            TouchLeave="MyCanvas_TouchUp"
-                           MouseWheel="MyCanvas_MouseWheel"
-                           MouseDown="MyCanvas_MouseDown"
-                           MouseMove="MyCanvas_MouseMove"
-                           MouseUp="MyCanvas_MouseUp">
+                           MouseWheel="MyCanvas_MouseWheel">
 
                     <InkCanvas.DefaultDrawingAttributes>
                         <DrawingAttributes Color="White" Width="3" Height="3" IgnorePressure="True" FitToCurve="True"/>
@@ -130,7 +127,7 @@
                         Visibility="Collapsed"
                         Panel.ZIndex="5">
                     <Border x:Name="EraserCursorRect"
-                            Background="White"
+                            Background="#FFFAFA"
                             CornerRadius="6"
                             Width="40"
                             Height="80"
