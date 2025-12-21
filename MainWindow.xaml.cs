@@ -409,7 +409,6 @@ private void MyCanvas_TouchUp(object sender, TouchEventArgs e)
         private void RadioPen_Checked(object sender, RoutedEventArgs e)
         {
             MyCanvas.EditingMode = InkCanvasEditingMode.Ink;
-            MyCanvas.UseCustomCursor = false;
             MyCanvas.ClearValue(CursorProperty);
             if (_eraserOverlay != null)
                 _eraserOverlay.Visibility = Visibility.Collapsed;
@@ -418,8 +417,7 @@ private void MyCanvas_TouchUp(object sender, TouchEventArgs e)
         private void RadioEraser_Checked(object sender, RoutedEventArgs e)
         {
             MyCanvas.EditingMode = InkCanvasEditingMode.EraseByPoint;
-            // 启用自定义光标：未按下时显示箭头，按下时隐藏（在 MouseDown/Up 中切换）
-            MyCanvas.UseCustomCursor = true;
+            // 橡皮擦模式：默认显示箭头光标，按下时隐藏
             MyCanvas.Cursor = Cursors.Arrow;
             _isEraserPressed = false;
             UpdateEraserVisual(null);
@@ -428,7 +426,6 @@ private void MyCanvas_TouchUp(object sender, TouchEventArgs e)
         private void RadioSelect_Checked(object sender, RoutedEventArgs e)
         {
             MyCanvas.EditingMode = InkCanvasEditingMode.Select;
-            MyCanvas.UseCustomCursor = false;
             MyCanvas.ClearValue(CursorProperty);
             if (_eraserOverlay != null)
                 _eraserOverlay.Visibility = Visibility.Collapsed;
