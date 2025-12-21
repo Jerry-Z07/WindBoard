@@ -177,53 +177,62 @@
         <Popup Name="PopupPenSettings" PlacementTarget="{Binding ElementName=RadioPen}"
                Placement="Top" StaysOpen="False" AllowsTransparency="True"
                Panel.ZIndex="20">
-            <Border Background="#2A6952" CornerRadius="12" Padding="15" Margin="0,0,0,10"
+            <Border Background="#E625262A" CornerRadius="16" Margin="0,0,0,10"
                     Effect="{StaticResource MaterialDesignShadowDepth2}">
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="Auto"/>
-                    </Grid.ColumnDefinitions>
+                <StackPanel>
+                    <!-- 标题栏 -->
+                    <TextBlock Text="画笔设置" FontWeight="Bold" FontSize="16" Foreground="White" Margin="16,12"/>
+                    
+                    <!-- 分割线 -->
+                    <Border Height="1" Background="#505050" Margin="0,0,0,12"/>
 
-                    <!-- 粗细选择 (左侧) -->
-                    <StackPanel Grid.Column="0" Margin="0,0,15,0" VerticalAlignment="Center">
-                        <RadioButton GroupName="Thickness" Tag="3" Checked="Thickness_Checked" IsChecked="True" Margin="0,0,0,15"
-                                     Style="{StaticResource MaterialDesignToolRadioButton}">
-                            <materialDesign:PackIcon Kind="Brush" Width="24" Height="24" Foreground="White"/>
-                        </RadioButton>
-                        <RadioButton GroupName="Thickness" Tag="6" Checked="Thickness_Checked" Margin="0,0,0,15"
-                                     Style="{StaticResource MaterialDesignToolRadioButton}">
-                            <materialDesign:PackIcon Kind="Brush" Width="24" Height="24" Foreground="White" RenderTransformOrigin="0.5,0.5">
-                                <materialDesign:PackIcon.RenderTransform>
-                                    <ScaleTransform ScaleX="1.2" ScaleY="1.2"/>
-                                </materialDesign:PackIcon.RenderTransform>
-                            </materialDesign:PackIcon>
-                        </RadioButton>
-                        <RadioButton GroupName="Thickness" Tag="9" Checked="Thickness_Checked"
-                                     Style="{StaticResource MaterialDesignToolRadioButton}">
-                            <materialDesign:PackIcon Kind="Brush" Width="24" Height="24" Foreground="White" RenderTransformOrigin="0.5,0.5">
-                                <materialDesign:PackIcon.RenderTransform>
-                                    <ScaleTransform ScaleX="1.5" ScaleY="1.5"/>
-                                </materialDesign:PackIcon.RenderTransform>
-                            </materialDesign:PackIcon>
-                        </RadioButton>
-                    </StackPanel>
+                    <!-- 内容区域 -->
+                    <Grid Margin="16,0,16,16">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
 
-                    <!-- 颜色选择 (右侧 3x3 网格) -->
-                    <UniformGrid Grid.Column="1" Columns="3" Rows="3" Width="150" Height="150">
-                        <Button Background="White" BorderBrush="White" Width="36" Height="36" Margin="5" Click="Color_Click" Tag="White" Style="{StaticResource MaterialDesignFloatingActionMiniButton}"/>
-                        <Button Background="Red" BorderBrush="Red" Width="36" Height="36" Margin="5" Click="Color_Click" Tag="Red" Style="{StaticResource MaterialDesignFloatingActionMiniButton}"/>
-                        <Button Background="#FFD700" BorderBrush="#FFD700" Width="36" Height="36" Margin="5" Click="Color_Click" Tag="#FFD700" Style="{StaticResource MaterialDesignFloatingActionMiniButton}"/>
+                        <!-- 粗细选择 (左侧) -->
+                        <StackPanel Grid.Column="0" Margin="0,0,16,0" VerticalAlignment="Center">
+                            <RadioButton GroupName="Thickness" Tag="3" Checked="Thickness_Checked" IsChecked="True" Margin="0,0,0,16"
+                                         Style="{StaticResource MaterialDesignToolRadioButton}">
+                                <materialDesign:PackIcon Kind="Brush" Width="24" Height="24" Foreground="White"/>
+                            </RadioButton>
+                            <RadioButton GroupName="Thickness" Tag="6" Checked="Thickness_Checked" Margin="0,0,0,16"
+                                         Style="{StaticResource MaterialDesignToolRadioButton}">
+                                <materialDesign:PackIcon Kind="Brush" Width="24" Height="24" Foreground="White" RenderTransformOrigin="0.5,0.5">
+                                    <materialDesign:PackIcon.RenderTransform>
+                                        <ScaleTransform ScaleX="1.2" ScaleY="1.2"/>
+                                    </materialDesign:PackIcon.RenderTransform>
+                                </materialDesign:PackIcon>
+                            </RadioButton>
+                            <RadioButton GroupName="Thickness" Tag="9" Checked="Thickness_Checked"
+                                         Style="{StaticResource MaterialDesignToolRadioButton}">
+                                <materialDesign:PackIcon Kind="Brush" Width="24" Height="24" Foreground="White" RenderTransformOrigin="0.5,0.5">
+                                    <materialDesign:PackIcon.RenderTransform>
+                                        <ScaleTransform ScaleX="1.5" ScaleY="1.5"/>
+                                    </materialDesign:PackIcon.RenderTransform>
+                                </materialDesign:PackIcon>
+                            </RadioButton>
+                        </StackPanel>
 
-                        <Button Background="#00C853" BorderBrush="#00C853" Width="36" Height="36" Margin="5" Click="Color_Click" Tag="#00C853" Style="{StaticResource MaterialDesignFloatingActionMiniButton}"/>
-                        <Button Background="#00E5FF" BorderBrush="#00E5FF" Width="36" Height="36" Margin="5" Click="Color_Click" Tag="#00E5FF" Style="{StaticResource MaterialDesignFloatingActionMiniButton}"/>
-                        <Button Background="#2962FF" BorderBrush="#2962FF" Width="36" Height="36" Margin="5" Click="Color_Click" Tag="#2962FF" Style="{StaticResource MaterialDesignFloatingActionMiniButton}"/>
+                        <!-- 颜色选择 (右侧 3x3 网格) -->
+                        <UniformGrid Grid.Column="1" Columns="3" Rows="3" Width="150" Height="150">
+                            <Button Background="White" BorderBrush="White" Width="36" Height="36" Margin="5" Click="Color_Click" Tag="White" Style="{StaticResource MaterialDesignFloatingActionMiniButton}"/>
+                            <Button Background="Red" BorderBrush="Red" Width="36" Height="36" Margin="5" Click="Color_Click" Tag="Red" Style="{StaticResource MaterialDesignFloatingActionMiniButton}"/>
+                            <Button Background="#FFD700" BorderBrush="#FFD700" Width="36" Height="36" Margin="5" Click="Color_Click" Tag="#FFD700" Style="{StaticResource MaterialDesignFloatingActionMiniButton}"/>
 
-                        <Button Background="#AA00FF" BorderBrush="#AA00FF" Width="36" Height="36" Margin="5" Click="Color_Click" Tag="#AA00FF" Style="{StaticResource MaterialDesignFloatingActionMiniButton}"/>
-                        <Button Background="#C51162" BorderBrush="#C51162" Width="36" Height="36" Margin="5" Click="Color_Click" Tag="#C51162" Style="{StaticResource MaterialDesignFloatingActionMiniButton}"/>
-                        <Button Background="Black" BorderBrush="Black" Width="36" Height="36" Margin="5" Click="Color_Click" Tag="Black" Style="{StaticResource MaterialDesignFloatingActionMiniButton}"/>
-                    </UniformGrid>
-                </Grid>
+                            <Button Background="#00C853" BorderBrush="#00C853" Width="36" Height="36" Margin="5" Click="Color_Click" Tag="#00C853" Style="{StaticResource MaterialDesignFloatingActionMiniButton}"/>
+                            <Button Background="#00E5FF" BorderBrush="#00E5FF" Width="36" Height="36" Margin="5" Click="Color_Click" Tag="#00E5FF" Style="{StaticResource MaterialDesignFloatingActionMiniButton}"/>
+                            <Button Background="#2962FF" BorderBrush="#2962FF" Width="36" Height="36" Margin="5" Click="Color_Click" Tag="#2962FF" Style="{StaticResource MaterialDesignFloatingActionMiniButton}"/>
+
+                            <Button Background="#AA00FF" BorderBrush="#AA00FF" Width="36" Height="36" Margin="5" Click="Color_Click" Tag="#AA00FF" Style="{StaticResource MaterialDesignFloatingActionMiniButton}"/>
+                            <Button Background="#C51162" BorderBrush="#C51162" Width="36" Height="36" Margin="5" Click="Color_Click" Tag="#C51162" Style="{StaticResource MaterialDesignFloatingActionMiniButton}"/>
+                            <Button Background="Black" BorderBrush="Black" Width="36" Height="36" Margin="5" Click="Color_Click" Tag="Black" Style="{StaticResource MaterialDesignFloatingActionMiniButton}"/>
+                        </UniformGrid>
+                    </Grid>
+                </StackPanel>
             </Border>
         </Popup>
 
