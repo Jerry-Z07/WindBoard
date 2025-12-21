@@ -1,19 +1,79 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Ink;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media.Imaging;
+using System.Windows.Controls.Primitives;
 
 namespace WindBoard
 {
-    public partial class MainWindow : Window
+    public class BoardPage : INotifyPropertyChanged
     {
+        public event PropertyChangedEventHandler? PropertyChanged;
+
+        private int _number;
+        private bool _isCurrent;
+        private ImageSource? _preview;
+
+        public int Number
+        {
+            get => _number;
+            set { _number = value; OnPropertyChanged(); }
+        }
+
+        public bool IsCurrent
+        {
+            get => _isCurrent;
+            set { _isCurrent = value; OnPropertyChanged(); }
+        }
+
+        public ImageSource? Preview
+        {
+            get => _preview;
+            set { _preview = value; OnPropertyChanged(); }
+        }
+
+        // 页面内容
+        public StrokeCollection Strokes { get; set; } = new StrokeCollection();
+
+        // 每页画布大小
+        public double CanvasWidth { get; set; } = 8000;
+        public double CanvasHeight { get; set; } = 8000;
+
+        // 每页视图状态（可选但体验更好）
+        public double Zoom { get; set; } = 1.0;
+        public double HorizontalOffset { get; set; } = 0.0;
+        public double VerticalOffset { get; set; } = 0.0;
+
+        private void OnPropertyChanged([CallerMemberName] string? name = null)
+            => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name ?? string.Empty));
+    }
+
+    public partial class MainWindow : Window, INotifyPropertyChanged
+    {
+        public event PropertyChangedEventHandler? PropertyChanged;
+        private void OnPropertyChanged([CallerMemberName] string? name = null)
+            => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name ?? string.Empty));
+
         // 工具状态
         private InkCanvasEditingMode _lastEditingMode = InkCanvasEditingMode.Ink;
         private double _baseThickness = 3.0;
+
+        // 分页相关
+        public ObservableCollection<BoardPage> Pages { get; } = new ObservableCollection<BoardPage>();
+        private int _currentPageIndex = 0;
+        private bool _suppressStrokeEvents = false;
+        private StrokeCollection? _attachedStrokes = null;
+
+        public bool IsMultiPage => Pages.Count > 1;
+        public string PageIndicatorText => $"{_currentPageIndex + 1} / {Pages.Count}";
 
         // 橡皮擦基准尺寸（屏幕上看到的尺寸，随缩放保持一致）
         private double _eraserBaseWidth = 40.0;
@@ -24,8 +84,9 @@ namespace WindBoard
         private double _eraserCursorOffsetY = 12.0;
 
         // XAML 命名元素缓存，避免编译器未生成字段导致的引用错误
-        private Canvas _eraserOverlay;
-        private Border _eraserCursorRect;
+        private Canvas? _eraserOverlay;
+        private Border? _eraserCursorRect;
+        private Popup? _popupPageManager;
         private bool _isEraserPressed = false;
         // 当前是否为鼠标擦除（用于决定浮标定位方式）
         private bool _isMouseErasing = false;
@@ -55,9 +116,12 @@ namespace WindBoard
         public MainWindow()
         {
             InitializeComponent();
+            DataContext = this;
+
             MyCanvas.StrokeCollected += MyCanvas_StrokeCollected;
             _eraserOverlay = (Canvas)FindName("EraserOverlay");
             _eraserCursorRect = (Border)FindName("EraserCursorRect");
+            _popupPageManager = (Popup)FindName("PopupPageManager");
 
             // 即使 InkCanvas 将事件标记为 Handled，也要接收（擦除模式下很关键）
             MyCanvas.AddHandler(UIElement.MouseDownEvent, new MouseButtonEventHandler(MyCanvas_MouseDown), true);
@@ -65,6 +129,12 @@ namespace WindBoard
             MyCanvas.AddHandler(UIElement.MouseUpEvent, new MouseButtonEventHandler(MyCanvas_MouseUp), true);
 
             System.Diagnostics.Debug.WriteLine("[DEBUG] AddHandler MouseDown/Move/Up (handledEventsToo=true) 已注册");
+
+            // 用于更新缩略图：监听 StrokesChanged（切页时会重新挂）
+            AttachStrokeEvents();
+
+            // Pages 数量变化时更新 UI 绑定属性
+            Pages.CollectionChanged += (s, e) => NotifyPageUiChanged();
         }
 
         private void Window_Loaded(object sender, RoutedEventArgs e)
@@ -83,6 +153,9 @@ namespace WindBoard
 
                 UpdatePenThickness(_zoom);
                 UpdateEraserVisual(null);
+
+                // 初始化第一页（若未初始化）
+                InitializePagesIfNeeded();
             }, System.Windows.Threading.DispatcherPriority.Loaded);
         }
 
@@ -462,6 +535,13 @@ private void MyCanvas_TouchUp(object sender, TouchEventArgs e)
             {
                 MyCanvas.Width = newSize;
                 MyCanvas.Height = newSize;
+
+                // 同步更新当前页的画布尺寸，防止切页回来尺寸回滚
+                if (Pages.Count > 0)
+                {
+                    Pages[_currentPageIndex].CanvasWidth = MyCanvas.Width;
+                    Pages[_currentPageIndex].CanvasHeight = MyCanvas.Height;
+                }
             }
 
             // 左/上扩容：需要把已有内容整体往右/下挪，才能“腾出”左/上空间
@@ -482,8 +562,6 @@ private void MyCanvas_TouchUp(object sender, TouchEventArgs e)
                 }
             }
 
-            System.Diagnostics.Debug.WriteLine(
-                $"[AutoExpand] expand L{expandLeft} T{expandTop} R{expandRight} B{expandBottom} -> {MyCanvas.Width:F0}x{MyCanvas.Height:F0}");
         }
 
         // 平移内容（笔迹 + 子元素 + 视口补偿）
@@ -494,7 +572,7 @@ private void MyCanvas_TouchUp(object sender, TouchEventArgs e)
             // 平移笔迹
             var m = Matrix.Identity;
             m.Translate(dx, dy);
-            MyCanvas.Strokes.Transform(m, false); 
+            MyCanvas.Strokes.Transform(m, false);
 
             // 平移 InkCanvas.Children（如果你未来往 InkCanvas 里加 UIElement，也能一起挪）
             foreach (UIElement child in MyCanvas.Children)
@@ -594,6 +672,293 @@ private void MyCanvas_TouchUp(object sender, TouchEventArgs e)
                 }
 
                 PopupPenSettings.IsOpen = false;
+            }
+        }
+
+        // ===================== 分页相关逻辑 =====================
+
+        private void InitializePagesIfNeeded()
+        {
+            if (Pages.Count > 0) return;
+
+            var p = new BoardPage
+            {
+                Number = 1,
+                CanvasWidth = MyCanvas.Width,
+                CanvasHeight = MyCanvas.Height,
+                Zoom = _zoom,
+                HorizontalOffset = Viewport.HorizontalOffset,
+                VerticalOffset = Viewport.VerticalOffset,
+                Strokes = MyCanvas.Strokes.Clone()
+            };
+
+            Pages.Add(p);
+            _currentPageIndex = 0;
+            MarkCurrentPage();
+
+            UpdatePagePreview(p);
+            NotifyPageUiChanged();
+        }
+
+        private void AttachStrokeEvents()
+        {
+            if (_attachedStrokes != null)
+                _attachedStrokes.StrokesChanged -= CurrentStrokes_StrokesChanged;
+
+            _attachedStrokes = MyCanvas?.Strokes;
+            if (_attachedStrokes != null)
+                _attachedStrokes.StrokesChanged += CurrentStrokes_StrokesChanged;
+        }
+
+        private void CurrentStrokes_StrokesChanged(object sender, StrokeCollectionChangedEventArgs e)
+        {
+            if (_suppressStrokeEvents) return;
+            if (Pages.Count == 0) return;
+
+            // 轻量做法：只更新预览；真正保存 strokes 在切页/打开管理器时做 SaveCurrentPage()
+            UpdatePagePreview(Pages[_currentPageIndex]);
+        }
+
+        private void NotifyPageUiChanged()
+        {
+            OnPropertyChanged(nameof(IsMultiPage));
+            OnPropertyChanged(nameof(PageIndicatorText));
+        }
+
+        private void MarkCurrentPage()
+        {
+            for (int i = 0; i < Pages.Count; i++)
+            {
+                Pages[i].IsCurrent = (i == _currentPageIndex);
+            }
+        }
+
+        private void SaveCurrentPage()
+        {
+            if (Pages.Count == 0) return;
+            var cur = Pages[_currentPageIndex];
+
+            _suppressStrokeEvents = true;
+            try
+            {
+                cur.CanvasWidth = MyCanvas.Width;
+                cur.CanvasHeight = MyCanvas.Height;
+                cur.Zoom = _zoom;
+                cur.HorizontalOffset = Viewport.HorizontalOffset;
+                cur.VerticalOffset = Viewport.VerticalOffset;
+                cur.Strokes = MyCanvas.Strokes.Clone();
+                UpdatePagePreview(cur);
+            }
+            finally
+            {
+                _suppressStrokeEvents = false;
+            }
+        }
+
+        private void SwitchToPage(int newIndex)
+        {
+            if (newIndex < 0 || newIndex >= Pages.Count) return;
+            if (newIndex == _currentPageIndex) return;
+
+            SaveCurrentPage();
+
+            _currentPageIndex = newIndex;
+            LoadPageIntoCanvas(Pages[_currentPageIndex]);
+
+            MarkCurrentPage();
+            NotifyPageUiChanged();
+        }
+
+        private void LoadPageIntoCanvas(BoardPage page)
+        {
+            _suppressStrokeEvents = true;
+            try
+            {
+                // 停掉橡皮擦浮标，避免切页残留
+                _isEraserPressed = false;
+                _isMouseErasing = false;
+                UpdateEraserVisual(null);
+
+                // 画布大小
+                MyCanvas.Width = page.CanvasWidth;
+                MyCanvas.Height = page.CanvasHeight;
+
+                // 笔迹
+                MyCanvas.Strokes = page.Strokes?.Clone() ?? new StrokeCollection();
+
+                // 重新挂 strokes 监听（因为 Strokes 换了对象）
+                AttachStrokeEvents();
+
+                // 恢复 zoom + offset
+                SetZoomDirect(page.Zoom);
+
+                Viewport.UpdateLayout();
+                Viewport.ScrollToHorizontalOffset(page.HorizontalOffset);
+                Viewport.ScrollToVerticalOffset(page.VerticalOffset);
+
+                UpdatePenThickness(_zoom);
+                UpdateEraserVisual(null);
+            }
+            finally
+            {
+                _suppressStrokeEvents = false;
+            }
+        }
+
+        private void SetZoomDirect(double newZoom)
+        {
+            _zoom = Clamp(newZoom, MinZoom, MaxZoom);
+            ZoomTransform.ScaleX = _zoom;
+            ZoomTransform.ScaleY = _zoom;
+            Viewport.UpdateLayout();
+        }
+
+        private void RenumberPages()
+        {
+            for (int i = 0; i < Pages.Count; i++)
+            {
+                Pages[i].Number = i + 1;
+            }
+            NotifyPageUiChanged();
+        }
+
+        private void UpdatePagePreview(BoardPage page)
+        {
+            const int w = 220;
+            const int h = 120;
+            const double padding = 10;
+
+            // 轻量：当前页直接用当前画布的 Strokes，其他页用各自保存的 Strokes
+            var strokes = (Pages.Count > 0 && page == Pages[_currentPageIndex]) ? MyCanvas.Strokes : page.Strokes;
+            var dv = new DrawingVisual();
+
+            using (var dc = dv.RenderOpen())
+            {
+                // 背景：和你白板更接近一点的深色
+                dc.DrawRoundedRectangle(
+                    new SolidColorBrush(Color.FromRgb(0x0F, 0x12, 0x16)),
+                    null,
+                    new Rect(0, 0, w, h),
+                    10, 10);
+
+                if (strokes != null && strokes.Count > 0)
+                {
+                    Rect bounds = strokes.GetBounds();
+
+                    // 防止 0 宽高
+                    double bw = Math.Max(bounds.Width, 1);
+                    double bh = Math.Max(bounds.Height, 1);
+
+                    double scale = Math.Min((w - 2 * padding) / bw, (h - 2 * padding) / bh);
+
+                    // 将 strokes bounds 贴到 padding 内并居中
+                    double targetW = bw * scale;
+                    double targetH = bh * scale;
+
+                    double tx = padding + (w - 2 * padding - targetW) / 2.0;
+                    double ty = padding + (h - 2 * padding - targetH) / 2.0;
+
+                    dc.PushTransform(new TranslateTransform(tx, ty));
+                    dc.PushTransform(new ScaleTransform(scale, scale));
+                    dc.PushTransform(new TranslateTransform(-bounds.X, -bounds.Y));
+
+                    strokes.Draw(dc); // StrokeCollection.Draw
+                    // 还原 transform
+                    dc.Pop(); dc.Pop(); dc.Pop();
+                }
+            }
+
+            var rtb = new RenderTargetBitmap(w, h, 96, 96, PixelFormats.Pbgra32);
+            rtb.Render(dv);
+            rtb.Freeze();
+
+            page.Preview = rtb;
+        }
+
+        // —— 右下角分页条按钮 ——
+        private void BtnPrevPage_Click(object sender, RoutedEventArgs e)
+        {
+            if (_currentPageIndex <= 0) return;
+            SwitchToPage(_currentPageIndex - 1);
+        }
+
+        private void BtnNextPage_Click(object sender, RoutedEventArgs e)
+        {
+            if (_currentPageIndex >= Pages.Count - 1) return;
+            SwitchToPage(_currentPageIndex + 1);
+        }
+
+        private void BtnAddPage_Click(object sender, RoutedEventArgs e)
+        {
+            SaveCurrentPage();
+
+            var newPage = new BoardPage
+            {
+                Number = Pages.Count + 1,
+                CanvasWidth = 8000,
+                CanvasHeight = 8000,
+                Zoom = _zoom, // 也可固定 1.0
+                HorizontalOffset = 0,
+                VerticalOffset = 0,
+                Strokes = new StrokeCollection()
+            };
+
+            Pages.Add(newPage);
+            RenumberPages();
+            SwitchToPage(Pages.Count - 1);
+        }
+
+        private void BtnPageIndicator_Click(object sender, RoutedEventArgs e)
+        {
+            if (!IsMultiPage) return;
+
+            // 打开前刷新所有缩略图（确保是最新的）
+            SaveCurrentPage();
+            foreach (var p in Pages) UpdatePagePreview(p);
+
+            if (_popupPageManager != null) _popupPageManager.IsOpen = true;
+        }
+
+        // 页面列表项点击（切换到该页）
+        private void PageItem_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is FrameworkElement fe && fe.Tag is BoardPage page)
+            {
+                int index = Pages.IndexOf(page);
+                if (index >= 0)
+                {
+                    if (_popupPageManager != null) _popupPageManager.IsOpen = false;
+                    SwitchToPage(index);
+                }
+            }
+        }
+
+        // 删除指定页（保留至少一页）
+        private void DeletePage_Click(object sender, RoutedEventArgs e)
+        {
+            if (Pages.Count <= 1) return; // 至少保留一页
+
+            if (sender is FrameworkElement fe && fe.Tag is BoardPage page)
+            {
+                int deleteIndex = Pages.IndexOf(page);
+                if (deleteIndex < 0) return;
+
+                // 删除前先保存当前页（避免丢）
+                SaveCurrentPage();
+
+                Pages.RemoveAt(deleteIndex);
+                RenumberPages();
+
+                // 调整当前页索引
+                if (_currentPageIndex >= Pages.Count) _currentPageIndex = Pages.Count - 1;
+                if (_currentPageIndex < 0) _currentPageIndex = 0;
+
+                LoadPageIntoCanvas(Pages[_currentPageIndex]);
+                MarkCurrentPage();
+                NotifyPageUiChanged();
+
+                // 继续保持 Popup 打开也可以；你想更像图里的行为也可以不关
+                // _popupPageManager.IsOpen = true;
             }
         }
 

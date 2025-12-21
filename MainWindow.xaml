@@ -84,6 +84,7 @@
                     </Setter.Value>
                 </Setter>
             </Style>
+            <BooleanToVisibilityConverter x:Key="BoolToVis"/>
         </Grid.Resources>
 
         <!-- 视口：负责“看哪里” -->
@@ -169,6 +170,164 @@
                         CommandTarget="{Binding ElementName=MyCanvas}"/>
             </StackPanel>
         </Border>
+
+        <!-- 右下角：分页控制条（覆盖在视口之上，不参与缩放） -->
+        <Border VerticalAlignment="Bottom"
+                HorizontalAlignment="Right"
+                Margin="0,0,30,30"
+                Background="#25262A"
+                CornerRadius="12"
+                Padding="6"
+                Effect="{StaticResource MaterialDesignShadowDepth2}"
+                Panel.ZIndex="12">
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+
+                <!-- 上一页 -->
+                <Button x:Name="BtnPrevPage"
+                        Click="BtnPrevPage_Click"
+                        Background="Transparent"
+                        BorderThickness="0"
+                        Padding="10,8"
+                        Visibility="{Binding IsMultiPage, Converter={StaticResource BoolToVis}}">
+                    <materialDesign:PackIcon Kind="ChevronLeft" Width="22" Height="22" Foreground="#E0E0E0"/>
+                </Button>
+
+                <!-- 页码（点击弹出页面管理） -->
+                <Button x:Name="BtnPageIndicator"
+                        Click="BtnPageIndicator_Click"
+                        Background="Transparent"
+                        BorderThickness="0"
+                        Padding="14,8"
+                        Visibility="{Binding IsMultiPage, Converter={StaticResource BoolToVis}}">
+                    <TextBlock Text="{Binding PageIndicatorText}"
+                               Foreground="#2F7DFF"
+                               FontWeight="SemiBold"
+                               FontSize="14"
+                               VerticalAlignment="Center"/>
+                </Button>
+
+                <!-- 下一页 -->
+                <Button x:Name="BtnNextPage"
+                        Click="BtnNextPage_Click"
+                        Background="Transparent"
+                        BorderThickness="0"
+                        Padding="10,8"
+                        Visibility="{Binding IsMultiPage, Converter={StaticResource BoolToVis}}">
+                    <materialDesign:PackIcon Kind="ChevronRight" Width="22" Height="22" Foreground="#E0E0E0"/>
+                </Button>
+
+                <!-- 新增页（永远显示） -->
+                <Button x:Name="BtnAddPage"
+                        Click="BtnAddPage_Click"
+                        Background="Transparent"
+                        BorderThickness="0"
+                        Padding="10,8">
+                    <materialDesign:PackIcon Kind="Plus" Width="22" Height="22" Foreground="#E0E0E0"/>
+                </Button>
+            </StackPanel>
+        </Border>
+
+        <!-- 页面管理 Popup：点击页码区唤出 -->
+        <Popup x:Name="PopupPageManager"
+               PlacementTarget="{Binding ElementName=BtnPageIndicator}"
+               Placement="Top"
+               StaysOpen="False"
+               AllowsTransparency="True"
+               PopupAnimation="Fade"
+               Panel.ZIndex="30">
+            <Border Background="#25262A"
+                    CornerRadius="16"
+                    Padding="14"
+                    Width="260"
+                    Effect="{StaticResource MaterialDesignShadowDepth2}">
+                <StackPanel>
+
+                    <TextBlock Text="页面管理"
+                               Foreground="White"
+                               FontSize="16"
+                               FontWeight="Bold"
+                               Margin="2,2,2,12"/>
+
+                    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
+                                  MaxHeight="520">
+                        <ItemsControl ItemsSource="{Binding Pages}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border CornerRadius="12"
+                                            Margin="0,0,0,12"
+                                            BorderThickness="2"
+                                            Background="#1E2024">
+                                        <Border.Style>
+                                            <Style TargetType="Border">
+                                                <Setter Property="BorderBrush" Value="Transparent"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding IsCurrent}" Value="True">
+                                                        <Setter Property="BorderBrush" Value="#2F7DFF"/>
+                                                        <Setter Property="Background" Value="#202A3A"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Border.Style>
+
+                                        <Grid>
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="Auto"/>
+                                            </Grid.RowDefinitions>
+
+                                            <!-- 顶部：页号 + 删除 -->
+                                            <Grid Margin="10,10,10,8">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                </Grid.ColumnDefinitions>
+
+                                                <Button Grid.Column="0"
+                                                        Background="Transparent"
+                                                        BorderThickness="0"
+                                                        Padding="0"
+                                                        HorizontalAlignment="Left"
+                                                        Click="PageItem_Click"
+                                                        Tag="{Binding}">
+                                                    <TextBlock Text="{Binding Number}"
+                                                               Foreground="White"
+                                                               FontSize="14"
+                                                               FontWeight="SemiBold"/>
+                                                </Button>
+
+                                                <Button Grid.Column="1"
+                                                        Background="Transparent"
+                                                        BorderThickness="0"
+                                                        Padding="4"
+                                                        Click="DeletePage_Click"
+                                                        Tag="{Binding}"
+                                                        ToolTip="删除此页">
+                                                    <materialDesign:PackIcon Kind="TrashCanOutline"
+                                                                             Width="18" Height="18"
+                                                                             Foreground="#E0E0E0"/>
+                                                </Button>
+                                            </Grid>
+
+                                            <!-- 缩略图 -->
+                                            <Border Grid.Row="1"
+                                                    Margin="10,0,10,10"
+                                                    CornerRadius="10"
+                                                    Background="#0F1216"
+                                                    Height="120">
+                                                <Image Source="{Binding Preview}"
+                                                       Stretch="UniformToFill"
+                                                       SnapsToDevicePixels="True"/>
+                                            </Border>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+
+                </StackPanel>
+            </Border>
+        </Popup>
 
         <!-- 笔设置弹窗 -->
         <Popup Name="PopupPenSettings" PlacementTarget="{Binding ElementName=RadioPen}"
