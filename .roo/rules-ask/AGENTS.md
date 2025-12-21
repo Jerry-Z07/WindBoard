@@ -1,8 +1,7 @@
 # Project Documentation Rules (Non-Obvious Only)
 
 - **UI Language**: All UI labels and comments use **Simplified Chinese (zh-CN)** despite being a .NET WPF application.
-- **Material Design Theme**: Uses Material Design 3 with Light theme, DeepPurple primary color, and Lime secondary color.
-- **Canvas Size**: Fixed 8000x8000 pixel canvas - much larger than typical WPF applications.
+- **Material Design Theme**: Uses Material Design 3.
 - **Touch Gesture Implementation**: Complex pinch-to-zoom uses snapshot-based tracking to prevent drift (non-standard approach).
 - **Stroke Thickness Scaling**: Stroke thickness inversely scales with zoom for visual consistency (unusual for drawing applications).
 - **Event Handling Pattern**: XAML `Tag` attributes are heavily used for parameter passing instead of command parameters.
