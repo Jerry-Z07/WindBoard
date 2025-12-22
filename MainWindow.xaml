@@ -180,7 +180,10 @@
                                     <Border CornerRadius="12"
                                             Margin="0,0,0,12"
                                             BorderThickness="2"
-                                            Background="#1E2024">
+                                            Background="#1E2024"
+                                            Tag="{Binding}"
+                                            MouseLeftButtonUp="PageItem_Click"
+                                            Cursor="Hand">
                                         <Border.Style>
                                             <Style TargetType="Border">
                                                 <Setter Property="BorderBrush" Value="Transparent"/>
