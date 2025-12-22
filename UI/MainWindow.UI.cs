@@ -76,11 +76,11 @@ namespace WindBoard
             _sliderClear = (Slider)FindName("SliderClear");
 
             // 即使 InkCanvas 将事件标记为 Handled，也要接收（擦除模式下很关键）
-            MyCanvas.AddHandler(UIElement.MouseDownEvent, new MouseButtonEventHandler(MyCanvas_MouseDown), true);
-            MyCanvas.AddHandler(UIElement.MouseMoveEvent, new MouseEventHandler(MyCanvas_MouseMove), true);
-            MyCanvas.AddHandler(UIElement.MouseUpEvent, new MouseButtonEventHandler(MyCanvas_MouseUp), true);
+            MyCanvas.AddHandler(MouseDownEvent, new MouseButtonEventHandler(MyCanvas_MouseDown), true);
+            MyCanvas.AddHandler(MouseMoveEvent, new MouseEventHandler(MyCanvas_MouseMove), true);
+            MyCanvas.AddHandler(MouseUpEvent, new MouseButtonEventHandler(MyCanvas_MouseUp), true);
 
-            System.Diagnostics.Debug.WriteLine("[DEBUG] AddHandler MouseDown/Move/Up (handledEventsToo=true) 已注册");
+            Debug.WriteLine("[DEBUG] AddHandler MouseDown/Move/Up (handledEventsToo=true) 已注册");
 
             // 用于更新缩略图：监听 StrokesChanged（切页时会重新挂）
             AttachStrokeEvents();

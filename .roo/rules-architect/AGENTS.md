@@ -9,3 +9,8 @@
 - **Dispatcher Architecture**: UI updates require `Dispatcher.InvokeAsync` with `DispatcherPriority.Loaded` for proper timing after layout.
 - **Touch/Mouse Architecture**: Touch events must be marked as `Handled = true` during multi-touch to prevent promotion to mouse events.
 - **Panning Architecture**: Spacebar + mouse drag temporarily sets `EditingMode` to `None` and captures mouse for panning.
+- **Auto-Expansion Architecture**: Canvas automatically expands when drawing near edges (1000px threshold, 2000px step) with delayed content shifting for left/top expansion.
+- **Eraser Architecture**: Custom eraser cursor overlay that scales inversely with zoom; uses `UseCustomCursor = true` to disable default InkCanvas cursor.
+- **Multi-Page Architecture**: Page management system with preview rendering via `Services/PagePreviewRenderer.cs` and `Models/BoardPage.cs`.
+- **Partial Class Architecture**: Code organized into partial classes by functional area (UI, Touch, Mouse, ZoomPan, Eraser, AutoExpand, Pages).
+- **Event Handling Architecture**: Uses `AddHandler` with `handledEventsToo=true` for mouse events in eraser mode to bypass InkCanvas event handling.

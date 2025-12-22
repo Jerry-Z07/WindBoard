@@ -8,3 +8,7 @@
 - **Color Presets**: 9 specific colors defined in XAML with specific hex codes.
 - **Tool Organization**: Three main tools (Pen, Eraser, Select) with thickness and color popup for Pen tool.
 - **Zoom Range**: Limited to 0.5x to 5.0x zoom range with specific implementation details.
+- **Auto-Expansion Feature**: Canvas automatically expands when drawing near edges (1000px threshold, 2000px step) with content shifting for left/top expansion.
+- **Multi-Page Support**: Supports multiple pages with preview rendering via `Services/PagePreviewRenderer.cs`.
+- **Partial Class Structure**: Code is organized into partial classes by concern (UI, Touch, Mouse, ZoomPan, Eraser, AutoExpand, Pages).
+- **Eraser Implementation**: Custom eraser cursor overlay that scales inversely with zoom and only shows when pressed.

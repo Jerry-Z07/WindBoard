@@ -9,3 +9,7 @@
 - **Dispatcher Timing**: Use `Dispatcher.InvokeAsync` with `DispatcherPriority.Loaded` for UI updates after layout completion.
 - **Panning Mode**: Spacebar + mouse drag temporarily sets `EditingMode` to `None` - restore previous mode after panning.
 - **Stroke Scaling**: Stroke thickness inversely scales with zoom (`_baseThickness / currentZoom`) for visual consistency.
+- **Auto-Expansion**: Canvas expands when drawing near edges (1000px threshold, 2000px step). Left/top expansion requires content shifting.
+- **Eraser Implementation**: Use `UseCustomCursor = true` to disable default InkCanvas eraser cursor; custom overlay shows only when pressed.
+- **Touch Gesture Tracking**: Pinch-to-zoom uses snapshot-based tracking (`_lastGestureP1`, `_lastGestureP2`) to prevent drift.
+- **Event Handling**: Use `AddHandler` with `handledEventsToo=true` for mouse events in eraser mode to bypass InkCanvas event handling.
