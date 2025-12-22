@@ -293,11 +293,10 @@ namespace WindBoard
             // 打开前刷新所有缩略图（确保是最新的）
             SaveCurrentPage();
             foreach (var p in Pages) UpdatePagePreview(p);
-
-            if (_popupPageManager != null) _popupPageManager.IsOpen = true;
+            // 弹窗的打开由 PageNavigatorControl 自身完成
         }
 
-        // 页面列表项点击（切换到该页）
+        // 兼容旧入口：从旧列表项按钮点击（现已不再使用）
         private void PageItem_Click(object sender, RoutedEventArgs e)
         {
             if (sender is FrameworkElement fe && fe.Tag is BoardPage page)
@@ -311,7 +310,7 @@ namespace WindBoard
             }
         }
 
-        // 删除指定页（保留至少一页）
+        // 兼容旧入口：从旧删除按钮点击（现已不再使用）
         private void DeletePage_Click(object sender, RoutedEventArgs e)
         {
             if (Pages.Count <= 1) return; // 至少保留一页
@@ -336,6 +335,38 @@ namespace WindBoard
                 NotifyPageUiChanged();
 
             }
+        }
+
+        // —— 新控件事件桥接 ——
+        private void PageNavigator_PageSelected(object sender, WindBoard.Controls.BoardPageEventArgs e)
+        {
+            int index = Pages.IndexOf(e.Page);
+            if (index >= 0)
+            {
+                SwitchToPage(index);
+            }
+        }
+
+        private void PageNavigator_PageDeleteRequested(object sender, WindBoard.Controls.BoardPageEventArgs e)
+        {
+            if (Pages.Count <= 1) return; // 至少保留一页
+
+            int deleteIndex = Pages.IndexOf(e.Page);
+            if (deleteIndex < 0) return;
+
+            // 删除前先保存当前页（避免丢）
+            SaveCurrentPage();
+
+            Pages.RemoveAt(deleteIndex);
+            RenumberPages();
+
+            // 调整当前页索引
+            if (_currentPageIndex >= Pages.Count) _currentPageIndex = Pages.Count - 1;
+            if (_currentPageIndex < 0) _currentPageIndex = 0;
+
+            LoadPageIntoCanvas(Pages[_currentPageIndex]);
+            MarkCurrentPage();
+            NotifyPageUiChanged();
         }
     }
 }
