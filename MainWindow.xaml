@@ -75,7 +75,9 @@
 
                 <RadioButton Name="RadioEraser" Content="擦除" Tag="Eraser" GroupName="Tools"
                              Style="{StaticResource BottomRadioButtonStyle}"
-                             Checked="RadioEraser_Checked"/>
+                             Checked="RadioEraser_Checked"
+                             PreviewMouseLeftButtonDown="RadioEraser_PreviewMouseLeftButtonDown"
+                             PreviewTouchDown="RadioEraser_PreviewTouchDown"/>
 
                 <RadioButton Name="RadioSelect" Content="选择" Tag="CursorDefault" GroupName="Tools"
                              Style="{StaticResource BottomRadioButtonStyle}"
@@ -315,6 +317,35 @@
                             <Button Background="Black" BorderBrush="Black" Width="36" Height="36" Margin="5" Click="Color_Click" Tag="Black" Style="{StaticResource MaterialDesignFloatingActionMiniButton}"/>
                         </UniformGrid>
                     </Grid>
+                </StackPanel>
+            </Border>
+        </Popup>
+
+        <!-- 擦除清屏滑动弹窗 -->
+        <Popup Name="PopupEraserClear"
+               PlacementTarget="{Binding ElementName=RadioEraser}"
+               Placement="Top"
+               StaysOpen="False"
+               AllowsTransparency="True"
+               Closed="PopupEraserClear_Closed"
+               Panel.ZIndex="20">
+            <Border Background="#E625262A" CornerRadius="16" Margin="0,0,0,10"
+                    Effect="{StaticResource MaterialDesignShadowDepth2}">
+                <StackPanel Margin="16,12,16,12">
+                    <TextBlock Text="滑动以清屏"
+                               FontWeight="Bold"
+                               FontSize="16"
+                               Foreground="White"
+                               Margin="0,0,0,8"
+                               HorizontalAlignment="Center"/>
+                    <Slider x:Name="SliderClear"
+                            Minimum="0"
+                            Maximum="100"
+                            Width="220"
+                            IsManipulationEnabled="False"
+                            ValueChanged="SliderClear_ValueChanged"
+                            PreviewMouseUp="SliderClear_PreviewMouseUp"
+                            PreviewTouchUp="SliderClear_PreviewTouchUp"/>
                 </StackPanel>
             </Border>
         </Popup>

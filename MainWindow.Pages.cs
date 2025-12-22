@@ -1,17 +1,11 @@
-using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
-using System.Linq;
-using System.Runtime.CompilerServices;
 using System.Windows;
-using System.Windows.Controls;
 using System.Windows.Ink;
-using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
-using System.Windows.Controls.Primitives;
 using WindBoard.Services;
+using System.Diagnostics;
 
 namespace WindBoard
 {
@@ -67,8 +61,23 @@ namespace WindBoard
             if (_suppressStrokeEvents) return;
             if (Pages.Count == 0) return;
 
+            int added = 0, removed = 0, total = 0;
+            try
+            {
+                added = e.Added?.Count ?? 0;
+                removed = e.Removed?.Count ?? 0;
+                total = MyCanvas.Strokes?.Count ?? 0;
+            }
+            catch { }
+
+            var sw = Stopwatch.StartNew();
+
+
             // 轻量做法：只更新预览；真正保存 strokes 在切页/打开管理器时做 SaveCurrentPage()
             UpdatePagePreview(Pages[_currentPageIndex]);
+
+            sw.Stop();
+
         }
 
         private void NotifyPageUiChanged()
@@ -81,7 +90,7 @@ namespace WindBoard
         {
             for (int i = 0; i < Pages.Count; i++)
             {
-                Pages[i].IsCurrent = (i == _currentPageIndex);
+                Pages[i].IsCurrent = i == _currentPageIndex;
             }
         }
 

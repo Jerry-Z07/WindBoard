@@ -1,17 +1,11 @@
-using System;
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.ComponentModel;
-using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Ink;
 using System.Windows.Input;
 using System.Windows.Media;
-using System.Windows.Media.Imaging;
 using System.Windows.Controls.Primitives;
-using WindBoard.Services;
+using System.Diagnostics;
 
 namespace WindBoard
 {
@@ -35,9 +29,16 @@ namespace WindBoard
         private Canvas? _eraserOverlay;
         private Border? _eraserCursorRect;
         private Popup? _popupPageManager;
+        private Popup? _popupEraserClear;
+        private Slider? _sliderClear;
         private bool _isEraserPressed = false;
         // 当前是否为鼠标擦除（用于决定浮标定位方式）
         private bool _isMouseErasing = false;
+
+        // 清屏滑块触发标记（防止重复触发）
+        private bool _clearSlideTriggered = false;
+        // 清屏后延迟关闭标记（等待 TouchUp/MouseUp 再关闭弹窗，避免触摸卡顿）
+        private bool _clearPendingClose = false;
 
         // Zoom（视口缩放）
         private const double MinZoom = 0.5;
@@ -71,6 +72,8 @@ namespace WindBoard
             _eraserOverlay = (Canvas)FindName("EraserOverlay");
             _eraserCursorRect = (Border)FindName("EraserCursorRect");
             _popupPageManager = (Popup)FindName("PopupPageManager");
+            _popupEraserClear = (Popup)FindName("PopupEraserClear");
+            _sliderClear = (Slider)FindName("SliderClear");
 
             // 即使 InkCanvas 将事件标记为 Handled，也要接收（擦除模式下很关键）
             MyCanvas.AddHandler(UIElement.MouseDownEvent, new MouseButtonEventHandler(MyCanvas_MouseDown), true);
@@ -133,6 +136,8 @@ namespace WindBoard
             MyCanvas.ClearValue(CursorProperty);
             if (_eraserOverlay != null)
                 _eraserOverlay.Visibility = Visibility.Collapsed;
+            if (_popupEraserClear != null)
+                _popupEraserClear.IsOpen = false;
         }
 
         private void RadioEraser_Checked(object sender, RoutedEventArgs e)
@@ -153,6 +158,8 @@ namespace WindBoard
             MyCanvas.ClearValue(CursorProperty);
             if (_eraserOverlay != null)
                 _eraserOverlay.Visibility = Visibility.Collapsed;
+            if (_popupEraserClear != null)
+                _popupEraserClear.IsOpen = false;
         }
 
         private void Thickness_Checked(object sender, RoutedEventArgs e)
@@ -183,5 +190,123 @@ namespace WindBoard
         }
 
         #endregion
+
+        // 再次点击“擦除”按钮：弹出清屏滑块（鼠标）
+        private void RadioEraser_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            if (RadioEraser.IsChecked == true)
+            {
+                e.Handled = true; // 阻止重复切换状态
+                _clearSlideTriggered = false;
+                _clearPendingClose = false;
+                if (_sliderClear != null) _sliderClear.Value = 0;
+                if (_popupEraserClear != null) _popupEraserClear.IsOpen = true;
+            }
+        }
+
+        // 再次触摸“擦除”按钮：弹出清屏滑块（触摸）
+        private void RadioEraser_PreviewTouchDown(object sender, TouchEventArgs e)
+        {
+            if (RadioEraser.IsChecked == true)
+            {
+                e.Handled = true; // 防止触摸事件向下提升为鼠标事件
+                _clearSlideTriggered = false;
+                _clearPendingClose = false;
+                if (_sliderClear != null) _sliderClear.Value = 0;
+                if (_popupEraserClear != null) _popupEraserClear.IsOpen = true;
+            }
+        }
+
+        // 滑动以清屏：滑块拉到尽头触发清屏
+        private void SliderClear_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+        {
+            if (_clearSlideTriggered) return;
+            if (_popupEraserClear == null || !_popupEraserClear.IsOpen) return;
+
+            var slider = sender as Slider ?? _sliderClear;
+            double max = slider?.Maximum ?? 100;
+            double val = slider?.Value ?? 0;
+
+            if (val >= max)
+            {
+                _clearSlideTriggered = true;
+
+                // 记录清屏耗时
+                int strokesBefore = MyCanvas.Strokes.Count;
+                int childrenBefore = MyCanvas.Children.Count;
+                var sw = Stopwatch.StartNew();
+                Debug.WriteLine($"[PERF] Clear start: strokes={strokesBefore}, children={childrenBefore}");
+
+                // 清除当前画布笔迹与可能的子元素
+                MyCanvas.Strokes.Clear();
+                MyCanvas.Children.Clear();
+
+                sw.Stop();
+                Debug.WriteLine($"[PERF] Clear done: elapsed={sw.ElapsedMilliseconds}ms");
+
+                // 标记待关闭，由 PointerUp 再真正关闭（避免触摸设备上因 capture/提升造成的卡死）
+                _clearPendingClose = true;
+            }
+        }
+
+        // 触摸抬起后再关闭弹窗与复位（防止触摸 capture 引发卡顿）
+        private void SliderClear_PreviewTouchUp(object sender, TouchEventArgs e)
+        {
+            e.Handled = true;
+            var slider = sender as Slider ?? _sliderClear;
+            if (slider == null) return;
+
+            bool reached = _clearPendingClose || (slider.Value >= slider.Maximum);
+            if (!reached) return;
+
+            Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Background, new Action(() =>
+            {
+                try { this.ReleaseAllTouchCaptures(); } catch { }
+                try { MyCanvas.ReleaseAllTouchCaptures(); } catch { }
+                try { Mouse.Capture(null); } catch { }
+
+                if (_popupEraserClear != null) _popupEraserClear.IsOpen = false;
+                slider.Value = 0;
+                _clearPendingClose = false;
+                _clearSlideTriggered = false;
+
+                // 清屏完成后切回书写模式
+                if (RadioPen != null) RadioPen.IsChecked = true;
+            }));
+        }
+
+        // 鼠标抬起后也作相同处理（保持一致性）
+        private void SliderClear_PreviewMouseUp(object sender, MouseButtonEventArgs e)
+        {
+            var slider = sender as Slider ?? _sliderClear;
+            if (slider == null) return;
+
+            bool reached = _clearPendingClose || (slider.Value >= slider.Maximum);
+            if (!reached) return;
+
+            Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Background, new Action(() =>
+            {
+                try { this.ReleaseAllTouchCaptures(); } catch { }
+                try { MyCanvas.ReleaseAllTouchCaptures(); } catch { }
+                try { Mouse.Capture(null); } catch { }
+
+                if (_popupEraserClear != null) _popupEraserClear.IsOpen = false;
+                slider.Value = 0;
+                _clearPendingClose = false;
+                _clearSlideTriggered = false;
+
+                // 清屏完成后切回书写模式
+                if (RadioPen != null) RadioPen.IsChecked = true;
+            }));
+        }
+
+        // 弹窗被关闭时，清理残留的捕获并复位标记
+        private void PopupEraserClear_Closed(object sender, EventArgs e)
+        {
+            try { this.ReleaseAllTouchCaptures(); } catch { }
+            try { MyCanvas.ReleaseAllTouchCaptures(); } catch { }
+            try { Mouse.Capture(null); } catch { }
+            _clearPendingClose = false;
+        }
     }
 }
