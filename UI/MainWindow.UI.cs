@@ -30,6 +30,7 @@ namespace WindBoard
         private Border? _eraserCursorRect;
         private Popup? _popupPageManager;
         private Popup? _popupEraserClear;
+        private Popup? _popupMoreMenu;
         private Slider? _sliderClear;
         private bool _isEraserPressed = false;
         // 当前是否为鼠标擦除（用于决定浮标定位方式）
@@ -73,6 +74,7 @@ namespace WindBoard
             _eraserCursorRect = (Border)FindName("EraserCursorRect");
             _popupPageManager = (Popup)FindName("PopupPageManager");
             _popupEraserClear = (Popup)FindName("PopupEraserClear");
+            _popupMoreMenu = (Popup)FindName("PopupMoreMenu");
             _sliderClear = (Slider)FindName("SliderClear");
 
             // 即使 InkCanvas 将事件标记为 Handled，也要接收（擦除模式下很关键）
@@ -308,5 +310,37 @@ namespace WindBoard
             try { Mouse.Capture(null); } catch { }
             _clearPendingClose = false;
         }
+
+        #region System Dock UI（左下角 更多/最小化）
+        private void BtnMore_Click(object sender, RoutedEventArgs e)
+        {
+            // 打开“更多”弹出菜单
+            if (_popupMoreMenu == null)
+                _popupMoreMenu = (Popup)FindName("PopupMoreMenu");
+            if (_popupMoreMenu != null)
+            {
+                _popupMoreMenu.IsOpen = true;
+            }
+        }
+
+        private void BtnMinimize_Click(object sender, RoutedEventArgs e)
+        {
+            // 最小化窗口
+            this.WindowState = WindowState.Minimized;
+        }
+
+        private void MenuSettings_Click(object sender, RoutedEventArgs e)
+        {
+            // 关闭菜单并提示占位
+            if (_popupMoreMenu != null) _popupMoreMenu.IsOpen = false;
+            MessageBox.Show("设置功能暂未实现", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+
+        private void MenuExit_Click(object sender, RoutedEventArgs e)
+        {
+            // 退出应用
+            Application.Current.Shutdown();
+        }
+        #endregion
     }
 }

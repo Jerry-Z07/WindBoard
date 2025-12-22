@@ -207,5 +207,40 @@
             </Border>
         </Popup>
 
+        <!-- 左下角：系统操作 Dock（覆盖在视口之上，不参与缩放） -->
+        <Border VerticalAlignment="Bottom" HorizontalAlignment="Left" Margin="30,0,0,30"
+                Background="#25262A" CornerRadius="12" Padding="5"
+                Effect="{StaticResource MaterialDesignShadowDepth2}"
+                Panel.ZIndex="12">
+            <StackPanel Orientation="Horizontal">
+                <Button Name="BtnMore" Content="更多" Tag="DotsHorizontal"
+                        Style="{StaticResource BottomButtonStyle}"
+                        Click="BtnMore_Click"/>
+                <Button Name="BtnMinimize" Content="最小化" Tag="WindowMinimize"
+                        Style="{StaticResource BottomButtonStyle}"
+                        Click="BtnMinimize_Click"/>
+            </StackPanel>
+        </Border>
+
+        <!-- 更多 弹出菜单 -->
+        <Popup Name="PopupMoreMenu"
+               PlacementTarget="{Binding ElementName=BtnMore}"
+               Placement="Top"
+               StaysOpen="False"
+               AllowsTransparency="True"
+               Panel.ZIndex="20">
+            <Border Background="#E625262A" CornerRadius="16" Margin="0,0,0,10"
+                    Effect="{StaticResource MaterialDesignShadowDepth2}">
+                <StackPanel Margin="8,8,8,8">
+                    <Button Content="设置" Tag="Cog"
+                            Style="{StaticResource BottomButtonStyle}"
+                            Click="MenuSettings_Click"/>
+                    <Button Content="退出" Tag="ExitToApp"
+                            Style="{StaticResource BottomButtonStyle}"
+                            Click="MenuExit_Click"/>
+                </StackPanel>
+            </Border>
+        </Popup>
+
     </Grid>
 </Window>
