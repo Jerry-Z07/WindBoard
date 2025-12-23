@@ -331,9 +331,18 @@ namespace WindBoard
 
         private void MenuSettings_Click(object sender, RoutedEventArgs e)
         {
-            // 关闭菜单并提示占位
+            // 关闭菜单
             if (_popupMoreMenu != null) _popupMoreMenu.IsOpen = false;
-            MessageBox.Show("设置功能暂未实现", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+            
+            // 打开设置窗口
+            var settingsWindow = new UI.SettingsWindow(this);
+            settingsWindow.Owner = this;
+            settingsWindow.ShowDialog();
+        }
+
+        public void SetBackgroundColor(Color color)
+        {
+            MyCanvas.Background = new SolidColorBrush(color);
         }
 
         private void MenuExit_Click(object sender, RoutedEventArgs e)

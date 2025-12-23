@@ -1,0 +1,57 @@
+<Window x:Class="WindBoard.UI.SettingsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+        mc:Ignorable="d"
+        Title="设置" Height="600" Width="800"
+        WindowStartupLocation="CenterOwner"
+        Background="{DynamicResource MaterialDesignPaper}"
+        TextElement.Foreground="{DynamicResource MaterialDesignBody}">
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="200"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+
+        <!-- Sidebar -->
+        <Border BorderBrush="{DynamicResource MaterialDesignDivider}" BorderThickness="0,0,1,0" Background="{DynamicResource MaterialDesignCardBackground}">
+            <ListBox x:Name="NavList" SelectedIndex="0">
+                <ListBoxItem Content="背景设置" Height="50" Padding="20,15"/>
+            </ListBox>
+        </Border>
+
+        <!-- Content Area -->
+        <Grid Grid.Column="1" Margin="24">
+            <!-- Background Settings -->
+            <StackPanel x:Name="BackgroundSettingsPanel">
+                <TextBlock Text="背景颜色" Style="{StaticResource MaterialDesignHeadline5TextBlock}" Margin="0,0,0,24"/>
+                
+                <TextBlock Text="预设颜色" Style="{StaticResource MaterialDesignSubtitle1TextBlock}" Margin="0,0,0,12"/>
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,24">
+                    <!-- Default -->
+                    <Button Width="48" Height="48" Margin="0,0,12,0" Click="PresetColor_Click" Tag="#2E2F33" ToolTip="默认 (#2E2F33)" Style="{StaticResource MaterialDesignFloatingActionMiniButton}" BorderThickness="0">
+                        <Button.Background>
+                            <SolidColorBrush Color="#2E2F33"/>
+                        </Button.Background>
+                    </Button>
+                    <!-- Presets -->
+                    <Button Width="48" Height="48" Margin="0,0,12,0" Click="PresetColor_Click" Tag="#2F4F4F" ToolTip="#2F4F4F" Style="{StaticResource MaterialDesignFloatingActionMiniButton}" BorderThickness="0">
+                        <Button.Background>
+                            <SolidColorBrush Color="#2F4F4F"/>
+                        </Button.Background>
+                    </Button>
+                    <Button Width="48" Height="48" Margin="0,0,12,0" Click="PresetColor_Click" Tag="#DCDCDC" ToolTip="#DCDCDC" Style="{StaticResource MaterialDesignFloatingActionMiniButton}" BorderThickness="0">
+                        <Button.Background>
+                            <SolidColorBrush Color="#DCDCDC"/>
+                        </Button.Background>
+                    </Button>
+                </StackPanel>
+
+                <TextBlock Text="自定义颜色" Style="{StaticResource MaterialDesignSubtitle1TextBlock}" Margin="0,0,0,12"/>
+                <materialDesign:ColorPicker x:Name="ColorPicker" Color="#2E2F33" ColorChanged="ColorPicker_ColorChanged" Width="400" HorizontalAlignment="Left"/>
+            </StackPanel>
+        </Grid>
+    </Grid>
+</Window>
