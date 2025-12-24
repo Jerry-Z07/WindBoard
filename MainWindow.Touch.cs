@@ -15,15 +15,33 @@ namespace WindBoard
             var p = e.GetTouchPoint(Viewport).Position;
             _activeTouches[e.TouchDevice.Id] = p;
 
-            // 统一派发：触摸按下
-            Point pCanvas = e.GetTouchPoint(MyCanvas).Position;
-            Point pViewport = e.GetTouchPoint(Viewport).Position;
-            RaiseDeviceDown(pCanvas, pViewport, InputDeviceType.Touch, e.TouchDevice.Id);
-
-            // 单指擦除：按下时显示游标
-            if (RadioEraser.IsChecked == true && _activeTouches.Count == 1)
+            // 统一派发：触摸按下（仅单指进入统一事件流）
+            if (_activeTouches.Count == 1 && !_gestureActive)
             {
-                HandleEraserTouchDown(e);
+                Point pCanvas = e.GetTouchPoint(MyCanvas).Position;
+                Point pViewport = e.GetTouchPoint(Viewport).Position;
+
+                long ticks = (long)e.Timestamp * System.TimeSpan.TicksPerMillisecond;
+                var mods = Keyboard.Modifiers;
+
+                var args = new DeviceInputEventArgs
+                {
+                    DeviceType = InputDeviceType.Touch,
+                    CanvasPoint = pCanvas,
+                    ViewportPoint = pViewport,
+                    TouchId = e.TouchDevice.Id,
+                    Pressure = null,
+                    IsInAir = false,
+                    LeftButton = false,
+                    RightButton = false,
+                    MiddleButton = false,
+                    Ctrl = (mods & ModifierKeys.Control) != 0,
+                    Shift = (mods & ModifierKeys.Shift) != 0,
+                    Alt = (mods & ModifierKeys.Alt) != 0,
+                    TimestampTicks = ticks
+                };
+
+                RaiseDeviceDown(args);
             }
 
             if (_activeTouches.Count >= 2)
@@ -66,17 +84,31 @@ namespace WindBoard
             var p = e.GetTouchPoint(Viewport).Position;
             _activeTouches[e.TouchDevice.Id] = p;
 
-            // 自动扩容检测
+            // 统一派发：仅在单指非手势时执行（AutoExpand 由统一订阅处理）
             var pCanvasMove = e.GetTouchPoint(MyCanvas).Position;
-            AutoExpandCanvas(pCanvasMove);
-
-            // 统一派发：触摸移动
-            RaiseDeviceMove(pCanvasMove, p, InputDeviceType.Touch, e.TouchDevice.Id);
-
-            // 橡皮擦模式下的单指移动：仅在按下时显示并跟随（不拦截事件）
-            if (!_gestureActive && RadioEraser.IsChecked == true && _activeTouches.Count == 1 && _isEraserPressed)
+            if (!_gestureActive && _activeTouches.Count == 1)
             {
-                HandleEraserTouchMove(e);
+                long ticks = (long)e.Timestamp * System.TimeSpan.TicksPerMillisecond;
+                var mods = Keyboard.Modifiers;
+
+                var args = new DeviceInputEventArgs
+                {
+                    DeviceType = InputDeviceType.Touch,
+                    CanvasPoint = pCanvasMove,
+                    ViewportPoint = p,
+                    TouchId = e.TouchDevice.Id,
+                    Pressure = null,
+                    IsInAir = false,
+                    LeftButton = false,
+                    RightButton = false,
+                    MiddleButton = false,
+                    Ctrl = (mods & ModifierKeys.Control) != 0,
+                    Shift = (mods & ModifierKeys.Shift) != 0,
+                    Alt = (mods & ModifierKeys.Alt) != 0,
+                    TimestampTicks = ticks
+                };
+
+                RaiseDeviceMove(args);
             }
 
             if (!(_gestureActive && _activeTouches.Count >= 2))
@@ -137,7 +169,28 @@ namespace WindBoard
             // 统一派发：触摸抬起
             Point pCanvas = e.GetTouchPoint(MyCanvas).Position;
             Point pViewport = e.GetTouchPoint(Viewport).Position;
-            RaiseDeviceUp(pCanvas, pViewport, InputDeviceType.Touch, e.TouchDevice.Id);
+
+            long ticks = (long)e.Timestamp * System.TimeSpan.TicksPerMillisecond;
+            var mods = Keyboard.Modifiers;
+
+            var args = new DeviceInputEventArgs
+            {
+                DeviceType = InputDeviceType.Touch,
+                CanvasPoint = pCanvas,
+                ViewportPoint = pViewport,
+                TouchId = e.TouchDevice.Id,
+                Pressure = null,
+                IsInAir = false,
+                LeftButton = false,
+                RightButton = false,
+                MiddleButton = false,
+                Ctrl = (mods & ModifierKeys.Control) != 0,
+                Shift = (mods & ModifierKeys.Shift) != 0,
+                Alt = (mods & ModifierKeys.Alt) != 0,
+                TimestampTicks = ticks
+            };
+
+            RaiseDeviceUp(args);
 
             _activeTouches.Remove(e.TouchDevice.Id);
 
@@ -149,9 +202,6 @@ namespace WindBoard
                 // 恢复之前的编辑模式
                 if (MyCanvas.EditingMode == InkCanvasEditingMode.None)
                     MyCanvas.EditingMode = _lastEditingMode;
-
-                // 松开触点：隐藏橡皮擦游标
-                HandleEraserTouchUp(e);
 
                 // 多指结束也 Handled 一下，减少“提升为鼠标事件”引发的杂音
                 e.Handled = true;

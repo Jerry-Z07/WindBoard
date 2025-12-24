@@ -21,6 +21,17 @@ namespace WindBoard
             e.Handled = true;
         }
 
+        // 集中化“真实鼠标”判定，避免分散使用 e.StylusDevice == null
+        private static bool IsRealMouse(MouseEventArgs e)
+        {
+            return e.StylusDevice == null;
+        }
+
+        private static bool IsRealMouse(MouseButtonEventArgs e)
+        {
+            return e.StylusDevice == null;
+        }
+
         private void MyCanvas_MouseDown(object sender, MouseButtonEventArgs e)
         {
             // 按住空格 + 左键拖拽平移
@@ -35,28 +46,39 @@ namespace WindBoard
                 MyCanvas.CaptureMouse();
                 e.Handled = true;
             }
-            else if (MyCanvas.EditingMode == InkCanvasEditingMode.EraseByPoint && e.ChangedButton == MouseButton.Left)
-            {
-                HandleEraserMouseDown(e);
-            }
 
             // 统一事件分发：仅当未由触摸/触笔提升时（即 StylusDevice == null）才按“鼠标”派发，避免重复
-            if (e.StylusDevice == null)
+            if (IsRealMouse(e))
             {
                 Point pCanvas = e.GetPosition(MyCanvas);
                 Point pViewport = e.GetPosition(Viewport);
-                RaiseDeviceDown(pCanvas, pViewport, InputDeviceType.Mouse, null);
+
+                long ticks = (long)e.Timestamp * System.TimeSpan.TicksPerMillisecond;
+                var mods = Keyboard.Modifiers;
+
+                var args = new DeviceInputEventArgs
+                {
+                    DeviceType = InputDeviceType.Mouse,
+                    CanvasPoint = pCanvas,
+                    ViewportPoint = pViewport,
+                    TouchId = null,
+                    Pressure = null,
+                    IsInAir = false,
+                    LeftButton = e.LeftButton == MouseButtonState.Pressed || e.ChangedButton == MouseButton.Left,
+                    RightButton = e.RightButton == MouseButtonState.Pressed || e.ChangedButton == MouseButton.Right,
+                    MiddleButton = e.MiddleButton == MouseButtonState.Pressed || e.ChangedButton == MouseButton.Middle,
+                    Ctrl = (mods & ModifierKeys.Control) != 0,
+                    Shift = (mods & ModifierKeys.Shift) != 0,
+                    Alt = (mods & ModifierKeys.Alt) != 0,
+                    TimestampTicks = ticks
+                };
+
+                RaiseDeviceDown(args);
             }
         }
 
         private void MyCanvas_MouseMove(object sender, MouseEventArgs e)
         {
-            // 仅在按下左键（书写/擦除/拖拽）时检测扩容
-            if (e.LeftButton == MouseButtonState.Pressed)
-            {
-                AutoExpandCanvas(e.GetPosition(MyCanvas));
-            }
-
             if (_isPanning)
             {
                 Point currentPosition = e.GetPosition(Viewport);
@@ -67,17 +89,45 @@ namespace WindBoard
                 _lastMousePosition = currentPosition;
                 e.Handled = true;
             }
-            else if (MyCanvas.EditingMode == InkCanvasEditingMode.EraseByPoint && _isEraserPressed)
-            {
-                HandleEraserMouseMove(e);
-            }
 
             // 统一事件分发：MouseMove 仅对真实鼠标派发
-            if (e.StylusDevice == null)
+            if (IsRealMouse(e))
             {
                 Point pCanvas = e.GetPosition(MyCanvas);
                 Point pViewport = e.GetPosition(Viewport);
-                RaiseDeviceMove(pCanvas, pViewport, InputDeviceType.Mouse, null);
+
+                long ticks = (long)e.Timestamp * System.TimeSpan.TicksPerMillisecond;
+                var mods = Keyboard.Modifiers;
+
+                bool anyPressed = e.LeftButton == MouseButtonState.Pressed
+                    || e.RightButton == MouseButtonState.Pressed
+                    || e.MiddleButton == MouseButtonState.Pressed;
+
+                var args = new DeviceInputEventArgs
+                {
+                    DeviceType = InputDeviceType.Mouse,
+                    CanvasPoint = pCanvas,
+                    ViewportPoint = pViewport,
+                    TouchId = null,
+                    Pressure = null,
+                    IsInAir = !anyPressed,
+                    LeftButton = e.LeftButton == MouseButtonState.Pressed,
+                    RightButton = e.RightButton == MouseButtonState.Pressed,
+                    MiddleButton = e.MiddleButton == MouseButtonState.Pressed,
+                    Ctrl = (mods & ModifierKeys.Control) != 0,
+                    Shift = (mods & ModifierKeys.Shift) != 0,
+                    Alt = (mods & ModifierKeys.Alt) != 0,
+                    TimestampTicks = ticks
+                };
+
+                if (!anyPressed)
+                {
+                    RaiseDeviceHover(args);
+                }
+                else
+                {
+                    RaiseDeviceMove(args);
+                }
             }
         }
 
@@ -91,17 +141,34 @@ namespace WindBoard
                 MyCanvas.EditingMode = _lastEditingMode;
                 e.Handled = true;
             }
-            else if (MyCanvas.EditingMode == InkCanvasEditingMode.EraseByPoint && e.ChangedButton == MouseButton.Left)
-            {
-                HandleEraserMouseUp(e);
-            }
 
             // 统一事件分发：MouseUp 仅对真实鼠标派发
-            if (e.StylusDevice == null)
+            if (IsRealMouse(e))
             {
                 Point pCanvas = e.GetPosition(MyCanvas);
                 Point pViewport = e.GetPosition(Viewport);
-                RaiseDeviceUp(pCanvas, pViewport, InputDeviceType.Mouse, null);
+
+                long ticks = (long)e.Timestamp * System.TimeSpan.TicksPerMillisecond;
+                var mods = Keyboard.Modifiers;
+
+                var args = new DeviceInputEventArgs
+                {
+                    DeviceType = InputDeviceType.Mouse,
+                    CanvasPoint = pCanvas,
+                    ViewportPoint = pViewport,
+                    TouchId = null,
+                    Pressure = null,
+                    IsInAir = false,
+                    LeftButton = e.LeftButton == MouseButtonState.Pressed,
+                    RightButton = e.RightButton == MouseButtonState.Pressed,
+                    MiddleButton = e.MiddleButton == MouseButtonState.Pressed,
+                    Ctrl = (mods & ModifierKeys.Control) != 0,
+                    Shift = (mods & ModifierKeys.Shift) != 0,
+                    Alt = (mods & ModifierKeys.Alt) != 0,
+                    TimestampTicks = ticks
+                };
+
+                RaiseDeviceUp(args);
             }
         }
     }

@@ -7,6 +7,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Controls.Primitives;
 using System.Diagnostics;
+using System.Linq;
 
 namespace WindBoard
 {
@@ -29,20 +30,141 @@ namespace WindBoard
             public Point CanvasPoint { get; set; }
             public Point ViewportPoint { get; set; }
             public int? TouchId { get; set; }
+
+            // 扩展字段：统一输入层的通用信息
+            public double? Pressure { get; set; } // Stylus 可用，其它设备为 null
+            public bool IsInAir { get; set; }     // 悬停时为 true（触笔 in-air / 鼠标无按键移动）
+
+            // 常用按钮与修饰键快照（简化为布尔集）
+            public bool LeftButton { get; set; }
+            public bool RightButton { get; set; }
+            public bool MiddleButton { get; set; }
+            public bool Ctrl { get; set; }
+            public bool Shift { get; set; }
+            public bool Alt { get; set; }
+
+            // 时间戳（用于去抖与分析），以 Tick 表示
+            public long TimestampTicks { get; set; }
         }
 
         public event EventHandler<DeviceInputEventArgs>? DeviceDown;
         public event EventHandler<DeviceInputEventArgs>? DeviceMove;
         public event EventHandler<DeviceInputEventArgs>? DeviceUp;
+        public event EventHandler<DeviceInputEventArgs>? DeviceHover; // 新增统一悬停事件
 
+        // 指针别名事件（Pointer*）：转发到同一参数的 Device* 事件
+        public event EventHandler<DeviceInputEventArgs>? PointerDown;
+        public event EventHandler<DeviceInputEventArgs>? PointerMove;
+        public event EventHandler<DeviceInputEventArgs>? PointerUp;
+        public event EventHandler<DeviceInputEventArgs>? PointerHover;
+
+        // 新版 Raise：接受完整的 DeviceInputEventArgs 并同时触发 Pointer* 别名
+        private void RaiseDeviceDown(DeviceInputEventArgs args)
+        {
+            DeviceDown?.Invoke(this, args);
+            PointerDown?.Invoke(this, args);
+        }
+        private void RaiseDeviceMove(DeviceInputEventArgs args)
+        {
+            DeviceMove?.Invoke(this, args);
+            PointerMove?.Invoke(this, args);
+        }
+        private void RaiseDeviceUp(DeviceInputEventArgs args)
+        {
+            DeviceUp?.Invoke(this, args);
+            PointerUp?.Invoke(this, args);
+        }
+        private void RaiseDeviceHover(DeviceInputEventArgs args)
+        {
+            DeviceHover?.Invoke(this, args);
+            PointerHover?.Invoke(this, args);
+        }
+
+        // 兼容旧签名：构造最小参数并委托到新版 Raise（后续将逐步移除）
         private void RaiseDeviceDown(Point canvas, Point viewport, InputDeviceType type, int? touchId = null)
-            => DeviceDown?.Invoke(this, new DeviceInputEventArgs { DeviceType = type, CanvasPoint = canvas, ViewportPoint = viewport, TouchId = touchId });
-
+        {
+            var mods = Keyboard.Modifiers;
+            var args = new DeviceInputEventArgs
+            {
+                DeviceType = type,
+                CanvasPoint = canvas,
+                ViewportPoint = viewport,
+                TouchId = touchId,
+                Pressure = null,
+                IsInAir = false,
+                LeftButton = type == InputDeviceType.Mouse && Mouse.LeftButton == MouseButtonState.Pressed,
+                RightButton = type == InputDeviceType.Mouse && Mouse.RightButton == MouseButtonState.Pressed,
+                MiddleButton = type == InputDeviceType.Mouse && Mouse.MiddleButton == MouseButtonState.Pressed,
+                Ctrl = (mods & ModifierKeys.Control) != 0,
+                Shift = (mods & ModifierKeys.Shift) != 0,
+                Alt = (mods & ModifierKeys.Alt) != 0,
+                TimestampTicks = DateTime.UtcNow.Ticks
+            };
+            RaiseDeviceDown(args);
+        }
         private void RaiseDeviceMove(Point canvas, Point viewport, InputDeviceType type, int? touchId = null)
-            => DeviceMove?.Invoke(this, new DeviceInputEventArgs { DeviceType = type, CanvasPoint = canvas, ViewportPoint = viewport, TouchId = touchId });
-
+        {
+            var mods = Keyboard.Modifiers;
+            var args = new DeviceInputEventArgs
+            {
+                DeviceType = type,
+                CanvasPoint = canvas,
+                ViewportPoint = viewport,
+                TouchId = touchId,
+                Pressure = null,
+                IsInAir = false,
+                LeftButton = type == InputDeviceType.Mouse && Mouse.LeftButton == MouseButtonState.Pressed,
+                RightButton = type == InputDeviceType.Mouse && Mouse.RightButton == MouseButtonState.Pressed,
+                MiddleButton = type == InputDeviceType.Mouse && Mouse.MiddleButton == MouseButtonState.Pressed,
+                Ctrl = (mods & ModifierKeys.Control) != 0,
+                Shift = (mods & ModifierKeys.Shift) != 0,
+                Alt = (mods & ModifierKeys.Alt) != 0,
+                TimestampTicks = DateTime.UtcNow.Ticks
+            };
+            RaiseDeviceMove(args);
+        }
         private void RaiseDeviceUp(Point canvas, Point viewport, InputDeviceType type, int? touchId = null)
-            => DeviceUp?.Invoke(this, new DeviceInputEventArgs { DeviceType = type, CanvasPoint = canvas, ViewportPoint = viewport, TouchId = touchId });
+        {
+            var mods = Keyboard.Modifiers;
+            var args = new DeviceInputEventArgs
+            {
+                DeviceType = type,
+                CanvasPoint = canvas,
+                ViewportPoint = viewport,
+                TouchId = touchId,
+                Pressure = null,
+                IsInAir = false,
+                LeftButton = type == InputDeviceType.Mouse && Mouse.LeftButton == MouseButtonState.Pressed,
+                RightButton = type == InputDeviceType.Mouse && Mouse.RightButton == MouseButtonState.Pressed,
+                MiddleButton = type == InputDeviceType.Mouse && Mouse.MiddleButton == MouseButtonState.Pressed,
+                Ctrl = (mods & ModifierKeys.Control) != 0,
+                Shift = (mods & ModifierKeys.Shift) != 0,
+                Alt = (mods & ModifierKeys.Alt) != 0,
+                TimestampTicks = DateTime.UtcNow.Ticks
+            };
+            RaiseDeviceUp(args);
+        }
+        private void RaiseDeviceHover(Point canvas, Point viewport, InputDeviceType type, int? touchId = null, bool isInAir = false)
+        {
+            var mods = Keyboard.Modifiers;
+            var args = new DeviceInputEventArgs
+            {
+                DeviceType = type,
+                CanvasPoint = canvas,
+                ViewportPoint = viewport,
+                TouchId = touchId,
+                Pressure = null,
+                IsInAir = isInAir,
+                LeftButton = false,
+                RightButton = false,
+                MiddleButton = false,
+                Ctrl = (mods & ModifierKeys.Control) != 0,
+                Shift = (mods & ModifierKeys.Shift) != 0,
+                Alt = (mods & ModifierKeys.Alt) != 0,
+                TimestampTicks = DateTime.UtcNow.Ticks
+            };
+            RaiseDeviceHover(args);
+        }
 
         // 鼠标浮标与箭头的垂直偏移（屏幕像素）
         private double _eraserCursorOffsetY = 12.0;
@@ -113,12 +235,18 @@ namespace WindBoard
             MyCanvas.AddHandler(StylusDownEvent, new StylusDownEventHandler(MyCanvas_StylusDown), true);
             MyCanvas.AddHandler(StylusMoveEvent, new StylusEventHandler(MyCanvas_StylusMove), true);
             MyCanvas.AddHandler(StylusUpEvent, new StylusEventHandler(MyCanvas_StylusUp), true);
+            MyCanvas.AddHandler(StylusInAirMoveEvent, new StylusEventHandler(MyCanvas_StylusInAirMove), true);
 
             Debug.WriteLine("[DEBUG] AddHandler Mouse & Stylus (handledEventsToo=true) 已注册");
 
+            // 统一输入事件订阅：用于橡皮擦游标与自动扩容
+            DeviceDown += OnDeviceDown;
+            DeviceMove += OnDeviceMove;
+            DeviceUp += OnDeviceUp;
+ 
             // 用于更新缩略图：监听 StrokesChanged（切页时会重新挂）
             AttachStrokeEvents();
-
+ 
             // Pages 数量变化时更新 UI 绑定属性
             Pages.CollectionChanged += (s, e) => NotifyPageUiChanged();
             
@@ -159,7 +287,35 @@ namespace WindBoard
 
             Point pCanvas = e.GetPosition(MyCanvas);
             Point pViewport = e.GetPosition(Viewport);
-            RaiseDeviceDown(pCanvas, pViewport, InputDeviceType.Stylus, e.StylusDevice?.Id);
+
+            double? pressure = null;
+            try
+            {
+                var pts = e.GetStylusPoints(MyCanvas);
+                if (pts != null && pts.Count > 0) pressure = pts[pts.Count - 1].PressureFactor;
+            }
+            catch { }
+
+            long ticks = (long)e.Timestamp * TimeSpan.TicksPerMillisecond;
+            var mods = Keyboard.Modifiers;
+
+            var args = new DeviceInputEventArgs
+            {
+                DeviceType = InputDeviceType.Stylus,
+                CanvasPoint = pCanvas,
+                ViewportPoint = pViewport,
+                TouchId = e.StylusDevice?.Id,
+                Pressure = pressure,
+                IsInAir = false,
+                LeftButton = false,
+                RightButton = false,
+                MiddleButton = false,
+                Ctrl = (mods & ModifierKeys.Control) != 0,
+                Shift = (mods & ModifierKeys.Shift) != 0,
+                Alt = (mods & ModifierKeys.Alt) != 0,
+                TimestampTicks = ticks
+            };
+            RaiseDeviceDown(args);
         }
 
         private void MyCanvas_StylusMove(object sender, StylusEventArgs e)
@@ -169,7 +325,35 @@ namespace WindBoard
 
             Point pCanvas = e.GetPosition(MyCanvas);
             Point pViewport = e.GetPosition(Viewport);
-            RaiseDeviceMove(pCanvas, pViewport, InputDeviceType.Stylus, e.StylusDevice?.Id);
+
+            double? pressure = null;
+            try
+            {
+                var pts = e.GetStylusPoints(MyCanvas);
+                if (pts != null && pts.Count > 0) pressure = pts[pts.Count - 1].PressureFactor;
+            }
+            catch { }
+
+            long ticks = (long)e.Timestamp * TimeSpan.TicksPerMillisecond;
+            var mods = Keyboard.Modifiers;
+
+            var args = new DeviceInputEventArgs
+            {
+                DeviceType = InputDeviceType.Stylus,
+                CanvasPoint = pCanvas,
+                ViewportPoint = pViewport,
+                TouchId = e.StylusDevice?.Id,
+                Pressure = pressure,
+                IsInAir = false,
+                LeftButton = false,
+                RightButton = false,
+                MiddleButton = false,
+                Ctrl = (mods & ModifierKeys.Control) != 0,
+                Shift = (mods & ModifierKeys.Shift) != 0,
+                Alt = (mods & ModifierKeys.Alt) != 0,
+                TimestampTicks = ticks
+            };
+            RaiseDeviceMove(args);
         }
 
         private void MyCanvas_StylusUp(object sender, StylusEventArgs e)
@@ -179,9 +363,99 @@ namespace WindBoard
 
             Point pCanvas = e.GetPosition(MyCanvas);
             Point pViewport = e.GetPosition(Viewport);
-            RaiseDeviceUp(pCanvas, pViewport, InputDeviceType.Stylus, e.StylusDevice?.Id);
+
+            long ticks = (long)e.Timestamp * TimeSpan.TicksPerMillisecond;
+            var mods = Keyboard.Modifiers;
+
+            var args = new DeviceInputEventArgs
+            {
+                DeviceType = InputDeviceType.Stylus,
+                CanvasPoint = pCanvas,
+                ViewportPoint = pViewport,
+                TouchId = e.StylusDevice?.Id,
+                Pressure = null,
+                IsInAir = false,
+                LeftButton = false,
+                RightButton = false,
+                MiddleButton = false,
+                Ctrl = (mods & ModifierKeys.Control) != 0,
+                Shift = (mods & ModifierKeys.Shift) != 0,
+                Alt = (mods & ModifierKeys.Alt) != 0,
+                TimestampTicks = ticks
+            };
+            RaiseDeviceUp(args);
+        }
+
+        private void MyCanvas_StylusInAirMove(object sender, StylusEventArgs e)
+        {
+            var tablet = e.StylusDevice?.TabletDevice;
+            if (tablet == null || tablet.Type != TabletDeviceType.Stylus) return; // 非触笔不在此派发
+
+            Point pCanvas = e.GetPosition(MyCanvas);
+            Point pViewport = e.GetPosition(Viewport);
+
+            long ticks = (long)e.Timestamp * TimeSpan.TicksPerMillisecond;
+            var mods = Keyboard.Modifiers;
+
+            var args = new DeviceInputEventArgs
+            {
+                DeviceType = InputDeviceType.Stylus,
+                CanvasPoint = pCanvas,
+                ViewportPoint = pViewport,
+                TouchId = e.StylusDevice?.Id,
+                Pressure = null,
+                IsInAir = true,
+                LeftButton = false,
+                RightButton = false,
+                MiddleButton = false,
+                Ctrl = (mods & ModifierKeys.Control) != 0,
+                Shift = (mods & ModifierKeys.Shift) != 0,
+                Alt = (mods & ModifierKeys.Alt) != 0,
+                TimestampTicks = ticks
+            };
+            RaiseDeviceHover(args);
         }
         #endregion
+
+        // 统一输入订阅分派：橡皮擦游标 & 自动扩容（不干扰多指缩放与空格平移）
+        private void OnDeviceDown(object? sender, DeviceInputEventArgs e)
+        {
+            if (MyCanvas.EditingMode == InkCanvasEditingMode.EraseByPoint)
+            {
+                _isEraserPressed = true;
+                _isMouseErasing = (e.DeviceType == InputDeviceType.Mouse);
+                MyCanvas.Cursor = Cursors.Arrow;
+                UpdateEraserVisual(e.CanvasPoint);
+            }
+        }
+
+        private void OnDeviceMove(object? sender, DeviceInputEventArgs e)
+        {
+            bool pressed = e.DeviceType == InputDeviceType.Touch
+                || (e.DeviceType == InputDeviceType.Mouse && (e.LeftButton || e.RightButton || e.MiddleButton))
+                || (e.DeviceType == InputDeviceType.Stylus && !e.IsInAir);
+
+            if (pressed)
+            {
+                AutoExpandCanvas(e.CanvasPoint);
+            }
+
+            if (MyCanvas.EditingMode == InkCanvasEditingMode.EraseByPoint && _isEraserPressed)
+            {
+                UpdateEraserVisual(e.CanvasPoint);
+            }
+        }
+
+        private void OnDeviceUp(object? sender, DeviceInputEventArgs e)
+        {
+            if (MyCanvas.EditingMode == InkCanvasEditingMode.EraseByPoint)
+            {
+                _isEraserPressed = false;
+                _isMouseErasing = false;
+                MyCanvas.Cursor = Cursors.Arrow;
+                UpdateEraserVisual(null);
+            }
+        }
 
         #region Tool UI
 
