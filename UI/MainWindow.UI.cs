@@ -311,7 +311,7 @@ namespace WindBoard
             _clearPendingClose = false;
         }
 
-        #region System Dock UI（左下角 更多/最小化）
+        #region System Dock UI（左下角）
         private void BtnMore_Click(object sender, RoutedEventArgs e)
         {
             // 打开“更多”弹出菜单
