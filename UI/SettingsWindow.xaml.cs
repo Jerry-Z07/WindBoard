@@ -11,7 +11,7 @@ namespace WindBoard.UI
 {
     public partial class SettingsWindow : Window, INotifyPropertyChanged
     {
-        private MainWindow _mainWindow;
+        // 主窗口依赖已移除（仅保留 UI）
         private Color _currentColor;
         private PopupBox? _colorPopupBox;
 
@@ -33,10 +33,7 @@ namespace WindBoard.UI
                     OnPropertyChanged();
                     OnPropertyChanged(nameof(CurrentColorHex));
                     
-                    if (_mainWindow != null)
-                    {
-                        _mainWindow.SetBackgroundColor(_currentColor);
-                    }
+                    WindBoard.SettingsService.Instance.SetBackgroundColor(_currentColor);
                 }
             }
         }
@@ -62,24 +59,20 @@ namespace WindBoard.UI
             }
         }
 
-        public SettingsWindow(MainWindow mainWindow)
+        public SettingsWindow()
         {
             InitializeComponent();
-            _mainWindow = mainWindow;
             _colorPopupBox = FindName("ColorPopupBox") as PopupBox;
+
+            // 初始化颜色为当前设置服务中的背景色
+            _currentColor = WindBoard.SettingsService.Instance.GetBackgroundColor();
+            OnPropertyChanged(nameof(CurrentColor));
+            OnPropertyChanged(nameof(CurrentColorHex));
 
             // 初始化 Hex 文本框内容
             if (HexTextBox != null)
             {
                 HexTextBox.Text = CurrentColorHex;
-            }
-
-            // 初始化颜色选择器为当前背景色
-            if (_mainWindow.MyCanvas.Background is SolidColorBrush brush)
-            {
-                _currentColor = brush.Color;
-                OnPropertyChanged(nameof(CurrentColor));
-                OnPropertyChanged(nameof(CurrentColorHex));
             }
         }
 

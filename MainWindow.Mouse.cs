@@ -39,6 +39,14 @@ namespace WindBoard
             {
                 HandleEraserMouseDown(e);
             }
+
+            // 统一事件分发：仅当未由触摸/触笔提升时（即 StylusDevice == null）才按“鼠标”派发，避免重复
+            if (e.StylusDevice == null)
+            {
+                Point pCanvas = e.GetPosition(MyCanvas);
+                Point pViewport = e.GetPosition(Viewport);
+                RaiseDeviceDown(pCanvas, pViewport, InputDeviceType.Mouse, null);
+            }
         }
 
         private void MyCanvas_MouseMove(object sender, MouseEventArgs e)
@@ -63,6 +71,14 @@ namespace WindBoard
             {
                 HandleEraserMouseMove(e);
             }
+
+            // 统一事件分发：MouseMove 仅对真实鼠标派发
+            if (e.StylusDevice == null)
+            {
+                Point pCanvas = e.GetPosition(MyCanvas);
+                Point pViewport = e.GetPosition(Viewport);
+                RaiseDeviceMove(pCanvas, pViewport, InputDeviceType.Mouse, null);
+            }
         }
 
         private void MyCanvas_MouseUp(object sender, MouseButtonEventArgs e)
@@ -78,6 +94,14 @@ namespace WindBoard
             else if (MyCanvas.EditingMode == InkCanvasEditingMode.EraseByPoint && e.ChangedButton == MouseButton.Left)
             {
                 HandleEraserMouseUp(e);
+            }
+
+            // 统一事件分发：MouseUp 仅对真实鼠标派发
+            if (e.StylusDevice == null)
+            {
+                Point pCanvas = e.GetPosition(MyCanvas);
+                Point pViewport = e.GetPosition(Viewport);
+                RaiseDeviceUp(pCanvas, pViewport, InputDeviceType.Mouse, null);
             }
         }
     }

@@ -1,3 +1,4 @@
+using System;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Windows;
@@ -20,7 +21,28 @@ namespace WindBoard
         private InkCanvasEditingMode _lastEditingMode = InkCanvasEditingMode.Ink;
         private double _baseThickness = 3.0;
 
+        // 统一输入设备事件与类型（鼠标 / 触笔 / 触摸）
+        public enum InputDeviceType { Mouse, Stylus, Touch }
+        public class DeviceInputEventArgs : EventArgs
+        {
+            public InputDeviceType DeviceType { get; set; }
+            public Point CanvasPoint { get; set; }
+            public Point ViewportPoint { get; set; }
+            public int? TouchId { get; set; }
+        }
 
+        public event EventHandler<DeviceInputEventArgs>? DeviceDown;
+        public event EventHandler<DeviceInputEventArgs>? DeviceMove;
+        public event EventHandler<DeviceInputEventArgs>? DeviceUp;
+
+        private void RaiseDeviceDown(Point canvas, Point viewport, InputDeviceType type, int? touchId = null)
+            => DeviceDown?.Invoke(this, new DeviceInputEventArgs { DeviceType = type, CanvasPoint = canvas, ViewportPoint = viewport, TouchId = touchId });
+
+        private void RaiseDeviceMove(Point canvas, Point viewport, InputDeviceType type, int? touchId = null)
+            => DeviceMove?.Invoke(this, new DeviceInputEventArgs { DeviceType = type, CanvasPoint = canvas, ViewportPoint = viewport, TouchId = touchId });
+
+        private void RaiseDeviceUp(Point canvas, Point viewport, InputDeviceType type, int? touchId = null)
+            => DeviceUp?.Invoke(this, new DeviceInputEventArgs { DeviceType = type, CanvasPoint = canvas, ViewportPoint = viewport, TouchId = touchId });
 
         // 鼠标浮标与箭头的垂直偏移（屏幕像素）
         private double _eraserCursorOffsetY = 12.0;
@@ -59,16 +81,21 @@ namespace WindBoard
 
 
         private bool _gestureActive = false;
-        private int _gestureId1 = -1;
-        private int _gestureId2 = -1;
-        private Point _lastGestureP1;
-        private Point _lastGestureP2;
+        // 多指手势快照（质心 + 平均半径，Viewport 坐标）
+        private Point _lastGestureCenter;
+        private double _lastGestureSpread;
 
         public MainWindow()
         {
             InitializeComponent();
             DataContext = this;
-
+            
+            // 加载并应用设置
+            SettingsService.Instance.Load();
+            SetBackgroundColor(SettingsService.Instance.GetBackgroundColor());
+            // 监听设置变更
+            SettingsService.Instance.SettingsChanged += (s, e) => SetBackgroundColor(SettingsService.Instance.GetBackgroundColor());
+            
             MyCanvas.StrokeCollected += MyCanvas_StrokeCollected;
             _eraserOverlay = (Canvas)FindName("EraserOverlay");
             _eraserCursorRect = (Border)FindName("EraserCursorRect");
@@ -82,7 +109,12 @@ namespace WindBoard
             MyCanvas.AddHandler(MouseMoveEvent, new MouseEventHandler(MyCanvas_MouseMove), true);
             MyCanvas.AddHandler(MouseUpEvent, new MouseButtonEventHandler(MyCanvas_MouseUp), true);
 
-            Debug.WriteLine("[DEBUG] AddHandler MouseDown/Move/Up (handledEventsToo=true) 已注册");
+            // 监听 Stylus 事件（区分触笔/触摸），同样使用 handledEventsToo=true
+            MyCanvas.AddHandler(StylusDownEvent, new StylusDownEventHandler(MyCanvas_StylusDown), true);
+            MyCanvas.AddHandler(StylusMoveEvent, new StylusEventHandler(MyCanvas_StylusMove), true);
+            MyCanvas.AddHandler(StylusUpEvent, new StylusEventHandler(MyCanvas_StylusUp), true);
+
+            Debug.WriteLine("[DEBUG] AddHandler Mouse & Stylus (handledEventsToo=true) 已注册");
 
             // 用于更新缩略图：监听 StrokesChanged（切页时会重新挂）
             AttachStrokeEvents();
@@ -116,6 +148,40 @@ namespace WindBoard
         }
 
 
+
+        #region Unified Device Events
+        // 根据 Stylus 设备类型区分触笔/触摸；并统一抛出 DeviceDown/Move/Up
+        // 注意：触摸（非触笔）事件已在 TouchDown/Move/Up 中派发，这里仅派发触笔，避免重复。
+        private void MyCanvas_StylusDown(object sender, StylusDownEventArgs e)
+        {
+            var tablet = e.StylusDevice?.TabletDevice;
+            if (tablet == null || tablet.Type != TabletDeviceType.Stylus) return; // 非触笔不在此派发
+
+            Point pCanvas = e.GetPosition(MyCanvas);
+            Point pViewport = e.GetPosition(Viewport);
+            RaiseDeviceDown(pCanvas, pViewport, InputDeviceType.Stylus, e.StylusDevice?.Id);
+        }
+
+        private void MyCanvas_StylusMove(object sender, StylusEventArgs e)
+        {
+            var tablet = e.StylusDevice?.TabletDevice;
+            if (tablet == null || tablet.Type != TabletDeviceType.Stylus) return; // 非触笔不在此派发
+
+            Point pCanvas = e.GetPosition(MyCanvas);
+            Point pViewport = e.GetPosition(Viewport);
+            RaiseDeviceMove(pCanvas, pViewport, InputDeviceType.Stylus, e.StylusDevice?.Id);
+        }
+
+        private void MyCanvas_StylusUp(object sender, StylusEventArgs e)
+        {
+            var tablet = e.StylusDevice?.TabletDevice;
+            if (tablet == null || tablet.Type != TabletDeviceType.Stylus) return; // 非触笔不在此派发
+
+            Point pCanvas = e.GetPosition(MyCanvas);
+            Point pViewport = e.GetPosition(Viewport);
+            RaiseDeviceUp(pCanvas, pViewport, InputDeviceType.Stylus, e.StylusDevice?.Id);
+        }
+        #endregion
 
         #region Tool UI
 
@@ -334,8 +400,8 @@ namespace WindBoard
             // 关闭菜单
             if (_popupMoreMenu != null) _popupMoreMenu.IsOpen = false;
             
-            // 打开设置窗口
-            var settingsWindow = new UI.SettingsWindow(this);
+            // 打开设置窗口（无业务依赖）
+            var settingsWindow = new UI.SettingsWindow();
             settingsWindow.Owner = this;
             settingsWindow.ShowDialog();
         }

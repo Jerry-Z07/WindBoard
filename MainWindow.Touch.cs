@@ -15,32 +15,44 @@ namespace WindBoard
             var p = e.GetTouchPoint(Viewport).Position;
             _activeTouches[e.TouchDevice.Id] = p;
 
+            // 统一派发：触摸按下
+            Point pCanvas = e.GetTouchPoint(MyCanvas).Position;
+            Point pViewport = e.GetTouchPoint(Viewport).Position;
+            RaiseDeviceDown(pCanvas, pViewport, InputDeviceType.Touch, e.TouchDevice.Id);
+
             // 单指擦除：按下时显示游标
             if (RadioEraser.IsChecked == true && _activeTouches.Count == 1)
             {
                 HandleEraserTouchDown(e);
             }
 
-            if (_activeTouches.Count == 2)
+            if (_activeTouches.Count >= 2)
             {
-                // 进入双指手势：暂停书写
+                // 进入多指手势：暂停书写
                 _lastEditingMode = MyCanvas.EditingMode;
                 MyCanvas.EditingMode = InkCanvasEditingMode.None;
 
-                // 固定手势的两根手指 ID（排序保证稳定）
-                var ids = _activeTouches.Keys.OrderBy(id => id).ToArray();
-                _gestureId1 = ids[0];
-                _gestureId2 = ids[1];
+                // 以所有触点的质心+平均半径作为手势快照
+                double sumX = 0, sumY = 0; int n = _activeTouches.Count;
+                foreach (var pt in _activeTouches.Values) { sumX += pt.X; sumY += pt.Y; }
+                Point center = new Point(sumX / n, sumY / n);
+                double spread = 0;
+                foreach (var pt in _activeTouches.Values)
+                {
+                    double dx = pt.X - center.X, dy = pt.Y - center.Y;
+                    spread += Math.Sqrt(dx * dx + dy * dy);
+                }
+                spread = n > 0 ? spread / n : 0;
 
-                _lastGestureP1 = _activeTouches[_gestureId1];
-                _lastGestureP2 = _activeTouches[_gestureId2];
+                _lastGestureCenter = center;
+                _lastGestureSpread = spread;
                 _gestureActive = true;
 
-                // 双指开始，隐藏橡皮擦游标
+                // 多指开始，隐藏橡皮擦游标
                 _isEraserPressed = false;
                 UpdateEraserVisual(null);
 
-                // 关键：双指时必须 Handled，阻止触摸被“提升”为鼠标/滚动等副作用
+                // 关键：多指时必须 Handled，阻止触摸被“提升”为鼠标/滚动等副作用
                 e.Handled = true;
             }
             // 单指不 Handled，让 InkCanvas 正常收集墨迹
@@ -55,7 +67,11 @@ namespace WindBoard
             _activeTouches[e.TouchDevice.Id] = p;
 
             // 自动扩容检测
-            AutoExpandCanvas(e.GetTouchPoint(MyCanvas).Position);
+            var pCanvasMove = e.GetTouchPoint(MyCanvas).Position;
+            AutoExpandCanvas(pCanvasMove);
+
+            // 统一派发：触摸移动
+            RaiseDeviceMove(pCanvasMove, p, InputDeviceType.Touch, e.TouchDevice.Id);
 
             // 橡皮擦模式下的单指移动：仅在按下时显示并跟随（不拦截事件）
             if (!_gestureActive && RadioEraser.IsChecked == true && _activeTouches.Count == 1 && _isEraserPressed)
@@ -63,42 +79,33 @@ namespace WindBoard
                 HandleEraserTouchMove(e);
             }
 
-            if (!(_gestureActive && _activeTouches.Count == 2
-                  && _activeTouches.ContainsKey(_gestureId1)
-                  && _activeTouches.ContainsKey(_gestureId2)))
+            if (!(_gestureActive && _activeTouches.Count >= 2))
             {
                 return;
             }
 
-            // 当前两指位置
-            Point p1New = _activeTouches[_gestureId1];
-            Point p2New = _activeTouches[_gestureId2];
+            // 当前多指质心与平均半径（Viewport 坐标）
+            double sumX = 0, sumY = 0; int n = _activeTouches.Count;
+            foreach (var pt in _activeTouches.Values) { sumX += pt.X; sumY += pt.Y; }
+            Point newCenter = new Point(sumX / n, sumY / n);
+            double newSpread = 0;
+            foreach (var pt in _activeTouches.Values)
+            {
+                double dx = pt.X - newCenter.X, dy = pt.Y - newCenter.Y;
+                newSpread += Math.Sqrt(dx * dx + dy * dy);
+            }
+            newSpread = n > 0 ? newSpread / n : 0;
 
-            // 上一帧两指位置（快照）
-            Point p1Old = _lastGestureP1;
-            Point p2Old = _lastGestureP2;
-
-            // 中心点（Viewport 坐标）
-            Point oldCenter = new Point((p1Old.X + p2Old.X) / 2.0, (p1Old.Y + p2Old.Y) / 2.0);
-            Point newCenter = new Point((p1New.X + p2New.X) / 2.0, (p1New.Y + p2New.Y) / 2.0);
-
-            // 距离（Viewport 坐标）
-            double oldDist = (p1Old - p2Old).Length;
-            double newDist = (p1New - p2New).Length;
-
-            // 计算新 zoom（允许纯平移：dist 太小时 scale = 1）
+            // 计算新 zoom（允许纯平移：spread 太小时 scale = 1）
             double oldZoom = _zoom;
             double scale = 1.0;
-
-            if (oldDist > 10 && newDist > 0)
-                scale = newDist / oldDist;
-
+            if (_lastGestureSpread > 10 && newSpread > 0)
+                scale = newSpread / _lastGestureSpread;
             double newZoom = Clamp(oldZoom * scale, MinZoom, MaxZoom);
 
-            // 关键：把 oldCenter 对应的内容点锁定到 newCenter（一步到位消漂移）
-            // oldCenter 指向的内容坐标（content space）
-            double contentX = (Viewport.HorizontalOffset + oldCenter.X) / oldZoom;
-            double contentY = (Viewport.VerticalOffset + oldCenter.Y) / oldZoom;
+            // 把上帧质心对应的内容点锁定到新质心（一步到位消漂移）
+            double contentX = (Viewport.HorizontalOffset + _lastGestureCenter.X) / oldZoom;
+            double contentY = (Viewport.VerticalOffset + _lastGestureCenter.Y) / oldZoom;
 
             // 应用缩放
             _zoom = newZoom;
@@ -108,7 +115,7 @@ namespace WindBoard
             // 更新布局，保证 Extent/Viewport 尺寸已刷新
             Viewport.UpdateLayout();
 
-            // 设置新的 offset：让 content 点落在 newCenter
+            // 设置新的 offset：让内容点落在新质心
             Viewport.ScrollToHorizontalOffset(contentX * _zoom - newCenter.X);
             Viewport.ScrollToVerticalOffset(contentY * _zoom - newCenter.Y);
 
@@ -116,10 +123,10 @@ namespace WindBoard
             UpdateEraserVisual(null);
 
             // 更新快照
-            _lastGestureP1 = p1New;
-            _lastGestureP2 = p2New;
+            _lastGestureCenter = newCenter;
+            _lastGestureSpread = newSpread;
 
-            // 双指手势必须吃掉事件，避免产生乱线/提升为鼠标
+            // 多指手势必须吃掉事件，避免产生乱线/提升为鼠标
             e.Handled = true;
         }
 
@@ -127,13 +134,17 @@ namespace WindBoard
         {
             MyCanvas.ReleaseTouchCapture(e.TouchDevice);
 
+            // 统一派发：触摸抬起
+            Point pCanvas = e.GetTouchPoint(MyCanvas).Position;
+            Point pViewport = e.GetTouchPoint(Viewport).Position;
+            RaiseDeviceUp(pCanvas, pViewport, InputDeviceType.Touch, e.TouchDevice.Id);
+
             _activeTouches.Remove(e.TouchDevice.Id);
 
             if (_activeTouches.Count < 2)
             {
                 // 退出手势
                 _gestureActive = false;
-                _gestureId1 = _gestureId2 = -1;
 
                 // 恢复之前的编辑模式
                 if (MyCanvas.EditingMode == InkCanvasEditingMode.None)
@@ -142,17 +153,25 @@ namespace WindBoard
                 // 松开触点：隐藏橡皮擦游标
                 HandleEraserTouchUp(e);
 
-                // 双指结束也 Handled 一下，减少“提升为鼠标事件”引发的杂音
+                // 多指结束也 Handled 一下，减少“提升为鼠标事件”引发的杂音
                 e.Handled = true;
             }
-            else if (_activeTouches.Count == 2)
+            else if (_activeTouches.Count >= 2)
             {
-                // 仍有两指（比如第三指抬起/换指），重建手势快照，避免跳变
-                var ids = _activeTouches.Keys.OrderBy(id => id).ToArray();
-                _gestureId1 = ids[0];
-                _gestureId2 = ids[1];
-                _lastGestureP1 = _activeTouches[_gestureId1];
-                _lastGestureP2 = _activeTouches[_gestureId2];
+                // 仍有多指（比如第三指抬起/换指），重建手势快照，避免跳变
+                double sumX = 0, sumY = 0; int n = _activeTouches.Count;
+                foreach (var pt in _activeTouches.Values) { sumX += pt.X; sumY += pt.Y; }
+                Point center = new Point(sumX / n, sumY / n);
+                double spread = 0;
+                foreach (var pt in _activeTouches.Values)
+                {
+                    double dx = pt.X - center.X, dy = pt.Y - center.Y;
+                    spread += Math.Sqrt(dx * dx + dy * dy);
+                }
+                spread = n > 0 ? spread / n : 0;
+
+                _lastGestureCenter = center;
+                _lastGestureSpread = spread;
                 _gestureActive = true;
 
                 e.Handled = true;
