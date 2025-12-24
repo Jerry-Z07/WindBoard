@@ -10,6 +10,7 @@
         Style="{StaticResource MaterialDesignWindow}"
         Background="{DynamicResource MaterialDesignPaper}"
         TextElement.Foreground="{DynamicResource MaterialDesignBody}"
+        TextElement.FontFamily="pack://application:,,,/WindBoard;component/resources/fonts/#MiSans"
         ResizeMode="CanResizeWithGrip">
     
     <materialDesign:DialogHost Identifier="SettingsDialogHost" DialogTheme="Inherit">
@@ -71,10 +72,6 @@
 
                 <ScrollViewer Grid.Column="1" Padding="36,24" VerticalScrollBarVisibility="Auto">
                     <StackPanel>
-                        <StackPanel Orientation="Horizontal" Margin="0,0,0,28">
-                            <materialDesign:PackIcon Kind="PaletteOutline" Width="28" Height="28" VerticalAlignment="Center" Foreground="{DynamicResource PrimaryHueMidBrush}"/>
-                            <TextBlock Text="外观设置" Style="{StaticResource MaterialDesignHeadline5TextBlock}" Margin="16,0,0,0" VerticalAlignment="Center"/>
-                        </StackPanel>
 
                         <materialDesign:Card Padding="20" Margin="0,0,0,20" UniformCornerRadius="12" materialDesign:ElevationAssist.Elevation="Dp2">
                             <Grid>

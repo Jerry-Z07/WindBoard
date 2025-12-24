@@ -47,7 +47,7 @@
                     Style="{StaticResource FlatNavButtonStyle}"
                     Background="Transparent"
                     BorderThickness="0"
-                    Padding="10,8"
+                    Padding="14,8"
                     Click="BtnPrev_Click">
                 <Button.Visibility>
                     <Binding Path="IsMultiPage" RelativeSource="{RelativeSource AncestorType=local:PageNavigatorControl}">
@@ -56,7 +56,7 @@
                         </Binding.Converter>
                     </Binding>
                 </Button.Visibility>
-                <materialDesign:PackIcon Kind="ChevronLeft" Width="22" Height="22" Foreground="#E0E0E0"/>
+                <materialDesign:PackIcon Kind="ChevronLeft" Width="24" Height="24" Foreground="#E0E0E0"/>
             </Button>
 
             <Button x:Name="BtnIndicator"
@@ -76,20 +76,20 @@
             <Button x:Name="BtnNext"
                     Background="Transparent"
                     BorderThickness="0"
-                    Padding="10,8"
+                    Padding="14,8"
                     Click="BtnNext_Click"
                     Style="{StaticResource FlatNavButtonStyle}"
                     Visibility="{Binding IsMultiPage, RelativeSource={RelativeSource AncestorType=local:PageNavigatorControl}, Converter={StaticResource BoolToVis}}">
-                <materialDesign:PackIcon Kind="ChevronRight" Width="22" Height="22" Foreground="#E0E0E0"/>
+                <materialDesign:PackIcon Kind="ChevronRight" Width="24" Height="24" Foreground="#E0E0E0"/>
             </Button>
 
             <Button x:Name="BtnAdd"
                     Background="Transparent"
                     BorderThickness="0"
-                    Padding="10,8"
+                    Padding="14,8"
                     Click="BtnAdd_Click"
                     Style="{StaticResource FlatNavButtonStyle}">
-                <materialDesign:PackIcon Kind="Plus" Width="22" Height="22" Foreground="#E0E0E0"/>
+                <materialDesign:PackIcon Kind="Plus" Width="24" Height="24" Foreground="#E0E0E0"/>
             </Button>
 
             <!-- 页面管理 Popup -->
@@ -112,7 +112,8 @@
                                    Margin="2,2,2,12"/>
 
                         <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
-                                      MaxHeight="520">
+                                      MaxHeight="520"
+                                      PanningMode="VerticalOnly">
                             <ItemsControl ItemsSource="{Binding Pages, RelativeSource={RelativeSource AncestorType=local:PageNavigatorControl}}">
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate DataType="{x:Type wind:BoardPage}">
@@ -173,7 +174,10 @@
                                                         Margin="10,0,10,10"
                                                         CornerRadius="10"
                                                         Background="#0F1216"
-                                                        Height="120">
+                                                        Height="120"
+                                                        Tag="{Binding}"
+                                                        Cursor="Hand"
+                                                        MouseLeftButtonUp="PageItem_Click">
                                                     <Image Source="{Binding Preview}" Stretch="UniformToFill"/>
                                                 </Border>
                                             </Grid>

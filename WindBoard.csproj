@@ -14,4 +14,8 @@
     <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Resource Include="resources\fonts\*.ttf" />
+  </ItemGroup>
+
 </Project>
