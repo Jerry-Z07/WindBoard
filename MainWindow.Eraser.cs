@@ -58,51 +58,6 @@ namespace WindBoard
             }
         }
 
-        // 橡皮擦相关触摸/鼠标逻辑（供主文件的事件处理调用）
-        private void HandleEraserTouchDown(TouchEventArgs e)
-        {
-            _isEraserPressed = true;
-            _isMouseErasing = false;
-
-            var pContent = (_eraserOverlay != null ? e.GetTouchPoint(_eraserOverlay) : e.GetTouchPoint(MyCanvas)).Position;
-            UpdateEraserVisual(pContent);
-        }
-
-        private void HandleEraserTouchMove(TouchEventArgs e)
-        {
-            var pContent = (_eraserOverlay != null ? e.GetTouchPoint(_eraserOverlay) : e.GetTouchPoint(MyCanvas)).Position;
-            UpdateEraserVisual(pContent);
-        }
-
-        private void HandleEraserTouchUp(TouchEventArgs e)
-        {
-            _isEraserPressed = false;
-            _isMouseErasing = false;
-            UpdateEraserVisual(null);
-        }
-
-        private void HandleEraserMouseDown(MouseButtonEventArgs e)
-        {
-            _isEraserPressed = true;
-            _isMouseErasing = true;
-            MyCanvas.Cursor = Cursors.Arrow;
-            Point p = e.GetPosition(MyCanvas);
-            UpdateEraserVisual(p);
-            // 不设置 Handled，交由 InkCanvas 执行擦除
-        }
-
-        private void HandleEraserMouseMove(MouseEventArgs e)
-        {
-            Point p = e.GetPosition(MyCanvas);
-            UpdateEraserVisual(p);
-        }
-
-        private void HandleEraserMouseUp(MouseButtonEventArgs e)
-        {
-            _isEraserPressed = false;
-            _isMouseErasing = false;
-            MyCanvas.Cursor = Cursors.Arrow;
-            UpdateEraserVisual(null);
-        }
+        // 统一输入订阅已接管橡皮擦游标与按压维护；旧的 HandleEraser* 方法已移除。
     }
 }
