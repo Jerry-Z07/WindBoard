@@ -7,6 +7,7 @@
         mc:Ignorable="d"
         Title="应用设置" Height="650" Width="950"
         WindowStartupLocation="CenterOwner"
+        Style="{StaticResource MaterialDesignWindow}"
         Background="{DynamicResource MaterialDesignPaper}"
         TextElement.Foreground="{DynamicResource MaterialDesignBody}"
         ResizeMode="CanResizeWithGrip">
@@ -185,23 +186,6 @@
                             </Grid>
                         </materialDesign:Card>
 
-                        <materialDesign:Card Padding="20" Margin="0,0,0,20" UniformCornerRadius="12" materialDesign:ElevationAssist.Elevation="Dp2">
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto"/>
-                                    <ColumnDefinition Width="*"/>
-                                </Grid.ColumnDefinitions>
-
-                                <Border Width="48" Height="48" CornerRadius="8" Background="{DynamicResource SecondaryHueLightBrush}" Grid.Column="0" VerticalAlignment="Center">
-                                    <materialDesign:PackIcon Kind="InformationOutline" Width="24" Height="24" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="{DynamicResource SecondaryHueMidBrush}"/>
-                                </Border>
-
-                                <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="16,0,0,0">
-                                    <TextBlock Text="提示" Style="{StaticResource MaterialDesignSubtitle1TextBlock}" FontWeight="SemiBold"/>
-                                    <TextBlock Text="更改背景颜色会立即应用到当前白板。您也可以通过预设颜色快速选择常用的背景色。" Style="{StaticResource MaterialDesignBodyMediumTextBlock}" Opacity="0.6" TextWrapping="Wrap"/>
-                                </StackPanel>
-                            </Grid>
-                        </materialDesign:Card>
 
                     </StackPanel>
                 </ScrollViewer>

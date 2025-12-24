@@ -5,6 +5,7 @@
         xmlns:controls="clr-namespace:WindBoard.Controls"
         Title="WindBoard" Height="450" Width="800"
         WindowState="Maximized"
+        Style="{StaticResource MaterialDesignWindow}"
         Loaded="Window_Loaded">
 
     <Grid x:Name="RootGrid" Background="#2E2F33" ClipToBounds="False">

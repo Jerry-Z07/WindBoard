@@ -11,6 +11,12 @@
                 <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesign3.Defaults.xaml" />
                 <ResourceDictionary Source="Styles/BottomBarStyles.xaml" />
             </ResourceDictionary.MergedDictionaries>
+            <Style TargetType="Control">
+                <Setter Property="FontFamily" Value="Microsoft YaHei UI"/>
+            </Style>
+            <Style TargetType="TextBlock">
+                <Setter Property="FontFamily" Value="Microsoft YaHei UI"/>
+            </Style>
             <BooleanToVisibilityConverter x:Key="BoolToVis"/>
         </ResourceDictionary>
     </Application.Resources>
