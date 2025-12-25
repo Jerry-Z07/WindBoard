@@ -8,6 +8,8 @@ using System.Windows.Media;
 using System.Windows.Controls.Primitives;
 using System.Diagnostics;
 using System.Linq;
+using System.Windows.Media.Animation;
+using System.Globalization;
 
 namespace WindBoard
 {
@@ -461,8 +463,24 @@ namespace WindBoard
             var slider = sender as Slider ?? _sliderClear;
             double max = slider?.Maximum ?? 100;
             double val = slider?.Value ?? 0;
+            if (max <= 0) return;
 
-            if (val >= max)
+            // 读取阈值（优先从 Tag，默认 0.96），限制在 [0.5, 0.999]
+            double threshold = 0.96;
+            try
+            {
+                if (slider != null)
+                {
+                    if (slider.Tag is string s && double.TryParse(s, NumberStyles.Float, CultureInfo.InvariantCulture, out var t)) threshold = t;
+                    else if (slider.Tag is double td) threshold = td;
+                }
+            }
+            catch { }
+            threshold = Math.Min(0.999, Math.Max(0.5, threshold));
+
+            double ratio = val / max;
+
+            if (ratio >= threshold)
             {
                 _clearSlideTriggered = true;
 
@@ -473,7 +491,6 @@ namespace WindBoard
                 // 清除当前画布笔迹与可能的子元素
                 MyCanvas.Strokes.Clear();
                 MyCanvas.Children.Clear();
-
 
                 // 标记待关闭，由 PointerUp 再真正关闭（避免触摸设备上因 capture/提升造成的卡死）
                 _clearPendingClose = true;
@@ -487,8 +504,36 @@ namespace WindBoard
             var slider = sender as Slider ?? _sliderClear;
             if (slider == null) return;
 
-            bool reached = _clearPendingClose || (slider.Value >= slider.Maximum);
-            if (!reached) return;
+            // 读取阈值（优先从 Tag，默认 0.96）
+            double threshold = 0.96;
+            try
+            {
+                if (slider.Tag is string s && double.TryParse(s, NumberStyles.Float, CultureInfo.InvariantCulture, out var t)) threshold = t;
+                else if (slider.Tag is double td) threshold = td;
+            }
+            catch { }
+            threshold = Math.Min(0.999, Math.Max(0.5, threshold));
+
+            bool reached = _clearPendingClose || (slider.Maximum > 0 && (slider.Value / slider.Maximum) >= threshold);
+            if (!reached)
+            {
+                // 未达阈值：回弹但不关闭弹窗
+                try
+                {
+                    var anim = new DoubleAnimation
+                    {
+                        To = 0,
+                        Duration = TimeSpan.FromMilliseconds(180),
+                        EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
+                    };
+                    slider.BeginAnimation(Slider.ValueProperty, anim);
+                }
+                catch { slider.Value = 0; }
+
+                _clearPendingClose = false;
+                _clearSlideTriggered = false;
+                return;
+            }
 
             Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Background, new Action(() =>
             {
@@ -497,6 +542,7 @@ namespace WindBoard
                 try { Mouse.Capture(null); } catch { }
 
                 if (_popupEraserClear != null) _popupEraserClear.IsOpen = false;
+                try { slider.BeginAnimation(Slider.ValueProperty, null); } catch { }
                 slider.Value = 0;
                 _clearPendingClose = false;
                 _clearSlideTriggered = false;
@@ -509,23 +555,57 @@ namespace WindBoard
         // 鼠标抬起后也作相同处理（保持一致性）
         private void SliderClear_PreviewMouseUp(object sender, MouseButtonEventArgs e)
         {
+            e.Handled = true;
             var slider = sender as Slider ?? _sliderClear;
             if (slider == null) return;
 
-            bool reached = _clearPendingClose || (slider.Value >= slider.Maximum);
-            if (!reached) return;
+            // 读取阈值（优先从 Tag，默认 0.96）
+            double threshold = 0.96;
+            try
+            {
+                if (slider.Tag is string s && double.TryParse(s, NumberStyles.Float, CultureInfo.InvariantCulture, out var t)) threshold = t;
+                else if (slider.Tag is double td) threshold = td;
+            }
+            catch { }
+            threshold = Math.Min(0.999, Math.Max(0.5, threshold));
+
+            Debug.WriteLine($"[DBG] SliderClear_PreviewMouseUp: val={slider.Value:F2}, max={slider.Maximum:F2}, threshold={threshold:F3}, pending={_clearPendingClose}");
+
+            bool reached = _clearPendingClose || (slider.Maximum > 0 && (slider.Value / slider.Maximum) >= threshold);
+            if (!reached)
+            {
+                Debug.WriteLine("[DBG] SliderClear_PreviewMouseUp: not reached, animate back to 0");
+                // 未达阈值：回弹但不关闭弹窗
+                try
+                {
+                    var anim = new DoubleAnimation
+                    {
+                        To = 0,
+                        Duration = TimeSpan.FromMilliseconds(180),
+                        EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
+                    };
+                    slider.BeginAnimation(Slider.ValueProperty, anim);
+                }
+                catch { slider.Value = 0; }
+
+                _clearPendingClose = false;
+                _clearSlideTriggered = false;
+                return;
+            }
 
             Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Background, new Action(() =>
             {
-                try { this.ReleaseAllTouchCaptures(); } catch { }
-                try { MyCanvas.ReleaseAllTouchCaptures(); } catch { }
-                try { Mouse.Capture(null); } catch { }
+                try { this.ReleaseAllTouchCaptures(); } catch { Debug.WriteLine("[DBG] SliderClear_PreviewMouseUp: ReleaseAllTouchCaptures(window) failed"); }
+                try { MyCanvas.ReleaseAllTouchCaptures(); } catch { Debug.WriteLine("[DBG] SliderClear_PreviewMouseUp: ReleaseAllTouchCaptures(canvas) failed"); }
+                try { Mouse.Capture(null); } catch { Debug.WriteLine("[DBG] SliderClear_PreviewMouseUp: Mouse.Capture(null) failed"); }
 
                 if (_popupEraserClear != null) _popupEraserClear.IsOpen = false;
+                try { slider.BeginAnimation(Slider.ValueProperty, null); } catch { }
                 slider.Value = 0;
                 _clearPendingClose = false;
                 _clearSlideTriggered = false;
 
+                Debug.WriteLine("[DBG] SliderClear_PreviewMouseUp: popup closed and slider reset; switch to pen");
                 // 清屏完成后切回书写模式
                 if (RadioPen != null) RadioPen.IsChecked = true;
             }));
@@ -534,9 +614,10 @@ namespace WindBoard
         // 弹窗被关闭时，清理残留的捕获并复位标记
         private void PopupEraserClear_Closed(object sender, EventArgs e)
         {
-            try { this.ReleaseAllTouchCaptures(); } catch { }
-            try { MyCanvas.ReleaseAllTouchCaptures(); } catch { }
-            try { Mouse.Capture(null); } catch { }
+            Debug.WriteLine("[DBG] PopupEraserClear_Closed: releasing captures and resetting flags");
+            try { this.ReleaseAllTouchCaptures(); } catch { Debug.WriteLine("[DBG] PopupEraserClear_Closed: ReleaseAllTouchCaptures(window) failed"); }
+            try { MyCanvas.ReleaseAllTouchCaptures(); } catch { Debug.WriteLine("[DBG] PopupEraserClear_Closed: ReleaseAllTouchCaptures(canvas) failed"); }
+            try { Mouse.Capture(null); } catch { Debug.WriteLine("[DBG] PopupEraserClear_Closed: Mouse.Capture(null) failed"); }
             _clearPendingClose = false;
         }
 
@@ -565,32 +646,42 @@ namespace WindBoard
 
         private bool ShouldSkipCloseForSource(DependencyObject? source)
         {
-            if (source == null) return false;
+            if (source == null) { Debug.WriteLine("[DBG] ShouldSkipCloseForSource: source=null"); return false; }
             try
             {
+                var typeName = source.GetType().Name;
+                Debug.WriteLine($"[DBG] ShouldSkipCloseForSource: source={typeName}");
                 // 点击工具按钮本身不关闭（Toggle 自己处理）
-                if (RadioPen != null && IsVisualAncestorOf(RadioPen, source)) return true;
-                if (RadioEraser != null && IsVisualAncestorOf(RadioEraser, source)) return true;
-                if (BtnMore != null && IsVisualAncestorOf(BtnMore, source)) return true;
+                if (RadioPen != null && IsVisualAncestorOf(RadioPen, source)) { Debug.WriteLine("[DBG] ShouldSkipCloseForSource: inside RadioPen"); return true; }
+                if (RadioEraser != null && IsVisualAncestorOf(RadioEraser, source)) { Debug.WriteLine("[DBG] ShouldSkipCloseForSource: inside RadioEraser"); return true; }
+                if (BtnMore != null && IsVisualAncestorOf(BtnMore, source)) { Debug.WriteLine("[DBG] ShouldSkipCloseForSource: inside BtnMore"); return true; }
 
-                // 点击弹窗内容不关闭（允许正常操作）
+                // 点击弹窗内容不关闭（允许正常操作）：使用视觉祖先判断，兼容触摸（MouseOver 可能为 false）
                 if (_popupPenSettings?.IsOpen == true)
                 {
-                    var penChild = _popupPenSettings.Child as UIElement;
-                    if (penChild != null && IsMouseOverElement(penChild)) return true;
+                    var penChild = _popupPenSettings.Child as DependencyObject;
+                    bool inside = penChild != null && IsVisualAncestorOf(penChild, source);
+                    Debug.WriteLine($"[DBG] ShouldSkipCloseForSource: penPopup open Inside={inside}");
+                    if (inside) return true;
                 }
                 if (_popupEraserClear?.IsOpen == true)
                 {
-                    var eraserChild = _popupEraserClear.Child as UIElement;
-                    if (eraserChild != null && IsMouseOverElement(eraserChild)) return true;
+                    var eraserChild = _popupEraserClear.Child as DependencyObject;
+                    bool insideChild = eraserChild != null && IsVisualAncestorOf(eraserChild, source);
+                    bool insideSlider = _sliderClear != null && IsVisualAncestorOf(_sliderClear, source);
+                    Debug.WriteLine($"[DBG] ShouldSkipCloseForSource: eraserPopup open InsideChild={insideChild} InsideSlider={insideSlider}");
+                    if (insideChild || insideSlider) return true;
                 }
                 if (_popupMoreMenu?.IsOpen == true)
                 {
-                    var moreChild = _popupMoreMenu.Child as UIElement;
-                    if (moreChild != null && IsMouseOverElement(moreChild)) return true;
+                    var moreChild = _popupMoreMenu.Child as DependencyObject;
+                    bool inside = moreChild != null && IsVisualAncestorOf(moreChild, source);
+                    Debug.WriteLine($"[DBG] ShouldSkipCloseForSource: morePopup open Inside={inside}");
+                    if (inside) return true;
                 }
             }
-            catch { }
+            catch (Exception ex) { Debug.WriteLine($"[DBG] ShouldSkipCloseForSource exception: {ex.Message}"); }
+            Debug.WriteLine("[DBG] ShouldSkipCloseForSource: not inside, will close");
             return false;
         }
 

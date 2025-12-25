@@ -78,4 +78,65 @@
             </Setter.Value>
         </Setter>
     </Style>
+    <!-- Slide-to-Clear Slider resources -->
+    <SolidColorBrush x:Key="SlideToClearTrackBrush" Color="#303137"/>
+    <LinearGradientBrush x:Key="SlideToClearProgressBrush" StartPoint="0,0" EndPoint="1,0">
+        <GradientStop Color="#5BA1FF" Offset="0"/>
+        <GradientStop Color="#2F7DFF" Offset="1"/>
+    </LinearGradientBrush>
+
+    <Style x:Key="SlideToClearSliderStyle" TargetType="{x:Type Slider}">
+        <Setter Property="Height" Value="48"/>
+        <Setter Property="MinHeight" Value="48"/>
+        <Setter Property="Background" Value="{StaticResource SlideToClearTrackBrush}"/>
+        <Setter Property="IsMoveToPointEnabled" Value="False"/>
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type Slider}">
+                    <Grid SnapsToDevicePixels="True" MinHeight="48">
+                        <Border x:Name="TrackBg" CornerRadius="24" Background="{TemplateBinding Background}"/>
+                        <Grid Margin="4" ClipToBounds="True">
+                            <Track x:Name="PART_Track" IsDirectionReversed="False">
+                                <Track.DecreaseRepeatButton>
+                                    <RepeatButton Command="Slider.DecreaseLarge"
+                                                  Background="{x:Null}" BorderBrush="{x:Null}"
+                                                  IsHitTestVisible="False">
+                                        <Border CornerRadius="20" Background="{StaticResource SlideToClearProgressBrush}"/>
+                                    </RepeatButton>
+                                </Track.DecreaseRepeatButton>
+                                <Track.IncreaseRepeatButton>
+                                    <RepeatButton Command="Slider.IncreaseLarge"
+                                                  Background="{x:Null}" BorderBrush="{x:Null}"
+                                                  IsHitTestVisible="False">
+                                        <Border Background="#00000000"/>
+                                    </RepeatButton>
+                                </Track.IncreaseRepeatButton>
+                                <Track.Thumb>
+                                    <Thumb Width="40" Height="40">
+                                        <Thumb.Template>
+                                            <ControlTemplate TargetType="{x:Type Thumb}">
+                                                <Grid>
+                                                    <Ellipse Fill="#FAFAFA" Stroke="#E0E0E0" StrokeThickness="1">
+                                                        <Ellipse.Effect>
+                                                            <DropShadowEffect Color="#000000" BlurRadius="8" ShadowDepth="1" Opacity="0.3"/>
+                                                        </Ellipse.Effect>
+                                                    </Ellipse>
+                                                    <materialDesign:PackIcon Kind="DeleteSweep" Width="20" Height="20" Foreground="#2F7DFF" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                </Grid>
+                                            </ControlTemplate>
+                                        </Thumb.Template>
+                                    </Thumb>
+                                </Track.Thumb>
+                            </Track>
+                        </Grid>
+                    </Grid>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+        <Style.Triggers>
+            <Trigger Property="IsEnabled" Value="False">
+                <Setter Property="Opacity" Value="0.4"/>
+            </Trigger>
+        </Style.Triggers>
+    </Style>
 </ResourceDictionary>

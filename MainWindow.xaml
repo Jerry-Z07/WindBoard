@@ -187,39 +187,10 @@
                AllowsTransparency="True"
                Closed="PopupEraserClear_Closed"
                Panel.ZIndex="20">
-            <Popup.Resources>
-                <Style x:Key="SimpleSliderStyle" TargetType="Slider">
-                    <Setter Property="Template">
-                        <Setter.Value>
-                            <ControlTemplate TargetType="Slider">
-                                <Grid>
-                                    <Track x:Name="PART_Track">
-                                        <Track.DecreaseRepeatButton>
-                                            <RepeatButton Command="Slider.DecreaseLarge"/>
-                                        </Track.DecreaseRepeatButton>
-                                        <Track.IncreaseRepeatButton>
-                                            <RepeatButton Command="Slider.IncreaseLarge"/>
-                                        </Track.IncreaseRepeatButton>
-                                        <Track.Thumb>
-                                            <Thumb x:Name="Thumb" Width="18" Height="18">
-                                                <Thumb.Template>
-                                                    <ControlTemplate TargetType="Thumb">
-                                                        <Ellipse Fill="#2F7DFF" Stroke="White" StrokeThickness="2"/>
-                                                    </ControlTemplate>
-                                                </Thumb.Template>
-                                            </Thumb>
-                                        </Track.Thumb>
-                                    </Track>
-                                </Grid>
-                            </ControlTemplate>
-                        </Setter.Value>
-                    </Setter>
-                </Style>
-            </Popup.Resources>
             <Border Background="#E625262A" CornerRadius="16" Margin="0,0,0,10"
                     Effect="{StaticResource MaterialDesignShadowDepth2}">
                 <StackPanel Margin="16,12,16,12">
-                    <TextBlock Text="滑动以清屏"
+                    <TextBlock Text="向右滑动清空"
                                FontWeight="Bold"
                                FontSize="16"
                                Foreground="White"
@@ -228,12 +199,14 @@
                     <Slider x:Name="SliderClear"
                             Minimum="0"
                             Maximum="100"
-                            Width="220"
+                            Width="280"
                             IsManipulationEnabled="False"
+                            IsMoveToPointEnabled="False"
+                            Tag="0.96"
                             ValueChanged="SliderClear_ValueChanged"
                             PreviewMouseUp="SliderClear_PreviewMouseUp"
                             PreviewTouchUp="SliderClear_PreviewTouchUp"
-                            Style="{StaticResource SimpleSliderStyle}"/>
+                            Style="{StaticResource SlideToClearSliderStyle}"/>
                 </StackPanel>
             </Border>
         </Popup>
