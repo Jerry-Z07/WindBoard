@@ -15,9 +15,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Content Include="resources\fonts\*.ttf">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
+    <Resource Include="resources\fonts\*.ttf" />
   </ItemGroup>
 
 </Project>

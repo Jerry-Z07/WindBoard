@@ -10,7 +10,7 @@
         Style="{StaticResource MaterialDesignWindow}"
         Background="{DynamicResource MaterialDesignPaper}"
         TextElement.Foreground="{DynamicResource MaterialDesignBody}"
-        TextElement.FontFamily="{DynamicResource MiSansFontFamily}"
+        TextElement.FontFamily="pack://application:,,,/WindBoard;component/resources/fonts/#MiSans"
         ResizeMode="CanResizeWithGrip">
     
     <materialDesign:DialogHost Identifier="SettingsDialogHost" DialogTheme="Inherit">
