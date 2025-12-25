@@ -12,10 +12,10 @@
                 <ResourceDictionary Source="Styles/BottomBarStyles.xaml" />
             </ResourceDictionary.MergedDictionaries>
             <Style TargetType="Control">
-                <Setter Property="FontFamily" Value="pack://application:,,,/WindBoard;component/resources/fonts/#MiSans"/>
+                <Setter Property="FontFamily" Value="{DynamicResource MiSansFontFamily}"/>
             </Style>
             <Style TargetType="TextBlock">
-                <Setter Property="FontFamily" Value="pack://application:,,,/WindBoard;component/resources/fonts/#MiSans"/>
+                <Setter Property="FontFamily" Value="{DynamicResource MiSansFontFamily}"/>
             </Style>
             <BooleanToVisibilityConverter x:Key="BoolToVis"/>
         </ResourceDictionary>
