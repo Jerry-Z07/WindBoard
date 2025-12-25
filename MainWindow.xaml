@@ -69,30 +69,30 @@
                 Effect="{StaticResource MaterialDesignShadowDepth2}"
                 Panel.ZIndex="10">
             <StackPanel Orientation="Horizontal">
-                <RadioButton Name="RadioPen" Content="书写" Tag="Pen" GroupName="Tools" IsChecked="True"
+                <RadioButton x:Name="RadioSelect" Content="选择" Tag="CursorDefault" GroupName="Tools"
+                             Style="{StaticResource BottomRadioButtonStyle}"
+                             Checked="RadioSelect_Checked"/>
+
+                <RadioButton x:Name="RadioPen" Content="书写" Tag="Pen" GroupName="Tools" IsChecked="True"
                              Style="{StaticResource BottomRadioButtonStyle}"
                              Checked="RadioPen_Checked"
                              PreviewMouseLeftButtonDown="RadioPen_PreviewMouseLeftButtonDown"
                              ToolTip="再次单击设置画笔"/>
 
-                <RadioButton Name="RadioEraser" Content="擦除" Tag="Eraser" GroupName="Tools"
+                <RadioButton x:Name="RadioEraser" Content="擦除" Tag="Eraser" GroupName="Tools"
                              Style="{StaticResource BottomRadioButtonStyle}"
                              Checked="RadioEraser_Checked"
                              PreviewMouseLeftButtonDown="RadioEraser_PreviewMouseLeftButtonDown"
                              PreviewTouchDown="RadioEraser_PreviewTouchDown"/>
 
-                <RadioButton Name="RadioSelect" Content="选择" Tag="CursorDefault" GroupName="Tools"
-                             Style="{StaticResource BottomRadioButtonStyle}"
-                             Checked="RadioSelect_Checked"/>
-
                 <Rectangle Width="1" Height="24" Fill="#505050" Margin="8,0" VerticalAlignment="Center"/>
 
-                <Button Name="BtnUndo" Content="撤销" Tag="Undo"
+                <Button x:Name="BtnUndo" Content="撤销" Tag="Undo"
                         Style="{StaticResource BottomButtonStyle}"
                         Command="{x:Static ApplicationCommands.Undo}"
                         CommandTarget="{Binding ElementName=MyCanvas}"/>
 
-                <Button Name="BtnRedo" Content="恢复" Tag="Redo"
+                <Button x:Name="BtnRedo" Content="恢复" Tag="Redo"
                         Style="{StaticResource BottomButtonStyle}"
                         Command="{x:Static ApplicationCommands.Redo}"
                         CommandTarget="{Binding ElementName=MyCanvas}"/>
@@ -113,19 +113,19 @@
                 AddRequested="BtnAddPage_Click"
                 IndicatorClicked="BtnPageIndicator_Click"
                 PageSelected="PageNavigator_PageSelected"
-                PageDeleteRequested="PageNavigator_PageDeleteRequested"/>
+                PageDeleteRequested="PageNavigator_PageDeleteRequested" Loaded="PageNavigatorControl_Loaded"/>
 
 
         <!-- 笔设置弹窗 -->
         <Popup Name="PopupPenSettings" PlacementTarget="{Binding ElementName=RadioPen}"
-               Placement="Top" StaysOpen="False" AllowsTransparency="True"
+               Placement="Top" StaysOpen="True" AllowsTransparency="True"
                Panel.ZIndex="20">
             <Border Background="#E625262A" CornerRadius="16" Margin="0,0,0,10"
                     Effect="{StaticResource MaterialDesignShadowDepth2}">
                 <StackPanel>
                     <!-- 标题栏 -->
                     <TextBlock Text="画笔设置" FontWeight="Bold" FontSize="16" Foreground="White" Margin="16,12"/>
-                    
+
                     <!-- 分割线 -->
                     <Border Height="1" Background="#505050" Margin="0,0,0,12"/>
 
@@ -183,7 +183,7 @@
         <Popup Name="PopupEraserClear"
                PlacementTarget="{Binding ElementName=RadioEraser}"
                Placement="Top"
-               StaysOpen="False"
+               StaysOpen="True"
                AllowsTransparency="True"
                Closed="PopupEraserClear_Closed"
                Panel.ZIndex="20">
@@ -257,7 +257,7 @@
         <Popup Name="PopupMoreMenu"
                PlacementTarget="{Binding ElementName=BtnMore}"
                Placement="Top"
-               StaysOpen="False"
+               StaysOpen="True"
                AllowsTransparency="True"
                Panel.ZIndex="20">
             <Border Background="#E625262A" CornerRadius="16" Margin="0,0,0,10"

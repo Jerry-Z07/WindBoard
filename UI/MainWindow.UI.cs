@@ -172,10 +172,12 @@ namespace WindBoard
         // XAML 命名元素缓存，避免编译器未生成字段导致的引用错误
         private Canvas? _eraserOverlay;
         private Border? _eraserCursorRect;
+        private Popup? _popupPenSettings;
         private Popup? _popupPageManager;
         private Popup? _popupEraserClear;
         private Popup? _popupMoreMenu;
         private Slider? _sliderClear;
+        private Grid? _rootGrid;
         private bool _isEraserPressed = false;
         // 当前是否为鼠标擦除（用于决定浮标定位方式）
         private bool _isMouseErasing = false;
@@ -221,10 +223,20 @@ namespace WindBoard
             MyCanvas.StrokeCollected += MyCanvas_StrokeCollected;
             _eraserOverlay = (Canvas)FindName("EraserOverlay");
             _eraserCursorRect = (Border)FindName("EraserCursorRect");
+            _popupPenSettings = (Popup)FindName("PopupPenSettings");
             _popupPageManager = (Popup)FindName("PopupPageManager");
             _popupEraserClear = (Popup)FindName("PopupEraserClear");
             _popupMoreMenu = (Popup)FindName("PopupMoreMenu");
             _sliderClear = (Slider)FindName("SliderClear");
+
+            _rootGrid = (Grid)FindName("RootGrid");
+            if (_rootGrid != null)
+            {
+                _rootGrid.AddHandler(UIElement.PreviewMouseDownEvent, new MouseButtonEventHandler(Root_PreviewMouseDown), true);
+                _rootGrid.AddHandler(UIElement.PreviewTouchDownEvent, new EventHandler<TouchEventArgs>(Root_PreviewTouchDown), true);
+            }
+            this.PreviewKeyDown += Window_PreviewKeyDown;
+
 
             // 即使 InkCanvas 将事件标记为 Handled，也要接收（擦除模式下很关键）
             MyCanvas.AddHandler(MouseDownEvent, new MouseButtonEventHandler(MyCanvas_MouseDown), true);
@@ -237,7 +249,6 @@ namespace WindBoard
             MyCanvas.AddHandler(StylusUpEvent, new StylusEventHandler(MyCanvas_StylusUp), true);
             MyCanvas.AddHandler(StylusInAirMoveEvent, new StylusEventHandler(MyCanvas_StylusInAirMove), true);
 
-            Debug.WriteLine("[DEBUG] AddHandler Mouse & Stylus (handledEventsToo=true) 已注册");
 
             // 统一输入事件订阅：用于橡皮擦游标与自动扩容
             DeviceDown += OnDeviceDown;
@@ -464,6 +475,12 @@ namespace WindBoard
             if (RadioPen.IsChecked == true)
             {
                 e.Handled = true;
+                // Toggle 行为：已打开则关闭，否则打开
+                if (PopupPenSettings.IsOpen)
+                {
+                    PopupPenSettings.IsOpen = false;
+                    return;
+                }
                 Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Background, new Action(() =>
                 {
                     PopupPenSettings.IsOpen = true;
@@ -542,6 +559,13 @@ namespace WindBoard
                 _clearSlideTriggered = false;
                 _clearPendingClose = false;
                 if (_sliderClear != null) _sliderClear.Value = 0;
+
+                // Toggle 行为：已打开则关闭，否则打开
+                if (_popupEraserClear != null && _popupEraserClear.IsOpen)
+                {
+                    _popupEraserClear.IsOpen = false;
+                    return;
+                }
                 if (_popupEraserClear != null) _popupEraserClear.IsOpen = true;
             }
         }
@@ -576,15 +600,11 @@ namespace WindBoard
                 // 记录清屏耗时
                 int strokesBefore = MyCanvas.Strokes.Count;
                 int childrenBefore = MyCanvas.Children.Count;
-                var sw = Stopwatch.StartNew();
-                Debug.WriteLine($"[PERF] Clear start: strokes={strokesBefore}, children={childrenBefore}");
 
                 // 清除当前画布笔迹与可能的子元素
                 MyCanvas.Strokes.Clear();
                 MyCanvas.Children.Clear();
 
-                sw.Stop();
-                Debug.WriteLine($"[PERF] Clear done: elapsed={sw.ElapsedMilliseconds}ms");
 
                 // 标记待关闭，由 PointerUp 再真正关闭（避免触摸设备上因 capture/提升造成的卡死）
                 _clearPendingClose = true;
@@ -651,15 +671,112 @@ namespace WindBoard
             _clearPendingClose = false;
         }
 
+        // 点击外部关闭弹窗（支持鼠标与触摸） + Esc 关闭
+        private void Root_PreviewMouseDown(object sender, MouseButtonEventArgs e)
+        {
+            var src = e.OriginalSource as DependencyObject;
+            if (ShouldSkipCloseForSource(src)) return;
+            CloseAllPopups();
+        }
+
+        private void Root_PreviewTouchDown(object? sender, TouchEventArgs e)
+        {
+            var src = e.OriginalSource as DependencyObject;
+            if (ShouldSkipCloseForSource(src)) return;
+            CloseAllPopups();
+        }
+
+        private void Window_PreviewKeyDown(object? sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Escape)
+            {
+                CloseAllPopups();
+            }
+        }
+
+        private bool ShouldSkipCloseForSource(DependencyObject? source)
+        {
+            if (source == null) return false;
+            try
+            {
+                // 点击工具按钮本身不关闭（Toggle 自己处理）
+                if (RadioPen != null && IsVisualAncestorOf(RadioPen, source)) return true;
+                if (RadioEraser != null && IsVisualAncestorOf(RadioEraser, source)) return true;
+                if (BtnMore != null && IsVisualAncestorOf(BtnMore, source)) return true;
+
+                // 点击弹窗内容不关闭（允许正常操作）
+                if (_popupPenSettings?.IsOpen == true)
+                {
+                    var penChild = _popupPenSettings.Child as UIElement;
+                    if (penChild != null && IsMouseOverElement(penChild)) return true;
+                }
+                if (_popupEraserClear?.IsOpen == true)
+                {
+                    var eraserChild = _popupEraserClear.Child as UIElement;
+                    if (eraserChild != null && IsMouseOverElement(eraserChild)) return true;
+                }
+                if (_popupMoreMenu?.IsOpen == true)
+                {
+                    var moreChild = _popupMoreMenu.Child as UIElement;
+                    if (moreChild != null && IsMouseOverElement(moreChild)) return true;
+                }
+            }
+            catch { }
+            return false;
+        }
+
+        private static bool IsVisualAncestorOf(DependencyObject ancestor, DependencyObject? descendant)
+        {
+            for (var d = descendant; d != null; d = VisualTreeHelper.GetParent(d))
+            {
+                if (ReferenceEquals(d, ancestor)) return true;
+            }
+            return false;
+        }
+
+        private static bool IsMouseOverElement(UIElement el)
+        {
+            try
+            {
+                if (el.IsMouseDirectlyOver || el.IsMouseOver) return true;
+            }
+            catch { }
+            return false;
+        }
+
+        private void CloseAllPopups()
+        {
+            bool any = false;
+            if (_popupPenSettings?.IsOpen == true)
+            {
+                _popupPenSettings.IsOpen = false;
+                any = true;
+            }
+            if (_popupEraserClear?.IsOpen == true)
+            {
+                _popupEraserClear.IsOpen = false;
+                any = true;
+            }
+            if (_popupMoreMenu?.IsOpen == true)
+            {
+                _popupMoreMenu.IsOpen = false;
+                any = true;
+            }
+            if (any)
+            {
+                Debug.WriteLine("[TRACE] CloseAllPopups by outside click/Esc");
+            }
+        }
+
         #region System Dock UI（左下角）
         private void BtnMore_Click(object sender, RoutedEventArgs e)
         {
-            // 打开“更多”弹出菜单
+            // Toggle “更多”弹出菜单
             if (_popupMoreMenu == null)
                 _popupMoreMenu = (Popup)FindName("PopupMoreMenu");
             if (_popupMoreMenu != null)
             {
-                _popupMoreMenu.IsOpen = true;
+                _popupMoreMenu.IsOpen = !_popupMoreMenu.IsOpen;
             }
         }
 
