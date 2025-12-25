@@ -426,8 +426,14 @@ namespace WindBoard
             }
         }
 
-        // 再次触摸“擦除”按钮：弹出清屏滑块（触摸）
+        // 再次触摸“擦除”按钮：单击即可弹出清屏滑块（触摸）
         private void RadioEraser_PreviewTouchDown(object sender, TouchEventArgs e)
+        {
+            // 仅用于阻止事件提升，不在 TouchDown 做逻辑，避免必须“长按”
+            e.Handled = true;
+        }
+
+        private void RadioEraser_PreviewTouchUp(object sender, TouchEventArgs e)
         {
             if (RadioEraser.IsChecked == true)
             {
@@ -435,6 +441,13 @@ namespace WindBoard
                 _clearSlideTriggered = false;
                 _clearPendingClose = false;
                 if (_sliderClear != null) _sliderClear.Value = 0;
+
+                // Toggle 行为：已打开则关闭，否则打开（与鼠标一致）
+                if (_popupEraserClear != null && _popupEraserClear.IsOpen)
+                {
+                    _popupEraserClear.IsOpen = false;
+                    return;
+                }
                 if (_popupEraserClear != null) _popupEraserClear.IsOpen = true;
             }
         }
