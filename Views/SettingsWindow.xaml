@@ -18,6 +18,7 @@
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
 
             <materialDesign:ColorZone Mode="PrimaryMid" Padding="20,16" materialDesign:ElevationAssist.Elevation="Dp4">
@@ -72,6 +73,18 @@
 
                 <ScrollViewer Grid.Column="1" Padding="36,24" VerticalScrollBarVisibility="Auto">
                     <StackPanel>
+                        <!-- 基本设置 面板（索引 0） -->
+                        <StackPanel x:Name="BasicSettingsPanel">
+                            <StackPanel.Style>
+                                <Style TargetType="StackPanel">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding ElementName=NavList, Path=SelectedIndex}" Value="0">
+                                            <Setter Property="Visibility" Value="Visible"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </StackPanel.Style>
 
                         <!-- 基本设置 · 视频展台 -->
                         <materialDesign:Card Padding="20" Margin="0,0,0,20" UniformCornerRadius="12" materialDesign:ElevationAssist.Elevation="Dp2">
@@ -117,13 +130,9 @@
                                              materialDesign:HintAssist.Hint="选择视频展台 EXE"/>
                                     <StackPanel Grid.Column="2" Orientation="Horizontal">
                                         <Button Content="浏览…"
-                                                Margin="0,0,8,0"
+                                                Margin="0,0,0,0"
                                                 Style="{StaticResource MaterialDesignOutlinedButton}"
                                                 Click="BtnBrowseVideoPresenterPath_Click"
-                                                materialDesign:ButtonAssist.CornerRadius="6"/>
-                                        <Button Content="应用"
-                                                Style="{StaticResource MaterialDesignRaisedButton}"
-                                                Click="BtnApplyVideoPresenterPath_Click"
                                                 materialDesign:ButtonAssist.CornerRadius="6"/>
                                     </StackPanel>
                                 </Grid>
@@ -140,12 +149,6 @@
                                              Text="{Binding ElementName=SettingsWindowRoot, Path=VideoPresenterArgs, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                              Style="{StaticResource MaterialDesignOutlinedTextBox}"
                                              materialDesign:HintAssist.Hint="例如：-from en5"/>
-                                    <StackPanel Grid.Column="2" Orientation="Horizontal">
-                                        <Button Content="应用"
-                                                Style="{StaticResource MaterialDesignRaisedButton}"
-                                                Click="BtnApplyVideoPresenterArgs_Click"
-                                                materialDesign:ButtonAssist.CornerRadius="6"/>
-                                    </StackPanel>
                                 </Grid>
 
                                 <!-- 恢复默认 -->
@@ -157,7 +160,22 @@
                                         materialDesign:ButtonAssist.CornerRadius="6"/>
                             </Grid>
                         </materialDesign:Card>
+                    </StackPanel>
 
+                    <!-- 外观设置 面板（索引 2） -->
+                    <StackPanel x:Name="AppearanceSettingsPanel">
+                        <StackPanel.Style>
+                            <Style TargetType="StackPanel">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding ElementName=NavList, Path=SelectedIndex}" Value="2">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </StackPanel.Style>
+
+                        <!-- 外观设置 · 背景颜色 -->
                         <materialDesign:Card Padding="20" Margin="0,0,0,20" UniformCornerRadius="12" materialDesign:ElevationAssist.Elevation="Dp2">
                             <Grid>
                                 <Grid.ColumnDefinitions>
@@ -183,11 +201,7 @@
                                     <materialDesign:PopupBox.ToggleContent>
                                         <Border CornerRadius="8" BorderThickness="1.5" BorderBrush="{DynamicResource MaterialDesignDivider}" Padding="12,8" Background="{DynamicResource MaterialDesignPaper}" Cursor="Hand" materialDesign:ElevationAssist.Elevation="Dp1">
                                             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                                <Border Width="28" Height="28" CornerRadius="4" Margin="0,0,12,0" BorderThickness="1" BorderBrush="{DynamicResource MaterialDesignDivider}">
-                                                    <Border.Background>
-                                                        <SolidColorBrush Color="{Binding ElementName=SettingsWindowRoot, Path=CurrentColor}"/>
-                                                    </Border.Background>
-                                                </Border>
+                                                <Border Width="28" Height="28" CornerRadius="4" Margin="0,0,12,0" BorderThickness="1" BorderBrush="{DynamicResource MaterialDesignDivider}" Background="{Binding ElementName=SettingsWindowRoot, Path=CurrentBrush}"/>
                                                 <TextBlock Text="{Binding ElementName=SettingsWindowRoot, Path=CurrentColorHex}" VerticalAlignment="Center" Margin="0,0,8,0" FontFamily="Consolas"/>
                                                 <materialDesign:PackIcon Kind="ChevronDown" VerticalAlignment="Center" Width="18" Height="18"/>
                                             </StackPanel>
@@ -248,15 +262,10 @@
                                                  Width="180"
                                                  Style="{StaticResource MaterialDesignOutlinedTextBox}"
                                                  materialDesign:HintAssist.Hint="输入 HEX 颜色值"
-                                                 Text="{Binding ElementName=SettingsWindowRoot, Path=CurrentColorHex, Mode=OneWay}"
+                                                 Text="{Binding ElementName=SettingsWindowRoot, Path=CurrentColorHex, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                                  KeyDown="HexInput_KeyDown"
                                                  FontFamily="Consolas"
                                                  FontSize="13"/>
-                                        <Button Content="应用"
-                                                Margin="12,0,0,0"
-                                                Style="{StaticResource MaterialDesignRaisedButton}"
-                                                Click="HexApply_Click"
-                                                materialDesign:ButtonAssist.CornerRadius="6"/>
                                     </StackPanel>
                                     <Button Grid.Column="1"
                                             Content="恢复默认"
@@ -267,11 +276,40 @@
                                 </Grid>
                             </Grid>
                         </materialDesign:Card>
-
-
+                    </StackPanel>
                     </StackPanel>
                 </ScrollViewer>
             </Grid>
+
+            <!-- 统一底部操作栏 -->
+            <Border Grid.Row="2" BorderBrush="{DynamicResource MaterialDesignDivider}" BorderThickness="0,1,0,0" Background="{DynamicResource MaterialDesignPaper}" Padding="16,12" materialDesign:ElevationAssist.Elevation="Dp2">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <StackPanel Grid.Column="1" Orientation="Horizontal">
+                        <Button x:Name="BtnCancel" Click="BtnCancel_Click" Style="{StaticResource MaterialDesignOutlinedButton}" IsCancel="True" Margin="0,0,8,0" materialDesign:ButtonAssist.CornerRadius="6">
+                            <StackPanel Orientation="Horizontal">
+                                <materialDesign:PackIcon Kind="Close" Width="18" Height="18" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                <TextBlock Text="取消" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+                        <Button x:Name="BtnApply" Click="BtnApply_Click" Style="{StaticResource MaterialDesignRaisedButton}" Margin="0,0,8,0" materialDesign:ButtonAssist.CornerRadius="6">
+                            <StackPanel Orientation="Horizontal">
+                                <materialDesign:PackIcon Kind="CheckAll" Width="18" Height="18" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                <TextBlock Text="应用" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+                        <Button x:Name="BtnOk" Click="BtnOk_Click" Style="{StaticResource MaterialDesignRaisedButton}" IsDefault="True" materialDesign:ButtonAssist.CornerRadius="6">
+                            <StackPanel Orientation="Horizontal">
+                                <materialDesign:PackIcon Kind="Check" Width="18" Height="18" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                <TextBlock Text="确定" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+                </Grid>
+            </Border>
         </Grid>
     </materialDesign:DialogHost>
 </Window>

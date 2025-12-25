@@ -42,6 +42,7 @@ namespace WindBoard
                     _currentColor = value;
                     OnPropertyChanged();
                     OnPropertyChanged(nameof(CurrentColorHex));
+                    OnPropertyChanged(nameof(CurrentBrush));
 
                     SettingsService.Instance.SetBackgroundColor(_currentColor);
                 }
@@ -68,6 +69,9 @@ namespace WindBoard
                 }
             }
         }
+
+        // 供 UI 直接绑定刷子，避免 SolidColorBrush.Color 子属性绑定更新问题
+        public SolidColorBrush CurrentBrush => new SolidColorBrush(_currentColor);
 
         // --- 视频展台属性（绑定到 XAML，通过 ElementName=SettingsWindowRoot） ---
         public bool VideoPresenterEnabled
@@ -121,11 +125,8 @@ namespace WindBoard
             OnPropertyChanged(nameof(CurrentColor));
             OnPropertyChanged(nameof(CurrentColorHex));
 
-            // 初始化 Hex 文本框内容
-            if (HexTextBox != null)
-            {
-                HexTextBox.Text = CurrentColorHex;
-            }
+            // 初始化 Hex 文本框内容改为依赖绑定刷新（避免破坏 XAML 绑定）
+            // 不再直接赋值 HexTextBox.Text，CurrentColor/CurrentColorHex 的 OnPropertyChanged 将驱动界面更新。
 
             // 初始化“视频展台”相关设置
             try
@@ -235,9 +236,13 @@ namespace WindBoard
 
         private void ApplyHexColorFromTextBox()
         {
-            var hex = HexTextBox?.Text?.Trim();
+            var raw = HexTextBox?.Text;
+
+            var hex = raw?.Trim();
             if (string.IsNullOrWhiteSpace(hex))
+            {
                 return;
+            }
 
             if (!hex.StartsWith("#"))
                 hex = "#" + hex;
@@ -249,7 +254,6 @@ namespace WindBoard
             }
             catch (Exception)
             {
-                // 无效颜色时默认使用白色
                 CurrentColor = Colors.White;
             }
         }
@@ -348,6 +352,30 @@ namespace WindBoard
                 SettingsService.Instance.SetVideoPresenterArgs(VideoPresenterArgs);
             }
             catch { }
+        }
+
+        // 统一底部按钮：应用/确定/取消
+        private void ApplyAllSettings()
+        {
+            try { SettingsService.Instance.SetVideoPresenterPath(VideoPresenterPath); } catch { }
+            try { SettingsService.Instance.SetVideoPresenterArgs(VideoPresenterArgs); } catch { }
+            try { SettingsService.Instance.SetBackgroundColor(CurrentColor); } catch { }
+        }
+
+        private void BtnApply_Click(object sender, RoutedEventArgs e)
+        {
+            ApplyAllSettings();
+        }
+
+        private void BtnOk_Click(object sender, RoutedEventArgs e)
+        {
+            ApplyAllSettings();
+            Close();
+        }
+
+        private void BtnCancel_Click(object sender, RoutedEventArgs e)
+        {
+            Close();
         }
     }
 }
