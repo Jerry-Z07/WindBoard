@@ -92,10 +92,10 @@ namespace WindBoard
             _rootGrid = (Grid)FindName("RootGrid");
             if (_rootGrid != null)
             {
-                _rootGrid.AddHandler(UIElement.PreviewMouseDownEvent, new MouseButtonEventHandler(Root_PreviewMouseDown), true);
-                _rootGrid.AddHandler(UIElement.PreviewTouchDownEvent, new EventHandler<TouchEventArgs>(Root_PreviewTouchDown), true);
+                _rootGrid.AddHandler(PreviewMouseDownEvent, new MouseButtonEventHandler(Root_PreviewMouseDown), true);
+                _rootGrid.AddHandler(PreviewTouchDownEvent, new EventHandler<TouchEventArgs>(Root_PreviewTouchDown), true);
             }
-            this.PreviewKeyDown += Window_PreviewKeyDown;
+            PreviewKeyDown += Window_PreviewKeyDown;
 
 
             // 即使 InkCanvas 将事件标记为 Handled，也要接收（擦除模式下很关键）
@@ -534,7 +534,7 @@ namespace WindBoard
                         Duration = TimeSpan.FromMilliseconds(180),
                         EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
                     };
-                    slider.BeginAnimation(Slider.ValueProperty, anim);
+                    slider.BeginAnimation(RangeBase.ValueProperty, anim);
                 }
                 catch { slider.Value = 0; }
 
@@ -551,12 +551,12 @@ namespace WindBoard
 
             Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Background, new Action(() =>
             {
-                try { this.ReleaseAllTouchCaptures(); } catch { }
+                try { ReleaseAllTouchCaptures(); } catch { }
                 try { MyCanvas.ReleaseAllTouchCaptures(); } catch { }
                 try { Mouse.Capture(null); } catch { }
 
                 if (_popupEraserClear != null) _popupEraserClear.IsOpen = false;
-                try { slider.BeginAnimation(Slider.ValueProperty, null); } catch { }
+                try { slider.BeginAnimation(RangeBase.ValueProperty, null); } catch { }
                 slider.Value = 0;
                 _clearPendingClose = false;
                 _clearSlideTriggered = false;
@@ -602,7 +602,7 @@ namespace WindBoard
                         Duration = TimeSpan.FromMilliseconds(180),
                         EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
                     };
-                    slider.BeginAnimation(Slider.ValueProperty, anim);
+                    slider.BeginAnimation(RangeBase.ValueProperty, anim);
                 }
                 catch { slider.Value = 0; }
 
@@ -619,12 +619,12 @@ namespace WindBoard
 
             Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Background, new Action(() =>
             {
-                try { this.ReleaseAllTouchCaptures(); } catch { Debug.WriteLine("[DBG] SliderClear_PreviewMouseUp: ReleaseAllTouchCaptures(window) failed"); }
+                try { ReleaseAllTouchCaptures(); } catch { Debug.WriteLine("[DBG] SliderClear_PreviewMouseUp: ReleaseAllTouchCaptures(window) failed"); }
                 try { MyCanvas.ReleaseAllTouchCaptures(); } catch { Debug.WriteLine("[DBG] SliderClear_PreviewMouseUp: ReleaseAllTouchCaptures(canvas) failed"); }
                 try { Mouse.Capture(null); } catch { Debug.WriteLine("[DBG] SliderClear_PreviewMouseUp: Mouse.Capture(null) failed"); }
 
                 if (_popupEraserClear != null) _popupEraserClear.IsOpen = false;
-                try { slider.BeginAnimation(Slider.ValueProperty, null); } catch { }
+                try { slider.BeginAnimation(RangeBase.ValueProperty, null); } catch { }
                 slider.Value = 0;
                 _clearPendingClose = false;
                 _clearSlideTriggered = false;
@@ -643,7 +643,7 @@ namespace WindBoard
         private void PopupEraserClear_Closed(object sender, EventArgs e)
         {
             Debug.WriteLine("[DBG] PopupEraserClear_Closed: releasing captures and resetting flags");
-            try { this.ReleaseAllTouchCaptures(); } catch { Debug.WriteLine("[DBG] PopupEraserClear_Closed: ReleaseAllTouchCaptures(window) failed"); }
+            try { ReleaseAllTouchCaptures(); } catch { Debug.WriteLine("[DBG] PopupEraserClear_Closed: ReleaseAllTouchCaptures(window) failed"); }
             try { MyCanvas.ReleaseAllTouchCaptures(); } catch { Debug.WriteLine("[DBG] PopupEraserClear_Closed: ReleaseAllTouchCaptures(canvas) failed"); }
             try { Mouse.Capture(null); } catch { Debug.WriteLine("[DBG] PopupEraserClear_Closed: Mouse.Capture(null) failed"); }
             _clearPendingClose = false;
@@ -762,7 +762,7 @@ namespace WindBoard
         private void BtnMinimize_Click(object sender, RoutedEventArgs e)
         {
             // 最小化窗口
-            this.WindowState = WindowState.Minimized;
+            WindowState = WindowState.Minimized;
         }
 
         private void MenuSettings_Click(object sender, RoutedEventArgs e)

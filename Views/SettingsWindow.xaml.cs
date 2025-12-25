@@ -32,8 +32,8 @@ namespace WindBoard
                     _currentColor = value;
                     OnPropertyChanged();
                     OnPropertyChanged(nameof(CurrentColorHex));
-                    
-                    WindBoard.SettingsService.Instance.SetBackgroundColor(_currentColor);
+
+                    SettingsService.Instance.SetBackgroundColor(_currentColor);
                 }
             }
         }
@@ -65,7 +65,7 @@ namespace WindBoard
             _colorPopupBox = FindName("ColorPopupBox") as PopupBox;
 
             // 初始化颜色为当前设置服务中的背景色
-            _currentColor = WindBoard.SettingsService.Instance.GetBackgroundColor();
+            _currentColor = SettingsService.Instance.GetBackgroundColor();
             OnPropertyChanged(nameof(CurrentColor));
             OnPropertyChanged(nameof(CurrentColorHex));
 

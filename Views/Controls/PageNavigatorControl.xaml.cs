@@ -65,8 +65,7 @@ namespace WindBoard.Controls
             // 先通知宿主：可用于 SaveCurrentPage + 更新缩略图
             IndicatorClicked?.Invoke(this, e);
             // 再打开弹窗（自身控制）
-            var popup = this.FindName("PopupPageManager") as Popup;
-            if (popup != null)
+            if (FindName("PopupPageManager") is Popup popup)
             {
                 popup.IsOpen = true;
             }
@@ -78,8 +77,7 @@ namespace WindBoard.Controls
             {
                 PageSelected?.Invoke(this, new BoardPageEventArgs(page));
                 // 选中后关闭弹窗
-                var popup = this.FindName("PopupPageManager") as Popup;
-                if (popup != null) popup.IsOpen = false;
+                if (FindName("PopupPageManager") is Popup popup) popup.IsOpen = false;
             }
         }
 
@@ -92,9 +90,8 @@ namespace WindBoard.Controls
         }
     }
 
-    public sealed class BoardPageEventArgs : EventArgs
+    public sealed class BoardPageEventArgs(BoardPage page) : EventArgs
     {
-        public BoardPage Page { get; }
-        public BoardPageEventArgs(BoardPage page) => Page = page;
+        public BoardPage Page { get; } = page;
     }
 }

@@ -21,7 +21,7 @@ namespace WindBoard
                 Point pCanvas = e.GetTouchPoint(MyCanvas).Position;
                 Point pViewport = e.GetTouchPoint(Viewport).Position;
 
-                long ticks = (long)e.Timestamp * System.TimeSpan.TicksPerMillisecond;
+                long ticks = (long)e.Timestamp * TimeSpan.TicksPerMillisecond;
                 var mods = Keyboard.Modifiers;
 
                 var args = new DeviceInputEventArgs
@@ -88,7 +88,7 @@ namespace WindBoard
             var pCanvasMove = e.GetTouchPoint(MyCanvas).Position;
             if (!_gestureActive && _activeTouches.Count == 1)
             {
-                long ticks = (long)e.Timestamp * System.TimeSpan.TicksPerMillisecond;
+                long ticks = (long)e.Timestamp * TimeSpan.TicksPerMillisecond;
                 var mods = Keyboard.Modifiers;
 
                 var args = new DeviceInputEventArgs
@@ -170,7 +170,7 @@ namespace WindBoard
             Point pCanvas = e.GetTouchPoint(MyCanvas).Position;
             Point pViewport = e.GetTouchPoint(Viewport).Position;
 
-            long ticks = (long)e.Timestamp * System.TimeSpan.TicksPerMillisecond;
+            long ticks = (long)e.Timestamp * TimeSpan.TicksPerMillisecond;
             var mods = Keyboard.Modifiers;
 
             var args = new DeviceInputEventArgs

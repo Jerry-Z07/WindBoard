@@ -53,7 +53,7 @@ namespace WindBoard
                 Point pCanvas = e.GetPosition(MyCanvas);
                 Point pViewport = e.GetPosition(Viewport);
 
-                long ticks = (long)e.Timestamp * System.TimeSpan.TicksPerMillisecond;
+                long ticks = (long)e.Timestamp * TimeSpan.TicksPerMillisecond;
                 var mods = Keyboard.Modifiers;
 
                 var args = new DeviceInputEventArgs
@@ -96,7 +96,7 @@ namespace WindBoard
                 Point pCanvas = e.GetPosition(MyCanvas);
                 Point pViewport = e.GetPosition(Viewport);
 
-                long ticks = (long)e.Timestamp * System.TimeSpan.TicksPerMillisecond;
+                long ticks = (long)e.Timestamp * TimeSpan.TicksPerMillisecond;
                 var mods = Keyboard.Modifiers;
 
                 bool anyPressed = e.LeftButton == MouseButtonState.Pressed
@@ -148,7 +148,7 @@ namespace WindBoard
                 Point pCanvas = e.GetPosition(MyCanvas);
                 Point pViewport = e.GetPosition(Viewport);
 
-                long ticks = (long)e.Timestamp * System.TimeSpan.TicksPerMillisecond;
+                long ticks = (long)e.Timestamp * TimeSpan.TicksPerMillisecond;
                 var mods = Keyboard.Modifiers;
 
                 var args = new DeviceInputEventArgs
