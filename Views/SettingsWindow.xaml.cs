@@ -7,7 +7,7 @@ using System.Windows.Media;
 using System.Windows.Input;
 using MaterialDesignThemes.Wpf;
 
-namespace WindBoard.UI
+namespace WindBoard
 {
     public partial class SettingsWindow : Window, INotifyPropertyChanged
     {

@@ -190,7 +190,7 @@
             <Border Background="#E625262A" CornerRadius="16" Margin="0,0,0,10"
                     Effect="{StaticResource MaterialDesignShadowDepth2}">
                 <StackPanel Margin="16,12,16,12">
-                    <TextBlock Text="向右滑动清空"
+                    <TextBlock x:Name="TextClearHint" Text="向右滑动清空"
                                FontWeight="Bold"
                                FontSize="16"
                                Foreground="White"
@@ -199,10 +199,10 @@
                     <Slider x:Name="SliderClear"
                             Minimum="0"
                             Maximum="100"
-                            Width="280"
+                            Width="180"
                             IsManipulationEnabled="False"
                             IsMoveToPointEnabled="False"
-                            Tag="0.96"
+                            Tag="0.92"
                             ValueChanged="SliderClear_ValueChanged"
                             PreviewMouseUp="SliderClear_PreviewMouseUp"
                             PreviewTouchUp="SliderClear_PreviewTouchUp"

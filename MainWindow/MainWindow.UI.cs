@@ -35,6 +35,7 @@ namespace WindBoard
         private Popup? _popupEraserClear;
         private Popup? _popupMoreMenu;
         private Slider? _sliderClear;
+        private TextBlock? _textClearHint;
         private Grid? _rootGrid;
         private bool _isEraserPressed = false;
         // 当前是否为鼠标擦除（用于决定浮标定位方式）
@@ -86,6 +87,7 @@ namespace WindBoard
             _popupEraserClear = (Popup)FindName("PopupEraserClear");
             _popupMoreMenu = (Popup)FindName("PopupMoreMenu");
             _sliderClear = (Slider)FindName("SliderClear");
+            _textClearHint = (TextBlock)FindName("TextClearHint");
 
             _rootGrid = (Grid)FindName("RootGrid");
             if (_rootGrid != null)
@@ -161,7 +163,7 @@ namespace WindBoard
             try
             {
                 var pts = e.GetStylusPoints(MyCanvas);
-                if (pts != null && pts.Count > 0) pressure = pts[pts.Count - 1].PressureFactor;
+                if (pts != null && pts.Count > 0) pressure = pts[^1].PressureFactor;
             }
             catch { }
 
@@ -484,16 +486,22 @@ namespace WindBoard
             {
                 _clearSlideTriggered = true;
 
-                // 记录清屏耗时
+                if (_textClearHint != null)
+                {
+                    _textClearHint.Text = "松开清空";
+                }
+
                 int strokesBefore = MyCanvas.Strokes.Count;
                 int childrenBefore = MyCanvas.Children.Count;
 
-                // 清除当前画布笔迹与可能的子元素
                 MyCanvas.Strokes.Clear();
                 MyCanvas.Children.Clear();
 
-                // 标记待关闭，由 PointerUp 再真正关闭（避免触摸设备上因 capture/提升造成的卡死）
                 _clearPendingClose = true;
+            }
+            else if (_textClearHint != null && _textClearHint.Text == "松开清空")
+            {
+                _textClearHint.Text = "向右滑动清空";
             }
         }
 
@@ -532,6 +540,12 @@ namespace WindBoard
 
                 _clearPendingClose = false;
                 _clearSlideTriggered = false;
+
+                if (_textClearHint != null)
+                {
+                    _textClearHint.Text = "向右滑动清空";
+                }
+
                 return;
             }
 
@@ -547,7 +561,11 @@ namespace WindBoard
                 _clearPendingClose = false;
                 _clearSlideTriggered = false;
 
-                // 清屏完成后切回书写模式
+                if (_textClearHint != null)
+                {
+                    _textClearHint.Text = "向右滑动清空";
+                }
+
                 if (RadioPen != null) RadioPen.IsChecked = true;
             }));
         }
@@ -590,6 +608,12 @@ namespace WindBoard
 
                 _clearPendingClose = false;
                 _clearSlideTriggered = false;
+
+                if (_textClearHint != null)
+                {
+                    _textClearHint.Text = "向右滑动清空";
+                }
+
                 return;
             }
 
@@ -605,8 +629,12 @@ namespace WindBoard
                 _clearPendingClose = false;
                 _clearSlideTriggered = false;
 
+                if (_textClearHint != null)
+                {
+                    _textClearHint.Text = "向右滑动清空";
+                }
+
                 Debug.WriteLine("[DBG] SliderClear_PreviewMouseUp: popup closed and slider reset; switch to pen");
-                // 清屏完成后切回书写模式
                 if (RadioPen != null) RadioPen.IsChecked = true;
             }));
         }
@@ -646,42 +674,33 @@ namespace WindBoard
 
         private bool ShouldSkipCloseForSource(DependencyObject? source)
         {
-            if (source == null) { Debug.WriteLine("[DBG] ShouldSkipCloseForSource: source=null"); return false; }
+            if (source == null) { return false; }
             try
             {
-                var typeName = source.GetType().Name;
-                Debug.WriteLine($"[DBG] ShouldSkipCloseForSource: source={typeName}");
                 // 点击工具按钮本身不关闭（Toggle 自己处理）
-                if (RadioPen != null && IsVisualAncestorOf(RadioPen, source)) { Debug.WriteLine("[DBG] ShouldSkipCloseForSource: inside RadioPen"); return true; }
-                if (RadioEraser != null && IsVisualAncestorOf(RadioEraser, source)) { Debug.WriteLine("[DBG] ShouldSkipCloseForSource: inside RadioEraser"); return true; }
-                if (BtnMore != null && IsVisualAncestorOf(BtnMore, source)) { Debug.WriteLine("[DBG] ShouldSkipCloseForSource: inside BtnMore"); return true; }
+                if (RadioPen != null && IsVisualAncestorOf(RadioPen, source)) { return true; }
+                if (RadioEraser != null && IsVisualAncestorOf(RadioEraser, source)) { return true; }
+                if (BtnMore != null && IsVisualAncestorOf(BtnMore, source)) { return true; }
 
                 // 点击弹窗内容不关闭（允许正常操作）：使用视觉祖先判断，兼容触摸（MouseOver 可能为 false）
                 if (_popupPenSettings?.IsOpen == true)
                 {
-                    var penChild = _popupPenSettings.Child as DependencyObject;
-                    bool inside = penChild != null && IsVisualAncestorOf(penChild, source);
-                    Debug.WriteLine($"[DBG] ShouldSkipCloseForSource: penPopup open Inside={inside}");
+                    bool inside = _popupPenSettings.Child is DependencyObject penChild && IsVisualAncestorOf(penChild, source);
                     if (inside) return true;
                 }
                 if (_popupEraserClear?.IsOpen == true)
                 {
-                    var eraserChild = _popupEraserClear.Child as DependencyObject;
-                    bool insideChild = eraserChild != null && IsVisualAncestorOf(eraserChild, source);
+                    bool insideChild = _popupEraserClear.Child is DependencyObject eraserChild && IsVisualAncestorOf(eraserChild, source);
                     bool insideSlider = _sliderClear != null && IsVisualAncestorOf(_sliderClear, source);
-                    Debug.WriteLine($"[DBG] ShouldSkipCloseForSource: eraserPopup open InsideChild={insideChild} InsideSlider={insideSlider}");
                     if (insideChild || insideSlider) return true;
                 }
                 if (_popupMoreMenu?.IsOpen == true)
                 {
-                    var moreChild = _popupMoreMenu.Child as DependencyObject;
-                    bool inside = moreChild != null && IsVisualAncestorOf(moreChild, source);
-                    Debug.WriteLine($"[DBG] ShouldSkipCloseForSource: morePopup open Inside={inside}");
+                    bool inside = _popupMoreMenu.Child is DependencyObject moreChild && IsVisualAncestorOf(moreChild, source);
                     if (inside) return true;
                 }
             }
-            catch (Exception ex) { Debug.WriteLine($"[DBG] ShouldSkipCloseForSource exception: {ex.Message}"); }
-            Debug.WriteLine("[DBG] ShouldSkipCloseForSource: not inside, will close");
+            catch { }
             return false;
         }
 
@@ -752,7 +771,7 @@ namespace WindBoard
             if (_popupMoreMenu != null) _popupMoreMenu.IsOpen = false;
             
             // 打开设置窗口（无业务依赖）
-            var settingsWindow = new UI.SettingsWindow();
+            var settingsWindow = new SettingsWindow();
             settingsWindow.Owner = this;
             settingsWindow.ShowDialog();
         }
