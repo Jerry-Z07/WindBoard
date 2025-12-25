@@ -63,41 +63,59 @@
             </Grid>
         </ScrollViewer>
 
-        <!-- 悬浮工具栏（覆盖在视口之上，不参与缩放） -->
-        <Border VerticalAlignment="Bottom" HorizontalAlignment="Center" Margin="0,0,0,30"
-                Background="#25262A" CornerRadius="12" Padding="5"
-                Effect="{StaticResource MaterialDesignShadowDepth2}"
-                Panel.ZIndex="10">
-            <StackPanel Orientation="Horizontal">
-                <RadioButton x:Name="RadioSelect" Content="选择" Tag="CursorDefault" GroupName="Tools"
-                             Style="{StaticResource BottomRadioButtonStyle}"
-                             Checked="RadioSelect_Checked"/>
+        <!-- 悬浮工具栏区域（覆盖在视口之上，不参与缩放） -->
+        <StackPanel Orientation="Horizontal" VerticalAlignment="Bottom" HorizontalAlignment="Center" Margin="0,0,0,30" Panel.ZIndex="10">
+            <!-- 主工具栏 -->
+            <Border Background="#25262A" CornerRadius="12" Padding="5"
+                    Effect="{StaticResource MaterialDesignShadowDepth2}">
+                <StackPanel Orientation="Horizontal">
+                    <RadioButton x:Name="RadioSelect" Content="选择" Tag="CursorDefault" GroupName="Tools"
+                                 Style="{StaticResource BottomRadioButtonStyle}"
+                                 Checked="RadioSelect_Checked"/>
 
-                <RadioButton x:Name="RadioPen" Content="书写" Tag="Pen" GroupName="Tools" IsChecked="True"
-                             Style="{StaticResource BottomRadioButtonStyle}"
-                             Checked="RadioPen_Checked"
-                             PreviewMouseLeftButtonDown="RadioPen_PreviewMouseLeftButtonDown"
-                             ToolTip="再次单击设置画笔"/>
+                    <RadioButton x:Name="RadioPen" Content="书写" Tag="Pen" GroupName="Tools" IsChecked="True"
+                                 Style="{StaticResource BottomRadioButtonStyle}"
+                                 Checked="RadioPen_Checked"
+                                 PreviewMouseLeftButtonDown="RadioPen_PreviewMouseLeftButtonDown"
+                                 ToolTip="再次单击设置画笔"/>
 
-                <RadioButton x:Name="RadioEraser" Content="擦除" Tag="Eraser" GroupName="Tools"
-                             Style="{StaticResource BottomRadioButtonStyle}"
-                             Checked="RadioEraser_Checked"
-                             PreviewMouseLeftButtonDown="RadioEraser_PreviewMouseLeftButtonDown"
-                             PreviewTouchDown="RadioEraser_PreviewTouchDown"/>
+                    <RadioButton x:Name="RadioEraser" Content="擦除" Tag="Eraser" GroupName="Tools"
+                                 Style="{StaticResource BottomRadioButtonStyle}"
+                                 Checked="RadioEraser_Checked"
+                                 PreviewMouseLeftButtonDown="RadioEraser_PreviewMouseLeftButtonDown"
+                                 PreviewTouchDown="RadioEraser_PreviewTouchDown"/>
 
-                <Rectangle Width="1" Height="24" Fill="#505050" Margin="8,0" VerticalAlignment="Center"/>
+                    <Rectangle Width="1" Height="24" Fill="#505050" Margin="8,0" VerticalAlignment="Center"/>
 
-                <Button x:Name="BtnUndo" Content="撤销" Tag="Undo"
-                        Style="{StaticResource BottomButtonStyle}"
-                        Command="{x:Static ApplicationCommands.Undo}"
-                        CommandTarget="{Binding ElementName=MyCanvas}"/>
+                    <Button x:Name="BtnUndo" Content="撤销" Tag="Undo"
+                            Style="{StaticResource BottomButtonStyle}"
+                            Command="{x:Static ApplicationCommands.Undo}"
+                            CommandTarget="{Binding ElementName=MyCanvas}"/>
 
-                <Button x:Name="BtnRedo" Content="恢复" Tag="Redo"
-                        Style="{StaticResource BottomButtonStyle}"
-                        Command="{x:Static ApplicationCommands.Redo}"
-                        CommandTarget="{Binding ElementName=MyCanvas}"/>
-            </StackPanel>
-        </Border>
+                    <Button x:Name="BtnRedo" Content="恢复" Tag="Redo"
+                            Style="{StaticResource BottomButtonStyle}"
+                            Command="{x:Static ApplicationCommands.Redo}"
+                            CommandTarget="{Binding ElementName=MyCanvas}"/>
+                </StackPanel>
+            </Border>
+
+            <!-- 视频展台按钮 Dock（紧贴主dock右侧） -->
+            <Border x:Name="VideoDock"
+                    Margin="8,0,0,0"
+                    Background="#25262A"
+                    CornerRadius="12"
+                    Padding="5"
+                    Effect="{StaticResource MaterialDesignShadowDepth2}"
+                    Visibility="{Binding IsVideoPresenterEnabled, Converter={StaticResource BoolToVis}}">
+                <StackPanel Orientation="Horizontal">
+                    <Button x:Name="BtnVideoPresenter"
+                            Content="视频展台"
+                            Tag="Video"
+                            Style="{StaticResource BottomButtonStyle}"
+                            Click="BtnVideoPresenter_Click"/>
+                </StackPanel>
+            </Border>
+        </StackPanel>
 
         <!-- 右下角：分页控制条抽为控件（覆盖在视口之上，不参与缩放） -->
         <controls:PageNavigatorControl
@@ -113,7 +131,7 @@
                 AddRequested="BtnAddPage_Click"
                 IndicatorClicked="BtnPageIndicator_Click"
                 PageSelected="PageNavigator_PageSelected"
-                PageDeleteRequested="PageNavigator_PageDeleteRequested" Loaded="PageNavigatorControl_Loaded"/>
+                PageDeleteRequested="PageNavigator_PageDeleteRequested" Loaded="PageNavigatorControl_Loaded" Height="70"/>
 
 
         <!-- 笔设置弹窗 -->

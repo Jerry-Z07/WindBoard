@@ -68,6 +68,20 @@ namespace WindBoard
         private Point _lastGestureCenter;
         private double _lastGestureSpread;
 
+        private bool _isVideoPresenterEnabled;
+        public bool IsVideoPresenterEnabled
+        {
+            get => _isVideoPresenterEnabled;
+            set
+            {
+                if (_isVideoPresenterEnabled != value)
+                {
+                    _isVideoPresenterEnabled = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
         public MainWindow()
         {
             InitializeComponent();
@@ -76,8 +90,13 @@ namespace WindBoard
             // 加载并应用设置
             SettingsService.Instance.Load();
             SetBackgroundColor(SettingsService.Instance.GetBackgroundColor());
+            IsVideoPresenterEnabled = SettingsService.Instance.GetVideoPresenterEnabled();
             // 监听设置变更
-            SettingsService.Instance.SettingsChanged += (s, e) => SetBackgroundColor(SettingsService.Instance.GetBackgroundColor());
+            SettingsService.Instance.SettingsChanged += (s, e) =>
+            {
+                SetBackgroundColor(SettingsService.Instance.GetBackgroundColor());
+                IsVideoPresenterEnabled = SettingsService.Instance.GetVideoPresenterEnabled();
+            };
             
             MyCanvas.StrokeCollected += MyCanvas_StrokeCollected;
             _eraserOverlay = (Canvas)FindName("EraserOverlay");
@@ -787,5 +806,51 @@ namespace WindBoard
             Application.Current.Shutdown();
         }
         #endregion
+
+        // --- 视频展台 ---
+        private void BtnVideoPresenter_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var path = SettingsService.Instance.GetVideoPresenterPath();
+                var args = SettingsService.Instance.GetVideoPresenterArgs();
+
+                if (string.IsNullOrWhiteSpace(path) || !System.IO.File.Exists(path))
+                {
+                    ShowVideoPresenterNotFoundDialog(null);
+                    return;
+                }
+
+                var psi = new ProcessStartInfo
+                {
+                    FileName = path,
+                    Arguments = string.IsNullOrWhiteSpace(args) ? string.Empty : args,
+                    UseShellExecute = true,
+                    WorkingDirectory = System.IO.Path.GetDirectoryName(path) ?? Environment.CurrentDirectory
+                };
+                Process.Start(psi);
+            }
+            catch (Exception ex)
+            {
+                ShowVideoPresenterNotFoundDialog(ex.Message);
+            }
+        }
+
+        private void ShowVideoPresenterNotFoundDialog(string? error)
+        {
+            string msg = "未找到“视频展台”程序。请前往 基本设置-视频展台 进行设置。";
+            if (!string.IsNullOrWhiteSpace(error))
+            {
+                msg += "\n\n错误详情: " + error;
+            }
+            var result = MessageBox.Show(msg, "视频展台", MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.Yes);
+            if (result == MessageBoxResult.Yes)
+            {
+                // 直接打开设置窗口（暂不强制导航到具体卡片）
+                // 后续可在 SettingsWindow 内新增接口以导航到“基本设置”
+                var settingsWindow = new SettingsWindow { Owner = this };
+                settingsWindow.ShowDialog();
+            }
+        }
     }
 }

@@ -36,14 +36,14 @@
                 </Grid.ColumnDefinitions>
 
                 <Border BorderBrush="{DynamicResource MaterialDesignDivider}" BorderThickness="0,0,1,0" Background="{DynamicResource MaterialDesignCardBackground}">
-                    <ListBox x:Name="NavList" SelectedIndex="2" Padding="0,12" BorderThickness="0">
+                    <ListBox x:Name="NavList" SelectedIndex="0" Padding="0,12" BorderThickness="0">
                         <ListBox.ItemContainerStyle>
                             <Style TargetType="ListBoxItem" BasedOn="{StaticResource MaterialDesignListBoxItem}">
                                 <Setter Property="Padding" Value="20,14"/>
                                 <Setter Property="Margin" Value="0,2"/>
                             </Style>
                         </ListBox.ItemContainerStyle>
-                        <ListBoxItem>
+                        <ListBoxItem IsSelected="True">
                             <StackPanel Orientation="Horizontal">
                                 <materialDesign:PackIcon Kind="CogOutline" Width="20" Height="20" Margin="0,0,14,0" VerticalAlignment="Center"/>
                                 <TextBlock Text="基本设置" VerticalAlignment="Center" FontSize="14"/>
@@ -55,7 +55,7 @@
                                 <TextBlock Text="书写设置" VerticalAlignment="Center" FontSize="14"/>
                             </StackPanel>
                         </ListBoxItem>
-                        <ListBoxItem IsSelected="True">
+                        <ListBoxItem>
                             <StackPanel Orientation="Horizontal">
                                 <materialDesign:PackIcon Kind="PaletteOutline" Width="20" Height="20" Margin="0,0,14,0" VerticalAlignment="Center"/>
                                 <TextBlock Text="外观设置" VerticalAlignment="Center" FontSize="14"/>
@@ -72,6 +72,91 @@
 
                 <ScrollViewer Grid.Column="1" Padding="36,24" VerticalScrollBarVisibility="Auto">
                     <StackPanel>
+
+                        <!-- 基本设置 · 视频展台 -->
+                        <materialDesign:Card Padding="20" Margin="0,0,0,20" UniformCornerRadius="12" materialDesign:ElevationAssist.Elevation="Dp2">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+
+                                <Border Width="48" Height="48" CornerRadius="8" Background="{DynamicResource PrimaryHueLightBrush}" Grid.Column="0" VerticalAlignment="Top">
+                                    <materialDesign:PackIcon Kind="Video" Width="24" Height="24" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="{DynamicResource PrimaryHueMidBrush}"/>
+                                </Border>
+
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="16,0,0,0">
+                                    <TextBlock Text="视频展台" Style="{StaticResource MaterialDesignSubtitle1TextBlock}" FontWeight="SemiBold"/>
+                                    <TextBlock Text="配置视频展台软件路径与参数，并控制按钮显示" Style="{StaticResource MaterialDesignBodyMediumTextBlock}" Opacity="0.6" TextWrapping="Wrap"/>
+                                </StackPanel>
+
+                                <CheckBox Grid.Column="2" VerticalAlignment="Center"
+                                          Content="显示"
+                                          IsChecked="{Binding ElementName=SettingsWindowRoot, Path=VideoPresenterEnabled, Mode=TwoWay}"
+                                          Checked="ToggleVideoPresenter_Checked"
+                                          Unchecked="ToggleVideoPresenter_Unchecked"/>
+
+                                <!-- 程序路径 -->
+                                <Grid Grid.Row="1" Grid.ColumnSpan="3" Margin="0,16,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="程序路径" VerticalAlignment="Center" Margin="0,0,12,0"/>
+                                    <TextBox Grid.Column="1"
+                                             Text="{Binding ElementName=SettingsWindowRoot, Path=VideoPresenterPath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                             Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                                             materialDesign:HintAssist.Hint="选择视频展台 EXE"/>
+                                    <StackPanel Grid.Column="2" Orientation="Horizontal">
+                                        <Button Content="浏览…"
+                                                Margin="0,0,8,0"
+                                                Style="{StaticResource MaterialDesignOutlinedButton}"
+                                                Click="BtnBrowseVideoPresenterPath_Click"
+                                                materialDesign:ButtonAssist.CornerRadius="6"/>
+                                        <Button Content="应用"
+                                                Style="{StaticResource MaterialDesignRaisedButton}"
+                                                Click="BtnApplyVideoPresenterPath_Click"
+                                                materialDesign:ButtonAssist.CornerRadius="6"/>
+                                    </StackPanel>
+                                </Grid>
+
+                                <!-- 启动参数 -->
+                                <Grid Grid.Row="2" Grid.ColumnSpan="3" Margin="0,12,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="附加参数" VerticalAlignment="Center" Margin="0,0,12,0"/>
+                                    <TextBox Grid.Column="1"
+                                             Text="{Binding ElementName=SettingsWindowRoot, Path=VideoPresenterArgs, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                             Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                                             materialDesign:HintAssist.Hint="例如：-from en5"/>
+                                    <StackPanel Grid.Column="2" Orientation="Horizontal">
+                                        <Button Content="应用"
+                                                Style="{StaticResource MaterialDesignRaisedButton}"
+                                                Click="BtnApplyVideoPresenterArgs_Click"
+                                                materialDesign:ButtonAssist.CornerRadius="6"/>
+                                    </StackPanel>
+                                </Grid>
+
+                                <!-- 恢复默认 -->
+                                <Button Grid.Row="3" Grid.ColumnSpan="3"
+                                        Content="恢复默认"
+                                        Margin="0,16,0,0"
+                                        Style="{StaticResource MaterialDesignOutlinedButton}"
+                                        Click="BtnResetVideoPresenterDefaults_Click"
+                                        materialDesign:ButtonAssist.CornerRadius="6"/>
+                            </Grid>
+                        </materialDesign:Card>
 
                         <materialDesign:Card Padding="20" Margin="0,0,0,20" UniformCornerRadius="12" materialDesign:ElevationAssist.Elevation="Dp2">
                             <Grid>

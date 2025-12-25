@@ -6,6 +6,8 @@ using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Input;
 using MaterialDesignThemes.Wpf;
+using Microsoft.Win32;
+using System.IO;
 
 namespace WindBoard
 {
@@ -14,6 +16,14 @@ namespace WindBoard
         // 主窗口依赖已移除（仅保留 UI）
         private Color _currentColor;
         private PopupBox? _colorPopupBox;
+
+        // --- 视频展台设置（SettingsWindow 层） ---
+        private bool _videoPresenterEnabled;
+        private string _videoPresenterPath = string.Empty;
+        private string _videoPresenterArgs = string.Empty;
+
+        private const string DefaultVideoPresenterPath = @"C:\\Program Files (x86)\\Seewo\\EasiCamera\\sweclauncher\\sweclauncher.exe";
+        private const string DefaultVideoPresenterArgs = "-from en5";
 
         public event PropertyChangedEventHandler? PropertyChanged;
 
@@ -59,6 +69,48 @@ namespace WindBoard
             }
         }
 
+        // --- 视频展台属性（绑定到 XAML，通过 ElementName=SettingsWindowRoot） ---
+        public bool VideoPresenterEnabled
+        {
+            get => _videoPresenterEnabled;
+            set
+            {
+                if (_videoPresenterEnabled != value)
+                {
+                    _videoPresenterEnabled = value;
+                    OnPropertyChanged();
+                    // 立即持久化：与颜色设置一致（切换开关即时生效）
+                    try { SettingsService.Instance.SetVideoPresenterEnabled(value); } catch { }
+                }
+            }
+        }
+
+        public string VideoPresenterPath
+        {
+            get => _videoPresenterPath;
+            set
+            {
+                if (_videoPresenterPath != value)
+                {
+                    _videoPresenterPath = value ?? string.Empty;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
+        public string VideoPresenterArgs
+        {
+            get => _videoPresenterArgs;
+            set
+            {
+                if (_videoPresenterArgs != value)
+                {
+                    _videoPresenterArgs = value ?? string.Empty;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
         public SettingsWindow()
         {
             InitializeComponent();
@@ -74,6 +126,23 @@ namespace WindBoard
             {
                 HexTextBox.Text = CurrentColorHex;
             }
+
+            // 初始化“视频展台”相关设置
+            try
+            {
+                _videoPresenterEnabled = SettingsService.Instance.GetVideoPresenterEnabled();
+                _videoPresenterPath = SettingsService.Instance.GetVideoPresenterPath();
+                _videoPresenterArgs = SettingsService.Instance.GetVideoPresenterArgs();
+            }
+            catch
+            {
+                _videoPresenterEnabled = true;
+                _videoPresenterPath = DefaultVideoPresenterPath;
+                _videoPresenterArgs = DefaultVideoPresenterArgs;
+            }
+            OnPropertyChanged(nameof(VideoPresenterEnabled));
+            OnPropertyChanged(nameof(VideoPresenterPath));
+            OnPropertyChanged(nameof(VideoPresenterArgs));
         }
 
         private void PresetColor_Click(object sender, RoutedEventArgs e)
@@ -219,6 +288,66 @@ namespace WindBoard
         private void CloseButton_Click(object sender, RoutedEventArgs e)
         {
             Close();
+        }
+
+        // --- 基本设置·视频展台：事件处理 ---
+        private void ToggleVideoPresenter_Checked(object sender, RoutedEventArgs e)
+        {
+            VideoPresenterEnabled = true;
+        }
+
+        private void ToggleVideoPresenter_Unchecked(object sender, RoutedEventArgs e)
+        {
+            VideoPresenterEnabled = false;
+        }
+
+        private void BtnBrowseVideoPresenterPath_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var dlg = new OpenFileDialog
+                {
+                    Title = "选择视频展台程序",
+                    Filter = "可执行文件 (*.exe)|*.exe|所有文件 (*.*)|*.*",
+                    CheckFileExists = true
+                };
+                if (!string.IsNullOrWhiteSpace(VideoPresenterPath))
+                {
+                    try
+                    {
+                        dlg.InitialDirectory = Path.GetDirectoryName(VideoPresenterPath) ?? Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86);
+                    }
+                    catch { }
+                }
+                if (dlg.ShowDialog(this) == true)
+                {
+                    VideoPresenterPath = dlg.FileName;
+                    try { SettingsService.Instance.SetVideoPresenterPath(VideoPresenterPath); } catch { }
+                }
+            }
+            catch { }
+        }
+
+        private void BtnApplyVideoPresenterPath_Click(object sender, RoutedEventArgs e)
+        {
+            try { SettingsService.Instance.SetVideoPresenterPath(VideoPresenterPath); } catch { }
+        }
+
+        private void BtnApplyVideoPresenterArgs_Click(object sender, RoutedEventArgs e)
+        {
+            try { SettingsService.Instance.SetVideoPresenterArgs(VideoPresenterArgs); } catch { }
+        }
+
+        private void BtnResetVideoPresenterDefaults_Click(object sender, RoutedEventArgs e)
+        {
+            VideoPresenterPath = DefaultVideoPresenterPath;
+            VideoPresenterArgs = DefaultVideoPresenterArgs;
+            try
+            {
+                SettingsService.Instance.SetVideoPresenterPath(VideoPresenterPath);
+                SettingsService.Instance.SetVideoPresenterArgs(VideoPresenterArgs);
+            }
+            catch { }
         }
     }
 }
