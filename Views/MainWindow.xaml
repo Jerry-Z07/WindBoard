@@ -3,7 +3,9 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
         xmlns:controls="clr-namespace:WindBoard.Controls"
-        Title="WindBoard" Height="450" Width="800"
+        Title="WindBoard"
+        WindowStyle="None"
+        ResizeMode="NoResize"
         WindowState="Maximized"
         Style="{StaticResource MaterialDesignWindow}"
         Loaded="Window_Loaded">
@@ -230,10 +232,11 @@
         </Popup>
 
         <!-- 左下角：系统操作 Dock（覆盖在视口之上，不参与缩放） -->
-        <Border VerticalAlignment="Bottom" HorizontalAlignment="Left" Margin="30,0,0,30"
+        <Border VerticalAlignment="Bottom" HorizontalAlignment="Left" Margin="30,0,0,20"
                 Background="#25262A" CornerRadius="12" Padding="5"
                 Effect="{StaticResource MaterialDesignShadowDepth2}"
-                Panel.ZIndex="12">
+                Panel.ZIndex="12"
+                Opacity="0.85">
             <StackPanel Orientation="Horizontal">
                 <Button Name="BtnMore" Content="更多" Tag="DotsHorizontal"
                         Style="{StaticResource BottomButtonStyle}"
