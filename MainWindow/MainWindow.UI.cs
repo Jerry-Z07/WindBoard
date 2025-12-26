@@ -20,16 +20,6 @@ namespace WindBoard
         private void OnPropertyChanged([CallerMemberName] string? name = null)
             => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name ?? string.Empty));
 
-        // 工具状态
-        private InkCanvasEditingMode _lastEditingMode = InkCanvasEditingMode.Ink;
-        private double _baseThickness = 3.0;
-
-        // 鼠标浮标与箭头的垂直偏移（屏幕像素）
-        private double _eraserCursorOffsetY = 12.0;
-
-        // XAML 命名元素缓存，避免编译器未生成字段导致的引用错误
-        private Canvas? _eraserOverlay;
-        private Border? _eraserCursorRect;
         private Popup? _popupPenSettings;
         private Popup? _popupPageManager;
         private Popup? _popupEraserClear;
@@ -37,36 +27,10 @@ namespace WindBoard
         private Slider? _sliderClear;
         private TextBlock? _textClearHint;
         private Grid? _rootGrid;
-        private bool _isEraserPressed = false;
-        // 当前是否为鼠标擦除（用于决定浮标定位方式）
-        private bool _isMouseErasing = false;
-
         // 清屏滑块触发标记（防止重复触发）
         private bool _clearSlideTriggered = false;
         // 清屏后延迟关闭标记（等待 TouchUp/MouseUp 再关闭弹窗，避免触摸卡顿）
         private bool _clearPendingClose = false;
-
-        // Zoom（视口缩放）
-        private const double MinZoom = 0.5;
-        private const double MaxZoom = 5.0;
-
-        // 鼠标平移相关
-        private bool _isPanning = false;
-        private Point _lastMousePosition;
-
-        // 左/上扩容需要“内容平移”的延迟量（避免正在书写时平移导致动态笔迹不同步）
-        private double _pendingShiftX = 0;
-        private double _pendingShiftY = 0;
-
-        // 触摸点集合：DeviceId -> Point (Viewport坐标)
-        private readonly Dictionary<int, Point> _activeTouches = new Dictionary<int, Point>();
- 
-
-
-        private bool _gestureActive = false;
-        // 多指手势快照（质心 + 平均半径，Viewport 坐标）
-        private Point _lastGestureCenter;
-        private double _lastGestureSpread;
 
         private bool _isVideoPresenterEnabled;
         public bool IsVideoPresenterEnabled
@@ -86,7 +50,7 @@ namespace WindBoard
         {
             InitializeComponent();
             DataContext = this;
-            
+
             // 加载并应用设置
             SettingsService.Instance.Load();
             SetBackgroundColor(SettingsService.Instance.GetBackgroundColor());
@@ -97,10 +61,7 @@ namespace WindBoard
                 SetBackgroundColor(SettingsService.Instance.GetBackgroundColor());
                 IsVideoPresenterEnabled = SettingsService.Instance.GetVideoPresenterEnabled();
             };
-            
-            MyCanvas.StrokeCollected += MyCanvas_StrokeCollected;
-            _eraserOverlay = (Canvas)FindName("EraserOverlay");
-            _eraserCursorRect = (Border)FindName("EraserCursorRect");
+
             _popupPenSettings = (Popup)FindName("PopupPenSettings");
             _popupPageManager = (Popup)FindName("PopupPageManager");
             _popupEraserClear = (Popup)FindName("PopupEraserClear");
@@ -116,50 +77,25 @@ namespace WindBoard
             }
             PreviewKeyDown += Window_PreviewKeyDown;
 
-
-            // 即使 InkCanvas 将事件标记为 Handled，也要接收（擦除模式下很关键）
-            MyCanvas.AddHandler(MouseDownEvent, new MouseButtonEventHandler(MyCanvas_MouseDown), true);
-            MyCanvas.AddHandler(MouseMoveEvent, new MouseEventHandler(MyCanvas_MouseMove), true);
-            MyCanvas.AddHandler(MouseUpEvent, new MouseButtonEventHandler(MyCanvas_MouseUp), true);
-
-            // 监听 Stylus 事件（区分触笔/触摸），同样使用 handledEventsToo=true
-            MyCanvas.AddHandler(StylusDownEvent, new StylusDownEventHandler(MyCanvas_StylusDown), true);
-            MyCanvas.AddHandler(StylusMoveEvent, new StylusEventHandler(MyCanvas_StylusMove), true);
-            MyCanvas.AddHandler(StylusUpEvent, new StylusEventHandler(MyCanvas_StylusUp), true);
-            MyCanvas.AddHandler(StylusInAirMoveEvent, new StylusEventHandler(MyCanvas_StylusInAirMove), true);
-
-
-            // 统一输入事件订阅：用于橡皮擦游标与自动扩容
-            DeviceDown += OnDeviceDown;
-            DeviceMove += OnDeviceMove;
-            DeviceUp += OnDeviceUp;
- 
-            // 用于更新缩略图：监听 StrokesChanged（切页时会重新挂）
-            AttachStrokeEvents();
- 
-            // Pages 数量变化时更新 UI 绑定属性
-            Pages.CollectionChanged += (s, e) => NotifyPageUiChanged();
-            
-            // 初始化默认页面，确保启动后 Pages 集合不为空
-            InitializePagesIfNeeded();
+            InitializeArchitecture();
         }
 
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
+            if (_zoomPanService == null) return;
             // 启动后把视口移动到大画布中心
             Dispatcher.InvokeAsync(() =>
             {
                 // 先确保布局完成，否则 Viewport.ViewportWidth/Height 可能为 0
                 Viewport.UpdateLayout();
 
-                var extentW = MyCanvas.Width * _zoom;
-                var extentH = MyCanvas.Height * _zoom;
+                var extentW = MyCanvas.Width * _zoomPanService.Zoom;
+                var extentH = MyCanvas.Height * _zoomPanService.Zoom;
 
                 Viewport.ScrollToHorizontalOffset((extentW - Viewport.ViewportWidth) / 2.0);
                 Viewport.ScrollToVerticalOffset((extentH - Viewport.ViewportHeight) / 2.0);
 
-                UpdatePenThickness(_zoom);
-                UpdateEraserVisual(null);
+                _strokeService.UpdatePenThickness(_zoomPanService.Zoom);
 
 
             }, System.Windows.Threading.DispatcherPriority.Loaded);
@@ -167,185 +103,6 @@ namespace WindBoard
 
 
 
-        #region Unified Device Events
-        // 根据 Stylus 设备类型区分触笔/触摸；并统一抛出 DeviceDown/Move/Up
-        // 注意：触摸（非触笔）事件已在 TouchDown/Move/Up 中派发，这里仅派发触笔，避免重复。
-        private void MyCanvas_StylusDown(object sender, StylusDownEventArgs e)
-        {
-            var tablet = e.StylusDevice?.TabletDevice;
-            if (tablet == null || tablet.Type != TabletDeviceType.Stylus) return; // 非触笔不在此派发
-
-            Point pCanvas = e.GetPosition(MyCanvas);
-            Point pViewport = e.GetPosition(Viewport);
-
-            double? pressure = null;
-            try
-            {
-                var pts = e.GetStylusPoints(MyCanvas);
-                if (pts != null && pts.Count > 0) pressure = pts[^1].PressureFactor;
-            }
-            catch { }
-
-            long ticks = (long)e.Timestamp * TimeSpan.TicksPerMillisecond;
-            var mods = Keyboard.Modifiers;
-
-            var args = new DeviceInputEventArgs
-            {
-                DeviceType = InputDeviceType.Stylus,
-                CanvasPoint = pCanvas,
-                ViewportPoint = pViewport,
-                TouchId = e.StylusDevice?.Id,
-                Pressure = pressure,
-                IsInAir = false,
-                LeftButton = false,
-                RightButton = false,
-                MiddleButton = false,
-                Ctrl = (mods & ModifierKeys.Control) != 0,
-                Shift = (mods & ModifierKeys.Shift) != 0,
-                Alt = (mods & ModifierKeys.Alt) != 0,
-                TimestampTicks = ticks
-            };
-            RaiseDeviceDown(args);
-        }
-
-        private void MyCanvas_StylusMove(object sender, StylusEventArgs e)
-        {
-            var tablet = e.StylusDevice?.TabletDevice;
-            if (tablet == null || tablet.Type != TabletDeviceType.Stylus) return; // 非触笔不在此派发
-
-            Point pCanvas = e.GetPosition(MyCanvas);
-            Point pViewport = e.GetPosition(Viewport);
-
-            double? pressure = null;
-            try
-            {
-                var pts = e.GetStylusPoints(MyCanvas);
-                if (pts != null && pts.Count > 0) pressure = pts[pts.Count - 1].PressureFactor;
-            }
-            catch { }
-
-            long ticks = (long)e.Timestamp * TimeSpan.TicksPerMillisecond;
-            var mods = Keyboard.Modifiers;
-
-            var args = new DeviceInputEventArgs
-            {
-                DeviceType = InputDeviceType.Stylus,
-                CanvasPoint = pCanvas,
-                ViewportPoint = pViewport,
-                TouchId = e.StylusDevice?.Id,
-                Pressure = pressure,
-                IsInAir = false,
-                LeftButton = false,
-                RightButton = false,
-                MiddleButton = false,
-                Ctrl = (mods & ModifierKeys.Control) != 0,
-                Shift = (mods & ModifierKeys.Shift) != 0,
-                Alt = (mods & ModifierKeys.Alt) != 0,
-                TimestampTicks = ticks
-            };
-            RaiseDeviceMove(args);
-        }
-
-        private void MyCanvas_StylusUp(object sender, StylusEventArgs e)
-        {
-            var tablet = e.StylusDevice?.TabletDevice;
-            if (tablet == null || tablet.Type != TabletDeviceType.Stylus) return; // 非触笔不在此派发
-
-            Point pCanvas = e.GetPosition(MyCanvas);
-            Point pViewport = e.GetPosition(Viewport);
-
-            long ticks = (long)e.Timestamp * TimeSpan.TicksPerMillisecond;
-            var mods = Keyboard.Modifiers;
-
-            var args = new DeviceInputEventArgs
-            {
-                DeviceType = InputDeviceType.Stylus,
-                CanvasPoint = pCanvas,
-                ViewportPoint = pViewport,
-                TouchId = e.StylusDevice?.Id,
-                Pressure = null,
-                IsInAir = false,
-                LeftButton = false,
-                RightButton = false,
-                MiddleButton = false,
-                Ctrl = (mods & ModifierKeys.Control) != 0,
-                Shift = (mods & ModifierKeys.Shift) != 0,
-                Alt = (mods & ModifierKeys.Alt) != 0,
-                TimestampTicks = ticks
-            };
-            RaiseDeviceUp(args);
-        }
-
-        private void MyCanvas_StylusInAirMove(object sender, StylusEventArgs e)
-        {
-            var tablet = e.StylusDevice?.TabletDevice;
-            if (tablet == null || tablet.Type != TabletDeviceType.Stylus) return; // 非触笔不在此派发
-
-            Point pCanvas = e.GetPosition(MyCanvas);
-            Point pViewport = e.GetPosition(Viewport);
-
-            long ticks = (long)e.Timestamp * TimeSpan.TicksPerMillisecond;
-            var mods = Keyboard.Modifiers;
-
-            var args = new DeviceInputEventArgs
-            {
-                DeviceType = InputDeviceType.Stylus,
-                CanvasPoint = pCanvas,
-                ViewportPoint = pViewport,
-                TouchId = e.StylusDevice?.Id,
-                Pressure = null,
-                IsInAir = true,
-                LeftButton = false,
-                RightButton = false,
-                MiddleButton = false,
-                Ctrl = (mods & ModifierKeys.Control) != 0,
-                Shift = (mods & ModifierKeys.Shift) != 0,
-                Alt = (mods & ModifierKeys.Alt) != 0,
-                TimestampTicks = ticks
-            };
-            RaiseDeviceHover(args);
-        }
-        #endregion
-
-        // 统一输入订阅分派：橡皮擦游标 & 自动扩容（不干扰多指缩放与空格平移）
-        private void OnDeviceDown(object? sender, DeviceInputEventArgs e)
-        {
-            if (MyCanvas.EditingMode == InkCanvasEditingMode.EraseByPoint)
-            {
-                _isEraserPressed = true;
-                _isMouseErasing = (e.DeviceType == InputDeviceType.Mouse);
-                MyCanvas.Cursor = Cursors.Arrow;
-                UpdateEraserVisual(e.CanvasPoint);
-            }
-        }
-
-        private void OnDeviceMove(object? sender, DeviceInputEventArgs e)
-        {
-            bool pressed = e.DeviceType == InputDeviceType.Touch
-                || (e.DeviceType == InputDeviceType.Mouse && (e.LeftButton || e.RightButton || e.MiddleButton))
-                || (e.DeviceType == InputDeviceType.Stylus && !e.IsInAir);
-
-            if (pressed)
-            {
-                AutoExpandCanvas(e.CanvasPoint);
-            }
-
-            if (MyCanvas.EditingMode == InkCanvasEditingMode.EraseByPoint && _isEraserPressed)
-            {
-                UpdateEraserVisual(e.CanvasPoint);
-            }
-        }
-
-        private void OnDeviceUp(object? sender, DeviceInputEventArgs e)
-        {
-            if (MyCanvas.EditingMode == InkCanvasEditingMode.EraseByPoint)
-            {
-                _isEraserPressed = false;
-                _isMouseErasing = false;
-                MyCanvas.Cursor = Cursors.Arrow;
-                UpdateEraserVisual(null);
-            }
-        }
 
         #region Tool UI
 
@@ -369,33 +126,22 @@ namespace WindBoard
 
         private void RadioPen_Checked(object sender, RoutedEventArgs e)
         {
-            MyCanvas.EditingMode = InkCanvasEditingMode.Ink;
-            MyCanvas.UseCustomCursor = false; // 恢复默认光标行为
-            MyCanvas.ClearValue(CursorProperty);
-            if (_eraserOverlay != null)
-                _eraserOverlay.Visibility = Visibility.Collapsed;
+            if (_modeController == null || _inkMode == null) return;
+            _modeController.SetCurrentMode(_inkMode);
             if (_popupEraserClear != null)
                 _popupEraserClear.IsOpen = false;
         }
 
         private void RadioEraser_Checked(object sender, RoutedEventArgs e)
         {
-            MyCanvas.EditingMode = InkCanvasEditingMode.EraseByPoint;
-            MyCanvas.UseCustomCursor = true; // 关键：禁用 InkCanvas 默认的橡皮擦光标（白色方块）
-
-            // 橡皮擦模式：默认显示箭头光标，按下左键时显示自定义浮标
-            MyCanvas.Cursor = Cursors.Arrow;
-            _isEraserPressed = false;
-            UpdateEraserVisual(null);
+            if (_modeController == null || _eraserMode == null) return;
+            _modeController.SetCurrentMode(_eraserMode);
         }
 
         private void RadioSelect_Checked(object sender, RoutedEventArgs e)
         {
-            MyCanvas.EditingMode = InkCanvasEditingMode.Select;
-            MyCanvas.UseCustomCursor = false; // 恢复默认光标行为
-            MyCanvas.ClearValue(CursorProperty);
-            if (_eraserOverlay != null)
-                _eraserOverlay.Visibility = Visibility.Collapsed;
+            if (_modeController == null || _selectMode == null) return;
+            _modeController.SetCurrentMode(_selectMode);
             if (_popupEraserClear != null)
                 _popupEraserClear.IsOpen = false;
         }
@@ -404,8 +150,9 @@ namespace WindBoard
         {
             if (sender is RadioButton rb && double.TryParse(rb.Tag?.ToString(), out double thickness))
             {
+                if (_strokeService == null) return;
                 _baseThickness = thickness;
-                UpdatePenThickness(_zoom);
+                _strokeService.SetBaseThickness(thickness, _zoomPanService.Zoom);
             }
         }
 
@@ -413,14 +160,15 @@ namespace WindBoard
         {
             if (sender is Button btn && btn.Tag is string colorCode)
             {
+                if (_strokeService == null) return;
                 try
                 {
                     Color color = (Color)ColorConverter.ConvertFromString(colorCode);
-                    MyCanvas.DefaultDrawingAttributes.Color = color;
+                    _strokeService.SetColor(color);
                 }
                 catch (FormatException)
                 {
-                    MyCanvas.DefaultDrawingAttributes.Color = Colors.White;
+                    _strokeService.SetColor(Colors.White);
                 }
 
                 PopupPenSettings.IsOpen = false;
