@@ -85,10 +85,18 @@ namespace WindBoard
             MyCanvas.AddHandler(StylusUpEvent, new StylusEventHandler(MyCanvas_StylusUp), true);
             MyCanvas.AddHandler(StylusInAirMoveEvent, new StylusEventHandler(MyCanvas_StylusInAirMove), true);
 
+#pragma warning disable CS8622 // 参数类型中引用类型的为 Null 性与目标委托不匹配(可能是由于为 Null 性特性)。
             MyCanvas.TouchDown += MyCanvas_TouchDown;
+#pragma warning restore CS8622 // 参数类型中引用类型的为 Null 性与目标委托不匹配(可能是由于为 Null 性特性)。
+#pragma warning disable CS8622 // 参数类型中引用类型的为 Null 性与目标委托不匹配(可能是由于为 Null 性特性)。
             MyCanvas.TouchMove += MyCanvas_TouchMove;
+#pragma warning restore CS8622 // 参数类型中引用类型的为 Null 性与目标委托不匹配(可能是由于为 Null 性特性)。
+#pragma warning disable CS8622 // 参数类型中引用类型的为 Null 性与目标委托不匹配(可能是由于为 Null 性特性)。
             MyCanvas.TouchUp += MyCanvas_TouchUp;
+#pragma warning restore CS8622 // 参数类型中引用类型的为 Null 性与目标委托不匹配(可能是由于为 Null 性特性)。
+#pragma warning disable CS8622 // 参数类型中引用类型的为 Null 性与目标委托不匹配(可能是由于为 Null 性特性)。
             MyCanvas.TouchLeave += MyCanvas_TouchUp;
+#pragma warning restore CS8622 // 参数类型中引用类型的为 Null 性与目标委托不匹配(可能是由于为 Null 性特性)。
 
             MyCanvas.StrokeCollected += _autoExpandService.OnStrokeCollected;
             MyCanvas.StrokeCollected += SuppressGestureStroke;

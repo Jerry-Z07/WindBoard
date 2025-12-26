@@ -9,7 +9,7 @@ namespace WindBoard.Services
         private readonly InkCanvas _canvas;
         private double _baseThickness;
 
-        public StrokeService(InkCanvas canvas, double baseThickness = 3.0)
+        public StrokeService(InkCanvas canvas, double baseThickness = 2.0)
         {
             _canvas = canvas;
             _baseThickness = baseThickness;
