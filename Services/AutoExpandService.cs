@@ -14,16 +14,18 @@ namespace WindBoard.Services
         private readonly ScrollViewer _viewport;
         private readonly ZoomPanService _zoomPanService;
         private readonly Func<BoardPage?> _currentPageProvider;
+        private readonly Func<bool>? _isInkingActiveProvider;
 
         private double _pendingShiftX;
         private double _pendingShiftY;
 
-        public AutoExpandService(InkCanvas canvas, ScrollViewer viewport, ZoomPanService zoomPanService, Func<BoardPage?> currentPageProvider)
+        public AutoExpandService(InkCanvas canvas, ScrollViewer viewport, ZoomPanService zoomPanService, Func<BoardPage?> currentPageProvider, Func<bool>? isInkingActiveProvider = null)
         {
             _canvas = canvas;
             _viewport = viewport;
             _zoomPanService = zoomPanService;
             _currentPageProvider = currentPageProvider;
+            _isInkingActiveProvider = isInkingActiveProvider;
         }
 
         public void EnsureCanvasSpace(Point canvasPoint)
@@ -61,8 +63,9 @@ namespace WindBoard.Services
 
             if (expandLeft > 0 || expandTop > 0)
             {
-                bool inkingActive = (_canvas.EditingMode == InkCanvasEditingMode.Ink) &&
-                                    (Mouse.LeftButton == MouseButtonState.Pressed);
+                bool inkingActive = _isInkingActiveProvider?.Invoke()
+                                    ?? ((_canvas.EditingMode == InkCanvasEditingMode.Ink) &&
+                                        (Mouse.LeftButton == MouseButtonState.Pressed));
 
                 if (inkingActive)
                 {
@@ -77,6 +80,11 @@ namespace WindBoard.Services
         }
 
         public void OnStrokeCollected(object? sender, InkCanvasStrokeCollectedEventArgs e)
+        {
+            FlushPendingShift();
+        }
+
+        public void FlushPendingShift()
         {
             if (_pendingShiftX == 0 && _pendingShiftY == 0) return;
 

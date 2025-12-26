@@ -54,9 +54,9 @@ namespace WindBoard
             _strokeService = new StrokeService(MyCanvas, _baseThickness);
             _zoomPanService = new ZoomPanService(Viewport, ZoomTransform, MinZoom, MaxZoom, zoom => _strokeService.UpdatePenThickness(zoom));
             _pageService = new PageService(MyCanvas, Viewport, _zoomPanService, NotifyPageUiChanged);
-            _autoExpandService = new AutoExpandService(MyCanvas, Viewport, _zoomPanService, () => _pageService.CurrentPage);
+            _autoExpandService = new AutoExpandService(MyCanvas, Viewport, _zoomPanService, () => _pageService.CurrentPage, () => _inkMode?.HasActiveStroke ?? false);
 
-            _inkMode = new InkMode(MyCanvas);
+            _inkMode = new InkMode(MyCanvas, () => _zoomPanService.Zoom, _autoExpandService.FlushPendingShift);
             _selectMode = new SelectMode(MyCanvas);
             _noMode = new NoMode(MyCanvas);
             _eraserMode = new EraserMode(
@@ -143,6 +143,7 @@ namespace WindBoard
             _inputManager.InputSuppressed = true;
             MyCanvas.EditingMode = InkCanvasEditingMode.None;
             _strokeSuppressionActive = true;
+            _inkMode?.CancelAllStrokes();
         }
 
         private void EndGestureSuppression()
