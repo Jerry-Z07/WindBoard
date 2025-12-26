@@ -9,9 +9,12 @@ namespace WindBoard.Controls
 {
     public partial class PageNavigatorControl : UserControl
     {
+        private Popup? _popupPageManager;
+
         public PageNavigatorControl()
         {
             InitializeComponent();
+            Loaded += PageNavigatorControl_Loaded;
         }
 
         // Pages 集合（由宿主绑定）
@@ -49,6 +52,7 @@ namespace WindBoard.Controls
 
         public event EventHandler<BoardPageEventArgs>? PageSelected;          // 选中要切到的页
         public event EventHandler<BoardPageEventArgs>? PageDeleteRequested;   // 请求删除某页
+        public event EventHandler<BoardPageEventArgs>? PreviewNeeded;         // 某项进入可视区域，需要预览图
 
         // —— 本地按钮事件（转发为上述公共事件） ——
         private void BtnPrev_Click(object sender, RoutedEventArgs e)
@@ -86,6 +90,41 @@ namespace WindBoard.Controls
             if (sender is FrameworkElement fe && fe.Tag is BoardPage page)
             {
                 PageDeleteRequested?.Invoke(this, new BoardPageEventArgs(page));
+            }
+        }
+
+        private void PreviewHost_Loaded(object sender, RoutedEventArgs e)
+        {
+            if (sender is FrameworkElement fe && fe.Tag is BoardPage page)
+            {
+                if (page.Preview == null || page.PreviewVersion != page.ContentVersion)
+                {
+                    PreviewNeeded?.Invoke(this, new BoardPageEventArgs(page));
+                }
+            }
+        }
+
+        private void PageNavigatorControl_Loaded(object sender, RoutedEventArgs e)
+        {
+            if (_popupPageManager == null)
+            {
+                _popupPageManager = FindName("PopupPageManager") as Popup;
+                if (_popupPageManager != null)
+                {
+                    _popupPageManager.Closed -= PopupPageManager_Closed;
+                    _popupPageManager.Closed += PopupPageManager_Closed;
+                }
+            }
+        }
+
+        private void PopupPageManager_Closed(object? sender, EventArgs e)
+        {
+            // 页面管理关闭后释放所有缩略图引用，避免长期占用内存。
+            if (Pages == null) return;
+            foreach (var p in Pages)
+            {
+                p.Preview = null;
+                p.PreviewVersion = 0;
             }
         }
     }
