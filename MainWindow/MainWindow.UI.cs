@@ -587,6 +587,60 @@ namespace WindBoard
             }
         }
 
+        private Style? TryFindStyle(string key)
+        {
+            try
+            {
+                return FindResource(key) as Style;
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        private TextBlock CreateTextBlock(string text, string? styleKey, Thickness margin, bool wrap = false)
+        {
+            var tb = new TextBlock
+            {
+                Text = text,
+                Margin = margin,
+                TextWrapping = wrap ? TextWrapping.Wrap : TextWrapping.NoWrap
+            };
+
+            if (!string.IsNullOrEmpty(styleKey))
+            {
+                var style = TryFindStyle(styleKey);
+                if (style != null)
+                {
+                    tb.Style = style;
+                }
+            }
+
+            return tb;
+        }
+
+        private Button CreateButton(string content, string? styleKey, object command, object? commandParameter)
+        {
+            var btn = new Button
+            {
+                Content = content,
+                Command = (ICommand)command,
+                CommandParameter = commandParameter
+            };
+
+            if (!string.IsNullOrEmpty(styleKey))
+            {
+                var style = TryFindStyle(styleKey);
+                if (style != null)
+                {
+                    btn.Style = style;
+                }
+            }
+
+            return btn;
+        }
+
         private async Task ShowVideoPresenterNotFoundDialog(string? error)
         {
             string msg = "未找到“视频展台”程序。请前往 基本设置-视频展台 进行设置。";
@@ -597,72 +651,13 @@ namespace WindBoard
 
             var stackPanel = new StackPanel { Margin = new Thickness(24) };
 
-            TextBlock title;
-            TextBlock body;
-            StackPanel buttonPanel;
-            Button cancelButton;
-            Button settingsButton;
+            var title = CreateTextBlock("视频展台不可用", "MaterialDesignHeadline6TextBlock", new Thickness(0, 0, 0, 12));
+            var body = CreateTextBlock(msg, "MaterialDesignBodyMediumTextBlock", new Thickness(0, 0, 0, 16), wrap: true);
 
-            try
-            {
-                title = new TextBlock
-                {
-                    Text = "视频展台不可用",
-                    Style = (Style)FindResource("MaterialDesignHeadline6TextBlock"),
-                    Margin = new Thickness(0, 0, 0, 12)
-                };
-            }
-            catch
-            {
-                title = new TextBlock { Text = "视频展台不可用", Margin = new Thickness(0, 0, 0, 12) };
-            }
+            var buttonPanel = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right };
 
-            try
-            {
-                body = new TextBlock
-                {
-                    Text = msg,
-                    Style = (Style)FindResource("MaterialDesignBodyMediumTextBlock"),
-                    TextWrapping = TextWrapping.Wrap,
-                    Margin = new Thickness(0, 0, 0, 16)
-                };
-            }
-            catch
-            {
-                body = new TextBlock { Text = msg, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 16) };
-            }
-
-            buttonPanel = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right };
-
-            try
-            {
-                cancelButton = new Button
-                {
-                    Content = "取消",
-                    Style = (Style)FindResource("MaterialDesignFlatButton"),
-                    Command = DialogHost.CloseDialogCommand,
-                    CommandParameter = false
-                };
-            }
-            catch
-            {
-                cancelButton = new Button { Content = "取消", Command = DialogHost.CloseDialogCommand, CommandParameter = false };
-            }
-
-            try
-            {
-                settingsButton = new Button
-                {
-                    Content = "前往设置",
-                    Style = (Style)FindResource("MaterialDesignFlatButton"),
-                    Command = DialogHost.CloseDialogCommand,
-                    CommandParameter = true
-                };
-            }
-            catch
-            {
-                settingsButton = new Button { Content = "前往设置", Command = DialogHost.CloseDialogCommand, CommandParameter = true };
-            }
+            var cancelButton = CreateButton("取消", "MaterialDesignFlatButton", DialogHost.CloseDialogCommand, false);
+            var settingsButton = CreateButton("前往设置", "MaterialDesignFlatButton", DialogHost.CloseDialogCommand, true);
 
             buttonPanel.Children.Add(cancelButton);
             buttonPanel.Children.Add(settingsButton);
