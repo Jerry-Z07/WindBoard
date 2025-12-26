@@ -10,6 +10,8 @@ using System.Diagnostics;
 using System.Linq;
 using System.Windows.Media.Animation;
 using System.Globalization;
+using MaterialDesignThemes.Wpf;
+using System.Threading.Tasks;
 
 namespace WindBoard
 {
@@ -557,7 +559,7 @@ namespace WindBoard
         #endregion
 
         // --- 视频展台 ---
-        private void BtnVideoPresenter_Click(object sender, RoutedEventArgs e)
+        private async void BtnVideoPresenter_Click(object sender, RoutedEventArgs e)
         {
             try
             {
@@ -566,7 +568,7 @@ namespace WindBoard
 
                 if (string.IsNullOrWhiteSpace(path) || !System.IO.File.Exists(path))
                 {
-                    ShowVideoPresenterNotFoundDialog(null);
+                    await ShowVideoPresenterNotFoundDialog(null);
                     return;
                 }
 
@@ -581,22 +583,98 @@ namespace WindBoard
             }
             catch (Exception ex)
             {
-                ShowVideoPresenterNotFoundDialog(ex.Message);
+                await ShowVideoPresenterNotFoundDialog(ex.Message);
             }
         }
 
-        private void ShowVideoPresenterNotFoundDialog(string? error)
+        private async Task ShowVideoPresenterNotFoundDialog(string? error)
         {
             string msg = "未找到“视频展台”程序。请前往 基本设置-视频展台 进行设置。";
             if (!string.IsNullOrWhiteSpace(error))
             {
                 msg += "\n\n错误详情: " + error;
             }
-            var result = MessageBox.Show(msg, "视频展台", MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.Yes);
-            if (result == MessageBoxResult.Yes)
+
+            var stackPanel = new StackPanel { Margin = new Thickness(24) };
+
+            TextBlock title;
+            TextBlock body;
+            StackPanel buttonPanel;
+            Button cancelButton;
+            Button settingsButton;
+
+            try
             {
-                // 直接打开设置窗口（暂不强制导航到具体卡片）
-                // 后续可在 SettingsWindow 内新增接口以导航到“基本设置”
+                title = new TextBlock
+                {
+                    Text = "视频展台不可用",
+                    Style = (Style)FindResource("MaterialDesignHeadline6TextBlock"),
+                    Margin = new Thickness(0, 0, 0, 12)
+                };
+            }
+            catch
+            {
+                title = new TextBlock { Text = "视频展台不可用", Margin = new Thickness(0, 0, 0, 12) };
+            }
+
+            try
+            {
+                body = new TextBlock
+                {
+                    Text = msg,
+                    Style = (Style)FindResource("MaterialDesignBodyMediumTextBlock"),
+                    TextWrapping = TextWrapping.Wrap,
+                    Margin = new Thickness(0, 0, 0, 16)
+                };
+            }
+            catch
+            {
+                body = new TextBlock { Text = msg, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 16) };
+            }
+
+            buttonPanel = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right };
+
+            try
+            {
+                cancelButton = new Button
+                {
+                    Content = "取消",
+                    Style = (Style)FindResource("MaterialDesignFlatButton"),
+                    Command = DialogHost.CloseDialogCommand,
+                    CommandParameter = false
+                };
+            }
+            catch
+            {
+                cancelButton = new Button { Content = "取消", Command = DialogHost.CloseDialogCommand, CommandParameter = false };
+            }
+
+            try
+            {
+                settingsButton = new Button
+                {
+                    Content = "前往设置",
+                    Style = (Style)FindResource("MaterialDesignFlatButton"),
+                    Command = DialogHost.CloseDialogCommand,
+                    CommandParameter = true
+                };
+            }
+            catch
+            {
+                settingsButton = new Button { Content = "前往设置", Command = DialogHost.CloseDialogCommand, CommandParameter = true };
+            }
+
+            buttonPanel.Children.Add(cancelButton);
+            buttonPanel.Children.Add(settingsButton);
+
+            stackPanel.Children.Add(title);
+            stackPanel.Children.Add(body);
+            stackPanel.Children.Add(buttonPanel);
+
+            var result = await DialogHost.Show(stackPanel, "MainDialogHost");
+
+            if (result is bool go && go)
+            {
                 var settingsWindow = new SettingsWindow { Owner = this };
                 settingsWindow.ShowDialog();
             }
