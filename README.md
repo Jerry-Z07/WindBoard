@@ -96,7 +96,7 @@ WindBoard/
 ### 构建和运行
 ```bash
 # 克隆仓库
-git clone <repository-url>
+git clone https://github.com/Jerry-Z07/WindBoard.git
 cd WindBoard
 
 # 还原依赖
