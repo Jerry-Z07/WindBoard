@@ -226,7 +226,6 @@ namespace WindBoard
         // 滑动以清屏：滑块拉到尽头触发清屏
         private void SliderClear_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
         {
-            if (_clearSlideTriggered) return;
             if (_popupEraserClear == null || !_popupEraserClear.IsOpen) return;
 
             var slider = sender as Slider ?? _sliderClear;
@@ -258,17 +257,13 @@ namespace WindBoard
                     _textClearHint.Text = "松开清空";
                 }
 
-                int strokesBefore = MyCanvas.Strokes.Count;
-                int childrenBefore = MyCanvas.Children.Count;
-
-                MyCanvas.Strokes.Clear();
-                MyCanvas.Children.Clear();
-
                 _clearPendingClose = true;
             }
             else if (_textClearHint != null && _textClearHint.Text == "松开清空")
             {
                 _textClearHint.Text = "向右滑动清空";
+                _clearSlideTriggered = false;
+                _clearPendingClose = false;
             }
         }
 
@@ -321,6 +316,9 @@ namespace WindBoard
                 try { ReleaseAllTouchCaptures(); } catch { }
                 try { MyCanvas.ReleaseAllTouchCaptures(); } catch { }
                 try { Mouse.Capture(null); } catch { }
+
+                MyCanvas.Strokes.Clear();
+                MyCanvas.Children.Clear();
 
                 if (_popupEraserClear != null) _popupEraserClear.IsOpen = false;
                 try { slider.BeginAnimation(RangeBase.ValueProperty, null); } catch { }
@@ -389,6 +387,9 @@ namespace WindBoard
                 try { ReleaseAllTouchCaptures(); } catch { Debug.WriteLine("[DBG] SliderClear_PreviewMouseUp: ReleaseAllTouchCaptures(window) failed"); }
                 try { MyCanvas.ReleaseAllTouchCaptures(); } catch { Debug.WriteLine("[DBG] SliderClear_PreviewMouseUp: ReleaseAllTouchCaptures(canvas) failed"); }
                 try { Mouse.Capture(null); } catch { Debug.WriteLine("[DBG] SliderClear_PreviewMouseUp: Mouse.Capture(null) failed"); }
+
+                MyCanvas.Strokes.Clear();
+                MyCanvas.Children.Clear();
 
                 if (_popupEraserClear != null) _popupEraserClear.IsOpen = false;
                 try { slider.BeginAnimation(RangeBase.ValueProperty, null); } catch { }
