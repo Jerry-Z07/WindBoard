@@ -17,7 +17,8 @@ namespace WindBoard.Core.Ink
             }
 
             var pen = new InkSmoothingParameters(
-                StepMm: 0.9,
+                // 性能/内存：步长与输出阈值略增，减少 StylusPoints 数量与实时处理频率。
+                StepMm: 1.1,
                 EpsilonMm: 0.22,
                 FcMin: 2.2,
                 Beta: 0.045,

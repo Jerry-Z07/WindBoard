@@ -63,9 +63,16 @@ namespace WindBoard.Core.Ink
                 return _scratchMm;
             }
 
-            ResampleMm(rawMm, isFinal, _resampledMm);
+            double dtEstimate = (timestampTicks - _lastTicks) / (double)TimeSpan.TicksPerSecond;
+            dtEstimate = Math.Clamp(dtEstimate, 0.001, 0.05);
+            double speedMmPerSec = (rawMm - _lastResampleMm).Length / dtEstimate;
+            double stepScale = speedMmPerSec <= 0 ? 1.0 : Math.Clamp(speedMmPerSec / 220.0, 1.0, 2.2);
+            double stepMm = _p.StepMm * stepScale;
+
+            ResampleMm(rawMm, isFinal, stepMm, _resampledMm);
             if (_resampledMm.Count == 0)
             {
+                _lastTicks = timestampTicks;
                 return _scratchMm;
             }
 
@@ -81,7 +88,11 @@ namespace WindBoard.Core.Ink
 
                 bool cornerActive = timestampTicks <= _cornerHoldUntilTicks;
                 double cutoffMin = cornerActive ? _p.FcCorner : 0;
-                double cutoffMax = _stickyActive ? _p.FcSticky : double.PositiveInfinity;
+
+                // cornerActive 与 stickyActive 可能在低速“拐角停顿”时同时为 true：
+                // FcCorner(>=) 会大于 FcSticky(<=)，导致 Clamp(min,max) 反转并抛异常。
+                // 此时优先保证拐角保持的响应（不启用 sticky 上限）。
+                double cutoffMax = (cornerActive || !_stickyActive) ? double.PositiveInfinity : _p.FcSticky;
 
                 Point outMm = _filter.Update(
                     candidateMm,
@@ -112,8 +123,9 @@ namespace WindBoard.Core.Ink
             return new Point(mm.X * DipPerMm / zoom, mm.Y * DipPerMm / zoom);
         }
 
-        private void ResampleMm(Point rawMm, bool isFinal, List<Point> output)
+        private void ResampleMm(Point rawMm, bool isFinal, double stepMm, List<Point> output)
         {
+            stepMm = Math.Max(0.05, stepMm);
             Vector d = rawMm - _lastResampleMm;
             double dist = d.Length;
             if (dist <= 0)
@@ -125,9 +137,9 @@ namespace WindBoard.Core.Ink
                 return;
             }
 
-            while (dist >= _p.StepMm)
+            while (dist >= stepMm)
             {
-                double t = _p.StepMm / dist;
+                double t = stepMm / dist;
                 _lastResampleMm = new Point(
                     _lastResampleMm.X + d.X * t,
                     _lastResampleMm.Y + d.Y * t);

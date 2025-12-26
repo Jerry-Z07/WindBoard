@@ -12,7 +12,9 @@ namespace WindBoard
     {
         private void MyCanvas_MouseWheel(object sender, MouseWheelEventArgs e)
         {
+            SetViewportBitmapCache(true);
             _zoomPanService.ZoomByWheel(e.GetPosition(Viewport), e.Delta);
+            ScheduleViewportCacheDisable();
             e.Handled = true;
         }
 
@@ -27,6 +29,7 @@ namespace WindBoard
             {
                 _modeBeforePan = _modeController.ActiveMode ?? _modeController.CurrentMode;
                 _zoomPanService.BeginMousePan(e.GetPosition(Viewport));
+                SetViewportBitmapCache(true);
                 MyCanvas.EditingMode = InkCanvasEditingMode.None;
                 MyCanvas.CaptureMouse();
                 e.Handled = true;
@@ -34,6 +37,7 @@ namespace WindBoard
             }
 
             var args = BuildMouseArgs(e, isInAir: false);
+            BeginUndoTransactionForCurrentMode();
             _inputManager.Dispatch(InputStage.Down, args);
         }
 
@@ -63,6 +67,7 @@ namespace WindBoard
                 MyCanvas.ReleaseMouseCapture();
                 _modeBeforePan?.SwitchOn();
                 _modeBeforePan = null;
+                ScheduleViewportCacheDisable();
                 e.Handled = true;
             }
 
@@ -70,6 +75,7 @@ namespace WindBoard
 
             var args = BuildMouseArgs(e, isInAir: false);
             _inputManager.Dispatch(InputStage.Up, args);
+            EndUndoTransactionForCurrentMode();
         }
 
         private void MyCanvas_TouchDown(object sender, TouchEventArgs e)
@@ -85,6 +91,7 @@ namespace WindBoard
             }
 
             var args = BuildTouchArgs(e, isInAir: false);
+            BeginUndoTransactionForCurrentMode();
             _inputManager.Dispatch(InputStage.Down, args);
         }
 
@@ -130,6 +137,7 @@ namespace WindBoard
 
             var args = BuildTouchArgs(e, isInAir: false);
             _inputManager.Dispatch(InputStage.Up, args);
+            EndUndoTransactionForCurrentMode();
             e.Handled = gestureHandled;
             MyCanvas.ReleaseTouchCapture(e.TouchDevice);
         }
@@ -139,6 +147,7 @@ namespace WindBoard
             if (!IsStylusPen(e)) return;
 
             var args = BuildStylusArgs(e, isInAir: false);
+            BeginUndoTransactionForCurrentMode();
             _inputManager.Dispatch(InputStage.Down, args);
         }
 
@@ -156,6 +165,7 @@ namespace WindBoard
 
             var args = BuildStylusArgs(e, isInAir: false);
             _inputManager.Dispatch(InputStage.Up, args);
+            EndUndoTransactionForCurrentMode();
         }
 
         private void MyCanvas_StylusInAirMove(object sender, StylusEventArgs e)
@@ -198,18 +208,9 @@ namespace WindBoard
         private InputEventArgs BuildStylusArgs(StylusEventArgs e, bool isInAir)
         {
             var mods = Keyboard.Modifiers;
+            // 性能：StylusMove 频率很高；此项目未使用压力（InkMode/DefaultDrawingAttributes 已 IgnorePressure=true），
+            // 避免在每次 Move 调用 GetStylusPoints 造成额外分配/跨层开销。
             double? pressure = null;
-            try
-            {
-                var pts = e.GetStylusPoints(MyCanvas);
-                if (pts != null && pts.Count > 0)
-                {
-                    pressure = pts[^1].PressureFactor;
-                }
-            }
-            catch
-            {
-            }
 
             long ticks = (long)e.Timestamp * TimeSpan.TicksPerMillisecond;
 

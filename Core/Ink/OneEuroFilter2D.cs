@@ -44,7 +44,13 @@ namespace WindBoard.Core.Ink
             DerivativeMagnitudeMmPerSec = _prevDerivFiltered.Length;
 
             double cutoff = minCutoffHz + beta * DerivativeMagnitudeMmPerSec;
-            cutoff = Math.Clamp(cutoff, Math.Max(0.0001, cutoffMinClampHz), cutoffMaxClampHz);
+            double minClamp = Math.Max(0.0001, cutoffMinClampHz);
+            double maxClamp = cutoffMaxClampHz;
+            if (maxClamp < minClamp)
+            {
+                maxClamp = minClamp;
+            }
+            cutoff = Math.Clamp(cutoff, minClamp, maxClamp);
             double a = Alpha(cutoff, dtSec);
             _prevFiltered = LowPass(rawMm, _prevFiltered, a);
 

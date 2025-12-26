@@ -10,6 +10,8 @@ using System.Diagnostics;
 using System.Linq;
 using System.Windows.Media.Animation;
 using System.Globalization;
+using MaterialDesignThemes.Wpf;
+using System.Threading.Tasks;
 
 namespace WindBoard
 {
@@ -557,7 +559,7 @@ namespace WindBoard
         #endregion
 
         // --- 视频展台 ---
-        private void BtnVideoPresenter_Click(object sender, RoutedEventArgs e)
+        private async void BtnVideoPresenter_Click(object sender, RoutedEventArgs e)
         {
             try
             {
@@ -566,7 +568,7 @@ namespace WindBoard
 
                 if (string.IsNullOrWhiteSpace(path) || !System.IO.File.Exists(path))
                 {
-                    ShowVideoPresenterNotFoundDialog(null);
+                    await ShowVideoPresenterNotFoundDialog(null);
                     return;
                 }
 
@@ -581,22 +583,93 @@ namespace WindBoard
             }
             catch (Exception ex)
             {
-                ShowVideoPresenterNotFoundDialog(ex.Message);
+                await ShowVideoPresenterNotFoundDialog(ex.Message);
             }
         }
 
-        private void ShowVideoPresenterNotFoundDialog(string? error)
+        private Style? TryFindStyle(string key)
+        {
+            try
+            {
+                return FindResource(key) as Style;
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        private TextBlock CreateTextBlock(string text, string? styleKey, Thickness margin, bool wrap = false)
+        {
+            var tb = new TextBlock
+            {
+                Text = text,
+                Margin = margin,
+                TextWrapping = wrap ? TextWrapping.Wrap : TextWrapping.NoWrap
+            };
+
+            if (!string.IsNullOrEmpty(styleKey))
+            {
+                var style = TryFindStyle(styleKey);
+                if (style != null)
+                {
+                    tb.Style = style;
+                }
+            }
+
+            return tb;
+        }
+
+        private Button CreateButton(string content, string? styleKey, object command, object? commandParameter)
+        {
+            var btn = new Button
+            {
+                Content = content,
+                Command = (ICommand)command,
+                CommandParameter = commandParameter
+            };
+
+            if (!string.IsNullOrEmpty(styleKey))
+            {
+                var style = TryFindStyle(styleKey);
+                if (style != null)
+                {
+                    btn.Style = style;
+                }
+            }
+
+            return btn;
+        }
+
+        private async Task ShowVideoPresenterNotFoundDialog(string? error)
         {
             string msg = "未找到“视频展台”程序。请前往 基本设置-视频展台 进行设置。";
             if (!string.IsNullOrWhiteSpace(error))
             {
                 msg += "\n\n错误详情: " + error;
             }
-            var result = MessageBox.Show(msg, "视频展台", MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.Yes);
-            if (result == MessageBoxResult.Yes)
+
+            var stackPanel = new StackPanel { Margin = new Thickness(24) };
+
+            var title = CreateTextBlock("视频展台不可用", "MaterialDesignHeadline6TextBlock", new Thickness(0, 0, 0, 12));
+            var body = CreateTextBlock(msg, "MaterialDesignBodyMediumTextBlock", new Thickness(0, 0, 0, 16), wrap: true);
+
+            var buttonPanel = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right };
+
+            var cancelButton = CreateButton("取消", "MaterialDesignFlatButton", DialogHost.CloseDialogCommand, false);
+            var settingsButton = CreateButton("前往设置", "MaterialDesignFlatButton", DialogHost.CloseDialogCommand, true);
+
+            buttonPanel.Children.Add(cancelButton);
+            buttonPanel.Children.Add(settingsButton);
+
+            stackPanel.Children.Add(title);
+            stackPanel.Children.Add(body);
+            stackPanel.Children.Add(buttonPanel);
+
+            var result = await DialogHost.Show(stackPanel, "MainDialogHost");
+
+            if (result is bool go && go)
             {
-                // 直接打开设置窗口（暂不强制导航到具体卡片）
-                // 后续可在 SettingsWindow 内新增接口以导航到“基本设置”
                 var settingsWindow = new SettingsWindow { Owner = this };
                 settingsWindow.ShowDialog();
             }

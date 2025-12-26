@@ -1,11 +1,8 @@
 using System;
 using System.Collections.ObjectModel;
-using System.Diagnostics;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Ink;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
 using WindBoard;
 
 namespace WindBoard.Services
@@ -17,9 +14,10 @@ namespace WindBoard.Services
         private readonly ZoomPanService _zoomPanService;
         private readonly Action? _onPageStateChanged;
 
-        private StrokeCollection? _attachedStrokes;
+        private StrokeCollection? _observedStrokes;
         private bool _suppressStrokeEvents;
         private int _currentPageIndex;
+        private readonly PagePreviewRenderer _previewRenderer = new();
 
         public ObservableCollection<BoardPage> Pages { get; } = new ObservableCollection<BoardPage>();
 
@@ -50,13 +48,12 @@ namespace WindBoard.Services
                 Zoom = _zoomPanService.Zoom,
                 HorizontalOffset = _viewport.HorizontalOffset,
                 VerticalOffset = _viewport.VerticalOffset,
-                Strokes = _canvas.Strokes.Clone()
+                Strokes = _canvas.Strokes
             };
 
             Pages.Add(p);
             _currentPageIndex = 0;
             MarkCurrentPage();
-            UpdatePagePreview(p);
             _onPageStateChanged?.Invoke();
             AttachStrokeEvents();
         }
@@ -66,21 +63,15 @@ namespace WindBoard.Services
             if (Pages.Count == 0) return;
             var cur = Pages[_currentPageIndex];
 
-            _suppressStrokeEvents = true;
-            try
-            {
-                cur.CanvasWidth = _canvas.Width;
-                cur.CanvasHeight = _canvas.Height;
-                cur.Zoom = _zoomPanService.Zoom;
-                cur.HorizontalOffset = _viewport.HorizontalOffset;
-                cur.VerticalOffset = _viewport.VerticalOffset;
-                cur.Strokes = _canvas.Strokes.Clone();
-                UpdatePagePreview(cur);
-            }
-            finally
-            {
-                _suppressStrokeEvents = false;
-            }
+            cur.CanvasWidth = _canvas.Width;
+            cur.CanvasHeight = _canvas.Height;
+            cur.Zoom = _zoomPanService.Zoom;
+            cur.HorizontalOffset = _viewport.HorizontalOffset;
+            cur.VerticalOffset = _viewport.VerticalOffset;
+
+            // 重要：不要 Clone 当前页笔迹。InkCanvas 与当前页共享同一个 StrokeCollection，
+            // 否则在“页面管理/切页”时会产生常驻双份笔迹，导致内存暴涨且无法回落。
+            cur.Strokes = _canvas.Strokes;
         }
 
         public void SwitchToPage(int newIndex)
@@ -142,42 +133,36 @@ namespace WindBoard.Services
             SaveCurrentPage();
             foreach (var p in Pages)
             {
-                UpdatePagePreview(p);
+                EnsurePagePreview(p);
             }
+        }
+
+        public void EnsurePagePreview(BoardPage page)
+        {
+            UpdatePagePreview(page);
         }
 
         public void AttachStrokeEvents()
         {
-            if (_attachedStrokes != null)
+            if (_observedStrokes != null)
             {
-                _attachedStrokes.StrokesChanged -= CurrentStrokes_StrokesChanged;
+                _observedStrokes.StrokesChanged -= CurrentStrokes_StrokesChanged;
             }
 
-            _attachedStrokes = _canvas?.Strokes;
-            if (_attachedStrokes != null)
+            _observedStrokes = _canvas.Strokes;
+            if (_observedStrokes != null)
             {
-                _attachedStrokes.StrokesChanged += CurrentStrokes_StrokesChanged;
+                _observedStrokes.StrokesChanged += CurrentStrokes_StrokesChanged;
             }
         }
 
-        private void CurrentStrokes_StrokesChanged(object sender, StrokeCollectionChangedEventArgs e)
+        private void CurrentStrokes_StrokesChanged(object? sender, StrokeCollectionChangedEventArgs e)
         {
             if (_suppressStrokeEvents) return;
             if (Pages.Count == 0) return;
 
-            int added = 0, removed = 0, total = 0;
-            try
-            {
-                added = e.Added?.Count ?? 0;
-                removed = e.Removed?.Count ?? 0;
-                total = _canvas.Strokes?.Count ?? 0;
-            }
-            catch { }
-
-            var sw = Stopwatch.StartNew();
-
-            UpdatePagePreview(Pages[_currentPageIndex]);
-            sw.Stop();
+            // 仅做“内容变更”标记，不做渲染（缩略图在弹窗打开时按需生成）。
+            Pages[_currentPageIndex].ContentVersion++;
         }
 
         private void LoadPageIntoCanvas(BoardPage page)
@@ -188,7 +173,8 @@ namespace WindBoard.Services
                 _canvas.Width = page.CanvasWidth;
                 _canvas.Height = page.CanvasHeight;
 
-                _canvas.Strokes = page.Strokes?.Clone() ?? new StrokeCollection();
+                // 直接复用每页的 StrokeCollection（切页不克隆）
+                _canvas.Strokes = page.Strokes ?? new StrokeCollection();
                 AttachStrokeEvents();
 
                 _zoomPanService.SetZoomDirect(page.Zoom);
@@ -222,63 +208,28 @@ namespace WindBoard.Services
 
         private void UpdatePagePreview(BoardPage page)
         {
-            const int w = 220;
-            const int h = 120;
-            const double padding = 10;
-            const double MaxZoomInFactor = 30.0;
-
-            var strokes = (Pages.Count > 0 && page == Pages[_currentPageIndex]) ? _canvas.Strokes : page.Strokes;
-
-            var dv = new DrawingVisual();
-
-            using (var dc = dv.RenderOpen())
+            // 预览仅在用户打开页面管理弹窗时需要（IndicatorClicked 会调用 RefreshAllPreviews）。
+            // 避免在每次书写/擦除时渲染缩略图导致 O(N^2) 重绘与内存抖动。
+            if (Pages.Count <= 1)
             {
-                dc.DrawRoundedRectangle(
-                    new SolidColorBrush(Color.FromRgb(0x0F, 0x12, 0x16)),
-                    null,
-                    new Rect(0, 0, w, h),
-                    10, 10);
-
-                if (strokes != null && strokes.Count > 0)
-                {
-                    Rect bounds = strokes.GetBounds();
-                    if (!bounds.IsEmpty)
-                    {
-                        double innerW = w - 2 * padding;
-                        double innerH = h - 2 * padding;
-
-                        double bw = Math.Max(bounds.Width, 1);
-                        double bh = Math.Max(bounds.Height, 1);
-
-                        double scaleFitBounds = Math.Min(innerW / bw, innerH / bh);
-
-                        double canvasW = Math.Max(page.CanvasWidth, 1);
-                        double canvasH = Math.Max(page.CanvasHeight, 1);
-                        double scaleFitCanvas = Math.Min(innerW / canvasW, innerH / canvasH);
-
-                        double scale = Math.Min(scaleFitBounds, scaleFitCanvas * MaxZoomInFactor);
-
-                        double targetW = bw * scale;
-                        double targetH = bh * scale;
-
-                        double tx = padding + (innerW - targetW) / 2.0;
-                        double ty = padding + (innerH - targetH) / 2.0;
-
-                        dc.PushTransform(new TranslateTransform(tx, ty));
-                        dc.PushTransform(new ScaleTransform(scale, scale));
-                        dc.PushTransform(new TranslateTransform(-bounds.X, -bounds.Y));
-
-                        strokes.Draw(dc);
-
-                        dc.Pop(); dc.Pop(); dc.Pop();
-                    }
-                }
+                page.Preview = null;
+                return;
             }
 
-            var rtb = new RenderTargetBitmap(w, h, 96, 96, PixelFormats.Pbgra32);
-            rtb.Render(dv);
-            rtb.Freeze();
-            page.Preview = rtb;
+            if (page.Preview != null && page.PreviewVersion == page.ContentVersion)
+            {
+                return;
+            }
+
+            page.Preview = _previewRenderer.Render(
+                page.Strokes,
+                canvasWidth: page.CanvasWidth,
+                canvasHeight: page.CanvasHeight,
+                width: 220,
+                height: 120,
+                padding: 10,
+                maxZoomInFactor: 30.0);
+            page.PreviewVersion = page.ContentVersion;
         }
     }
 }

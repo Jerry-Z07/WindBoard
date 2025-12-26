@@ -2,6 +2,7 @@ using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Windows.Ink;
 using System.Windows.Media;
+using WindBoard.Services;
 
 namespace WindBoard
 {
@@ -12,6 +13,10 @@ namespace WindBoard
         private int _number;
         private bool _isCurrent;
         private ImageSource? _preview;
+
+        internal int ContentVersion { get; set; }
+        internal int PreviewVersion { get; set; }
+        internal StrokeUndoHistory UndoHistory { get; } = new StrokeUndoHistory();
 
         public int Number
         {

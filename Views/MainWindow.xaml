@@ -8,9 +8,11 @@
         ResizeMode="NoResize"
         WindowState="Maximized"
         Style="{StaticResource MaterialDesignWindow}"
+        TextElement.FontFamily="pack://application:,,,/WindBoard;component/resources/fonts/#MiSans"
         Loaded="Window_Loaded">
 
-    <Grid x:Name="RootGrid" Background="#2E2F33" ClipToBounds="False">
+    <materialDesign:DialogHost Identifier="MainDialogHost" DialogTheme="Inherit">
+        <Grid x:Name="RootGrid" Background="#2E2F33" ClipToBounds="False">
         <Grid.Resources>
             <BooleanToVisibilityConverter x:Key="BoolToVis"/>
         </Grid.Resources>
@@ -268,4 +270,5 @@
         </Popup>
 
     </Grid>
+    </materialDesign:DialogHost>
 </Window>

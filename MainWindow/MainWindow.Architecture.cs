@@ -9,6 +9,7 @@ using WindBoard.Core.Filters;
 using WindBoard.Core.Input;
 using WindBoard.Core.Modes;
 using WindBoard.Services;
+using System.Windows.Threading;
 using InputEventArgs = WindBoard.Core.Input.InputEventArgs;
 using InputManagerCore = WindBoard.Core.Input.InputManager;
 
@@ -35,6 +36,10 @@ namespace WindBoard
         private IInteractionMode? _modeBeforeGesture;
         private bool _gestureInputSuppressed;
         private bool _strokeSuppressionActive;
+        private bool _viewportBitmapCacheEnabled;
+        private DispatcherTimer? _viewportCacheDisableTimer;
+        private BitmapCache? _viewportBitmapCache;
+        private StrokeCollection? _undoObservedStrokes;
 
         private InkMode? _inkMode;
         private EraserMode? _eraserMode;
@@ -56,7 +61,7 @@ namespace WindBoard
             _pageService = new PageService(MyCanvas, Viewport, _zoomPanService, NotifyPageUiChanged);
             _autoExpandService = new AutoExpandService(MyCanvas, Viewport, _zoomPanService, () => _pageService.CurrentPage, () => _inkMode?.HasActiveStroke ?? false);
 
-            _inkMode = new InkMode(MyCanvas, () => _zoomPanService.Zoom, _autoExpandService.FlushPendingShift);
+            _inkMode = new InkMode(MyCanvas, () => _zoomPanService.Zoom, OnInkStrokeEndedOrCanceled);
             _selectMode = new SelectMode(MyCanvas);
             _noMode = new NoMode(MyCanvas);
             _eraserMode = new EraserMode(
@@ -102,15 +107,103 @@ namespace WindBoard
             MyCanvas.StrokeCollected += SuppressGestureStroke;
 
             _pageService.InitializePagesIfNeeded();
-            _pageService.AttachStrokeEvents();
             _pageService.Pages.CollectionChanged += (s, e) => NotifyPageUiChanged();
             NotifyPageUiChanged();
+
+            AttachUndoToCurrentStrokes();
+            MyCanvas.CommandBindings.Add(new CommandBinding(ApplicationCommands.Undo, Undo_Executed, Undo_CanExecute));
+            MyCanvas.CommandBindings.Add(new CommandBinding(ApplicationCommands.Redo, Redo_Executed, Redo_CanExecute));
+        }
+
+        private void OnInkStrokeEndedOrCanceled()
+        {
+            _autoExpandService.FlushPendingShift();
+            var cur = _pageService.CurrentPage;
+            if (cur != null)
+            {
+                cur.ContentVersion++;
+            }
+        }
+
+        private void SetViewportBitmapCache(bool enabled)
+        {
+            // 注意：不要对 CanvasHost 做 BitmapCache，它的尺寸等于整张画布（默认 8000x8000），
+            // 会直接分配上百 MB 的缓存位图，拖动时内存暴涨。
+            if (Viewport == null) return;
+
+            if (enabled)
+            {
+                if (_viewportBitmapCacheEnabled) return;
+                _viewportBitmapCache ??= new BitmapCache(1.0);
+                Viewport.CacheMode = _viewportBitmapCache;
+
+                // 降低交互时缩放质量以减轻 GPU/CPU 压力（结束后恢复）
+                if (CanvasHost != null)
+                {
+                    RenderOptions.SetBitmapScalingMode(CanvasHost, BitmapScalingMode.LowQuality);
+                }
+                _viewportBitmapCacheEnabled = true;
+            }
+            else
+            {
+                if (!_viewportBitmapCacheEnabled) return;
+                Viewport.CacheMode = null;
+                if (CanvasHost != null)
+                {
+                    RenderOptions.SetBitmapScalingMode(CanvasHost, BitmapScalingMode.HighQuality);
+                }
+                _viewportBitmapCacheEnabled = false;
+            }
+        }
+
+        private void ScheduleViewportCacheDisable(int delayMs = 180)
+        {
+            if (_viewportCacheDisableTimer == null)
+            {
+                _viewportCacheDisableTimer = new DispatcherTimer(DispatcherPriority.Background)
+                {
+                    Interval = TimeSpan.FromMilliseconds(delayMs)
+                };
+                _viewportCacheDisableTimer.Tick += (_, __) =>
+                {
+                    _viewportCacheDisableTimer?.Stop();
+                    SetViewportBitmapCache(false);
+                };
+            }
+
+            _viewportCacheDisableTimer.Interval = TimeSpan.FromMilliseconds(delayMs);
+            _viewportCacheDisableTimer.Stop();
+            _viewportCacheDisableTimer.Start();
         }
 
         private void NotifyPageUiChanged()
         {
             OnPropertyChanged(nameof(IsMultiPage));
             OnPropertyChanged(nameof(PageIndicatorText));
+        }
+
+        private void BeginUndoTransactionForCurrentMode()
+        {
+            var cur = _pageService.CurrentPage;
+            if (cur == null) return;
+
+            var mode = _modeController.ActiveMode ?? _modeController.CurrentMode;
+            if (ReferenceEquals(mode, _inkMode) || ReferenceEquals(mode, _eraserMode))
+            {
+                cur.UndoHistory.Begin();
+            }
+        }
+
+        private void EndUndoTransactionForCurrentMode()
+        {
+            var cur = _pageService.CurrentPage;
+            if (cur == null) return;
+
+            var mode = _modeController.ActiveMode ?? _modeController.CurrentMode;
+            if (ReferenceEquals(mode, _inkMode) || ReferenceEquals(mode, _eraserMode))
+            {
+                cur.UndoHistory.End();
+            }
         }
 
         private void OnPointerDownForServices(object? sender, InputEventArgs e)
@@ -142,8 +235,57 @@ namespace WindBoard
             _modeBeforeGesture = _modeController.ActiveMode ?? _modeController.CurrentMode;
             _inputManager.InputSuppressed = true;
             MyCanvas.EditingMode = InkCanvasEditingMode.None;
+            SetViewportBitmapCache(true);
             _strokeSuppressionActive = true;
+            _pageService.CurrentPage?.UndoHistory.Cancel();
             _inkMode?.CancelAllStrokes();
+        }
+
+        private void AttachUndoToCurrentStrokes()
+        {
+            if (_undoObservedStrokes != null)
+            {
+                _undoObservedStrokes.StrokesChanged -= UndoObservedStrokes_StrokesChanged;
+            }
+
+            _undoObservedStrokes = MyCanvas.Strokes;
+            if (_undoObservedStrokes != null)
+            {
+                _undoObservedStrokes.StrokesChanged += UndoObservedStrokes_StrokesChanged;
+            }
+        }
+
+        private void UndoObservedStrokes_StrokesChanged(object? sender, StrokeCollectionChangedEventArgs e)
+        {
+            _pageService.CurrentPage?.UndoHistory.Record(e);
+        }
+
+        private void Undo_CanExecute(object sender, CanExecuteRoutedEventArgs e)
+        {
+            e.CanExecute = _pageService.CurrentPage?.UndoHistory.CanUndo == true;
+            e.Handled = true;
+        }
+
+        private void Undo_Executed(object sender, ExecutedRoutedEventArgs e)
+        {
+            var cur = _pageService.CurrentPage;
+            if (cur == null) return;
+            cur.UndoHistory.Undo(MyCanvas.Strokes);
+            e.Handled = true;
+        }
+
+        private void Redo_CanExecute(object sender, CanExecuteRoutedEventArgs e)
+        {
+            e.CanExecute = _pageService.CurrentPage?.UndoHistory.CanRedo == true;
+            e.Handled = true;
+        }
+
+        private void Redo_Executed(object sender, ExecutedRoutedEventArgs e)
+        {
+            var cur = _pageService.CurrentPage;
+            if (cur == null) return;
+            cur.UndoHistory.Redo(MyCanvas.Strokes);
+            e.Handled = true;
         }
 
         private void EndGestureSuppression()
@@ -166,6 +308,7 @@ namespace WindBoard
                 }
             }
             _modeBeforeGesture = null;
+            ScheduleViewportCacheDisable();
         }
 
         private void SuppressGestureStroke(object? sender, InkCanvasStrokeCollectedEventArgs e)
