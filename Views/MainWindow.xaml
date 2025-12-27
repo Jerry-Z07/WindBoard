@@ -50,6 +50,20 @@
                     </InkCanvas.DefaultDrawingAttributes>
                 </InkCanvas>
 
+                <!-- 触摸绘制点游标覆盖层：跟随内容缩放（不拦截输入） -->
+                <Canvas x:Name="TouchCursorOverlay"
+                        Width="{Binding ElementName=MyCanvas, Path=Width}"
+                        Height="{Binding ElementName=MyCanvas, Path=Height}"
+                        IsHitTestVisible="False"
+                        Visibility="Collapsed"
+                        Panel.ZIndex="4">
+                    <Ellipse x:Name="TouchCursorDot"
+                             Width="10"
+                             Height="10"
+                             Fill="White"
+                             Opacity="0.9"/>
+                </Canvas>
+
                 <!-- 自定义橡皮擦游标覆盖层：跟随内容缩放（不拦截输入） -->
                 <Canvas x:Name="EraserOverlay"
                         Width="{Binding ElementName=MyCanvas, Path=Width}"
@@ -68,7 +82,7 @@
         </ScrollViewer>
 
         <!-- 悬浮工具栏区域（覆盖在视口之上，不参与缩放） -->
-        <StackPanel Orientation="Horizontal" VerticalAlignment="Bottom" HorizontalAlignment="Center" Margin="0,0,0,30" Panel.ZIndex="10">
+        <StackPanel Orientation="Horizontal" VerticalAlignment="Bottom" HorizontalAlignment="Center" Margin="0,0,0,30" Panel.ZIndex="10" Opacity="0.85">
             <!-- 主工具栏 -->
             <Border Background="#25262A" CornerRadius="12" Padding="5"
                     Effect="{StaticResource MaterialDesignShadowDepth2}">
