@@ -32,6 +32,9 @@ namespace WindBoard
         private ImageSource? _camouflageIconPreview;
         private string _camouflageSourceDisplayName = "未选择文件";
 
+        // --- 书写设置 ---
+        private bool _strokeThicknessConsistencyEnabled;
+
         private const string DefaultVideoPresenterPath = @"C:\\Program Files (x86)\\Seewo\\EasiCamera\\sweclauncher\\sweclauncher.exe";
         private const string DefaultVideoPresenterArgs = "-from en5";
 
@@ -199,6 +202,28 @@ namespace WindBoard
             }
         }
 
+        public bool StrokeThicknessConsistencyEnabled
+        {
+            get => _strokeThicknessConsistencyEnabled;
+            set
+            {
+                if (_strokeThicknessConsistencyEnabled != value)
+                {
+                    _strokeThicknessConsistencyEnabled = value;
+                    OnPropertyChanged();
+                    try
+                    {
+                        SettingsService.Instance.SetStrokeThicknessConsistencyEnabled(value);
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine(
+                            $"Failed to persist StrokeThicknessConsistencyEnabled setting: {ex}");
+                    }
+                }
+            }
+        }
+
         public SettingsWindow()
         {
             InitializeComponent();
@@ -228,6 +253,17 @@ namespace WindBoard
             OnPropertyChanged(nameof(VideoPresenterEnabled));
             OnPropertyChanged(nameof(VideoPresenterPath));
             OnPropertyChanged(nameof(VideoPresenterArgs));
+
+            // 初始化“书写设置”
+            try
+            {
+                _strokeThicknessConsistencyEnabled = SettingsService.Instance.GetStrokeThicknessConsistencyEnabled();
+            }
+            catch
+            {
+                _strokeThicknessConsistencyEnabled = false;
+            }
+            OnPropertyChanged(nameof(StrokeThicknessConsistencyEnabled));
 
             // 初始化伪装相关设置
             try

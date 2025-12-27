@@ -85,6 +85,14 @@ namespace WindBoard
                 SetBackgroundColor(SettingsService.Instance.GetBackgroundColor());
                 IsVideoPresenterEnabled = SettingsService.Instance.GetVideoPresenterEnabled();
                 ApplyCamouflageFromSettings();
+
+                if (_strokeService != null && _zoomPanService != null)
+                {
+                    _strokeService.SetStrokeThicknessConsistencyEnabled(
+                        SettingsService.Instance.GetStrokeThicknessConsistencyEnabled(),
+                        _zoomPanService.Zoom);
+                    _strokeService.UpdatePenThickness(_zoomPanService.Zoom);
+                }
             };
 
             _popupPenSettings = (Popup)FindName("PopupPenSettings");

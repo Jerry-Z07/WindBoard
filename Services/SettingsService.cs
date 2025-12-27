@@ -31,6 +31,9 @@ namespace WindBoard
 
         // 伪装：缓存生成的 ico 路径（供窗口/快捷方式复用）
         public string CamouflageIconCachePath { get; set; } = string.Empty;
+
+        // 新笔迹粗细模式：开启后，不同缩放下书写的笔迹在同一缩放下粗细一致
+        public bool StrokeThicknessConsistencyEnabled { get; set; } = false;
     }
 
     // 设置服务：负责加载 / 保存 JSON，并向 UI 广播变更
@@ -177,6 +180,16 @@ namespace WindBoard
         public void SetCamouflageIconCachePath(string path)
         {
             Settings.CamouflageIconCachePath = path ?? string.Empty;
+            Save();
+            SettingsChanged?.Invoke(this, Settings);
+        }
+
+        // --- 书写相关设置 ---
+        public bool GetStrokeThicknessConsistencyEnabled() => Settings.StrokeThicknessConsistencyEnabled;
+
+        public void SetStrokeThicknessConsistencyEnabled(bool enabled)
+        {
+            Settings.StrokeThicknessConsistencyEnabled = enabled;
             Save();
             SettingsChanged?.Invoke(this, Settings);
         }
