@@ -11,7 +11,6 @@ namespace WindBoard.Services
     public class AutoExpandService
     {
         private readonly InkCanvas _canvas;
-        private readonly FrameworkElement _viewport;
         private readonly ZoomPanService _zoomPanService;
         private readonly Func<BoardPage?> _currentPageProvider;
         private readonly Func<bool>? _isInkingActiveProvider;
@@ -19,10 +18,9 @@ namespace WindBoard.Services
         private double _pendingShiftX;
         private double _pendingShiftY;
 
-        public AutoExpandService(InkCanvas canvas, FrameworkElement viewport, ZoomPanService zoomPanService, Func<BoardPage?> currentPageProvider, Func<bool>? isInkingActiveProvider = null)
+        public AutoExpandService(InkCanvas canvas, ZoomPanService zoomPanService, Func<BoardPage?> currentPageProvider, Func<bool>? isInkingActiveProvider = null)
         {
             _canvas = canvas;
-            _viewport = viewport;
             _zoomPanService = zoomPanService;
             _currentPageProvider = currentPageProvider;
             _isInkingActiveProvider = isInkingActiveProvider;

@@ -10,7 +10,6 @@ namespace WindBoard.Services
     public class PageService
     {
         private readonly InkCanvas _canvas;
-        private readonly FrameworkElement _viewport;
         private readonly ZoomPanService _zoomPanService;
         private readonly Action? _onPageStateChanged;
 
@@ -21,10 +20,9 @@ namespace WindBoard.Services
 
         public ObservableCollection<BoardPage> Pages { get; } = new ObservableCollection<BoardPage>();
 
-        public PageService(InkCanvas canvas, FrameworkElement viewport, ZoomPanService zoomPanService, Action? onPageStateChanged = null)
+        public PageService(InkCanvas canvas, ZoomPanService zoomPanService, Action? onPageStateChanged = null)
         {
             _canvas = canvas;
-            _viewport = viewport;
             _zoomPanService = zoomPanService;
             _onPageStateChanged = onPageStateChanged;
 

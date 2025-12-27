@@ -110,10 +110,9 @@ namespace WindBoard.Core.Input.RealTimeStylus
                 return;
             }
 
-            // 性能：RTS 每个 packet 可能包含多个点；逐点 new InputEventArgs 会产生大量分配并放大 UI 线程压力。
+            // RTS 一个 packet 可能包含多个点；使用模板对象并克隆每个点，避免在未来改动为异步/缓存管线时发生引用复用的生命周期问题。
             // 该项目当前未使用压力（InkMode/DefaultDrawingAttributes IgnorePressure=true），因此不读取 PressureFactor，避免额外跨层开销。
-            // 注意：同一个 args 实例会在循环内被复用；本项目的输入管道为同步消费，不应在外部缓存该对象引用。
-            var args = new InputEventArgs
+            var argsTemplate = new InputEventArgs
             {
                 DeviceType = deviceType,
                 PointerId = packet.StylusDeviceId,
@@ -134,8 +133,7 @@ namespace WindBoard.Core.Input.RealTimeStylus
                 var canvasPoint = new Point(pt.X, pt.Y);
                 var viewportPoint = canvasToViewport?.Transform(canvasPoint) ?? canvasPoint;
 
-                args.CanvasPoint = canvasPoint;
-                args.ViewportPoint = viewportPoint;
+                var args = argsTemplate.CloneWithPoint(canvasPoint, viewportPoint);
                 args.ContactSize = TryReadContactSize(pt);
 
                 _dispatch(packet.Stage, args);

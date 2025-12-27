@@ -1,14 +1,12 @@
 using System;
 using System.Collections.Generic;
 using System.Windows;
-using System.Windows.Controls;
 using System.Windows.Media;
 
 namespace WindBoard.Services
 {
     public class ZoomPanService
     {
-        private readonly FrameworkElement _viewport;
         private readonly ScaleTransform _zoomTransform;
         private readonly double _minZoom;
         private readonly double _maxZoom;
@@ -30,9 +28,8 @@ namespace WindBoard.Services
         public bool IsMousePanning => _isMousePanning;
         public bool IsGestureActive => _gestureActive;
 
-        public ZoomPanService(FrameworkElement viewport, ScaleTransform zoomTransform, TranslateTransform panTransform, double minZoom = 0.5, double maxZoom = 5.0, Action<double>? onZoomChanged = null)
+        public ZoomPanService(ScaleTransform zoomTransform, TranslateTransform panTransform, double minZoom = 0.5, double maxZoom = 5.0, Action<double>? onZoomChanged = null)
         {
-            _viewport = viewport;
             _zoomTransform = zoomTransform;
             _panTransform = panTransform;
             _minZoom = minZoom;
