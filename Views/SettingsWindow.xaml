@@ -71,7 +71,7 @@
                     </ListBox>
                 </Border>
 
-                <ScrollViewer Grid.Column="1" Padding="36,24" VerticalScrollBarVisibility="Auto">
+                <ScrollViewer Grid.Column="1" Padding="36,24" VerticalScrollBarVisibility="Auto" PanningMode="VerticalOnly">
                     <StackPanel>
                         <!-- 基本设置 面板（索引 0） -->
                         <StackPanel x:Name="BasicSettingsPanel">
