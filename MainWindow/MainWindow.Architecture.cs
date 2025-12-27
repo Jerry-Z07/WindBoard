@@ -7,6 +7,7 @@ using System.Windows.Ink;
 using System.Windows.Media;
 using WindBoard.Core.Filters;
 using WindBoard.Core.Input;
+using WindBoard.Core.Input.RealTimeStylus;
 using WindBoard.Core.Modes;
 using WindBoard.Services;
 using System.Windows.Threading;
@@ -28,6 +29,8 @@ namespace WindBoard
 
         private ModeController _modeController = null!;
         private InputManagerCore _inputManager = null!;
+        private RealTimeStylusManager? _realTimeStylusManager;
+        private InputSourceSelector? _inputSourceSelector;
         private ZoomPanService _zoomPanService = null!;
         private StrokeService _strokeService = null!;
         private AutoExpandService _autoExpandService = null!;
@@ -74,13 +77,26 @@ namespace WindBoard
             _modeController.SetCurrentMode(_inkMode);
 
             _inputManager = new InputManagerCore(_modeController);
-            _inputManager.RegisterFilter(new GestureEraserFilter(
-                _eraserMode,
-                shouldSuppressActivation: () => _inkMode?.HasActiveStroke == true));
             _inputManager.RegisterFilter(new ExclusiveModeFilter(_noMode));
             _inputManager.PointerMove += OnPointerMoveForServices;
             _inputManager.PointerDown += OnPointerDownForServices;
             _inputManager.PointerUp += OnPointerUpForServices;
+            if (MyCanvas != null && Viewport != null)
+            {
+                _realTimeStylusManager = new RealTimeStylusManager(MyCanvas, Viewport, DispatchStylusFromRealTimeStylus);
+                _inputSourceSelector = new InputSourceSelector(_realTimeStylusManager);
+                _inputSourceSelector.InitializeAuto();
+
+                // 输出当前输入源信息
+                var sourceName = _inputSourceSelector.ActiveSource == InputSourceKind.RealTimeStylus
+                    ? "RealTimeStylus"
+                    : "WPF 标准输入";
+                System.Diagnostics.Debug.WriteLine($"[InputSource] 当前输入源: {sourceName}");
+                System.Diagnostics.Debug.WriteLine($"[InputSource] RTS 是否运行: {_inputSourceSelector.IsRealTimeStylusActive}");
+                System.Diagnostics.Debug.WriteLine($"[InputSource] 是否支持 RTS: {_realTimeStylusManager.IsSupported}");
+            }
+
+            if (MyCanvas == null) return;
 
             // 即使 InkCanvas 将事件标记为 Handled，也要接收
             MyCanvas.AddHandler(MouseDownEvent, new MouseButtonEventHandler(MyCanvas_MouseDown), true);

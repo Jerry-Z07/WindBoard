@@ -144,6 +144,7 @@ namespace WindBoard
 
         private void MyCanvas_StylusDown(object sender, StylusDownEventArgs e)
         {
+            if (_inputSourceSelector?.ShouldHandleWpfStylus == false) return;
             if (!IsStylusPen(e)) return;
 
             var args = BuildStylusArgs(e, isInAir: false);
@@ -153,6 +154,7 @@ namespace WindBoard
 
         private void MyCanvas_StylusMove(object sender, StylusEventArgs e)
         {
+            if (_inputSourceSelector?.ShouldHandleWpfStylus == false) return;
             if (!IsStylusPen(e)) return;
 
             var args = BuildStylusArgs(e, isInAir: false);
@@ -161,6 +163,7 @@ namespace WindBoard
 
         private void MyCanvas_StylusUp(object sender, StylusEventArgs e)
         {
+            if (_inputSourceSelector?.ShouldHandleWpfStylus == false) return;
             if (!IsStylusPen(e)) return;
 
             var args = BuildStylusArgs(e, isInAir: false);
@@ -257,6 +260,23 @@ namespace WindBoard
                 TimestampTicks = ticks,
                 ContactSize = size
             };
+        }
+
+        private void DispatchStylusFromRealTimeStylus(InputStage stage, InputEventArgs args)
+        {
+            if (_inputManager == null) return;
+
+            if (stage == InputStage.Down)
+            {
+                BeginUndoTransactionForCurrentMode();
+            }
+
+            _inputManager.Dispatch(stage, args);
+
+            if (stage == InputStage.Up)
+            {
+                EndUndoTransactionForCurrentMode();
+            }
         }
     }
 }
