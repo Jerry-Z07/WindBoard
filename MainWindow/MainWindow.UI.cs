@@ -134,13 +134,21 @@ namespace WindBoard
 
             Dispatcher.InvokeAsync(() =>
             {
-                Viewport.UpdateLayout();
+                // 运行时缩放/拖动使用 RenderTransform，不再依赖 ScrollViewer offset。
+                // 初始化时将画布中心对齐到视口中心。
+                double viewportW = Viewport.ActualWidth;
+                double viewportH = Viewport.ActualHeight;
+                if (viewportW <= 0 || viewportH <= 0)
+                {
+                    Viewport.UpdateLayout();
+                    viewportW = Viewport.ActualWidth;
+                    viewportH = Viewport.ActualHeight;
+                }
 
-                var extentW = MyCanvas.Width * _zoomPanService.Zoom;
-                var extentH = MyCanvas.Height * _zoomPanService.Zoom;
-
-                Viewport.ScrollToHorizontalOffset((extentW - Viewport.ViewportWidth) / 2.0);
-                Viewport.ScrollToVerticalOffset((extentH - Viewport.ViewportHeight) / 2.0);
+                double zoom = _zoomPanService.Zoom;
+                double panX = viewportW / 2.0 - (MyCanvas.Width / 2.0) * zoom;
+                double panY = viewportH / 2.0 - (MyCanvas.Height / 2.0) * zoom;
+                _zoomPanService.SetPanDirect(panX, panY);
 
                 _strokeService.UpdatePenThickness(_zoomPanService.Zoom);
 

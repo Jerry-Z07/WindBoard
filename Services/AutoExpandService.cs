@@ -11,7 +11,6 @@ namespace WindBoard.Services
     public class AutoExpandService
     {
         private readonly InkCanvas _canvas;
-        private readonly ScrollViewer _viewport;
         private readonly ZoomPanService _zoomPanService;
         private readonly Func<BoardPage?> _currentPageProvider;
         private readonly Func<bool>? _isInkingActiveProvider;
@@ -19,10 +18,9 @@ namespace WindBoard.Services
         private double _pendingShiftX;
         private double _pendingShiftY;
 
-        public AutoExpandService(InkCanvas canvas, ScrollViewer viewport, ZoomPanService zoomPanService, Func<BoardPage?> currentPageProvider, Func<bool>? isInkingActiveProvider = null)
+        public AutoExpandService(InkCanvas canvas, ZoomPanService zoomPanService, Func<BoardPage?> currentPageProvider, Func<bool>? isInkingActiveProvider = null)
         {
             _canvas = canvas;
-            _viewport = viewport;
             _zoomPanService = zoomPanService;
             _currentPageProvider = currentPageProvider;
             _isInkingActiveProvider = isInkingActiveProvider;
@@ -114,9 +112,10 @@ namespace WindBoard.Services
                 InkCanvas.SetTop(child, top + dy);
             }
 
-            _viewport.UpdateLayout();
-            _viewport.ScrollToHorizontalOffset(_viewport.HorizontalOffset + dx * _zoomPanService.Zoom);
-            _viewport.ScrollToVerticalOffset(_viewport.VerticalOffset + dy * _zoomPanService.Zoom);
+            // 内容整体右/下平移后，为了保持用户视野不跳动，需要将相机做反向补偿。
+            _zoomPanService.SetPanDirect(
+                _zoomPanService.PanX - dx * _zoomPanService.Zoom,
+                _zoomPanService.PanY - dy * _zoomPanService.Zoom);
         }
     }
 }

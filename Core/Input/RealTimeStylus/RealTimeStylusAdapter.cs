@@ -110,28 +110,31 @@ namespace WindBoard.Core.Input.RealTimeStylus
                 return;
             }
 
+            // RTS 一个 packet 可能包含多个点；使用模板对象并克隆每个点，避免在未来改动为异步/缓存管线时发生引用复用的生命周期问题。
+            // 该项目当前未使用压力（InkMode/DefaultDrawingAttributes IgnorePressure=true），因此不读取 PressureFactor，避免额外跨层开销。
+            var argsTemplate = new InputEventArgs
+            {
+                DeviceType = deviceType,
+                PointerId = packet.StylusDeviceId,
+                Pressure = null,
+                IsInAir = packet.IsInAir,
+                LeftButton = false,
+                RightButton = false,
+                MiddleButton = false,
+                Ctrl = ctrl,
+                Shift = shift,
+                Alt = alt,
+                TimestampTicks = packet.TimestampTicks,
+                ContactSize = null
+            };
+
             foreach (var pt in packet.Points)
             {
                 var canvasPoint = new Point(pt.X, pt.Y);
                 var viewportPoint = canvasToViewport?.Transform(canvasPoint) ?? canvasPoint;
 
-                var args = new InputEventArgs
-                {
-                    DeviceType = deviceType,
-                    CanvasPoint = canvasPoint,
-                    ViewportPoint = viewportPoint,
-                    PointerId = packet.StylusDeviceId,
-                    Pressure = TryReadPressure(pt),
-                    IsInAir = packet.IsInAir,
-                    LeftButton = false,
-                    RightButton = false,
-                    MiddleButton = false,
-                    Ctrl = ctrl,
-                    Shift = shift,
-                    Alt = alt,
-                    TimestampTicks = packet.TimestampTicks,
-                    ContactSize = TryReadContactSize(pt)
-                };
+                var args = argsTemplate.CloneWithPoint(canvasPoint, viewportPoint);
+                args.ContactSize = TryReadContactSize(pt);
 
                 _dispatch(packet.Stage, args);
             }

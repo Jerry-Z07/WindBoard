@@ -10,7 +10,6 @@ namespace WindBoard.Services
     public class PageService
     {
         private readonly InkCanvas _canvas;
-        private readonly ScrollViewer _viewport;
         private readonly ZoomPanService _zoomPanService;
         private readonly Action? _onPageStateChanged;
 
@@ -21,10 +20,9 @@ namespace WindBoard.Services
 
         public ObservableCollection<BoardPage> Pages { get; } = new ObservableCollection<BoardPage>();
 
-        public PageService(InkCanvas canvas, ScrollViewer viewport, ZoomPanService zoomPanService, Action? onPageStateChanged = null)
+        public PageService(InkCanvas canvas, ZoomPanService zoomPanService, Action? onPageStateChanged = null)
         {
             _canvas = canvas;
-            _viewport = viewport;
             _zoomPanService = zoomPanService;
             _onPageStateChanged = onPageStateChanged;
 
@@ -46,8 +44,8 @@ namespace WindBoard.Services
                 CanvasWidth = _canvas.Width,
                 CanvasHeight = _canvas.Height,
                 Zoom = _zoomPanService.Zoom,
-                HorizontalOffset = _viewport.HorizontalOffset,
-                VerticalOffset = _viewport.VerticalOffset,
+                PanX = _zoomPanService.PanX,
+                PanY = _zoomPanService.PanY,
                 Strokes = _canvas.Strokes
             };
 
@@ -66,8 +64,8 @@ namespace WindBoard.Services
             cur.CanvasWidth = _canvas.Width;
             cur.CanvasHeight = _canvas.Height;
             cur.Zoom = _zoomPanService.Zoom;
-            cur.HorizontalOffset = _viewport.HorizontalOffset;
-            cur.VerticalOffset = _viewport.VerticalOffset;
+            cur.PanX = _zoomPanService.PanX;
+            cur.PanY = _zoomPanService.PanY;
 
             // 重要：不要 Clone 当前页笔迹。InkCanvas 与当前页共享同一个 StrokeCollection，
             // 否则在“页面管理/切页”时会产生常驻双份笔迹，导致内存暴涨且无法回落。
@@ -98,8 +96,8 @@ namespace WindBoard.Services
                 CanvasWidth = 8000,
                 CanvasHeight = 8000,
                 Zoom = _zoomPanService.Zoom,
-                HorizontalOffset = 0,
-                VerticalOffset = 0,
+                PanX = 0,
+                PanY = 0,
                 Strokes = new StrokeCollection()
             };
 
@@ -177,11 +175,7 @@ namespace WindBoard.Services
                 _canvas.Strokes = page.Strokes ?? new StrokeCollection();
                 AttachStrokeEvents();
 
-                _zoomPanService.SetZoomDirect(page.Zoom);
-
-                _viewport.UpdateLayout();
-                _viewport.ScrollToHorizontalOffset(page.HorizontalOffset);
-                _viewport.ScrollToVerticalOffset(page.VerticalOffset);
+                _zoomPanService.SetViewDirect(page.Zoom, page.PanX, page.PanY);
             }
             finally
             {
