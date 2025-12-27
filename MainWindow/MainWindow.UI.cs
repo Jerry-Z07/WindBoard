@@ -12,6 +12,7 @@ using System.Windows.Media.Animation;
 using System.Globalization;
 using MaterialDesignThemes.Wpf;
 using System.Threading.Tasks;
+using WindBoard.Services;
 
 namespace WindBoard
 {
@@ -85,10 +86,13 @@ namespace WindBoard
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
             if (_zoomPanService == null) return;
-            // 启动后把视口移动到大画布中心
+
+            _touchGestureService = new TouchGestureService();
+            var windowHandle = new System.Windows.Interop.WindowInteropHelper(this).Handle;
+            _touchGestureService.DisableSystemGestures(windowHandle);
+
             Dispatcher.InvokeAsync(() =>
             {
-                // 先确保布局完成，否则 Viewport.ViewportWidth/Height 可能为 0
                 Viewport.UpdateLayout();
 
                 var extentW = MyCanvas.Width * _zoomPanService.Zoom;

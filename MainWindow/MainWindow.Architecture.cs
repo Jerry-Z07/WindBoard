@@ -40,6 +40,7 @@ namespace WindBoard
         private StrokeService _strokeService = null!;
         private AutoExpandService _autoExpandService = null!;
         private PageService _pageService = null!;
+        private TouchGestureService _touchGestureService = null!;
         private IInteractionMode? _modeBeforePan;
         private IInteractionMode? _modeBeforeGesture;
         private bool _gestureInputSuppressed;
