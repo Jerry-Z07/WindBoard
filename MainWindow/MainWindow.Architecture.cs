@@ -74,7 +74,9 @@ namespace WindBoard
             _modeController.SetCurrentMode(_inkMode);
 
             _inputManager = new InputManagerCore(_modeController);
-            _inputManager.RegisterFilter(new GestureEraserFilter(_eraserMode));
+            _inputManager.RegisterFilter(new GestureEraserFilter(
+                _eraserMode,
+                shouldSuppressActivation: () => _inkMode?.HasActiveStroke == true));
             _inputManager.RegisterFilter(new ExclusiveModeFilter(_noMode));
             _inputManager.PointerMove += OnPointerMoveForServices;
             _inputManager.PointerDown += OnPointerDownForServices;
@@ -232,7 +234,8 @@ namespace WindBoard
         {
             if (_gestureInputSuppressed) return;
             _gestureInputSuppressed = true;
-            _modeBeforeGesture = _modeController.ActiveMode ?? _modeController.CurrentMode;
+            _modeBeforeGesture = _modeController.CurrentMode;
+            _modeController.ClearActiveMode();
             _inputManager.InputSuppressed = true;
             MyCanvas.EditingMode = InkCanvasEditingMode.None;
             SetViewportBitmapCache(true);

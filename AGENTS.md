@@ -1,34 +1,37 @@
 # Repository Guidelines
 
+## Project Overview
+WindBoard is a Windows-only WPF whiteboard app built on `.NET 10` with MaterialDesignThemes (Material Design 3). Most changes are UI/interaction-heavy; please include repro steps and screenshots when you touch XAML or styling.
+
 ## Project Structure & Module Organization
-- `WindBoard.sln` anchors the solution; `WindBoard.csproj` defines the WPF app that hosts the shared InkCanvas logic.
-- `MainWindow/` holds the partial classes around UI, touch, zoom/pan, eraser, and page behaviors; `Views/` and `Models/` keep supporting screens and data.
-- `Resources/`, `Styles/`, and `Services/` carry themed assets, MaterialDesign themes, and helper services such as configuration or file handling.
-- `App.xaml(.cs)` wires up the `MaterialDesignThemes` M3 palette and sets the `InkCanvas` defaults (white strokes, thickness 3, custom cursor handling).
-- `bin/` and `obj/` can be ignored when making changes; rely on `dotnet clean` or rebuilds when binaries need refreshing.
+- `Core/`: input pipeline, interaction modes, ink smoothing/filters.
+- `Views/`: WPF views and controls (`*.xaml` + `*.xaml.cs`), including `MainWindow.xaml`.
+- `MainWindow/`: main window logic split by concern (UI, pages, input pipeline).
+- `Services/`: app services (pages, settings, preview rendering, strokes, zoom/pan).
+- `Models/`: small data models.
+- `Styles/` and `Resources/`: XAML styles and assets (e.g., `Resources/Fonts/*.ttf`).
 
 ## Build, Test, and Development Commands
-- `dotnet build WindBoard.sln` compiles every project, applies XAML compilation, and ensures the shared libraries are available for runtime.
-- `dotnet run --project WindBoard.csproj` launches the main window (maximized by default) so you can verify ink, zoom, and gesture behaviors quickly.
-- `dotnet clean WindBoard.sln` wipes generated artifacts before troubleshooting build issues or altering the canvas expansion logic.
-- `dotnet test` has no targets yet, but run it once test projects exist; it will exercise any MSTest/NUnit/xUnit suites you add later.
+Run from the repo root:
+- `dotnet restore`: restore NuGet packages.
+- `dotnet build -c Debug`: build the solution.
+- `dotnet run --project WindBoard.csproj`: run the WPF app.
+- `dotnet build -c Release`: produce release binaries (also works via Visual Studio 2022+).
 
 ## Coding Style & Naming Conventions
-- C# uses 4-space indentation, PascalCase for types/events, camelCase for locals/parameters, and descriptive suffixes (`OnPointerMoved`, `HandleTOUCH`). Keep partial class files focused on one concern (touch vs. zoom vs. eraser).
-- XAML tags rely on `Tag` to pass colors (`#FFFFFFFF`) or thickness strings (`"3"`, `"6"`, `"9"`) to shared handlers; keep those strings consistent and documented next to the controls.
-- Keep InkCanvas configuration centralized (stroke color/width scaling with zoom, touch settings marked `Handled = true`) to avoid drift when refactoring gestures or auto-expansion logic.
-- Prefer MaterialDesignThemes controls/styling and avoid inline brushes unless they match the nine preset colors defined in `MainWindow.xaml`.
+- Indentation: 4 spaces in C#; keep XAML attributes readable and wrap long lines.
+- Naming: `PascalCase` for types/methods, `camelCase` for locals/fields; keep folders aligned with domain (`Core/*`, `Services/*`, `Views/*`).
+- Nullability is enabled (`<Nullable>enable</Nullable>`); prefer fixing warnings over suppressing them.
+- `.editorconfig` currently only tunes `CS8622` severity—use your IDE/VS formatting defaults for consistency.
 
 ## Testing Guidelines
-- There are no dedicated test projects yet; add a test project under the solution root if you need coverage.
-- Name future tests to follow `Feature_Scenario_ExpectedBehavior` or similar for clarity, and keep them colocated with the code under test.
-- Once tests exist, use `dotnet test WindBoard.sln` or target the specific test project, and verify UI behavior manually in the running app.
+There is no dedicated automated test project today. For changes:
+- Add clear manual verification steps (device type if relevant: mouse/pen/touch).
+- For UI changes, attach screenshots or short clips and note display scaling (100%/125%/150%).
 
 ## Commit & Pull Request Guidelines
-- Commit messages follow `type(scope): 描述` (e.g., `feat(窗口): 优化缩放` or `refactor(字体管理): 重构字体加载`), matching the existing Chinese descriptions in the history.
-- Pull requests should explain what changed, list how you verified the change (build/test steps), and include screenshots when adjusting UI or InkCanvas behavior. Link Jira/issue IDs if available.
-- Mention any configuration updates (themes, resources, services) so reviewers know if rebinding or resource dictionaries need refreshing.
+- Commit messages follow “conventional commit” style: `feat:`, `fix:`, `refactor:`, optionally scoped like `feat(UI): ...`.
+- PRs should include: summary, motivation/linked issue, manual test steps, and screenshots for visual changes. Keep PRs focused; avoid unrelated refactors.
 
 ## Security & Configuration Tips
-- Keep secrets/configuration out of source; load them through the `Services` layer. Hardcode only colors or cursor sizes that match the UI theme.
-- MaterialDesignThemes settings live in `App.xaml`; adjust the palette centrally to avoid inconsistent brush references across views.
+- User settings are persisted to `%APPDATA%\\WindBoard\\settings.json`; avoid committing local settings or machine-specific paths.
