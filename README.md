@@ -15,7 +15,6 @@
 
 ### 高级特性
 - **实时墨迹平滑**：基于 OneEuroFilter 算法的实时墨迹平滑，提供流畅自然的书写体验
-- **输入过滤器**：支持手势擦除、独占模式等输入过滤机制
 - **视频展台集成**：可集成外部视频展台软件
 - **设置持久化**：应用设置自动保存到本地 JSON 文件
 - **响应式界面**：基于 Material Design 3 的现代化 UI 设计
@@ -90,8 +89,8 @@ WindBoard/
 
 ### 环境要求
 - .NET 10.0 SDK
-- Windows 操作系统
-- Visual Studio 2022 或更高版本（推荐）
+- Windows 10/11
+- Visual Studio 2022 或更高版本（推荐）,或者 Visual Studio Code 也行（本软件的一部分开发工作就是在VSCode使用AI完成的，另一部分在Codex）
 
 ### 构建和运行
 ```bash
