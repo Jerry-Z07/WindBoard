@@ -1,10 +1,7 @@
 using System;
 using System.Diagnostics;
-using System.Reflection;
-using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
-using System.Windows.Input.StylusPlugIns;
 using WindBoard.Core.Input;
 
 namespace WindBoard.Core.Input.RealTimeStylus
@@ -27,16 +24,6 @@ namespace WindBoard.Core.Input.RealTimeStylus
             _dispatch = dispatch;
         }
 
-        private static StylusPlugInCollection GetStylusPlugIns(UIElement element)
-        {
-            var propertyInfo = typeof(UIElement).GetProperty("StylusPlugIns", BindingFlags.NonPublic | BindingFlags.Instance);
-            if (propertyInfo != null && propertyInfo.GetValue(element) is StylusPlugInCollection collection)
-            {
-                return collection;
-            }
-            throw new InvalidOperationException("无法访问 StylusPlugIns 属性");
-        }
-
         public bool TryStart()
         {
             if (IsRunning)
@@ -47,7 +34,7 @@ namespace WindBoard.Core.Input.RealTimeStylus
             try
             {
                 _adapter ??= new RealTimeStylusAdapter(_canvas, _viewport, _dispatch);
-                var stylusPlugIns = GetStylusPlugIns(_canvas);
+                var stylusPlugIns = StylusPlugInsAccessor.Get(_canvas);
                 if (!stylusPlugIns.Contains(_adapter))
                 {
                     stylusPlugIns.Add(_adapter);
@@ -76,7 +63,7 @@ namespace WindBoard.Core.Input.RealTimeStylus
             {
                 try
                 {
-                    var stylusPlugIns = GetStylusPlugIns(_canvas);
+                    var stylusPlugIns = StylusPlugInsAccessor.Get(_canvas);
                     stylusPlugIns.Remove(_adapter);
                 }
                 catch (Exception ex)
