@@ -211,7 +211,15 @@ namespace WindBoard
                 {
                     _strokeThicknessConsistencyEnabled = value;
                     OnPropertyChanged();
-                    try { SettingsService.Instance.SetStrokeThicknessConsistencyEnabled(value); } catch { }
+                    try
+                    {
+                        SettingsService.Instance.SetStrokeThicknessConsistencyEnabled(value);
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine(
+                            $"Failed to persist StrokeThicknessConsistencyEnabled setting: {ex}");
+                    }
                 }
             }
         }
