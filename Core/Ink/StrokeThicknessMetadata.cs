@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 using System.Windows.Ink;
 
 namespace WindBoard.Core.Ink
@@ -14,35 +15,23 @@ namespace WindBoard.Core.Ink
 
             if (!stroke.ContainsPropertyData(LogicalThicknessDipPropertyId)) return false;
 
+            object? value;
             try
             {
-                var value = stroke.GetPropertyData(LogicalThicknessDipPropertyId);
-                if (value is double d)
-                {
-                    thicknessDip = d;
-                    return IsValidPositiveThickness(thicknessDip);
-                }
-                if (value is float f)
-                {
-                    thicknessDip = f;
-                    return IsValidPositiveThickness(thicknessDip);
-                }
-                if (value is int i)
-                {
-                    thicknessDip = i;
-                    return IsValidPositiveThickness(thicknessDip);
-                }
-                if (value is long l)
-                {
-                    thicknessDip = l;
-                    return IsValidPositiveThickness(thicknessDip);
-                }
+                value = stroke.GetPropertyData(LogicalThicknessDipPropertyId);
             }
-            catch
+            catch (ArgumentException)
             {
+                return false;
+            }
+            catch (InvalidOperationException)
+            {
+                return false;
             }
 
-            return false;
+            thicknessDip = ToDoubleOrDefault(value);
+            return IsValidPositiveThickness(thicknessDip);
+
         }
 
         public static void SetLogicalThicknessDip(Stroke stroke, double thicknessDip)
@@ -58,7 +47,10 @@ namespace WindBoard.Core.Ink
                 }
                 stroke.AddPropertyData(LogicalThicknessDipPropertyId, thicknessDip);
             }
-            catch
+            catch (ArgumentException)
+            {
+            }
+            catch (InvalidOperationException)
             {
             }
         }
@@ -74,13 +66,30 @@ namespace WindBoard.Core.Ink
             if (!IsValidPositiveThickness(zoom)) zoom = 1.0;
 
             var da = stroke.DrawingAttributes;
-            double render = (da.Width + da.Height) / 2.0;
-            if (!IsValidPositiveThickness(render)) render = Math.Max(da.Width, da.Height);
+            double render = IsValidPositiveThickness(da.Width) && IsValidPositiveThickness(da.Height)
+                ? (da.Width + da.Height) / 2.0
+                : Math.Max(da.Width, da.Height);
             if (!IsValidPositiveThickness(render)) render = 1.0;
 
             logical = render * zoom;
             SetLogicalThicknessDip(stroke, logical);
             return logical;
+        }
+
+        private static double ToDoubleOrDefault(object? value)
+        {
+            if (value == null) return 0;
+            if (value is double d) return d;
+            if (value is float f) return f;
+
+            try
+            {
+                return Convert.ToDouble(value, CultureInfo.InvariantCulture);
+            }
+            catch
+            {
+                return 0;
+            }
         }
 
         private static bool IsValidPositiveThickness(double value)

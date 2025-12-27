@@ -9,6 +9,8 @@ namespace WindBoard.Services
 {
     public class StrokeService
     {
+        private const double ThicknessEpsilonDip = 0.0001;
+
         private readonly InkCanvas _canvas;
         private double _baseThickness;
         private bool _strokeThicknessConsistencyEnabled;
@@ -103,8 +105,12 @@ namespace WindBoard.Services
                 if (double.IsNaN(renderDip) || double.IsInfinity(renderDip) || renderDip <= 0) continue;
 
                 var da = stroke.DrawingAttributes;
-                da.Width = renderDip;
-                da.Height = renderDip;
+                if (Math.Abs(da.Width - renderDip) > ThicknessEpsilonDip ||
+                    Math.Abs(da.Height - renderDip) > ThicknessEpsilonDip)
+                {
+                    da.Width = renderDip;
+                    da.Height = renderDip;
+                }
             }
         }
     }
