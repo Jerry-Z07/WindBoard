@@ -49,6 +49,7 @@ namespace WindBoard
         private DispatcherTimer? _viewportCacheDisableTimer;
         private BitmapCache? _viewportBitmapCache;
         private StrokeCollection? _undoObservedStrokes;
+        private readonly TranslateTransform _panTransform = new TranslateTransform();
 
         private InkMode? _inkMode;
         private EraserMode? _eraserMode;
@@ -68,7 +69,19 @@ namespace WindBoard
 
             _modeController = new ModeController();
             _strokeService = new StrokeService(MyCanvas, _baseThickness);
-            _zoomPanService = new ZoomPanService(Viewport, ZoomTransform, MinZoom, MaxZoom, zoom => _strokeService.UpdatePenThickness(zoom));
+
+            // 性能：避免使用 LayoutTransform（会触发布局）；改用 RenderTransform 实现“相机式”缩放/平移。
+            // XAML 中仍声明了 ZoomTransform（原用于 LayoutTransform），这里在运行时将其移到 RenderTransform。
+            if (CanvasHost != null)
+            {
+                CanvasHost.LayoutTransform = null;
+                var group = new TransformGroup();
+                group.Children.Add(ZoomTransform);
+                group.Children.Add(_panTransform);
+                CanvasHost.RenderTransform = group;
+            }
+
+            _zoomPanService = new ZoomPanService(Viewport, ZoomTransform, _panTransform, MinZoom, MaxZoom, zoom => _strokeService.UpdatePenThickness(zoom));
             _strokeService.SetStrokeThicknessConsistencyEnabled(
                 SettingsService.Instance.GetStrokeThicknessConsistencyEnabled(),
                 _zoomPanService.Zoom);

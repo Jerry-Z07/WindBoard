@@ -45,8 +45,8 @@ namespace WindBoard
 
         // 每页视图状态（可选但体验更好）
         public double Zoom { get; set; } = 1.0;
-        public double HorizontalOffset { get; set; } = 0.0;
-        public double VerticalOffset { get; set; } = 0.0;
+        public double PanX { get; set; } = 0.0;
+        public double PanY { get; set; } = 0.0;
 
         private void OnPropertyChanged([CallerMemberName] string? name = null)
             => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name ?? string.Empty));

@@ -110,28 +110,33 @@ namespace WindBoard.Core.Input.RealTimeStylus
                 return;
             }
 
+            // 性能：RTS 每个 packet 可能包含多个点；逐点 new InputEventArgs 会产生大量分配并放大 UI 线程压力。
+            // 该项目当前未使用压力（InkMode/DefaultDrawingAttributes IgnorePressure=true），因此不读取 PressureFactor，避免额外跨层开销。
+            // 注意：同一个 args 实例会在循环内被复用；本项目的输入管道为同步消费，不应在外部缓存该对象引用。
+            var args = new InputEventArgs
+            {
+                DeviceType = deviceType,
+                PointerId = packet.StylusDeviceId,
+                Pressure = null,
+                IsInAir = packet.IsInAir,
+                LeftButton = false,
+                RightButton = false,
+                MiddleButton = false,
+                Ctrl = ctrl,
+                Shift = shift,
+                Alt = alt,
+                TimestampTicks = packet.TimestampTicks,
+                ContactSize = null
+            };
+
             foreach (var pt in packet.Points)
             {
                 var canvasPoint = new Point(pt.X, pt.Y);
                 var viewportPoint = canvasToViewport?.Transform(canvasPoint) ?? canvasPoint;
 
-                var args = new InputEventArgs
-                {
-                    DeviceType = deviceType,
-                    CanvasPoint = canvasPoint,
-                    ViewportPoint = viewportPoint,
-                    PointerId = packet.StylusDeviceId,
-                    Pressure = TryReadPressure(pt),
-                    IsInAir = packet.IsInAir,
-                    LeftButton = false,
-                    RightButton = false,
-                    MiddleButton = false,
-                    Ctrl = ctrl,
-                    Shift = shift,
-                    Alt = alt,
-                    TimestampTicks = packet.TimestampTicks,
-                    ContactSize = TryReadContactSize(pt)
-                };
+                args.CanvasPoint = canvasPoint;
+                args.ViewportPoint = viewportPoint;
+                args.ContactSize = TryReadContactSize(pt);
 
                 _dispatch(packet.Stage, args);
             }

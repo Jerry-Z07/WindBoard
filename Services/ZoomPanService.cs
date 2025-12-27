@@ -8,11 +8,12 @@ namespace WindBoard.Services
 {
     public class ZoomPanService
     {
-        private readonly ScrollViewer _viewport;
+        private readonly FrameworkElement _viewport;
         private readonly ScaleTransform _zoomTransform;
         private readonly double _minZoom;
         private readonly double _maxZoom;
         private readonly Action<double>? _onZoomChanged;
+        private readonly TranslateTransform _panTransform;
 
         private bool _isMousePanning;
         private Point _lastMousePosition;
@@ -23,14 +24,17 @@ namespace WindBoard.Services
         private double _lastGestureSpread;
 
         public double Zoom { get; private set; } = 1.0;
+        public double PanX { get; private set; }
+        public double PanY { get; private set; }
 
         public bool IsMousePanning => _isMousePanning;
         public bool IsGestureActive => _gestureActive;
 
-        public ZoomPanService(ScrollViewer viewport, ScaleTransform zoomTransform, double minZoom = 0.5, double maxZoom = 5.0, Action<double>? onZoomChanged = null)
+        public ZoomPanService(FrameworkElement viewport, ScaleTransform zoomTransform, TranslateTransform panTransform, double minZoom = 0.5, double maxZoom = 5.0, Action<double>? onZoomChanged = null)
         {
             _viewport = viewport;
             _zoomTransform = zoomTransform;
+            _panTransform = panTransform;
             _minZoom = minZoom;
             _maxZoom = maxZoom;
             _onZoomChanged = onZoomChanged;
@@ -49,17 +53,14 @@ namespace WindBoard.Services
             newZoom = Clamp(newZoom);
             if (Math.Abs(newZoom - oldZoom) < 0.00001) return;
 
-            double contentX = (_viewport.HorizontalOffset + viewportPoint.X) / oldZoom;
-            double contentY = (_viewport.VerticalOffset + viewportPoint.Y) / oldZoom;
+            double contentX = (viewportPoint.X - PanX) / oldZoom;
+            double contentY = (viewportPoint.Y - PanY) / oldZoom;
 
             Zoom = newZoom;
             _zoomTransform.ScaleX = Zoom;
             _zoomTransform.ScaleY = Zoom;
 
-            _viewport.UpdateLayout();
-
-            _viewport.ScrollToHorizontalOffset(contentX * Zoom - viewportPoint.X);
-            _viewport.ScrollToVerticalOffset(contentY * Zoom - viewportPoint.Y);
+            SetPanDirect(viewportPoint.X - contentX * Zoom, viewportPoint.Y - contentY * Zoom);
 
             _onZoomChanged?.Invoke(Zoom);
         }
@@ -69,14 +70,26 @@ namespace WindBoard.Services
             Zoom = Clamp(newZoom);
             _zoomTransform.ScaleX = Zoom;
             _zoomTransform.ScaleY = Zoom;
-            _viewport.UpdateLayout();
             _onZoomChanged?.Invoke(Zoom);
         }
 
         public void PanBy(Vector deltaViewport)
         {
-            _viewport.ScrollToHorizontalOffset(_viewport.HorizontalOffset - deltaViewport.X);
-            _viewport.ScrollToVerticalOffset(_viewport.VerticalOffset - deltaViewport.Y);
+            SetPanDirect(PanX + deltaViewport.X, PanY + deltaViewport.Y);
+        }
+
+        public void SetPanDirect(double panX, double panY)
+        {
+            PanX = panX;
+            PanY = panY;
+            _panTransform.X = PanX;
+            _panTransform.Y = PanY;
+        }
+
+        public void SetViewDirect(double zoom, double panX, double panY)
+        {
+            SetZoomDirect(zoom);
+            SetPanDirect(panX, panY);
         }
 
         public void BeginMousePan(Point viewportPoint)
@@ -133,16 +146,14 @@ namespace WindBoard.Services
             }
             double newZoom = Clamp(oldZoom * scale);
 
-            double contentX = (_viewport.HorizontalOffset + _lastGestureCenter.X) / oldZoom;
-            double contentY = (_viewport.VerticalOffset + _lastGestureCenter.Y) / oldZoom;
+            double contentX = (_lastGestureCenter.X - PanX) / oldZoom;
+            double contentY = (_lastGestureCenter.Y - PanY) / oldZoom;
 
             Zoom = newZoom;
             _zoomTransform.ScaleX = Zoom;
             _zoomTransform.ScaleY = Zoom;
 
-            _viewport.UpdateLayout();
-            _viewport.ScrollToHorizontalOffset(contentX * Zoom - newCenter.X);
-            _viewport.ScrollToVerticalOffset(contentY * Zoom - newCenter.Y);
+            SetPanDirect(newCenter.X - contentX * Zoom, newCenter.Y - contentY * Zoom);
 
             _lastGestureCenter = newCenter;
             _lastGestureSpread = newSpread;
