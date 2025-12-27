@@ -19,6 +19,18 @@ namespace WindBoard
 
         // 启动附加参数
         public string VideoPresenterArgs { get; set; } = "-from en5";
+
+        // 伪装：是否启用
+        public bool CamouflageEnabled { get; set; } = false;
+
+        // 伪装：自定义标题
+        public string CamouflageTitle { get; set; } = string.Empty;
+
+        // 伪装：图标来源路径（exe/ico/png/jpg）
+        public string CamouflageSourcePath { get; set; } = string.Empty;
+
+        // 伪装：缓存生成的 ico 路径（供窗口/快捷方式复用）
+        public string CamouflageIconCachePath { get; set; } = string.Empty;
     }
 
     // 设置服务：负责加载 / 保存 JSON，并向 UI 广播变更
@@ -130,6 +142,43 @@ namespace WindBoard
         public (string Path, string Args) GetVideoPresenterConfig()
         {
             return (Settings.VideoPresenterPath, Settings.VideoPresenterArgs);
+        }
+
+        // --- 伪装设置 ---
+        public bool GetCamouflageEnabled() => Settings.CamouflageEnabled;
+
+        public void SetCamouflageEnabled(bool enabled)
+        {
+            Settings.CamouflageEnabled = enabled;
+            Save();
+            SettingsChanged?.Invoke(this, Settings);
+        }
+
+        public string GetCamouflageTitle() => Settings.CamouflageTitle;
+
+        public void SetCamouflageTitle(string title)
+        {
+            Settings.CamouflageTitle = title ?? string.Empty;
+            Save();
+            SettingsChanged?.Invoke(this, Settings);
+        }
+
+        public string GetCamouflageSourcePath() => Settings.CamouflageSourcePath;
+
+        public void SetCamouflageSourcePath(string path)
+        {
+            Settings.CamouflageSourcePath = path ?? string.Empty;
+            Save();
+            SettingsChanged?.Invoke(this, Settings);
+        }
+
+        public string GetCamouflageIconCachePath() => Settings.CamouflageIconCachePath;
+
+        public void SetCamouflageIconCachePath(string path)
+        {
+            Settings.CamouflageIconCachePath = path ?? string.Empty;
+            Save();
+            SettingsChanged?.Invoke(this, Settings);
         }
     }
 }

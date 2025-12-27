@@ -160,6 +160,93 @@
                                         materialDesign:ButtonAssist.CornerRadius="6"/>
                             </Grid>
                         </materialDesign:Card>
+
+                        <!-- 基本设置 · 伪装 -->
+                        <materialDesign:Card Padding="20" Margin="0,0,0,20" UniformCornerRadius="12" materialDesign:ElevationAssist.Elevation="Dp2">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+
+                                <Border Width="48" Height="48" CornerRadius="8" Background="{DynamicResource PrimaryHueLightBrush}" Grid.Column="0" VerticalAlignment="Top">
+                                    <materialDesign:PackIcon Kind="Incognito" Width="24" Height="24" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="{DynamicResource PrimaryHueMidBrush}"/>
+                                </Border>
+
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="16,0,0,0">
+                                    <TextBlock Text="伪装" Style="{StaticResource MaterialDesignSubtitle1TextBlock}" FontWeight="SemiBold"/>
+                                    <TextBlock Text="替换应用标题与图标（支持选择 exe 或图片）" Style="{StaticResource MaterialDesignBodyMediumTextBlock}" Opacity="0.6" TextWrapping="Wrap"/>
+                                </StackPanel>
+
+                                <CheckBox Grid.Column="2" VerticalAlignment="Center"
+                                          Content="开启"
+                                          IsChecked="{Binding ElementName=SettingsWindowRoot, Path=CamouflageEnabled, Mode=TwoWay}"
+                                          Checked="ToggleCamouflage_Checked"
+                                          Unchecked="ToggleCamouflage_Unchecked"/>
+
+                                <!-- 应用标题 -->
+                                <Grid Grid.Row="1" Grid.ColumnSpan="3" Margin="0,16,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0" Text="应用标题" VerticalAlignment="Center" Margin="0,0,12,0"/>
+                                    <TextBox Grid.Column="1"
+                                             Text="{Binding ElementName=SettingsWindowRoot, Path=CamouflageTitle, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                             Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                                             materialDesign:HintAssist.Hint="显示在标题栏/任务栏的名称"/>
+                                </Grid>
+
+                                <!-- 图标选择 -->
+                                <Grid Grid.Row="2" Grid.ColumnSpan="3" Margin="0,12,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel Orientation="Horizontal" Grid.Column="0" VerticalAlignment="Center" Margin="0,0,12,0">
+                                        <TextBlock Text="图标/程序" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                    <Grid Grid.Column="1">
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto"/>
+                                        </Grid.RowDefinitions>
+                                        <TextBox Grid.Row="0"
+                                                 Text="{Binding ElementName=SettingsWindowRoot, Path=CamouflageSourcePath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                 Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                                                 materialDesign:HintAssist.Hint="选择可执行文件或图标/图片"/>
+                                        <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,8,0,0" VerticalAlignment="Center">
+                                            <Border Width="40" Height="40" CornerRadius="6" BorderThickness="1" BorderBrush="{DynamicResource MaterialDesignDivider}" Background="{DynamicResource MaterialDesignCardBackground}" VerticalAlignment="Center">
+                                                <Image Width="24" Height="24" VerticalAlignment="Center" HorizontalAlignment="Center"
+                                                       Source="{Binding ElementName=SettingsWindowRoot, Path=CamouflageIconPreview}" Stretch="Uniform"/>
+                                            </Border>
+                                            <StackPanel Margin="12,0,0,0" VerticalAlignment="Center">
+                                                <TextBlock Text="{Binding ElementName=SettingsWindowRoot, Path=CamouflageSourceDisplayName}" Style="{StaticResource MaterialDesignBodyMediumTextBlock}"/>
+                                                <TextBlock Text="支持 exe/ico/png/jpg" Style="{StaticResource MaterialDesignCaptionTextBlock}" Opacity="0.6"/>
+                                            </StackPanel>
+                                        </StackPanel>
+                                    </Grid>
+                                    <StackPanel Grid.Column="2" Orientation="Horizontal">
+                                        <Button Content="浏览…"
+                                                Style="{StaticResource MaterialDesignOutlinedButton}"
+                                                Click="BtnBrowseCamouflageIcon_Click"
+                                                materialDesign:ButtonAssist.CornerRadius="6"
+                                                Margin="0,0,8,0"/>
+                                        <Button Content="清除"
+                                                Style="{StaticResource MaterialDesignFlatButton}"
+                                                Click="BtnClearCamouflageIcon_Click"
+                                                materialDesign:ButtonAssist.CornerRadius="6"/>
+                                    </StackPanel>
+                                </Grid>
+                            </Grid>
+                        </materialDesign:Card>
                     </StackPanel>
 
                     <!-- 外观设置 面板（索引 2） -->
