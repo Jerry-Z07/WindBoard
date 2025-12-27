@@ -249,6 +249,46 @@
                         </materialDesign:Card>
                     </StackPanel>
 
+                    <!-- 书写设置 面板（索引 1） -->
+                    <StackPanel x:Name="InkSettingsPanel">
+                        <StackPanel.Style>
+                            <Style TargetType="StackPanel">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding ElementName=NavList, Path=SelectedIndex}" Value="1">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </StackPanel.Style>
+
+                        <materialDesign:Card Padding="20" Margin="0,0,0,20" UniformCornerRadius="12" materialDesign:ElevationAssist.Elevation="Dp2">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+
+                                <Border Width="48" Height="48" CornerRadius="8" Background="{DynamicResource PrimaryHueLightBrush}" Grid.Column="0" VerticalAlignment="Top">
+                                    <materialDesign:PackIcon Kind="Pen" Width="24" Height="24" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="{DynamicResource PrimaryHueMidBrush}"/>
+                                </Border>
+
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="16,0,0,0">
+                                    <TextBlock Text="笔迹粗细一致（跨缩放）" Style="{StaticResource MaterialDesignSubtitle1TextBlock}" FontWeight="SemiBold"/>
+                                    <TextBlock Text="开启后：无论在任何缩放下书写，拉到同一缩放时笔迹粗细一致（旧笔迹将按当前视图校准一次）。" Style="{StaticResource MaterialDesignBodyMediumTextBlock}" Opacity="0.6" TextWrapping="Wrap"/>
+                                </StackPanel>
+
+                                <CheckBox Grid.Column="2" VerticalAlignment="Center"
+                                          Content="开启"
+                                          IsChecked="{Binding ElementName=SettingsWindowRoot, Path=StrokeThicknessConsistencyEnabled, Mode=TwoWay}"/>
+                            </Grid>
+                        </materialDesign:Card>
+                    </StackPanel>
+
                     <!-- 外观设置 面板（索引 2） -->
                     <StackPanel x:Name="AppearanceSettingsPanel">
                         <StackPanel.Style>

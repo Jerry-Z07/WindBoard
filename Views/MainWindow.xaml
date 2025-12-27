@@ -46,7 +46,7 @@
                            MouseWheel="MyCanvas_MouseWheel">
 
                     <InkCanvas.DefaultDrawingAttributes>
-                        <DrawingAttributes Color="White" Width="3" Height="3" IgnorePressure="True" FitToCurve="False"/>
+                        <DrawingAttributes Color="White" Width="2" Height="2" IgnorePressure="True" FitToCurve="False"/>
                     </InkCanvas.DefaultDrawingAttributes>
                 </InkCanvas>
 
@@ -174,11 +174,11 @@
 
                         <!-- 粗细选择 (左侧) -->
                         <StackPanel Grid.Column="0" Margin="0,0,16,0" VerticalAlignment="Center">
-                            <RadioButton GroupName="Thickness" Tag="3" Checked="Thickness_Checked" IsChecked="True" Margin="0,0,0,16"
+                            <RadioButton GroupName="Thickness" Tag="2" Checked="Thickness_Checked" IsChecked="True" Margin="0,0,0,16"
                                          Style="{StaticResource MaterialDesignToolRadioButton}">
                                 <materialDesign:PackIcon Kind="Brush" Width="24" Height="24" Foreground="White"/>
                             </RadioButton>
-                            <RadioButton GroupName="Thickness" Tag="6" Checked="Thickness_Checked" Margin="0,0,0,16"
+                            <RadioButton GroupName="Thickness" Tag="5" Checked="Thickness_Checked" Margin="0,0,0,16"
                                          Style="{StaticResource MaterialDesignToolRadioButton}">
                                 <materialDesign:PackIcon Kind="Brush" Width="24" Height="24" Foreground="White" RenderTransformOrigin="0.5,0.5">
                                     <materialDesign:PackIcon.RenderTransform>
@@ -186,7 +186,7 @@
                                     </materialDesign:PackIcon.RenderTransform>
                                 </materialDesign:PackIcon>
                             </RadioButton>
-                            <RadioButton GroupName="Thickness" Tag="8" Checked="Thickness_Checked"
+                            <RadioButton GroupName="Thickness" Tag="7" Checked="Thickness_Checked"
                                          Style="{StaticResource MaterialDesignToolRadioButton}">
                                 <materialDesign:PackIcon Kind="Brush" Width="24" Height="24" Foreground="White" RenderTransformOrigin="0.5,0.5">
                                     <materialDesign:PackIcon.RenderTransform>

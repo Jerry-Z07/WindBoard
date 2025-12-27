@@ -95,14 +95,17 @@ namespace WindBoard.Core.Modes
             da.FitToCurve = false;
             da.IgnorePressure = true;
 
+            double logicalThicknessDip = da.Width * zoom;
+
             var stroke = new Stroke(stylusPoints)
             {
                 DrawingAttributes = da
             };
+            StrokeThicknessMetadata.SetLogicalThicknessDip(stroke, logicalThicknessDip);
 
             _canvas.Strokes.Add(stroke);
 
-            var active = new ActiveStroke(stroke, da, smoother, args.CanvasPoint, args.TimestampTicks);
+            var active = new ActiveStroke(stroke, da, logicalThicknessDip, smoother, args.CanvasPoint, args.TimestampTicks);
             active.Segments.Add(stroke);
             _activeStrokes[id] = active;
             EnsureFlushTimer();
@@ -233,6 +236,7 @@ namespace WindBoard.Core.Modes
             {
                 DrawingAttributes = active.DrawingAttributes
             };
+            StrokeThicknessMetadata.SetLogicalThicknessDip(next, active.LogicalThicknessDip);
             _canvas.Strokes.Add(next);
             active.Segments.Add(next);
             active.Stroke = next;
@@ -263,6 +267,7 @@ namespace WindBoard.Core.Modes
         {
             public Stroke Stroke { get; set; }
             public DrawingAttributes DrawingAttributes { get; }
+            public double LogicalThicknessDip { get; }
             public RealtimeInkSmoother Smoother { get; }
             public Point LastInputCanvasDip { get; set; }
             public long LastInputTicks { get; set; }
@@ -273,10 +278,11 @@ namespace WindBoard.Core.Modes
             public int PendingPointsCount => PendingPoints.Count - PendingStartIndex;
             public System.Windows.Input.StylusPointCollection ScratchPoints { get; } = new System.Windows.Input.StylusPointCollection(256);
 
-            public ActiveStroke(Stroke stroke, DrawingAttributes drawingAttributes, RealtimeInkSmoother smoother, Point lastInputCanvasDip, long lastInputTicks)
+            public ActiveStroke(Stroke stroke, DrawingAttributes drawingAttributes, double logicalThicknessDip, RealtimeInkSmoother smoother, Point lastInputCanvasDip, long lastInputTicks)
             {
                 Stroke = stroke;
                 DrawingAttributes = drawingAttributes;
+                LogicalThicknessDip = logicalThicknessDip;
                 Smoother = smoother;
                 LastInputCanvasDip = lastInputCanvasDip;
                 LastInputTicks = lastInputTicks;
