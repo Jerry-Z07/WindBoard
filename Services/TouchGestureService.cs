@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 
 namespace WindBoard.Services
@@ -14,17 +15,39 @@ namespace WindBoard.Services
         private const uint GID_PRESSANDTAP = 7;
 
         private const uint GC_ALL = 0x00000001;
-        private const uint GC_ZOOM = 0x00000001;
-        private const uint GC_PAN = 0x00000001;
         private const uint GC_PAN_WITH_SINGLE_FINGER_HORIZONTALLY = 0x00000002;
         private const uint GC_PAN_WITH_SINGLE_FINGER_VERTICALLY = 0x00000004;
         private const uint GC_PAN_WITH_GUTTER = 0x00000008;
         private const uint GC_PAN_WITH_INERTIA = 0x00000010;
-        private const uint GC_ROTATE = 0x00000001;
-        private const uint GC_TWOFINGERTAP = 0x00000001;
-        private const uint GC_PRESSANDTAP = 0x00000001;
+        private const int GestureIdCount = 5;
 
-        private bool _isEnabled;
+        private static readonly GESTURECONFIG[] DisableConfigs =
+        {
+            new GESTURECONFIG { dwID = GID_ZOOM, dwWant = 0, dwBlock = GC_ALL },
+            new GESTURECONFIG
+            {
+                dwID = GID_PAN,
+                dwWant = 0,
+                dwBlock = GC_ALL
+                         | GC_PAN_WITH_SINGLE_FINGER_HORIZONTALLY
+                         | GC_PAN_WITH_SINGLE_FINGER_VERTICALLY
+                         | GC_PAN_WITH_GUTTER
+                         | GC_PAN_WITH_INERTIA
+            },
+            new GESTURECONFIG { dwID = GID_ROTATE, dwWant = 0, dwBlock = GC_ALL },
+            new GESTURECONFIG { dwID = GID_TWOFINGERTAP, dwWant = 0, dwBlock = GC_ALL },
+            new GESTURECONFIG { dwID = GID_PRESSANDTAP, dwWant = 0, dwBlock = GC_ALL }
+        };
+
+        private static readonly GESTURECONFIG[] GestureIdSeeds =
+        {
+            new GESTURECONFIG { dwID = GID_ZOOM },
+            new GESTURECONFIG { dwID = GID_PAN },
+            new GESTURECONFIG { dwID = GID_ROTATE },
+            new GESTURECONFIG { dwID = GID_TWOFINGERTAP },
+            new GESTURECONFIG { dwID = GID_PRESSANDTAP }
+        };
+
         private bool _disposed;
         private GESTURECONFIG[] _originalConfigs = Array.Empty<GESTURECONFIG>();
 
@@ -40,84 +63,51 @@ namespace WindBoard.Services
         private static extern bool SetGestureConfig(IntPtr hWnd, int dwReserved, int cIDs, [In] GESTURECONFIG[] pGestureConfig, int cbSize);
 
         [DllImport("user32.dll", SetLastError = true)]
-        private static extern bool GetGestureConfig(IntPtr hWnd, uint dwReserved, uint dwFlags, int pcIDs, [Out] GESTURECONFIG[] pGestureConfig, int cbSize);
+        private static extern bool GetGestureConfig(IntPtr hWnd, uint dwReserved, uint dwFlags, ref uint pcIDs, [Out] GESTURECONFIG[] pGestureConfig, int cbSize);
 
         public TouchGestureService()
         {
-            _isEnabled = false;
         }
 
         public void DisableSystemGestures(IntPtr windowHandle)
         {
-            if (_isEnabled) return;
+            if (_originalConfigs.Length > 0) return;
 
             try
             {
                 SaveOriginalConfig(windowHandle);
 
-                var configs = new GESTURECONFIG[]
-                {
-                    new GESTURECONFIG
-                    {
-                        dwID = GID_ZOOM,
-                        dwWant = 0,
-                        dwBlock = GC_ZOOM
-                    },
-                    new GESTURECONFIG
-                    {
-                        dwID = GID_PAN,
-                        dwWant = 0,
-                        dwBlock = GC_PAN | GC_PAN_WITH_SINGLE_FINGER_HORIZONTALLY | GC_PAN_WITH_SINGLE_FINGER_VERTICALLY | GC_PAN_WITH_GUTTER | GC_PAN_WITH_INERTIA
-                    },
-                    new GESTURECONFIG
-                    {
-                        dwID = GID_ROTATE,
-                        dwWant = 0,
-                        dwBlock = GC_ROTATE
-                    },
-                    new GESTURECONFIG
-                    {
-                        dwID = GID_TWOFINGERTAP,
-                        dwWant = 0,
-                        dwBlock = GC_TWOFINGERTAP
-                    },
-                    new GESTURECONFIG
-                    {
-                        dwID = GID_PRESSANDTAP,
-                        dwWant = 0,
-                        dwBlock = GC_PRESSANDTAP
-                    }
-                };
+                var configs = CreateDisableConfigs();
 
                 bool result = SetGestureConfig(windowHandle, 0, configs.Length, configs, Marshal.SizeOf(typeof(GESTURECONFIG)));
 
-                if (result)
+                if (!result)
                 {
-                    _isEnabled = true;
+                    _originalConfigs = Array.Empty<GESTURECONFIG>();
                 }
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                _isEnabled = false;
+                Debug.WriteLine($"[TouchGesture] Failed to disable system gestures: {ex}");
+                _originalConfigs = Array.Empty<GESTURECONFIG>();
             }
         }
 
         public void RestoreSystemGestures(IntPtr windowHandle)
         {
-            if (!_isEnabled) return;
+            if (_originalConfigs.Length == 0) return;
 
             try
             {
-                if (_originalConfigs.Length > 0)
-                {
-                    SetGestureConfig(windowHandle, 0, _originalConfigs.Length, _originalConfigs, Marshal.SizeOf(typeof(GESTURECONFIG)));
-                }
-
-                _isEnabled = false;
+                SetGestureConfig(windowHandle, 0, _originalConfigs.Length, _originalConfigs, Marshal.SizeOf(typeof(GESTURECONFIG)));
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                _isEnabled = false;
+                Debug.WriteLine($"[TouchGesture] Failed to restore system gestures: {ex}");
+            }
+            finally
+            {
+                _originalConfigs = Array.Empty<GESTURECONFIG>();
             }
         }
 
@@ -125,25 +115,48 @@ namespace WindBoard.Services
         {
             try
             {
-                var tempConfigs = new GESTURECONFIG[5];
-                tempConfigs[0] = new GESTURECONFIG { dwID = GID_ZOOM };
-                tempConfigs[1] = new GESTURECONFIG { dwID = GID_PAN };
-                tempConfigs[2] = new GESTURECONFIG { dwID = GID_ROTATE };
-                tempConfigs[3] = new GESTURECONFIG { dwID = GID_TWOFINGERTAP };
-                tempConfigs[4] = new GESTURECONFIG { dwID = GID_PRESSANDTAP };
+                var tempConfigs = CreateGestureIdBuffer();
 
-                bool result = GetGestureConfig(windowHandle, 0, 0, tempConfigs.Length, tempConfigs, Marshal.SizeOf(typeof(GESTURECONFIG)));
+                uint count = (uint)tempConfigs.Length;
+                bool result = GetGestureConfig(windowHandle, 0, 0, ref count, tempConfigs, Marshal.SizeOf(typeof(GESTURECONFIG)));
 
                 if (result)
                 {
-                    _originalConfigs = new GESTURECONFIG[5];
-                    Array.Copy(tempConfigs, _originalConfigs, 5);
+                    var actualCount = (int)Math.Min(count, (uint)tempConfigs.Length);
+                    if (actualCount > 0)
+                    {
+                        _originalConfigs = new GESTURECONFIG[actualCount];
+                        Array.Copy(tempConfigs, _originalConfigs, actualCount);
+                    }
+                    else
+                    {
+                        _originalConfigs = Array.Empty<GESTURECONFIG>();
+                    }
+                }
+                else
+                {
+                    _originalConfigs = Array.Empty<GESTURECONFIG>();
                 }
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                Debug.WriteLine($"[TouchGesture] Failed to read existing gesture config: {ex}");
                 _originalConfigs = Array.Empty<GESTURECONFIG>();
             }
+        }
+
+        private static GESTURECONFIG[] CreateDisableConfigs()
+        {
+            var copy = new GESTURECONFIG[DisableConfigs.Length];
+            Array.Copy(DisableConfigs, copy, DisableConfigs.Length);
+            return copy;
+        }
+
+        private static GESTURECONFIG[] CreateGestureIdBuffer()
+        {
+            var copy = new GESTURECONFIG[GestureIdCount];
+            Array.Copy(GestureIdSeeds, copy, GestureIdCount);
+            return copy;
         }
 
         public void Dispose()

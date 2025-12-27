@@ -1,5 +1,6 @@
 using System;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Controls;
@@ -134,7 +135,8 @@ namespace WindBoard
                 {
                     _camouflageEnabled = value;
                     OnPropertyChanged();
-                    try { SettingsService.Instance.SetCamouflageEnabled(value); } catch { }
+                    try { SettingsService.Instance.SetCamouflageEnabled(value); }
+                    catch (Exception ex) { Debug.WriteLine($"[Settings] Failed to persist camouflage enabled flag: {ex}"); }
                 }
             }
         }
@@ -148,7 +150,8 @@ namespace WindBoard
                 {
                     _camouflageTitle = value ?? string.Empty;
                     OnPropertyChanged();
-                    try { SettingsService.Instance.SetCamouflageTitle(_camouflageTitle); } catch { }
+                    try { SettingsService.Instance.SetCamouflageTitle(_camouflageTitle); }
+                    catch (Exception ex) { Debug.WriteLine($"[Settings] Failed to persist camouflage title: {ex}"); }
                 }
             }
         }
@@ -163,7 +166,8 @@ namespace WindBoard
                     _camouflageSourcePath = value ?? string.Empty;
                     OnPropertyChanged();
                     OnPropertyChanged(nameof(CamouflageSourceDisplayName));
-                    try { SettingsService.Instance.SetCamouflageSourcePath(_camouflageSourcePath); } catch { }
+                    try { SettingsService.Instance.SetCamouflageSourcePath(_camouflageSourcePath); }
+                    catch (Exception ex) { Debug.WriteLine($"[Settings] Failed to persist camouflage source path: {ex}"); }
                     RefreshCamouflagePreview(buildCache: true);
                 }
             }

@@ -44,8 +44,9 @@ namespace WindBoard.Services
                 preview = bmp;
                 return true;
             }
-            catch
+            catch (Exception ex)
             {
+                Debug.WriteLine($"[Camouflage] Failed to build icon cache from '{sourcePath}': {ex}");
                 cachePath = string.Empty;
                 preview = null;
                 return false;
@@ -120,6 +121,9 @@ namespace WindBoard.Services
 
         public void UpdateDesktopShortcut(string title, string? iconPath, bool enabled)
         {
+            object? shellObj = null;
+            object? shortcutObj = null;
+
             try
             {
                 var exePath = Process.GetCurrentProcess().MainModule?.FileName;
@@ -131,11 +135,12 @@ namespace WindBoard.Services
                 var shellType = Type.GetTypeFromProgID("WScript.Shell");
                 if (shellType == null) return;
 
-                var shellObj = Activator.CreateInstance(shellType);
+                shellObj = Activator.CreateInstance(shellType);
                 if (shellObj == null) return;
                 dynamic shell = shellObj;
-                dynamic shortcut = shell.CreateShortcut(shortcutPath);
-                if (shortcut == null) return;
+                shortcutObj = shell.CreateShortcut(shortcutPath);
+                if (shortcutObj == null) return;
+                dynamic shortcut = shortcutObj;
                 shortcut.TargetPath = exePath;
                 shortcut.WorkingDirectory = Path.GetDirectoryName(exePath) ?? AppContext.BaseDirectory;
                 shortcut.WindowStyle = 1;
@@ -146,9 +151,14 @@ namespace WindBoard.Services
                     : exePath ?? string.Empty;
                 shortcut.Save();
             }
-            catch
+            catch (Exception ex)
             {
-                // 忽略快捷方式更新失败
+                Debug.WriteLine($"[Camouflage] Failed to update desktop shortcut: {ex}");
+            }
+            finally
+            {
+                ReleaseComObject(shortcutObj, "desktop shortcut");
+                ReleaseComObject(shellObj, "WScript.Shell");
             }
         }
 
@@ -283,6 +293,20 @@ namespace WindBoard.Services
 
         [DllImport("user32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
         private static extern uint PrivateExtractIcons(string lpszFile, int nIconIndex, int cxIcon, int cyIcon, IntPtr[] phicon, int[] piconid, uint nIcons, uint flags);
+
+        private static void ReleaseComObject(object? comObj, string name)
+        {
+            if (comObj == null || !Marshal.IsComObject(comObj)) return;
+
+            try
+            {
+                Marshal.FinalReleaseComObject(comObj);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[Camouflage] Failed to release COM object ({name}): {ex}");
+            }
+        }
     }
 
     public class CamouflageResult
