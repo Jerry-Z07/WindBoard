@@ -1,4 +1,5 @@
 using System;
+using WindBoard.Services;
 
 namespace WindBoard
 {
@@ -8,6 +9,9 @@ namespace WindBoard
         {
             try
             {
+                var windowHandle = new System.Windows.Interop.WindowInteropHelper(this).Handle;
+                _touchGestureService?.RestoreSystemGestures(windowHandle);
+                _touchGestureService?.Dispose();
                 _realTimeStylusManager?.Dispose();
             }
             catch

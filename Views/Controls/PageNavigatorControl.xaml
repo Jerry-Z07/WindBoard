@@ -40,7 +40,8 @@
     <Border Background="#25262A"
             CornerRadius="12"
             Padding="6"
-            Effect="{StaticResource MaterialDesignShadowDepth2}">
+            Effect="{StaticResource MaterialDesignShadowDepth2}"
+            Opacity="0.85">
         <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
 
             <Button x:Name="BtnPrev"

@@ -86,6 +86,7 @@ namespace WindBoard
             if (_zoomPanService.IsGestureActive || gesture)
             {
                 BeginGestureSuppression();
+                HideTouchInkCursor();
                 e.Handled = true;
                 return;
             }
@@ -93,6 +94,8 @@ namespace WindBoard
             var args = BuildTouchArgs(e, isInAir: false);
             BeginUndoTransactionForCurrentMode();
             _inputManager.Dispatch(InputStage.Down, args);
+            UpdateTouchInkCursor(args.CanvasPoint);
+            e.Handled = true;
         }
 
         private void MyCanvas_TouchMove(object sender, TouchEventArgs e)
@@ -101,6 +104,7 @@ namespace WindBoard
             if (_zoomPanService.TouchMove(e.TouchDevice.Id, viewportPoint))
             {
                 BeginGestureSuppression();
+                HideTouchInkCursor();
                 e.Handled = true;
                 return;
             }
@@ -108,17 +112,21 @@ namespace WindBoard
             if (_zoomPanService.IsGestureActive)
             {
                 BeginGestureSuppression();
+                HideTouchInkCursor();
                 e.Handled = true;
                 return;
             }
 
             var args = BuildTouchArgs(e, isInAir: false);
             _inputManager.Dispatch(InputStage.Move, args);
+            UpdateTouchInkCursor(args.CanvasPoint);
+            e.Handled = true;
         }
 
         private void MyCanvas_TouchUp(object sender, TouchEventArgs e)
         {
-            bool gestureHandled = _zoomPanService.TouchUp(e.TouchDevice.Id);
+            _ = _zoomPanService.TouchUp(e.TouchDevice.Id);
+            HideTouchInkCursor();
             if (_zoomPanService.IsGestureActive)
             {
                 BeginGestureSuppression();
@@ -130,7 +138,7 @@ namespace WindBoard
             if (_gestureInputSuppressed)
             {
                 EndGestureSuppression();
-                e.Handled = gestureHandled;
+                e.Handled = true;
                 MyCanvas.ReleaseTouchCapture(e.TouchDevice);
                 return;
             }
@@ -138,7 +146,7 @@ namespace WindBoard
             var args = BuildTouchArgs(e, isInAir: false);
             _inputManager.Dispatch(InputStage.Up, args);
             EndUndoTransactionForCurrentMode();
-            e.Handled = gestureHandled;
+            e.Handled = true;
             MyCanvas.ReleaseTouchCapture(e.TouchDevice);
         }
 

@@ -12,6 +12,7 @@ using System.Windows.Media.Animation;
 using System.Globalization;
 using MaterialDesignThemes.Wpf;
 using System.Threading.Tasks;
+using WindBoard.Services;
 
 namespace WindBoard
 {
@@ -21,6 +22,20 @@ namespace WindBoard
         public event PropertyChangedEventHandler? PropertyChanged;
         private void OnPropertyChanged([CallerMemberName] string? name = null)
             => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name ?? string.Empty));
+
+        private string _windowTitle = "WindBoard";
+        public string WindowTitle
+        {
+            get => _windowTitle;
+            set
+            {
+                if (_windowTitle != value)
+                {
+                    _windowTitle = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
 
         private Popup? _popupPenSettings;
         private Popup? _popupPageManager;
@@ -48,20 +63,28 @@ namespace WindBoard
             }
         }
 
+        private ImageSource? _defaultIcon;
+        private string _defaultTitle = "WindBoard";
+
         public MainWindow()
         {
             InitializeComponent();
             DataContext = this;
 
+            _defaultTitle = WindowTitle;
+            _defaultIcon = Icon;
+
             // 加载并应用设置
             SettingsService.Instance.Load();
             SetBackgroundColor(SettingsService.Instance.GetBackgroundColor());
             IsVideoPresenterEnabled = SettingsService.Instance.GetVideoPresenterEnabled();
+            ApplyCamouflageFromSettings();
             // 监听设置变更
             SettingsService.Instance.SettingsChanged += (s, e) =>
             {
                 SetBackgroundColor(SettingsService.Instance.GetBackgroundColor());
                 IsVideoPresenterEnabled = SettingsService.Instance.GetVideoPresenterEnabled();
+                ApplyCamouflageFromSettings();
             };
 
             _popupPenSettings = (Popup)FindName("PopupPenSettings");
@@ -82,13 +105,27 @@ namespace WindBoard
             InitializeArchitecture();
         }
 
+        private void ApplyCamouflageFromSettings()
+        {
+            var result = CamouflageService.Instance.BuildResult(_defaultIcon, _defaultTitle);
+            WindowTitle = result.Title;
+            if (result.Icon != null)
+            {
+                Icon = result.Icon;
+            }
+            CamouflageService.Instance.UpdateDesktopShortcut(result.Title, result.IconPath, result.Enabled);
+        }
+
         private void Window_Loaded(object sender, RoutedEventArgs e)
         {
             if (_zoomPanService == null) return;
-            // 启动后把视口移动到大画布中心
+
+            _touchGestureService = new TouchGestureService();
+            var windowHandle = new System.Windows.Interop.WindowInteropHelper(this).Handle;
+            _touchGestureService.DisableSystemGestures(windowHandle);
+
             Dispatcher.InvokeAsync(() =>
             {
-                // 先确保布局完成，否则 Viewport.ViewportWidth/Height 可能为 0
                 Viewport.UpdateLayout();
 
                 var extentW = MyCanvas.Width * _zoomPanService.Zoom;
