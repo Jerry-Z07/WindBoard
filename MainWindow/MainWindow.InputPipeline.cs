@@ -15,6 +15,7 @@ namespace WindBoard
             SetViewportBitmapCache(true);
             _zoomPanService.ZoomByWheel(e.GetPosition(Viewport), e.Delta);
             ScheduleViewportCacheDisable();
+            ScheduleSelectionDockUpdate();
             e.Handled = true;
         }
 
@@ -24,6 +25,35 @@ namespace WindBoard
         private void MyCanvas_MouseDown(object sender, MouseButtonEventArgs e)
         {
             if (!IsRealMouse(e)) return;
+
+            if (IsSelectModeActive()
+                && e.ChangedButton == MouseButton.Left
+                && !Keyboard.IsKeyDown(Key.Space))
+            {
+                var canvasPoint = e.GetPosition(MyCanvas);
+                var hit = HitTestAttachment(canvasPoint);
+                if (hit != null)
+                {
+                    SelectAttachment(hit);
+                    if (e.ClickCount >= 2)
+                    {
+                        if (hit.Type == BoardAttachmentType.Video && !string.IsNullOrWhiteSpace(hit.FilePath))
+                        {
+                            OpenExternal(hit.FilePath);
+                        }
+                        else if (hit.Type == BoardAttachmentType.Link && !string.IsNullOrWhiteSpace(hit.Url))
+                        {
+                            OpenExternal(hit.Url);
+                        }
+                    }
+
+                    e.Handled = true;
+                    return;
+                }
+
+                // 未命中附件：交给 InkCanvas 做笔迹选择，同时清除当前附件选择框
+                SelectAttachment(null);
+            }
 
             if (Keyboard.IsKeyDown(Key.Space) && e.ChangedButton == MouseButton.Left)
             {
@@ -45,6 +75,7 @@ namespace WindBoard
         {
             if (_zoomPanService.UpdateMousePan(e.GetPosition(Viewport)))
             {
+                ScheduleSelectionDockUpdate();
                 e.Handled = true;
                 return;
             }
@@ -68,6 +99,7 @@ namespace WindBoard
                 _modeBeforePan?.SwitchOn();
                 _modeBeforePan = null;
                 ScheduleViewportCacheDisable();
+                ScheduleSelectionDockUpdate();
                 e.Handled = true;
             }
 

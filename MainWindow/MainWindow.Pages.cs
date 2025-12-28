@@ -10,6 +10,8 @@ namespace WindBoard
             if (_pageService.CurrentPageIndex <= 0) return;
             _pageService.SwitchToPage(_pageService.CurrentPageIndex - 1);
             AttachUndoToCurrentStrokes();
+            ClearInkCanvasSelectionPreserveEditingMode();
+            SelectAttachment(null);
         }
 
         private void BtnNextPage_Click(object sender, RoutedEventArgs e)
@@ -17,12 +19,16 @@ namespace WindBoard
             if (_pageService.CurrentPageIndex >= Pages.Count - 1) return;
             _pageService.SwitchToPage(_pageService.CurrentPageIndex + 1);
             AttachUndoToCurrentStrokes();
+            ClearInkCanvasSelectionPreserveEditingMode();
+            SelectAttachment(null);
         }
 
         private void BtnAddPage_Click(object sender, RoutedEventArgs e)
         {
             _pageService.AddPage();
             AttachUndoToCurrentStrokes();
+            ClearInkCanvasSelectionPreserveEditingMode();
+            SelectAttachment(null);
         }
 
         private void BtnPageIndicator_Click(object sender, RoutedEventArgs e)
@@ -44,6 +50,8 @@ namespace WindBoard
             {
                 _pageService.SwitchToPage(index);
                 AttachUndoToCurrentStrokes();
+                ClearInkCanvasSelectionPreserveEditingMode();
+                SelectAttachment(null);
             }
         }
 
@@ -51,6 +59,8 @@ namespace WindBoard
         {
             _pageService.DeletePage(e.Page);
             AttachUndoToCurrentStrokes();
+            ClearInkCanvasSelectionPreserveEditingMode();
+            SelectAttachment(null);
         }
 
         private void PageNavigatorControl_Loaded(object sender, RoutedEventArgs e)

@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using System.Collections.ObjectModel;
 using System.Windows.Ink;
 using System.Windows.Media;
 using WindBoard.Services;
@@ -38,6 +39,9 @@ namespace WindBoard
 
         // 页面内容
         public StrokeCollection Strokes { get; set; } = new StrokeCollection();
+
+        // 页面附件（导入的图片/视频/文本/链接等）
+        public ObservableCollection<BoardAttachment> Attachments { get; } = new ObservableCollection<BoardAttachment>();
 
         // 每页画布大小
         public double CanvasWidth { get; set; } = 8000;

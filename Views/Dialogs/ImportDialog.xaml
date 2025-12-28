@@ -1,0 +1,161 @@
+<UserControl x:Class="WindBoard.Views.Dialogs.ImportDialog"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+             MinWidth="560"
+             MaxWidth="760">
+    <Grid Margin="24">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <TextBlock Text="导入"
+                   FontSize="20"
+                   FontWeight="SemiBold"
+                   Foreground="#111"
+                   Margin="0,0,0,12"/>
+
+        <TabControl Grid.Row="1">
+            <TabItem Header="图片">
+                <Grid Margin="0,12,0,0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    <StackPanel Orientation="Horizontal">
+                        <Button Style="{StaticResource MaterialDesignOutlinedButton}"
+                                Padding="14,8"
+                                Click="PickImages_Click">
+                            选择图片…
+                        </Button>
+                        <Button Style="{StaticResource MaterialDesignFlatButton}"
+                                Padding="14,8"
+                                Margin="8,0,0,0"
+                                Click="ClearImages_Click">
+                            清空
+                        </Button>
+                    </StackPanel>
+                    <Border Grid.Row="1" Margin="0,12,0,0" CornerRadius="10" BorderThickness="1" BorderBrush="#E0E0E0">
+                        <ListBox ItemsSource="{Binding ImagePaths}" MinHeight="140"/>
+                    </Border>
+                </Grid>
+            </TabItem>
+
+            <TabItem Header="视频">
+                <Grid Margin="0,12,0,0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    <StackPanel Orientation="Horizontal">
+                        <Button Style="{StaticResource MaterialDesignOutlinedButton}"
+                                Padding="14,8"
+                                Click="PickVideos_Click">
+                            选择视频…
+                        </Button>
+                        <Button Style="{StaticResource MaterialDesignFlatButton}"
+                                Padding="14,8"
+                                Margin="8,0,0,0"
+                                Click="ClearVideos_Click">
+                            清空
+                        </Button>
+                    </StackPanel>
+                    <Border Grid.Row="1" Margin="0,12,0,0" CornerRadius="10" BorderThickness="1" BorderBrush="#E0E0E0">
+                        <ListBox ItemsSource="{Binding VideoPaths}" MinHeight="140"/>
+                    </Border>
+                </Grid>
+            </TabItem>
+
+            <TabItem Header="文本">
+                <Grid Margin="0,12,0,0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <TextBlock Text="粘贴/输入文本" Foreground="#444" FontWeight="SemiBold"/>
+                    <TextBox Grid.Row="1"
+                             Text="{Binding TextContent, UpdateSourceTrigger=PropertyChanged}"
+                             AcceptsReturn="True"
+                             TextWrapping="Wrap"
+                             VerticalScrollBarVisibility="Auto"
+                             MinHeight="120"
+                             Margin="0,8,0,0"/>
+
+                    <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,10,0,0">
+                        <Button Style="{StaticResource MaterialDesignOutlinedButton}"
+                                Padding="14,8"
+                                Click="PickTextFiles_Click">
+                            从文件导入…
+                        </Button>
+                        <Button Style="{StaticResource MaterialDesignFlatButton}"
+                                Padding="14,8"
+                                Margin="8,0,0,0"
+                                Click="ClearTextFiles_Click">
+                            清空文件列表
+                        </Button>
+                        <Button Style="{StaticResource MaterialDesignFlatButton}"
+                                Padding="14,8"
+                                Margin="8,0,0,0"
+                                Click="PasteText_Click">
+                            从剪贴板粘贴
+                        </Button>
+                    </StackPanel>
+
+                    <Border Grid.Row="3" Margin="0,10,0,0" CornerRadius="10" BorderThickness="1" BorderBrush="#E0E0E0">
+                        <ListBox ItemsSource="{Binding TextFilePaths}" MinHeight="120"/>
+                    </Border>
+                </Grid>
+            </TabItem>
+
+            <TabItem Header="网页链接">
+                <Grid Margin="0,12,0,0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    <TextBlock Text="每行一个链接（http/https），可批量导入" Foreground="#444"/>
+                    <TextBox Grid.Row="1"
+                             Text="{Binding LinkLines, UpdateSourceTrigger=PropertyChanged}"
+                             AcceptsReturn="True"
+                             TextWrapping="Wrap"
+                             VerticalScrollBarVisibility="Auto"
+                             MinHeight="180"
+                             Margin="0,8,0,0"/>
+                    <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,10,0,0">
+                        <Button Style="{StaticResource MaterialDesignFlatButton}"
+                                Padding="14,8"
+                                Click="PasteLinks_Click">
+                            从剪贴板粘贴
+                        </Button>
+                        <Button Style="{StaticResource MaterialDesignFlatButton}"
+                                Padding="14,8"
+                                Margin="8,0,0,0"
+                                Click="ClearLinks_Click">
+                            清空
+                        </Button>
+                    </StackPanel>
+                </Grid>
+            </TabItem>
+        </TabControl>
+
+        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
+            <Button Style="{StaticResource MaterialDesignOutlinedButton}"
+                    MinWidth="90"
+                    Margin="0,0,8,0"
+                    Command="{x:Static materialDesign:DialogHost.CloseDialogCommand}">
+                取消
+            </Button>
+            <Button Style="{StaticResource MaterialDesignRaisedButton}"
+                    MinWidth="120"
+                    Click="Import_Click">
+                导入到白板
+            </Button>
+        </StackPanel>
+    </Grid>
+</UserControl>
