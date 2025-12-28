@@ -93,6 +93,8 @@ namespace WindBoard
                         _zoomPanService.Zoom);
                     _strokeService.UpdatePenThickness(_zoomPanService.Zoom);
                 }
+
+                _inkMode?.SetSimulatedPressureConfig(SettingsService.Instance.GetSimulatedPressureConfig());
             };
 
             _popupPenSettings = (Popup)FindName("PopupPenSettings");

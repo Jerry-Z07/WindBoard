@@ -89,6 +89,7 @@ namespace WindBoard
             _autoExpandService = new AutoExpandService(MyCanvas, _zoomPanService, () => _pageService.CurrentPage, () => _inkMode?.HasActiveStroke ?? false);
 
             _inkMode = new InkMode(MyCanvas, () => _zoomPanService.Zoom, OnInkStrokeEndedOrCanceled);
+            _inkMode.SetSimulatedPressureConfig(SettingsService.Instance.GetSimulatedPressureConfig());
             _selectMode = new SelectMode(MyCanvas);
             _noMode = new NoMode(MyCanvas);
             _eraserMode = new EraserMode(

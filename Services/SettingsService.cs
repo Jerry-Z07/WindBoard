@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Windows.Media;
 using Newtonsoft.Json;
+using WindBoard.Core.Ink;
 
 namespace WindBoard
 {
@@ -34,6 +35,17 @@ namespace WindBoard
 
         // 新笔迹粗细模式：开启后，不同缩放下书写的笔迹在同一缩放下粗细一致
         public bool StrokeThicknessConsistencyEnabled { get; set; } = false;
+
+        // 模拟笔锋：对无压感输入（触摸/鼠标）合成 PressureFactor
+        public bool SimulatedPressureEnabled { get; set; } = true;
+        public double SimulatedPressureStartTaperMm { get; set; } = 5.5;
+        public double SimulatedPressureEndTaperMm { get; set; } = 8.0;
+        public double SimulatedPressureSpeedMinMmPerSec { get; set; } = 30.0;
+        public double SimulatedPressureSpeedMaxMmPerSec { get; set; } = 750.0;
+        public double SimulatedPressureFastSpeedMinFactor { get; set; } = 0.62;
+        public double SimulatedPressureFloor { get; set; } = 0.26;
+        public double SimulatedPressureEndFloor { get; set; } = 0.06;
+        public double SimulatedPressureSmoothingTauMs { get; set; } = 18.0;
     }
 
     // 设置服务：负责加载 / 保存 JSON，并向 UI 广播变更
@@ -190,6 +202,43 @@ namespace WindBoard
         public void SetStrokeThicknessConsistencyEnabled(bool enabled)
         {
             Settings.StrokeThicknessConsistencyEnabled = enabled;
+            Save();
+            SettingsChanged?.Invoke(this, Settings);
+        }
+
+        public SimulatedPressureConfig GetSimulatedPressureConfig()
+        {
+            var cfg = new SimulatedPressureConfig
+            {
+                Enabled = Settings.SimulatedPressureEnabled,
+                StartTaperMm = Settings.SimulatedPressureStartTaperMm,
+                EndTaperMm = Settings.SimulatedPressureEndTaperMm,
+                SpeedMinMmPerSec = Settings.SimulatedPressureSpeedMinMmPerSec,
+                SpeedMaxMmPerSec = Settings.SimulatedPressureSpeedMaxMmPerSec,
+                FastSpeedMinFactor = Settings.SimulatedPressureFastSpeedMinFactor,
+                PressureFloor = (float)Settings.SimulatedPressureFloor,
+                EndPressureFloor = (float)Settings.SimulatedPressureEndFloor,
+                SmoothingTauMs = Settings.SimulatedPressureSmoothingTauMs
+            };
+            cfg.ClampInPlace();
+            return cfg;
+        }
+
+        public void SetSimulatedPressureConfig(SimulatedPressureConfig config)
+        {
+            var cfg = (config ?? new SimulatedPressureConfig()).Clone();
+            cfg.ClampInPlace();
+
+            Settings.SimulatedPressureEnabled = cfg.Enabled;
+            Settings.SimulatedPressureStartTaperMm = cfg.StartTaperMm;
+            Settings.SimulatedPressureEndTaperMm = cfg.EndTaperMm;
+            Settings.SimulatedPressureSpeedMinMmPerSec = cfg.SpeedMinMmPerSec;
+            Settings.SimulatedPressureSpeedMaxMmPerSec = cfg.SpeedMaxMmPerSec;
+            Settings.SimulatedPressureFastSpeedMinFactor = cfg.FastSpeedMinFactor;
+            Settings.SimulatedPressureFloor = cfg.PressureFloor;
+            Settings.SimulatedPressureEndFloor = cfg.EndPressureFloor;
+            Settings.SimulatedPressureSmoothingTauMs = cfg.SmoothingTauMs;
+
             Save();
             SettingsChanged?.Invoke(this, Settings);
         }
