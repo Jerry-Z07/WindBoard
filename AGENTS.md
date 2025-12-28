@@ -19,7 +19,7 @@
 
 ## Coding Style & Naming Conventions
 - C# with nullable enabled; prefer explicit types and guard clauses for null-sensitive code paths.
-- Indent with 4 spaces; keep using statements sorted and scoped minimal.
+- Indent with 4 spaces; keep using statements sorted and scoped minimally.
 - PascalCase for types/methods/properties; camelCase for locals/parameters; `_camelCase` for private fields when needed.
 - Favor small, single-responsibility methods; continue splitting large code-behind into partial classes under `MainWindow/`.
 - When adding styles or resources, place shared entries in `Styles/` or `Resources/Fonts/` and reference via XAML resource keys.
