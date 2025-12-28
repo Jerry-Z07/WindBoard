@@ -15,6 +15,7 @@ namespace WindBoard
             SetViewportBitmapCache(true);
             _zoomPanService.ZoomByWheel(e.GetPosition(Viewport), e.Delta);
             ScheduleViewportCacheDisable();
+            ScheduleSelectionDockUpdate();
             e.Handled = true;
         }
 
@@ -24,6 +25,11 @@ namespace WindBoard
         private void MyCanvas_MouseDown(object sender, MouseButtonEventArgs e)
         {
             if (!IsRealMouse(e)) return;
+
+            if (TryHandleAttachmentSelectModeMouseDown(e))
+            {
+                return;
+            }
 
             if (Keyboard.IsKeyDown(Key.Space) && e.ChangedButton == MouseButton.Left)
             {
@@ -45,6 +51,7 @@ namespace WindBoard
         {
             if (_zoomPanService.UpdateMousePan(e.GetPosition(Viewport)))
             {
+                ScheduleSelectionDockUpdate();
                 e.Handled = true;
                 return;
             }
@@ -68,6 +75,7 @@ namespace WindBoard
                 _modeBeforePan?.SwitchOn();
                 _modeBeforePan = null;
                 ScheduleViewportCacheDisable();
+                ScheduleSelectionDockUpdate();
                 e.Handled = true;
             }
 

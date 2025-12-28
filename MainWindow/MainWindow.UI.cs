@@ -187,12 +187,20 @@ namespace WindBoard
             _modeController.SetCurrentMode(_inkMode);
             if (_popupEraserClear != null)
                 _popupEraserClear.IsOpen = false;
+
+            // 退出选择模式时，隐藏选中框与悬浮 Dock
+            ClearInkCanvasSelectionPreserveEditingMode();
+            SelectAttachment(null);
         }
 
         private void RadioEraser_Checked(object sender, RoutedEventArgs e)
         {
             if (_modeController == null || _eraserMode == null) return;
             _modeController.SetCurrentMode(_eraserMode);
+
+            // 退出选择模式时，隐藏选中框与悬浮 Dock
+            ClearInkCanvasSelectionPreserveEditingMode();
+            SelectAttachment(null);
         }
 
         private void RadioSelect_Checked(object sender, RoutedEventArgs e)
@@ -603,7 +611,12 @@ namespace WindBoard
 
         public void SetBackgroundColor(Color color)
         {
-            MyCanvas.Background = new SolidColorBrush(color);
+            var brush = new SolidColorBrush(color);
+            if (CanvasHost != null) CanvasHost.Background = brush;
+            if (Viewport != null) Viewport.Background = brush;
+
+            // InkCanvas 必须保持透明，否则会遮住“底层附件”
+            if (MyCanvas != null) MyCanvas.Background = Brushes.Transparent;
         }
 
         private void MenuExit_Click(object sender, RoutedEventArgs e)

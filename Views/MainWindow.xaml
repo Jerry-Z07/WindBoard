@@ -15,6 +15,109 @@
         <Grid x:Name="RootGrid" Background="#2E2F33" ClipToBounds="False">
         <Grid.Resources>
             <BooleanToVisibilityConverter x:Key="BoolToVis"/>
+
+            <DataTemplate x:Key="AttachmentItemTemplate">
+                <Border CornerRadius="10"
+                        BorderThickness="1"
+                        BorderBrush="#3A3B40"
+                        Background="#202126"
+                        SnapsToDevicePixels="True">
+                    <Grid>
+                        <Grid x:Name="DefaultView">
+                            <TextBlock Text="{Binding DisplayName}"
+                                       Foreground="#EDEDED"
+                                       TextWrapping="Wrap"
+                                       Margin="12"
+                                       FontSize="14"/>
+                        </Grid>
+
+                        <Grid x:Name="ImageView" Visibility="Collapsed">
+                            <Border Background="#111215" CornerRadius="10"/>
+                            <Image Source="{Binding Image}"
+                                   Stretch="Uniform"
+                                   SnapsToDevicePixels="True"
+                                   RenderOptions.BitmapScalingMode="HighQuality"/>
+                            <TextBlock x:Name="ImageFallbackText"
+                                       Text="{Binding DisplayName}"
+                                       Foreground="#BDBDBD"
+                                       HorizontalAlignment="Center"
+                                       VerticalAlignment="Center"
+                                       Margin="12"
+                                       FontSize="13"
+                                       Visibility="Collapsed"/>
+                        </Grid>
+
+                        <Grid x:Name="TextView" Visibility="Collapsed">
+                            <ScrollViewer Margin="12"
+                                          HorizontalScrollBarVisibility="Disabled"
+                                          VerticalScrollBarVisibility="Auto">
+                                <TextBlock Text="{Binding Text}"
+                                           Foreground="#EDEDED"
+                                           TextWrapping="Wrap"
+                                           FontSize="14"/>
+                            </ScrollViewer>
+                        </Grid>
+
+                        <Grid x:Name="VideoView" Visibility="Collapsed" Margin="12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <materialDesign:PackIcon Kind="Video"
+                                                     Width="28"
+                                                     Height="28"
+                                                     Foreground="#EDEDED"
+                                                     VerticalAlignment="Center"/>
+                            <StackPanel Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding DisplayName}" Foreground="#EDEDED" FontWeight="SemiBold" FontSize="14"/>
+                                <TextBlock Text="双击打开外部播放器" Foreground="#BDBDBD" FontSize="12" Margin="0,4,0,0"/>
+                            </StackPanel>
+                        </Grid>
+
+                        <Grid x:Name="LinkView" Visibility="Collapsed" Margin="12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <materialDesign:PackIcon Kind="LinkVariant"
+                                                     Width="26"
+                                                     Height="26"
+                                                     Foreground="#EDEDED"
+                                                     VerticalAlignment="Center"/>
+                            <StackPanel Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding Url}" Foreground="#EDEDED" TextWrapping="Wrap" FontSize="13"/>
+                                <TextBlock Text="双击外部打开" Foreground="#BDBDBD" FontSize="12" Margin="0,4,0,0"/>
+                            </StackPanel>
+                        </Grid>
+                    </Grid>
+                </Border>
+                <DataTemplate.Triggers>
+                    <DataTrigger Binding="{Binding Type}" Value="Image">
+                        <Setter TargetName="DefaultView" Property="Visibility" Value="Collapsed"/>
+                        <Setter TargetName="ImageView" Property="Visibility" Value="Visible"/>
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding Type}" Value="Text">
+                        <Setter TargetName="DefaultView" Property="Visibility" Value="Collapsed"/>
+                        <Setter TargetName="TextView" Property="Visibility" Value="Visible"/>
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding Type}" Value="Video">
+                        <Setter TargetName="DefaultView" Property="Visibility" Value="Collapsed"/>
+                        <Setter TargetName="VideoView" Property="Visibility" Value="Visible"/>
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding Type}" Value="Link">
+                        <Setter TargetName="DefaultView" Property="Visibility" Value="Collapsed"/>
+                        <Setter TargetName="LinkView" Property="Visibility" Value="Visible"/>
+                    </DataTrigger>
+
+                    <MultiDataTrigger>
+                        <MultiDataTrigger.Conditions>
+                            <Condition Binding="{Binding Type}" Value="Image"/>
+                            <Condition Binding="{Binding Image}" Value="{x:Null}"/>
+                        </MultiDataTrigger.Conditions>
+                        <Setter TargetName="ImageFallbackText" Property="Visibility" Value="Visible"/>
+                    </MultiDataTrigger>
+                </DataTemplate.Triggers>
+            </DataTemplate>
         </Grid.Resources>
 
         <!-- 视口：负责“看哪里” -->
@@ -32,23 +135,85 @@
                     <ScaleTransform x:Name="ZoomTransform" ScaleX="1" ScaleY="1"/>
                 </Grid.LayoutTransform>
 
+                <!-- 导入内容层（底层）：默认在笔迹下方 -->
+                <ItemsControl x:Name="AttachmentLayerBottom"
+                              ItemsSource="{Binding CurrentAttachments}"
+                              ItemTemplate="{StaticResource AttachmentItemTemplate}"
+                              IsHitTestVisible="False"
+                              Panel.ZIndex="0">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <Canvas/>
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemContainerStyle>
+                        <Style TargetType="ContentPresenter">
+                            <Setter Property="Canvas.Left" Value="{Binding X}"/>
+                            <Setter Property="Canvas.Top" Value="{Binding Y}"/>
+                            <Setter Property="Width" Value="{Binding Width}"/>
+                            <Setter Property="Height" Value="{Binding Height}"/>
+                            <Setter Property="Panel.ZIndex" Value="{Binding ZIndex}"/>
+                            <Setter Property="Visibility" Value="Visible"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsPinnedTop}" Value="True">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </ItemsControl.ItemContainerStyle>
+                </ItemsControl>
+
                 <!-- 核心白板控件：不再使用 RenderTransform -->
                 <InkCanvas Name="MyCanvas"
-                           Background="#2E2F33"
-                           Width="8000" Height="8000"
-                           HorizontalAlignment="Left" VerticalAlignment="Top"
-                           Margin="0"
-                           IsManipulationEnabled="False"
-                           TouchDown="MyCanvas_TouchDown"
-                           TouchMove="MyCanvas_TouchMove"
-                           TouchUp="MyCanvas_TouchUp"
-                           TouchLeave="MyCanvas_TouchUp"
-                           MouseWheel="MyCanvas_MouseWheel">
+                           Background="Transparent"
+                            Width="8000" Height="8000"
+                            HorizontalAlignment="Left" VerticalAlignment="Top"
+                            Margin="0"
+                            IsManipulationEnabled="False"
+                            Panel.ZIndex="10"
+                            TouchDown="MyCanvas_TouchDown"
+                            TouchMove="MyCanvas_TouchMove"
+                            TouchUp="MyCanvas_TouchUp"
+                            TouchLeave="MyCanvas_TouchUp"
+                            MouseWheel="MyCanvas_MouseWheel">
 
                     <InkCanvas.DefaultDrawingAttributes>
                         <DrawingAttributes Color="White" Width="2" Height="2" IgnorePressure="True" FitToCurve="False"/>
                     </InkCanvas.DefaultDrawingAttributes>
                 </InkCanvas>
+
+                <!-- 导入内容层（置顶层）：用户显式“置顶”的附件会提升到笔迹之上 -->
+                <ItemsControl x:Name="AttachmentLayerTop"
+                              ItemsSource="{Binding CurrentAttachments}"
+                              ItemTemplate="{StaticResource AttachmentItemTemplate}"
+                              IsHitTestVisible="False"
+                              Panel.ZIndex="20">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <Canvas/>
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemContainerStyle>
+                        <Style TargetType="ContentPresenter">
+                            <Setter Property="Canvas.Left" Value="{Binding X}"/>
+                            <Setter Property="Canvas.Top" Value="{Binding Y}"/>
+                            <Setter Property="Width" Value="{Binding Width}"/>
+                            <Setter Property="Height" Value="{Binding Height}"/>
+                            <Setter Property="Panel.ZIndex" Value="{Binding ZIndex}"/>
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding IsPinnedTop}" Value="True">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </ItemsControl.ItemContainerStyle>
+                </ItemsControl>
+
+                <!-- 附件交互覆盖层：仅显示选中框/拖拽/缩放句柄（内容仍在 AttachmentLayer，避免遮挡笔迹） -->
+                <Canvas x:Name="AttachmentSelectionOverlay"
+                        IsHitTestVisible="True"
+                        Panel.ZIndex="30"/>
 
                 <!-- 触摸绘制点游标覆盖层：跟随内容缩放（不拦截输入） -->
                 <Canvas x:Name="TouchCursorOverlay"
@@ -56,7 +221,7 @@
                         Height="{Binding ElementName=MyCanvas, Path=Height}"
                         IsHitTestVisible="False"
                         Visibility="Collapsed"
-                        Panel.ZIndex="4">
+                        Panel.ZIndex="40">
                     <Ellipse x:Name="TouchCursorDot"
                              Width="10"
                              Height="10"
@@ -70,7 +235,7 @@
                         Height="{Binding ElementName=MyCanvas, Path=Height}"
                         IsHitTestVisible="False"
                         Visibility="Collapsed"
-                        Panel.ZIndex="5">
+                        Panel.ZIndex="41">
                     <Border x:Name="EraserCursorRect"
                             Background="#FFFAFA"
                             CornerRadius="0"
@@ -80,6 +245,37 @@
                 </Canvas>
             </Grid>
         </ScrollViewer>
+
+        <!-- 选择悬浮 Dock：仅在选中笔迹/附件时显示（覆盖在视口之上，不参与缩放） -->
+        <Canvas x:Name="SelectionDockLayer" Panel.ZIndex="25" IsHitTestVisible="True">
+            <Border x:Name="SelectionDock"
+                    Background="#25262A"
+                    CornerRadius="12"
+                    Padding="5"
+                    Visibility="Collapsed"
+                    Effect="{StaticResource MaterialDesignShadowDepth2}">
+                <StackPanel Orientation="Horizontal">
+                    <Button x:Name="BtnSelectionTop"
+                            Content="置顶"
+                            Tag="ArrangeBringToFront"
+                            Style="{StaticResource BottomButtonStyle}"
+                            Click="BtnSelectionTop_Click">
+                    </Button>
+                    <Button x:Name="BtnSelectionCopy"
+                            Content="复制"
+                            Tag="ContentCopy"
+                            Style="{StaticResource BottomButtonStyle}"
+                            Click="BtnSelectionCopy_Click">
+                    </Button>
+                    <Button x:Name="BtnSelectionDelete"
+                            Content="删除"
+                            Tag="Delete"
+                            Style="{StaticResource BottomButtonStyle}"
+                            Click="BtnSelectionDelete_Click">
+                    </Button>
+                </StackPanel>
+            </Border>
+        </Canvas>
 
         <!-- 悬浮工具栏区域（覆盖在视口之上，不参与缩放） -->
         <StackPanel Orientation="Horizontal" VerticalAlignment="Bottom" HorizontalAlignment="Center" Margin="0,0,0,30" Panel.ZIndex="10" Opacity="0.85">
@@ -260,6 +456,9 @@
                 <Button Name="BtnMinimize" Content="最小化" Tag="WindowMinimize"
                         Style="{StaticResource BottomButtonStyle}"
                         Click="BtnMinimize_Click"/>
+                <Button Name="BtnImport" Content="导入" Tag="Download"
+                        Style="{StaticResource BottomButtonStyle}"
+                        Click="BtnImport_Click"/>
             </StackPanel>
         </Border>
 

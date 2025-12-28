@@ -59,6 +59,7 @@ namespace WindBoard
         public ObservableCollection<BoardPage> Pages => _pageService.Pages;
         public bool IsMultiPage => _pageService.IsMultiPage;
         public string PageIndicatorText => _pageService.PageIndicatorText;
+        public ObservableCollection<BoardAttachment>? CurrentAttachments => _pageService?.CurrentPage?.Attachments;
 
         private void InitializeArchitecture()
         {
@@ -158,6 +159,8 @@ namespace WindBoard
             AttachUndoToCurrentStrokes();
             MyCanvas.CommandBindings.Add(new CommandBinding(ApplicationCommands.Undo, Undo_Executed, Undo_CanExecute));
             MyCanvas.CommandBindings.Add(new CommandBinding(ApplicationCommands.Redo, Redo_Executed, Redo_CanExecute));
+
+            InitializeAttachmentUi();
         }
 
         private void OnInkStrokeEndedOrCanceled()
@@ -239,6 +242,7 @@ namespace WindBoard
         {
             OnPropertyChanged(nameof(IsMultiPage));
             OnPropertyChanged(nameof(PageIndicatorText));
+            OnPropertyChanged(nameof(CurrentAttachments));
         }
 
         private void BeginUndoTransactionForCurrentMode()
