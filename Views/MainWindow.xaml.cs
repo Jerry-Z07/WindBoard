@@ -18,6 +18,10 @@ namespace WindBoard
             {
                 // ignore disposal errors on shutdown
             }
+            finally
+            {
+                _bitmapLoader.Dispose();
+            }
 
             base.OnClosed(e);
         }

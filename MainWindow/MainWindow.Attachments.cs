@@ -33,7 +33,7 @@ namespace WindBoard
          private Button? _btnSelectionCopy;
          private bool _selectionDockUpdateScheduled;
 
-        private static readonly StaBitmapLoader _bitmapLoader = new();
+        private readonly StaBitmapLoader _bitmapLoader = new();
 
          private void InitializeAttachmentUi()
          {
@@ -139,16 +139,8 @@ namespace WindBoard
             if (!IsSelectModeActive()) return;
             if (e.ClickCount < 2) return;
 
-            if (_selectedAttachment.Type == BoardAttachmentType.Video && !string.IsNullOrWhiteSpace(_selectedAttachment.FilePath))
+            if (TryOpenAttachmentExternal(_selectedAttachment))
             {
-                OpenExternal(_selectedAttachment.FilePath);
-                e.Handled = true;
-                return;
-            }
-
-            if (_selectedAttachment.Type == BoardAttachmentType.Link && !string.IsNullOrWhiteSpace(_selectedAttachment.Url))
-            {
-                OpenExternal(_selectedAttachment.Url);
                 e.Handled = true;
             }
         }
@@ -748,35 +740,32 @@ namespace WindBoard
             }
         }
 
-        private void OnAttachmentHitByMouse(Point canvasPoint, int clickCount)
+        private bool TryOpenAttachmentExternal(BoardAttachment? attachment)
         {
-            var hit = HitTestAttachment(canvasPoint);
-            if (hit == null)
+            if (attachment == null) return false;
+
+            if (attachment.Type == BoardAttachmentType.Video && !string.IsNullOrWhiteSpace(attachment.FilePath))
             {
-                SelectAttachment(null);
-                return;
+                OpenExternal(attachment.FilePath);
+                return true;
             }
 
-            SelectAttachment(hit);
-
-            if (clickCount >= 2)
+            if (attachment.Type == BoardAttachmentType.Link && !string.IsNullOrWhiteSpace(attachment.Url))
             {
-                if (hit.Type == BoardAttachmentType.Video && !string.IsNullOrWhiteSpace(hit.FilePath))
-                {
-                    OpenExternal(hit.FilePath);
-                }
-                else if (hit.Type == BoardAttachmentType.Link && !string.IsNullOrWhiteSpace(hit.Url))
-                {
-                    OpenExternal(hit.Url);
-                }
+                OpenExternal(attachment.Url);
+                return true;
             }
+
+            return false;
         }
 
-        private sealed class StaBitmapLoader
+        private sealed class StaBitmapLoader : IDisposable
         {
             private readonly Thread _thread;
             private System.Windows.Threading.Dispatcher? _dispatcher;
             private readonly ManualResetEventSlim _ready = new(false);
+            private readonly ManualResetEventSlim _stopped = new(false);
+            private bool _disposed;
 
             public StaBitmapLoader()
             {
@@ -792,13 +781,25 @@ namespace WindBoard
 
             private void ThreadStart()
             {
-                _dispatcher = System.Windows.Threading.Dispatcher.CurrentDispatcher;
-                _ready.Set();
-                System.Windows.Threading.Dispatcher.Run();
+                try
+                {
+                    _dispatcher = System.Windows.Threading.Dispatcher.CurrentDispatcher;
+                    _ready.Set();
+                    System.Windows.Threading.Dispatcher.Run();
+                }
+                finally
+                {
+                    _stopped.Set();
+                }
             }
 
             public Task<BitmapSource> LoadAsync(string path, int decodePixelWidth)
             {
+                if (_disposed)
+                {
+                    return Task.FromException<BitmapSource>(new ObjectDisposedException(nameof(StaBitmapLoader)));
+                }
+
                 var tcs = new TaskCompletionSource<BitmapSource>(TaskCreationOptions.RunContinuationsAsynchronously);
 
                 var dispatcher = _dispatcher;
@@ -830,6 +831,38 @@ namespace WindBoard
                 }));
 
                 return tcs.Task;
+            }
+
+            public void Dispose()
+            {
+                if (_disposed) return;
+                _disposed = true;
+
+                try
+                {
+                    var dispatcher = _dispatcher;
+                    if (dispatcher != null)
+                    {
+                        dispatcher.BeginInvokeShutdown(System.Windows.Threading.DispatcherPriority.Background);
+                    }
+                }
+                catch
+                {
+                }
+
+                try
+                {
+                    if (!_stopped.Wait(2000) && _thread.IsAlive)
+                    {
+                        _thread.Join(TimeSpan.FromSeconds(2));
+                    }
+                }
+                catch
+                {
+                }
+
+                _ready.Dispose();
+                _stopped.Dispose();
             }
         }
     }

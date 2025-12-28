@@ -35,16 +35,10 @@ namespace WindBoard
                 if (hit != null)
                 {
                     SelectAttachment(hit);
-                    if (e.ClickCount >= 2)
+                    if (e.ClickCount >= 2 && TryOpenAttachmentExternal(hit))
                     {
-                        if (hit.Type == BoardAttachmentType.Video && !string.IsNullOrWhiteSpace(hit.FilePath))
-                        {
-                            OpenExternal(hit.FilePath);
-                        }
-                        else if (hit.Type == BoardAttachmentType.Link && !string.IsNullOrWhiteSpace(hit.Url))
-                        {
-                            OpenExternal(hit.Url);
-                        }
+                        e.Handled = true;
+                        return;
                     }
 
                     e.Handled = true;
