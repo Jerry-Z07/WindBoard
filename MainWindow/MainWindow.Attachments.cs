@@ -55,12 +55,10 @@ namespace WindBoard
 
             BuildAttachmentSelectionOverlay();
 
-            if (Viewport != null)
-            {
-                Viewport.SizeChanged -= Viewport_SizeChanged;
-                Viewport.SizeChanged += Viewport_SizeChanged;
-            }
-        }
+            if (Viewport == null) return;
+            Viewport.SizeChanged -= Viewport_SizeChanged;
+            Viewport.SizeChanged += Viewport_SizeChanged;
+         }
 
         private void Viewport_SizeChanged(object sender, SizeChangedEventArgs e) => ScheduleSelectionDockUpdate();
 
