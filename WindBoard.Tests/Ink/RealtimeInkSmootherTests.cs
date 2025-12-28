@@ -2,13 +2,12 @@ using System;
 using System.Windows;
 using WindBoard.Core.Ink;
 using Xunit;
+using static WindBoard.Tests.TestHelpers.InkTestHelpers;
 
 namespace WindBoard.Tests.Ink;
 
 public sealed class RealtimeInkSmootherTests
 {
-    private const double DipPerMm = 96.0 / 25.4;
-
     [StaFact]
     public void Process_DoesNotThrow_WhenCornerAndStickyOverlap()
     {
@@ -49,4 +48,3 @@ public sealed class RealtimeInkSmootherTests
         Point ToDip(double xMm, double yMm) => new(xMm * DipPerMm / zoom, yMm * DipPerMm / zoom);
     }
 }
-

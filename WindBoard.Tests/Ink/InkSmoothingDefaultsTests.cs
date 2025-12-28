@@ -1,13 +1,12 @@
 using System.Windows;
 using WindBoard.Core.Ink;
 using Xunit;
+using static WindBoard.Tests.TestHelpers.InkTestHelpers;
 
 namespace WindBoard.Tests.Ink;
 
 public sealed class InkSmoothingDefaultsTests
 {
-    private const double DipPerMm = 96.0 / 25.4;
-
     [Fact]
     public void ForContact_WhenNullContact_ReturnsPenDefaults()
     {
@@ -93,4 +92,3 @@ public sealed class InkSmoothingDefaultsTests
         Assert.Equal(expected.EpsilonCornerMm, actual.EpsilonCornerMm, precision: 12);
     }
 }
-

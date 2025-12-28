@@ -1,7 +1,7 @@
 using System.Windows.Ink;
-using System.Windows.Input;
 using WindBoard.Services;
 using Xunit;
+using static WindBoard.Tests.TestHelpers.InkTestHelpers;
 
 namespace WindBoard.Tests.Services;
 
@@ -62,15 +62,5 @@ public sealed class StrokeUndoHistoryTests
         }
 
         Assert.False(history.CanUndo);
-    }
-
-    private static Stroke CreateStroke()
-    {
-        var points = new StylusPointCollection
-        {
-            new StylusPoint(0, 0),
-            new StylusPoint(1, 1)
-        };
-        return new Stroke(points);
     }
 }

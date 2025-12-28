@@ -1,7 +1,7 @@
 using System.Windows.Ink;
-using System.Windows.Input;
 using WindBoard.Core.Ink;
 using Xunit;
+using static WindBoard.Tests.TestHelpers.InkTestHelpers;
 
 namespace WindBoard.Tests.Ink;
 
@@ -40,15 +40,4 @@ public sealed class StrokeThicknessMetadataTests
 
         Assert.False(StrokeThicknessMetadata.TryGetLogicalThicknessDip(stroke, out _));
     }
-
-    private static Stroke CreateStroke()
-    {
-        var points = new StylusPointCollection
-        {
-            new StylusPoint(0, 0),
-            new StylusPoint(1, 1)
-        };
-        return new Stroke(points);
-    }
 }
-
