@@ -9,6 +9,8 @@ namespace WindBoard
     // 应用设置模型（后续可以扩展更多设置项）
     public class AppSettings
     {
+        private static readonly SimulatedPressureConfig SimulatedPressureDefaults = SimulatedPressureConfig.CreateDefault();
+
         // 背景颜色（HEX 或 #AARRGGBB）
         public string BackgroundColorHex { get; set; } = "#2E2F33";
 
@@ -37,15 +39,15 @@ namespace WindBoard
         public bool StrokeThicknessConsistencyEnabled { get; set; } = false;
 
         // 模拟笔锋：对无压感输入（触摸/鼠标）合成 PressureFactor
-        public bool SimulatedPressureEnabled { get; set; } = true;
-        public double SimulatedPressureStartTaperMm { get; set; } = 5.5;
-        public double SimulatedPressureEndTaperMm { get; set; } = 8.0;
-        public double SimulatedPressureSpeedMinMmPerSec { get; set; } = 30.0;
-        public double SimulatedPressureSpeedMaxMmPerSec { get; set; } = 750.0;
-        public double SimulatedPressureFastSpeedMinFactor { get; set; } = 0.62;
-        public double SimulatedPressureFloor { get; set; } = 0.26;
-        public double SimulatedPressureEndFloor { get; set; } = 0.06;
-        public double SimulatedPressureSmoothingTauMs { get; set; } = 18.0;
+        public bool SimulatedPressureEnabled { get; set; } = SimulatedPressureDefaults.Enabled;
+        public double SimulatedPressureStartTaperMm { get; set; } = SimulatedPressureDefaults.StartTaperMm;
+        public double SimulatedPressureEndTaperMm { get; set; } = SimulatedPressureDefaults.EndTaperMm;
+        public double SimulatedPressureSpeedMinMmPerSec { get; set; } = SimulatedPressureDefaults.SpeedMinMmPerSec;
+        public double SimulatedPressureSpeedMaxMmPerSec { get; set; } = SimulatedPressureDefaults.SpeedMaxMmPerSec;
+        public double SimulatedPressureFastSpeedMinFactor { get; set; } = SimulatedPressureDefaults.FastSpeedMinFactor;
+        public double SimulatedPressureFloor { get; set; } = SimulatedPressureDefaults.PressureFloor;
+        public double SimulatedPressureEndFloor { get; set; } = SimulatedPressureDefaults.EndPressureFloor;
+        public double SimulatedPressureSmoothingTauMs { get; set; } = SimulatedPressureDefaults.SmoothingTauMs;
     }
 
     // 设置服务：负责加载 / 保存 JSON，并向 UI 广播变更
@@ -226,7 +228,7 @@ namespace WindBoard
 
         public void SetSimulatedPressureConfig(SimulatedPressureConfig config)
         {
-            var cfg = (config ?? new SimulatedPressureConfig()).Clone();
+            var cfg = (config ?? SimulatedPressureConfig.CreateDefault()).Clone();
             cfg.ClampInPlace();
 
             Settings.SimulatedPressureEnabled = cfg.Enabled;

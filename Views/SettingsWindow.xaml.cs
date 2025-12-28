@@ -51,7 +51,7 @@ namespace WindBoard
         private const string DefaultVideoPresenterPath = @"C:\\Program Files (x86)\\Seewo\\EasiCamera\\sweclauncher\\sweclauncher.exe";
         private const string DefaultVideoPresenterArgs = "-from en5";
 
-        private static readonly SimulatedPressureConfig DefaultSimulatedPressureConfig = new SimulatedPressureConfig();
+        private static readonly SimulatedPressureConfig DefaultSimulatedPressureConfig = SimulatedPressureConfig.CreateDefault();
 
         public event PropertyChangedEventHandler? PropertyChanged;
 
@@ -448,6 +448,21 @@ namespace WindBoard
             }
         }
 
+        private void CleanupSimulatedPressureTimer(bool persistPending)
+        {
+            if (_simulatedPressurePersistTimer != null)
+            {
+                _simulatedPressurePersistTimer.Stop();
+                _simulatedPressurePersistTimer.Tick -= SimulatedPressurePersistTimer_Tick;
+                _simulatedPressurePersistTimer = null;
+            }
+
+            if (persistPending)
+            {
+                PersistSimulatedPressureNow();
+            }
+        }
+
         public SettingsWindow()
         {
             InitializeComponent();
@@ -764,6 +779,12 @@ namespace WindBoard
         private void BtnCancel_Click(object sender, RoutedEventArgs e)
         {
             Close();
+        }
+
+        protected override void OnClosed(EventArgs e)
+        {
+            CleanupSimulatedPressureTimer(persistPending: true);
+            base.OnClosed(e);
         }
 
         // --- 基本设置·伪装 ---

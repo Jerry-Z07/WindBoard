@@ -27,6 +27,13 @@ namespace WindBoard.Core.Ink
         // 收笔回写最多处理的点数（性能上限）
         public int MaxEndTaperPoints { get; set; } = 160;
 
+        public static SimulatedPressureConfig CreateDefault()
+        {
+            var cfg = new SimulatedPressureConfig();
+            cfg.ClampInPlace();
+            return cfg;
+        }
+
         public SimulatedPressureConfig Clone()
         {
             return new SimulatedPressureConfig
@@ -66,4 +73,3 @@ namespace WindBoard.Core.Ink
         }
     }
 }
-
