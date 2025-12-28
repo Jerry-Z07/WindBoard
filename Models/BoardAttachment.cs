@@ -131,7 +131,7 @@ namespace WindBoard
                 {
                     BoardAttachmentType.Image => !string.IsNullOrWhiteSpace(FilePath) ? Path.GetFileName(FilePath) : "图片",
                     BoardAttachmentType.Video => !string.IsNullOrWhiteSpace(FilePath) ? Path.GetFileName(FilePath) : "视频",
-                    BoardAttachmentType.Text => !string.IsNullOrWhiteSpace(Text) ? "文本" : "文本",
+                    BoardAttachmentType.Text => !string.IsNullOrWhiteSpace(Text) ? "文本" : "空文本",
                     BoardAttachmentType.Link => !string.IsNullOrWhiteSpace(Url) ? Url : "链接",
                     _ => "附件"
                 };

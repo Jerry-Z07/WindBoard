@@ -26,27 +26,9 @@ namespace WindBoard
         {
             if (!IsRealMouse(e)) return;
 
-            if (IsSelectModeActive()
-                && e.ChangedButton == MouseButton.Left
-                && !Keyboard.IsKeyDown(Key.Space))
+            if (TryHandleAttachmentSelectModeMouseDown(e))
             {
-                var canvasPoint = e.GetPosition(MyCanvas);
-                var hit = HitTestAttachment(canvasPoint);
-                if (hit != null)
-                {
-                    SelectAttachment(hit);
-                    if (e.ClickCount >= 2 && TryOpenAttachmentExternal(hit))
-                    {
-                        e.Handled = true;
-                        return;
-                    }
-
-                    e.Handled = true;
-                    return;
-                }
-
-                // 未命中附件：交给 InkCanvas 做笔迹选择，同时清除当前附件选择框
-                SelectAttachment(null);
+                return;
             }
 
             if (Keyboard.IsKeyDown(Key.Space) && e.ChangedButton == MouseButton.Left)

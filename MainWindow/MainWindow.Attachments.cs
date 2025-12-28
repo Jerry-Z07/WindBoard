@@ -137,9 +137,8 @@ namespace WindBoard
         {
             if (_selectedAttachment == null) return;
             if (!IsSelectModeActive()) return;
-            if (e.ClickCount < 2) return;
 
-            if (TryOpenAttachmentExternal(_selectedAttachment))
+            if (TryOpenAttachmentExternalOnDoubleClick(_selectedAttachment, e.ClickCount))
             {
                 e.Handled = true;
             }
@@ -267,6 +266,33 @@ namespace WindBoard
         {
             var mode = _modeController?.ActiveMode ?? _modeController?.CurrentMode;
             return ReferenceEquals(mode, _selectMode);
+        }
+
+        private bool TryHandleAttachmentSelectModeMouseDown(MouseButtonEventArgs e)
+        {
+            if (!IsSelectModeActive()) return false;
+            if (e.ChangedButton != MouseButton.Left) return false;
+            if (Keyboard.IsKeyDown(Key.Space)) return false;
+
+            var canvasPoint = e.GetPosition(MyCanvas);
+            var hit = HitTestAttachment(canvasPoint);
+            if (hit == null)
+            {
+                // 未命中附件：交给 InkCanvas 做笔迹选择，同时清除当前附件选择框
+                SelectAttachment(null);
+                return false;
+            }
+
+            SelectAttachment(hit);
+
+            if (TryOpenAttachmentExternalOnDoubleClick(hit, e.ClickCount))
+            {
+                e.Handled = true;
+                return true;
+            }
+
+            e.Handled = true;
+            return true;
         }
 
         private BoardAttachment? HitTestAttachment(Point canvasPoint)
@@ -758,6 +784,9 @@ namespace WindBoard
 
             return false;
         }
+
+        private bool TryOpenAttachmentExternalOnDoubleClick(BoardAttachment? attachment, int clickCount)
+            => clickCount >= 2 && TryOpenAttachmentExternal(attachment);
 
         private sealed class StaBitmapLoader : IDisposable
         {
