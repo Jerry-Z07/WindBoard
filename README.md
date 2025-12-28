@@ -1,6 +1,6 @@
 # WindBoard
 
-> [!NOTE]
+> [!WARNING]
 > 本项目完全使用AI开发，使用了GPT、GLM、Deepseek等厂商的模型，如对此感到不适请寻找其它软件进行替代。
 
 > [!NOTE]
