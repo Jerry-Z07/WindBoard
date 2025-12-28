@@ -19,4 +19,9 @@
     <Resource Include="resources\fonts\*.ttf" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Compile Remove="WindBoard.Tests\\**\\*.cs" />
+    <None Remove="WindBoard.Tests\\**\\*" />
+  </ItemGroup>
+
 </Project>

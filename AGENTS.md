@@ -1,37 +1,37 @@
 # Repository Guidelines
 
-## Project Overview
-WindBoard is a Windows-only WPF whiteboard app built on `.NET 10` with MaterialDesignThemes (Material Design 3). Most changes are UI/interaction-heavy; please include repro steps and screenshots when you touch XAML or styling.
-
 ## Project Structure & Module Organization
-- `Core/`: input pipeline, interaction modes, ink smoothing/filters.
-- `Views/`: WPF views and controls (`*.xaml` + `*.xaml.cs`), including `MainWindow.xaml`.
-- `MainWindow/`: main window logic split by concern (UI, pages, input pipeline).
-- `Services/`: app services (pages, settings, preview rendering, strokes, zoom/pan).
-- `Models/`: small data models.
-- `Styles/` and `Resources/`: XAML styles and assets (e.g., `Resources/Fonts/*.ttf`).
+- `Core/`: input pipeline, ink smoothing (`Ink/`), stylus adapters (`Input/`), and mode logic (`Modes/`).
+- `Services/`: page, stroke, zoom/pan, settings persistence, and auxiliary behaviors (camouflage, auto-expand).
+- `MainWindow/`: partial classes split by concern (architecture, attachments, input pipeline, pages, UI glue).
+- `Models/`: board page, attachments, and import request types.
+- `Views/`: XAML views and controls (dialogs, page navigator, windows) plus backing code-behind.
+- `Styles/` and `Resources/`: shared styles and fonts.
+- `WindBoard.Tests/`: xUnit test suites organized by domain (`Ink/`, `Services/`); keep new tests colocated.
+- `docs/`: user-facing docs; prefer adding architecture notes here when relevant.
 
 ## Build, Test, and Development Commands
-Run from the repo root:
-- `dotnet restore`: restore NuGet packages.
-- `dotnet build -c Debug`: build the solution.
-- `dotnet run --project WindBoard.csproj`: run the WPF app.
-- `dotnet build -c Release`: produce release binaries (also works via Visual Studio 2022+).
+- `dotnet restore` — restore NuGet packages.
+- `dotnet build WindBoard.sln` — compile app and tests (target `net10.0-windows10.0.26100.0` with WPF).
+- `dotnet run --project WindBoard.csproj` — launch the WPF app.
+- `dotnet test WindBoard.sln` — run all xUnit tests; add `-p:CollectCoverage=true` to emit coverage via coverlet.
+- `dotnet format` — keep C# formatting consistent before sending a PR.
 
 ## Coding Style & Naming Conventions
-- Indentation: 4 spaces in C#; keep XAML attributes readable and wrap long lines.
-- Naming: `PascalCase` for types/methods, `camelCase` for locals/fields; keep folders aligned with domain (`Core/*`, `Services/*`, `Views/*`).
-- Nullability is enabled (`<Nullable>enable</Nullable>`); prefer fixing warnings over suppressing them.
-- `.editorconfig` currently only tunes `CS8622` severity—use your IDE/VS formatting defaults for consistency.
+- C# with nullable enabled; prefer explicit types and guard clauses for null-sensitive code paths.
+- Indent with 4 spaces; keep using statements sorted and scoped minimally.
+- PascalCase for types/methods/properties; camelCase for locals/parameters; `_camelCase` for private fields when needed.
+- Favor small, single-responsibility methods; continue splitting large code-behind into partial classes under `MainWindow/`.
+- When adding styles or resources, place shared entries in `Styles/` or `Resources/Fonts/` and reference via XAML resource keys.
 
 ## Testing Guidelines
-There is no dedicated automated test project today. For changes:
-- Add clear manual verification steps (device type if relevant: mouse/pen/touch).
-- For UI changes, attach screenshots or short clips and note display scaling (100%/125%/150%).
+- Framework: xUnit with `StaFact` for WPF-affecting tests; reuse the existing `ClassName_MethodUnderTest_ExpectedOutcome` naming pattern.
+- Keep test fixtures under the matching domain folder (e.g., `WindBoard.Tests/Ink` for ink algorithms).
+- For input/ink behaviors, construct `InkCanvas`, `StrokeCollection`, and `StylusPointCollection` as shown in current tests; assert both state and side effects (e.g., page content versions, stroke collections).
+- Aim to cover new services or modes with positive, boundary, and undo/redo scenarios; prefer deterministic data over randomness.
 
 ## Commit & Pull Request Guidelines
-- Commit messages follow “conventional commit” style: `feat:`, `fix:`, `refactor:`, optionally scoped like `feat(UI): ...`.
-- PRs should include: summary, motivation/linked issue, manual test steps, and screenshots for visual changes. Keep PRs focused; avoid unrelated refactors.
-
-## Security & Configuration Tips
-- User settings are persisted to `%APPDATA%\\WindBoard\\settings.json`; avoid committing local settings or machine-specific paths.
+- Follow the existing Conventional-Commit style (`feat:`, `refactor:`, etc.); keep messages concise and scoped to one change.
+- Ensure `dotnet build` and `dotnet test` pass before opening a PR; include relevant test additions.
+- PR description should summarize behavior change, affected modules, and user-visible impact; link issues when available.
+- Include screenshots or short clips for UI-affecting changes (dialogs, controls, or new gestures).
