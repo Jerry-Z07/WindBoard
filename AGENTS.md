@@ -1,37 +1,23 @@
 # Repository Guidelines
 
-## Project Overview
-WindBoard is a Windows-only WPF whiteboard app built on `.NET 10` with MaterialDesignThemes (Material Design 3). Most changes are UI/interaction-heavy; please include repro steps and screenshots when you touch XAML or styling.
-
 ## Project Structure & Module Organization
-- `Core/`: input pipeline, interaction modes, ink smoothing/filters.
-- `Views/`: WPF views and controls (`*.xaml` + `*.xaml.cs`), including `MainWindow.xaml`.
-- `MainWindow/`: main window logic split by concern (UI, pages, input pipeline).
-- `Services/`: app services (pages, settings, preview rendering, strokes, zoom/pan).
-- `Models/`: small data models.
-- `Styles/` and `Resources/`: XAML styles and assets (e.g., `Resources/Fonts/*.ttf`).
+WindBoard is a Windows-only WPF whiteboard app targeting .NET 10 with MaterialDesignThemes (Material Design 3). Key folders: `Core/` (input pipeline, interaction modes, ink smoothing and filters), `Services/` (pages, strokes, zoom/pan, settings, preview rendering), `MainWindow/` (UI, pages, input pipeline split by concern), `Views/` (XAML views/controls, including `MainWindow.xaml`), `Styles/` and `Resources/` (XAML styles, fonts), and `Models/` (lightweight data models). Build artifacts live in `bin/` and `obj/`; settings are written to `%APPDATA%\WindBoard\settings.json` (do not commit).
 
 ## Build, Test, and Development Commands
-Run from the repo root:
-- `dotnet restore`: restore NuGet packages.
-- `dotnet build -c Debug`: build the solution.
-- `dotnet run --project WindBoard.csproj`: run the WPF app.
-- `dotnet build -c Release`: produce release binaries (also works via Visual Studio 2022+).
+- `dotnet restore` – restore NuGet packages.
+- `dotnet build -c Debug` – build the solution for local development.
+- `dotnet run --project WindBoard.csproj` – launch the WPF app.
+- `dotnet build -c Release` – create release binaries.  
+Run commands from the repo root. Visual Studio 2022+ or VS Code works; the project targets `net10.0-windows10.0.26100.0`.
 
 ## Coding Style & Naming Conventions
-- Indentation: 4 spaces in C#; keep XAML attributes readable and wrap long lines.
-- Naming: `PascalCase` for types/methods, `camelCase` for locals/fields; keep folders aligned with domain (`Core/*`, `Services/*`, `Views/*`).
-- Nullability is enabled (`<Nullable>enable</Nullable>`); prefer fixing warnings over suppressing them.
-- `.editorconfig` currently only tunes `CS8622` severity—use your IDE/VS formatting defaults for consistency.
+Use 4-space indentation in C#; keep XAML attributes readable and wrap long lines. Naming: `PascalCase` for types/methods/properties/events, `camelCase` for locals/fields/parameters. Nullability is enabled; prefer fixing warnings over suppressing them. Stick to the existing folder topology (Core/Services/MainWindow/Views). Follow Material Design 3 patterns already present in XAML. `.editorconfig` only downgrades CS8622 to suggestion—otherwise use default .NET formatting.
 
 ## Testing Guidelines
-There is no dedicated automated test project today. For changes:
-- Add clear manual verification steps (device type if relevant: mouse/pen/touch).
-- For UI changes, attach screenshots or short clips and note display scaling (100%/125%/150%).
+There is no automated test project yet. Manually verify the whiteboard with the relevant input device (mouse/pen/touch) and note display scaling (e.g., 100%/125%/150%). For UI or styling changes, include repro steps and screenshots or short clips. Try to cover drawing, erase, select, page navigation, zoom/pan, and attachments when they are affected.
 
 ## Commit & Pull Request Guidelines
-- Commit messages follow “conventional commit” style: `feat:`, `fix:`, `refactor:`, optionally scoped like `feat(UI): ...`.
-- PRs should include: summary, motivation/linked issue, manual test steps, and screenshots for visual changes. Keep PRs focused; avoid unrelated refactors.
+Use conventional commits (`feat:`, `fix:`, `refactor:`, optionally scoped like `feat(UI): …`). Keep PRs focused and describe the motivation/linked issue. Include a brief summary of changes, manual test steps (per device), and screenshots for visual changes. Avoid unrelated refactors in the same PR.
 
 ## Security & Configuration Tips
-- User settings are persisted to `%APPDATA%\\WindBoard\\settings.json`; avoid committing local settings or machine-specific paths.
+User settings persist to `%APPDATA%\WindBoard\settings.json`; avoid committing local config or machine-specific paths. Respect bundled assets under `Resources/` and `Styles/`. If you add fonts or binaries, ensure licensing is compatible with Apache 2.0.
