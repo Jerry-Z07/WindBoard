@@ -3,53 +3,10 @@ using System.IO;
 using System.Windows.Media;
 using Newtonsoft.Json;
 using WindBoard.Core.Ink;
+using WindBoard.Models;
 
-namespace WindBoard
+namespace WindBoard.Services
 {
-    // 应用设置模型（后续可以扩展更多设置项）
-    public class AppSettings
-    {
-        private static readonly SimulatedPressureConfig SimulatedPressureDefaults = SimulatedPressureConfig.CreateDefault();
-
-        // 背景颜色（HEX 或 #AARRGGBB）
-        public string BackgroundColorHex { get; set; } = "#2E2F33";
-
-        // 是否显示“视频展台”按钮
-        public bool VideoPresenterEnabled { get; set; } = true;
-
-        // 视频展台程序路径
-        public string VideoPresenterPath { get; set; } = @"C:\\Program Files (x86)\\Seewo\\EasiCamera\\sweclauncher\\sweclauncher.exe";
-
-        // 启动附加参数
-        public string VideoPresenterArgs { get; set; } = "-from en5";
-
-        // 伪装：是否启用
-        public bool CamouflageEnabled { get; set; } = false;
-
-        // 伪装：自定义标题
-        public string CamouflageTitle { get; set; } = string.Empty;
-
-        // 伪装：图标来源路径（exe/ico/png/jpg）
-        public string CamouflageSourcePath { get; set; } = string.Empty;
-
-        // 伪装：缓存生成的 ico 路径（供窗口/快捷方式复用）
-        public string CamouflageIconCachePath { get; set; } = string.Empty;
-
-        // 新笔迹粗细模式：开启后，不同缩放下书写的笔迹在同一缩放下粗细一致
-        public bool StrokeThicknessConsistencyEnabled { get; set; } = false;
-
-        // 模拟笔锋：对无压感输入（触摸/鼠标）合成 PressureFactor
-        public bool SimulatedPressureEnabled { get; set; } = SimulatedPressureDefaults.Enabled;
-        public double SimulatedPressureStartTaperMm { get; set; } = SimulatedPressureDefaults.StartTaperMm;
-        public double SimulatedPressureEndTaperMm { get; set; } = SimulatedPressureDefaults.EndTaperMm;
-        public double SimulatedPressureSpeedMinMmPerSec { get; set; } = SimulatedPressureDefaults.SpeedMinMmPerSec;
-        public double SimulatedPressureSpeedMaxMmPerSec { get; set; } = SimulatedPressureDefaults.SpeedMaxMmPerSec;
-        public double SimulatedPressureFastSpeedMinFactor { get; set; } = SimulatedPressureDefaults.FastSpeedMinFactor;
-        public double SimulatedPressureFloor { get; set; } = SimulatedPressureDefaults.PressureFloor;
-        public double SimulatedPressureEndFloor { get; set; } = SimulatedPressureDefaults.EndPressureFloor;
-        public double SimulatedPressureSmoothingTauMs { get; set; } = SimulatedPressureDefaults.SmoothingTauMs;
-    }
-
     // 设置服务：负责加载 / 保存 JSON，并向 UI 广播变更
     public sealed class SettingsService
     {
