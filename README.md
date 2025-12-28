@@ -229,21 +229,6 @@ Apache License 2.0
 - 核心算法（如墨迹平滑、OneEuroFilter）必须有对应的单元测试
 - 测试文件位于 `WindBoard.Tests/` 目录下，与主项目结构保持一致
 
-### 开发命令
-```bash
-# 还原依赖
-dotnet restore
-
-# 编译项目和测试
-dotnet build WindBoard.sln
-
-# 运行应用
-dotnet run --project WindBoard.csproj
-
-# 运行所有测试
-dotnet test WindBoard.sln
-
-```
 
 
 ## 贡献
