@@ -172,5 +172,15 @@ namespace WindBoard.Services
             Save();
             SettingsChanged?.Invoke(this, Settings);
         }
+
+        // --- 触摸手势相关设置 ---
+        public bool GetZoomPanTwoFingerOnly() => Settings.ZoomPanTwoFingerOnly;
+
+        public void SetZoomPanTwoFingerOnly(bool enabled)
+        {
+            Settings.ZoomPanTwoFingerOnly = enabled;
+            Save();
+            SettingsChanged?.Invoke(this, Settings);
+        }
     }
 }

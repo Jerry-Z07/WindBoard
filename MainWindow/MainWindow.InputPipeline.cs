@@ -31,7 +31,7 @@ namespace WindBoard
                 return;
             }
 
-            if (Keyboard.IsKeyDown(Key.Space) && e.ChangedButton == MouseButton.Left)
+            if (e.ChangedButton == MouseButton.Right)
             {
                 _modeBeforePan = _modeController.ActiveMode ?? _modeController.CurrentMode;
                 _zoomPanService.BeginMousePan(e.GetPosition(Viewport));
@@ -68,7 +68,7 @@ namespace WindBoard
 
         private void MyCanvas_MouseUp(object sender, MouseButtonEventArgs e)
         {
-            if (_zoomPanService.IsMousePanning && e.ChangedButton == MouseButton.Left)
+            if (_zoomPanService.IsMousePanning && e.ChangedButton == MouseButton.Right)
             {
                 _zoomPanService.EndMousePan();
                 MyCanvas.ReleaseMouseCapture();

@@ -222,7 +222,6 @@ namespace WindBoard
         {
             if (!IsSelectModeActive()) return false;
             if (e.ChangedButton != MouseButton.Left) return false;
-            if (Keyboard.IsKeyDown(Key.Space)) return false;
 
             var canvasPoint = e.GetPosition(MyCanvas);
             var hit = HitTestAttachment(canvasPoint);
@@ -472,4 +471,3 @@ namespace WindBoard
         }
     }
 }
-

@@ -107,7 +107,7 @@ Services are stateful business logic components initialized in `MainWindow.Archi
 
 - **PageService**: Multi-page management, current page tracking, page preview rendering
 - **StrokeService**: Pen thickness management with zoom-consistency option
-- **ZoomPanService**: Handles mouse wheel zoom, touch gestures, space+drag panning
+- **ZoomPanService**: Handles mouse wheel zoom, touch gestures, right-button drag panning
 - **AutoExpandService**: Automatically expands canvas when drawing near edges
 - **TouchGestureService**: Touch gesture recognition (deprecated, functionality moved to ZoomPanService)
 - **SettingsService**: JSON-based settings persistence to local file
