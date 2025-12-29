@@ -261,6 +261,32 @@
                                 </Style.Triggers>
                             </Style>
                         </StackPanel.Style>
+
+                        <!-- 书写设置 · 笔触粗细一致性 -->
+                        <materialDesign:Card Padding="20" Margin="0,0,0,20" UniformCornerRadius="12" materialDesign:ElevationAssist.Elevation="Dp2">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+
+                                <Border Width="48" Height="48" CornerRadius="8" Background="{DynamicResource PrimaryHueLightBrush}" Grid.Column="0" VerticalAlignment="Center">
+                                    <materialDesign:PackIcon Kind="FormatLineWeight" Width="24" Height="24" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="{DynamicResource PrimaryHueMidBrush}"/>
+                                </Border>
+
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="16,0,0,0">
+                                    <TextBlock Text="笔触粗细一致性" Style="{StaticResource MaterialDesignSubtitle1TextBlock}" FontWeight="SemiBold"/>
+                                    <TextBlock Text="使不同缩放级别下书写的笔迹在同一缩放下粗细保持一致" Style="{StaticResource MaterialDesignBodyMediumTextBlock}" Opacity="0.6" TextWrapping="Wrap"/>
+                                </StackPanel>
+
+                                <CheckBox Grid.Column="2" VerticalAlignment="Center"
+                                          Content="开启"
+                                          IsChecked="{Binding ElementName=SettingsWindowRoot, Path=StrokeThicknessConsistencyEnabled, Mode=TwoWay}"
+                                          Checked="ToggleStrokeThicknessConsistency_Checked"
+                                          Unchecked="ToggleStrokeThicknessConsistency_Unchecked"/>
+                            </Grid>
+                        </materialDesign:Card>
                     </StackPanel>
 
                     <!-- 外观设置 面板（索引 2） -->

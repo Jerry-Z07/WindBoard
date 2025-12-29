@@ -90,7 +90,7 @@ namespace WindBoard.Core.Modes
             }
 
             bool hasRealPressureCandidate = args.DeviceType == InputDeviceType.Stylus && args.Pressure.HasValue;
-            float initialRealPressure = hasRealPressureCandidate ? (float)Math.Clamp(args.Pressure!.Value, 0.0, 1.0) : RealPressureBaseline;
+            float initialRealPressure = hasRealPressureCandidate ? NormalizePressure(args.Pressure!.Value) : RealPressureBaseline;
             bool usesRealPressure = hasRealPressureCandidate && IsRealPressureLikely(initialRealPressure);
 
             var stylusPoints = new StylusPointCollection();
@@ -171,10 +171,10 @@ namespace WindBoard.Core.Modes
             var pointsMm = active.Smoother.Process(args.CanvasPoint, args.TimestampTicks, zoom, isFinal);
             if (pointsMm.Count == 0) return;
 
-            if (!active.UsesRealPressure && active.HasRealPressureCandidate && args.Pressure.HasValue && ShouldSwitchToRealPressure(active, (float)Math.Clamp(args.Pressure.Value, 0.0, 1.0)))
+            if (!active.UsesRealPressure && active.HasRealPressureCandidate && args.Pressure.HasValue && ShouldSwitchToRealPressure(active, NormalizePressure(args.Pressure.Value)))
             {
                 active.UsesRealPressure = true;
-                active.LastRealPressure = (float)Math.Clamp(args.Pressure.Value, 0.0, 1.0);
+                active.LastRealPressure = NormalizePressure(args.Pressure.Value);
                 active.DrawingAttributes.IgnorePressure = false;
             }
 
@@ -186,7 +186,7 @@ namespace WindBoard.Core.Modes
                 {
                     if (args.Pressure.HasValue)
                     {
-                        active.LastRealPressure = (float)Math.Clamp(args.Pressure.Value, 0.0, 1.0);
+                        active.LastRealPressure = NormalizePressure(args.Pressure.Value);
                     }
                     pressure = active.LastRealPressure;
                 }
@@ -202,6 +202,11 @@ namespace WindBoard.Core.Modes
         {
             if (args.PointerId.HasValue) return args.PointerId.Value;
             return args.DeviceType == InputDeviceType.Mouse ? -1 : -2;
+        }
+
+        private static float NormalizePressure(double pressure)
+        {
+            return (float)Math.Clamp(pressure, 0.0, 1.0);
         }
 
         private static bool IsRealPressureLikely(float pressure)
