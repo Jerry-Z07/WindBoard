@@ -13,12 +13,14 @@ namespace WindBoard.Core.Modes
 {
     public partial class InkMode : InteractionModeBase
     {
+        private const double DipPerMm = 96.0 / 25.4;
         private readonly InkCanvas _canvas;
         private readonly Func<double> _zoomProvider;
         private readonly Action? _onStrokeEndedOrCanceled;
         private readonly Dictionary<int, ActiveStroke> _activeStrokes = new();
         private DispatcherTimer? _flushTimer;
         private const int MaxStylusPointsPerSegment = 1800;
+        private bool _simulatedPressureEnabled;
 
         public InkMode(InkCanvas canvas, Func<double> zoomProvider, Action? onStrokeEndedOrCanceled = null)
         {
@@ -31,6 +33,8 @@ namespace WindBoard.Core.Modes
 
         private const float RealPressureBaseline = 0.5f;
         private const float RealPressureMeaningfulEpsilon = 0.06f;
+
+        public void SetSimulatedPressureEnabled(bool enabled) => _simulatedPressureEnabled = enabled;
 
         public override void SwitchOn()
         {
@@ -93,17 +97,34 @@ namespace WindBoard.Core.Modes
             float initialRealPressure = hasRealPressureCandidate ? NormalizePressure(args.Pressure!.Value) : RealPressureBaseline;
             bool usesRealPressure = hasRealPressureCandidate && IsRealPressureLikely(initialRealPressure);
 
+            bool usesSimulatedPressure = _simulatedPressureEnabled && !usesRealPressure && !hasRealPressureCandidate;
+            SimulatedPressure? simulatedPressure = null;
+            SimulatedPressureParameters? simulatedPressureParameters = null;
+            if (usesSimulatedPressure)
+            {
+                simulatedPressureParameters = SimulatedPressureDefaults.ForContact(args.ContactSize, zoom);
+                simulatedPressure = new SimulatedPressure(simulatedPressureParameters);
+            }
+
             var stylusPoints = new StylusPointCollection();
+            float initialPressure = usesRealPressure
+                ? initialRealPressure
+                : usesSimulatedPressure ? (simulatedPressure?.Current ?? RealPressureBaseline) : RealPressureBaseline;
             for (int i = 0; i < pointsMm.Count; i++)
             {
                 var pCanvas = smoother.ScreenMmToCanvasDip(pointsMm[i], zoom);
-                float pressure = usesRealPressure ? initialRealPressure : RealPressureBaseline;
-                stylusPoints.Add(new StylusPoint(pCanvas.X, pCanvas.Y, pressure));
+                stylusPoints.Add(new StylusPoint(pCanvas.X, pCanvas.Y, initialPressure));
             }
 
             var da = _canvas.DefaultDrawingAttributes.Clone();
             da.FitToCurve = true;
-            da.IgnorePressure = !usesRealPressure;
+            da.IgnorePressure = !(usesRealPressure || usesSimulatedPressure);
+
+            if (TryGetSimulatedPressureNominal(simulatedPressureParameters, out float nominalPressure))
+            {
+                da.Width /= nominalPressure;
+                da.Height /= nominalPressure;
+            }
 
             double logicalThicknessDip = da.Width * zoom;
 
@@ -115,7 +136,7 @@ namespace WindBoard.Core.Modes
 
             _canvas.Strokes.Add(stroke);
 
-            var active = new ActiveStroke(stroke, da, logicalThicknessDip, smoother, args.CanvasPoint, args.TimestampTicks, usesRealPressure, initialRealPressure, hasRealPressureCandidate);
+            var active = new ActiveStroke(stroke, da, logicalThicknessDip, smoother, args.CanvasPoint, args.TimestampTicks, usesRealPressure, initialRealPressure, hasRealPressureCandidate, simulatedPressure);
             active.Segments.Add(stroke);
             _activeStrokes[id] = active;
             EnsureFlushTimer();
@@ -147,16 +168,19 @@ namespace WindBoard.Core.Modes
 
         private void AppendPoints(ActiveStroke active, InputEventArgs args, bool isFinal)
         {
+            Point prevInputCanvasDip = active.LastInputCanvasDip;
+            long prevInputTicks = active.LastInputTicks;
+
             if (!isFinal)
             {
                 // 输入频率过高时做轻量降采样：阈值过大会导致“跟手性”下降（卡/滞后）。
                 const long MinIntervalTicks = 1 * TimeSpan.TicksPerMillisecond;
                 const double MinDistanceDip = 0.25;
 
-                long dtTicks = args.TimestampTicks - active.LastInputTicks;
+                long dtTicks = args.TimestampTicks - prevInputTicks;
                 if (dtTicks >= 0 && dtTicks < MinIntervalTicks)
                 {
-                    var dv = args.CanvasPoint - active.LastInputCanvasDip;
+                    var dv = args.CanvasPoint - prevInputCanvasDip;
                     if (dv.LengthSquared < (MinDistanceDip * MinDistanceDip))
                     {
                         return;
@@ -168,6 +192,18 @@ namespace WindBoard.Core.Modes
             active.LastInputTicks = args.TimestampTicks;
 
             double zoom = _zoomProvider();
+            if (zoom <= 0) zoom = 1;
+
+            double dtSec = 0.016;
+            double speedMmPerSec = 0;
+            if (active.SimulatedPressure != null)
+            {
+                dtSec = (args.TimestampTicks - prevInputTicks) / (double)TimeSpan.TicksPerSecond;
+                dtSec = Math.Clamp(dtSec, 0.001, 0.05);
+
+                double distMm = (args.CanvasPoint - prevInputCanvasDip).Length * zoom / DipPerMm;
+                speedMmPerSec = distMm <= 0 ? 0 : distMm / dtSec;
+            }
             var pointsMm = active.Smoother.Process(args.CanvasPoint, args.TimestampTicks, zoom, isFinal);
             if (pointsMm.Count == 0) return;
 
@@ -176,6 +212,14 @@ namespace WindBoard.Core.Modes
                 active.UsesRealPressure = true;
                 active.LastRealPressure = NormalizePressure(args.Pressure.Value);
                 active.DrawingAttributes.IgnorePressure = false;
+            }
+
+            float simulatedStartPressure = 0;
+            float simulatedEndPressure = 0;
+            if (!active.UsesRealPressure && active.SimulatedPressure != null)
+            {
+                simulatedStartPressure = active.SimulatedPressure.Update(speedMmPerSec, dtSec);
+                simulatedEndPressure = isFinal ? active.SimulatedPressure.Finish() : simulatedStartPressure;
             }
 
             for (int i = 0; i < pointsMm.Count; i++)
@@ -189,6 +233,18 @@ namespace WindBoard.Core.Modes
                         active.LastRealPressure = NormalizePressure(args.Pressure.Value);
                     }
                     pressure = active.LastRealPressure;
+                }
+                else if (active.SimulatedPressure != null)
+                {
+                    if (isFinal)
+                    {
+                        float t = (i + 1) / (float)pointsMm.Count;
+                        pressure = simulatedStartPressure + (simulatedEndPressure - simulatedStartPressure) * t;
+                    }
+                    else
+                    {
+                        pressure = simulatedStartPressure;
+                    }
                 }
                 else
                 {
@@ -226,6 +282,19 @@ namespace WindBoard.Core.Modes
             }
 
             return (active.RealPressureMax - active.RealPressureMin) >= RealPressureMeaningfulEpsilon;
+        }
+
+        private static bool TryGetSimulatedPressureNominal(SimulatedPressureParameters? parameters, out float nominalPressure)
+        {
+            nominalPressure = 0;
+            if (parameters == null) return false;
+
+            float nominal = parameters.PressureNominal;
+            if (float.IsNaN(nominal) || float.IsInfinity(nominal)) return false;
+            if (nominal <= 0.05f || nominal > 1.0f) return false;
+
+            nominalPressure = nominal;
+            return true;
         }
     }
 }

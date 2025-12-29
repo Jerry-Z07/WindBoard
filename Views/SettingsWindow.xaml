@@ -287,6 +287,32 @@
                                           Unchecked="ToggleStrokeThicknessConsistency_Unchecked"/>
                             </Grid>
                         </materialDesign:Card>
+
+                        <!-- 书写设置 · 模拟压感（签字笔） -->
+                        <materialDesign:Card Padding="20" Margin="0,0,0,20" UniformCornerRadius="12" materialDesign:ElevationAssist.Elevation="Dp2">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+
+                                <Border Width="48" Height="48" CornerRadius="8" Background="{DynamicResource PrimaryHueLightBrush}" Grid.Column="0" VerticalAlignment="Center">
+                                    <materialDesign:PackIcon Kind="Pen" Width="24" Height="24" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="{DynamicResource PrimaryHueMidBrush}"/>
+                                </Border>
+
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="16,0,0,0">
+                                    <TextBlock Text="模拟压感（签字笔）" Style="{StaticResource MaterialDesignSubtitle1TextBlock}" FontWeight="SemiBold"/>
+                                    <TextBlock Text="无压感设备也能有轻微笔锋：低速略粗，高速略细，收笔尾尖" Style="{StaticResource MaterialDesignBodyMediumTextBlock}" Opacity="0.6" TextWrapping="Wrap"/>
+                                </StackPanel>
+
+                                <CheckBox Grid.Column="2" VerticalAlignment="Center"
+                                          Content="开启"
+                                          IsChecked="{Binding ElementName=SettingsWindowRoot, Path=SimulatedPressureEnabled, Mode=TwoWay}"
+                                          Checked="ToggleSimulatedPressure_Checked"
+                                          Unchecked="ToggleSimulatedPressure_Unchecked"/>
+                            </Grid>
+                        </materialDesign:Card>
                     </StackPanel>
 
                     <!-- 外观设置 面板（索引 2） -->

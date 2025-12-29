@@ -23,6 +23,7 @@ namespace WindBoard.Core.Modes
             public float RealPressureMin { get; set; }
             public float RealPressureMax { get; set; }
             public int RealPressureSamples { get; set; }
+            public SimulatedPressure? SimulatedPressure { get; }
             public List<Stroke> Segments { get; } = new List<Stroke>(4);
 
             public List<StylusPoint> PendingPoints { get; } = new List<StylusPoint>(256);
@@ -30,7 +31,7 @@ namespace WindBoard.Core.Modes
             public int PendingPointsCount => PendingPoints.Count - PendingStartIndex;
             public StylusPointCollection ScratchPoints { get; }
 
-            public ActiveStroke(Stroke stroke, DrawingAttributes drawingAttributes, double logicalThicknessDip, RealtimeInkSmoother smoother, Point lastInputCanvasDip, long lastInputTicks, bool usesRealPressure, float initialRealPressure, bool hasRealPressureCandidate)
+            public ActiveStroke(Stroke stroke, DrawingAttributes drawingAttributes, double logicalThicknessDip, RealtimeInkSmoother smoother, Point lastInputCanvasDip, long lastInputTicks, bool usesRealPressure, float initialRealPressure, bool hasRealPressureCandidate, SimulatedPressure? simulatedPressure)
             {
                 Stroke = stroke;
                 DrawingAttributes = drawingAttributes;
@@ -44,6 +45,7 @@ namespace WindBoard.Core.Modes
                 RealPressureMin = initialRealPressure;
                 RealPressureMax = initialRealPressure;
                 RealPressureSamples = hasRealPressureCandidate ? 1 : 0;
+                SimulatedPressure = simulatedPressure;
                 ScratchPoints = new StylusPointCollection(stroke.StylusPoints.Description, 256);
             }
         }
