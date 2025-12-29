@@ -29,5 +29,8 @@ namespace WindBoard.Models
 
         // 新笔迹粗细模式：开启后，不同缩放下书写的笔迹在同一缩放下粗细一致
         public bool StrokeThicknessConsistencyEnabled { get; set; } = false;
+
+        // 模拟压感（签字笔风格）：用于无压感设备的轻微笔锋效果
+        public bool SimulatedPressureEnabled { get; set; } = false;
     }
 }

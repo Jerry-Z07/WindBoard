@@ -22,6 +22,20 @@ namespace WindBoard
             }
         }
 
+        public bool SimulatedPressureEnabled
+        {
+            get => _simulatedPressureEnabled;
+            set
+            {
+                if (_simulatedPressureEnabled != value)
+                {
+                    _simulatedPressureEnabled = value;
+                    OnPropertyChanged();
+                    try { SettingsService.Instance.SetSimulatedPressureEnabled(value); } catch { }
+                }
+            }
+        }
+
         // --- 书写设置事件处理 ---
         private void ToggleStrokeThicknessConsistency_Checked(object sender, RoutedEventArgs e)
         {
@@ -31,6 +45,16 @@ namespace WindBoard
         private void ToggleStrokeThicknessConsistency_Unchecked(object sender, RoutedEventArgs e)
         {
             StrokeThicknessConsistencyEnabled = false;
+        }
+
+        private void ToggleSimulatedPressure_Checked(object sender, RoutedEventArgs e)
+        {
+            SimulatedPressureEnabled = true;
+        }
+
+        private void ToggleSimulatedPressure_Unchecked(object sender, RoutedEventArgs e)
+        {
+            SimulatedPressureEnabled = false;
         }
     }
 }

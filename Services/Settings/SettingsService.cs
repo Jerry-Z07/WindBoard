@@ -163,5 +163,14 @@ namespace WindBoard.Services
             Save();
             SettingsChanged?.Invoke(this, Settings);
         }
+
+        public bool GetSimulatedPressureEnabled() => Settings.SimulatedPressureEnabled;
+
+        public void SetSimulatedPressureEnabled(bool enabled)
+        {
+            Settings.SimulatedPressureEnabled = enabled;
+            Save();
+            SettingsChanged?.Invoke(this, Settings);
+        }
     }
 }
