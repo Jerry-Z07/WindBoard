@@ -36,10 +36,17 @@ namespace WindBoard
                 _strokeService.UpdatePenThickness(_zoomPanService.Zoom);
             }
 
-            if (_inkMode != null)
+            ApplyInkModeSettingsSnapshot();
+        }
+
+        private void ApplyInkModeSettingsSnapshot()
+        {
+            if (_inkMode == null)
             {
-                _inkMode.SetSimulatedPressureEnabled(SettingsService.Instance.GetSimulatedPressureEnabled());
+                return;
             }
+
+            _inkMode.SetSimulatedPressureEnabled(SettingsService.Instance.GetSimulatedPressureEnabled());
         }
 
         private void ApplyCamouflageFromSettings()

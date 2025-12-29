@@ -201,6 +201,8 @@ namespace WindBoard.Core.Modes
                 dtSec = (args.TimestampTicks - prevInputTicks) / (double)TimeSpan.TicksPerSecond;
                 dtSec = Math.Clamp(dtSec, 0.001, 0.05);
 
+                // CanvasPoint 是画布坐标（RenderTransform 下会被逆变换回“未缩放”的 DIP）；
+                // 乘 zoom 可还原到屏幕空间长度，用于近似物理速度（与 RealtimeInkSmoother.CanvasToScreenMm 一致）。
                 double distMm = (args.CanvasPoint - prevInputCanvasDip).Length * zoom / DipPerMm;
                 speedMmPerSec = distMm <= 0 ? 0 : distMm / dtSec;
             }

@@ -13,6 +13,9 @@ namespace WindBoard.Core.Ink
             if (contactSizeCanvasDip.HasValue)
             {
                 var s = contactSizeCanvasDip.Value;
+                // Touch/RTS 的接触尺寸是相对 InkCanvas 的坐标（会受到 RenderTransform 的逆变换影响）；
+                // 因此同一物理接触在不同缩放下的 canvas DIP 尺寸会变化。这里乘 zoom 还原到屏幕空间，
+                // 以保持“笔 vs 手指”的分类在缩放变化时稳定（与 RealtimeInkSmoother 的单位定义一致）。
                 sizeMm = Math.Max(s.Width, s.Height) * zoom / DipPerMm;
             }
 
@@ -86,4 +89,3 @@ namespace WindBoard.Core.Ink
         }
     }
 }
-

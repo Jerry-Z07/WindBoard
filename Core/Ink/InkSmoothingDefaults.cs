@@ -13,6 +13,8 @@ namespace WindBoard.Core.Ink
             if (contactSizeCanvasDip.HasValue)
             {
                 var s = contactSizeCanvasDip.Value;
+                // contactSizeCanvasDip 是相对 InkCanvas 的尺寸（受 RenderTransform 逆变换影响）；
+                // 乘 zoom 还原到屏幕空间，避免在不同缩放下“笔/手指”分类来回切换。
                 sizeMm = Math.Max(s.Width, s.Height) * zoom / DipPerMm;
             }
 

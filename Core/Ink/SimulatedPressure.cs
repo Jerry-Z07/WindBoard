@@ -24,7 +24,10 @@ namespace WindBoard.Core.Ink
 
         public float Update(double speedMmPerSec, double dtSec)
         {
-            dtSec = ClampDt(dtSec);
+            if (double.IsNaN(dtSec) || double.IsInfinity(dtSec) || dtSec <= 0)
+            {
+                dtSec = 0.016;
+            }
             speedMmPerSec = SanitizeSpeed(speedMmPerSec);
 
             if (speedMmPerSec < _p.VStopMmPerSec)
@@ -89,19 +92,9 @@ namespace WindBoard.Core.Ink
             return speedMmPerSec;
         }
 
-        private static double ClampDt(double dtSec)
-        {
-            if (double.IsNaN(dtSec) || double.IsInfinity(dtSec) || dtSec <= 0)
-            {
-                return 0.016;
-            }
-            return Math.Clamp(dtSec, 0.001, 0.05);
-        }
-
         private static float Clamp01(float value)
         {
             return float.IsNaN(value) || float.IsInfinity(value) ? 0 : Math.Clamp(value, 0f, 1f);
         }
     }
 }
-
