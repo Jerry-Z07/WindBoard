@@ -67,5 +67,30 @@ public sealed class ZoomPanServiceTests
         Assert.True(svc.TouchMove(2, new Point(200, 0)));
         Assert.True(svc.Zoom > 1.0);
     }
-}
 
+    [StaFact]
+    public void TouchGesture_TwoFingerOnly_ThreeTouches_DoesNotUpdateZoom()
+    {
+        var zoomTransform = new ScaleTransform(1, 1);
+        var panTransform = new TranslateTransform(0, 0);
+        var svc = new ZoomPanService(zoomTransform, panTransform, minZoom: 0.5, maxZoom: 5.0)
+        {
+            TwoFingerOnly = true
+        };
+
+        Assert.False(svc.TouchDown(1, new Point(0, 0)));
+        Assert.True(svc.TouchDown(2, new Point(100, 0)));
+        Assert.True(svc.TouchDown(3, new Point(200, 0)));
+        Assert.True(svc.IsGestureActive);
+
+        double zoomBefore = svc.Zoom;
+        Assert.False(svc.TouchMove(2, new Point(150, 0)));
+        Assert.Equal(zoomBefore, svc.Zoom, precision: 12);
+
+        svc.TouchUp(3);
+        Assert.True(svc.IsGestureActive);
+
+        Assert.True(svc.TouchMove(2, new Point(200, 0)));
+        Assert.True(svc.Zoom > zoomBefore);
+    }
+}

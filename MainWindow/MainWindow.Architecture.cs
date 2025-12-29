@@ -77,6 +77,7 @@ namespace WindBoard
             }
 
             _zoomPanService = new ZoomPanService(ZoomTransform, _panTransform, MinZoom, MaxZoom, zoom => _strokeService.UpdatePenThickness(zoom));
+            try { _zoomPanService.TwoFingerOnly = SettingsService.Instance.GetZoomPanTwoFingerOnly(); } catch { }
             _strokeService.SetStrokeThicknessConsistencyEnabled(
                 SettingsService.Instance.GetStrokeThicknessConsistencyEnabled(),
                 _zoomPanService.Zoom);

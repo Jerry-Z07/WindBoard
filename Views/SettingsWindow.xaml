@@ -247,6 +247,32 @@
                                 </Grid>
                             </Grid>
                         </materialDesign:Card>
+
+                        <!-- 基本设置 · 触摸手势 -->
+                        <materialDesign:Card Padding="20" Margin="0,0,0,20" UniformCornerRadius="12" materialDesign:ElevationAssist.Elevation="Dp2">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+
+                                <Border Width="48" Height="48" CornerRadius="8" Background="{DynamicResource PrimaryHueLightBrush}" Grid.Column="0" VerticalAlignment="Center">
+                                    <materialDesign:PackIcon Kind="CogOutline" Width="24" Height="24" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="{DynamicResource PrimaryHueMidBrush}"/>
+                                </Border>
+
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="16,0,0,0">
+                                    <TextBlock Text="触摸手势" Style="{StaticResource MaterialDesignSubtitle1TextBlock}" FontWeight="SemiBold"/>
+                                    <TextBlock Text="缩放/平移仅在双指触摸时触发" Style="{StaticResource MaterialDesignBodyMediumTextBlock}" Opacity="0.6" TextWrapping="Wrap"/>
+                                </StackPanel>
+
+                                <CheckBox Grid.Column="2" VerticalAlignment="Center"
+                                          Content="仅双指"
+                                          IsChecked="{Binding ElementName=SettingsWindowRoot, Path=ZoomPanTwoFingerOnly, Mode=TwoWay}"
+                                          Checked="ToggleZoomPanTwoFingerOnly_Checked"
+                                          Unchecked="ToggleZoomPanTwoFingerOnly_Unchecked"/>
+                            </Grid>
+                        </materialDesign:Card>
                     </StackPanel>
 
                     <!-- 书写设置 面板（索引 1） -->

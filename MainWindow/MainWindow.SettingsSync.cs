@@ -28,6 +28,11 @@ namespace WindBoard
             IsVideoPresenterEnabled = SettingsService.Instance.GetVideoPresenterEnabled();
             ApplyCamouflageFromSettings();
 
+            if (_zoomPanService != null)
+            {
+                try { _zoomPanService.TwoFingerOnly = SettingsService.Instance.GetZoomPanTwoFingerOnly(); } catch { }
+            }
+
             if (_strokeService != null && _zoomPanService != null)
             {
                 _strokeService.SetStrokeThicknessConsistencyEnabled(

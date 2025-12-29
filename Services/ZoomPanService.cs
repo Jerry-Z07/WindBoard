@@ -25,6 +25,8 @@ namespace WindBoard.Services
         public double PanX { get; private set; }
         public double PanY { get; private set; }
 
+        public bool TwoFingerOnly { get; set; }
+
         public bool IsMousePanning => _isMousePanning;
         public bool IsGestureActive => _gestureActive;
 
@@ -131,6 +133,7 @@ namespace WindBoard.Services
             _activeTouches[id] = viewportPoint;
 
             if (!_gestureActive || _activeTouches.Count < 2) return false;
+            if (TwoFingerOnly && _activeTouches.Count != 2) return false;
 
             Point newCenter = GetCentroid();
             double newSpread = GetAverageSpread(newCenter);

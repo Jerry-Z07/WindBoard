@@ -27,6 +27,9 @@ namespace WindBoard
         private bool _strokeThicknessConsistencyEnabled;
         private bool _simulatedPressureEnabled;
 
+        // --- 触摸手势设置 ---
+        private bool _zoomPanTwoFingerOnly;
+
         private const string DefaultVideoPresenterPath = @"C:\\Program Files (x86)\\Seewo\\EasiCamera\\sweclauncher\\sweclauncher.exe";
         private const string DefaultVideoPresenterArgs = "-from en5";
 

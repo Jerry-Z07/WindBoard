@@ -52,6 +52,17 @@ namespace WindBoard
             OnPropertyChanged(nameof(StrokeThicknessConsistencyEnabled));
             OnPropertyChanged(nameof(SimulatedPressureEnabled));
 
+            // 初始化“触摸手势”
+            try
+            {
+                _zoomPanTwoFingerOnly = SettingsService.Instance.GetZoomPanTwoFingerOnly();
+            }
+            catch
+            {
+                _zoomPanTwoFingerOnly = false;
+            }
+            OnPropertyChanged(nameof(ZoomPanTwoFingerOnly));
+
             // 初始化伪装相关设置
             try
             {
@@ -86,6 +97,7 @@ namespace WindBoard
             try { SettingsService.Instance.SetCamouflageSourcePath(CamouflageSourcePath); } catch { }
             try { SettingsService.Instance.SetStrokeThicknessConsistencyEnabled(StrokeThicknessConsistencyEnabled); } catch { }
             try { SettingsService.Instance.SetSimulatedPressureEnabled(SimulatedPressureEnabled); } catch { }
+            try { SettingsService.Instance.SetZoomPanTwoFingerOnly(ZoomPanTwoFingerOnly); } catch { }
         }
 
         private void BtnApply_Click(object sender, RoutedEventArgs e) => ApplyAllSettings();
