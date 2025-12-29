@@ -97,7 +97,6 @@ namespace WindBoard
             try { SettingsService.Instance.SetCamouflageSourcePath(CamouflageSourcePath); } catch { }
             try { SettingsService.Instance.SetStrokeThicknessConsistencyEnabled(StrokeThicknessConsistencyEnabled); } catch { }
             try { SettingsService.Instance.SetSimulatedPressureEnabled(SimulatedPressureEnabled); } catch { }
-            try { SettingsService.Instance.SetZoomPanTwoFingerOnly(ZoomPanTwoFingerOnly); } catch { }
         }
 
         private void BtnApply_Click(object sender, RoutedEventArgs e) => ApplyAllSettings();

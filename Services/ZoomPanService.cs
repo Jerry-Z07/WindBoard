@@ -133,7 +133,7 @@ namespace WindBoard.Services
             _activeTouches[id] = viewportPoint;
 
             if (!_gestureActive || _activeTouches.Count < 2) return false;
-            if (TwoFingerOnly && _activeTouches.Count != 2) return false;
+            if (TwoFingerOnly && _activeTouches.Count > 2) return false;
 
             Point newCenter = GetCentroid();
             double newSpread = GetAverageSpread(newCenter);

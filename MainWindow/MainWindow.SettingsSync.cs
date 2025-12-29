@@ -27,11 +27,7 @@ namespace WindBoard
             SetBackgroundColor(SettingsService.Instance.GetBackgroundColor());
             IsVideoPresenterEnabled = SettingsService.Instance.GetVideoPresenterEnabled();
             ApplyCamouflageFromSettings();
-
-            if (_zoomPanService != null)
-            {
-                try { _zoomPanService.TwoFingerOnly = SettingsService.Instance.GetZoomPanTwoFingerOnly(); } catch { }
-            }
+            ApplyZoomPanGestureSettingsSnapshot();
 
             if (_strokeService != null && _zoomPanService != null)
             {
@@ -42,6 +38,12 @@ namespace WindBoard
             }
 
             ApplyInkModeSettingsSnapshot();
+        }
+
+        private void ApplyZoomPanGestureSettingsSnapshot()
+        {
+            if (_zoomPanService == null) return;
+            try { _zoomPanService.TwoFingerOnly = SettingsService.Instance.GetZoomPanTwoFingerOnly(); } catch { }
         }
 
         private void ApplyInkModeSettingsSnapshot()
