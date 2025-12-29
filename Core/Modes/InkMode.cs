@@ -19,7 +19,6 @@ namespace WindBoard.Core.Modes
         private readonly Dictionary<int, ActiveStroke> _activeStrokes = new();
         private DispatcherTimer? _flushTimer;
         private const int MaxStylusPointsPerSegment = 1800;
-        private SimulatedPressureConfig _simulatedPressure = new SimulatedPressureConfig();
 
         public InkMode(InkCanvas canvas, Func<double> zoomProvider, Action? onStrokeEndedOrCanceled = null)
         {
@@ -30,11 +29,8 @@ namespace WindBoard.Core.Modes
 
         public override string Name => "Ink";
 
-        public void SetSimulatedPressureConfig(SimulatedPressureConfig config)
-        {
-            _simulatedPressure = (config ?? new SimulatedPressureConfig()).Clone();
-            _simulatedPressure.ClampInPlace();
-        }
+        private const float RealPressureBaseline = 0.5f;
+        private const float RealPressureMeaningfulEpsilon = 0.06f;
 
         public override void SwitchOn()
         {
@@ -93,24 +89,21 @@ namespace WindBoard.Core.Modes
                 return;
             }
 
-            var cfg = _simulatedPressure;
-            var pressureState = new SimulatedPressureState(cfg.Enabled, args.TimestampTicks);
+            bool hasRealPressureCandidate = args.DeviceType == InputDeviceType.Stylus && args.Pressure.HasValue;
+            float initialRealPressure = hasRealPressureCandidate ? (float)Math.Clamp(args.Pressure!.Value, 0.0, 1.0) : RealPressureBaseline;
+            bool usesRealPressure = hasRealPressureCandidate && IsRealPressureLikely(initialRealPressure);
 
             var stylusPoints = new StylusPointCollection();
-            double dtPerSec = 0.016 / Math.Max(1, pointsMm.Count);
-            dtPerSec = Math.Clamp(dtPerSec, 0.001, 0.05);
             for (int i = 0; i < pointsMm.Count; i++)
             {
                 var pCanvas = smoother.ScreenMmToCanvasDip(pointsMm[i], zoom);
-                float pressure = cfg.Enabled
-                    ? NextPressure(cfg, ref pressureState, pointsMm[i], dtPerSec)
-                    : 0.5f;
+                float pressure = usesRealPressure ? initialRealPressure : RealPressureBaseline;
                 stylusPoints.Add(new StylusPoint(pCanvas.X, pCanvas.Y, pressure));
             }
 
             var da = _canvas.DefaultDrawingAttributes.Clone();
-            da.FitToCurve = false;
-            da.IgnorePressure = !cfg.Enabled;
+            da.FitToCurve = true;
+            da.IgnorePressure = !usesRealPressure;
 
             double logicalThicknessDip = da.Width * zoom;
 
@@ -122,7 +115,7 @@ namespace WindBoard.Core.Modes
 
             _canvas.Strokes.Add(stroke);
 
-            var active = new ActiveStroke(stroke, da, logicalThicknessDip, smoother, args.CanvasPoint, args.TimestampTicks, pressureState);
+            var active = new ActiveStroke(stroke, da, logicalThicknessDip, smoother, args.CanvasPoint, args.TimestampTicks, usesRealPressure, initialRealPressure, hasRealPressureCandidate);
             active.Segments.Add(stroke);
             _activeStrokes[id] = active;
             EnsureFlushTimer();
@@ -147,10 +140,6 @@ namespace WindBoard.Core.Modes
 
             AppendPoints(active, args, isFinal: true);
             FlushPendingPoints(active);
-            if (_simulatedPressure.Enabled)
-            {
-                ApplyEndTaper(active, _zoomProvider(), _simulatedPressure);
-            }
             _activeStrokes.Remove(id);
             _onStrokeEndedOrCanceled?.Invoke();
             StopFlushTimerIfIdle();
@@ -182,28 +171,56 @@ namespace WindBoard.Core.Modes
             var pointsMm = active.Smoother.Process(args.CanvasPoint, args.TimestampTicks, zoom, isFinal);
             if (pointsMm.Count == 0) return;
 
-            var cfg = _simulatedPressure;
-            double dtTotalSec = (args.TimestampTicks - active.PressureState.LastOutputTicks) / (double)TimeSpan.TicksPerSecond;
-            dtTotalSec = Math.Clamp(dtTotalSec, 0.001, 0.05);
-            double dtPerSec = dtTotalSec / pointsMm.Count;
-            dtPerSec = Math.Clamp(dtPerSec, 0.001, 0.05);
+            if (!active.UsesRealPressure && active.HasRealPressureCandidate && args.Pressure.HasValue && ShouldSwitchToRealPressure(active, (float)Math.Clamp(args.Pressure.Value, 0.0, 1.0)))
+            {
+                active.UsesRealPressure = true;
+                active.LastRealPressure = (float)Math.Clamp(args.Pressure.Value, 0.0, 1.0);
+                active.DrawingAttributes.IgnorePressure = false;
+            }
 
             for (int i = 0; i < pointsMm.Count; i++)
             {
                 var pCanvas = active.Smoother.ScreenMmToCanvasDip(pointsMm[i], zoom);
-                float pressure = cfg.Enabled
-                    ? NextPressure(cfg, ref active.PressureState, pointsMm[i], dtPerSec)
-                    : 0.5f;
+                float pressure;
+                if (active.UsesRealPressure)
+                {
+                    if (args.Pressure.HasValue)
+                    {
+                        active.LastRealPressure = (float)Math.Clamp(args.Pressure.Value, 0.0, 1.0);
+                    }
+                    pressure = active.LastRealPressure;
+                }
+                else
+                {
+                    pressure = RealPressureBaseline;
+                }
                 active.PendingPoints.Add(new StylusPoint(pCanvas.X, pCanvas.Y, pressure));
             }
-
-            active.PressureState.LastOutputTicks = args.TimestampTicks;
         }
 
         private static int GetPointerKey(InputEventArgs args)
         {
             if (args.PointerId.HasValue) return args.PointerId.Value;
             return args.DeviceType == InputDeviceType.Mouse ? -1 : -2;
+        }
+
+        private static bool IsRealPressureLikely(float pressure)
+        {
+            return Math.Abs(pressure - RealPressureBaseline) >= RealPressureMeaningfulEpsilon;
+        }
+
+        private static bool ShouldSwitchToRealPressure(ActiveStroke active, float pressure)
+        {
+            active.RealPressureSamples++;
+            active.RealPressureMin = Math.Min(active.RealPressureMin, pressure);
+            active.RealPressureMax = Math.Max(active.RealPressureMax, pressure);
+
+            if (IsRealPressureLikely(pressure))
+            {
+                return true;
+            }
+
+            return (active.RealPressureMax - active.RealPressureMin) >= RealPressureMeaningfulEpsilon;
         }
     }
 }

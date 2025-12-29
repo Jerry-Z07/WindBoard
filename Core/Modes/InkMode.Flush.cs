@@ -98,4 +98,3 @@ namespace WindBoard.Core.Modes
         }
     }
 }
-

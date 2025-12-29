@@ -22,7 +22,7 @@ namespace WindBoard
         private const double MinZoom = 0.25;
         private const double MaxZoom = 5.25;
 
-        private double _baseThickness = 1.5;
+        private double _baseThickness = 1.75;
         private readonly double _eraserCursorOffsetY = 12.0;
 
         private Canvas? _eraserOverlay;
@@ -84,7 +84,6 @@ namespace WindBoard
             _autoExpandService = new AutoExpandService(MyCanvas, _zoomPanService, () => _pageService.CurrentPage, () => _inkMode?.HasActiveStroke ?? false);
 
             _inkMode = new InkMode(MyCanvas, () => _zoomPanService.Zoom, OnInkStrokeEndedOrCanceled);
-            _inkMode.SetSimulatedPressureConfig(SettingsService.Instance.GetSimulatedPressureConfig());
             _selectMode = new SelectMode(MyCanvas);
             _noMode = new NoMode(MyCanvas);
             _eraserMode = new EraserMode(

@@ -221,9 +221,18 @@ namespace WindBoard
         private InputEventArgs BuildStylusArgs(StylusEventArgs e, bool isInAir)
         {
             var mods = Keyboard.Modifiers;
-            // 性能：StylusMove 频率很高；此项目未使用压力（InkMode/DefaultDrawingAttributes 已 IgnorePressure=true），
-            // 避免在每次 Move 调用 GetStylusPoints 造成额外分配/跨层开销。
             double? pressure = null;
+            try
+            {
+                var points = e.GetStylusPoints(MyCanvas);
+                if (points.Count > 0 && points.Description.HasProperty(StylusPointProperties.NormalPressure))
+                {
+                    pressure = points[^1].PressureFactor;
+                }
+            }
+            catch
+            {
+            }
 
             long ticks = (long)e.Timestamp * TimeSpan.TicksPerMillisecond;
 

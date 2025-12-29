@@ -17,15 +17,20 @@ namespace WindBoard.Core.Modes
             public RealtimeInkSmoother Smoother { get; }
             public Point LastInputCanvasDip { get; set; }
             public long LastInputTicks { get; set; }
+            public bool UsesRealPressure { get; set; }
+            public float LastRealPressure { get; set; }
+            public bool HasRealPressureCandidate { get; set; }
+            public float RealPressureMin { get; set; }
+            public float RealPressureMax { get; set; }
+            public int RealPressureSamples { get; set; }
             public List<Stroke> Segments { get; } = new List<Stroke>(4);
-            public SimulatedPressureState PressureState;
 
             public List<StylusPoint> PendingPoints { get; } = new List<StylusPoint>(256);
             public int PendingStartIndex { get; set; }
             public int PendingPointsCount => PendingPoints.Count - PendingStartIndex;
             public StylusPointCollection ScratchPoints { get; }
 
-            public ActiveStroke(Stroke stroke, DrawingAttributes drawingAttributes, double logicalThicknessDip, RealtimeInkSmoother smoother, Point lastInputCanvasDip, long lastInputTicks, SimulatedPressureState pressureState)
+            public ActiveStroke(Stroke stroke, DrawingAttributes drawingAttributes, double logicalThicknessDip, RealtimeInkSmoother smoother, Point lastInputCanvasDip, long lastInputTicks, bool usesRealPressure, float initialRealPressure, bool hasRealPressureCandidate)
             {
                 Stroke = stroke;
                 DrawingAttributes = drawingAttributes;
@@ -33,10 +38,14 @@ namespace WindBoard.Core.Modes
                 Smoother = smoother;
                 LastInputCanvasDip = lastInputCanvasDip;
                 LastInputTicks = lastInputTicks;
-                PressureState = pressureState;
+                UsesRealPressure = usesRealPressure;
+                LastRealPressure = initialRealPressure;
+                HasRealPressureCandidate = hasRealPressureCandidate;
+                RealPressureMin = initialRealPressure;
+                RealPressureMax = initialRealPressure;
+                RealPressureSamples = hasRealPressureCandidate ? 1 : 0;
                 ScratchPoints = new StylusPointCollection(stroke.StylusPoints.Description, 256);
             }
         }
     }
 }
-

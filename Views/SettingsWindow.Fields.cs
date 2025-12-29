@@ -1,9 +1,7 @@
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Windows.Media;
-using System.Windows.Threading;
 using MaterialDesignThemes.Wpf;
-using WindBoard.Core.Ink;
 
 namespace WindBoard
 {
@@ -27,22 +25,9 @@ namespace WindBoard
 
         // --- 书写设置 ---
         private bool _strokeThicknessConsistencyEnabled;
-        private bool _simulatedPressureEnabled;
-        private double _simulatedPressureStartTaperMm;
-        private double _simulatedPressureEndTaperMm;
-        private double _simulatedPressureSpeedMinMmPerSec;
-        private double _simulatedPressureSpeedMaxMmPerSec;
-        private double _simulatedPressureFastSpeedMinFactor;
-        private double _simulatedPressureFloor;
-        private double _simulatedPressureEndFloor;
-        private double _simulatedPressureSmoothingTauMs;
-        private DispatcherTimer? _simulatedPressurePersistTimer;
-        private bool _isApplyingSimulatedPressureFields;
 
         private const string DefaultVideoPresenterPath = @"C:\\Program Files (x86)\\Seewo\\EasiCamera\\sweclauncher\\sweclauncher.exe";
         private const string DefaultVideoPresenterArgs = "-from en5";
-
-        private static readonly SimulatedPressureConfig DefaultSimulatedPressureConfig = SimulatedPressureConfig.CreateDefault();
 
         public event PropertyChangedEventHandler? PropertyChanged;
 
@@ -52,4 +37,3 @@ namespace WindBoard
         }
     }
 }
-

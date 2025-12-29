@@ -49,17 +49,6 @@ namespace WindBoard
             }
             OnPropertyChanged(nameof(StrokeThicknessConsistencyEnabled));
 
-            // 初始化“模拟笔锋”
-            try
-            {
-                var cfg = SettingsService.Instance.GetSimulatedPressureConfig();
-                ApplySimulatedPressureFields(cfg);
-            }
-            catch
-            {
-                ApplySimulatedPressureFields(DefaultSimulatedPressureConfig);
-            }
-
             // 初始化伪装相关设置
             try
             {
@@ -93,7 +82,6 @@ namespace WindBoard
             try { SettingsService.Instance.SetCamouflageTitle(CamouflageTitle); } catch { }
             try { SettingsService.Instance.SetCamouflageSourcePath(CamouflageSourcePath); } catch { }
             try { SettingsService.Instance.SetStrokeThicknessConsistencyEnabled(StrokeThicknessConsistencyEnabled); } catch { }
-            PersistSimulatedPressureNow();
         }
 
         private void BtnApply_Click(object sender, RoutedEventArgs e) => ApplyAllSettings();
@@ -108,7 +96,6 @@ namespace WindBoard
 
         protected override void OnClosed(EventArgs e)
         {
-            CleanupSimulatedPressureTimer(persistPending: true);
             base.OnClosed(e);
         }
     }

@@ -1,12 +1,8 @@
-using WindBoard.Core.Ink;
-
 namespace WindBoard.Models
 {
     // 应用设置模型（后续可以扩展更多设置项）
     public class AppSettings
     {
-        private static readonly SimulatedPressureConfig SimulatedPressureDefaults = SimulatedPressureConfig.CreateDefault();
-
         // 背景颜色（HEX 或 #AARRGGBB）
         public string BackgroundColorHex { get; set; } = "#2E2F33";
 
@@ -33,17 +29,5 @@ namespace WindBoard.Models
 
         // 新笔迹粗细模式：开启后，不同缩放下书写的笔迹在同一缩放下粗细一致
         public bool StrokeThicknessConsistencyEnabled { get; set; } = false;
-
-        // 模拟笔锋：对无压感输入（触摸/鼠标）合成 PressureFactor
-        public bool SimulatedPressureEnabled { get; set; } = SimulatedPressureDefaults.Enabled;
-        public double SimulatedPressureStartTaperMm { get; set; } = SimulatedPressureDefaults.StartTaperMm;
-        public double SimulatedPressureEndTaperMm { get; set; } = SimulatedPressureDefaults.EndTaperMm;
-        public double SimulatedPressureSpeedMinMmPerSec { get; set; } = SimulatedPressureDefaults.SpeedMinMmPerSec;
-        public double SimulatedPressureSpeedMaxMmPerSec { get; set; } = SimulatedPressureDefaults.SpeedMaxMmPerSec;
-        public double SimulatedPressureFastSpeedMinFactor { get; set; } = SimulatedPressureDefaults.FastSpeedMinFactor;
-        public double SimulatedPressureFloor { get; set; } = SimulatedPressureDefaults.PressureFloor;
-        public double SimulatedPressureEndFloor { get; set; } = SimulatedPressureDefaults.EndPressureFloor;
-        public double SimulatedPressureSmoothingTauMs { get; set; } = SimulatedPressureDefaults.SmoothingTauMs;
     }
 }
-

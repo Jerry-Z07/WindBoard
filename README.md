@@ -12,7 +12,7 @@
 ## 功能特性
 
 ### 核心功能
-- **手写绘画**：基于 WPF InkCanvas 的高性能绘图引擎，支持笔锋算法
+- **手写绘画**：基于 WPF InkCanvas 的高性能绘图引擎
 - **橡皮擦**：支持滑动清屏手势，快速清空画布
 - **选择模式**：选择和操作画布上的笔迹和附件
 - **撤销/恢复**：完整的操作历史记录支持
@@ -23,7 +23,6 @@
 
 ### 高级特性
 - **实时墨迹平滑**：基于 OneEuroFilter 算法的实时墨迹平滑，提供流畅自然的书写体验
-- **笔锋算法**：模拟真实笔触的起笔、收笔渐变效果，根据书写速度动态调整笔迹粗细
 - **输入设备适配**：支持多种输入设备，包括 RealTimeStylus 适配器
 - **输入过滤系统**：灵活的输入过滤器架构，支持独占模式等高级输入处理
 - **触摸手势识别**：智能识别触摸手势，支持双指缩放、平移等操作
@@ -33,7 +32,6 @@
 - **自动扩展画布**：支持画布自动扩展功能
 - **附件导入**：支持批量导入图片、视频、文本文件、文本内容和链接
 - **视频展台集成**：支持外部视频展台软件的快速启动和参数配置
-- **笔迹粗细一致性**：开启后，不同缩放下书写的笔迹在同一缩放下粗细一致
 
 ## 技术栈
 
@@ -59,7 +57,6 @@ WindBoard/
 │   │   ├── InkSmoothingParameters.cs
 │   │   ├── OneEuroFilter2D.cs
 │   │   ├── RealtimeInkSmoother.cs
-│   │   ├── SimulatedPressureConfig.cs
 │   │   └── StrokeThicknessMetadata.cs
 │   ├── Input/              # 输入管理
 │   │   ├── RealTimeStylus/
@@ -76,7 +73,6 @@ WindBoard/
 │       ├── IInteractionMode.cs
 │       ├── InkMode.ActiveStroke.cs
 │       ├── InkMode.Flush.cs
-│       ├── InkMode.SimulatedPressure.cs
 │       ├── InkMode.cs
 │       ├── InteractionModeBase.cs
 │       ├── ModeController.cs
@@ -126,7 +122,6 @@ WindBoard/
 │   ├── SettingsWindow.Appearance.cs
 │   ├── SettingsWindow.Camouflage.cs
 │   ├── SettingsWindow.Fields.cs
-│   ├── SettingsWindow.Ink.cs
 │   ├── SettingsWindow.VideoPresenter.cs
 │   ├── SettingsWindow.xaml
 │   └── SettingsWindow.xaml.cs
@@ -139,7 +134,6 @@ WindBoard/
 │   │   ├── InkSmoothingDefaultsTests.cs
 │   │   ├── OneEuroFilter2DTests.cs
 │   │   ├── RealtimeInkSmootherTests.cs
-│   │   ├── SimulatedPressureConfigTests.cs
 │   │   └── StrokeThicknessMetadataTests.cs
 │   ├── Services/           # 服务测试
 │   │   ├── PageServiceTests.cs
@@ -202,7 +196,7 @@ dotnet test
 
 ## Todo
 - [x] 笔迹性能优化
-- [x] 笔锋算法
+- [ ] 笔锋算法（重做中）
 - [ ] 触摸面积识别算法（用于掌擦逻辑）
 - [x] 伪装功能
 - [x] 附件管理功能（图片、视频、文本、链接导入）
