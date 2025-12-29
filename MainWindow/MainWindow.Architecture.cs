@@ -19,18 +19,14 @@ namespace WindBoard
 {
     public partial class MainWindow
     {
-        private const double MinZoom = 0.5;
-        private const double MaxZoom = 5.0;
+        private const double MinZoom = 0.25;
+        private const double MaxZoom = 5.25;
 
-        private double _baseThickness = 2.0;
+        private double _baseThickness = 1.75;
         private readonly double _eraserCursorOffsetY = 12.0;
 
         private Canvas? _eraserOverlay;
         private Border? _eraserCursorRect;
-        private Canvas? _touchCursorOverlay;
-        private Ellipse? _touchCursorDot;
-        private SolidColorBrush? _touchCursorBrush;
-        private bool _touchCursorSuppressed;
 
         private ModeController _modeController = null!;
         private InputManagerCore _inputManager = null!;
@@ -65,8 +61,6 @@ namespace WindBoard
         {
             _eraserOverlay = (Canvas)FindName("EraserOverlay");
             _eraserCursorRect = (Border)FindName("EraserCursorRect");
-            _touchCursorOverlay = (Canvas)FindName("TouchCursorOverlay");
-            _touchCursorDot = (Ellipse)FindName("TouchCursorDot");
 
             _modeController = new ModeController();
             _strokeService = new StrokeService(MyCanvas, _baseThickness);
@@ -90,7 +84,6 @@ namespace WindBoard
             _autoExpandService = new AutoExpandService(MyCanvas, _zoomPanService, () => _pageService.CurrentPage, () => _inkMode?.HasActiveStroke ?? false);
 
             _inkMode = new InkMode(MyCanvas, () => _zoomPanService.Zoom, OnInkStrokeEndedOrCanceled);
-            _inkMode.SetSimulatedPressureConfig(SettingsService.Instance.GetSimulatedPressureConfig());
             _selectMode = new SelectMode(MyCanvas);
             _noMode = new NoMode(MyCanvas);
             _eraserMode = new EraserMode(
@@ -291,61 +284,9 @@ namespace WindBoard
             // reserved for future hooks
         }
 
-        private void UpdateTouchInkCursor(Point center)
-        {
-            if (_touchCursorOverlay == null || _touchCursorDot == null || MyCanvas == null) return;
-
-            var mode = _modeController?.ActiveMode ?? _modeController?.CurrentMode;
-            if (!ReferenceEquals(mode, _inkMode) || _gestureInputSuppressed)
-            {
-                HideTouchInkCursor();
-                return;
-            }
-
-            double zoom = _zoomPanService?.Zoom ?? 1.0;
-            if (zoom <= 0) zoom = 1.0;
-
-            double baseThickness = _strokeService?.BaseThickness ?? _baseThickness;
-            double baseSize = Math.Max(8.0, baseThickness * 2.0);
-            double sizeContent = baseSize / zoom;
-
-            _touchCursorDot.Width = sizeContent;
-            _touchCursorDot.Height = sizeContent;
-
-            _touchCursorBrush ??= new SolidColorBrush();
-            _touchCursorBrush.Color = MyCanvas.DefaultDrawingAttributes.Color;
-            _touchCursorDot.Fill = _touchCursorBrush;
-
-            Canvas.SetLeft(_touchCursorDot, center.X - sizeContent / 2.0);
-            Canvas.SetTop(_touchCursorDot, center.Y - sizeContent / 2.0);
-
-            MyCanvas.UseCustomCursor = true;
-            MyCanvas.Cursor = Cursors.None;
-            EnsureTouchCursorHidden();
-            _touchCursorOverlay.Visibility = Visibility.Visible;
-        }
-
-        private void HideTouchInkCursor()
-        {
-            if (_touchCursorOverlay != null)
-            {
-                _touchCursorOverlay.Visibility = Visibility.Collapsed;
-            }
-
-            var mode = _modeController?.ActiveMode ?? _modeController?.CurrentMode;
-            if (MyCanvas != null && ReferenceEquals(mode, _inkMode))
-            {
-                MyCanvas.UseCustomCursor = false;
-                MyCanvas.ClearValue(Control.CursorProperty);
-            }
-
-            RestoreTouchCursorIfNeeded();
-        }
-
         private void BeginGestureSuppression()
         {
             if (_gestureInputSuppressed) return;
-            HideTouchInkCursor();
             _gestureInputSuppressed = true;
             _modeBeforeGesture = _modeController.CurrentMode;
             _modeController.ClearActiveMode();
@@ -410,7 +351,6 @@ namespace WindBoard
             _gestureInputSuppressed = false;
             _inputManager.InputSuppressed = false;
             _strokeSuppressionActive = false;
-            RestoreTouchCursorIfNeeded();
 
             var targetMode = _modeBeforeGesture ?? _inkMode;
             if (targetMode != null)
@@ -437,24 +377,6 @@ namespace WindBoard
             }
             catch
             {
-            }
-        }
-
-        private void EnsureTouchCursorHidden()
-        {
-            if (Mouse.OverrideCursor != Cursors.None)
-            {
-                Mouse.OverrideCursor = Cursors.None;
-                _touchCursorSuppressed = true;
-            }
-        }
-
-        private void RestoreTouchCursorIfNeeded()
-        {
-            if (_touchCursorSuppressed)
-            {
-                Mouse.OverrideCursor = null;
-                _touchCursorSuppressed = false;
             }
         }
     }

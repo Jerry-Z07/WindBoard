@@ -12,7 +12,7 @@
 ## 功能特性
 
 ### 核心功能
-- **手写绘画**：基于 WPF InkCanvas 的高性能绘图引擎，支持笔锋算法
+- **手写绘画**：基于 WPF InkCanvas 的高性能绘图引擎
 - **橡皮擦**：支持滑动清屏手势，快速清空画布
 - **选择模式**：选择和操作画布上的笔迹和附件
 - **撤销/恢复**：完整的操作历史记录支持
@@ -23,7 +23,6 @@
 
 ### 高级特性
 - **实时墨迹平滑**：基于 OneEuroFilter 算法的实时墨迹平滑，提供流畅自然的书写体验
-- **笔锋算法**：模拟真实笔触的起笔、收笔渐变效果，根据书写速度动态调整笔迹粗细
 - **输入设备适配**：支持多种输入设备，包括 RealTimeStylus 适配器
 - **输入过滤系统**：灵活的输入过滤器架构，支持独占模式等高级输入处理
 - **触摸手势识别**：智能识别触摸手势，支持双指缩放、平移等操作
@@ -32,6 +31,7 @@
 - **响应式界面**：基于 Material Design 3 的现代化 UI 设计
 - **自动扩展画布**：支持画布自动扩展功能
 - **附件导入**：支持批量导入图片、视频、文本文件、文本内容和链接
+- **视频展台集成**：支持外部视频展台软件的快速启动和参数配置
 
 ## 技术栈
 
@@ -40,6 +40,7 @@
 - **UI 库**：MaterialDesignThemes v5.3.0 (Material Design 3)
 - **JSON 处理**：Newtonsoft.Json v13.0.4
 - **图形处理**：System.Drawing.Common v10.0.1
+- **测试框架**：xUnit v2.9.3 + Xunit.StaFact v1.2.69
 - **字体**：MiSans 字体系列
 
 ## 项目结构
@@ -56,7 +57,6 @@ WindBoard/
 │   │   ├── InkSmoothingParameters.cs
 │   │   ├── OneEuroFilter2D.cs
 │   │   ├── RealtimeInkSmoother.cs
-│   │   ├── SimulatedPressureConfig.cs
 │   │   └── StrokeThicknessMetadata.cs
 │   ├── Input/              # 输入管理
 │   │   ├── RealTimeStylus/
@@ -71,6 +71,8 @@ WindBoard/
 │   └── Modes/              # 交互模式
 │       ├── EraserMode.cs
 │       ├── IInteractionMode.cs
+│       ├── InkMode.ActiveStroke.cs
+│       ├── InkMode.Flush.cs
 │       ├── InkMode.cs
 │       ├── InteractionModeBase.cs
 │       ├── ModeController.cs
@@ -79,20 +81,31 @@ WindBoard/
 ├── MainWindow/             # 主窗口逻辑
 │   ├── MainWindow.Architecture.cs
 │   ├── MainWindow.Attachments.cs
+│   ├── MainWindow.Attachments.BitmapLoader.cs
+│   ├── MainWindow.Attachments.ExternalOpen.cs
+│   ├── MainWindow.Attachments.Import.cs
+│   ├── MainWindow.Attachments.Selection.cs
 │   ├── MainWindow.InputPipeline.cs
 │   ├── MainWindow.Pages.cs
-│   └── MainWindow.UI.cs
+│   ├── MainWindow.Popups.cs
+│   ├── MainWindow.SettingsSync.cs
+│   ├── MainWindow.SystemDock.cs
+│   ├── MainWindow.ToolUi.cs
+│   ├── MainWindow.UI.cs
+│   └── MainWindow.VideoPresenter.cs
 ├── Models/                 # 数据模型
+│   ├── AppSettings.cs
 │   ├── BoardAttachment.cs
 │   ├── BoardAttachmentType.cs
 │   ├── BoardPage.cs
 │   └── ImportRequest.cs
 ├── Services/               # 业务服务
+│   ├── Settings/
+│   │   └── SettingsService.cs
 │   ├── AutoExpandService.cs
 │   ├── CamouflageService.cs
 │   ├── PagePreviewRenderer.cs
 │   ├── PageService.cs
-│   ├── SettingsService.cs
 │   ├── StrokeService.cs
 │   ├── StrokeUndoHistory.cs
 │   ├── TouchGestureService.cs
@@ -106,12 +119,28 @@ WindBoard/
 │   │   └── ImportDialog.xaml.cs
 │   ├── MainWindow.xaml
 │   ├── MainWindow.xaml.cs
+│   ├── SettingsWindow.Appearance.cs
+│   ├── SettingsWindow.Camouflage.cs
+│   ├── SettingsWindow.Fields.cs
+│   ├── SettingsWindow.VideoPresenter.cs
 │   ├── SettingsWindow.xaml
 │   └── SettingsWindow.xaml.cs
 ├── Styles/                 # 样式资源
 │   └── BottomBarStyles.xaml
 ├── Resources/              # 资源文件
-│   └── Fonts/              # 字体文件
+│   └── Fonts/              # MiSans 字体文件
+├── WindBoard.Tests/         # 单元测试项目
+│   ├── Ink/                # 墨迹算法测试
+│   │   ├── InkSmoothingDefaultsTests.cs
+│   │   ├── OneEuroFilter2DTests.cs
+│   │   ├── RealtimeInkSmootherTests.cs
+│   │   └── StrokeThicknessMetadataTests.cs
+│   ├── Services/           # 服务测试
+│   │   ├── PageServiceTests.cs
+│   │   ├── StrokeUndoHistoryTests.cs
+│   │   └── ZoomPanServiceTests.cs
+│   └── TestHelpers/        # 测试辅助工具
+│       └── InkTestHelpers.cs
 ├── App.xaml                # 应用程序入口
 └── App.xaml.cs
 ```
@@ -143,7 +172,7 @@ WindBoard/
 ### 环境要求
 - .NET 10.0 SDK
 - Windows 10/11
-- Visual Studio 2022 或更高版本（推荐）,或者 Visual Studio Code 也行（本软件的一部分开发工作就是在VSCode使用AI完成的，另一部分在Codex）
+- Visual Studio 2022 或更高版本（推荐），或者 Visual Studio Code（本软件的一部分开发工作就是在 VSCode 使用 AI 完成的，另一部分在 Codex）
 
 ### 构建和运行
 ```bash
@@ -159,12 +188,15 @@ dotnet build
 
 # 运行应用
 dotnet run
+
+# 运行测试
+dotnet test
 ```
 
 
 ## Todo
 - [x] 笔迹性能优化
-- [x] 笔锋算法
+- [ ] 笔锋算法（重做中）
 - [ ] 触摸面积识别算法（用于掌擦逻辑）
 - [x] 伪装功能
 - [x] 附件管理功能（图片、视频、文本、链接导入）
@@ -172,11 +204,26 @@ dotnet run
 - [ ] 软件整体性能优化
 - [ ] 软件中文名及图标设计
 - [ ] 完善文档
-- [ ] 完善workflow等
+- [ ] 完善 workflow 等
+- [x] 单元测试框架集成（xUnit）
 
 ## 许可证
 
 Apache License 2.0
+
+## 开发规范
+
+### 代码规范
+- **命名规范**：类名和方法名使用 PascalCase，变量名使用 camelCase
+- **代码复用**：优先复用现有代码、组件和包，避免重复实现
+
+### 测试规范
+- 使用 xUnit 作为单元测试框架
+- 使用 Xunit.StaFact 支持 WPF STA 线程测试
+- 核心算法（如墨迹平滑、OneEuroFilter）必须有对应的单元测试
+- 测试文件位于 `WindBoard.Tests/` 目录下，与主项目结构保持一致
+
+
 
 ## 贡献
 

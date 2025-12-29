@@ -2,7 +2,6 @@ using System;
 using System.IO;
 using System.Windows.Media;
 using Newtonsoft.Json;
-using WindBoard.Core.Ink;
 using WindBoard.Models;
 
 namespace WindBoard.Services
@@ -161,43 +160,6 @@ namespace WindBoard.Services
         public void SetStrokeThicknessConsistencyEnabled(bool enabled)
         {
             Settings.StrokeThicknessConsistencyEnabled = enabled;
-            Save();
-            SettingsChanged?.Invoke(this, Settings);
-        }
-
-        public SimulatedPressureConfig GetSimulatedPressureConfig()
-        {
-            var cfg = new SimulatedPressureConfig
-            {
-                Enabled = Settings.SimulatedPressureEnabled,
-                StartTaperMm = Settings.SimulatedPressureStartTaperMm,
-                EndTaperMm = Settings.SimulatedPressureEndTaperMm,
-                SpeedMinMmPerSec = Settings.SimulatedPressureSpeedMinMmPerSec,
-                SpeedMaxMmPerSec = Settings.SimulatedPressureSpeedMaxMmPerSec,
-                FastSpeedMinFactor = Settings.SimulatedPressureFastSpeedMinFactor,
-                PressureFloor = (float)Settings.SimulatedPressureFloor,
-                EndPressureFloor = (float)Settings.SimulatedPressureEndFloor,
-                SmoothingTauMs = Settings.SimulatedPressureSmoothingTauMs
-            };
-            cfg.ClampInPlace();
-            return cfg;
-        }
-
-        public void SetSimulatedPressureConfig(SimulatedPressureConfig config)
-        {
-            var cfg = (config ?? SimulatedPressureConfig.CreateDefault()).Clone();
-            cfg.ClampInPlace();
-
-            Settings.SimulatedPressureEnabled = cfg.Enabled;
-            Settings.SimulatedPressureStartTaperMm = cfg.StartTaperMm;
-            Settings.SimulatedPressureEndTaperMm = cfg.EndTaperMm;
-            Settings.SimulatedPressureSpeedMinMmPerSec = cfg.SpeedMinMmPerSec;
-            Settings.SimulatedPressureSpeedMaxMmPerSec = cfg.SpeedMaxMmPerSec;
-            Settings.SimulatedPressureFastSpeedMinFactor = cfg.FastSpeedMinFactor;
-            Settings.SimulatedPressureFloor = cfg.PressureFloor;
-            Settings.SimulatedPressureEndFloor = cfg.EndPressureFloor;
-            Settings.SimulatedPressureSmoothingTauMs = cfg.SmoothingTauMs;
-
             Save();
             SettingsChanged?.Invoke(this, Settings);
         }

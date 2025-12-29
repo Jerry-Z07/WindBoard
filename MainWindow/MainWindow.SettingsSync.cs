@@ -35,8 +35,6 @@ namespace WindBoard
                     _zoomPanService.Zoom);
                 _strokeService.UpdatePenThickness(_zoomPanService.Zoom);
             }
-
-            _inkMode?.SetSimulatedPressureConfig(SettingsService.Instance.GetSimulatedPressureConfig());
         }
 
         private void ApplyCamouflageFromSettings()
@@ -61,4 +59,3 @@ namespace WindBoard
         }
     }
 }
-

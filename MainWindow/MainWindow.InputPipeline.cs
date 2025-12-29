@@ -94,7 +94,6 @@ namespace WindBoard
             if (_zoomPanService.IsGestureActive || gesture)
             {
                 BeginGestureSuppression();
-                HideTouchInkCursor();
                 e.Handled = true;
                 return;
             }
@@ -102,7 +101,6 @@ namespace WindBoard
             var args = BuildTouchArgs(e, isInAir: false);
             BeginUndoTransactionForCurrentMode();
             _inputManager.Dispatch(InputStage.Down, args);
-            UpdateTouchInkCursor(args.CanvasPoint);
             e.Handled = true;
         }
 
@@ -112,7 +110,6 @@ namespace WindBoard
             if (_zoomPanService.TouchMove(e.TouchDevice.Id, viewportPoint))
             {
                 BeginGestureSuppression();
-                HideTouchInkCursor();
                 e.Handled = true;
                 return;
             }
@@ -120,21 +117,18 @@ namespace WindBoard
             if (_zoomPanService.IsGestureActive)
             {
                 BeginGestureSuppression();
-                HideTouchInkCursor();
                 e.Handled = true;
                 return;
             }
 
             var args = BuildTouchArgs(e, isInAir: false);
             _inputManager.Dispatch(InputStage.Move, args);
-            UpdateTouchInkCursor(args.CanvasPoint);
             e.Handled = true;
         }
 
         private void MyCanvas_TouchUp(object sender, TouchEventArgs e)
         {
             _ = _zoomPanService.TouchUp(e.TouchDevice.Id);
-            HideTouchInkCursor();
             if (_zoomPanService.IsGestureActive)
             {
                 BeginGestureSuppression();
@@ -227,9 +221,18 @@ namespace WindBoard
         private InputEventArgs BuildStylusArgs(StylusEventArgs e, bool isInAir)
         {
             var mods = Keyboard.Modifiers;
-            // 性能：StylusMove 频率很高；此项目未使用压力（InkMode/DefaultDrawingAttributes 已 IgnorePressure=true），
-            // 避免在每次 Move 调用 GetStylusPoints 造成额外分配/跨层开销。
             double? pressure = null;
+            try
+            {
+                var points = e.GetStylusPoints(MyCanvas);
+                if (points.Count > 0 && points.Description.HasProperty(StylusPointProperties.NormalPressure))
+                {
+                    pressure = points[^1].PressureFactor;
+                }
+            }
+            catch
+            {
+            }
 
             long ticks = (long)e.Timestamp * TimeSpan.TicksPerMillisecond;
 

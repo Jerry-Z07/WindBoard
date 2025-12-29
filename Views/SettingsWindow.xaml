@@ -262,6 +262,7 @@
                             </Style>
                         </StackPanel.Style>
 
+                        <!-- 书写设置 · 笔触粗细一致性 -->
                         <materialDesign:Card Padding="20" Margin="0,0,0,20" UniformCornerRadius="12" materialDesign:ElevationAssist.Elevation="Dp2">
                             <Grid>
                                 <Grid.ColumnDefinitions>
@@ -269,193 +270,21 @@
                                     <ColumnDefinition Width="*"/>
                                     <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="Auto"/>
-                                </Grid.RowDefinitions>
 
-                                <Border Width="48" Height="48" CornerRadius="8" Background="{DynamicResource PrimaryHueLightBrush}" Grid.Column="0" VerticalAlignment="Top">
-                                    <materialDesign:PackIcon Kind="Pen" Width="24" Height="24" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="{DynamicResource PrimaryHueMidBrush}"/>
+                                <Border Width="48" Height="48" CornerRadius="8" Background="{DynamicResource PrimaryHueLightBrush}" Grid.Column="0" VerticalAlignment="Center">
+                                    <materialDesign:PackIcon Kind="FormatLineWeight" Width="24" Height="24" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="{DynamicResource PrimaryHueMidBrush}"/>
                                 </Border>
 
                                 <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="16,0,0,0">
-                                    <TextBlock Text="笔迹粗细一致（跨缩放）" Style="{StaticResource MaterialDesignSubtitle1TextBlock}" FontWeight="SemiBold"/>
-                                    <TextBlock Text="开启后：无论在任何缩放下书写，拉到同一缩放时笔迹粗细一致（旧笔迹将按当前视图校准一次）。" Style="{StaticResource MaterialDesignBodyMediumTextBlock}" Opacity="0.6" TextWrapping="Wrap"/>
+                                    <TextBlock Text="笔触粗细一致性" Style="{StaticResource MaterialDesignSubtitle1TextBlock}" FontWeight="SemiBold"/>
+                                    <TextBlock Text="使不同缩放级别下书写的笔迹在同一缩放下粗细保持一致" Style="{StaticResource MaterialDesignBodyMediumTextBlock}" Opacity="0.6" TextWrapping="Wrap"/>
                                 </StackPanel>
 
                                 <CheckBox Grid.Column="2" VerticalAlignment="Center"
                                           Content="开启"
-                                          IsChecked="{Binding ElementName=SettingsWindowRoot, Path=StrokeThicknessConsistencyEnabled, Mode=TwoWay}"/>
-                            </Grid>
-                        </materialDesign:Card>
-
-                        <materialDesign:Card Padding="20" Margin="0,0,0,20" UniformCornerRadius="12" materialDesign:ElevationAssist.Elevation="Dp2">
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto"/>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                </Grid.ColumnDefinitions>
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="Auto"/>
-                                    <RowDefinition Height="Auto"/>
-                                </Grid.RowDefinitions>
-
-                                <Border Width="48" Height="48" CornerRadius="8" Background="{DynamicResource PrimaryHueLightBrush}" Grid.Column="0" VerticalAlignment="Top">
-                                    <materialDesign:PackIcon Kind="Brush" Width="24" Height="24" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="{DynamicResource PrimaryHueMidBrush}"/>
-                                </Border>
-
-                                <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="16,0,0,0">
-                                    <TextBlock Text="模拟笔锋（无压感）" Style="{StaticResource MaterialDesignSubtitle1TextBlock}" FontWeight="SemiBold"/>
-                                    <TextBlock Text="为触摸/鼠标书写合成粗细变化：起笔更尖、快写更细、收笔渐细。" Style="{StaticResource MaterialDesignBodyMediumTextBlock}" Opacity="0.6" TextWrapping="Wrap"/>
-                                </StackPanel>
-
-                                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
-                                    <Button Content="恢复默认"
-                                            Style="{StaticResource MaterialDesignOutlinedButton}"
-                                            Click="BtnResetSimulatedPressure_Click"
-                                            Margin="0,0,12,0"
-                                            materialDesign:ButtonAssist.CornerRadius="6"/>
-                                    <CheckBox Content="开启"
-                                              IsChecked="{Binding ElementName=SettingsWindowRoot, Path=SimulatedPressureEnabled, Mode=TwoWay}"/>
-                                </StackPanel>
-
-                                <StackPanel Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" Margin="0,14,0,0"
-                                            IsEnabled="{Binding ElementName=SettingsWindowRoot, Path=SimulatedPressureEnabled}">
-                                    <StackPanel Margin="0,0,0,10">
-                                        <Grid>
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="*"/>
-                                                <ColumnDefinition Width="Auto"/>
-                                            </Grid.ColumnDefinitions>
-                                            <TextBlock Text="起笔渐入长度" Style="{StaticResource MaterialDesignBodyMediumTextBlock}" FontWeight="Medium"/>
-                                            <TextBlock Grid.Column="1"
-                                                       Text="{Binding ElementName=SettingsWindowRoot, Path=SimulatedPressureStartTaperMm, StringFormat={}{0:F1} mm}"
-                                                       Style="{StaticResource MaterialDesignBodyMediumTextBlock}" Opacity="0.75"/>
-                                        </Grid>
-                                        <Slider Minimum="0" Maximum="20" SmallChange="0.2" LargeChange="1"
-                                                Value="{Binding ElementName=SettingsWindowRoot, Path=SimulatedPressureStartTaperMm, Mode=TwoWay}"/>
-                                        <TextBlock Text="越大越“顺”，但起笔更慢、更圆。" Style="{StaticResource MaterialDesignBodySmallTextBlock}" Opacity="0.6" TextWrapping="Wrap"/>
-                                    </StackPanel>
-
-                                    <StackPanel Margin="0,0,0,10">
-                                        <Grid>
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="*"/>
-                                                <ColumnDefinition Width="Auto"/>
-                                            </Grid.ColumnDefinitions>
-                                            <TextBlock Text="收笔渐细长度" Style="{StaticResource MaterialDesignBodyMediumTextBlock}" FontWeight="Medium"/>
-                                            <TextBlock Grid.Column="1"
-                                                       Text="{Binding ElementName=SettingsWindowRoot, Path=SimulatedPressureEndTaperMm, StringFormat={}{0:F1} mm}"
-                                                       Style="{StaticResource MaterialDesignBodyMediumTextBlock}" Opacity="0.75"/>
-                                        </Grid>
-                                        <Slider Minimum="0" Maximum="30" SmallChange="0.2" LargeChange="1"
-                                                Value="{Binding ElementName=SettingsWindowRoot, Path=SimulatedPressureEndTaperMm, Mode=TwoWay}"/>
-                                        <TextBlock Text="越大收笔越尖，但容易出现“甩尾”感。" Style="{StaticResource MaterialDesignBodySmallTextBlock}" Opacity="0.6" TextWrapping="Wrap"/>
-                                    </StackPanel>
-
-                                    <Expander Margin="0,6,0,0">
-                                        <Expander.Header>
-                                            <TextBlock Text="高级调参" Style="{StaticResource MaterialDesignBodyMediumTextBlock}" FontWeight="Medium"/>
-                                        </Expander.Header>
-                                        <StackPanel Margin="0,10,0,0">
-                                            <StackPanel Margin="0,0,0,10">
-                                                <Grid>
-                                                    <Grid.ColumnDefinitions>
-                                                        <ColumnDefinition Width="*"/>
-                                                        <ColumnDefinition Width="Auto"/>
-                                                    </Grid.ColumnDefinitions>
-                                                    <TextBlock Text="速度阈值（开始变细）" Style="{StaticResource MaterialDesignBodyMediumTextBlock}" FontWeight="Medium"/>
-                                                    <TextBlock Grid.Column="1"
-                                                               Text="{Binding ElementName=SettingsWindowRoot, Path=SimulatedPressureSpeedMinMmPerSec, StringFormat={}{0:F0} mm/s}"
-                                                               Style="{StaticResource MaterialDesignBodyMediumTextBlock}" Opacity="0.75"/>
-                                                </Grid>
-                                                <Slider Minimum="0" Maximum="1000" SmallChange="5" LargeChange="50"
-                                                        Value="{Binding ElementName=SettingsWindowRoot, Path=SimulatedPressureSpeedMinMmPerSec, Mode=TwoWay}"/>
-                                                <TextBlock Text="写得更快时才开始变细；调大可减少“忽细”感。" Style="{StaticResource MaterialDesignBodySmallTextBlock}" Opacity="0.6" TextWrapping="Wrap"/>
-                                            </StackPanel>
-
-                                            <StackPanel Margin="0,0,0,10">
-                                                <Grid>
-                                                    <Grid.ColumnDefinitions>
-                                                        <ColumnDefinition Width="*"/>
-                                                        <ColumnDefinition Width="Auto"/>
-                                                    </Grid.ColumnDefinitions>
-                                                    <TextBlock Text="速度阈值（最细）" Style="{StaticResource MaterialDesignBodyMediumTextBlock}" FontWeight="Medium"/>
-                                                    <TextBlock Grid.Column="1"
-                                                               Text="{Binding ElementName=SettingsWindowRoot, Path=SimulatedPressureSpeedMaxMmPerSec, StringFormat={}{0:F0} mm/s}"
-                                                               Style="{StaticResource MaterialDesignBodyMediumTextBlock}" Opacity="0.75"/>
-                                                </Grid>
-                                                <Slider Minimum="50" Maximum="2500" SmallChange="10" LargeChange="100"
-                                                        Value="{Binding ElementName=SettingsWindowRoot, Path=SimulatedPressureSpeedMaxMmPerSec, Mode=TwoWay}"/>
-                                                <TextBlock Text="在该速度以上不再继续变细；调小会让快划更尖更细。" Style="{StaticResource MaterialDesignBodySmallTextBlock}" Opacity="0.6" TextWrapping="Wrap"/>
-                                            </StackPanel>
-
-                                            <StackPanel Margin="0,0,0,10">
-                                                <Grid>
-                                                    <Grid.ColumnDefinitions>
-                                                        <ColumnDefinition Width="*"/>
-                                                        <ColumnDefinition Width="Auto"/>
-                                                    </Grid.ColumnDefinitions>
-                                                    <TextBlock Text="快写最细系数" Style="{StaticResource MaterialDesignBodyMediumTextBlock}" FontWeight="Medium"/>
-                                                    <TextBlock Grid.Column="1"
-                                                               Text="{Binding ElementName=SettingsWindowRoot, Path=SimulatedPressureFastSpeedMinFactor, StringFormat={}{0:F2}}"
-                                                               Style="{StaticResource MaterialDesignBodyMediumTextBlock}" Opacity="0.75"/>
-                                                </Grid>
-                                                <Slider Minimum="0.20" Maximum="1.00" SmallChange="0.01" LargeChange="0.05"
-                                                        Value="{Binding ElementName=SettingsWindowRoot, Path=SimulatedPressureFastSpeedMinFactor, Mode=TwoWay}"/>
-                                                <TextBlock Text="越小快写越细；1 表示不随速度变细。" Style="{StaticResource MaterialDesignBodySmallTextBlock}" Opacity="0.6" TextWrapping="Wrap"/>
-                                            </StackPanel>
-
-                                            <StackPanel Margin="0,0,0,10">
-                                                <Grid>
-                                                    <Grid.ColumnDefinitions>
-                                                        <ColumnDefinition Width="*"/>
-                                                        <ColumnDefinition Width="Auto"/>
-                                                    </Grid.ColumnDefinitions>
-                                                    <TextBlock Text="基础粗细下限" Style="{StaticResource MaterialDesignBodyMediumTextBlock}" FontWeight="Medium"/>
-                                                    <TextBlock Grid.Column="1"
-                                                               Text="{Binding ElementName=SettingsWindowRoot, Path=SimulatedPressureFloor, StringFormat={}{0:F2}}"
-                                                               Style="{StaticResource MaterialDesignBodyMediumTextBlock}" Opacity="0.75"/>
-                                                </Grid>
-                                                <Slider Minimum="0.05" Maximum="1.00" SmallChange="0.01" LargeChange="0.05"
-                                                        Value="{Binding ElementName=SettingsWindowRoot, Path=SimulatedPressureFloor, Mode=TwoWay}"/>
-                                                <TextBlock Text="避免笔画过细/断墨；调大整体更粗更稳。" Style="{StaticResource MaterialDesignBodySmallTextBlock}" Opacity="0.6" TextWrapping="Wrap"/>
-                                            </StackPanel>
-
-                                            <StackPanel Margin="0,0,0,10">
-                                                <Grid>
-                                                    <Grid.ColumnDefinitions>
-                                                        <ColumnDefinition Width="*"/>
-                                                        <ColumnDefinition Width="Auto"/>
-                                                    </Grid.ColumnDefinitions>
-                                                    <TextBlock Text="收笔最细下限" Style="{StaticResource MaterialDesignBodyMediumTextBlock}" FontWeight="Medium"/>
-                                                    <TextBlock Grid.Column="1"
-                                                               Text="{Binding ElementName=SettingsWindowRoot, Path=SimulatedPressureEndFloor, StringFormat={}{0:F2}}"
-                                                               Style="{StaticResource MaterialDesignBodyMediumTextBlock}" Opacity="0.75"/>
-                                                </Grid>
-                                                <Slider Minimum="0.00" Maximum="0.50" SmallChange="0.01" LargeChange="0.05"
-                                                        Value="{Binding ElementName=SettingsWindowRoot, Path=SimulatedPressureEndFloor, Mode=TwoWay}"/>
-                                                <TextBlock Text="只影响收笔阶段；越小收笔越尖。" Style="{StaticResource MaterialDesignBodySmallTextBlock}" Opacity="0.6" TextWrapping="Wrap"/>
-                                            </StackPanel>
-
-                                            <StackPanel Margin="0,0,0,2">
-                                                <Grid>
-                                                    <Grid.ColumnDefinitions>
-                                                        <ColumnDefinition Width="*"/>
-                                                        <ColumnDefinition Width="Auto"/>
-                                                    </Grid.ColumnDefinitions>
-                                                    <TextBlock Text="压力平滑时间常数" Style="{StaticResource MaterialDesignBodyMediumTextBlock}" FontWeight="Medium"/>
-                                                    <TextBlock Grid.Column="1"
-                                                               Text="{Binding ElementName=SettingsWindowRoot, Path=SimulatedPressureSmoothingTauMs, StringFormat={}{0:F0} ms}"
-                                                               Style="{StaticResource MaterialDesignBodyMediumTextBlock}" Opacity="0.75"/>
-                                                </Grid>
-                                                <Slider Minimum="0" Maximum="80" SmallChange="1" LargeChange="5"
-                                                        Value="{Binding ElementName=SettingsWindowRoot, Path=SimulatedPressureSmoothingTauMs, Mode=TwoWay}"/>
-                                                <TextBlock Text="越大越稳但响应更慢；0 表示不额外平滑。" Style="{StaticResource MaterialDesignBodySmallTextBlock}" Opacity="0.6" TextWrapping="Wrap"/>
-                                            </StackPanel>
-                                        </StackPanel>
-                                    </Expander>
-                                </StackPanel>
+                                          IsChecked="{Binding ElementName=SettingsWindowRoot, Path=StrokeThicknessConsistencyEnabled, Mode=TwoWay}"
+                                          Checked="ToggleStrokeThicknessConsistency_Checked"
+                                          Unchecked="ToggleStrokeThicknessConsistency_Unchecked"/>
                             </Grid>
                         </materialDesign:Card>
                     </StackPanel>
