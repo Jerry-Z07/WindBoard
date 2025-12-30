@@ -53,7 +53,7 @@
 
 ## 项目结构
 
-已拆分到开发文档：[`docs/dev/project-structure.md`](docs/dev/project-structure.md)
+见开发文档：[`docs/dev/project-structure.md`](docs/dev/project-structure.md)
 
 
 ## 架构设计
@@ -85,24 +85,7 @@
 - Visual Studio 2022 或更高版本、JetBrains Rider 2025.3.1 或更高版本，或者 Visual Studio Code（本软件的一部分开发工作就是在 VSCode 使用 AI 完成的，另一部分在 Codex，还有一部分在 Claude Code）
 
 ### 构建和运行
-```bash
-# 克隆仓库
-git clone https://github.com/Jerry-Z07/WindBoard.git
-cd WindBoard
-
-# 还原依赖
-dotnet restore
-
-# 构建项目
-dotnet build
-
-# 运行应用
-dotnet run
-
-# 运行测试
-dotnet test
-```
-
+见[构建与运行](./docs/dev/build-and-run.md)
 
 ## Todo
 - [x] 笔迹性能优化
