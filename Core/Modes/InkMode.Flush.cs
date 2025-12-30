@@ -62,13 +62,8 @@ namespace WindBoard.Core.Modes
             if (curCount + pointsToAppend <= MaxStylusPointsPerSegment) return;
 
             // 分段：避免单个 Stroke 无限增长导致增量更新越来越慢（单笔越画越卡）。
-            System.Windows.Input.StylusPoint? tail = null;
-            if (active.LiveTailEnabled && curCount > 0)
-            {
-                tail = active.Stroke.StylusPoints[^1];
-                active.Stroke.StylusPoints.RemoveAt(curCount - 1);
-                curCount--;
-            }
+            var tail = active.RemoveLiveTailTemporarily();
+            curCount = active.Stroke.StylusPoints.Count;
 
             var last = curCount > 0
                 ? active.Stroke.StylusPoints[^1]
@@ -101,20 +96,10 @@ namespace WindBoard.Core.Modes
                 scratch.Add(active.PendingPoints[start + i]);
             }
 
-            System.Windows.Input.StylusPoint? tail = null;
-            if (active.LiveTailEnabled && active.Stroke.StylusPoints.Count > 0)
-            {
-                int lastIndex = active.Stroke.StylusPoints.Count - 1;
-                tail = active.Stroke.StylusPoints[lastIndex];
-                active.Stroke.StylusPoints.RemoveAt(lastIndex);
-            }
-
+            var tail = active.RemoveLiveTailTemporarily();
             active.Stroke.StylusPoints.Add(scratch);
+            active.RestoreLiveTail(tail);
 
-            if (tail.HasValue)
-            {
-                active.Stroke.StylusPoints.Add(tail.Value);
-            }
             active.PendingStartIndex += take;
 
             if (active.PendingStartIndex >= 2048 && active.PendingStartIndex >= active.PendingPoints.Count / 2)

@@ -3,7 +3,8 @@
     "allow": [
       "Bash(mkdir:*)",
       "Bash(dotnet build:*)",
-      "Bash(dotnet test:*)"
+      "Bash(dotnet test:*)",
+      "Bash(dotnet clean:*)"
     ]
   }
 }

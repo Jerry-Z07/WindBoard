@@ -52,6 +52,72 @@ namespace WindBoard.Core.Modes
                 SimulatedPressure = simulatedPressure;
                 ScratchPoints = new StylusPointCollection(stroke.StylusPoints.Description, 256);
             }
+
+            /// <summary>
+            /// 临时移除 LiveTail 点（如果存在），返回被移除的点。
+            /// 用于在插入新点之前暂时移除尾部跟随点。
+            /// </summary>
+            public StylusPoint? RemoveLiveTailTemporarily()
+            {
+                if (!LiveTailEnabled)
+                {
+                    return null;
+                }
+
+                var spc = Stroke.StylusPoints;
+                if (spc.Count == 0)
+                {
+                    return null;
+                }
+
+                int lastIndex = spc.Count - 1;
+                var tail = spc[lastIndex];
+                spc.RemoveAt(lastIndex);
+                return tail;
+            }
+
+            /// <summary>
+            /// 恢复之前移除的 LiveTail 点。
+            /// 如果 tail 为 null，则不执行任何操作。
+            /// </summary>
+            public void RestoreLiveTail(StylusPoint? tail)
+            {
+                if (!LiveTailEnabled || !tail.HasValue)
+                {
+                    return;
+                }
+
+                Stroke.StylusPoints.Add(tail.Value);
+            }
+
+            /// <summary>
+            /// 更新 LiveTail 点的位置为当前原始输入位置。
+            /// 确保 stroke 至少有 2 个点（倒数第二个是平滑后的点，最后一个是实时跟随点）。
+            /// </summary>
+            public void UpdateLiveTailPosition(Point rawCanvasDip)
+            {
+                if (!LiveTailEnabled)
+                {
+                    return;
+                }
+
+                var spc = Stroke.StylusPoints;
+                if (spc.Count == 0)
+                {
+                    var p = new StylusPoint(rawCanvasDip.X, rawCanvasDip.Y, LiveTailPressure);
+                    spc.Add(p);
+                    spc.Add(p);
+                    return;
+                }
+
+                if (spc.Count == 1)
+                {
+                    spc.Add(spc[0]);
+                }
+
+                spc.RemoveAt(spc.Count - 1);
+                spc.Add(new StylusPoint(rawCanvasDip.X, rawCanvasDip.Y, LiveTailPressure));
+            }
         }
     }
 }

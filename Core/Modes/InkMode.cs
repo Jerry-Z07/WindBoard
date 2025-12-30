@@ -34,6 +34,10 @@ namespace WindBoard.Core.Modes
         private const float RealPressureBaseline = 0.5f;
         private const float RealPressureMeaningfulEpsilon = 0.06f;
 
+        // LiveTail 去重检测的容差值
+        private const double LiveTailPositionEpsilonDip = 0.0001; // DIP单位的位置容差
+        private const double LiveTailPressureEpsilon = 0.0001;    // 压力值容差 (0-1范围)
+
         public void SetSimulatedPressureEnabled(bool enabled) => _simulatedPressureEnabled = enabled;
 
         public override void SwitchOn()
@@ -161,7 +165,7 @@ namespace WindBoard.Core.Modes
             if (!_activeStrokes.TryGetValue(id, out var active)) return;
 
             AppendPoints(active, args, isFinal: false);
-            UpdateLiveTail(active, args.CanvasPoint);
+            active.UpdateLiveTailPosition(args.CanvasPoint);
             EnsureFlushTimer();
         }
 
@@ -170,7 +174,7 @@ namespace WindBoard.Core.Modes
             int id = GetPointerKey(args);
             if (!_activeStrokes.TryGetValue(id, out var active)) return;
 
-            UpdateLiveTail(active, args.CanvasPoint);
+            active.UpdateLiveTailPosition(args.CanvasPoint);
             AppendPoints(active, args, isFinal: true);
             FlushPendingPoints(active);
             TryRemoveLiveTailIfDuplicate(active);
@@ -276,31 +280,6 @@ namespace WindBoard.Core.Modes
             }
         }
 
-        private static void UpdateLiveTail(ActiveStroke active, Point rawCanvasDip)
-        {
-            if (!active.LiveTailEnabled)
-            {
-                return;
-            }
-
-            var spc = active.Stroke.StylusPoints;
-            if (spc.Count == 0)
-            {
-                var p = new StylusPoint(rawCanvasDip.X, rawCanvasDip.Y, active.LiveTailPressure);
-                spc.Add(p);
-                spc.Add(p);
-                return;
-            }
-
-            if (spc.Count == 1)
-            {
-                spc.Add(spc[0]);
-            }
-
-            spc.RemoveAt(spc.Count - 1);
-            spc.Add(new StylusPoint(rawCanvasDip.X, rawCanvasDip.Y, active.LiveTailPressure));
-        }
-
         private static void TryRemoveLiveTailIfDuplicate(ActiveStroke active)
         {
             if (!active.LiveTailEnabled)
@@ -317,11 +296,9 @@ namespace WindBoard.Core.Modes
             var a = spc[^2];
             var b = spc[^1];
 
-            const double posEps = 0.0001;
-            const double pressureEps = 0.0001;
-            if (Math.Abs(a.X - b.X) <= posEps
-                && Math.Abs(a.Y - b.Y) <= posEps
-                && Math.Abs(a.PressureFactor - b.PressureFactor) <= pressureEps)
+            if (Math.Abs(a.X - b.X) <= LiveTailPositionEpsilonDip
+                && Math.Abs(a.Y - b.Y) <= LiveTailPositionEpsilonDip
+                && Math.Abs(a.PressureFactor - b.PressureFactor) <= LiveTailPressureEpsilon)
             {
                 spc.RemoveAt(spc.Count - 1);
             }
