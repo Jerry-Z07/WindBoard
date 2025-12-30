@@ -264,7 +264,7 @@
         </Canvas>
 
         <!-- 悬浮工具栏区域（覆盖在视口之上，不参与缩放） -->
-        <StackPanel Orientation="Horizontal" VerticalAlignment="Bottom" HorizontalAlignment="Center" Margin="0,0,0,30" Panel.ZIndex="10" Opacity="0.85">
+        <StackPanel Orientation="Horizontal" VerticalAlignment="Bottom" HorizontalAlignment="Center" Margin="0,0,0,25" Panel.ZIndex="10" Opacity="0.85">
             <!-- 主工具栏 -->
             <Border Background="#25262A" CornerRadius="12" Padding="5"
                     Effect="{StaticResource MaterialDesignShadowDepth2}">
@@ -321,7 +321,7 @@
         <controls:PageNavigatorControl
                 VerticalAlignment="Bottom"
                 HorizontalAlignment="Right"
-                Margin="0,0,30,30"
+                Margin="0,0,30,25"
                 Panel.ZIndex="12"
                 Pages="{Binding Pages}"
                 IsMultiPage="{Binding IsMultiPage}"
@@ -430,7 +430,7 @@
         </Popup>
 
         <!-- 左下角：系统操作 Dock（覆盖在视口之上，不参与缩放） -->
-        <Border VerticalAlignment="Bottom" HorizontalAlignment="Left" Margin="30,0,0,20"
+        <Border VerticalAlignment="Bottom" HorizontalAlignment="Left" Margin="30,0,0,25"
                 Background="#25262A" CornerRadius="12" Padding="5"
                 Effect="{StaticResource MaterialDesignShadowDepth2}"
                 Panel.ZIndex="12"
