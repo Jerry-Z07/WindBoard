@@ -13,18 +13,18 @@ public sealed class InkSmoothingDefaultsTests
         var actual = InkSmoothingDefaults.ForContact(contactSizeCanvasDip: null, zoom: 1.0);
 
         var expected = new InkSmoothingParameters(
-            StepMm: 1.1,
-            EpsilonMm: 0.22,
-            FcMin: 2.2,
-            Beta: 0.045,
+            StepMm: 0.9,
+            EpsilonMm: 0.15,
+            FcMin: 2.8,
+            Beta: 0.055,
             DCutoff: 1.2,
-            VStopMmPerSec: 18,
-            StopHoldMs: 60,
-            FcSticky: 0.8,
-            CornerAngleDeg: 120,
-            CornerHoldMs: 80,
-            FcCorner: 18,
-            EpsilonCornerMm: 0.18);
+            VStopMmPerSec: 12,
+            StopHoldMs: 45,
+            FcSticky: 1.0,
+            CornerAngleDeg: 100,
+            CornerHoldMs: 50,
+            FcCorner: 22,
+            EpsilonCornerMm: 0.12);
 
         AssertParametersEqual(expected, actual);
     }
@@ -36,18 +36,18 @@ public sealed class InkSmoothingDefaultsTests
         var actual = InkSmoothingDefaults.ForContact(contactSizeCanvasDip: sizeDip, zoom: 1.0);
 
         var expected = new InkSmoothingParameters(
-            StepMm: 1.3,
-            EpsilonMm: 0.4,
-            FcMin: 1.6,
-            Beta: 0.028,
+            StepMm: 1.1,
+            EpsilonMm: 0.3,
+            FcMin: 1.8,
+            Beta: 0.035,
             DCutoff: 1.2,
-            VStopMmPerSec: 18,
-            StopHoldMs: 60,
-            FcSticky: 0.8,
-            CornerAngleDeg: 120,
-            CornerHoldMs: 80,
-            FcCorner: 18,
-            EpsilonCornerMm: 0.22);
+            VStopMmPerSec: 12,
+            StopHoldMs: 45,
+            FcSticky: 1.0,
+            CornerAngleDeg: 105,
+            CornerHoldMs: 55,
+            FcCorner: 20,
+            EpsilonCornerMm: 0.18);
 
         AssertParametersEqual(expected, actual);
     }
@@ -59,19 +59,20 @@ public sealed class InkSmoothingDefaultsTests
         var sizeDip = new Size(sizeMm * DipPerMm, sizeMm * DipPerMm);
         var actual = InkSmoothingDefaults.ForContact(contactSizeCanvasDip: sizeDip, zoom: 1.0);
 
+        // t = (6.5 - 5.0) / (8.0 - 5.0) = 0.5
         var expected = new InkSmoothingParameters(
-            StepMm: 1.2,
-            EpsilonMm: 0.31,
-            FcMin: 1.9,
-            Beta: 0.0365,
+            StepMm: 1.0,
+            EpsilonMm: 0.225,
+            FcMin: 2.3,
+            Beta: 0.045,
             DCutoff: 1.2,
-            VStopMmPerSec: 18,
-            StopHoldMs: 60,
-            FcSticky: 0.8,
-            CornerAngleDeg: 120,
-            CornerHoldMs: 80,
-            FcCorner: 18,
-            EpsilonCornerMm: 0.2);
+            VStopMmPerSec: 12,
+            StopHoldMs: 45,
+            FcSticky: 1.0,
+            CornerAngleDeg: 102.5,
+            CornerHoldMs: 52,
+            FcCorner: 21,
+            EpsilonCornerMm: 0.15);
 
         AssertParametersEqual(expected, actual);
     }

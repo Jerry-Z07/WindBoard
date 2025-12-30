@@ -339,6 +339,206 @@
                                           Unchecked="ToggleSimulatedPressure_Unchecked"/>
                             </Grid>
                         </materialDesign:Card>
+
+                        <!-- 书写设置 · 平滑参数（高级） -->
+                        <materialDesign:Card Padding="0" Margin="0,0,0,20" UniformCornerRadius="12" materialDesign:ElevationAssist.Elevation="Dp2">
+                            <Expander Expanded="SmoothingExpander_Expanded" Padding="0" Background="Transparent" BorderThickness="0">
+                                <Expander.Header>
+                                    <Grid Margin="4,0,0,0">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+
+                                        <Border Width="48" Height="48" CornerRadius="8" Background="{DynamicResource PrimaryHueLightBrush}" Grid.Column="0" VerticalAlignment="Center">
+                                            <materialDesign:PackIcon Kind="TuneVariant" Width="24" Height="24" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="{DynamicResource PrimaryHueMidBrush}"/>
+                                        </Border>
+
+                                        <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="16,0,0,0">
+                                            <TextBlock Text="平滑参数" Style="{StaticResource MaterialDesignSubtitle1TextBlock}" FontWeight="SemiBold"/>
+                                            <TextBlock Text="调整笔迹平滑算法的核心参数（高级选项）" Style="{StaticResource MaterialDesignBodyMediumTextBlock}" Opacity="0.6" TextWrapping="Wrap"/>
+                                        </StackPanel>
+                                    </Grid>
+                                </Expander.Header>
+
+                                <StackPanel Margin="20,0,20,20">
+                                    <!-- 启用自定义参数开关 -->
+                                    <Grid Margin="0,0,0,16">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+                                        <StackPanel VerticalAlignment="Center">
+                                            <TextBlock Text="使用自定义参数" Style="{StaticResource MaterialDesignSubtitle2TextBlock}"/>
+                                            <TextBlock Text="关闭时使用内置默认值" Style="{StaticResource MaterialDesignCaptionTextBlock}" Opacity="0.6"/>
+                                        </StackPanel>
+                                        <CheckBox Grid.Column="1" VerticalAlignment="Center"
+                                                  Content="开启"
+                                                  IsChecked="{Binding ElementName=SettingsWindowRoot, Path=CustomSmoothingEnabled, Mode=TwoWay}"
+                                                  Checked="ToggleCustomSmoothing_Checked"
+                                                  Unchecked="ToggleCustomSmoothing_Unchecked"/>
+                                    </Grid>
+
+                                    <Separator Margin="0,0,0,16"/>
+
+                                    <!-- 笔输入参数 -->
+                                    <TextBlock Text="笔输入参数" Style="{StaticResource MaterialDesignSubtitle2TextBlock}" Margin="0,0,0,12" FontWeight="Medium"/>
+
+                                    <Grid Margin="0,0,0,8">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="140"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="60"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="重采样步长 (mm)" VerticalAlignment="Center" ToolTip="控制输入点的重采样间隔，值越小细节越多"/>
+                                        <Slider Grid.Column="1" Minimum="0.3" Maximum="2.0" TickFrequency="0.1" IsSnapToTickEnabled="True"
+                                                Value="{Binding ElementName=SettingsWindowRoot, Path=SmoothingPenStepMm, Mode=TwoWay}"
+                                                IsEnabled="{Binding ElementName=SettingsWindowRoot, Path=CustomSmoothingEnabled}"/>
+                                        <TextBlock Grid.Column="2" Text="{Binding ElementName=SettingsWindowRoot, Path=SmoothingPenStepMm, StringFormat={}{0:F2}}"
+                                                   VerticalAlignment="Center" HorizontalAlignment="Right" FontFamily="Consolas"/>
+                                    </Grid>
+
+                                    <Grid Margin="0,0,0,8">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="140"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="60"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="输出阈值 (mm)" VerticalAlignment="Center" ToolTip="移动距离小于此值时不输出点，防止微抖动"/>
+                                        <Slider Grid.Column="1" Minimum="0.05" Maximum="0.5" TickFrequency="0.05" IsSnapToTickEnabled="True"
+                                                Value="{Binding ElementName=SettingsWindowRoot, Path=SmoothingPenEpsilonMm, Mode=TwoWay}"
+                                                IsEnabled="{Binding ElementName=SettingsWindowRoot, Path=CustomSmoothingEnabled}"/>
+                                        <TextBlock Grid.Column="2" Text="{Binding ElementName=SettingsWindowRoot, Path=SmoothingPenEpsilonMm, StringFormat={}{0:F2}}"
+                                                   VerticalAlignment="Center" HorizontalAlignment="Right" FontFamily="Consolas"/>
+                                    </Grid>
+
+                                    <Grid Margin="0,0,0,8">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="140"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="60"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="最小截止频率 (Hz)" VerticalAlignment="Center" ToolTip="OneEuro 滤波器的最小截止频率，值越大响应越快但平滑度降低"/>
+                                        <Slider Grid.Column="1" Minimum="0.5" Maximum="5.0" TickFrequency="0.1" IsSnapToTickEnabled="True"
+                                                Value="{Binding ElementName=SettingsWindowRoot, Path=SmoothingPenFcMin, Mode=TwoWay}"
+                                                IsEnabled="{Binding ElementName=SettingsWindowRoot, Path=CustomSmoothingEnabled}"/>
+                                        <TextBlock Grid.Column="2" Text="{Binding ElementName=SettingsWindowRoot, Path=SmoothingPenFcMin, StringFormat={}{0:F1}}"
+                                                   VerticalAlignment="Center" HorizontalAlignment="Right" FontFamily="Consolas"/>
+                                    </Grid>
+
+                                    <Grid Margin="0,0,0,8">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="140"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="60"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="Beta 系数" VerticalAlignment="Center" ToolTip="速度权重，值越大移动越快时响应越快"/>
+                                        <Slider Grid.Column="1" Minimum="0.01" Maximum="0.2" TickFrequency="0.005" IsSnapToTickEnabled="True"
+                                                Value="{Binding ElementName=SettingsWindowRoot, Path=SmoothingPenBeta, Mode=TwoWay}"
+                                                IsEnabled="{Binding ElementName=SettingsWindowRoot, Path=CustomSmoothingEnabled}"/>
+                                        <TextBlock Grid.Column="2" Text="{Binding ElementName=SettingsWindowRoot, Path=SmoothingPenBeta, StringFormat={}{0:F3}}"
+                                                   VerticalAlignment="Center" HorizontalAlignment="Right" FontFamily="Consolas"/>
+                                    </Grid>
+
+                                    <Grid Margin="0,0,0,16">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="140"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="60"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="导数截止频率 (Hz)" VerticalAlignment="Center" ToolTip="速度估计的滤波截止频率"/>
+                                        <Slider Grid.Column="1" Minimum="0.5" Maximum="3.0" TickFrequency="0.1" IsSnapToTickEnabled="True"
+                                                Value="{Binding ElementName=SettingsWindowRoot, Path=SmoothingPenDCutoff, Mode=TwoWay}"
+                                                IsEnabled="{Binding ElementName=SettingsWindowRoot, Path=CustomSmoothingEnabled}"/>
+                                        <TextBlock Grid.Column="2" Text="{Binding ElementName=SettingsWindowRoot, Path=SmoothingPenDCutoff, StringFormat={}{0:F1}}"
+                                                   VerticalAlignment="Center" HorizontalAlignment="Right" FontFamily="Consolas"/>
+                                    </Grid>
+
+                                    <Separator Margin="0,0,0,16"/>
+
+                                    <!-- 手指输入参数 -->
+                                    <TextBlock Text="手指输入参数" Style="{StaticResource MaterialDesignSubtitle2TextBlock}" Margin="0,0,0,12" FontWeight="Medium"/>
+
+                                    <Grid Margin="0,0,0,8">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="140"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="60"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="重采样步长 (mm)" VerticalAlignment="Center" ToolTip="控制输入点的重采样间隔，值越小细节越多"/>
+                                        <Slider Grid.Column="1" Minimum="0.3" Maximum="2.0" TickFrequency="0.1" IsSnapToTickEnabled="True"
+                                                Value="{Binding ElementName=SettingsWindowRoot, Path=SmoothingFingerStepMm, Mode=TwoWay}"
+                                                IsEnabled="{Binding ElementName=SettingsWindowRoot, Path=CustomSmoothingEnabled}"/>
+                                        <TextBlock Grid.Column="2" Text="{Binding ElementName=SettingsWindowRoot, Path=SmoothingFingerStepMm, StringFormat={}{0:F2}}"
+                                                   VerticalAlignment="Center" HorizontalAlignment="Right" FontFamily="Consolas"/>
+                                    </Grid>
+
+                                    <Grid Margin="0,0,0,8">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="140"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="60"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="输出阈值 (mm)" VerticalAlignment="Center" ToolTip="移动距离小于此值时不输出点，防止微抖动"/>
+                                        <Slider Grid.Column="1" Minimum="0.05" Maximum="0.5" TickFrequency="0.05" IsSnapToTickEnabled="True"
+                                                Value="{Binding ElementName=SettingsWindowRoot, Path=SmoothingFingerEpsilonMm, Mode=TwoWay}"
+                                                IsEnabled="{Binding ElementName=SettingsWindowRoot, Path=CustomSmoothingEnabled}"/>
+                                        <TextBlock Grid.Column="2" Text="{Binding ElementName=SettingsWindowRoot, Path=SmoothingFingerEpsilonMm, StringFormat={}{0:F2}}"
+                                                   VerticalAlignment="Center" HorizontalAlignment="Right" FontFamily="Consolas"/>
+                                    </Grid>
+
+                                    <Grid Margin="0,0,0,8">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="140"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="60"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="最小截止频率 (Hz)" VerticalAlignment="Center" ToolTip="OneEuro 滤波器的最小截止频率，值越大响应越快但平滑度降低"/>
+                                        <Slider Grid.Column="1" Minimum="0.5" Maximum="5.0" TickFrequency="0.1" IsSnapToTickEnabled="True"
+                                                Value="{Binding ElementName=SettingsWindowRoot, Path=SmoothingFingerFcMin, Mode=TwoWay}"
+                                                IsEnabled="{Binding ElementName=SettingsWindowRoot, Path=CustomSmoothingEnabled}"/>
+                                        <TextBlock Grid.Column="2" Text="{Binding ElementName=SettingsWindowRoot, Path=SmoothingFingerFcMin, StringFormat={}{0:F1}}"
+                                                   VerticalAlignment="Center" HorizontalAlignment="Right" FontFamily="Consolas"/>
+                                    </Grid>
+
+                                    <Grid Margin="0,0,0,8">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="140"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="60"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="Beta 系数" VerticalAlignment="Center" ToolTip="速度权重，值越大移动越快时响应越快"/>
+                                        <Slider Grid.Column="1" Minimum="0.01" Maximum="0.2" TickFrequency="0.005" IsSnapToTickEnabled="True"
+                                                Value="{Binding ElementName=SettingsWindowRoot, Path=SmoothingFingerBeta, Mode=TwoWay}"
+                                                IsEnabled="{Binding ElementName=SettingsWindowRoot, Path=CustomSmoothingEnabled}"/>
+                                        <TextBlock Grid.Column="2" Text="{Binding ElementName=SettingsWindowRoot, Path=SmoothingFingerBeta, StringFormat={}{0:F3}}"
+                                                   VerticalAlignment="Center" HorizontalAlignment="Right" FontFamily="Consolas"/>
+                                    </Grid>
+
+                                    <Grid Margin="0,0,0,16">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="140"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="60"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="导数截止频率 (Hz)" VerticalAlignment="Center" ToolTip="速度估计的滤波截止频率"/>
+                                        <Slider Grid.Column="1" Minimum="0.5" Maximum="3.0" TickFrequency="0.1" IsSnapToTickEnabled="True"
+                                                Value="{Binding ElementName=SettingsWindowRoot, Path=SmoothingFingerDCutoff, Mode=TwoWay}"
+                                                IsEnabled="{Binding ElementName=SettingsWindowRoot, Path=CustomSmoothingEnabled}"/>
+                                        <TextBlock Grid.Column="2" Text="{Binding ElementName=SettingsWindowRoot, Path=SmoothingFingerDCutoff, StringFormat={}{0:F1}}"
+                                                   VerticalAlignment="Center" HorizontalAlignment="Right" FontFamily="Consolas"/>
+                                    </Grid>
+
+                                    <!-- 重置按钮 -->
+                                    <Button Content="恢复默认参数"
+                                            Style="{StaticResource MaterialDesignOutlinedButton}"
+                                            Click="BtnResetSmoothingParameters_Click"
+                                            materialDesign:ButtonAssist.CornerRadius="6"
+                                            HorizontalAlignment="Left"
+                                            IsEnabled="{Binding ElementName=SettingsWindowRoot, Path=CustomSmoothingEnabled}"/>
+                                </StackPanel>
+                            </Expander>
+                        </materialDesign:Card>
                     </StackPanel>
 
                     <!-- 外观设置 面板（索引 2） -->
