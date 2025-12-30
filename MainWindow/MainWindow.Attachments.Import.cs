@@ -5,8 +5,10 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Ink;
 using System.Windows.Media.Imaging;
 using MaterialDesignThemes.Wpf;
+using WindBoard.Services.Export;
 using WindBoard.Views.Dialogs;
 
 namespace WindBoard
@@ -16,8 +18,180 @@ namespace WindBoard
         private async void BtnImport_Click(object sender, RoutedEventArgs e)
         {
             var result = await DialogHost.Show(new ImportDialog(), "MainDialogHost");
+
+            // 处理 WBI 导入
+            if (result is WbiImportRequest wbiReq)
+            {
+                await ImportWbiAsync(wbiReq);
+                return;
+            }
+
+            // 处理普通导入
             if (result is not ImportRequest req) return;
             await ImportAttachmentsAsync(req);
+        }
+
+        private async Task ImportWbiAsync(WbiImportRequest request)
+        {
+            try
+            {
+                var importer = new WbiImporter();
+                var progress = new Progress<Models.Export.ExportProgress>(p =>
+                {
+                    // 可以在这里更新进度 UI
+                });
+
+                var importResult = await importer.ImportAsync(request.FilePath, null, progress);
+
+                if (!importResult.Success)
+                {
+                    MessageBox.Show($"导入失败: {importResult.ErrorMessage}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                    return;
+                }
+
+                if (importResult.Pages.Count == 0)
+                {
+                    MessageBox.Show("WBI 文件中没有可导入的页面。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                    return;
+                }
+
+                // 执行导入
+                if (request.ReplaceExistingPages)
+                {
+                    // 替换所有页面
+                    await ReplaceAllPagesWithWbiAsync(importResult.Pages);
+                }
+                else
+                {
+                    // 追加页面
+                    await AppendWbiPagesAsync(importResult.Pages);
+                }
+
+                // 显示缺失资源警告
+                if (importResult.MissingResources.Count > 0)
+                {
+                    string missingList = string.Join("\n", importResult.MissingResources.Take(10));
+                    if (importResult.MissingResources.Count > 10)
+                    {
+                        missingList += $"\n...共 {importResult.MissingResources.Count} 个资源缺失";
+                    }
+
+                    MessageBox.Show(
+                        $"导入完成，但以下资源文件未找到:\n\n{missingList}\n\n这些附件将显示为占位符。",
+                        "部分资源缺失",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Warning);
+                }
+                else
+                {
+                    MessageBox.Show(
+                        $"成功导入 {importResult.Pages.Count} 个页面！",
+                        "导入完成",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Information);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"导入过程中发生错误: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private async Task ReplaceAllPagesWithWbiAsync(List<BoardPage> newPages)
+        {
+            // 保存当前页状态
+            _pageService?.SaveCurrentPage();
+
+            // 清空现有页面
+            var pages = _pageService?.Pages;
+            if (pages == null) return;
+
+            pages.Clear();
+
+            // 添加新页面
+            foreach (var page in newPages)
+            {
+                pages.Add(page);
+            }
+
+            // 切换到第一页
+            if (pages.Count > 0)
+            {
+                // 重新编号
+                for (int i = 0; i < pages.Count; i++)
+                {
+                    pages[i].Number = i + 1;
+                }
+
+                // 加载第一页到画布
+                LoadPageIntoCanvas(pages[0]);
+            }
+
+            // 异步加载所有图片附件
+            foreach (var page in newPages)
+            {
+                foreach (var att in page.Attachments.Where(a => a.Type == BoardAttachmentType.Image && !string.IsNullOrEmpty(a.FilePath)))
+                {
+                    _ = LoadImageIntoAttachmentAsync(att, att.FilePath!);
+                }
+            }
+
+            await Task.CompletedTask;
+        }
+
+        private async Task AppendWbiPagesAsync(List<BoardPage> newPages)
+        {
+            // 保存当前页状态
+            _pageService?.SaveCurrentPage();
+
+            var pages = _pageService?.Pages;
+            if (pages == null) return;
+
+            int startNumber = pages.Count + 1;
+
+            // 添加新页面
+            foreach (var page in newPages)
+            {
+                page.Number = startNumber++;
+                pages.Add(page);
+            }
+
+            // 切换到第一个新导入的页面
+            int newPageIndex = pages.Count - newPages.Count;
+            if (newPageIndex >= 0 && newPageIndex < pages.Count)
+            {
+                _pageService?.SwitchToPage(newPageIndex);
+            }
+
+            // 异步加载所有图片附件
+            foreach (var page in newPages)
+            {
+                foreach (var att in page.Attachments.Where(a => a.Type == BoardAttachmentType.Image && !string.IsNullOrEmpty(a.FilePath)))
+                {
+                    _ = LoadImageIntoAttachmentAsync(att, att.FilePath!);
+                }
+            }
+
+            await Task.CompletedTask;
+        }
+
+        private void LoadPageIntoCanvas(BoardPage page)
+        {
+            // 设置画布尺寸
+            MyCanvas.Width = page.CanvasWidth;
+            MyCanvas.Height = page.CanvasHeight;
+
+            // 设置笔迹
+            MyCanvas.Strokes = page.Strokes ?? new StrokeCollection();
+
+            // 设置视图状态
+            _zoomPanService?.SetViewDirect(page.Zoom, page.PanX, page.PanY);
+
+            // 重新绑定笔迹事件
+            _pageService?.AttachStrokeEvents();
+
+            // 更新附件显示
+            OnPropertyChanged(nameof(CurrentAttachments));
         }
 
         private async Task ImportAttachmentsAsync(ImportRequest req)

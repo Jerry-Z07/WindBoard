@@ -142,6 +142,63 @@
                     </StackPanel>
                 </Grid>
             </TabItem>
+
+            <TabItem Header="WBI 文件">
+                <Grid Margin="0,12,0,0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <StackPanel Orientation="Horizontal">
+                        <Button Style="{StaticResource MaterialDesignOutlinedButton}"
+                                Padding="14,8"
+                                Click="PickWbiFile_Click">
+                            选择 WBI 文件…
+                        </Button>
+                        <Button Name="BtnClearWbi"
+                                Style="{StaticResource MaterialDesignFlatButton}"
+                                Padding="14,8"
+                                Margin="8,0,0,0"
+                                Visibility="Collapsed"
+                                Click="ClearWbiFile_Click">
+                            清除
+                        </Button>
+                    </StackPanel>
+
+                    <!-- WBI 文件信息 -->
+                    <Border Name="WbiFileInfo" Grid.Row="1" Margin="0,12,0,0"
+                            Background="#F5F5F5" CornerRadius="8" Padding="12"
+                            Visibility="Collapsed">
+                        <StackPanel>
+                            <TextBlock Name="TxtWbiFileName" FontWeight="SemiBold" Foreground="#333"/>
+                            <TextBlock Name="TxtWbiPageCount" Foreground="#666" Margin="0,4,0,0"/>
+                            <TextBlock Name="TxtWbiCreatedAt" Foreground="#888" FontSize="12" Margin="0,4,0,0"/>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- 导入模式 -->
+                    <StackPanel Name="WbiImportMode" Grid.Row="2" Margin="0,12,0,0" Visibility="Collapsed">
+                        <TextBlock Text="导入模式" FontWeight="SemiBold" Foreground="#444" Margin="0,0,0,8"/>
+                        <RadioButton Name="RbAppendPages" Content="追加到现有页面之后" IsChecked="True" Margin="0,0,0,4"/>
+                        <RadioButton Name="RbReplacePages" Content="替换所有现有页面"/>
+                    </StackPanel>
+
+                    <!-- 说明 -->
+                    <Border Grid.Row="3" Background="#E3F2FD" CornerRadius="8" Padding="12" Margin="0,12,0,0"
+                            VerticalAlignment="Top">
+                        <StackPanel>
+                            <TextBlock Text="WBI 导入说明" FontWeight="SemiBold" Foreground="#1565C0"/>
+                            <TextBlock TextWrapping="Wrap" Foreground="#666" Margin="0,4,0,0"
+                                       Text="WBI 是 WindBoard 的专用格式，导入后将恢复导出时的完整画布状态，包括笔迹、附件位置、视图缩放等。"/>
+                            <TextBlock Name="TxtWbiWarning" TextWrapping="Wrap" Foreground="#E65100" Margin="0,8,0,0"
+                                       Visibility="Collapsed"/>
+                        </StackPanel>
+                    </Border>
+                </Grid>
+            </TabItem>
         </TabControl>
 
         <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">

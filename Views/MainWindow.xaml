@@ -461,6 +461,9 @@
                     <Button Content="设置" Tag="Cog"
                             Style="{StaticResource BottomButtonStyle}"
                             Click="MenuSettings_Click"/>
+                    <Button Content="导出" Tag="Export"
+                            Style="{StaticResource BottomButtonStyle}"
+                            Click="MenuExport_Click"/>
                     <Button Content="退出" Tag="ExitToApp"
                             Style="{StaticResource BottomButtonStyle}"
                             Click="MenuExit_Click"/>

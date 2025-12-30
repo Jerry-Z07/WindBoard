@@ -17,4 +17,15 @@ internal static class InkTestHelpers
 
         return new Stroke(points);
     }
+
+    public static Stroke CreateStroke(double x1, double y1, double x2, double y2)
+    {
+        var points = new StylusPointCollection
+        {
+            new StylusPoint(x1, y1),
+            new StylusPoint(x2, y2)
+        };
+
+        return new Stroke(points);
+    }
 }
