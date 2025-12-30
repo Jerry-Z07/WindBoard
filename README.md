@@ -7,6 +7,10 @@
 
 一款基于 WPF 和 Material Design 3 的智能白板应用程序，支持流畅的手写输入、多页面管理和实时墨迹平滑。
 
+## 文档
+
+- 文档索引：[`docs/README.md`](docs/README.md)
+
 ## 功能特性
 
 ### 核心功能
@@ -49,134 +53,7 @@
 
 ## 项目结构
 
-```
-WindBoard/
-├── Core/                    # 核心功能模块
-│   ├── Filters/            # 输入过滤器
-│   │   ├── ExclusiveModeFilter.cs
-│   │   ├── IInputFilter.cs
-│   │   └── InputFilterBase.cs
-│   ├── Ink/                # 墨迹算法
-│   │   ├── InkSmoothingDefaults.cs
-│   │   ├── InkSmoothingParameters.cs
-│   │   ├── OneEuroFilter2D.cs
-│   │   ├── RealtimeInkSmoother.cs
-│   │   ├── SimulatedPressure.cs
-│   │   ├── SimulatedPressureDefaults.cs
-│   │   ├── SimulatedPressureParameters.cs
-│   │   └── StrokeThicknessMetadata.cs
-│   ├── Input/              # 输入管理
-│   │   ├── RealTimeStylus/
-│   │   │   ├── RealTimeStylusAdapter.cs
-│   │   │   └── RealTimeStylusManager.cs
-│   │   ├── InputDeviceType.cs
-│   │   ├── InputEventArgs.cs
-│   │   ├── InputManager.cs
-│   │   ├── InputSourceSelector.cs
-│   │   ├── InputStage.cs
-│   │   └── StylusPlugInsAccessor.cs
-│   └── Modes/              # 交互模式
-│       ├── EraserMode.cs
-│       ├── IInteractionMode.cs
-│       ├── InkMode.ActiveStroke.cs
-│       ├── InkMode.Flush.cs
-│       ├── InkMode.cs
-│       ├── InteractionModeBase.cs
-│       ├── ModeController.cs
-│       ├── NoMode.cs
-│       └── SelectMode.cs
-├── MainWindow/             # 主窗口逻辑
-│   ├── MainWindow.Architecture.cs
-│   ├── MainWindow.Attachments.cs
-│   ├── MainWindow.Attachments.BitmapLoader.cs
-│   ├── MainWindow.Attachments.ExternalOpen.cs
-│   ├── MainWindow.Attachments.Import.cs
-│   ├── MainWindow.Attachments.Selection.cs
-│   ├── MainWindow.Export.cs
-│   ├── MainWindow.InputPipeline.cs
-│   ├── MainWindow.Pages.cs
-│   ├── MainWindow.Popups.cs
-│   ├── MainWindow.SettingsSync.cs
-│   ├── MainWindow.SystemDock.cs
-│   ├── MainWindow.ToolUi.cs
-│   ├── MainWindow.UI.cs
-│   └── MainWindow.VideoPresenter.cs
-├── Models/                 # 数据模型
-│   ├── Export/             # 导出相关模型
-│   │   ├── ExportOptions.cs
-│   │   ├── ImageExportOptions.cs
-│   │   ├── PdfExportOptions.cs
-│   │   └── WbiExportOptions.cs
-│   ├── Wbi/                # WBI 格式模型
-│   │   ├── WbiManifest.cs
-│   │   └── WbiPageData.cs
-│   ├── AppSettings.cs
-│   ├── BoardAttachment.cs
-│   ├── BoardAttachmentType.cs
-│   ├── BoardPage.cs
-│   └── ImportRequest.cs
-├── Services/               # 业务服务
-│   ├── Export/            # 导出服务
-│   │   ├── ExportRenderer.cs
-│   │   ├── ExportService.cs
-│   │   ├── PdfExporter.cs
-│   │   ├── WbiExporter.cs
-│   │   └── WbiImporter.cs
-│   ├── Settings/
-│   │   └── SettingsService.cs
-│   ├── AutoExpandService.cs
-│   ├── CamouflageService.cs
-│   ├── PagePreviewRenderer.cs
-│   ├── PageService.cs
-│   ├── StrokeService.cs
-│   ├── StrokeUndoHistory.cs
-│   ├── TouchGestureService.cs
-│   └── ZoomPanService.cs
-├── Views/                  # 视图和控件
-│   ├── Controls/
-│   │   ├── PageNavigatorControl.xaml
-│   │   └── PageNavigatorControl.xaml.cs
-│   ├── Dialogs/
-│   │   ├── ExportDialog.xaml
-│   │   ├── ExportDialog.xaml.cs
-│   │   ├── ImportDialog.xaml
-│   │   └── ImportDialog.xaml.cs
-│   ├── MainWindow.xaml
-│   ├── MainWindow.xaml.cs
-│   ├── SettingsWindow.Appearance.cs
-│   ├── SettingsWindow.Camouflage.cs
-│   ├── SettingsWindow.Fields.cs
-│   ├── SettingsWindow.TouchGestures.cs
-│   ├── SettingsWindow.VideoPresenter.cs
-│   ├── SettingsWindow.Writing.cs
-│   ├── SettingsWindow.xaml
-│   └── SettingsWindow.xaml.cs
-├── Styles/                 # 样式资源
-│   └── BottomBarStyles.xaml
-├── Resources/              # 资源文件
-│   └── Fonts/              # MiSans 字体文件
-├── WindBoard.Tests/         # 单元测试项目
-│   ├── Ink/                # 墨迹算法测试
-│   │   ├── InkModeTests.cs
-│   │   ├── InkSmoothingDefaultsTests.cs
-│   │   ├── OneEuroFilter2DTests.cs
-│   │   ├── RealtimeInkSmootherTests.cs
-│   │   ├── SimulatedPressureDefaultsTests.cs
-│   │   ├── SimulatedPressureTests.cs
-│   │   └── StrokeThicknessMetadataTests.cs
-│   ├── Services/           # 服务测试
-│   │   ├── Export/
-│   │   │   ├── ExportRendererTests.cs
-│   │   │   ├── WbiExporterTests.cs
-│   │   │   └── WbiImporterTests.cs
-│   │   ├── PageServiceTests.cs
-│   │   ├── StrokeUndoHistoryTests.cs
-│   │   └── ZoomPanServiceTests.cs
-│   └── TestHelpers/        # 测试辅助工具
-│       └── InkTestHelpers.cs
-├── App.xaml                # 应用程序入口
-└── App.xaml.cs
-```
+见开发文档：[`docs/dev/project-structure.md`](docs/dev/project-structure.md)
 
 
 ## 架构设计
@@ -205,27 +82,10 @@ WindBoard/
 ### 环境要求
 - .NET 10.0 SDK
 - Windows 10/11
-- Visual Studio 2022 或更高版本（推荐），或者 Visual Studio Code（本软件的一部分开发工作就是在 VSCode 使用 AI 完成的，另一部分在 Codex）
+- Visual Studio 2022 或更高版本、JetBrains Rider 2025.3.1 或更高版本，或者 Visual Studio Code（本软件的一部分开发工作就是在 VSCode 使用 AI 完成的，另一部分在 Codex，还有一部分在 Claude Code）
 
 ### 构建和运行
-```bash
-# 克隆仓库
-git clone https://github.com/Jerry-Z07/WindBoard.git
-cd WindBoard
-
-# 还原依赖
-dotnet restore
-
-# 构建项目
-dotnet build
-
-# 运行应用
-dotnet run
-
-# 运行测试
-dotnet test
-```
-
+见[构建与运行](./docs/dev/build-and-run.md)
 
 ## Todo
 - [x] 笔迹性能优化
