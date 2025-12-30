@@ -113,6 +113,20 @@ namespace WindBoard.Core.Ink
                 }
             }
 
+            if (isFinal)
+            {
+                // 触摸输入（以及“先停顿再抬起”）常出现：Up 事件的 raw 与最后一个 Move 相同。
+                // 由于 OneEuroFilter 的低通特性 + Epsilon 输出阈值，最后一小段“补齐”位移可能被吞掉，
+                // 导致笔迹尾端比手指实际划过的距离短一点。
+                // Final 时强制补上 raw 末端点，确保 stroke 结束位置精确落在输入点。
+                if (!_hasLastOutput || (rawMm - _lastOutputMm).Length > 0.0001)
+                {
+                    _scratchMm.Add(rawMm);
+                    _lastOutputMm = rawMm;
+                    _hasLastOutput = true;
+                }
+            }
+
             _lastTicks = timestampTicks;
             return _scratchMm;
         }

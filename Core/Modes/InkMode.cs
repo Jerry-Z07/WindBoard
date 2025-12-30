@@ -116,6 +116,14 @@ namespace WindBoard.Core.Modes
                 stylusPoints.Add(new StylusPoint(pCanvas.X, pCanvas.Y, initialPressure));
             }
 
+            // 触摸书写：为减少实时“跟手”延迟，在 stroke 尾部维持一个可移动的 LiveTail 点（始终等于当前 raw 输入）。
+            // 后续 Move 会更新该点的位置；Flush 时把新点插到 tail 之前，避免 tail 被“顶”到中间。
+            bool liveTailEnabled = args.DeviceType == InputDeviceType.Touch;
+            if (liveTailEnabled && stylusPoints.Count > 0)
+            {
+                stylusPoints.Add(new StylusPoint(args.CanvasPoint.X, args.CanvasPoint.Y, initialPressure));
+            }
+
             var da = _canvas.DefaultDrawingAttributes.Clone();
             da.FitToCurve = true;
             da.IgnorePressure = !(usesRealPressure || usesSimulatedPressure);
@@ -137,6 +145,8 @@ namespace WindBoard.Core.Modes
             _canvas.Strokes.Add(stroke);
 
             var active = new ActiveStroke(stroke, da, logicalThicknessDip, smoother, args.CanvasPoint, args.TimestampTicks, usesRealPressure, initialRealPressure, hasRealPressureCandidate, simulatedPressure);
+            active.LiveTailEnabled = liveTailEnabled;
+            active.LiveTailPressure = initialPressure;
             active.Segments.Add(stroke);
             _activeStrokes[id] = active;
             EnsureFlushTimer();
@@ -151,6 +161,7 @@ namespace WindBoard.Core.Modes
             if (!_activeStrokes.TryGetValue(id, out var active)) return;
 
             AppendPoints(active, args, isFinal: false);
+            UpdateLiveTail(active, args.CanvasPoint);
             EnsureFlushTimer();
         }
 
@@ -159,8 +170,10 @@ namespace WindBoard.Core.Modes
             int id = GetPointerKey(args);
             if (!_activeStrokes.TryGetValue(id, out var active)) return;
 
+            UpdateLiveTail(active, args.CanvasPoint);
             AppendPoints(active, args, isFinal: true);
             FlushPendingPoints(active);
+            TryRemoveLiveTailIfDuplicate(active);
             _activeStrokes.Remove(id);
             _onStrokeEndedOrCanceled?.Invoke();
             StopFlushTimerIfIdle();
@@ -224,6 +237,7 @@ namespace WindBoard.Core.Modes
                 simulatedEndPressure = isFinal ? active.SimulatedPressure.Finish() : simulatedStartPressure;
             }
 
+            float lastPressure = active.LiveTailPressure;
             for (int i = 0; i < pointsMm.Count; i++)
             {
                 var pCanvas = active.Smoother.ScreenMmToCanvasDip(pointsMm[i], zoom);
@@ -253,7 +267,66 @@ namespace WindBoard.Core.Modes
                     pressure = RealPressureBaseline;
                 }
                 active.PendingPoints.Add(new StylusPoint(pCanvas.X, pCanvas.Y, pressure));
+                lastPressure = pressure;
             }
+
+            if (active.LiveTailEnabled)
+            {
+                active.LiveTailPressure = lastPressure;
+            }
+        }
+
+        private static void UpdateLiveTail(ActiveStroke active, Point rawCanvasDip)
+        {
+            if (!active.LiveTailEnabled)
+            {
+                return;
+            }
+
+            var spc = active.Stroke.StylusPoints;
+            if (spc.Count == 0)
+            {
+                var p = new StylusPoint(rawCanvasDip.X, rawCanvasDip.Y, active.LiveTailPressure);
+                spc.Add(p);
+                spc.Add(p);
+                return;
+            }
+
+            if (spc.Count == 1)
+            {
+                spc.Add(spc[0]);
+            }
+
+            spc.RemoveAt(spc.Count - 1);
+            spc.Add(new StylusPoint(rawCanvasDip.X, rawCanvasDip.Y, active.LiveTailPressure));
+        }
+
+        private static void TryRemoveLiveTailIfDuplicate(ActiveStroke active)
+        {
+            if (!active.LiveTailEnabled)
+            {
+                return;
+            }
+
+            var spc = active.Stroke.StylusPoints;
+            if (spc.Count < 2)
+            {
+                return;
+            }
+
+            var a = spc[^2];
+            var b = spc[^1];
+
+            const double posEps = 0.0001;
+            const double pressureEps = 0.0001;
+            if (Math.Abs(a.X - b.X) <= posEps
+                && Math.Abs(a.Y - b.Y) <= posEps
+                && Math.Abs(a.PressureFactor - b.PressureFactor) <= pressureEps)
+            {
+                spc.RemoveAt(spc.Count - 1);
+            }
+
+            active.LiveTailEnabled = false;
         }
 
         private static int GetPointerKey(InputEventArgs args)

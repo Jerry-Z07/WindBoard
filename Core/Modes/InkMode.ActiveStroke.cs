@@ -17,6 +17,8 @@ namespace WindBoard.Core.Modes
             public RealtimeInkSmoother Smoother { get; }
             public Point LastInputCanvasDip { get; set; }
             public long LastInputTicks { get; set; }
+            public bool LiveTailEnabled { get; set; }
+            public float LiveTailPressure { get; set; }
             public bool UsesRealPressure { get; set; }
             public float LastRealPressure { get; set; }
             public bool HasRealPressureCandidate { get; set; }
@@ -39,6 +41,8 @@ namespace WindBoard.Core.Modes
                 Smoother = smoother;
                 LastInputCanvasDip = lastInputCanvasDip;
                 LastInputTicks = lastInputTicks;
+                LiveTailEnabled = false;
+                LiveTailPressure = initialRealPressure;
                 UsesRealPressure = usesRealPressure;
                 LastRealPressure = initialRealPressure;
                 HasRealPressureCandidate = hasRealPressureCandidate;
