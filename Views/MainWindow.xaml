@@ -356,11 +356,11 @@
 
                         <!-- 粗细选择 (左侧) -->
                         <StackPanel Grid.Column="0" Margin="0,0,16,0" VerticalAlignment="Center">
-                            <RadioButton GroupName="Thickness" Tag="1.75" Checked="Thickness_Checked" IsChecked="True" Margin="0,0,0,16"
+                            <RadioButton GroupName="Thickness" Tag="1" Checked="Thickness_Checked" IsChecked="True" Margin="0,0,0,16"
                                          Style="{StaticResource MaterialDesignToolRadioButton}">
                                 <materialDesign:PackIcon Kind="Brush" Width="24" Height="24" Foreground="White"/>
                             </RadioButton>
-                            <RadioButton GroupName="Thickness" Tag="4.75" Checked="Thickness_Checked" Margin="0,0,0,16"
+                            <RadioButton GroupName="Thickness" Tag="3" Checked="Thickness_Checked" Margin="0,0,0,16"
                                          Style="{StaticResource MaterialDesignToolRadioButton}">
                                 <materialDesign:PackIcon Kind="Brush" Width="24" Height="24" Foreground="White" RenderTransformOrigin="0.5,0.5">
                                     <materialDesign:PackIcon.RenderTransform>
@@ -368,7 +368,7 @@
                                     </materialDesign:PackIcon.RenderTransform>
                                 </materialDesign:PackIcon>
                             </RadioButton>
-                            <RadioButton GroupName="Thickness" Tag="6.75" Checked="Thickness_Checked"
+                            <RadioButton GroupName="Thickness" Tag="5" Checked="Thickness_Checked"
                                          Style="{StaticResource MaterialDesignToolRadioButton}">
                                 <materialDesign:PackIcon Kind="Brush" Width="24" Height="24" Foreground="White" RenderTransformOrigin="0.5,0.5">
                                     <materialDesign:PackIcon.RenderTransform>
