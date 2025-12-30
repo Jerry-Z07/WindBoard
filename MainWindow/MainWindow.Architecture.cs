@@ -21,8 +21,9 @@ namespace WindBoard
     {
         private const double MinZoom = 0.25;
         private const double MaxZoom = 5.25;
+        private const double DefaultZoom = 1.2;
 
-        private double _baseThickness = 1.75;
+        private double _baseThickness = 1.0;
         private readonly double _eraserCursorOffsetY = 12.0;
 
         private Canvas? _eraserOverlay;
@@ -77,6 +78,7 @@ namespace WindBoard
             }
 
             _zoomPanService = new ZoomPanService(ZoomTransform, _panTransform, MinZoom, MaxZoom, zoom => _strokeService.UpdatePenThickness(zoom));
+            _zoomPanService.SetZoomDirect(DefaultZoom);
             ApplyZoomPanGestureSettingsSnapshot();
             _strokeService.SetStrokeThicknessConsistencyEnabled(
                 SettingsService.Instance.GetStrokeThicknessConsistencyEnabled(),

@@ -35,5 +35,26 @@ namespace WindBoard.Models
 
         // 触摸缩放/平移：仅双指手势（开启后，三指及以上不参与缩放/平移）
         public bool ZoomPanTwoFingerOnly { get; set; } = false;
+
+        // --- 笔迹平滑参数（高级设置） ---
+        // 是否使用自定义平滑参数（false 则使用内置默认值）
+        public bool CustomSmoothingEnabled { get; set; } = false;
+
+        // 是否不再提示平滑参数修改风险
+        public bool SmoothingWarningDismissed { get; set; } = false;
+
+        // 笔输入参数
+        public double SmoothingPenStepMm { get; set; } = 0.9;
+        public double SmoothingPenEpsilonMm { get; set; } = 0.15;
+        public double SmoothingPenFcMin { get; set; } = 2.8;
+        public double SmoothingPenBeta { get; set; } = 0.055;
+        public double SmoothingPenDCutoff { get; set; } = 1.2;
+
+        // 手指输入参数
+        public double SmoothingFingerStepMm { get; set; } = 1.1;
+        public double SmoothingFingerEpsilonMm { get; set; } = 0.3;
+        public double SmoothingFingerFcMin { get; set; } = 1.8;
+        public double SmoothingFingerBeta { get; set; } = 0.035;
+        public double SmoothingFingerDCutoff { get; set; } = 1.2;
     }
 }

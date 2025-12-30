@@ -1,7 +1,5 @@
 # WindBoard
 
-> [!WARNING]
-> 本项目完全使用AI开发，如对此感到不适请寻找其它软件进行替代。
 
 > [!NOTE]
 > 本项目处于活跃开发阶段，API 和功能可能会频繁变更。生产环境使用请谨慎。
@@ -20,18 +18,23 @@
 - **缩放和平移**：支持鼠标滚轮缩放和双指手势缩放平移
 - **笔刷设置**：可调节笔刷粗细（3档）和颜色（9种预设颜色）
 - **附件管理**：支持导入图片、视频、文本、链接等多种附件，支持拖拽移动、调整大小、置顶等操作
+- **导出功能**：支持导出为图片（PNG/JPG）、PDF 文档和 WBI 自有格式
+- **导入功能**
 
 ### 高级特性
 - **实时墨迹平滑**：基于 OneEuroFilter 算法的实时墨迹平滑，提供流畅自然的书写体验
+- **模拟压力**：基于书写速度的模拟压力算法，实现笔锋效果
+- **笔迹粗细一致性**：保持不同书写速度下的笔迹粗细一致性
 - **输入设备适配**：支持多种输入设备，包括 RealTimeStylus 适配器
 - **输入过滤系统**：灵活的输入过滤器架构，支持独占模式等高级输入处理
-- **触摸手势识别**：智能识别触摸手势，支持双指缩放、平移等操作
+- **触摸手势识别**：智能识别触摸手势，支持双指缩放、平移等操作，可配置仅双指触发
 - **伪装功能**：支持伪装模式，用于特殊场景下的演示需求
 - **设置持久化**：应用设置自动保存到本地 JSON 文件
 - **响应式界面**：基于 Material Design 3 的现代化 UI 设计
 - **自动扩展画布**：支持画布自动扩展功能
 - **附件导入**：支持批量导入图片、视频、文本文件、文本内容和链接
 - **视频展台集成**：支持外部视频展台软件的快速启动和参数配置
+- **自定义平滑参数**：支持针对笔和手指分别调整平滑参数（步长、最小截止频率、Beta 值、速度截止值等）
 
 ## 技术栈
 
@@ -39,6 +42,7 @@
 - **UI 框架**：WPF (Windows Presentation Foundation)
 - **UI 库**：MaterialDesignThemes v5.3.0 (Material Design 3)
 - **JSON 处理**：Newtonsoft.Json v13.0.4
+- **PDF 处理**：PdfSharpCore v1.3.65
 - **图形处理**：System.Drawing.Common v10.0.1
 - **测试框架**：xUnit v2.9.3 + Xunit.StaFact v1.2.69
 - **字体**：MiSans 字体系列
@@ -57,6 +61,9 @@ WindBoard/
 │   │   ├── InkSmoothingParameters.cs
 │   │   ├── OneEuroFilter2D.cs
 │   │   ├── RealtimeInkSmoother.cs
+│   │   ├── SimulatedPressure.cs
+│   │   ├── SimulatedPressureDefaults.cs
+│   │   ├── SimulatedPressureParameters.cs
 │   │   └── StrokeThicknessMetadata.cs
 │   ├── Input/              # 输入管理
 │   │   ├── RealTimeStylus/
@@ -85,6 +92,7 @@ WindBoard/
 │   ├── MainWindow.Attachments.ExternalOpen.cs
 │   ├── MainWindow.Attachments.Import.cs
 │   ├── MainWindow.Attachments.Selection.cs
+│   ├── MainWindow.Export.cs
 │   ├── MainWindow.InputPipeline.cs
 │   ├── MainWindow.Pages.cs
 │   ├── MainWindow.Popups.cs
@@ -94,12 +102,26 @@ WindBoard/
 │   ├── MainWindow.UI.cs
 │   └── MainWindow.VideoPresenter.cs
 ├── Models/                 # 数据模型
+│   ├── Export/             # 导出相关模型
+│   │   ├── ExportOptions.cs
+│   │   ├── ImageExportOptions.cs
+│   │   ├── PdfExportOptions.cs
+│   │   └── WbiExportOptions.cs
+│   ├── Wbi/                # WBI 格式模型
+│   │   ├── WbiManifest.cs
+│   │   └── WbiPageData.cs
 │   ├── AppSettings.cs
 │   ├── BoardAttachment.cs
 │   ├── BoardAttachmentType.cs
 │   ├── BoardPage.cs
 │   └── ImportRequest.cs
 ├── Services/               # 业务服务
+│   ├── Export/            # 导出服务
+│   │   ├── ExportRenderer.cs
+│   │   ├── ExportService.cs
+│   │   ├── PdfExporter.cs
+│   │   ├── WbiExporter.cs
+│   │   └── WbiImporter.cs
 │   ├── Settings/
 │   │   └── SettingsService.cs
 │   ├── AutoExpandService.cs
@@ -115,6 +137,8 @@ WindBoard/
 │   │   ├── PageNavigatorControl.xaml
 │   │   └── PageNavigatorControl.xaml.cs
 │   ├── Dialogs/
+│   │   ├── ExportDialog.xaml
+│   │   ├── ExportDialog.xaml.cs
 │   │   ├── ImportDialog.xaml
 │   │   └── ImportDialog.xaml.cs
 │   ├── MainWindow.xaml
@@ -122,7 +146,9 @@ WindBoard/
 │   ├── SettingsWindow.Appearance.cs
 │   ├── SettingsWindow.Camouflage.cs
 │   ├── SettingsWindow.Fields.cs
+│   ├── SettingsWindow.TouchGestures.cs
 │   ├── SettingsWindow.VideoPresenter.cs
+│   ├── SettingsWindow.Writing.cs
 │   ├── SettingsWindow.xaml
 │   └── SettingsWindow.xaml.cs
 ├── Styles/                 # 样式资源
@@ -131,11 +157,18 @@ WindBoard/
 │   └── Fonts/              # MiSans 字体文件
 ├── WindBoard.Tests/         # 单元测试项目
 │   ├── Ink/                # 墨迹算法测试
+│   │   ├── InkModeTests.cs
 │   │   ├── InkSmoothingDefaultsTests.cs
 │   │   ├── OneEuroFilter2DTests.cs
 │   │   ├── RealtimeInkSmootherTests.cs
+│   │   ├── SimulatedPressureDefaultsTests.cs
+│   │   ├── SimulatedPressureTests.cs
 │   │   └── StrokeThicknessMetadataTests.cs
 │   ├── Services/           # 服务测试
+│   │   ├── Export/
+│   │   │   ├── ExportRendererTests.cs
+│   │   │   ├── WbiExporterTests.cs
+│   │   │   └── WbiImporterTests.cs
 │   │   ├── PageServiceTests.cs
 │   │   ├── StrokeUndoHistoryTests.cs
 │   │   └── ZoomPanServiceTests.cs
@@ -161,8 +194,8 @@ WindBoard/
 - **适配器模式**：RealTimeStylus 适配器集成
 
 ### 模块职责
-- **Core**：核心算法和基础组件（墨迹平滑、输入处理、交互模式）
-- **Services**：业务逻辑服务（页面管理、笔迹管理、缩放平移等）
+- **Core**：核心算法和基础组件（墨迹平滑、模拟压力、输入处理、交互模式）
+- **Services**：业务逻辑服务（页面管理、笔迹管理、缩放平移、导出导入等）
 - **MainWindow**：主窗口协调器，整合各模块
 - **Views**：UI 视图和自定义控件
 
@@ -223,6 +256,8 @@ Apache License 2.0
 - 核心算法（如墨迹平滑、OneEuroFilter）必须有对应的单元测试
 - 测试文件位于 `WindBoard.Tests/` 目录下，与主项目结构保持一致
 
+> [!WARNING]
+> 本项目完全使用AI开发，如对此感到不适请寻找其它软件进行替代。
 
 
 ## 贡献
