@@ -214,7 +214,17 @@ namespace WindBoard.Services.Export
                     // StrokeCollection 需要可定位的流，ZipArchiveEntry.Open() 返回的 DeflateStream 不可定位
                     // 因此需要先将数据读取到 MemoryStream 中
                     using var zipStream = isfEntry.Open();
-                    using var memoryStream = new MemoryStream();
+
+                    int preallocateCapacity = 0;
+                    long isfLength = isfEntry.Length;
+                    if (isfLength > 0 && isfLength <= int.MaxValue)
+                    {
+                        preallocateCapacity = (int)isfLength;
+                    }
+
+                    using var memoryStream = preallocateCapacity > 0
+                        ? new MemoryStream(preallocateCapacity)
+                        : new MemoryStream();
                     zipStream.CopyTo(memoryStream);
                     memoryStream.Position = 0;
                     page.Strokes = new StrokeCollection(memoryStream);

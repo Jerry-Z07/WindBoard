@@ -7,6 +7,24 @@ namespace WindBoard.Services
 {
     public class ZoomPanService
     {
+        private enum GesturePointSource
+        {
+            Raw,
+            Smoothed
+        }
+
+        private readonly struct GestureSnapshot
+        {
+            public GestureSnapshot(Point center, double spread)
+            {
+                Center = center;
+                Spread = spread;
+            }
+
+            public Point Center { get; }
+            public double Spread { get; }
+        }
+
         private readonly ScaleTransform _zoomTransform;
         private readonly double _minZoom;
         private readonly double _maxZoom;
@@ -127,7 +145,7 @@ namespace WindBoard.Services
             {
                 // 每次手指数量变化都更新快照
                 // 这样增量计算才能从正确的基准开始，避免重心/spread 跳跃
-                SnapshotGestureFromSmoothed();
+                SnapshotGesture(GesturePointSource.Smoothed);
 
                 if (!_gestureActive)
                 {
@@ -144,26 +162,15 @@ namespace WindBoard.Services
             if (!_activeTouches.ContainsKey(id)) return false;
 
             _activeTouches[id] = viewportPoint;
-
-            // 对触摸点应用低通滤波以消除硬件噪声
-            if (_smoothedTouches.TryGetValue(id, out var prevSmoothed))
-            {
-                _smoothedTouches[id] = new Point(
-                    prevSmoothed.X + (viewportPoint.X - prevSmoothed.X) * TouchSmoothingFactor,
-                    prevSmoothed.Y + (viewportPoint.Y - prevSmoothed.Y) * TouchSmoothingFactor
-                );
-            }
-            else
-            {
-                _smoothedTouches[id] = viewportPoint;
-            }
+            UpdateSmoothedTouch(id, viewportPoint);
 
             if (!_gestureActive || _activeTouches.Count < 2) return false;
             if (TwoFingerOnly && _activeTouches.Count > 2) return false;
 
             // 使用滤波后的触摸点计算重心和距离
-            Point newCenter = GetSmoothedCentroid();
-            double newSpread = GetSmoothedAverageSpread(newCenter);
+            var snapshot = GetGestureSnapshot(GesturePointSource.Smoothed);
+            Point newCenter = snapshot.Center;
+            double newSpread = snapshot.Spread;
 
             // 计算重心增量（用于平移）
             Vector deltaCenter = newCenter - _lastGestureCenter;
@@ -229,87 +236,90 @@ namespace WindBoard.Services
             if (_gestureActive && _activeTouches.Count >= 2)
             {
                 // 手指数量变化时更新快照，这样增量计算才能从正确的基准开始
-                SnapshotGestureFromSmoothed();
+                SnapshotGesture(GesturePointSource.Smoothed);
                 return true;
             }
 
             return wasActive;
         }
 
-        private void SnapshotGesture()
+        private void UpdateSmoothedTouch(int id, Point viewportPoint)
         {
-            Point center = GetCentroid();
-            double spread = GetAverageSpread(center);
-
-            _lastGestureCenter = center;
-            _lastGestureSpread = spread;
-        }
-
-        private void SnapshotGestureFromSmoothed()
-        {
-            Point center = GetSmoothedCentroid();
-            double spread = GetSmoothedAverageSpread(center);
-
-            _lastGestureCenter = center;
-            _lastGestureSpread = spread;
-        }
-
-        private Point GetCentroid()
-        {
-            double sumX = 0, sumY = 0;
-            int n = _activeTouches.Count;
-            foreach (var pt in _activeTouches.Values)
+            // 对触摸点应用低通滤波以消除硬件噪声
+            if (_smoothedTouches.TryGetValue(id, out var prevSmoothed))
             {
-                sumX += pt.X;
-                sumY += pt.Y;
+                _smoothedTouches[id] = new Point(
+                    prevSmoothed.X + (viewportPoint.X - prevSmoothed.X) * TouchSmoothingFactor,
+                    prevSmoothed.Y + (viewportPoint.Y - prevSmoothed.Y) * TouchSmoothingFactor
+                );
+                return;
             }
-            return n > 0 ? new Point(sumX / n, sumY / n) : new Point(0, 0);
+
+            _smoothedTouches[id] = viewportPoint;
         }
 
-        private Point GetSmoothedCentroid()
+        private void SnapshotGesture(GesturePointSource source)
         {
-            double sumX = 0, sumY = 0;
-            int n = 0;
-            foreach (var id in _activeTouches.Keys)
+            var snapshot = GetGestureSnapshot(source);
+            _lastGestureCenter = snapshot.Center;
+            _lastGestureSpread = snapshot.Spread;
+        }
+
+        private GestureSnapshot GetGestureSnapshot(GesturePointSource source)
+        {
+            double sumX = 0;
+            double sumY = 0;
+            int count = 0;
+
+            if (source == GesturePointSource.Smoothed)
             {
-                if (_smoothedTouches.TryGetValue(id, out var pt))
+                foreach (var id in _activeTouches.Keys)
+                {
+                    if (_smoothedTouches.TryGetValue(id, out var pt))
+                    {
+                        sumX += pt.X;
+                        sumY += pt.Y;
+                        count++;
+                    }
+                }
+            }
+            else
+            {
+                foreach (var pt in _activeTouches.Values)
                 {
                     sumX += pt.X;
                     sumY += pt.Y;
-                    n++;
+                    count++;
                 }
             }
-            return n > 0 ? new Point(sumX / n, sumY / n) : new Point(0, 0);
-        }
 
-        private double GetAverageSpread(Point center)
-        {
+            Point center = count > 0 ? new Point(sumX / count, sumY / count) : new Point(0, 0);
+
             double spread = 0;
-            int n = _activeTouches.Count;
-            foreach (var pt in _activeTouches.Values)
+
+            if (source == GesturePointSource.Smoothed)
             {
-                double dx = pt.X - center.X;
-                double dy = pt.Y - center.Y;
-                spread += Math.Sqrt(dx * dx + dy * dy);
+                foreach (var id in _activeTouches.Keys)
+                {
+                    if (_smoothedTouches.TryGetValue(id, out var pt))
+                    {
+                        double dx = pt.X - center.X;
+                        double dy = pt.Y - center.Y;
+                        spread += Math.Sqrt(dx * dx + dy * dy);
+                    }
+                }
             }
-            return n > 0 ? spread / n : 0;
-        }
-
-        private double GetSmoothedAverageSpread(Point center)
-        {
-            double spread = 0;
-            int n = 0;
-            foreach (var id in _activeTouches.Keys)
+            else
             {
-                if (_smoothedTouches.TryGetValue(id, out var pt))
+                foreach (var pt in _activeTouches.Values)
                 {
                     double dx = pt.X - center.X;
                     double dy = pt.Y - center.Y;
                     spread += Math.Sqrt(dx * dx + dy * dy);
-                    n++;
                 }
             }
-            return n > 0 ? spread / n : 0;
+
+            return new GestureSnapshot(center, count > 0 ? spread / count : 0);
         }
 
         private double Clamp(double v)
