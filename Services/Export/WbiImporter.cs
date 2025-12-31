@@ -211,8 +211,13 @@ namespace WindBoard.Services.Export
                 var isfEntry = archive.GetEntry(isfPath);
                 if (isfEntry != null)
                 {
-                    using var stream = isfEntry.Open();
-                    page.Strokes = new StrokeCollection(stream);
+                    // StrokeCollection 需要可定位的流，ZipArchiveEntry.Open() 返回的 DeflateStream 不可定位
+                    // 因此需要先将数据读取到 MemoryStream 中
+                    using var zipStream = isfEntry.Open();
+                    using var memoryStream = new MemoryStream();
+                    zipStream.CopyTo(memoryStream);
+                    memoryStream.Position = 0;
+                    page.Strokes = new StrokeCollection(memoryStream);
                 }
             }
 
