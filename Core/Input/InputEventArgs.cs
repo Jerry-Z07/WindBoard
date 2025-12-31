@@ -21,6 +21,15 @@ namespace WindBoard.Core.Input
         public long TimestampTicks { get; set; }
         public Size? ContactSize { get; set; }
 
+        /// <summary>
+        /// Creates a snapshot copy of this instance.
+        /// Some input sources may reuse the same <see cref="InputEventArgs"/> instance across multiple dispatch calls.
+        /// </summary>
+        public InputEventArgs Clone()
+        {
+            return CloneWithPoint(CanvasPoint, ViewportPoint);
+        }
+
         public InputEventArgs CloneWithPoint(Point canvasPoint, Point viewportPoint)
         {
             return new InputEventArgs

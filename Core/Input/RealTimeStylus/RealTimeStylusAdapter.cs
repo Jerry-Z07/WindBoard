@@ -66,22 +66,17 @@ namespace WindBoard.Core.Input.RealTimeStylus
                 }
 
                 int pointCount = stylusPoints.Count;
-                StylusPoint[]? buffer = null;
+                StylusPoint[] buffer = ArrayPool<StylusPoint>.Shared.Rent(pointCount);
+                var packet = new StylusPacket(stage, buffer, pointCount, rawStylusInput.Timestamp, rawStylusInput.StylusDeviceId, isInAir);
                 try
                 {
-                    buffer = ArrayPool<StylusPoint>.Shared.Rent(pointCount);
                     stylusPoints.CopyTo(buffer, 0);
-
-                    rawStylusInput.NotifyWhenProcessed(
-                        new StylusPacket(stage, buffer, pointCount, rawStylusInput.Timestamp, rawStylusInput.StylusDeviceId, isInAir));
-                    buffer = null;
+                    rawStylusInput.NotifyWhenProcessed(packet);
                 }
-                finally
+                catch
                 {
-                    if (buffer != null)
-                    {
-                        ArrayPool<StylusPoint>.Shared.Return(buffer, clearArray: true);
-                    }
+                    packet.Dispose();
+                    throw;
                 }
             }
             catch (Exception ex)
@@ -127,6 +122,7 @@ namespace WindBoard.Core.Input.RealTimeStylus
                 }
 
                 // RTS 一个 packet 可能包含多个点；复用同一个 args 实例，避免高采样设备下 “每点 new args” 的 GC 压力。
+                // 注意：args 在同一个 packet 内会被反复修改；如需在分发后持有，请使用 args.Clone() 获取快照。
                 var args = new InputEventArgs
                 {
                     DeviceType = deviceType,
@@ -145,25 +141,27 @@ namespace WindBoard.Core.Input.RealTimeStylus
                 };
 
                 int count = packet.Count;
+                if (count <= 0)
+                {
+                    return;
+                }
+
+                StylusPoint[] points = packet.Points;
+                bool hasPressureHardware = StylusPressureHardware.HasPressureHardware(points[0].Description);
                 for (int i = 0; i < count; i++)
                 {
-                    StylusPoint pt = packet.Points[i];
+                    StylusPoint pt = points[i];
                     var canvasPoint = new Point(pt.X, pt.Y);
                     var viewportPoint = canvasToViewport?.Transform(canvasPoint) ?? canvasPoint;
 
                     args.CanvasPoint = canvasPoint;
                     args.ViewportPoint = viewportPoint;
-                    args.HasPressureHardware = StylusPressureHardware.HasPressureHardware(pt.Description);
-                    args.Pressure = args.HasPressureHardware ? TryReadPressure(pt) : null;
+                    args.HasPressureHardware = hasPressureHardware;
+                    args.Pressure = hasPressureHardware ? TryReadPressure(pt) : null;
                     args.ContactSize = TryReadContactSize(pt);
 
                     // Down/Up packet 可能带多个点；保证 Down 只发一次、Up 只发一次，中间点作为 Move。
-                    InputStage dispatchStage = packet.Stage switch
-                    {
-                        InputStage.Down => i == 0 ? InputStage.Down : InputStage.Move,
-                        InputStage.Up => i < (count - 1) ? InputStage.Move : InputStage.Up,
-                        _ => packet.Stage
-                    };
+                    InputStage dispatchStage = GetDispatchStage(packet.Stage, i, count);
 
                     _dispatch(dispatchStage, args);
                 }
@@ -249,11 +247,24 @@ namespace WindBoard.Core.Input.RealTimeStylus
             return mapped;
         }
 
+        private static InputStage GetDispatchStage(InputStage packetStage, int index, int count)
+        {
+            return packetStage switch
+            {
+                InputStage.Down => index == 0 ? InputStage.Down : InputStage.Move,
+                InputStage.Up => index < (count - 1) ? InputStage.Move : InputStage.Up,
+                _ => packetStage
+            };
+        }
+
         private sealed class StylusPacket : IDisposable
         {
+            private StylusPoint[]? _points;
+            private int _count;
+
             public InputStage Stage { get; }
-            public StylusPoint[] Points { get; }
-            public int Count { get; }
+            public StylusPoint[] Points => _points ?? Array.Empty<StylusPoint>();
+            public int Count => _count;
             public int Timestamp { get; }
             public int StylusDeviceId { get; }
             public bool IsInAir { get; }
@@ -261,8 +272,8 @@ namespace WindBoard.Core.Input.RealTimeStylus
             public StylusPacket(InputStage stage, StylusPoint[] points, int count, int timestamp, int stylusDeviceId, bool isInAir)
             {
                 Stage = stage;
-                Points = points;
-                Count = count;
+                _points = points;
+                _count = Math.Clamp(count, 0, points.Length);
                 Timestamp = timestamp;
                 StylusDeviceId = stylusDeviceId;
                 IsInAir = isInAir;
@@ -272,12 +283,17 @@ namespace WindBoard.Core.Input.RealTimeStylus
 
             public void Dispose()
             {
-                if (Points.Length == 0)
+                StylusPoint[]? points = _points;
+                if (points == null)
                 {
                     return;
                 }
 
-                ArrayPool<StylusPoint>.Shared.Return(Points, clearArray: true);
+                _points = null;
+                _count = 0;
+
+                // StylusPoint 数据不包含敏感信息；返回池时避免清零，降低高频输入开销。
+                ArrayPool<StylusPoint>.Shared.Return(points, clearArray: false);
             }
         }
     }

@@ -10,10 +10,23 @@ namespace WindBoard
     {
         private DispatcherTimer? _camouflageShortcutUpdateTimer;
         private string _lastCamouflageSettingsSignature = string.Empty;
-        private string _pendingCamouflageShortcutSignature = string.Empty;
-        private string _pendingCamouflageShortcutTitle = string.Empty;
-        private string? _pendingCamouflageShortcutIconPath;
-        private bool _pendingCamouflageShortcutEnabled;
+        private CamouflageShortcutUpdateRequest? _pendingCamouflageShortcutUpdate;
+
+        private sealed class CamouflageShortcutUpdateRequest
+        {
+            public string Signature { get; }
+            public string Title { get; }
+            public string? IconPath { get; }
+            public bool Enabled { get; }
+
+            public CamouflageShortcutUpdateRequest(string signature, string title, string? iconPath, bool enabled)
+            {
+                Signature = signature;
+                Title = title;
+                IconPath = iconPath;
+                Enabled = enabled;
+            }
+        }
 
         private void InitializeSettings()
         {
@@ -82,6 +95,27 @@ namespace WindBoard
             return result;
         }
 
+        private DispatcherTimer GetOrCreateCamouflageShortcutUpdateTimer()
+        {
+            if (_camouflageShortcutUpdateTimer != null)
+            {
+                return _camouflageShortcutUpdateTimer;
+            }
+
+            _camouflageShortcutUpdateTimer = new DispatcherTimer(DispatcherPriority.Background)
+            {
+                Interval = TimeSpan.FromMilliseconds(600)
+            };
+            _camouflageShortcutUpdateTimer.Tick += CamouflageShortcutUpdateTimer_Tick;
+            return _camouflageShortcutUpdateTimer;
+        }
+
+        private void CancelPendingCamouflageShortcutUpdate()
+        {
+            _pendingCamouflageShortcutUpdate = null;
+            _camouflageShortcutUpdateTimer?.Stop();
+        }
+
         private void TryScheduleCamouflageShortcutUpdate(CamouflageResult currentResult)
         {
             string currentCamouflageSettingsSignature = CamouflageService.Instance.GetCamouflageShortcutSettingsSignature();
@@ -96,62 +130,55 @@ namespace WindBoard
             if (string.Equals(lastGeneratedSignature, currentCamouflageSettingsSignature, StringComparison.Ordinal))
             {
                 // 用户把设置改回“已生成过”的状态：取消任何待执行的更新，避免生成旧配置的快捷方式。
-                _pendingCamouflageShortcutSignature = string.Empty;
-                _pendingCamouflageShortcutTitle = string.Empty;
-                _pendingCamouflageShortcutIconPath = null;
-                _pendingCamouflageShortcutEnabled = false;
-                _camouflageShortcutUpdateTimer?.Stop();
+                CancelPendingCamouflageShortcutUpdate();
                 return;
             }
 
-            _pendingCamouflageShortcutSignature = currentCamouflageSettingsSignature;
-            _pendingCamouflageShortcutTitle = currentResult.Title;
-            _pendingCamouflageShortcutIconPath = currentResult.IconPath;
-            _pendingCamouflageShortcutEnabled = currentResult.Enabled;
+            _pendingCamouflageShortcutUpdate = new CamouflageShortcutUpdateRequest(
+                currentCamouflageSettingsSignature,
+                currentResult.Title,
+                currentResult.IconPath,
+                currentResult.Enabled);
 
-            _camouflageShortcutUpdateTimer ??= new DispatcherTimer(DispatcherPriority.Background)
-            {
-                Interval = TimeSpan.FromMilliseconds(600)
-            };
-            _camouflageShortcutUpdateTimer.Stop();
-            _camouflageShortcutUpdateTimer.Tick -= CamouflageShortcutUpdateTimer_Tick;
-            _camouflageShortcutUpdateTimer.Tick += CamouflageShortcutUpdateTimer_Tick;
-            _camouflageShortcutUpdateTimer.Start();
+            DispatcherTimer timer = GetOrCreateCamouflageShortcutUpdateTimer();
+            timer.Stop();
+            timer.Start();
         }
 
         private void CamouflageShortcutUpdateTimer_Tick(object? sender, EventArgs e)
         {
             _camouflageShortcutUpdateTimer?.Stop();
 
-            if (string.IsNullOrWhiteSpace(_pendingCamouflageShortcutSignature))
+            CamouflageShortcutUpdateRequest? pending = _pendingCamouflageShortcutUpdate;
+            if (pending == null)
             {
                 return;
             }
 
             string currentCamouflageSettingsSignature = CamouflageService.Instance.GetCamouflageShortcutSettingsSignature();
-            if (!string.Equals(currentCamouflageSettingsSignature, _pendingCamouflageShortcutSignature, StringComparison.Ordinal))
+            if (!string.Equals(currentCamouflageSettingsSignature, pending.Signature, StringComparison.Ordinal))
             {
                 // 待更新签名已过期（期间设置又变化了并触发了新一轮调度），本次不再执行。
                 return;
             }
 
             string lastGeneratedSignature = SettingsService.Instance.GetCamouflageShortcutLastGeneratedSignature();
-            if (string.Equals(lastGeneratedSignature, _pendingCamouflageShortcutSignature, StringComparison.Ordinal))
+            if (string.Equals(lastGeneratedSignature, pending.Signature, StringComparison.Ordinal))
             {
                 return;
             }
 
             bool ok = CamouflageService.Instance.TryUpdateDesktopShortcut(
-                _pendingCamouflageShortcutTitle,
-                _pendingCamouflageShortcutIconPath,
-                _pendingCamouflageShortcutEnabled,
+                pending.Title,
+                pending.IconPath,
+                pending.Enabled,
                 out _,
                 out _);
 
             if (ok)
             {
-                SettingsService.Instance.SetCamouflageShortcutLastGeneratedSignature(_pendingCamouflageShortcutSignature);
-                _pendingCamouflageShortcutSignature = string.Empty;
+                SettingsService.Instance.SetCamouflageShortcutLastGeneratedSignature(pending.Signature);
+                _pendingCamouflageShortcutUpdate = null;
             }
         }
 
