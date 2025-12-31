@@ -6,8 +6,13 @@
 
 - C#：开启 nullable（见 `WindBoard.csproj`）。
 - 缩进：4 空格；保持 `using` 有序、作用域尽量小。
-- 命名：类型/方法/属性 `PascalCase`；局部变量/参数 `camelCase`；私有字段必要时使用 `_camelCase`。
+- 命名：
+  - 类型/方法/属性：`PascalCase`
+  - 局部变量/参数：`camelCase`
+  - 私有字段：必要时使用 `_camelCase`
+  - XAML 元素名：`PascalCase`
 - 偏好：显式类型、早返回的 guard clauses、小而单一职责的方法。
+- 注释：使用中文/英文注释，复杂逻辑必须添加注释说明。
 
 ## 代码组织
 
@@ -25,6 +30,11 @@
 
 ## 性能注意事项（项目内已有约束）
 
-- 缩放/平移使用“相机式 RenderTransform”，避免 `LayoutTransform` 引发布局级联（参见 `MainWindow/MainWindow.Architecture.cs`）。
+- 缩放/平移使用"相机式 RenderTransform"，避免 `LayoutTransform` 引发布局级联（参见 `MainWindow/MainWindow.Architecture.cs`）。
 - 不要对整张画布 `CanvasHost` 开启 `BitmapCache`（默认画布较大，可能导致显存/内存暴涨）；项目只对 `Viewport` 做缓存（参见 `SetViewportBitmapCache`）。
+
+## 代码复用原则
+
+- 优先复用现有代码、组件和包，避免重复实现相同功能
+- 通用功能封装为可复用的方法或类
 

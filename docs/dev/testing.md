@@ -2,6 +2,13 @@
 
 WindBoard.Tests 使用 xUnit，并通过 `Xunit.StaFact` 支持 WPF/STA 线程相关测试。
 
+## 测试框架版本
+
+- xUnit v2.9.3
+- Xunit.StaFact v1.2.69
+- Microsoft.NET.Test.Sdk v18.0.1
+- coverlet.collector v6.0.4（测试覆盖率收集）
+
 ## 运行测试
 
 ```bash

@@ -10,6 +10,25 @@ namespace WindBoard
 {
     public partial class MainWindow
     {
+        private static bool DetectHasPressureHardware(StylusPointDescription? desc)
+        {
+            if (desc == null) return false;
+            if (!desc.HasProperty(StylusPointProperties.NormalPressure))
+            {
+                return false;
+            }
+
+            try
+            {
+                var info = desc.GetPropertyInfo(StylusPointProperties.NormalPressure);
+                return info.Maximum > info.Minimum && info.Resolution > 0;
+            }
+            catch
+            {
+                return true;
+            }
+        }
+
         private void MyCanvas_MouseWheel(object sender, MouseWheelEventArgs e)
         {
             SetViewportBitmapCache(true);
@@ -207,6 +226,7 @@ namespace WindBoard
                 ViewportPoint = e.GetPosition(Viewport),
                 PointerId = null,
                 Pressure = null,
+                HasPressureHardware = false,
                 IsInAir = isInAir,
                 LeftButton = e.LeftButton == MouseButtonState.Pressed,
                 RightButton = e.RightButton == MouseButtonState.Pressed,
@@ -222,12 +242,17 @@ namespace WindBoard
         {
             var mods = Keyboard.Modifiers;
             double? pressure = null;
+            bool hasPressureHardware = false;
             try
             {
                 var points = e.GetStylusPoints(MyCanvas);
-                if (points.Count > 0 && points.Description.HasProperty(StylusPointProperties.NormalPressure))
+                if (points.Count > 0)
                 {
-                    pressure = points[^1].PressureFactor;
+                    hasPressureHardware = DetectHasPressureHardware(points.Description);
+                    if (hasPressureHardware)
+                    {
+                        pressure = points[^1].PressureFactor;
+                    }
                 }
             }
             catch
@@ -243,6 +268,7 @@ namespace WindBoard
                 ViewportPoint = e.GetPosition(Viewport),
                 PointerId = e.StylusDevice?.Id,
                 Pressure = pressure,
+                HasPressureHardware = hasPressureHardware,
                 IsInAir = isInAir,
                 LeftButton = false,
                 RightButton = false,
@@ -269,6 +295,7 @@ namespace WindBoard
                 ViewportPoint = tpViewport.Position,
                 PointerId = e.TouchDevice.Id,
                 Pressure = null,
+                HasPressureHardware = false,
                 IsInAir = isInAir,
                 LeftButton = false,
                 RightButton = false,

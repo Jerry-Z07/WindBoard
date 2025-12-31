@@ -10,6 +10,7 @@ namespace WindBoard.Core.Input
         public Point ViewportPoint { get; set; }
         public int? PointerId { get; set; }
         public double? Pressure { get; set; }
+        public bool HasPressureHardware { get; set; }
         public bool IsInAir { get; set; }
         public bool LeftButton { get; set; }
         public bool RightButton { get; set; }
@@ -29,6 +30,7 @@ namespace WindBoard.Core.Input
                 ViewportPoint = viewportPoint,
                 PointerId = PointerId,
                 Pressure = Pressure,
+                HasPressureHardware = HasPressureHardware,
                 IsInAir = IsInAir,
                 LeftButton = LeftButton,
                 RightButton = RightButton,
