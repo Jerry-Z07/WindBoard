@@ -134,30 +134,11 @@ namespace WindBoard.Core.Input.RealTimeStylus
                 var viewportPoint = canvasToViewport?.Transform(canvasPoint) ?? canvasPoint;
 
                 var args = argsTemplate.CloneWithPoint(canvasPoint, viewportPoint);
-                args.HasPressureHardware = TryDetectHasPressureHardware(pt);
+                args.HasPressureHardware = StylusPressureHardware.HasPressureHardware(pt.Description);
                 args.Pressure = args.HasPressureHardware ? TryReadPressure(pt) : null;
                 args.ContactSize = TryReadContactSize(pt);
 
                 _dispatch(packet.Stage, args);
-            }
-        }
-
-        private static bool TryDetectHasPressureHardware(StylusPoint pt)
-        {
-            var desc = pt.Description;
-            if (!desc.HasProperty(StylusPointProperties.NormalPressure))
-            {
-                return false;
-            }
-
-            try
-            {
-                var info = desc.GetPropertyInfo(StylusPointProperties.NormalPressure);
-                return info.Maximum > info.Minimum && info.Resolution > 0;
-            }
-            catch
-            {
-                return true;
             }
         }
 

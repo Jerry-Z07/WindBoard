@@ -10,25 +10,6 @@ namespace WindBoard
 {
     public partial class MainWindow
     {
-        private static bool DetectHasPressureHardware(StylusPointDescription? desc)
-        {
-            if (desc == null) return false;
-            if (!desc.HasProperty(StylusPointProperties.NormalPressure))
-            {
-                return false;
-            }
-
-            try
-            {
-                var info = desc.GetPropertyInfo(StylusPointProperties.NormalPressure);
-                return info.Maximum > info.Minimum && info.Resolution > 0;
-            }
-            catch
-            {
-                return true;
-            }
-        }
-
         private void MyCanvas_MouseWheel(object sender, MouseWheelEventArgs e)
         {
             SetViewportBitmapCache(true);
@@ -248,7 +229,7 @@ namespace WindBoard
                 var points = e.GetStylusPoints(MyCanvas);
                 if (points.Count > 0)
                 {
-                    hasPressureHardware = DetectHasPressureHardware(points.Description);
+                    hasPressureHardware = StylusPressureHardware.HasPressureHardware(points.Description);
                     if (hasPressureHardware)
                     {
                         pressure = points[^1].PressureFactor;

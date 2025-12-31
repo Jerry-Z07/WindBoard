@@ -70,20 +70,19 @@ namespace WindBoard.Core.Ink
     internal sealed class DetailPreservingSmoother
     {
         private const double DipPerMm = 96.0 / 25.4;
+        private const double DegreesPerRadian = 180.0 / Math.PI;
+
+        private const double MinVectorLengthSquaredDip = 1e-8;
+        private const double MinChordLengthSquaredDip = 1e-8;
+        private const double MinErrorLengthSquaredDip = 1e-10;
+        private const double MinMeaningfulDip = 1e-6;
+        private const double MinDenominator = 1e-12;
+        private const double MinGridCellDip = 0.01;
 
         private readonly DetailPreservingSmootherParameters _parameters;
         private readonly double _mmToDip;
-        private readonly double _dipToMm;
         private readonly double _strokeWidthMm;
-        private readonly double _gridCellDip;
-        private readonly double _searchRadiusDip;
-        private readonly int _searchRadiusCells;
-
-        private readonly Dictionary<long, List<int>> _segmentGrid = new();
-        private readonly List<Segment> _segments = new(256);
-        private readonly List<double> _segmentCumulativeLengthMm = new(256);
-        private readonly List<int> _segmentQueryStamp = new(256);
-        private int _queryStampCounter = 1;
+        private readonly SegmentSpatialIndex _segmentIndex;
 
         private Point _lastOutputCanvasDip;
         private bool _hasLastOutput;
@@ -102,13 +101,13 @@ namespace WindBoard.Core.Ink
 
             if (zoomAtStart <= 0) zoomAtStart = 1;
             _mmToDip = DipPerMm / zoomAtStart;
-            _dipToMm = zoomAtStart / DipPerMm;
+            double dipToMm = zoomAtStart / DipPerMm;
 
             _strokeWidthMm = logicalThicknessDip > 0 ? logicalThicknessDip / DipPerMm : 0;
 
-            _gridCellDip = Math.Max(0.01, _parameters.GridCellMm * _mmToDip);
-            _searchRadiusDip = Math.Max(_gridCellDip, _parameters.SearchRadiusMm * _mmToDip);
-            _searchRadiusCells = Math.Max(1, (int)Math.Ceiling(_searchRadiusDip / _gridCellDip));
+            double gridCellDip = Math.Max(MinGridCellDip, _parameters.GridCellMm * _mmToDip);
+            double searchRadiusDip = Math.Max(gridCellDip, _parameters.SearchRadiusMm * _mmToDip);
+            _segmentIndex = new SegmentSpatialIndex(gridCellDip, searchRadiusDip, dipToMm, _parameters.ExcludeTailLengthMm);
 
             _prevRaw = new DetailPreservingSample(initialCanvasDip, pressure: 0);
             _midRaw = default;
@@ -120,6 +119,8 @@ namespace WindBoard.Core.Ink
 
         public void Push(DetailPreservingSample rawSample, bool isFinal, List<DetailPreservingSample> outputs)
         {
+            // 1-point delay: we need (prev, mid, next) to smooth `mid`, so the newest sample is buffered
+            // until the next sample arrives; `isFinal` flushes the buffered last sample as-is.
             if (outputs == null) throw new ArgumentNullException(nameof(outputs));
 
             if (!_hasMidRaw)
@@ -163,7 +164,7 @@ namespace WindBoard.Core.Ink
 
             var s = p2 - p0;
             double sLen2 = s.X * s.X + s.Y * s.Y;
-            if (sLen2 <= 1e-8)
+            if (sLen2 <= MinChordLengthSquaredDip)
             {
                 EmitRaw(mid, outputs);
                 return;
@@ -176,14 +177,14 @@ namespace WindBoard.Core.Ink
 
             var e = proj - p1;
             double eLen2 = e.X * e.X + e.Y * e.Y;
-            if (eLen2 <= 1e-10)
+            if (eLen2 <= MinErrorLengthSquaredDip)
             {
                 EmitRaw(mid, outputs);
                 return;
             }
 
             double capDip = ComputeCapDip(p1);
-            if (capDip <= 1e-6)
+            if (capDip <= MinMeaningfulDip)
             {
                 EmitRaw(mid, outputs);
                 return;
@@ -191,7 +192,7 @@ namespace WindBoard.Core.Ink
 
             double eLen = Math.Sqrt(eLen2);
             double stepDip = Math.Min(_parameters.ProjectionFactor * eLen, capDip);
-            if (stepDip <= 1e-6)
+            if (stepDip <= MinMeaningfulDip)
             {
                 EmitRaw(mid, outputs);
                 return;
@@ -213,7 +214,7 @@ namespace WindBoard.Core.Ink
 
             if (_hasLastOutput)
             {
-                AddSegment(_lastOutputCanvasDip, sample.CanvasDip);
+                _segmentIndex.AddSegment(_lastOutputCanvasDip, sample.CanvasDip);
             }
 
             _lastOutputCanvasDip = sample.CanvasDip;
@@ -232,7 +233,7 @@ namespace WindBoard.Core.Ink
                 capMm = Math.Min(capMm, _parameters.CapMinMm);
             }
 
-            double nearestMm = QueryNearestDistanceMm(midCanvasDip);
+            double nearestMm = _segmentIndex.QueryNearestDistanceMm(midCanvasDip);
             if (!double.IsInfinity(nearestMm))
             {
                 double safeMm = _strokeWidthMm + _parameters.MarginMm;
@@ -255,211 +256,21 @@ namespace WindBoard.Core.Ink
 
             double v1Len2 = v1.X * v1.X + v1.Y * v1.Y;
             double v2Len2 = v2.X * v2.X + v2.Y * v2.Y;
-            if (v1Len2 <= 1e-8 || v2Len2 <= 1e-8)
+            if (v1Len2 <= MinVectorLengthSquaredDip || v2Len2 <= MinVectorLengthSquaredDip)
             {
                 return true;
             }
 
             double denom = Math.Sqrt(v1Len2 * v2Len2);
-            if (denom <= 1e-12)
+            if (denom <= MinDenominator)
             {
                 return true;
             }
 
             double cos = (v1.X * v2.X + v1.Y * v2.Y) / denom;
             cos = Math.Clamp(cos, -1.0, 1.0);
-            double angleDeg = Math.Acos(cos) * (180.0 / Math.PI);
+            double angleDeg = Math.Acos(cos) * DegreesPerRadian;
             return angleDeg >= _parameters.CornerAngleDeg;
-        }
-
-        private double QueryNearestDistanceMm(Point pCanvasDip)
-        {
-            if (_segments.Count == 0)
-            {
-                return double.PositiveInfinity;
-            }
-
-            int cx = (int)Math.Floor(pCanvasDip.X / _gridCellDip);
-            int cy = (int)Math.Floor(pCanvasDip.Y / _gridCellDip);
-
-            int tailStart = 0;
-            if (_segmentCumulativeLengthMm.Count > 0 && _parameters.ExcludeTailLengthMm > 0)
-            {
-                double totalMm = _segmentCumulativeLengthMm[^1];
-                double cutoffMm = totalMm - _parameters.ExcludeTailLengthMm;
-                if (cutoffMm > 0)
-                {
-                    tailStart = UpperBound(_segmentCumulativeLengthMm, cutoffMm);
-                }
-            }
-
-            int stamp = _queryStampCounter++;
-            if (_queryStampCounter == int.MaxValue)
-            {
-                _queryStampCounter = 1;
-            }
-
-            double bestD2 = double.PositiveInfinity;
-
-            for (int dx = -_searchRadiusCells; dx <= _searchRadiusCells; dx++)
-            {
-                for (int dy = -_searchRadiusCells; dy <= _searchRadiusCells; dy++)
-                {
-                    long key = PackCell(cx + dx, cy + dy);
-                    if (!_segmentGrid.TryGetValue(key, out var indices))
-                    {
-                        continue;
-                    }
-
-                    for (int i = 0; i < indices.Count; i++)
-                    {
-                        int segIndex = indices[i];
-                        if (segIndex < tailStart)
-                        {
-                            // ok
-                        }
-                        else
-                        {
-                            continue;
-                        }
-
-                        if (segIndex < 0 || segIndex >= _segments.Count)
-                        {
-                            continue;
-                        }
-
-                        EnsureStampCapacity(segIndex);
-                        if (_segmentQueryStamp[segIndex] == stamp)
-                        {
-                            continue;
-                        }
-
-                        _segmentQueryStamp[segIndex] = stamp;
-
-                        var seg = _segments[segIndex];
-                        double d2 = DistancePointToSegmentSquared(pCanvasDip, seg.A, seg.B);
-                        if (d2 < bestD2)
-                        {
-                            bestD2 = d2;
-                        }
-                    }
-                }
-            }
-
-            if (double.IsInfinity(bestD2))
-            {
-                return double.PositiveInfinity;
-            }
-
-            return Math.Sqrt(bestD2) * _dipToMm;
-        }
-
-        private void AddSegment(Point a, Point b)
-        {
-            var d = b - a;
-            double len2 = d.X * d.X + d.Y * d.Y;
-            if (len2 <= 1e-10)
-            {
-                return;
-            }
-
-            int index = _segments.Count;
-            _segments.Add(new Segment(a, b));
-            EnsureStampCapacity(index);
-
-            double segMm = Math.Sqrt(len2) * _dipToMm;
-            double totalMm = _segmentCumulativeLengthMm.Count > 0 ? _segmentCumulativeLengthMm[^1] : 0.0;
-            _segmentCumulativeLengthMm.Add(totalMm + segMm);
-
-            double minX = Math.Min(a.X, b.X);
-            double maxX = Math.Max(a.X, b.X);
-            double minY = Math.Min(a.Y, b.Y);
-            double maxY = Math.Max(a.Y, b.Y);
-
-            int minCx = (int)Math.Floor(minX / _gridCellDip);
-            int maxCx = (int)Math.Floor(maxX / _gridCellDip);
-            int minCy = (int)Math.Floor(minY / _gridCellDip);
-            int maxCy = (int)Math.Floor(maxY / _gridCellDip);
-
-            for (int cx = minCx; cx <= maxCx; cx++)
-            {
-                for (int cy = minCy; cy <= maxCy; cy++)
-                {
-                    long key = PackCell(cx, cy);
-                    if (!_segmentGrid.TryGetValue(key, out var list))
-                    {
-                        list = new List<int>(4);
-                        _segmentGrid[key] = list;
-                    }
-                    list.Add(index);
-                }
-            }
-        }
-
-        private void EnsureStampCapacity(int segIndex)
-        {
-            while (_segmentQueryStamp.Count <= segIndex)
-            {
-                _segmentQueryStamp.Add(0);
-            }
-        }
-
-        private static long PackCell(int x, int y)
-        {
-            unchecked
-            {
-                return ((long)x << 32) | (uint)y;
-            }
-        }
-
-        private static double DistancePointToSegmentSquared(Point p, Point a, Point b)
-        {
-            var ab = b - a;
-            double abLen2 = ab.X * ab.X + ab.Y * ab.Y;
-            if (abLen2 <= 1e-12)
-            {
-                var ap0 = p - a;
-                return ap0.X * ap0.X + ap0.Y * ap0.Y;
-            }
-
-            var ap = p - a;
-            double t = (ap.X * ab.X + ap.Y * ab.Y) / abLen2;
-            t = Math.Clamp(t, 0.0, 1.0);
-            var q = new Point(a.X + ab.X * t, a.Y + ab.Y * t);
-            var pq = p - q;
-            return pq.X * pq.X + pq.Y * pq.Y;
-        }
-
-        private static int UpperBound(List<double> sortedAscending, double value)
-        {
-            int lo = 0;
-            int hi = sortedAscending.Count;
-            while (lo < hi)
-            {
-                int mid = lo + ((hi - lo) / 2);
-                if (sortedAscending[mid] <= value)
-                {
-                    lo = mid + 1;
-                }
-                else
-                {
-                    hi = mid;
-                }
-            }
-
-            return lo;
-        }
-
-        private readonly struct Segment
-        {
-            public Segment(Point a, Point b)
-            {
-                A = a;
-                B = b;
-            }
-
-            public Point A { get; }
-            public Point B { get; }
         }
     }
 }
