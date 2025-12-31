@@ -154,6 +154,15 @@ namespace WindBoard.Services
             SettingsChanged?.Invoke(this, Settings);
         }
 
+        public string GetCamouflageShortcutLastGeneratedSignature() => Settings.CamouflageShortcutLastGeneratedSignature;
+
+        public void SetCamouflageShortcutLastGeneratedSignature(string signature)
+        {
+            Settings.CamouflageShortcutLastGeneratedSignature = signature ?? string.Empty;
+            Save();
+            SettingsChanged?.Invoke(this, Settings);
+        }
+
         // --- 书写相关设置 ---
         public bool GetStrokeThicknessConsistencyEnabled() => Settings.StrokeThicknessConsistencyEnabled;
 

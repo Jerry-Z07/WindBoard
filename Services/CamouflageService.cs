@@ -4,6 +4,8 @@ using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
 using System.Runtime.InteropServices;
+using System.Security.Cryptography;
+using System.Text;
 using System.Windows;
 using System.Windows.Interop;
 using System.Windows.Media;
@@ -15,6 +17,29 @@ namespace WindBoard.Services
     {
         private static readonly Lazy<CamouflageService> _lazy = new(() => new CamouflageService());
         public static CamouflageService Instance => _lazy.Value;
+
+        public static string ComputeCamouflageShortcutSettingsSignature(bool enabled, string? title, string? sourcePath, string? iconCachePath)
+        {
+            string payload = string.Join(
+                "\n",
+                enabled ? "1" : "0",
+                title ?? string.Empty,
+                sourcePath ?? string.Empty,
+                iconCachePath ?? string.Empty);
+
+            byte[] hash = SHA256.HashData(Encoding.UTF8.GetBytes(payload));
+            return Convert.ToHexString(hash);
+        }
+
+        public string GetCamouflageShortcutSettingsSignature()
+        {
+            var s = SettingsService.Instance.Settings;
+            return ComputeCamouflageShortcutSettingsSignature(
+                s.CamouflageEnabled,
+                s.CamouflageTitle,
+                s.CamouflageSourcePath,
+                s.CamouflageIconCachePath);
+        }
 
         private readonly string _cacheDir;
         private readonly string _cacheFileName = "camouflage.ico";
@@ -121,25 +146,49 @@ namespace WindBoard.Services
 
         public void UpdateDesktopShortcut(string title, string? iconPath, bool enabled)
         {
+            _ = TryUpdateDesktopShortcut(title, iconPath, enabled, out _, out _);
+        }
+
+        public bool TryUpdateDesktopShortcut(string title, string? iconPath, bool enabled, out string shortcutPath, out string? errorMessage)
+        {
             object? shellObj = null;
             object? shortcutObj = null;
+
+            shortcutPath = string.Empty;
+            errorMessage = null;
 
             try
             {
                 var exePath = Process.GetCurrentProcess().MainModule?.FileName;
-                if (string.IsNullOrWhiteSpace(exePath)) return;
+                if (string.IsNullOrWhiteSpace(exePath))
+                {
+                    errorMessage = "无法获取当前进程可执行文件路径。";
+                    return false;
+                }
 
                 var desktop = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
-                var shortcutPath = Path.Combine(desktop, "WindBoard.lnk");
+                shortcutPath = Path.Combine(desktop, "WindBoard.lnk");
 
                 var shellType = Type.GetTypeFromProgID("WScript.Shell");
-                if (shellType == null) return;
+                if (shellType == null)
+                {
+                    errorMessage = "无法创建 WScript.Shell（系统组件不可用）。";
+                    return false;
+                }
 
                 shellObj = Activator.CreateInstance(shellType);
-                if (shellObj == null) return;
+                if (shellObj == null)
+                {
+                    errorMessage = "无法实例化 WScript.Shell。";
+                    return false;
+                }
                 dynamic shell = shellObj;
                 shortcutObj = shell.CreateShortcut(shortcutPath);
-                if (shortcutObj == null) return;
+                if (shortcutObj == null)
+                {
+                    errorMessage = "无法创建快捷方式对象。";
+                    return false;
+                }
                 dynamic shortcut = shortcutObj;
                 shortcut.TargetPath = exePath;
                 shortcut.WorkingDirectory = Path.GetDirectoryName(exePath) ?? AppContext.BaseDirectory;
@@ -150,10 +199,13 @@ namespace WindBoard.Services
                     ? iconPath
                     : exePath ?? string.Empty;
                 shortcut.Save();
+                return true;
             }
             catch (Exception ex)
             {
                 Debug.WriteLine($"[Camouflage] Failed to update desktop shortcut: {ex}");
+                errorMessage = ex.Message;
+                return false;
             }
             finally
             {

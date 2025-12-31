@@ -27,6 +27,9 @@ namespace WindBoard.Models
         // 伪装：缓存生成的 ico 路径（供窗口/快捷方式复用）
         public string CamouflageIconCachePath { get; set; } = string.Empty;
 
+        // 伪装：桌面快捷方式“最后生成时”的签名（用于避免每次启动都自动刷新快捷方式）
+        public string CamouflageShortcutLastGeneratedSignature { get; set; } = string.Empty;
+
         // 新笔迹粗细模式：开启后，不同缩放下书写的笔迹在同一缩放下粗细一致
         public bool StrokeThicknessConsistencyEnabled { get; set; } = false;
 

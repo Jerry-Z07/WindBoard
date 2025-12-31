@@ -133,6 +133,51 @@ namespace WindBoard
             try { SettingsService.Instance.SetCamouflageIconCachePath(string.Empty); } catch { }
         }
 
+        private void BtnCreateCamouflageShortcut_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                // 默认标题仅作为“未开启伪装/未填写标题”时的兜底
+                const string defaultTitle = "WindBoard";
+
+                var result = CamouflageService.Instance.BuildResult(defaultIcon: null, defaultTitle: defaultTitle);
+                string signature = CamouflageService.Instance.GetCamouflageShortcutSettingsSignature();
+
+                bool ok = CamouflageService.Instance.TryUpdateDesktopShortcut(
+                    result.Title,
+                    result.IconPath,
+                    result.Enabled,
+                    out var shortcutPath,
+                    out var errorMessage);
+
+                if (!ok)
+                {
+                    MessageBox.Show(
+                        $"创建快捷方式失败：{errorMessage ?? "未知错误"}",
+                        "伪装",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Error);
+                    return;
+                }
+
+                try { SettingsService.Instance.SetCamouflageShortcutLastGeneratedSignature(signature); } catch { }
+
+                MessageBox.Show(
+                    $"已创建/更新桌面快捷方式：\n{shortcutPath}",
+                    "伪装",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(
+                    $"创建快捷方式失败：{ex.Message}",
+                    "伪装",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
+            }
+        }
+
         private void RefreshCamouflagePreview(bool buildCache)
         {
             var sourcePath = CamouflageSourcePath;
@@ -193,4 +238,3 @@ namespace WindBoard
         }
     }
 }
-
