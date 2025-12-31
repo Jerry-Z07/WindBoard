@@ -173,6 +173,7 @@
                                     <RowDefinition Height="Auto"/>
                                     <RowDefinition Height="Auto"/>
                                     <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
                                 </Grid.RowDefinitions>
 
                                 <Border Width="48" Height="48" CornerRadius="8" Background="{DynamicResource PrimaryHueLightBrush}" Grid.Column="0" VerticalAlignment="Top">
@@ -244,6 +245,27 @@
                                                 Click="BtnClearCamouflageIcon_Click"
                                                 materialDesign:ButtonAssist.CornerRadius="6"/>
                                     </StackPanel>
+                                </Grid>
+
+                                <!-- 快捷方式 -->
+                                <Grid Grid.Row="3" Grid.ColumnSpan="3" Margin="0,12,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+
+                                    <TextBlock Grid.Column="0"
+                                               Text="桌面快捷方式不会在每次启动时自动更新。如需重新生成，请点击右侧按钮（修改伪装设置时会自动更新一次）。"
+                                               Opacity="0.6"
+                                               TextWrapping="Wrap"
+                                               VerticalAlignment="Center"
+                                               Margin="0,0,12,0"/>
+
+                                    <Button Grid.Column="1"
+                                            Content="创建快捷方式"
+                                            Style="{StaticResource MaterialDesignOutlinedButton}"
+                                            Click="BtnCreateCamouflageShortcut_Click"
+                                            materialDesign:ButtonAssist.CornerRadius="6"/>
                                 </Grid>
                             </Grid>
                         </materialDesign:Card>

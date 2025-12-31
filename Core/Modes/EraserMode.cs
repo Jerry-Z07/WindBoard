@@ -19,6 +19,10 @@ namespace WindBoard.Core.Modes
         private double _baseWidth = 40.0;
         private double _baseHeight = 80.0;
         private double _baseCornerRadius = 6.0;
+        private double _cachedZoom = double.NaN;
+        private double _cachedWidthContent;
+        private double _cachedHeightContent;
+        private double _cachedOffsetYContent;
         private bool _isPressed;
         private bool _isMouseErasing;
 
@@ -81,29 +85,39 @@ namespace WindBoard.Core.Modes
             double zoom = _zoomProvider();
             if (zoom <= 0) zoom = 1;
 
-            double wContent = _baseWidth / zoom;
-            double hContent = _baseHeight / zoom;
-            double offsetYContent = _cursorOffsetY / zoom;
-            double radiusContent = _baseCornerRadius / zoom;
+            if (!IsClose(zoom, _cachedZoom))
+            {
+                _cachedZoom = zoom;
+                _cachedWidthContent = _baseWidth / zoom;
+                _cachedHeightContent = _baseHeight / zoom;
+                _cachedOffsetYContent = _cursorOffsetY / zoom;
 
-            _cursorRect.Width = wContent;
-            _cursorRect.Height = hContent;
-            _cursorRect.CornerRadius = new CornerRadius(radiusContent);
+                double radiusContent = _baseCornerRadius / zoom;
+                _cursorRect.Width = _cachedWidthContent;
+                _cursorRect.Height = _cachedHeightContent;
+                _cursorRect.CornerRadius = new CornerRadius(radiusContent);
+
+                _canvas.EraserShape = new RectangleStylusShape(_cachedWidthContent, _cachedHeightContent);
+            }
 
             if (center.HasValue)
             {
-                double left = center.Value.X - wContent / 2.0;
-                double topBase = center.Value.Y - hContent / 2.0;
-                double top = _isMouseErasing ? (topBase + offsetYContent) : topBase;
+                double left = center.Value.X - _cachedWidthContent / 2.0;
+                double topBase = center.Value.Y - _cachedHeightContent / 2.0;
+                double top = _isMouseErasing ? (topBase + _cachedOffsetYContent) : topBase;
                 Canvas.SetLeft(_cursorRect, left);
                 Canvas.SetTop(_cursorRect, top);
             }
 
-            _canvas.EraserShape = new RectangleStylusShape(wContent, hContent);
-
             _overlay.Visibility = (_isPressed && _canvas.EditingMode == InkCanvasEditingMode.EraseByPoint)
                 ? Visibility.Visible
                 : Visibility.Collapsed;
+        }
+
+        private static bool IsClose(double a, double b)
+        {
+            if (double.IsNaN(a) || double.IsNaN(b)) return false;
+            return Math.Abs(a - b) < 0.000001;
         }
     }
 }

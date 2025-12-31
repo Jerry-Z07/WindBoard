@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using WindBoard.Core.Filters;
 using WindBoard.Core.Modes;
 
@@ -67,7 +66,17 @@ namespace WindBoard.Core.Input
 
         private bool RunFilters(InputStage stage, InputEventArgs args)
         {
-            return _filters.Any(filter => filter.Handle(stage, args, _modeController));
+            int filterCount = _filters.Count;
+            for (int i = 0; i < filterCount; i++)
+            {
+                IInputFilter filter = _filters[i];
+                if (filter.Handle(stage, args, _modeController))
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
     }
 }

@@ -1,4 +1,5 @@
 using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Windows;
@@ -64,11 +65,24 @@ namespace WindBoard.Core.Input.RealTimeStylus
                     return;
                 }
 
-                var buffer = new StylusPoint[stylusPoints.Count];
-                stylusPoints.CopyTo(buffer, 0);
+                int pointCount = stylusPoints.Count;
+                StylusPoint[]? buffer = null;
+                try
+                {
+                    buffer = ArrayPool<StylusPoint>.Shared.Rent(pointCount);
+                    stylusPoints.CopyTo(buffer, 0);
 
-                rawStylusInput.NotifyWhenProcessed(
-                    new StylusPacket(stage, buffer, rawStylusInput.Timestamp, rawStylusInput.StylusDeviceId, isInAir));
+                    rawStylusInput.NotifyWhenProcessed(
+                        new StylusPacket(stage, buffer, pointCount, rawStylusInput.Timestamp, rawStylusInput.StylusDeviceId, isInAir));
+                    buffer = null;
+                }
+                finally
+                {
+                    if (buffer != null)
+                    {
+                        ArrayPool<StylusPoint>.Shared.Return(buffer, clearArray: true);
+                    }
+                }
             }
             catch (Exception ex)
             {
@@ -78,67 +92,85 @@ namespace WindBoard.Core.Input.RealTimeStylus
 
         private void Deliver(object? callbackData, bool targetVerified)
         {
-            if (!targetVerified)
-            {
-                return;
-            }
-
             if (callbackData is not StylusPacket packet)
             {
                 return;
             }
 
-            GeneralTransform? canvasToViewport = null;
             try
             {
-                canvasToViewport = _canvas.TransformToVisual(_viewport);
+                if (!targetVerified)
+                {
+                    return;
+                }
+
+                GeneralTransform? canvasToViewport = null;
+                try
+                {
+                    canvasToViewport = _canvas.TransformToVisual(_viewport);
+                }
+                catch
+                {
+                    // ignored: fallback to canvas coordinates if transform is not ready
+                }
+
+                var mods = Keyboard.Modifiers;
+                bool ctrl = (mods & ModifierKeys.Control) != 0;
+                bool shift = (mods & ModifierKeys.Shift) != 0;
+                bool alt = (mods & ModifierKeys.Alt) != 0;
+                var deviceType = ResolveDeviceType(packet.StylusDeviceId);
+
+                // 触摸仍交由 WPF Touch 管道处理，避免重复分发
+                if (deviceType == InputDeviceType.Touch)
+                {
+                    return;
+                }
+
+                // RTS 一个 packet 可能包含多个点；复用同一个 args 实例，避免高采样设备下 “每点 new args” 的 GC 压力。
+                var args = new InputEventArgs
+                {
+                    DeviceType = deviceType,
+                    PointerId = packet.StylusDeviceId,
+                    Pressure = null,
+                    HasPressureHardware = false,
+                    IsInAir = packet.IsInAir,
+                    LeftButton = false,
+                    RightButton = false,
+                    MiddleButton = false,
+                    Ctrl = ctrl,
+                    Shift = shift,
+                    Alt = alt,
+                    TimestampTicks = packet.TimestampTicks,
+                    ContactSize = null
+                };
+
+                int count = packet.Count;
+                for (int i = 0; i < count; i++)
+                {
+                    StylusPoint pt = packet.Points[i];
+                    var canvasPoint = new Point(pt.X, pt.Y);
+                    var viewportPoint = canvasToViewport?.Transform(canvasPoint) ?? canvasPoint;
+
+                    args.CanvasPoint = canvasPoint;
+                    args.ViewportPoint = viewportPoint;
+                    args.HasPressureHardware = StylusPressureHardware.HasPressureHardware(pt.Description);
+                    args.Pressure = args.HasPressureHardware ? TryReadPressure(pt) : null;
+                    args.ContactSize = TryReadContactSize(pt);
+
+                    // Down/Up packet 可能带多个点；保证 Down 只发一次、Up 只发一次，中间点作为 Move。
+                    InputStage dispatchStage = packet.Stage switch
+                    {
+                        InputStage.Down => i == 0 ? InputStage.Down : InputStage.Move,
+                        InputStage.Up => i < (count - 1) ? InputStage.Move : InputStage.Up,
+                        _ => packet.Stage
+                    };
+
+                    _dispatch(dispatchStage, args);
+                }
             }
-            catch
+            finally
             {
-                // ignored: fallback to canvas coordinates if transform is not ready
-            }
-
-            var mods = Keyboard.Modifiers;
-            bool ctrl = (mods & ModifierKeys.Control) != 0;
-            bool shift = (mods & ModifierKeys.Shift) != 0;
-            bool alt = (mods & ModifierKeys.Alt) != 0;
-            var deviceType = ResolveDeviceType(packet.StylusDeviceId);
-
-            // 触摸仍交由 WPF Touch 管道处理，避免重复分发
-            if (deviceType == InputDeviceType.Touch)
-            {
-                return;
-            }
-
-            // RTS 一个 packet 可能包含多个点；使用模板对象并克隆每个点，避免在未来改动为异步/缓存管线时发生引用复用的生命周期问题。
-            var argsTemplate = new InputEventArgs
-            {
-                DeviceType = deviceType,
-                PointerId = packet.StylusDeviceId,
-                Pressure = null,
-                HasPressureHardware = false,
-                IsInAir = packet.IsInAir,
-                LeftButton = false,
-                RightButton = false,
-                MiddleButton = false,
-                Ctrl = ctrl,
-                Shift = shift,
-                Alt = alt,
-                TimestampTicks = packet.TimestampTicks,
-                ContactSize = null
-            };
-
-            foreach (var pt in packet.Points)
-            {
-                var canvasPoint = new Point(pt.X, pt.Y);
-                var viewportPoint = canvasToViewport?.Transform(canvasPoint) ?? canvasPoint;
-
-                var args = argsTemplate.CloneWithPoint(canvasPoint, viewportPoint);
-                args.HasPressureHardware = StylusPressureHardware.HasPressureHardware(pt.Description);
-                args.Pressure = args.HasPressureHardware ? TryReadPressure(pt) : null;
-                args.ContactSize = TryReadContactSize(pt);
-
-                _dispatch(packet.Stage, args);
+                packet.Dispose();
             }
         }
 
@@ -217,24 +249,36 @@ namespace WindBoard.Core.Input.RealTimeStylus
             return mapped;
         }
 
-        private sealed class StylusPacket
+        private sealed class StylusPacket : IDisposable
         {
             public InputStage Stage { get; }
             public StylusPoint[] Points { get; }
+            public int Count { get; }
             public int Timestamp { get; }
             public int StylusDeviceId { get; }
             public bool IsInAir { get; }
 
-            public StylusPacket(InputStage stage, StylusPoint[] points, int timestamp, int stylusDeviceId, bool isInAir)
+            public StylusPacket(InputStage stage, StylusPoint[] points, int count, int timestamp, int stylusDeviceId, bool isInAir)
             {
                 Stage = stage;
                 Points = points;
+                Count = count;
                 Timestamp = timestamp;
                 StylusDeviceId = stylusDeviceId;
                 IsInAir = isInAir;
             }
 
             public long TimestampTicks => (long)Timestamp * TimeSpan.TicksPerMillisecond;
+
+            public void Dispose()
+            {
+                if (Points.Length == 0)
+                {
+                    return;
+                }
+
+                ArrayPool<StylusPoint>.Shared.Return(Points, clearArray: true);
+            }
         }
     }
 }

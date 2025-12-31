@@ -35,8 +35,7 @@
                             <Border Background="#111215" CornerRadius="10"/>
                             <Image Source="{Binding Image}"
                                    Stretch="Uniform"
-                                   SnapsToDevicePixels="True"
-                                   RenderOptions.BitmapScalingMode="HighQuality"/>
+                                   SnapsToDevicePixels="True"/>
                             <TextBlock x:Name="ImageFallbackText"
                                        Text="{Binding DisplayName}"
                                        Foreground="#BDBDBD"
