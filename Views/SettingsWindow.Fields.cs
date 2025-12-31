@@ -27,19 +27,6 @@ namespace WindBoard
         private bool _strokeThicknessConsistencyEnabled;
         private bool _simulatedPressureEnabled;
 
-        // --- 平滑参数设置 ---
-        private bool _customSmoothingEnabled;
-        private double _smoothingPenStepMm;
-        private double _smoothingPenEpsilonMm;
-        private double _smoothingPenFcMin;
-        private double _smoothingPenBeta;
-        private double _smoothingPenDCutoff;
-        private double _smoothingFingerStepMm;
-        private double _smoothingFingerEpsilonMm;
-        private double _smoothingFingerFcMin;
-        private double _smoothingFingerBeta;
-        private double _smoothingFingerDCutoff;
-
         // --- 触摸手势设置 ---
         private bool _zoomPanTwoFingerOnly;
 

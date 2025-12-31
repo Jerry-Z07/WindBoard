@@ -6,7 +6,7 @@ WindBoard 采用“输入管道 + 模式系统 + 服务层”的结构，`MainWi
 
 - `Core/Input`：输入事件抽象（`InputEventArgs`、`InputManager`、`InputStage` 等）。
 - `Core/Modes`：交互模式（`InkMode`、`EraserMode`、`SelectMode`、`ModeController`）。
-- `Core/Ink`：墨迹算法（`RealtimeInkSmoother`、`OneEuroFilter2D`、模拟压感等）。
+- `Core/Ink`：墨迹相关逻辑（模拟压感、笔迹粗细元数据等）。
 - `Services`：页面与笔迹管理（`PageService`、`StrokeService`、`StrokeUndoHistory`）、缩放/平移（`ZoomPanService`）、设置（`SettingsService`）、导入导出（`ExportService`、`WbiExporter/WbiImporter`）。
 - `Models`：页面/附件/导出选项/WBI 元数据等模型。
 - `Views`：WPF XAML 与对话框（导入/导出/设置等）。
@@ -27,11 +27,10 @@ WindBoard 采用“输入管道 + 模式系统 + 服务层”的结构，`MainWi
 ## 书写模式（InkMode）
 
 - 入口：`Core/Modes/InkMode.cs`。
-- 实时平滑：`RealtimeInkSmoother` 负责重采样、OneEuroFilter 平滑、拐角保持与“尾端补齐”等逻辑（`Core/Ink/RealtimeInkSmoother.cs`）。
+- 当前版本不包含项目内的笔迹平滑与实时尾部点逻辑：`InkMode` 直接将输入点追加到 `Stroke`。
 - 压感：
   - 手写笔若存在真实压力，使用真实压力并在采样充分后自动切换为真实压感。
   - 否则可启用模拟压感（基于速度/时间的“轻微笔锋”）。
-- 触摸书写会启用 LiveTail（实时尾部跟随点）以提升“跟手性”（`Core/Modes/InkMode.ActiveStroke.cs`）。
 
 ## 页面与附件
 
@@ -44,5 +43,4 @@ WindBoard 采用“输入管道 + 模式系统 + 服务层”的结构，`MainWi
 ## 设置
 
 - `SettingsService` 将 `AppSettings` 以 JSON 持久化到 `%APPDATA%\\WindBoard\\settings.json`，并通过 `SettingsChanged` 广播到 UI。
-- `MainWindow` 在初始化时读取设置快照并应用到相关服务/模式（例如：缩放手势限制、模拟压感、平滑参数等）。
-
+- `MainWindow` 在初始化时读取设置快照并应用到相关服务/模式（例如：缩放手势限制、模拟压感等）。

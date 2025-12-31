@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-WindBoard is a WPF-based intelligent whiteboard application built with Material Design 3, supporting smooth handwriting input, multi-page management, and real-time ink smoothing. The project is entirely AI-developed and actively maintained.
+WindBoard is a WPF-based intelligent whiteboard application built with Material Design 3, supporting handwriting input and multi-page management. The project is entirely AI-developed and actively maintained.
 
 **Target Framework**: .NET 10.0 Windows (net10.0-windows10.0.26100.0)
 
@@ -25,13 +25,13 @@ dotnet run
 dotnet test
 
 # Run tests for a specific file (example)
-dotnet test --filter "FullyQualifiedName~RealtimeInkSmootherTests"
+dotnet test --filter "FullyQualifiedName~InkModeTests"
 ```
 
 ### Test Framework
 - Uses **xUnit** for unit testing with **Xunit.StaFact** for WPF STA thread support
 - Tests are located in `WindBoard.Tests/` and mirror the main project structure
-- Core algorithms (ink smoothing, OneEuroFilter, services) must have corresponding unit tests
+- Core logic (ink behaviors, services) must have corresponding unit tests
 
 ## Core Architecture
 
@@ -66,7 +66,7 @@ The application uses a **strategy pattern** for interaction modes managed by `Mo
 - On pointer Up, `ActiveMode` is cleared and control returns to `CurrentMode`
 
 **Built-in Modes** (Core/Modes/):
-- `InkMode`: Handles pen strokes with real-time smoothing (OneEuroFilter)
+- `InkMode`: Handles ink strokes (no built-in smoothing)
 - `EraserMode`: Eraser functionality with visual cursor overlay
 - `SelectMode`: Selection and manipulation of strokes/attachments
 - `NoMode`: Disables all canvas interaction (used during gestures/panning)
@@ -78,28 +78,9 @@ _modeController.ActivateMode(mode);        // Temporarily override
 _modeController.ClearActiveMode();         // Return to CurrentMode
 ```
 
-### Real-time Ink Smoothing
+### Ink Input
 
-The smoothing system uses the **OneEuroFilter** algorithm with adaptive parameters:
-
-1. **RealtimeInkSmoother** (Core/Ink/RealtimeInkSmoother.cs):
-   - Converts canvas DIP to screen millimeters for device-independent smoothing
-   - Resamples input based on pen speed (adaptive step size)
-   - Applies OneEuroFilter2D with dynamic cutoff frequencies
-   - **Corner detection**: Increases filter responsiveness at sharp angles
-   - **Sticky mode**: Stabilizes output when pen stops/slows down
-   - Returns epsilon-filtered points to avoid micro-jitter
-
-2. **OneEuroFilter2D** (Core/Ink/OneEuroFilter2D.cs):
-   - 2D implementation of 1€ filter algorithm
-   - Parameters: minCutoff (FcMin), beta, dCutoff (DCutoff)
-   - Dynamically adjusts cutoff frequency based on pen velocity
-   - Can clamp cutoff to range for corner/sticky modes
-
-3. **InkMode Integration**:
-   - `InkMode.ActiveStroke.cs`: Manages active stroke state with smoother instance
-   - `InkMode.Flush.cs`: Finalizes strokes, applies to InkCanvas
-   - `InkMode.cs`: Coordinates pointer events with smoothing pipeline
+Ink input is handled in `Core/Modes/InkMode.cs` by appending raw input points to `Stroke`. (Real-time smoothing and LiveTail are removed for now and expected to be reworked later.)
 
 ### Service Layer
 
@@ -175,7 +156,7 @@ Services are injected as fields in MainWindow and initialized in `InitializeArch
 - Use `[Theory]` with `[InlineData]` for parameterized tests
 - Core algorithms should have comprehensive unit tests with edge cases
 - Place test helpers in `WindBoard.Tests/TestHelpers/`
-- Test file structure mirrors source: `Core/Ink/RealtimeInkSmoother.cs` → `WindBoard.Tests/Ink/RealtimeInkSmootherTests.cs`
+- Test file structure mirrors source modules under `WindBoard.Tests/`
 
 ## Important Conventions
 
@@ -209,4 +190,4 @@ When implementing multi-touch gestures:
 2. **Don't cache CanvasHost with BitmapCache** - it's 8000x8000px and will consume excessive memory
 3. **Don't modify InkCanvas.EditingMode during active strokes** - can cause stroke corruption
 4. **Don't forget to handle RealTimeStylus input** - check `_inputSourceSelector?.ShouldHandleWpfStylus`
-5. **Don't skip epsilon filtering in smoothing output** - causes micro-jitter and performance issues
+5. **Don't append StylusPoints too frequently** - can hurt rendering performance on long strokes
