@@ -116,6 +116,7 @@ namespace WindBoard.Core.Input.RealTimeStylus
                 DeviceType = deviceType,
                 PointerId = packet.StylusDeviceId,
                 Pressure = null,
+                HasPressureHardware = false,
                 IsInAir = packet.IsInAir,
                 LeftButton = false,
                 RightButton = false,
@@ -133,7 +134,8 @@ namespace WindBoard.Core.Input.RealTimeStylus
                 var viewportPoint = canvasToViewport?.Transform(canvasPoint) ?? canvasPoint;
 
                 var args = argsTemplate.CloneWithPoint(canvasPoint, viewportPoint);
-                args.Pressure = TryReadPressure(pt);
+                args.HasPressureHardware = StylusPressureHardware.HasPressureHardware(pt.Description);
+                args.Pressure = args.HasPressureHardware ? TryReadPressure(pt) : null;
                 args.ContactSize = TryReadContactSize(pt);
 
                 _dispatch(packet.Stage, args);

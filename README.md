@@ -27,6 +27,7 @@
 
 ### 高级特性
 - **模拟压力**：基于书写速度的模拟压力算法，实现笔锋效果
+- **细节保留平滑**：DetailPreservingSmoother 算法，在平滑笔迹的同时保留关键细节
 - **笔迹粗细一致性**：保持不同书写速度下的笔迹粗细一致性
 - **输入设备适配**：支持多种输入设备，包括 RealTimeStylus 适配器
 - **输入过滤系统**：灵活的输入过滤器架构，支持独占模式等高级输入处理
@@ -44,9 +45,9 @@
 - **UI 框架**：WPF (Windows Presentation Foundation)
 - **UI 库**：MaterialDesignThemes v5.3.0 (Material Design 3)
 - **JSON 处理**：Newtonsoft.Json v13.0.4
-- **PDF 处理**：PdfSharpCore v1.3.65
+- **PDF 处理**：PdfSharpCore v1.3.67
 - **图形处理**：System.Drawing.Common v10.0.1
-- **测试框架**：xUnit v2.9.3 + Xunit.StaFact v1.2.69
+- **测试框架**：xUnit v2.9.3 + Xunit.StaFact v1.2.69 + Microsoft.NET.Test.Sdk v18.0.1
 - **字体**：MiSans 字体系列
 
 ## 项目结构
@@ -88,6 +89,7 @@
 ## Todo
 - [x] 笔迹性能优化
 - [x] 笔锋算法
+- [x] 细节保留平滑算法
 - [ ] 触摸面积识别算法（用于掌擦逻辑）
 - [x] 伪装功能
 - [x] 附件管理功能（图片、视频、文本、链接导入）

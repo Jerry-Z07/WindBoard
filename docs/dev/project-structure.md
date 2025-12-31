@@ -12,6 +12,7 @@ WindBoard/
 │   │   ├── IInputFilter.cs
 │   │   └── InputFilterBase.cs
 │   ├── Ink/                # 墨迹算法
+│   │   ├── DetailPreservingSmoother.cs
 │   │   ├── SimulatedPressure.cs
 │   │   ├── SimulatedPressureDefaults.cs
 │   │   ├── SimulatedPressureParameters.cs
@@ -108,6 +109,7 @@ WindBoard/
 │   └── Fonts/              # MiSans 字体文件
 ├── WindBoard.Tests/         # 单元测试项目
 │   ├── Ink/                # 墨迹算法测试
+│   │   ├── DetailPreservingSmootherTests.cs
 │   │   ├── InkModeTests.cs
 │   │   ├── SimulatedPressureDefaultsTests.cs
 │   │   ├── SimulatedPressureTests.cs
