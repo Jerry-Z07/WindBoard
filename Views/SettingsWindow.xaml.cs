@@ -52,47 +52,6 @@ namespace WindBoard
             OnPropertyChanged(nameof(StrokeThicknessConsistencyEnabled));
             OnPropertyChanged(nameof(SimulatedPressureEnabled));
 
-            // 初始化"平滑参数"
-            try
-            {
-                _customSmoothingEnabled = SettingsService.Instance.GetCustomSmoothingEnabled();
-                _smoothingPenStepMm = SettingsService.Instance.GetSmoothingPenStepMm();
-                _smoothingPenEpsilonMm = SettingsService.Instance.GetSmoothingPenEpsilonMm();
-                _smoothingPenFcMin = SettingsService.Instance.GetSmoothingPenFcMin();
-                _smoothingPenBeta = SettingsService.Instance.GetSmoothingPenBeta();
-                _smoothingPenDCutoff = SettingsService.Instance.GetSmoothingPenDCutoff();
-                _smoothingFingerStepMm = SettingsService.Instance.GetSmoothingFingerStepMm();
-                _smoothingFingerEpsilonMm = SettingsService.Instance.GetSmoothingFingerEpsilonMm();
-                _smoothingFingerFcMin = SettingsService.Instance.GetSmoothingFingerFcMin();
-                _smoothingFingerBeta = SettingsService.Instance.GetSmoothingFingerBeta();
-                _smoothingFingerDCutoff = SettingsService.Instance.GetSmoothingFingerDCutoff();
-            }
-            catch
-            {
-                _customSmoothingEnabled = false;
-                _smoothingPenStepMm = 0.9;
-                _smoothingPenEpsilonMm = 0.15;
-                _smoothingPenFcMin = 2.8;
-                _smoothingPenBeta = 0.055;
-                _smoothingPenDCutoff = 1.2;
-                _smoothingFingerStepMm = 1.1;
-                _smoothingFingerEpsilonMm = 0.3;
-                _smoothingFingerFcMin = 1.8;
-                _smoothingFingerBeta = 0.035;
-                _smoothingFingerDCutoff = 1.2;
-            }
-            OnPropertyChanged(nameof(CustomSmoothingEnabled));
-            OnPropertyChanged(nameof(SmoothingPenStepMm));
-            OnPropertyChanged(nameof(SmoothingPenEpsilonMm));
-            OnPropertyChanged(nameof(SmoothingPenFcMin));
-            OnPropertyChanged(nameof(SmoothingPenBeta));
-            OnPropertyChanged(nameof(SmoothingPenDCutoff));
-            OnPropertyChanged(nameof(SmoothingFingerStepMm));
-            OnPropertyChanged(nameof(SmoothingFingerEpsilonMm));
-            OnPropertyChanged(nameof(SmoothingFingerFcMin));
-            OnPropertyChanged(nameof(SmoothingFingerBeta));
-            OnPropertyChanged(nameof(SmoothingFingerDCutoff));
-
             // 初始化"触摸手势"
             try
             {

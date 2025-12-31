@@ -34,10 +34,6 @@ namespace WindBoard.Core.Modes
         private const float RealPressureBaseline = 0.5f;
         private const float RealPressureMeaningfulEpsilon = 0.06f;
 
-        // LiveTail 去重检测的容差值
-        private const double LiveTailPositionEpsilonDip = 0.0001; // DIP单位的位置容差
-        private const double LiveTailPressureEpsilon = 0.0001;    // 压力值容差 (0-1范围)
-
         public void SetSimulatedPressureEnabled(bool enabled) => _simulatedPressureEnabled = enabled;
 
         public override void SwitchOn()
@@ -88,14 +84,7 @@ namespace WindBoard.Core.Modes
             if (_activeStrokes.ContainsKey(id)) return;
 
             double zoom = _zoomProvider();
-            var parameters = InkSmoothingDefaults.ForContact(args.ContactSize, zoom);
-            var smoother = new RealtimeInkSmoother(parameters);
-
-            var pointsMm = smoother.Process(args.CanvasPoint, args.TimestampTicks, zoom, isFinal: false);
-            if (pointsMm.Count == 0)
-            {
-                return;
-            }
+            if (zoom <= 0) zoom = 1;
 
             bool hasRealPressureCandidate = args.DeviceType == InputDeviceType.Stylus && args.Pressure.HasValue;
             float initialRealPressure = hasRealPressureCandidate ? NormalizePressure(args.Pressure!.Value) : RealPressureBaseline;
@@ -114,22 +103,10 @@ namespace WindBoard.Core.Modes
             float initialPressure = usesRealPressure
                 ? initialRealPressure
                 : usesSimulatedPressure ? (simulatedPressure?.Current ?? RealPressureBaseline) : RealPressureBaseline;
-            for (int i = 0; i < pointsMm.Count; i++)
-            {
-                var pCanvas = smoother.ScreenMmToCanvasDip(pointsMm[i], zoom);
-                stylusPoints.Add(new StylusPoint(pCanvas.X, pCanvas.Y, initialPressure));
-            }
-
-            // 触摸书写：为减少实时“跟手”延迟，在 stroke 尾部维持一个可移动的 LiveTail 点（始终等于当前 raw 输入）。
-            // 后续 Move 会更新该点的位置；Flush 时把新点插到 tail 之前，避免 tail 被“顶”到中间。
-            bool liveTailEnabled = args.DeviceType == InputDeviceType.Touch;
-            if (liveTailEnabled && stylusPoints.Count > 0)
-            {
-                stylusPoints.Add(new StylusPoint(args.CanvasPoint.X, args.CanvasPoint.Y, initialPressure));
-            }
+            stylusPoints.Add(new StylusPoint(args.CanvasPoint.X, args.CanvasPoint.Y, initialPressure));
 
             var da = _canvas.DefaultDrawingAttributes.Clone();
-            da.FitToCurve = true;
+            da.FitToCurve = false;
             da.IgnorePressure = !(usesRealPressure || usesSimulatedPressure);
 
             if (TryGetSimulatedPressureNominal(simulatedPressureParameters, out float nominalPressure))
@@ -148,9 +125,7 @@ namespace WindBoard.Core.Modes
 
             _canvas.Strokes.Add(stroke);
 
-            var active = new ActiveStroke(stroke, da, logicalThicknessDip, smoother, args.CanvasPoint, args.TimestampTicks, usesRealPressure, initialRealPressure, hasRealPressureCandidate, simulatedPressure);
-            active.LiveTailEnabled = liveTailEnabled;
-            active.LiveTailPressure = initialPressure;
+            var active = new ActiveStroke(stroke, da, logicalThicknessDip, args.CanvasPoint, args.TimestampTicks, usesRealPressure, initialRealPressure, hasRealPressureCandidate, simulatedPressure);
             active.Segments.Add(stroke);
             _activeStrokes[id] = active;
             EnsureFlushTimer();
@@ -165,7 +140,6 @@ namespace WindBoard.Core.Modes
             if (!_activeStrokes.TryGetValue(id, out var active)) return;
 
             AppendPoints(active, args, isFinal: false);
-            active.UpdateLiveTailPosition(args.CanvasPoint);
             EnsureFlushTimer();
         }
 
@@ -174,10 +148,8 @@ namespace WindBoard.Core.Modes
             int id = GetPointerKey(args);
             if (!_activeStrokes.TryGetValue(id, out var active)) return;
 
-            active.UpdateLiveTailPosition(args.CanvasPoint);
             AppendPoints(active, args, isFinal: true);
             FlushPendingPoints(active);
-            TryRemoveLiveTailIfDuplicate(active);
             _activeStrokes.Remove(id);
             _onStrokeEndedOrCanceled?.Invoke();
             StopFlushTimerIfIdle();
@@ -219,12 +191,10 @@ namespace WindBoard.Core.Modes
                 dtSec = Math.Clamp(dtSec, 0.001, 0.05);
 
                 // CanvasPoint 是画布坐标（RenderTransform 下会被逆变换回“未缩放”的 DIP）；
-                // 乘 zoom 可还原到屏幕空间长度，用于近似物理速度（与 RealtimeInkSmoother.CanvasToScreenMm 一致）。
+                // 乘 zoom 可还原到屏幕空间长度，用于近似物理速度。
                 double distMm = (args.CanvasPoint - prevInputCanvasDip).Length * zoom / DipPerMm;
                 speedMmPerSec = distMm <= 0 ? 0 : distMm / dtSec;
             }
-            var pointsMm = active.Smoother.Process(args.CanvasPoint, args.TimestampTicks, zoom, isFinal);
-            if (pointsMm.Count == 0) return;
 
             if (!active.UsesRealPressure && active.HasRealPressureCandidate && args.Pressure.HasValue && ShouldSwitchToRealPressure(active, NormalizePressure(args.Pressure.Value)))
             {
@@ -241,69 +211,25 @@ namespace WindBoard.Core.Modes
                 simulatedEndPressure = isFinal ? active.SimulatedPressure.Finish() : simulatedStartPressure;
             }
 
-            float lastPressure = active.LiveTailPressure;
-            for (int i = 0; i < pointsMm.Count; i++)
+            float pressure;
+            if (active.UsesRealPressure)
             {
-                var pCanvas = active.Smoother.ScreenMmToCanvasDip(pointsMm[i], zoom);
-                float pressure;
-                if (active.UsesRealPressure)
+                if (args.Pressure.HasValue)
                 {
-                    if (args.Pressure.HasValue)
-                    {
-                        active.LastRealPressure = NormalizePressure(args.Pressure.Value);
-                    }
-                    pressure = active.LastRealPressure;
+                    active.LastRealPressure = NormalizePressure(args.Pressure.Value);
                 }
-                else if (active.SimulatedPressure != null)
-                {
-                    if (isFinal)
-                    {
-                        float t = (i + 1) / (float)pointsMm.Count;
-                        pressure = simulatedStartPressure + (simulatedEndPressure - simulatedStartPressure) * t;
-                    }
-                    else
-                    {
-                        pressure = simulatedStartPressure;
-                    }
-                }
-                else
-                {
-                    pressure = RealPressureBaseline;
-                }
-                active.PendingPoints.Add(new StylusPoint(pCanvas.X, pCanvas.Y, pressure));
-                lastPressure = pressure;
+                pressure = active.LastRealPressure;
             }
-
-            if (active.LiveTailEnabled)
+            else if (active.SimulatedPressure != null)
             {
-                active.LiveTailPressure = lastPressure;
+                pressure = isFinal ? simulatedEndPressure : simulatedStartPressure;
             }
-        }
-
-        private static void TryRemoveLiveTailIfDuplicate(ActiveStroke active)
-        {
-            if (!active.LiveTailEnabled)
+            else
             {
-                return;
+                pressure = RealPressureBaseline;
             }
 
-            var spc = active.Stroke.StylusPoints;
-            if (spc.Count < 2)
-            {
-                return;
-            }
-
-            var a = spc[^2];
-            var b = spc[^1];
-
-            if (Math.Abs(a.X - b.X) <= LiveTailPositionEpsilonDip
-                && Math.Abs(a.Y - b.Y) <= LiveTailPositionEpsilonDip
-                && Math.Abs(a.PressureFactor - b.PressureFactor) <= LiveTailPressureEpsilon)
-            {
-                spc.RemoveAt(spc.Count - 1);
-            }
-
-            active.LiveTailEnabled = false;
+            active.PendingPoints.Add(new StylusPoint(args.CanvasPoint.X, args.CanvasPoint.Y, pressure));
         }
 
         private static int GetPointerKey(InputEventArgs args)

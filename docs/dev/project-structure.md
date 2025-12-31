@@ -12,10 +12,6 @@ WindBoard/
 │   │   ├── IInputFilter.cs
 │   │   └── InputFilterBase.cs
 │   ├── Ink/                # 墨迹算法
-│   │   ├── InkSmoothingDefaults.cs
-│   │   ├── InkSmoothingParameters.cs
-│   │   ├── OneEuroFilter2D.cs
-│   │   ├── RealtimeInkSmoother.cs
 │   │   ├── SimulatedPressure.cs
 │   │   ├── SimulatedPressureDefaults.cs
 │   │   ├── SimulatedPressureParameters.cs
@@ -113,9 +109,6 @@ WindBoard/
 ├── WindBoard.Tests/         # 单元测试项目
 │   ├── Ink/                # 墨迹算法测试
 │   │   ├── InkModeTests.cs
-│   │   ├── InkSmoothingDefaultsTests.cs
-│   │   ├── OneEuroFilter2DTests.cs
-│   │   ├── RealtimeInkSmootherTests.cs
 │   │   ├── SimulatedPressureDefaultsTests.cs
 │   │   ├── SimulatedPressureTests.cs
 │   │   └── StrokeThicknessMetadataTests.cs
@@ -137,4 +130,3 @@ WindBoard/
 
 - 更宏观的架构说明：[`docs/dev/architecture-overview.md`](architecture-overview.md)
 - 编码约定与组织方式：[`docs/dev/coding-guidelines.md`](coding-guidelines.md)
-

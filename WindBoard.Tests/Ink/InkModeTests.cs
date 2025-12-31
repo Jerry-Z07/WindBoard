@@ -11,7 +11,7 @@ namespace WindBoard.Tests.Ink;
 public sealed class InkModeTests
 {
     [StaFact]
-    public void OnPointerMove_Touch_LiveTailFollowsRawPoint()
+    public void OnPointerUp_Touch_AppendsRawPoints()
     {
         var canvas = new InkCanvas
         {
@@ -66,15 +66,32 @@ public sealed class InkModeTests
             ContactSize = contactSize
         });
 
-        Assert.True(stroke.StylusPoints.Count >= 2);
+        ticks += 16 * TimeSpan.TicksPerMillisecond;
+        mode.OnPointerUp(new InputEventArgs
+        {
+            DeviceType = InputDeviceType.Touch,
+            CanvasPoint = new Point(2, 0),
+            ViewportPoint = new Point(2, 0),
+            PointerId = 1,
+            Pressure = null,
+            IsInAir = false,
+            LeftButton = false,
+            RightButton = false,
+            MiddleButton = false,
+            Ctrl = false,
+            Shift = false,
+            Alt = false,
+            TimestampTicks = ticks,
+            ContactSize = contactSize
+        });
 
-        var anchor = stroke.StylusPoints[^2];
-        Assert.Equal(0, anchor.X, precision: 6);
-        Assert.Equal(0, anchor.Y, precision: 6);
+        Assert.Equal(3, stroke.StylusPoints.Count);
 
-        var tail = stroke.StylusPoints[^1];
-        Assert.Equal(1, tail.X, precision: 6);
-        Assert.Equal(0, tail.Y, precision: 6);
+        Assert.Equal(0, stroke.StylusPoints[0].X, precision: 6);
+        Assert.Equal(0, stroke.StylusPoints[0].Y, precision: 6);
+        Assert.Equal(1, stroke.StylusPoints[1].X, precision: 6);
+        Assert.Equal(0, stroke.StylusPoints[1].Y, precision: 6);
+        Assert.Equal(2, stroke.StylusPoints[2].X, precision: 6);
+        Assert.Equal(0, stroke.StylusPoints[2].Y, precision: 6);
     }
 }
-
