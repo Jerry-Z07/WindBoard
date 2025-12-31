@@ -17,9 +17,15 @@ namespace WindBoard.Services
         private Point _lastMousePosition;
 
         private readonly Dictionary<int, Point> _activeTouches = new();
+        private readonly Dictionary<int, Point> _smoothedTouches = new();  // 滤波后的触摸点
         private bool _gestureActive;
         private Point _lastGestureCenter;
         private double _lastGestureSpread;
+
+        // 噪声过滤参数
+        private const double TouchSmoothingFactor = 0.4;  // 低通滤波系数 (0-1, 越小越平滑)
+        private const double MinSpreadThreshold = 30.0;   // 最小有效手指距离(px)
+        private const double MaxScaleChangePerFrame = 0.08; // 单帧最大缩放变化率
 
         public double Zoom { get; private set; } = 1.0;
         public double PanX { get; private set; }
@@ -115,11 +121,18 @@ namespace WindBoard.Services
         public bool TouchDown(int id, Point viewportPoint)
         {
             _activeTouches[id] = viewportPoint;
+            _smoothedTouches[id] = viewportPoint;  // 初始化时直接使用原始位置
 
             if (_activeTouches.Count >= 2)
             {
-                SnapshotGesture();
-                _gestureActive = true;
+                // 每次手指数量变化都更新快照
+                // 这样增量计算才能从正确的基准开始，避免重心/spread 跳跃
+                SnapshotGestureFromSmoothed();
+
+                if (!_gestureActive)
+                {
+                    _gestureActive = true;
+                }
                 return true;
             }
 
@@ -132,33 +145,72 @@ namespace WindBoard.Services
 
             _activeTouches[id] = viewportPoint;
 
+            // 对触摸点应用低通滤波以消除硬件噪声
+            if (_smoothedTouches.TryGetValue(id, out var prevSmoothed))
+            {
+                _smoothedTouches[id] = new Point(
+                    prevSmoothed.X + (viewportPoint.X - prevSmoothed.X) * TouchSmoothingFactor,
+                    prevSmoothed.Y + (viewportPoint.Y - prevSmoothed.Y) * TouchSmoothingFactor
+                );
+            }
+            else
+            {
+                _smoothedTouches[id] = viewportPoint;
+            }
+
             if (!_gestureActive || _activeTouches.Count < 2) return false;
             if (TwoFingerOnly && _activeTouches.Count > 2) return false;
 
-            Point newCenter = GetCentroid();
-            double newSpread = GetAverageSpread(newCenter);
+            // 使用滤波后的触摸点计算重心和距离
+            Point newCenter = GetSmoothedCentroid();
+            double newSpread = GetSmoothedAverageSpread(newCenter);
+
+            // 计算重心增量（用于平移）
+            Vector deltaCenter = newCenter - _lastGestureCenter;
 
             double oldZoom = Zoom;
             double scale = 1.0;
-            if (_lastGestureSpread > 10 && newSpread > 0)
+
+            // 只有当两指距离足够大时才计算缩放，避免小距离时的数值不稳定
+            if (_lastGestureSpread > MinSpreadThreshold && newSpread > MinSpreadThreshold)
             {
                 scale = newSpread / _lastGestureSpread;
+                // 限制单帧缩放变化率，防止跳跃
+                scale = Math.Clamp(scale, 1.0 - MaxScaleChangePerFrame, 1.0 + MaxScaleChangePerFrame);
             }
+
             double newZoom = Clamp(oldZoom * scale);
 
-            double contentX = (_lastGestureCenter.X - PanX) / oldZoom;
-            double contentY = (_lastGestureCenter.Y - PanY) / oldZoom;
+            // 使用增量模式处理平移和缩放：
+            // 1. 先应用增量平移
+            double panX = PanX + deltaCenter.X;
+            double panY = PanY + deltaCenter.Y;
 
-            Zoom = newZoom;
-            _zoomTransform.ScaleX = Zoom;
-            _zoomTransform.ScaleY = Zoom;
+            // 2. 以 newCenter 为中心应用缩放（如果有缩放变化）
+            if (Math.Abs(newZoom - oldZoom) > 0.00001)
+            {
+                // 计算 newCenter 在当前视图中指向的内容位置
+                double contentX = (newCenter.X - panX) / oldZoom;
+                double contentY = (newCenter.Y - panY) / oldZoom;
 
-            SetPanDirect(newCenter.X - contentX * Zoom, newCenter.Y - contentY * Zoom);
+                // 更新缩放
+                Zoom = newZoom;
+                _zoomTransform.ScaleX = Zoom;
+                _zoomTransform.ScaleY = Zoom;
 
+                // 缩放后保持 newCenter 指向同一内容位置
+                panX = newCenter.X - contentX * Zoom;
+                panY = newCenter.Y - contentY * Zoom;
+
+                _onZoomChanged?.Invoke(Zoom);
+            }
+
+            SetPanDirect(panX, panY);
+
+            // 更新快照
             _lastGestureCenter = newCenter;
             _lastGestureSpread = newSpread;
 
-            _onZoomChanged?.Invoke(Zoom);
             return true;
         }
 
@@ -166,6 +218,7 @@ namespace WindBoard.Services
         {
             bool wasActive = _gestureActive;
             _activeTouches.Remove(id);
+            _smoothedTouches.Remove(id);
 
             if (_activeTouches.Count < 2 && _gestureActive)
             {
@@ -175,7 +228,8 @@ namespace WindBoard.Services
 
             if (_gestureActive && _activeTouches.Count >= 2)
             {
-                SnapshotGesture();
+                // 手指数量变化时更新快照，这样增量计算才能从正确的基准开始
+                SnapshotGestureFromSmoothed();
                 return true;
             }
 
@@ -186,6 +240,15 @@ namespace WindBoard.Services
         {
             Point center = GetCentroid();
             double spread = GetAverageSpread(center);
+
+            _lastGestureCenter = center;
+            _lastGestureSpread = spread;
+        }
+
+        private void SnapshotGestureFromSmoothed()
+        {
+            Point center = GetSmoothedCentroid();
+            double spread = GetSmoothedAverageSpread(center);
 
             _lastGestureCenter = center;
             _lastGestureSpread = spread;
@@ -203,6 +266,22 @@ namespace WindBoard.Services
             return n > 0 ? new Point(sumX / n, sumY / n) : new Point(0, 0);
         }
 
+        private Point GetSmoothedCentroid()
+        {
+            double sumX = 0, sumY = 0;
+            int n = 0;
+            foreach (var id in _activeTouches.Keys)
+            {
+                if (_smoothedTouches.TryGetValue(id, out var pt))
+                {
+                    sumX += pt.X;
+                    sumY += pt.Y;
+                    n++;
+                }
+            }
+            return n > 0 ? new Point(sumX / n, sumY / n) : new Point(0, 0);
+        }
+
         private double GetAverageSpread(Point center)
         {
             double spread = 0;
@@ -212,6 +291,23 @@ namespace WindBoard.Services
                 double dx = pt.X - center.X;
                 double dy = pt.Y - center.Y;
                 spread += Math.Sqrt(dx * dx + dy * dy);
+            }
+            return n > 0 ? spread / n : 0;
+        }
+
+        private double GetSmoothedAverageSpread(Point center)
+        {
+            double spread = 0;
+            int n = 0;
+            foreach (var id in _activeTouches.Keys)
+            {
+                if (_smoothedTouches.TryGetValue(id, out var pt))
+                {
+                    double dx = pt.X - center.X;
+                    double dy = pt.Y - center.Y;
+                    spread += Math.Sqrt(dx * dx + dy * dy);
+                    n++;
+                }
             }
             return n > 0 ? spread / n : 0;
         }
