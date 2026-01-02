@@ -2,6 +2,7 @@ using System;
 using System.ComponentModel;
 using System.Windows;
 using MaterialDesignThemes.Wpf;
+using WindBoard.Models;
 using WindBoard.Services;
 
 namespace WindBoard
@@ -41,14 +42,17 @@ namespace WindBoard
             // 初始化"书写设置"
             try
             {
+                _strokeSmoothingMode = SettingsService.Instance.GetStrokeSmoothingMode();
                 _strokeThicknessConsistencyEnabled = SettingsService.Instance.GetStrokeThicknessConsistencyEnabled();
                 _simulatedPressureEnabled = SettingsService.Instance.GetSimulatedPressureEnabled();
             }
             catch
             {
+                _strokeSmoothingMode = StrokeSmoothingMode.RawInput;
                 _strokeThicknessConsistencyEnabled = false;
                 _simulatedPressureEnabled = false;
             }
+            OnPropertyChanged(nameof(StrokeSmoothingMode));
             OnPropertyChanged(nameof(StrokeThicknessConsistencyEnabled));
             OnPropertyChanged(nameof(SimulatedPressureEnabled));
 
@@ -95,6 +99,7 @@ namespace WindBoard
             try { SettingsService.Instance.SetCamouflageEnabled(CamouflageEnabled); } catch { }
             try { SettingsService.Instance.SetCamouflageTitle(CamouflageTitle); } catch { }
             try { SettingsService.Instance.SetCamouflageSourcePath(CamouflageSourcePath); } catch { }
+            try { SettingsService.Instance.SetStrokeSmoothingMode(StrokeSmoothingMode); } catch { }
             try { SettingsService.Instance.SetStrokeThicknessConsistencyEnabled(StrokeThicknessConsistencyEnabled); } catch { }
             try { SettingsService.Instance.SetSimulatedPressureEnabled(SimulatedPressureEnabled); } catch { }
         }

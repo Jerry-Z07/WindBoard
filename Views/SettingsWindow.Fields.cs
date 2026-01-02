@@ -2,6 +2,7 @@ using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Windows.Media;
 using MaterialDesignThemes.Wpf;
+using WindBoard.Models;
 
 namespace WindBoard
 {
@@ -24,6 +25,7 @@ namespace WindBoard
         private string _camouflageSourceDisplayName = "未选择文件";
 
         // --- 书写设置 ---
+        private StrokeSmoothingMode _strokeSmoothingMode = StrokeSmoothingMode.RawInput;
         private bool _strokeThicknessConsistencyEnabled;
         private bool _simulatedPressureEnabled;
 

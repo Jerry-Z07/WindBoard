@@ -6,6 +6,7 @@ using System.Windows.Ink;
 using System.Windows.Threading;
 using WindBoard.Core.Ink;
 using WindBoard.Core.Input;
+using WindBoard.Models;
 using StylusPoint = System.Windows.Input.StylusPoint;
 using StylusPointCollection = System.Windows.Input.StylusPointCollection;
 
@@ -21,6 +22,7 @@ namespace WindBoard.Core.Modes
         private DispatcherTimer? _flushTimer;
         private const int MaxStylusPointsPerSegment = 1800;
         private bool _simulatedPressureEnabled;
+        private StrokeSmoothingMode _strokeSmoothingMode = StrokeSmoothingMode.RawInput;
 
         public InkMode(InkCanvas canvas, Func<double> zoomProvider, Action? onStrokeEndedOrCanceled = null)
         {
@@ -36,8 +38,15 @@ namespace WindBoard.Core.Modes
 
         public void SetSimulatedPressureEnabled(bool enabled) => _simulatedPressureEnabled = enabled;
 
-        private static bool ShouldEnableDetailSmoother(InputEventArgs args)
+        public void SetStrokeSmoothingMode(StrokeSmoothingMode mode) => _strokeSmoothingMode = mode;
+
+        private bool ShouldEnableDetailSmoother(InputEventArgs args)
         {
+            if (_strokeSmoothingMode == StrokeSmoothingMode.RawInput)
+            {
+                return false;
+            }
+
             return args.DeviceType == InputDeviceType.Touch
                    || (args.DeviceType == InputDeviceType.Stylus && !args.HasPressureHardware);
         }
@@ -176,7 +185,7 @@ namespace WindBoard.Core.Modes
             Point prevInputCanvasDip = active.LastInputCanvasDip;
             long prevInputTicks = active.LastInputTicks;
 
-            if (!isFinal)
+            if (!isFinal && _strokeSmoothingMode != StrokeSmoothingMode.RawInput)
             {
                 // 输入频率过高时做轻量降采样：阈值过大会导致“跟手性”下降（卡/滞后）。
                 const long MinIntervalTicks = 1 * TimeSpan.TicksPerMillisecond;

@@ -82,6 +82,7 @@ namespace WindBoard
             }
 
             _inkMode.SetSimulatedPressureEnabled(SettingsService.Instance.GetSimulatedPressureEnabled());
+            _inkMode.SetStrokeSmoothingMode(SettingsService.Instance.GetStrokeSmoothingMode());
         }
 
         private CamouflageResult ApplyCamouflageFromSettings()

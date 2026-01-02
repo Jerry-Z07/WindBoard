@@ -1,11 +1,45 @@
+using System.Collections.Generic;
 using System.Windows;
+using WindBoard.Models;
 using WindBoard.Services;
 
 namespace WindBoard
 {
     public partial class SettingsWindow
     {
+        public sealed class StrokeSmoothingModeItem
+        {
+            public StrokeSmoothingMode Mode { get; }
+            public string DisplayName { get; }
+
+            public StrokeSmoothingModeItem(StrokeSmoothingMode mode, string displayName)
+            {
+                Mode = mode;
+                DisplayName = displayName;
+            }
+        }
+
+        public IReadOnlyList<StrokeSmoothingModeItem> StrokeSmoothingModeItems { get; } = new[]
+        {
+            new StrokeSmoothingModeItem(StrokeSmoothingMode.RawInput, "原始输入方案"),
+            new StrokeSmoothingModeItem(StrokeSmoothingMode.Existing, "DPS")
+        };
+
         // --- 书写设置属性（绑定到 XAML，通过 ElementName=SettingsWindowRoot） ---
+        public StrokeSmoothingMode StrokeSmoothingMode
+        {
+            get => _strokeSmoothingMode;
+            set
+            {
+                if (_strokeSmoothingMode != value)
+                {
+                    _strokeSmoothingMode = value;
+                    OnPropertyChanged();
+                    try { SettingsService.Instance.SetStrokeSmoothingMode(value); } catch { }
+                }
+            }
+        }
+
         public bool StrokeThicknessConsistencyEnabled
         {
             get => _strokeThicknessConsistencyEnabled;

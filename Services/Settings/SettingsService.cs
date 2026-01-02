@@ -182,6 +182,15 @@ namespace WindBoard.Services
             SettingsChanged?.Invoke(this, Settings);
         }
 
+        public StrokeSmoothingMode GetStrokeSmoothingMode() => Settings.StrokeSmoothingMode;
+
+        public void SetStrokeSmoothingMode(StrokeSmoothingMode mode)
+        {
+            Settings.StrokeSmoothingMode = mode;
+            Save();
+            SettingsChanged?.Invoke(this, Settings);
+        }
+
         // --- 触摸手势相关设置 ---
         public bool GetZoomPanTwoFingerOnly() => Settings.ZoomPanTwoFingerOnly;
 
