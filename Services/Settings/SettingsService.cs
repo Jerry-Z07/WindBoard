@@ -49,6 +49,8 @@ namespace WindBoard.Services
             {
                 // 保留默认设置
             }
+
+            try { LocalizationService.Instance.ApplyLanguage(Settings.Language); } catch { }
         }
 
         private void Save()
@@ -81,6 +83,17 @@ namespace WindBoard.Services
         {
             Settings.BackgroundColorHex = color.ToString();
             Save();
+            SettingsChanged?.Invoke(this, Settings);
+        }
+
+        // --- 语言设置 ---
+        public AppLanguage GetLanguage() => Settings.Language;
+
+        public void SetLanguage(AppLanguage language)
+        {
+            Settings.Language = language;
+            Save();
+            try { LocalizationService.Instance.ApplyLanguage(language); } catch { }
             SettingsChanged?.Invoke(this, Settings);
         }
 
@@ -178,6 +191,15 @@ namespace WindBoard.Services
         public void SetSimulatedPressureEnabled(bool enabled)
         {
             Settings.SimulatedPressureEnabled = enabled;
+            Save();
+            SettingsChanged?.Invoke(this, Settings);
+        }
+
+        public StrokeSmoothingMode GetStrokeSmoothingMode() => Settings.StrokeSmoothingMode;
+
+        public void SetStrokeSmoothingMode(StrokeSmoothingMode mode)
+        {
+            Settings.StrokeSmoothingMode = mode;
             Save();
             SettingsChanged?.Invoke(this, Settings);
         }

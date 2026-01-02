@@ -2,6 +2,7 @@ using System;
 using System.Reflection;
 using System.Windows;
 using System.Windows.Input.StylusPlugIns;
+using WindBoard.Services;
 
 namespace WindBoard.Core.Input
 {
@@ -9,7 +10,7 @@ namespace WindBoard.Core.Input
     {
         private static readonly PropertyInfo StylusPlugInsProperty =
             typeof(UIElement).GetProperty("StylusPlugIns", BindingFlags.NonPublic | BindingFlags.Instance)
-            ?? throw new InvalidOperationException("无法访问 StylusPlugIns 属性");
+            ?? throw new InvalidOperationException(LocalizationService.Instance.GetString("StylusPlugInsAccessor_Unavailable"));
 
         public static StylusPlugInCollection Get(UIElement element)
         {
@@ -18,7 +19,7 @@ namespace WindBoard.Core.Input
                 return collection;
             }
 
-            throw new InvalidOperationException("无法访问 StylusPlugIns 属性");
+            throw new InvalidOperationException(LocalizationService.Instance.GetString("StylusPlugInsAccessor_Unavailable"));
         }
     }
 }

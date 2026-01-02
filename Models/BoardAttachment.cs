@@ -3,6 +3,7 @@ using System.ComponentModel;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Windows.Media;
+using WindBoard.Services;
 
 namespace WindBoard
 {
@@ -127,13 +128,14 @@ namespace WindBoard
         {
             get
             {
+                var l = LocalizationService.Instance;
                 return Type switch
                 {
-                    BoardAttachmentType.Image => !string.IsNullOrWhiteSpace(FilePath) ? Path.GetFileName(FilePath) : "图片",
-                    BoardAttachmentType.Video => !string.IsNullOrWhiteSpace(FilePath) ? Path.GetFileName(FilePath) : "视频",
-                    BoardAttachmentType.Text => !string.IsNullOrWhiteSpace(Text) ? "文本" : "空文本",
-                    BoardAttachmentType.Link => !string.IsNullOrWhiteSpace(Url) ? Url : "链接",
-                    _ => "附件"
+                    BoardAttachmentType.Image => !string.IsNullOrWhiteSpace(FilePath) ? Path.GetFileName(FilePath) : l.GetString("Attachment_Image"),
+                    BoardAttachmentType.Video => !string.IsNullOrWhiteSpace(FilePath) ? Path.GetFileName(FilePath) : l.GetString("Attachment_Video"),
+                    BoardAttachmentType.Text => !string.IsNullOrWhiteSpace(Text) ? l.GetString("Attachment_Text") : l.GetString("Attachment_EmptyText"),
+                    BoardAttachmentType.Link => !string.IsNullOrWhiteSpace(Url) ? Url : l.GetString("Attachment_Link"),
+                    _ => l.GetString("Attachment_Generic")
                 };
             }
         }

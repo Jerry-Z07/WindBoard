@@ -8,6 +8,7 @@ using System.Windows;
 using System.Windows.Ink;
 using System.Windows.Media.Imaging;
 using MaterialDesignThemes.Wpf;
+using WindBoard.Services;
 using WindBoard.Services.Export;
 using WindBoard.Views.Dialogs;
 
@@ -45,13 +46,25 @@ namespace WindBoard
 
                 if (!importResult.Success)
                 {
-                    MessageBox.Show($"导入失败: {importResult.ErrorMessage}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                    var l = LocalizationService.Instance;
+                    MessageBox.Show(
+                        l.Format(
+                            "MainWindow_Import_Failed_Format",
+                            importResult.ErrorMessage ?? l.GetString("Common_UnknownError")),
+                        l.GetString("Common_Error"),
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Error);
                     return;
                 }
 
                 if (importResult.Pages.Count == 0)
                 {
-                    MessageBox.Show("WBI 文件中没有可导入的页面。", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                    var l = LocalizationService.Instance;
+                    MessageBox.Show(
+                        l.GetString("MainWindow_Import_NoPagesInWbi"),
+                        l.GetString("Common_Info"),
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Information);
                     return;
                 }
 
@@ -70,30 +83,39 @@ namespace WindBoard
                 // 显示缺失资源警告
                 if (importResult.MissingResources.Count > 0)
                 {
+                    var l = LocalizationService.Instance;
                     string missingList = string.Join("\n", importResult.MissingResources.Take(10));
                     if (importResult.MissingResources.Count > 10)
                     {
-                        missingList += $"\n...共 {importResult.MissingResources.Count} 个资源缺失";
+                        missingList += "\n" + l.Format(
+                            "MainWindow_Import_MissingResources_More_Format",
+                            importResult.MissingResources.Count);
                     }
 
                     MessageBox.Show(
-                        $"导入完成，但以下资源文件未找到:\n\n{missingList}\n\n这些附件将显示为占位符。",
-                        "部分资源缺失",
+                        l.Format("MainWindow_Import_MissingResources_Message_Format", missingList),
+                        l.GetString("MainWindow_Import_MissingResources_Title"),
                         MessageBoxButton.OK,
                         MessageBoxImage.Warning);
                 }
                 else
                 {
+                    var l = LocalizationService.Instance;
                     MessageBox.Show(
-                        $"成功导入 {importResult.Pages.Count} 个页面！",
-                        "导入完成",
+                        l.Format("MainWindow_Import_SuccessPages_Format", importResult.Pages.Count),
+                        l.GetString("MainWindow_Import_Completed_Title"),
                         MessageBoxButton.OK,
                         MessageBoxImage.Information);
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"导入过程中发生错误: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                var l = LocalizationService.Instance;
+                MessageBox.Show(
+                    l.Format("MainWindow_Import_ErrorDuring_Format", ex.Message),
+                    l.GetString("Common_Error"),
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
             }
         }
 

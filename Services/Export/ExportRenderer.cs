@@ -231,12 +231,12 @@ namespace WindBoard.Services.Export
                 }
                 catch
                 {
-                    RenderPlaceholder(dc, att, "图片加载失败", Colors.Gray);
+                    RenderPlaceholder(dc, att, LocalizationService.Instance.GetString("ExportRenderer_ImageLoadFailed"), Colors.Gray);
                 }
             }
             else
             {
-                RenderPlaceholder(dc, att, "图片", Colors.Gray);
+                RenderPlaceholder(dc, att, LocalizationService.Instance.GetString("ExportRenderer_Image"), Colors.Gray);
             }
         }
 
@@ -266,12 +266,17 @@ namespace WindBoard.Services.Export
 
         private void RenderVideoPlaceholder(DrawingContext dc, BoardAttachment att)
         {
-            RenderPlaceholder(dc, att, "视频: " + (att.DisplayName ?? "未知"), Color.FromRgb(60, 60, 80));
+            var l = LocalizationService.Instance;
+            RenderPlaceholder(
+                dc,
+                att,
+                l.Format("ExportRenderer_Video_Format", att.DisplayName ?? l.GetString("ExportRenderer_Unknown")),
+                Color.FromRgb(60, 60, 80));
         }
 
         private void RenderLinkPlaceholder(DrawingContext dc, BoardAttachment att)
         {
-            RenderPlaceholder(dc, att, att.Url ?? "链接", Color.FromRgb(40, 80, 100));
+            RenderPlaceholder(dc, att, att.Url ?? LocalizationService.Instance.GetString("Attachment_Link"), Color.FromRgb(40, 80, 100));
         }
 
         private void RenderPlaceholder(DrawingContext dc, BoardAttachment att, string text, Color bgColor)

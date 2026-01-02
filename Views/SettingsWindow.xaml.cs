@@ -2,6 +2,7 @@ using System;
 using System.ComponentModel;
 using System.Windows;
 using MaterialDesignThemes.Wpf;
+using WindBoard.Models;
 using WindBoard.Services;
 
 namespace WindBoard
@@ -12,11 +13,25 @@ namespace WindBoard
         {
             InitializeComponent();
             _colorPopupBox = FindName("ColorPopupBox") as PopupBox;
+            LocalizationService.Instance.LanguageChanged += LocalizationService_LanguageChanged;
+            RefreshAppLanguageItems();
+            RefreshStrokeSmoothingModeItems();
 
             // 初始化颜色为当前设置服务中的背景色
             _currentColor = SettingsService.Instance.GetBackgroundColor();
             OnPropertyChanged(nameof(CurrentColor));
             OnPropertyChanged(nameof(CurrentColorHex));
+
+            // 初始化语言
+            try
+            {
+                _appLanguage = SettingsService.Instance.GetLanguage();
+            }
+            catch
+            {
+                _appLanguage = AppLanguage.Chinese;
+            }
+            OnPropertyChanged(nameof(AppLanguage));
 
             // 初始化 Hex 文本框内容改为依赖绑定刷新（避免破坏 XAML 绑定）
             // 不再直接赋值 HexTextBox.Text，CurrentColor/CurrentColorHex 的 OnPropertyChanged 将驱动界面更新。
@@ -41,14 +56,17 @@ namespace WindBoard
             // 初始化"书写设置"
             try
             {
+                _strokeSmoothingMode = SettingsService.Instance.GetStrokeSmoothingMode();
                 _strokeThicknessConsistencyEnabled = SettingsService.Instance.GetStrokeThicknessConsistencyEnabled();
                 _simulatedPressureEnabled = SettingsService.Instance.GetSimulatedPressureEnabled();
             }
             catch
             {
+                _strokeSmoothingMode = StrokeSmoothingMode.RawInput;
                 _strokeThicknessConsistencyEnabled = false;
                 _simulatedPressureEnabled = false;
             }
+            OnPropertyChanged(nameof(StrokeSmoothingMode));
             OnPropertyChanged(nameof(StrokeThicknessConsistencyEnabled));
             OnPropertyChanged(nameof(SimulatedPressureEnabled));
 
@@ -89,12 +107,14 @@ namespace WindBoard
         // 统一底部按钮：应用/确定/取消
         private void ApplyAllSettings()
         {
+            try { SettingsService.Instance.SetLanguage(AppLanguage); } catch { }
             try { SettingsService.Instance.SetVideoPresenterPath(VideoPresenterPath); } catch { }
             try { SettingsService.Instance.SetVideoPresenterArgs(VideoPresenterArgs); } catch { }
             try { SettingsService.Instance.SetBackgroundColor(CurrentColor); } catch { }
             try { SettingsService.Instance.SetCamouflageEnabled(CamouflageEnabled); } catch { }
             try { SettingsService.Instance.SetCamouflageTitle(CamouflageTitle); } catch { }
             try { SettingsService.Instance.SetCamouflageSourcePath(CamouflageSourcePath); } catch { }
+            try { SettingsService.Instance.SetStrokeSmoothingMode(StrokeSmoothingMode); } catch { }
             try { SettingsService.Instance.SetStrokeThicknessConsistencyEnabled(StrokeThicknessConsistencyEnabled); } catch { }
             try { SettingsService.Instance.SetSimulatedPressureEnabled(SimulatedPressureEnabled); } catch { }
         }
@@ -111,7 +131,19 @@ namespace WindBoard
 
         protected override void OnClosed(EventArgs e)
         {
+            LocalizationService.Instance.LanguageChanged -= LocalizationService_LanguageChanged;
             base.OnClosed(e);
+        }
+
+        private void LocalizationService_LanguageChanged(object? sender, AppLanguage e)
+        {
+            RefreshAppLanguageItems();
+            RefreshStrokeSmoothingModeItems();
+
+            if (string.IsNullOrWhiteSpace(CamouflageSourcePath))
+            {
+                CamouflageSourceDisplayName = LocalizationService.Instance.GetString("SettingsWindow_General_Camouflage_NoFileSelected");
+            }
         }
     }
 }

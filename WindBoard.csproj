@@ -17,7 +17,11 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Resource Include="resources\fonts\*.ttf" />
+    <Content Include="resources\fonts\*.ttf">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+      <TargetPath>resources\fonts\%(Filename)%(Extension)</TargetPath>
+    </Content>
   </ItemGroup>
 
   <ItemGroup>

@@ -99,10 +99,11 @@ namespace WindBoard
         {
             try
             {
+                var l = LocalizationService.Instance;
                 var dlg = new OpenFileDialog
                 {
-                    Title = "选择程序或图标",
-                    Filter = "可执行/图标/图片|*.exe;*.ico;*.png;*.jpg;*.jpeg;*.bmp|所有文件|*.*",
+                    Title = l.GetString("SettingsWindow_General_Camouflage_BrowseDialog_Title"),
+                    Filter = l.GetString("SettingsWindow_General_Camouflage_BrowseDialog_Filter"),
                     CheckFileExists = true
                 };
                 if (!string.IsNullOrWhiteSpace(CamouflageSourcePath))
@@ -127,9 +128,10 @@ namespace WindBoard
 
         private void BtnClearCamouflageIcon_Click(object sender, RoutedEventArgs e)
         {
+            var l = LocalizationService.Instance;
             CamouflageSourcePath = string.Empty;
             CamouflageIconPreview = null;
-            CamouflageSourceDisplayName = "未选择文件";
+            CamouflageSourceDisplayName = l.GetString("SettingsWindow_General_Camouflage_NoFileSelected");
             try { SettingsService.Instance.SetCamouflageIconCachePath(string.Empty); } catch { }
         }
 
@@ -138,7 +140,7 @@ namespace WindBoard
             try
             {
                 // 默认标题仅作为“未开启伪装/未填写标题”时的兜底
-                const string defaultTitle = "WindBoard";
+                string defaultTitle = AppDisplayNames.GetAppNameFromSettings();
 
                 var result = CamouflageService.Instance.BuildResult(defaultIcon: null, defaultTitle: defaultTitle);
                 string signature = CamouflageService.Instance.GetCamouflageShortcutSettingsSignature();
@@ -152,9 +154,13 @@ namespace WindBoard
 
                 if (!ok)
                 {
+                    var l = LocalizationService.Instance;
+                    string message = l.Format(
+                        "SettingsWindow_General_Camouflage_CreateShortcut_Failed",
+                        errorMessage ?? l.GetString("Common_UnknownError"));
                     MessageBox.Show(
-                        $"创建快捷方式失败：{errorMessage ?? "未知错误"}",
-                        "伪装",
+                        message,
+                        l.GetString("SettingsWindow_General_Camouflage_MessageBox_Title"),
                         MessageBoxButton.OK,
                         MessageBoxImage.Error);
                     return;
@@ -162,17 +168,19 @@ namespace WindBoard
 
                 try { SettingsService.Instance.SetCamouflageShortcutLastGeneratedSignature(signature); } catch { }
 
+                var l2 = LocalizationService.Instance;
                 MessageBox.Show(
-                    $"已创建/更新桌面快捷方式：\n{shortcutPath}",
-                    "伪装",
+                    l2.Format("SettingsWindow_General_Camouflage_CreateShortcut_Success", shortcutPath),
+                    l2.GetString("SettingsWindow_General_Camouflage_MessageBox_Title"),
                     MessageBoxButton.OK,
                     MessageBoxImage.Information);
             }
             catch (Exception ex)
             {
+                var l = LocalizationService.Instance;
                 MessageBox.Show(
-                    $"创建快捷方式失败：{ex.Message}",
-                    "伪装",
+                    l.Format("SettingsWindow_General_Camouflage_CreateShortcut_Failed", ex.Message),
+                    l.GetString("SettingsWindow_General_Camouflage_MessageBox_Title"),
                     MessageBoxButton.OK,
                     MessageBoxImage.Error);
             }
@@ -183,8 +191,9 @@ namespace WindBoard
             var sourcePath = CamouflageSourcePath;
             if (string.IsNullOrWhiteSpace(sourcePath) || !File.Exists(sourcePath))
             {
+                var l = LocalizationService.Instance;
                 CamouflageIconPreview = null;
-                CamouflageSourceDisplayName = "未选择文件";
+                CamouflageSourceDisplayName = l.GetString("SettingsWindow_General_Camouflage_NoFileSelected");
                 if (buildCache)
                 {
                     try { SettingsService.Instance.SetCamouflageIconCachePath(string.Empty); } catch { }
@@ -203,8 +212,9 @@ namespace WindBoard
                 }
                 else
                 {
+                    var l = LocalizationService.Instance;
                     CamouflageIconPreview = null;
-                    CamouflageSourceDisplayName = "无法读取图标";
+                    CamouflageSourceDisplayName = l.GetString("SettingsWindow_General_Camouflage_IconReadFailed");
                     try { SettingsService.Instance.SetCamouflageIconCachePath(string.Empty); } catch { }
                 }
                 return;

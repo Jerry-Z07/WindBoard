@@ -5,12 +5,12 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
         mc:Ignorable="d"
-        Title="应用设置" Height="650" Width="950"
+        Title="{DynamicResource SettingsWindow_Title}" Height="650" Width="950"
         WindowStartupLocation="CenterOwner"
         Style="{StaticResource MaterialDesignWindow}"
         Background="{DynamicResource MaterialDesignPaper}"
         TextElement.Foreground="{DynamicResource MaterialDesignBody}"
-        TextElement.FontFamily="pack://application:,,,/WindBoard;component/resources/fonts/#MiSans"
+        TextElement.FontFamily="{DynamicResource AppFontFamily}"
         ResizeMode="CanResizeWithGrip">
     
     <materialDesign:DialogHost Identifier="SettingsDialogHost" DialogTheme="Inherit">
@@ -25,7 +25,7 @@
                 <DockPanel>
                     <StackPanel Orientation="Horizontal" DockPanel.Dock="Left">
                         <materialDesign:PackIcon Kind="CogOutline" Width="28" Height="28" VerticalAlignment="Center" Margin="0,0,12,0"/>
-                        <TextBlock Text="应用设置" Style="{StaticResource MaterialDesignHeadline5TextBlock}" VerticalAlignment="Center"/>
+                        <TextBlock Text="{DynamicResource SettingsWindow_Title}" Style="{StaticResource MaterialDesignHeadline5TextBlock}" VerticalAlignment="Center"/>
                     </StackPanel>
                 </DockPanel>
             </materialDesign:ColorZone>
@@ -47,25 +47,25 @@
                         <ListBoxItem IsSelected="True">
                             <StackPanel Orientation="Horizontal">
                                 <materialDesign:PackIcon Kind="CogOutline" Width="20" Height="20" Margin="0,0,14,0" VerticalAlignment="Center"/>
-                                <TextBlock Text="基本设置" VerticalAlignment="Center" FontSize="14"/>
+                                <TextBlock Text="{DynamicResource SettingsWindow_Nav_General}" VerticalAlignment="Center" FontSize="14"/>
                             </StackPanel>
                         </ListBoxItem>
                         <ListBoxItem>
                             <StackPanel Orientation="Horizontal">
                                 <materialDesign:PackIcon Kind="Pen" Width="20" Height="20" Margin="0,0,14,0" VerticalAlignment="Center"/>
-                                <TextBlock Text="书写设置" VerticalAlignment="Center" FontSize="14"/>
+                                <TextBlock Text="{DynamicResource SettingsWindow_Nav_Writing}" VerticalAlignment="Center" FontSize="14"/>
                             </StackPanel>
                         </ListBoxItem>
                         <ListBoxItem>
                             <StackPanel Orientation="Horizontal">
                                 <materialDesign:PackIcon Kind="PaletteOutline" Width="20" Height="20" Margin="0,0,14,0" VerticalAlignment="Center"/>
-                                <TextBlock Text="外观设置" VerticalAlignment="Center" FontSize="14"/>
+                                <TextBlock Text="{DynamicResource SettingsWindow_Nav_Appearance}" VerticalAlignment="Center" FontSize="14"/>
                             </StackPanel>
                         </ListBoxItem>
                         <ListBoxItem>
                             <StackPanel Orientation="Horizontal">
                                 <materialDesign:PackIcon Kind="InformationOutline" Width="20" Height="20" Margin="0,0,14,0" VerticalAlignment="Center"/>
-                                <TextBlock Text="关于" VerticalAlignment="Center" FontSize="14"/>
+                                <TextBlock Text="{DynamicResource SettingsWindow_Nav_About}" VerticalAlignment="Center" FontSize="14"/>
                             </StackPanel>
                         </ListBoxItem>
                     </ListBox>
@@ -85,6 +85,34 @@
                                     </Style.Triggers>
                                 </Style>
                             </StackPanel.Style>
+
+                        <!-- 基本设置 · 语言 -->
+                        <materialDesign:Card Padding="20" Margin="0,0,0,20" UniformCornerRadius="12" materialDesign:ElevationAssist.Elevation="Dp2">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+
+                                <Border Width="48" Height="48" CornerRadius="8" Background="{DynamicResource PrimaryHueLightBrush}" Grid.Column="0" VerticalAlignment="Center">
+                                    <materialDesign:PackIcon Kind="Translate" Width="24" Height="24" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="{DynamicResource PrimaryHueMidBrush}"/>
+                                </Border>
+
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="16,0,0,0">
+                                    <TextBlock Text="{DynamicResource SettingsWindow_General_Language_Title}" Style="{StaticResource MaterialDesignSubtitle1TextBlock}" FontWeight="SemiBold"/>
+                                    <TextBlock Text="{DynamicResource SettingsWindow_General_Language_Desc}" Style="{StaticResource MaterialDesignBodyMediumTextBlock}" Opacity="0.6" TextWrapping="Wrap"/>
+                                </StackPanel>
+
+                                <ComboBox Grid.Column="2"
+                                          VerticalAlignment="Center"
+                                          MinWidth="160"
+                                          ItemsSource="{Binding ElementName=SettingsWindowRoot, Path=AppLanguageItems}"
+                                          DisplayMemberPath="DisplayName"
+                                          SelectedValuePath="Language"
+                                          SelectedValue="{Binding ElementName=SettingsWindowRoot, Path=AppLanguage, Mode=TwoWay}"/>
+                            </Grid>
+                        </materialDesign:Card>
 
                         <!-- 基本设置 · 视频展台 -->
                         <materialDesign:Card Padding="20" Margin="0,0,0,20" UniformCornerRadius="12" materialDesign:ElevationAssist.Elevation="Dp2">
@@ -106,12 +134,12 @@
                                 </Border>
 
                                 <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="16,0,0,0">
-                                    <TextBlock Text="视频展台" Style="{StaticResource MaterialDesignSubtitle1TextBlock}" FontWeight="SemiBold"/>
-                                    <TextBlock Text="配置视频展台软件路径与参数，并控制按钮显示" Style="{StaticResource MaterialDesignBodyMediumTextBlock}" Opacity="0.6" TextWrapping="Wrap"/>
+                                    <TextBlock Text="{DynamicResource SettingsWindow_General_VideoPresenter_Title}" Style="{StaticResource MaterialDesignSubtitle1TextBlock}" FontWeight="SemiBold"/>
+                                    <TextBlock Text="{DynamicResource SettingsWindow_General_VideoPresenter_Desc}" Style="{StaticResource MaterialDesignBodyMediumTextBlock}" Opacity="0.6" TextWrapping="Wrap"/>
                                 </StackPanel>
 
                                 <CheckBox Grid.Column="2" VerticalAlignment="Center"
-                                          Content="显示"
+                                          Content="{DynamicResource SettingsWindow_General_VideoPresenter_Toggle}"
                                           IsChecked="{Binding ElementName=SettingsWindowRoot, Path=VideoPresenterEnabled, Mode=TwoWay}"
                                           Checked="ToggleVideoPresenter_Checked"
                                           Unchecked="ToggleVideoPresenter_Unchecked"/>
@@ -123,13 +151,13 @@
                                         <ColumnDefinition Width="*"/>
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
-                                    <TextBlock Grid.Column="0" Text="程序路径" VerticalAlignment="Center" Margin="0,0,12,0"/>
+                                    <TextBlock Grid.Column="0" Text="{DynamicResource SettingsWindow_General_VideoPresenter_Path_Label}" VerticalAlignment="Center" Margin="0,0,12,0"/>
                                     <TextBox Grid.Column="1"
-                                             Text="{Binding ElementName=SettingsWindowRoot, Path=VideoPresenterPath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                             Style="{StaticResource MaterialDesignOutlinedTextBox}"
-                                             materialDesign:HintAssist.Hint="选择视频展台 EXE"/>
+                                              Text="{Binding ElementName=SettingsWindowRoot, Path=VideoPresenterPath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                              Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                                              materialDesign:HintAssist.Hint="{DynamicResource SettingsWindow_General_VideoPresenter_Path_Hint}"/>
                                     <StackPanel Grid.Column="2" Orientation="Horizontal">
-                                        <Button Content="浏览…"
+                                        <Button Content="{DynamicResource Common_Browse}"
                                                 Margin="0,0,0,0"
                                                 Style="{StaticResource MaterialDesignOutlinedButton}"
                                                 Click="BtnBrowseVideoPresenterPath_Click"
@@ -144,16 +172,16 @@
                                         <ColumnDefinition Width="*"/>
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
-                                    <TextBlock Grid.Column="0" Text="附加参数" VerticalAlignment="Center" Margin="0,0,12,0"/>
+                                    <TextBlock Grid.Column="0" Text="{DynamicResource SettingsWindow_General_VideoPresenter_Args_Label}" VerticalAlignment="Center" Margin="0,0,12,0"/>
                                     <TextBox Grid.Column="1"
-                                             Text="{Binding ElementName=SettingsWindowRoot, Path=VideoPresenterArgs, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                             Style="{StaticResource MaterialDesignOutlinedTextBox}"
-                                             materialDesign:HintAssist.Hint="例如：-from en5"/>
+                                              Text="{Binding ElementName=SettingsWindowRoot, Path=VideoPresenterArgs, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                              Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                                              materialDesign:HintAssist.Hint="{DynamicResource SettingsWindow_General_VideoPresenter_Args_Hint}"/>
                                 </Grid>
 
                                 <!-- 恢复默认 -->
                                 <Button Grid.Row="3" Grid.ColumnSpan="3"
-                                        Content="恢复默认"
+                                        Content="{DynamicResource Common_ResetDefault}"
                                         Margin="0,16,0,0"
                                         Style="{StaticResource MaterialDesignOutlinedButton}"
                                         Click="BtnResetVideoPresenterDefaults_Click"
@@ -181,12 +209,12 @@
                                 </Border>
 
                                 <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="16,0,0,0">
-                                    <TextBlock Text="伪装" Style="{StaticResource MaterialDesignSubtitle1TextBlock}" FontWeight="SemiBold"/>
-                                    <TextBlock Text="替换应用标题与图标（支持选择 exe 或图片）" Style="{StaticResource MaterialDesignBodyMediumTextBlock}" Opacity="0.6" TextWrapping="Wrap"/>
+                                    <TextBlock Text="{DynamicResource SettingsWindow_General_Camouflage_Title}" Style="{StaticResource MaterialDesignSubtitle1TextBlock}" FontWeight="SemiBold"/>
+                                    <TextBlock Text="{DynamicResource SettingsWindow_General_Camouflage_Desc}" Style="{StaticResource MaterialDesignBodyMediumTextBlock}" Opacity="0.6" TextWrapping="Wrap"/>
                                 </StackPanel>
 
                                 <CheckBox Grid.Column="2" VerticalAlignment="Center"
-                                          Content="开启"
+                                          Content="{DynamicResource Common_Enable}"
                                           IsChecked="{Binding ElementName=SettingsWindowRoot, Path=CamouflageEnabled, Mode=TwoWay}"
                                           Checked="ToggleCamouflage_Checked"
                                           Unchecked="ToggleCamouflage_Unchecked"/>
@@ -197,11 +225,11 @@
                                         <ColumnDefinition Width="Auto"/>
                                         <ColumnDefinition Width="*"/>
                                     </Grid.ColumnDefinitions>
-                                    <TextBlock Grid.Column="0" Text="应用标题" VerticalAlignment="Center" Margin="0,0,12,0"/>
+                                    <TextBlock Grid.Column="0" Text="{DynamicResource SettingsWindow_General_Camouflage_AppTitle_Label}" VerticalAlignment="Center" Margin="0,0,12,0"/>
                                     <TextBox Grid.Column="1"
-                                             Text="{Binding ElementName=SettingsWindowRoot, Path=CamouflageTitle, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                             Style="{StaticResource MaterialDesignOutlinedTextBox}"
-                                             materialDesign:HintAssist.Hint="显示在标题栏/任务栏的名称"/>
+                                              Text="{Binding ElementName=SettingsWindowRoot, Path=CamouflageTitle, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                              Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                                              materialDesign:HintAssist.Hint="{DynamicResource SettingsWindow_General_Camouflage_AppTitle_Hint}"/>
                                 </Grid>
 
                                 <!-- 图标选择 -->
@@ -212,35 +240,35 @@
                                         <ColumnDefinition Width="Auto"/>
                                     </Grid.ColumnDefinitions>
                                     <StackPanel Orientation="Horizontal" Grid.Column="0" VerticalAlignment="Center" Margin="0,0,12,0">
-                                        <TextBlock Text="图标/程序" VerticalAlignment="Center"/>
+                                        <TextBlock Text="{DynamicResource SettingsWindow_General_Camouflage_Icon_Label}" VerticalAlignment="Center"/>
                                     </StackPanel>
                                     <Grid Grid.Column="1">
                                         <Grid.RowDefinitions>
                                             <RowDefinition Height="Auto"/>
                                             <RowDefinition Height="Auto"/>
                                         </Grid.RowDefinitions>
-                                        <TextBox Grid.Row="0"
-                                                 Text="{Binding ElementName=SettingsWindowRoot, Path=CamouflageSourcePath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                                 Style="{StaticResource MaterialDesignOutlinedTextBox}"
-                                                 materialDesign:HintAssist.Hint="选择可执行文件或图标/图片"/>
+                                         <TextBox Grid.Row="0"
+                                                  Text="{Binding ElementName=SettingsWindowRoot, Path=CamouflageSourcePath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                  Style="{StaticResource MaterialDesignOutlinedTextBox}"
+                                                  materialDesign:HintAssist.Hint="{DynamicResource SettingsWindow_General_Camouflage_Icon_Hint}"/>
                                         <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,8,0,0" VerticalAlignment="Center">
                                             <Border Width="40" Height="40" CornerRadius="6" BorderThickness="1" BorderBrush="{DynamicResource MaterialDesignDivider}" Background="{DynamicResource MaterialDesignCardBackground}" VerticalAlignment="Center">
                                                 <Image Width="24" Height="24" VerticalAlignment="Center" HorizontalAlignment="Center"
                                                        Source="{Binding ElementName=SettingsWindowRoot, Path=CamouflageIconPreview}" Stretch="Uniform"/>
                                             </Border>
-                                            <StackPanel Margin="12,0,0,0" VerticalAlignment="Center">
-                                                <TextBlock Text="{Binding ElementName=SettingsWindowRoot, Path=CamouflageSourceDisplayName}" Style="{StaticResource MaterialDesignBodyMediumTextBlock}"/>
-                                                <TextBlock Text="支持 exe/ico/png/jpg" Style="{StaticResource MaterialDesignCaptionTextBlock}" Opacity="0.6"/>
-                                            </StackPanel>
+                                             <StackPanel Margin="12,0,0,0" VerticalAlignment="Center">
+                                                 <TextBlock Text="{Binding ElementName=SettingsWindowRoot, Path=CamouflageSourceDisplayName}" Style="{StaticResource MaterialDesignBodyMediumTextBlock}"/>
+                                                <TextBlock Text="{DynamicResource SettingsWindow_General_Camouflage_Icon_SupportHint}" Style="{StaticResource MaterialDesignCaptionTextBlock}" Opacity="0.6"/>
+                                             </StackPanel>
                                         </StackPanel>
                                     </Grid>
                                     <StackPanel Grid.Column="2" Orientation="Horizontal">
-                                        <Button Content="浏览…"
+                                        <Button Content="{DynamicResource Common_Browse}"
                                                 Style="{StaticResource MaterialDesignOutlinedButton}"
                                                 Click="BtnBrowseCamouflageIcon_Click"
                                                 materialDesign:ButtonAssist.CornerRadius="6"
                                                 Margin="0,0,8,0"/>
-                                        <Button Content="清除"
+                                        <Button Content="{DynamicResource Common_Clear}"
                                                 Style="{StaticResource MaterialDesignFlatButton}"
                                                 Click="BtnClearCamouflageIcon_Click"
                                                 materialDesign:ButtonAssist.CornerRadius="6"/>
@@ -255,14 +283,14 @@
                                     </Grid.ColumnDefinitions>
 
                                     <TextBlock Grid.Column="0"
-                                               Text="桌面快捷方式不会在每次启动时自动更新。如需重新生成，请点击右侧按钮（修改伪装设置时会自动更新一次）。"
+                                               Text="{DynamicResource SettingsWindow_General_Camouflage_Shortcut_Desc}"
                                                Opacity="0.6"
                                                TextWrapping="Wrap"
                                                VerticalAlignment="Center"
                                                Margin="0,0,12,0"/>
 
                                     <Button Grid.Column="1"
-                                            Content="创建快捷方式"
+                                            Content="{DynamicResource SettingsWindow_General_Camouflage_CreateShortcut_Button}"
                                             Style="{StaticResource MaterialDesignOutlinedButton}"
                                             Click="BtnCreateCamouflageShortcut_Click"
                                             materialDesign:ButtonAssist.CornerRadius="6"/>
@@ -284,12 +312,12 @@
                                 </Border>
 
                                 <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="16,0,0,0">
-                                    <TextBlock Text="触摸手势" Style="{StaticResource MaterialDesignSubtitle1TextBlock}" FontWeight="SemiBold"/>
-                                    <TextBlock Text="缩放/平移仅在双指触摸时触发" Style="{StaticResource MaterialDesignBodyMediumTextBlock}" Opacity="0.6" TextWrapping="Wrap"/>
+                                    <TextBlock Text="{DynamicResource SettingsWindow_General_TouchGestures_Title}" Style="{StaticResource MaterialDesignSubtitle1TextBlock}" FontWeight="SemiBold"/>
+                                    <TextBlock Text="{DynamicResource SettingsWindow_General_TouchGestures_Desc}" Style="{StaticResource MaterialDesignBodyMediumTextBlock}" Opacity="0.6" TextWrapping="Wrap"/>
                                 </StackPanel>
 
                                 <CheckBox Grid.Column="2" VerticalAlignment="Center"
-                                          Content="仅双指"
+                                          Content="{DynamicResource SettingsWindow_General_TouchGestures_Toggle}"
                                           IsChecked="{Binding ElementName=SettingsWindowRoot, Path=ZoomPanTwoFingerOnly, Mode=TwoWay}"
                                           Checked="ToggleZoomPanTwoFingerOnly_Checked"
                                           Unchecked="ToggleZoomPanTwoFingerOnly_Unchecked"/>
@@ -310,6 +338,34 @@
                             </Style>
                         </StackPanel.Style>
 
+                        <!-- 书写设置 · 笔迹平滑 -->
+                        <materialDesign:Card Padding="20" Margin="0,0,0,20" UniformCornerRadius="12" materialDesign:ElevationAssist.Elevation="Dp2">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+
+                                <Border Width="48" Height="48" CornerRadius="8" Background="{DynamicResource PrimaryHueLightBrush}" Grid.Column="0" VerticalAlignment="Center">
+                                    <materialDesign:PackIcon Kind="Brush" Width="24" Height="24" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="{DynamicResource PrimaryHueMidBrush}"/>
+                                </Border>
+
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="16,0,0,0">
+                                    <TextBlock Text="{DynamicResource SettingsWindow_Writing_Smoothing_Title}" Style="{StaticResource MaterialDesignSubtitle1TextBlock}" FontWeight="SemiBold"/>
+                                    <TextBlock Text="{DynamicResource SettingsWindow_Writing_Smoothing_Desc}" Style="{StaticResource MaterialDesignBodyMediumTextBlock}" Opacity="0.6" TextWrapping="Wrap"/>
+                                </StackPanel>
+
+                                <ComboBox Grid.Column="2"
+                                          VerticalAlignment="Center"
+                                          MinWidth="160"
+                                          ItemsSource="{Binding ElementName=SettingsWindowRoot, Path=StrokeSmoothingModeItems}"
+                                          DisplayMemberPath="DisplayName"
+                                          SelectedValuePath="Mode"
+                                          SelectedValue="{Binding ElementName=SettingsWindowRoot, Path=StrokeSmoothingMode, Mode=TwoWay}"/>
+                            </Grid>
+                        </materialDesign:Card>
+
                         <!-- 书写设置 · 笔触粗细一致性 -->
                         <materialDesign:Card Padding="20" Margin="0,0,0,20" UniformCornerRadius="12" materialDesign:ElevationAssist.Elevation="Dp2">
                             <Grid>
@@ -324,12 +380,12 @@
                                 </Border>
 
                                 <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="16,0,0,0">
-                                    <TextBlock Text="笔触粗细一致性" Style="{StaticResource MaterialDesignSubtitle1TextBlock}" FontWeight="SemiBold"/>
-                                    <TextBlock Text="使不同缩放级别下书写的笔迹在同一缩放下粗细保持一致" Style="{StaticResource MaterialDesignBodyMediumTextBlock}" Opacity="0.6" TextWrapping="Wrap"/>
+                                    <TextBlock Text="{DynamicResource SettingsWindow_Writing_ThicknessConsistency_Title}" Style="{StaticResource MaterialDesignSubtitle1TextBlock}" FontWeight="SemiBold"/>
+                                    <TextBlock Text="{DynamicResource SettingsWindow_Writing_ThicknessConsistency_Desc}" Style="{StaticResource MaterialDesignBodyMediumTextBlock}" Opacity="0.6" TextWrapping="Wrap"/>
                                 </StackPanel>
 
                                 <CheckBox Grid.Column="2" VerticalAlignment="Center"
-                                          Content="开启"
+                                          Content="{DynamicResource Common_Enable}"
                                           IsChecked="{Binding ElementName=SettingsWindowRoot, Path=StrokeThicknessConsistencyEnabled, Mode=TwoWay}"
                                           Checked="ToggleStrokeThicknessConsistency_Checked"
                                           Unchecked="ToggleStrokeThicknessConsistency_Unchecked"/>
@@ -350,12 +406,12 @@
                                 </Border>
 
                                 <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="16,0,0,0">
-                                    <TextBlock Text="模拟压感（签字笔）" Style="{StaticResource MaterialDesignSubtitle1TextBlock}" FontWeight="SemiBold"/>
-                                    <TextBlock Text="无压感设备也能有轻微笔锋：低速略粗，高速略细，收笔尾尖" Style="{StaticResource MaterialDesignBodyMediumTextBlock}" Opacity="0.6" TextWrapping="Wrap"/>
+                                    <TextBlock Text="{DynamicResource SettingsWindow_Writing_SimulatedPressure_Title}" Style="{StaticResource MaterialDesignSubtitle1TextBlock}" FontWeight="SemiBold"/>
+                                    <TextBlock Text="{DynamicResource SettingsWindow_Writing_SimulatedPressure_Desc}" Style="{StaticResource MaterialDesignBodyMediumTextBlock}" Opacity="0.6" TextWrapping="Wrap"/>
                                 </StackPanel>
 
                                 <CheckBox Grid.Column="2" VerticalAlignment="Center"
-                                          Content="开启"
+                                          Content="{DynamicResource Common_Enable}"
                                           IsChecked="{Binding ElementName=SettingsWindowRoot, Path=SimulatedPressureEnabled, Mode=TwoWay}"
                                           Checked="ToggleSimulatedPressure_Checked"
                                           Unchecked="ToggleSimulatedPressure_Unchecked"/>
@@ -394,8 +450,8 @@
                                 </Border>
 
                                 <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="16,0,0,0">
-                                    <TextBlock Text="背景颜色" Style="{StaticResource MaterialDesignSubtitle1TextBlock}" FontWeight="SemiBold"/>
-                                    <TextBlock Text="自定义白板的背景颜色" Style="{StaticResource MaterialDesignBodyMediumTextBlock}" Opacity="0.6" TextWrapping="Wrap"/>
+                                    <TextBlock Text="{DynamicResource SettingsWindow_Appearance_BackgroundColor_Title}" Style="{StaticResource MaterialDesignSubtitle1TextBlock}" FontWeight="SemiBold"/>
+                                    <TextBlock Text="{DynamicResource SettingsWindow_Appearance_BackgroundColor_Desc}" Style="{StaticResource MaterialDesignBodyMediumTextBlock}" Opacity="0.6" TextWrapping="Wrap"/>
                                 </StackPanel>
 
                                 <materialDesign:PopupBox x:Name="ColorPopupBox" Grid.Column="2" StaysOpen="True" PlacementMode="BottomAndAlignRightEdges">
@@ -410,34 +466,34 @@
                                     </materialDesign:PopupBox.ToggleContent>
                                     
                                     <StackPanel Width="280">
-                                        <TextBlock Text="预设颜色" Margin="16,12" Style="{StaticResource MaterialDesignCaptionTextBlock}" Opacity="0.7" FontWeight="Medium"/>
+                                        <TextBlock Text="{DynamicResource SettingsWindow_Appearance_PresetColors_Title}" Margin="16,12" Style="{StaticResource MaterialDesignCaptionTextBlock}" Opacity="0.7" FontWeight="Medium"/>
                                         <ItemsControl Margin="16,0,16,12">
                                             <ItemsControl.ItemsPanel>
                                                 <ItemsPanelTemplate>
                                                     <WrapPanel/>
                                                 </ItemsPanelTemplate>
                                             </ItemsControl.ItemsPanel>
-                                            <Button Width="36" Height="36" Margin="0,0,8,8" Click="PresetColor_Click" Tag="#2E2F33" ToolTip="默认深色 (#2E2F33)" Style="{StaticResource MaterialDesignFloatingActionMiniButton}" BorderThickness="0">
+                                            <Button Width="36" Height="36" Margin="0,0,8,8" Click="PresetColor_Click" Tag="#2E2F33" ToolTip="{DynamicResource SettingsWindow_Appearance_PresetColor_DefaultDark_Tooltip}" Style="{StaticResource MaterialDesignFloatingActionMiniButton}" BorderThickness="0">
                                                 <Button.Background>
                                                     <SolidColorBrush Color="#2E2F33"/>
                                                 </Button.Background>
                                             </Button>
-                                            <Button Width="36" Height="36" Margin="0,0,8,8" Click="PresetColor_Click" Tag="#2F4F4F" ToolTip="深石板灰 (#2F4F4F)" Style="{StaticResource MaterialDesignFloatingActionMiniButton}" BorderThickness="0">
+                                            <Button Width="36" Height="36" Margin="0,0,8,8" Click="PresetColor_Click" Tag="#2F4F4F" ToolTip="{DynamicResource SettingsWindow_Appearance_PresetColor_DarkSlateGray_Tooltip}" Style="{StaticResource MaterialDesignFloatingActionMiniButton}" BorderThickness="0">
                                                 <Button.Background>
                                                     <SolidColorBrush Color="#2F4F4F"/>
                                                 </Button.Background>
                                             </Button>
-                                            <Button Width="36" Height="36" Margin="0,0,8,8" Click="PresetColor_Click" Tag="#DCDCDC" ToolTip="浅灰色 (#DCDCDC)" Style="{StaticResource MaterialDesignFloatingActionMiniButton}" BorderThickness="0">
+                                            <Button Width="36" Height="36" Margin="0,0,8,8" Click="PresetColor_Click" Tag="#DCDCDC" ToolTip="{DynamicResource SettingsWindow_Appearance_PresetColor_Gainsboro_Tooltip}" Style="{StaticResource MaterialDesignFloatingActionMiniButton}" BorderThickness="0">
                                                 <Button.Background>
                                                     <SolidColorBrush Color="#DCDCDC"/>
                                                 </Button.Background>
                                             </Button>
-                                            <Button Width="36" Height="36" Margin="0,0,8,8" Click="PresetColor_Click" Tag="#F5F5F5" ToolTip="米白色 (#F5F5F5)" Style="{StaticResource MaterialDesignFloatingActionMiniButton}" BorderThickness="0">
+                                            <Button Width="36" Height="36" Margin="0,0,8,8" Click="PresetColor_Click" Tag="#F5F5F5" ToolTip="{DynamicResource SettingsWindow_Appearance_PresetColor_WhiteSmoke_Tooltip}" Style="{StaticResource MaterialDesignFloatingActionMiniButton}" BorderThickness="0">
                                                 <Button.Background>
                                                     <SolidColorBrush Color="#F5F5F5"/>
                                                 </Button.Background>
                                             </Button>
-                                            <Button Width="36" Height="36" Margin="0,0,8,8" Click="PresetColor_Click" Tag="#FFFFFF" ToolTip="纯白色 (#FFFFFF)" Style="{StaticResource MaterialDesignFloatingActionMiniButton}" BorderThickness="0">
+                                            <Button Width="36" Height="36" Margin="0,0,8,8" Click="PresetColor_Click" Tag="#FFFFFF" ToolTip="{DynamicResource SettingsWindow_Appearance_PresetColor_White_Tooltip}" Style="{StaticResource MaterialDesignFloatingActionMiniButton}" BorderThickness="0">
                                                 <Button.Background>
                                                     <SolidColorBrush Color="#FFFFFF"/>
                                                 </Button.Background>
@@ -447,7 +503,7 @@
                                         <Button Click="OpenColorPicker_Click" Style="{StaticResource MaterialDesignFlatButton}" HorizontalContentAlignment="Left" Padding="16,12" materialDesign:ButtonAssist.CornerRadius="0" Width="280" Height="48">
                                             <StackPanel Orientation="Horizontal">
                                                 <materialDesign:PackIcon Kind="Palette" Margin="0,0,12,0" VerticalAlignment="Center"/>
-                                                <TextBlock Text="自定义颜色"/>
+                                                <TextBlock Text="{DynamicResource SettingsWindow_Appearance_CustomColor_Button}"/>
                                             </StackPanel>
                                         </Button>
                                     </StackPanel>
@@ -462,14 +518,14 @@
                                         <TextBox x:Name="HexTextBox"
                                                  Width="180"
                                                  Style="{StaticResource MaterialDesignOutlinedTextBox}"
-                                                 materialDesign:HintAssist.Hint="输入 HEX 颜色值"
+                                                 materialDesign:HintAssist.Hint="{DynamicResource SettingsWindow_Appearance_Hex_Hint}"
                                                  Text="{Binding ElementName=SettingsWindowRoot, Path=CurrentColorHex, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                                  KeyDown="HexInput_KeyDown"
                                                  FontFamily="Consolas"
                                                  FontSize="13"/>
                                     </StackPanel>
                                     <Button Grid.Column="1"
-                                            Content="恢复默认"
+                                            Content="{DynamicResource Common_ResetDefault}"
                                             Style="{StaticResource MaterialDesignOutlinedButton}"
                                             Tag="#2E2F33"
                                             Click="BtnResetColor_Click"
@@ -493,19 +549,19 @@
                         <Button x:Name="BtnCancel" Click="BtnCancel_Click" Style="{StaticResource MaterialDesignOutlinedButton}" IsCancel="True" Margin="0,0,8,0" materialDesign:ButtonAssist.CornerRadius="6">
                             <StackPanel Orientation="Horizontal">
                                 <materialDesign:PackIcon Kind="Close" Width="18" Height="18" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                                <TextBlock Text="取消" VerticalAlignment="Center"/>
+                                <TextBlock Text="{DynamicResource Common_Cancel}" VerticalAlignment="Center"/>
                             </StackPanel>
                         </Button>
                         <Button x:Name="BtnApply" Click="BtnApply_Click" Style="{StaticResource MaterialDesignRaisedButton}" Margin="0,0,8,0" materialDesign:ButtonAssist.CornerRadius="6">
                             <StackPanel Orientation="Horizontal">
                                 <materialDesign:PackIcon Kind="CheckAll" Width="18" Height="18" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                                <TextBlock Text="应用" VerticalAlignment="Center"/>
+                                <TextBlock Text="{DynamicResource Common_Apply}" VerticalAlignment="Center"/>
                             </StackPanel>
                         </Button>
                         <Button x:Name="BtnOk" Click="BtnOk_Click" Style="{StaticResource MaterialDesignRaisedButton}" IsDefault="True" materialDesign:ButtonAssist.CornerRadius="6">
                             <StackPanel Orientation="Horizontal">
                                 <materialDesign:PackIcon Kind="Check" Width="18" Height="18" VerticalAlignment="Center" Margin="0,0,8,0"/>
-                                <TextBlock Text="确定" VerticalAlignment="Center"/>
+                                <TextBlock Text="{DynamicResource Common_OK}" VerticalAlignment="Center"/>
                             </StackPanel>
                         </Button>
                     </StackPanel>

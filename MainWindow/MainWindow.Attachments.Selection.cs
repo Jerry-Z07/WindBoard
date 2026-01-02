@@ -7,6 +7,7 @@ using System.Windows.Controls.Primitives;
 using System.Windows.Ink;
 using System.Windows.Input;
 using System.Windows.Media;
+using WindBoard.Services;
 
 namespace WindBoard
 {
@@ -320,20 +321,21 @@ namespace WindBoard
             // 根据状态更新“置顶/取消置顶”按钮文案与图标
             if (_btnSelectionTop != null && _selectedAttachment != null)
             {
+                var l = LocalizationService.Instance;
                 if (_selectedAttachment.IsPinnedTop)
                 {
-                    _btnSelectionTop.Content = "取消置顶";
+                    _btnSelectionTop.Content = l.GetString("Common_Unpin");
                     _btnSelectionTop.Tag = "ArrangeSendToBack";
                 }
                 else
                 {
-                    _btnSelectionTop.Content = "置顶";
+                    _btnSelectionTop.Content = l.GetString("Common_Pin");
                     _btnSelectionTop.Tag = "ArrangeBringToFront";
                 }
             }
             else if (_btnSelectionTop != null)
             {
-                _btnSelectionTop.Content = "置顶";
+                _btnSelectionTop.Content = LocalizationService.Instance.GetString("Common_Pin");
                 _btnSelectionTop.Tag = "ArrangeBringToFront";
             }
 

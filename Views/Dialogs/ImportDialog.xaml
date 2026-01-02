@@ -11,14 +11,14 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <TextBlock Text="导入"
+        <TextBlock Text="{DynamicResource ImportDialog_Title}"
                    FontSize="20"
                    FontWeight="SemiBold"
                    Foreground="#111"
                    Margin="0,0,0,12"/>
 
         <TabControl Grid.Row="1">
-            <TabItem Header="图片">
+            <TabItem Header="{DynamicResource ImportDialog_Tab_Image}">
                 <Grid Margin="0,12,0,0">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
@@ -28,13 +28,13 @@
                         <Button Style="{StaticResource MaterialDesignOutlinedButton}"
                                 Padding="14,8"
                                 Click="PickImages_Click">
-                            选择图片…
+                            <TextBlock Text="{DynamicResource ImportDialog_Image_Pick}"/>
                         </Button>
                         <Button Style="{StaticResource MaterialDesignFlatButton}"
                                 Padding="14,8"
                                 Margin="8,0,0,0"
                                 Click="ClearImages_Click">
-                            清空
+                            <TextBlock Text="{DynamicResource Common_ClearAll}"/>
                         </Button>
                     </StackPanel>
                     <Border Grid.Row="1" Margin="0,12,0,0" CornerRadius="10" BorderThickness="1" BorderBrush="#E0E0E0">
@@ -43,7 +43,7 @@
                 </Grid>
             </TabItem>
 
-            <TabItem Header="视频">
+            <TabItem Header="{DynamicResource ImportDialog_Tab_Video}">
                 <Grid Margin="0,12,0,0">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
@@ -53,13 +53,13 @@
                         <Button Style="{StaticResource MaterialDesignOutlinedButton}"
                                 Padding="14,8"
                                 Click="PickVideos_Click">
-                            选择视频…
+                            <TextBlock Text="{DynamicResource ImportDialog_Video_Pick}"/>
                         </Button>
                         <Button Style="{StaticResource MaterialDesignFlatButton}"
                                 Padding="14,8"
                                 Margin="8,0,0,0"
                                 Click="ClearVideos_Click">
-                            清空
+                            <TextBlock Text="{DynamicResource Common_ClearAll}"/>
                         </Button>
                     </StackPanel>
                     <Border Grid.Row="1" Margin="0,12,0,0" CornerRadius="10" BorderThickness="1" BorderBrush="#E0E0E0">
@@ -68,7 +68,7 @@
                 </Grid>
             </TabItem>
 
-            <TabItem Header="文本">
+            <TabItem Header="{DynamicResource ImportDialog_Tab_Text}">
                 <Grid Margin="0,12,0,0">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
@@ -77,7 +77,7 @@
                         <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
 
-                    <TextBlock Text="粘贴/输入文本" Foreground="#444" FontWeight="SemiBold"/>
+                    <TextBlock Text="{DynamicResource ImportDialog_Text_Title}" Foreground="#444" FontWeight="SemiBold"/>
                     <TextBox Grid.Row="1"
                              Text="{Binding TextContent, UpdateSourceTrigger=PropertyChanged}"
                              AcceptsReturn="True"
@@ -90,19 +90,19 @@
                         <Button Style="{StaticResource MaterialDesignOutlinedButton}"
                                 Padding="14,8"
                                 Click="PickTextFiles_Click">
-                            从文件导入…
+                            <TextBlock Text="{DynamicResource ImportDialog_Text_FromFiles}"/>
                         </Button>
                         <Button Style="{StaticResource MaterialDesignFlatButton}"
                                 Padding="14,8"
                                 Margin="8,0,0,0"
                                 Click="ClearTextFiles_Click">
-                            清空文件列表
+                            <TextBlock Text="{DynamicResource ImportDialog_Text_ClearFileList}"/>
                         </Button>
                         <Button Style="{StaticResource MaterialDesignFlatButton}"
                                 Padding="14,8"
                                 Margin="8,0,0,0"
                                 Click="PasteText_Click">
-                            从剪贴板粘贴
+                            <TextBlock Text="{DynamicResource ImportDialog_PasteFromClipboard}"/>
                         </Button>
                     </StackPanel>
 
@@ -112,14 +112,14 @@
                 </Grid>
             </TabItem>
 
-            <TabItem Header="网页链接">
+            <TabItem Header="{DynamicResource ImportDialog_Tab_Links}">
                 <Grid Margin="0,12,0,0">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="*"/>
                         <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
-                    <TextBlock Text="每行一个链接（http/https），可批量导入" Foreground="#444"/>
+                    <TextBlock Text="{DynamicResource ImportDialog_Links_Hint}" Foreground="#444"/>
                     <TextBox Grid.Row="1"
                              Text="{Binding LinkLines, UpdateSourceTrigger=PropertyChanged}"
                              AcceptsReturn="True"
@@ -131,19 +131,19 @@
                         <Button Style="{StaticResource MaterialDesignFlatButton}"
                                 Padding="14,8"
                                 Click="PasteLinks_Click">
-                            从剪贴板粘贴
+                            <TextBlock Text="{DynamicResource ImportDialog_PasteFromClipboard}"/>
                         </Button>
                         <Button Style="{StaticResource MaterialDesignFlatButton}"
                                 Padding="14,8"
                                 Margin="8,0,0,0"
                                 Click="ClearLinks_Click">
-                            清空
+                            <TextBlock Text="{DynamicResource Common_ClearAll}"/>
                         </Button>
                     </StackPanel>
                 </Grid>
             </TabItem>
 
-            <TabItem Header="WBI 文件">
+            <TabItem Header="{DynamicResource ImportDialog_Tab_Wbi}">
                 <Grid Margin="0,12,0,0">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
@@ -156,7 +156,7 @@
                         <Button Style="{StaticResource MaterialDesignOutlinedButton}"
                                 Padding="14,8"
                                 Click="PickWbiFile_Click">
-                            选择 WBI 文件…
+                            <TextBlock Text="{DynamicResource ImportDialog_Wbi_Pick}"/>
                         </Button>
                         <Button Name="BtnClearWbi"
                                 Style="{StaticResource MaterialDesignFlatButton}"
@@ -164,7 +164,7 @@
                                 Margin="8,0,0,0"
                                 Visibility="Collapsed"
                                 Click="ClearWbiFile_Click">
-                            清除
+                            <TextBlock Text="{DynamicResource ImportDialog_Wbi_Clear}"/>
                         </Button>
                     </StackPanel>
 
@@ -181,18 +181,18 @@
 
                     <!-- 导入模式 -->
                     <StackPanel Name="WbiImportMode" Grid.Row="2" Margin="0,12,0,0" Visibility="Collapsed">
-                        <TextBlock Text="导入模式" FontWeight="SemiBold" Foreground="#444" Margin="0,0,0,8"/>
-                        <RadioButton Name="RbAppendPages" Content="追加到现有页面之后" IsChecked="True" Margin="0,0,0,4"/>
-                        <RadioButton Name="RbReplacePages" Content="替换所有现有页面"/>
+                        <TextBlock Text="{DynamicResource ImportDialog_Wbi_ImportMode_Title}" FontWeight="SemiBold" Foreground="#444" Margin="0,0,0,8"/>
+                        <RadioButton Name="RbAppendPages" Content="{DynamicResource ImportDialog_Wbi_ImportMode_Append}" IsChecked="True" Margin="0,0,0,4"/>
+                        <RadioButton Name="RbReplacePages" Content="{DynamicResource ImportDialog_Wbi_ImportMode_Replace}"/>
                     </StackPanel>
 
                     <!-- 说明 -->
                     <Border Grid.Row="3" Background="#E3F2FD" CornerRadius="8" Padding="12" Margin="0,12,0,0"
                             VerticalAlignment="Top">
                         <StackPanel>
-                            <TextBlock Text="WBI 导入说明" FontWeight="SemiBold" Foreground="#1565C0"/>
+                            <TextBlock Text="{DynamicResource ImportDialog_Wbi_About_Title}" FontWeight="SemiBold" Foreground="#1565C0"/>
                             <TextBlock TextWrapping="Wrap" Foreground="#666" Margin="0,4,0,0"
-                                       Text="WBI 是 WindBoard 的专用格式，导入后将恢复导出时的完整画布状态，包括笔迹、附件位置、视图缩放等。"/>
+                                       Text="{DynamicResource ImportDialog_Wbi_About_Text}"/>
                             <TextBlock Name="TxtWbiWarning" TextWrapping="Wrap" Foreground="#E65100" Margin="0,8,0,0"
                                        Visibility="Collapsed"/>
                         </StackPanel>
@@ -205,14 +205,12 @@
             <Button Style="{StaticResource MaterialDesignOutlinedButton}"
                     MinWidth="90"
                     Margin="0,0,8,0"
-                    Command="{x:Static materialDesign:DialogHost.CloseDialogCommand}">
-                取消
-            </Button>
+                    Command="{x:Static materialDesign:DialogHost.CloseDialogCommand}"
+                    Content="{DynamicResource Common_Cancel}"/>
             <Button Style="{StaticResource MaterialDesignRaisedButton}"
                     MinWidth="120"
-                    Click="Import_Click">
-                导入到白板
-            </Button>
+                    Click="Import_Click"
+                    Content="{DynamicResource ImportDialog_Button_Import}"/>
         </StackPanel>
     </Grid>
 </UserControl>

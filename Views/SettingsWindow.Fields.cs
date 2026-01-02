@@ -2,11 +2,15 @@ using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Windows.Media;
 using MaterialDesignThemes.Wpf;
+using WindBoard.Models;
 
 namespace WindBoard
 {
     public partial class SettingsWindow
     {
+        // --- 基本设置 ---
+        private AppLanguage _appLanguage = AppLanguage.Chinese;
+
         // --- 外观设置 ---
         private Color _currentColor;
         private PopupBox? _colorPopupBox;
@@ -21,9 +25,10 @@ namespace WindBoard
         private string _camouflageTitle = string.Empty;
         private string _camouflageSourcePath = string.Empty;
         private ImageSource? _camouflageIconPreview;
-        private string _camouflageSourceDisplayName = "未选择文件";
+        private string _camouflageSourceDisplayName = string.Empty;
 
         // --- 书写设置 ---
+        private StrokeSmoothingMode _strokeSmoothingMode = StrokeSmoothingMode.RawInput;
         private bool _strokeThicknessConsistencyEnabled;
         private bool _simulatedPressureEnabled;
 

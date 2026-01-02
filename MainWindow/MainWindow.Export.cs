@@ -5,6 +5,7 @@ using System.Windows;
 using System.Windows.Media;
 using MaterialDesignThemes.Wpf;
 using WindBoard.Models.Export;
+using WindBoard.Services;
 using WindBoard.Services.Export;
 using WindBoard.Views.Dialogs;
 
@@ -29,14 +30,14 @@ namespace WindBoard
             // 显示导出对话框
             if (_pageService == null)
             {
-                ShowMessage("没有可导出的内容");
+                ShowMessage(LocalizationService.Instance.GetString("MainWindow_Export_NoContent"));
                 return;
             }
 
             var pages = _pageService.Pages;
             if (pages.Count == 0)
             {
-                ShowMessage("没有可导出的内容");
+                ShowMessage(LocalizationService.Instance.GetString("MainWindow_Export_NoContent"));
                 return;
             }
 
@@ -76,11 +77,11 @@ namespace WindBoard
             }
             catch (OperationCanceledException)
             {
-                ShowMessage("导出已取消");
+                ShowMessage(LocalizationService.Instance.GetString("MainWindow_Export_Canceled"));
             }
             catch (Exception ex)
             {
-                ShowMessage($"导出失败: {ex.Message}");
+                ShowMessage(LocalizationService.Instance.Format("MainWindow_Export_Failed_Format", ex.Message));
             }
         }
 
@@ -149,12 +150,13 @@ namespace WindBoard
 
         private void ShowExportSuccessMessage(string filePath)
         {
-            string message = $"导出成功！\n\n文件位置: {filePath}";
+            var l = LocalizationService.Instance;
+            string message = l.Format("MainWindow_Export_Success_Format", filePath);
 
             // 询问是否打开文件位置
             var result = MessageBox.Show(
-                message + "\n\n是否打开文件所在位置？",
-                "导出完成",
+                message + "\n\n" + l.GetString("MainWindow_Export_OpenFolder_Question"),
+                l.GetString("MainWindow_Export_Completed_Title"),
                 MessageBoxButton.YesNo,
                 MessageBoxImage.Information);
 
@@ -177,7 +179,8 @@ namespace WindBoard
 
         private void ShowMessage(string message)
         {
-            MessageBox.Show(message, "WindBoard", MessageBoxButton.OK, MessageBoxImage.Information);
+            string caption = string.IsNullOrWhiteSpace(WindowTitle) ? AppDisplayNames.GetAppNameFromSettings() : WindowTitle;
+            MessageBox.Show(message, caption, MessageBoxButton.OK, MessageBoxImage.Information);
         }
     }
 }

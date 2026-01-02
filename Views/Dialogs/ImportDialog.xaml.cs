@@ -10,6 +10,7 @@ using MaterialDesignThemes.Wpf;
 using Microsoft.Win32;
 using WindBoard.Models.Wbi;
 using WindBoard.Services.Export;
+using WindBoard.Services;
 
 namespace WindBoard.Views.Dialogs
 {
@@ -57,10 +58,11 @@ namespace WindBoard.Views.Dialogs
 
         private void PickImages_Click(object sender, RoutedEventArgs e)
         {
+            var l = LocalizationService.Instance;
             var dlg = new OpenFileDialog
             {
-                Title = "选择图片",
-                Filter = "图片|*.png;*.jpg;*.jpeg;*.bmp;*.gif;*.tiff;*.tif;*.ico|所有文件|*.*",
+                Title = l.GetString("ImportDialog_FileDialog_SelectImages_Title"),
+                Filter = l.GetString("ImportDialog_FileDialog_SelectImages_Filter"),
                 Multiselect = true
             };
             if (dlg.ShowDialog() != true) return;
@@ -74,10 +76,11 @@ namespace WindBoard.Views.Dialogs
 
         private void PickVideos_Click(object sender, RoutedEventArgs e)
         {
+            var l = LocalizationService.Instance;
             var dlg = new OpenFileDialog
             {
-                Title = "选择视频",
-                Filter = "视频|*.mp4;*.mov;*.mkv;*.avi;*.wmv;*.webm|所有文件|*.*",
+                Title = l.GetString("ImportDialog_FileDialog_SelectVideos_Title"),
+                Filter = l.GetString("ImportDialog_FileDialog_SelectVideos_Filter"),
                 Multiselect = true
             };
             if (dlg.ShowDialog() != true) return;
@@ -91,10 +94,11 @@ namespace WindBoard.Views.Dialogs
 
         private void PickTextFiles_Click(object sender, RoutedEventArgs e)
         {
+            var l = LocalizationService.Instance;
             var dlg = new OpenFileDialog
             {
-                Title = "选择文本文件",
-                Filter = "文本|*.txt;*.md;*.log;*.json;*.xml;*.csv|所有文件|*.*",
+                Title = l.GetString("ImportDialog_FileDialog_SelectTextFiles_Title"),
+                Filter = l.GetString("ImportDialog_FileDialog_SelectTextFiles_Filter"),
                 Multiselect = true
             };
             if (dlg.ShowDialog() != true) return;
@@ -140,10 +144,11 @@ namespace WindBoard.Views.Dialogs
 
         private void PickWbiFile_Click(object sender, RoutedEventArgs e)
         {
+            var l = LocalizationService.Instance;
             var dlg = new OpenFileDialog
             {
-                Title = "选择 WBI 文件",
-                Filter = "WindBoard 文件|*.wbi|所有文件|*.*",
+                Title = l.GetString("ImportDialog_FileDialog_SelectWbi_Title"),
+                Filter = l.Format("ImportDialog_FileDialog_SelectWbi_Filter", AppDisplayNames.GetAppNameFromSettings()),
                 Multiselect = false
             };
 
@@ -159,7 +164,12 @@ namespace WindBoard.Views.Dialogs
                 var manifest = _wbiImporter.GetManifest(filePath);
                 if (manifest == null)
                 {
-                    MessageBox.Show("无法读取 WBI 文件信息，文件可能已损坏。", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                    var l = LocalizationService.Instance;
+                    MessageBox.Show(
+                        l.GetString("ImportDialog_Wbi_ReadManifest_Failed"),
+                        l.GetString("Common_Error"),
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Error);
                     return;
                 }
 
@@ -168,8 +178,11 @@ namespace WindBoard.Views.Dialogs
 
                 // 更新 UI
                 TxtWbiFileName.Text = Path.GetFileName(filePath);
-                TxtWbiPageCount.Text = $"包含 {manifest.PageCount} 个页面";
-                TxtWbiCreatedAt.Text = $"创建时间: {manifest.CreatedAt.ToLocalTime():yyyy-MM-dd HH:mm}";
+                var l2 = LocalizationService.Instance;
+                TxtWbiPageCount.Text = l2.Format("ImportDialog_Wbi_FileInfo_PageCount", manifest.PageCount);
+                TxtWbiCreatedAt.Text = l2.Format(
+                    "ImportDialog_Wbi_FileInfo_CreatedAt",
+                    $"{manifest.CreatedAt.ToLocalTime():yyyy-MM-dd HH:mm}");
 
                 WbiFileInfo.Visibility = Visibility.Visible;
                 WbiImportMode.Visibility = Visibility.Visible;
@@ -178,7 +191,7 @@ namespace WindBoard.Views.Dialogs
                 // 检查是否有外部资源提示
                 if (!manifest.IncludeImageAssets)
                 {
-                    TxtWbiWarning.Text = "此文件未包含图片附件原始文件，导入后可能需要重新关联图片路径。";
+                    TxtWbiWarning.Text = LocalizationService.Instance.GetString("ImportDialog_Wbi_Warning_NoImageAssets");
                     TxtWbiWarning.Visibility = Visibility.Visible;
                 }
                 else
@@ -188,7 +201,12 @@ namespace WindBoard.Views.Dialogs
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"读取 WBI 文件失败: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                var l = LocalizationService.Instance;
+                MessageBox.Show(
+                    l.Format("ImportDialog_Wbi_ReadFailed", ex.Message),
+                    l.GetString("Common_Error"),
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
             }
         }
 

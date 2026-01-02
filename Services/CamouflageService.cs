@@ -162,7 +162,7 @@ namespace WindBoard.Services
                 var exePath = Process.GetCurrentProcess().MainModule?.FileName;
                 if (string.IsNullOrWhiteSpace(exePath))
                 {
-                    errorMessage = "无法获取当前进程可执行文件路径。";
+                    errorMessage = LocalizationService.Instance.GetString("CamouflageService_GetExePath_Failed");
                     return false;
                 }
 
@@ -172,21 +172,21 @@ namespace WindBoard.Services
                 var shellType = Type.GetTypeFromProgID("WScript.Shell");
                 if (shellType == null)
                 {
-                    errorMessage = "无法创建 WScript.Shell（系统组件不可用）。";
+                    errorMessage = LocalizationService.Instance.GetString("CamouflageService_WScriptShell_Unavailable");
                     return false;
                 }
 
                 shellObj = Activator.CreateInstance(shellType);
                 if (shellObj == null)
                 {
-                    errorMessage = "无法实例化 WScript.Shell。";
+                    errorMessage = LocalizationService.Instance.GetString("CamouflageService_WScriptShell_CreateFailed");
                     return false;
                 }
                 dynamic shell = shellObj;
                 shortcutObj = shell.CreateShortcut(shortcutPath);
                 if (shortcutObj == null)
                 {
-                    errorMessage = "无法创建快捷方式对象。";
+                    errorMessage = LocalizationService.Instance.GetString("CamouflageService_CreateShortcutObject_Failed");
                     return false;
                 }
                 dynamic shortcut = shortcutObj;

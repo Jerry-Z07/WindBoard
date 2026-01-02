@@ -23,7 +23,7 @@ namespace WindBoard
         private void OnPropertyChanged([CallerMemberName] string? name = null)
             => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name ?? string.Empty));
 
-        private string _windowTitle = "WindBoard";
+        private string _windowTitle = AppDisplayNames.ChineseName;
         public string WindowTitle
         {
             get => _windowTitle;
@@ -64,7 +64,7 @@ namespace WindBoard
         }
 
         private ImageSource? _defaultIcon;
-        private string _defaultTitle = "WindBoard";
+        private string _defaultTitle = AppDisplayNames.ChineseName;
 
         public MainWindow()
         {
