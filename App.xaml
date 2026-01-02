@@ -4,16 +4,17 @@
              xmlns:local="clr-namespace:WindBoard"
              xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
              StartupUri="Views/MainWindow.xaml">
-    <Application.Resources>
-        <ResourceDictionary>
-            <ResourceDictionary.MergedDictionaries>
-                <materialDesign:BundledTheme BaseTheme="Light" PrimaryColor="LightBlue" SecondaryColor="Green" />
-                <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesign3.Defaults.xaml" />
-                <ResourceDictionary Source="Styles/BottomBarStyles.xaml" />
-            </ResourceDictionary.MergedDictionaries>
-            <FontFamily x:Key="AppFontFamily">Segoe UI</FontFamily>
-            <Style TargetType="Control">
-                <Setter Property="FontFamily" Value="{DynamicResource AppFontFamily}"/>
+     <Application.Resources>
+         <ResourceDictionary>
+             <ResourceDictionary.MergedDictionaries>
+                 <materialDesign:BundledTheme BaseTheme="Light" PrimaryColor="LightBlue" SecondaryColor="Green" />
+                 <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesign3.Defaults.xaml" />
+                 <ResourceDictionary Source="Resources/Strings.zh-CN.xaml" />
+                 <ResourceDictionary Source="Styles/BottomBarStyles.xaml" />
+             </ResourceDictionary.MergedDictionaries>
+             <FontFamily x:Key="AppFontFamily">Segoe UI</FontFamily>
+             <Style TargetType="Control">
+                 <Setter Property="FontFamily" Value="{DynamicResource AppFontFamily}"/>
             </Style>
             <Style TargetType="TextBlock">
                 <Setter Property="FontFamily" Value="{DynamicResource AppFontFamily}"/>

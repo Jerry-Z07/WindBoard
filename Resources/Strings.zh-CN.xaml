@@ -1,0 +1,245 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:sys="clr-namespace:System;assembly=System.Runtime">
+    <!-- Common -->
+    <sys:String x:Key="Common_OK">确定</sys:String>
+    <sys:String x:Key="Common_Cancel">取消</sys:String>
+    <sys:String x:Key="Common_Apply">应用</sys:String>
+    <sys:String x:Key="Common_Browse">浏览…</sys:String>
+    <sys:String x:Key="Common_Clear">清除</sys:String>
+    <sys:String x:Key="Common_ClearAll">清空</sys:String>
+    <sys:String x:Key="Common_ResetDefault">恢复默认</sys:String>
+    <sys:String x:Key="Common_Show">显示</sys:String>
+    <sys:String x:Key="Common_Enable">开启</sys:String>
+    <sys:String x:Key="Common_Pin">置顶</sys:String>
+    <sys:String x:Key="Common_Unpin">取消置顶</sys:String>
+    <sys:String x:Key="Common_Copy">复制</sys:String>
+    <sys:String x:Key="Common_Delete">删除</sys:String>
+    <sys:String x:Key="Common_More">更多</sys:String>
+    <sys:String x:Key="Common_Minimize">最小化</sys:String>
+    <sys:String x:Key="Common_Settings">设置</sys:String>
+    <sys:String x:Key="Common_Import">导入</sys:String>
+    <sys:String x:Key="Common_Export">导出</sys:String>
+    <sys:String x:Key="Common_Exit">退出</sys:String>
+    <sys:String x:Key="Common_Error">错误</sys:String>
+    <sys:String x:Key="Common_Info">提示</sys:String>
+    <sys:String x:Key="Common_UnknownError">未知错误</sys:String>
+
+    <!-- MainWindow -->
+    <sys:String x:Key="MainWindow_Attachment_OpenExternalPlayer">双击打开外部播放器</sys:String>
+    <sys:String x:Key="MainWindow_Attachment_OpenExternal">双击外部打开</sys:String>
+    <sys:String x:Key="MainWindow_Tool_Select">选择</sys:String>
+    <sys:String x:Key="MainWindow_Tool_Pen">书写</sys:String>
+    <sys:String x:Key="MainWindow_Tool_Pen_Tooltip">再次单击设置画笔</sys:String>
+    <sys:String x:Key="MainWindow_Tool_Eraser">擦除</sys:String>
+    <sys:String x:Key="MainWindow_Tool_Undo">撤销</sys:String>
+    <sys:String x:Key="MainWindow_Tool_Redo">恢复</sys:String>
+    <sys:String x:Key="MainWindow_VideoPresenter">视频展台</sys:String>
+    <sys:String x:Key="MainWindow_PenSettings_Title">画笔设置</sys:String>
+    <sys:String x:Key="MainWindow_SlideToClear_Hint">向右滑动清空</sys:String>
+    <sys:String x:Key="MainWindow_SlideToClear_ReleaseHint">松开清空</sys:String>
+
+    <sys:String x:Key="MainWindow_VideoPresenter_NotFound_Message">未找到“视频展台”程序。请前往 基本设置-视频展台 进行设置。</sys:String>
+    <sys:String x:Key="MainWindow_VideoPresenter_ErrorDetails_Format">错误详情: {0}</sys:String>
+    <sys:String x:Key="MainWindow_VideoPresenter_NotAvailable_Title">视频展台不可用</sys:String>
+    <sys:String x:Key="MainWindow_VideoPresenter_GoToSettings">前往设置</sys:String>
+
+    <sys:String x:Key="MainWindow_Export_NoContent">没有可导出的内容</sys:String>
+    <sys:String x:Key="MainWindow_Export_Canceled">导出已取消</sys:String>
+    <sys:String x:Key="MainWindow_Export_Failed_Format">导出失败: {0}</sys:String>
+    <sys:String x:Key="MainWindow_Export_Success_Format">导出成功！&#x0a;&#x0a;文件位置: {0}</sys:String>
+    <sys:String x:Key="MainWindow_Export_OpenFolder_Question">是否打开文件所在位置？</sys:String>
+    <sys:String x:Key="MainWindow_Export_Completed_Title">导出完成</sys:String>
+
+    <sys:String x:Key="MainWindow_Import_Failed_Format">导入失败: {0}</sys:String>
+    <sys:String x:Key="MainWindow_Import_NoPagesInWbi">WBI 文件中没有可导入的页面。</sys:String>
+    <sys:String x:Key="MainWindow_Import_MissingResources_More_Format">...共 {0} 个资源缺失</sys:String>
+    <sys:String x:Key="MainWindow_Import_MissingResources_Message_Format">导入完成，但以下资源文件未找到:&#x0a;&#x0a;{0}&#x0a;&#x0a;这些附件将显示为占位符。</sys:String>
+    <sys:String x:Key="MainWindow_Import_MissingResources_Title">部分资源缺失</sys:String>
+    <sys:String x:Key="MainWindow_Import_SuccessPages_Format">成功导入 {0} 个页面！</sys:String>
+    <sys:String x:Key="MainWindow_Import_Completed_Title">导入完成</sys:String>
+    <sys:String x:Key="MainWindow_Import_ErrorDuring_Format">导入过程中发生错误: {0}</sys:String>
+
+    <!-- PageNavigator -->
+    <sys:String x:Key="PageNavigator_Title">页面管理</sys:String>
+
+    <!-- SettingsWindow -->
+    <sys:String x:Key="SettingsWindow_Title">应用设置</sys:String>
+    <sys:String x:Key="SettingsWindow_Nav_General">基本设置</sys:String>
+    <sys:String x:Key="SettingsWindow_Nav_Writing">书写设置</sys:String>
+    <sys:String x:Key="SettingsWindow_Nav_Appearance">外观设置</sys:String>
+    <sys:String x:Key="SettingsWindow_Nav_About">关于</sys:String>
+
+    <sys:String x:Key="SettingsWindow_General_Language_Title">语言</sys:String>
+    <sys:String x:Key="SettingsWindow_General_Language_Desc">选择软件显示语言</sys:String>
+    <sys:String x:Key="Language_Display_English">English</sys:String>
+    <sys:String x:Key="Language_Display_Chinese">中文</sys:String>
+
+    <sys:String x:Key="SettingsWindow_General_VideoPresenter_Title">视频展台</sys:String>
+    <sys:String x:Key="SettingsWindow_General_VideoPresenter_Desc">配置视频展台软件路径与参数，并控制按钮显示</sys:String>
+    <sys:String x:Key="SettingsWindow_General_VideoPresenter_Toggle">显示</sys:String>
+    <sys:String x:Key="SettingsWindow_General_VideoPresenter_Path_Label">程序路径</sys:String>
+    <sys:String x:Key="SettingsWindow_General_VideoPresenter_Path_Hint">选择视频展台 EXE</sys:String>
+    <sys:String x:Key="SettingsWindow_General_VideoPresenter_Args_Label">附加参数</sys:String>
+    <sys:String x:Key="SettingsWindow_General_VideoPresenter_Args_Hint">例如：-from en5</sys:String>
+    <sys:String x:Key="SettingsWindow_General_VideoPresenter_BrowseDialog_Title">选择视频展台程序</sys:String>
+    <sys:String x:Key="SettingsWindow_General_VideoPresenter_BrowseDialog_Filter">可执行文件 (*.exe)|*.exe|所有文件 (*.*)|*.*</sys:String>
+
+    <sys:String x:Key="SettingsWindow_General_Camouflage_Title">伪装</sys:String>
+    <sys:String x:Key="SettingsWindow_General_Camouflage_Desc">替换应用标题与图标（支持选择 exe 或图片）</sys:String>
+    <sys:String x:Key="SettingsWindow_General_Camouflage_AppTitle_Label">应用标题</sys:String>
+    <sys:String x:Key="SettingsWindow_General_Camouflage_AppTitle_Hint">显示在标题栏/任务栏的名称</sys:String>
+    <sys:String x:Key="SettingsWindow_General_Camouflage_Icon_Label">图标/程序</sys:String>
+    <sys:String x:Key="SettingsWindow_General_Camouflage_Icon_Hint">选择可执行文件或图标/图片</sys:String>
+    <sys:String x:Key="SettingsWindow_General_Camouflage_Icon_SupportHint">支持 exe/ico/png/jpg</sys:String>
+    <sys:String x:Key="SettingsWindow_General_Camouflage_BrowseDialog_Title">选择程序或图标</sys:String>
+    <sys:String x:Key="SettingsWindow_General_Camouflage_BrowseDialog_Filter">可执行/图标/图片|*.exe;*.ico;*.png;*.jpg;*.jpeg;*.bmp|所有文件|*.*</sys:String>
+    <sys:String x:Key="SettingsWindow_General_Camouflage_NoFileSelected">未选择文件</sys:String>
+    <sys:String x:Key="SettingsWindow_General_Camouflage_IconReadFailed">无法读取图标</sys:String>
+    <sys:String x:Key="SettingsWindow_General_Camouflage_Shortcut_Desc">桌面快捷方式不会在每次启动时自动更新。如需重新生成，请点击右侧按钮（修改伪装设置时会自动更新一次）。</sys:String>
+    <sys:String x:Key="SettingsWindow_General_Camouflage_CreateShortcut_Button">创建快捷方式</sys:String>
+    <sys:String x:Key="SettingsWindow_General_Camouflage_MessageBox_Title">伪装</sys:String>
+    <sys:String x:Key="SettingsWindow_General_Camouflage_CreateShortcut_Failed">创建快捷方式失败：{0}</sys:String>
+    <sys:String x:Key="SettingsWindow_General_Camouflage_CreateShortcut_Success">已创建/更新桌面快捷方式：&#x0a;{0}</sys:String>
+
+    <sys:String x:Key="SettingsWindow_General_TouchGestures_Title">触摸手势</sys:String>
+    <sys:String x:Key="SettingsWindow_General_TouchGestures_Desc">缩放/平移仅在双指触摸时触发</sys:String>
+    <sys:String x:Key="SettingsWindow_General_TouchGestures_Toggle">仅双指</sys:String>
+
+    <sys:String x:Key="SettingsWindow_Writing_Smoothing_Title">笔迹平滑</sys:String>
+    <sys:String x:Key="SettingsWindow_Writing_Smoothing_Desc">现有方案（DPS）：在原始输入上叠加平滑算法；原始输入方案：不使用平滑算法（默认）</sys:String>
+    <sys:String x:Key="SettingsWindow_Writing_Smoothing_RawInput">原始输入方案</sys:String>
+    <sys:String x:Key="SettingsWindow_Writing_ThicknessConsistency_Title">笔触粗细一致性</sys:String>
+    <sys:String x:Key="SettingsWindow_Writing_ThicknessConsistency_Desc">使不同缩放级别下书写的笔迹在同一缩放下粗细保持一致</sys:String>
+    <sys:String x:Key="SettingsWindow_Writing_SimulatedPressure_Title">模拟压感（签字笔）</sys:String>
+    <sys:String x:Key="SettingsWindow_Writing_SimulatedPressure_Desc">无压感设备也能有轻微笔锋：低速略粗，高速略细，收笔尾尖</sys:String>
+
+    <sys:String x:Key="SettingsWindow_Appearance_BackgroundColor_Title">背景颜色</sys:String>
+    <sys:String x:Key="SettingsWindow_Appearance_BackgroundColor_Desc">自定义白板的背景颜色</sys:String>
+    <sys:String x:Key="SettingsWindow_Appearance_PresetColors_Title">预设颜色</sys:String>
+    <sys:String x:Key="SettingsWindow_Appearance_PresetColor_DefaultDark_Tooltip">默认深色 (#2E2F33)</sys:String>
+    <sys:String x:Key="SettingsWindow_Appearance_PresetColor_DarkSlateGray_Tooltip">深石板灰 (#2F4F4F)</sys:String>
+    <sys:String x:Key="SettingsWindow_Appearance_PresetColor_Gainsboro_Tooltip">浅灰色 (#DCDCDC)</sys:String>
+    <sys:String x:Key="SettingsWindow_Appearance_PresetColor_WhiteSmoke_Tooltip">米白色 (#F5F5F5)</sys:String>
+    <sys:String x:Key="SettingsWindow_Appearance_PresetColor_White_Tooltip">纯白色 (#FFFFFF)</sys:String>
+    <sys:String x:Key="SettingsWindow_Appearance_CustomColor_Button">自定义颜色</sys:String>
+    <sys:String x:Key="SettingsWindow_Appearance_CustomColor_DialogTitle">自定义颜色</sys:String>
+    <sys:String x:Key="SettingsWindow_Appearance_Hex_Hint">输入 HEX 颜色值</sys:String>
+
+    <!-- ExportDialog -->
+    <sys:String x:Key="ExportDialog_Title">导出</sys:String>
+    <sys:String x:Key="ExportDialog_Scope_Title">导出范围</sys:String>
+    <sys:String x:Key="ExportDialog_Scope_CurrentPage">当前页</sys:String>
+    <sys:String x:Key="ExportDialog_Scope_AllPages">全部页面</sys:String>
+    <sys:String x:Key="ExportDialog_Tab_Image">图片</sys:String>
+    <sys:String x:Key="ExportDialog_Image_Format_Title">格式</sys:String>
+    <sys:String x:Key="ExportDialog_Image_Resolution_Title">分辨率</sys:String>
+    <sys:String x:Key="ExportDialog_Image_Resolution_Width_Hint">宽度</sys:String>
+    <sys:String x:Key="ExportDialog_Image_Resolution_Height_Hint">高度</sys:String>
+    <sys:String x:Key="ExportDialog_Image_Resolution_Preset_Label">预设:</sys:String>
+    <sys:String x:Key="ExportDialog_Image_KeepAspectRatio">保持笔迹宽高比</sys:String>
+    <sys:String x:Key="ExportDialog_Tab_Pdf">PDF</sys:String>
+    <sys:String x:Key="ExportDialog_Pdf_Orientation_Title">纸张方向</sys:String>
+    <sys:String x:Key="ExportDialog_Pdf_Orientation_Auto">自动</sys:String>
+    <sys:String x:Key="ExportDialog_Pdf_Orientation_Landscape">横向</sys:String>
+    <sys:String x:Key="ExportDialog_Pdf_Orientation_Portrait">纵向</sys:String>
+    <sys:String x:Key="ExportDialog_Pdf_ScaleMode_Title">缩放模式</sys:String>
+    <sys:String x:Key="ExportDialog_Pdf_ScaleMode_FitPage">适合页面（保持比例）</sys:String>
+    <sys:String x:Key="ExportDialog_Pdf_ScaleMode_FillPage">填满页面</sys:String>
+    <sys:String x:Key="ExportDialog_Pdf_Dpi_Label">渲染质量 (DPI):</sys:String>
+    <sys:String x:Key="ExportDialog_Pdf_Dpi_96">96 (快速)</sys:String>
+    <sys:String x:Key="ExportDialog_Pdf_Dpi_150">150 (标准)</sys:String>
+    <sys:String x:Key="ExportDialog_Pdf_Dpi_300">300 (高清)</sys:String>
+    <sys:String x:Key="ExportDialog_Wbi_Compression_Title">压缩级别</sys:String>
+    <sys:String x:Key="ExportDialog_Wbi_Compression_None">无压缩（最快）</sys:String>
+    <sys:String x:Key="ExportDialog_Wbi_Compression_Fast">快速压缩</sys:String>
+    <sys:String x:Key="ExportDialog_Wbi_Compression_Standard">标准压缩（推荐）</sys:String>
+    <sys:String x:Key="ExportDialog_Wbi_Compression_Max">最大压缩（最小）</sys:String>
+    <sys:String x:Key="ExportDialog_Wbi_IncludeImages">包含图片附件原始文件</sys:String>
+    <sys:String x:Key="ExportDialog_Wbi_IncludeImages_Hint">视频和链接仅保存路径/URL</sys:String>
+    <sys:String x:Key="ExportDialog_Wbi_About_Title">WBI 格式说明</sys:String>
+    <sys:String x:Key="ExportDialog_Wbi_About_Text">WBI 是轻风白板专用格式，可通过「导入」功能完整恢复导出时的画布状态（包括笔迹、附件、视图位置等）。</sys:String>
+    <sys:String x:Key="ExportDialog_EstimatedSize_Label">预估文件大小:</sys:String>
+    <sys:String x:Key="ExportDialog_Button_Export">导出...</sys:String>
+    <sys:String x:Key="ExportDialog_EstimatedSize_Calculating">计算中...</sys:String>
+    <sys:String x:Key="ExportDialog_PageCount_Format">({0}页)</sys:String>
+    <sys:String x:Key="ExportDialog_SaveFilter_Png">PNG 图片|*.png</sys:String>
+    <sys:String x:Key="ExportDialog_SaveFilter_Jpg">JPEG 图片|*.jpg</sys:String>
+    <sys:String x:Key="ExportDialog_SaveFilter_Pdf">PDF 文档|*.pdf</sys:String>
+    <sys:String x:Key="ExportDialog_SaveFilter_Wbi">{0} 文件|*.wbi</sys:String>
+
+    <!-- ImportDialog -->
+    <sys:String x:Key="ImportDialog_Title">导入</sys:String>
+    <sys:String x:Key="ImportDialog_Tab_Image">图片</sys:String>
+    <sys:String x:Key="ImportDialog_Tab_Video">视频</sys:String>
+    <sys:String x:Key="ImportDialog_Tab_Text">文本</sys:String>
+    <sys:String x:Key="ImportDialog_Tab_Links">网页链接</sys:String>
+    <sys:String x:Key="ImportDialog_Tab_Wbi">WBI 文件</sys:String>
+    <sys:String x:Key="ImportDialog_Image_Pick">选择图片…</sys:String>
+    <sys:String x:Key="ImportDialog_Video_Pick">选择视频…</sys:String>
+    <sys:String x:Key="ImportDialog_Text_Title">粘贴/输入文本</sys:String>
+    <sys:String x:Key="ImportDialog_Text_FromFiles">从文件导入…</sys:String>
+    <sys:String x:Key="ImportDialog_Text_ClearFileList">清空文件列表</sys:String>
+    <sys:String x:Key="ImportDialog_PasteFromClipboard">从剪贴板粘贴</sys:String>
+    <sys:String x:Key="ImportDialog_Links_Hint">每行一个链接（http/https），可批量导入</sys:String>
+    <sys:String x:Key="ImportDialog_Wbi_Pick">选择 WBI 文件…</sys:String>
+    <sys:String x:Key="ImportDialog_Wbi_Clear">清除</sys:String>
+    <sys:String x:Key="ImportDialog_Wbi_ImportMode_Title">导入模式</sys:String>
+    <sys:String x:Key="ImportDialog_Wbi_ImportMode_Append">追加到现有页面之后</sys:String>
+    <sys:String x:Key="ImportDialog_Wbi_ImportMode_Replace">替换所有现有页面</sys:String>
+    <sys:String x:Key="ImportDialog_Wbi_About_Title">WBI 导入说明</sys:String>
+    <sys:String x:Key="ImportDialog_Wbi_About_Text">WBI 是轻风白板的专用格式，导入后将恢复导出时的完整画布状态，包括笔迹、附件位置、视图缩放等。</sys:String>
+    <sys:String x:Key="ImportDialog_Button_Import">导入到白板</sys:String>
+    <sys:String x:Key="ImportDialog_FileDialog_SelectImages_Title">选择图片</sys:String>
+    <sys:String x:Key="ImportDialog_FileDialog_SelectImages_Filter">图片|*.png;*.jpg;*.jpeg;*.bmp;*.gif;*.tiff;*.tif;*.ico|所有文件|*.*</sys:String>
+    <sys:String x:Key="ImportDialog_FileDialog_SelectVideos_Title">选择视频</sys:String>
+    <sys:String x:Key="ImportDialog_FileDialog_SelectVideos_Filter">视频|*.mp4;*.mov;*.mkv;*.avi;*.wmv;*.webm|所有文件|*.*</sys:String>
+    <sys:String x:Key="ImportDialog_FileDialog_SelectTextFiles_Title">选择文本文件</sys:String>
+    <sys:String x:Key="ImportDialog_FileDialog_SelectTextFiles_Filter">文本|*.txt;*.md;*.log;*.json;*.xml;*.csv|所有文件|*.*</sys:String>
+    <sys:String x:Key="ImportDialog_FileDialog_SelectWbi_Title">选择 WBI 文件</sys:String>
+    <sys:String x:Key="ImportDialog_FileDialog_SelectWbi_Filter">{0} 文件|*.wbi|所有文件|*.*</sys:String>
+    <sys:String x:Key="ImportDialog_Wbi_ReadManifest_Failed">无法读取 WBI 文件信息，文件可能已损坏。</sys:String>
+    <sys:String x:Key="ImportDialog_Wbi_FileInfo_PageCount">包含 {0} 个页面</sys:String>
+    <sys:String x:Key="ImportDialog_Wbi_FileInfo_CreatedAt">创建时间: {0}</sys:String>
+    <sys:String x:Key="ImportDialog_Wbi_Warning_NoImageAssets">此文件未包含图片附件原始文件，导入后可能需要重新关联图片路径。</sys:String>
+    <sys:String x:Key="ImportDialog_Wbi_ReadFailed">读取 WBI 文件失败: {0}</sys:String>
+
+    <!-- Attachments -->
+    <sys:String x:Key="Attachment_Image">图片</sys:String>
+    <sys:String x:Key="Attachment_Video">视频</sys:String>
+    <sys:String x:Key="Attachment_Text">文本</sys:String>
+    <sys:String x:Key="Attachment_EmptyText">空文本</sys:String>
+    <sys:String x:Key="Attachment_Link">链接</sys:String>
+    <sys:String x:Key="Attachment_Generic">附件</sys:String>
+
+    <!-- Export/Import Pipeline -->
+    <sys:String x:Key="Export_NoPages">没有可导出的页面</sys:String>
+    <sys:String x:Key="Export_ExportingPage_Format">正在导出第 {0} 页...</sys:String>
+    <sys:String x:Key="Export_Completed">导出完成</sys:String>
+
+    <sys:String x:Key="WbiImporter_FileNotFound">文件不存在</sys:String>
+    <sys:String x:Key="WbiImporter_InvalidMissingManifest">无效的 WBI 文件：缺少清单</sys:String>
+    <sys:String x:Key="WbiImporter_ManifestParseFailed">无法解析清单文件</sys:String>
+    <sys:String x:Key="WbiImporter_RequireNewerVersion_Format">此文件需要更新版本的 {0} 才能打开（最低版本: {1}）</sys:String>
+    <sys:String x:Key="WbiImporter_ImportingPage_Format">正在导入第 {0} 页...</sys:String>
+    <sys:String x:Key="WbiImporter_Completed">导入完成</sys:String>
+    <sys:String x:Key="WbiImporter_Canceled">导入已取消</sys:String>
+    <sys:String x:Key="WbiImporter_Failed_Format">导入失败: {0}</sys:String>
+    <sys:String x:Key="WbiImporter_PageDataParseFailed_Format">无法解析页面数据: {0}</sys:String>
+    <sys:String x:Key="WbiImporter_MissingResource_Image_Format">图片: {0}</sys:String>
+    <sys:String x:Key="WbiImporter_MissingResource_Video_Format">视频: {0}</sys:String>
+
+    <sys:String x:Key="ExportRenderer_ImageLoadFailed">图片加载失败</sys:String>
+    <sys:String x:Key="ExportRenderer_Image">图片</sys:String>
+    <sys:String x:Key="ExportRenderer_Video_Format">视频: {0}</sys:String>
+    <sys:String x:Key="ExportRenderer_Unknown">未知</sys:String>
+
+    <!-- CamouflageService -->
+    <sys:String x:Key="CamouflageService_GetExePath_Failed">无法获取当前进程可执行文件路径。</sys:String>
+    <sys:String x:Key="CamouflageService_WScriptShell_Unavailable">无法创建 WScript.Shell（系统组件不可用）。</sys:String>
+    <sys:String x:Key="CamouflageService_WScriptShell_CreateFailed">无法实例化 WScript.Shell。</sys:String>
+    <sys:String x:Key="CamouflageService_CreateShortcutObject_Failed">无法创建快捷方式对象。</sys:String>
+
+    <!-- Core -->
+    <sys:String x:Key="StylusPlugInsAccessor_Unavailable">无法访问 StylusPlugIns 属性</sys:String>
+</ResourceDictionary>

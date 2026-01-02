@@ -30,7 +30,7 @@ namespace WindBoard.Services.Export
             CancellationToken cancellationToken = default)
         {
             if (pages == null || pages.Count == 0)
-                throw new ArgumentException("没有可导出的页面", nameof(pages));
+                throw new ArgumentException(LocalizationService.Instance.GetString("Export_NoPages"), nameof(pages));
 
             await Task.Run(() =>
             {
@@ -46,7 +46,7 @@ namespace WindBoard.Services.Export
                     {
                         CurrentPage = i + 1,
                         TotalPages = pages.Count,
-                        StatusMessage = $"正在导出第 {i + 1} 页..."
+                        StatusMessage = LocalizationService.Instance.Format("Export_ExportingPage_Format", i + 1)
                     });
 
                     var boardPage = pages[i];
@@ -125,7 +125,7 @@ namespace WindBoard.Services.Export
             {
                 CurrentPage = pages.Count,
                 TotalPages = pages.Count,
-                StatusMessage = "导出完成"
+                StatusMessage = LocalizationService.Instance.GetString("Export_Completed")
             });
         }
 

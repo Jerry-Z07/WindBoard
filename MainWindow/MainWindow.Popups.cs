@@ -7,6 +7,7 @@ using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
+using WindBoard.Services;
 
 namespace WindBoard
 {
@@ -89,14 +90,14 @@ namespace WindBoard
 
                 if (_textClearHint != null)
                 {
-                    _textClearHint.Text = "松开清空";
+                    _textClearHint.Text = LocalizationService.Instance.GetString("MainWindow_SlideToClear_ReleaseHint");
                 }
 
                 _clearPendingClose = true;
             }
-            else if (_textClearHint != null && _textClearHint.Text == "松开清空")
+            else if (_textClearHint != null && _clearSlideTriggered)
             {
-                _textClearHint.Text = "向右滑动清空";
+                _textClearHint.Text = LocalizationService.Instance.GetString("MainWindow_SlideToClear_Hint");
                 _clearSlideTriggered = false;
                 _clearPendingClose = false;
             }
@@ -140,7 +141,7 @@ namespace WindBoard
 
                 if (_textClearHint != null)
                 {
-                    _textClearHint.Text = "向右滑动清空";
+                    _textClearHint.Text = LocalizationService.Instance.GetString("MainWindow_SlideToClear_Hint");
                 }
 
                 return;
@@ -163,7 +164,7 @@ namespace WindBoard
 
                 if (_textClearHint != null)
                 {
-                    _textClearHint.Text = "向右滑动清空";
+                    _textClearHint.Text = LocalizationService.Instance.GetString("MainWindow_SlideToClear_Hint");
                 }
 
                 if (RadioPen != null) RadioPen.IsChecked = true;
@@ -211,7 +212,7 @@ namespace WindBoard
 
                 if (_textClearHint != null)
                 {
-                    _textClearHint.Text = "向右滑动清空";
+                    _textClearHint.Text = LocalizationService.Instance.GetString("MainWindow_SlideToClear_Hint");
                 }
 
                 return;
@@ -234,7 +235,7 @@ namespace WindBoard
 
                 if (_textClearHint != null)
                 {
-                    _textClearHint.Text = "向右滑动清空";
+                    _textClearHint.Text = LocalizationService.Instance.GetString("MainWindow_SlideToClear_Hint");
                 }
 
                 Debug.WriteLine("[DBG] SliderClear_PreviewMouseUp: popup closed and slider reset; switch to pen");
@@ -351,4 +352,3 @@ namespace WindBoard
         }
     }
 }
-

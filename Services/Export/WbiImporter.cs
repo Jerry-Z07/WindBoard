@@ -52,7 +52,7 @@ namespace WindBoard.Services.Export
 
             if (!File.Exists(filePath))
             {
-                result.ErrorMessage = "文件不存在";
+                result.ErrorMessage = LocalizationService.Instance.GetString("WbiImporter_FileNotFound");
                 return result;
             }
 
@@ -66,7 +66,7 @@ namespace WindBoard.Services.Export
                     var manifestEntry = archive.GetEntry(ManifestFileName);
                     if (manifestEntry == null)
                     {
-                        result.ErrorMessage = "无效的 WBI 文件：缺少清单";
+                        result.ErrorMessage = LocalizationService.Instance.GetString("WbiImporter_InvalidMissingManifest");
                         return;
                     }
 
@@ -75,14 +75,17 @@ namespace WindBoard.Services.Export
                     {
                         string json = reader.ReadToEnd();
                         manifest = JsonConvert.DeserializeObject<WbiManifest>(json)
-                            ?? throw new InvalidDataException("无法解析清单文件");
+                            ?? throw new InvalidDataException(LocalizationService.Instance.GetString("WbiImporter_ManifestParseFailed"));
                     }
 
                     // 版本检查
                     if (!IsVersionCompatible(manifest.MinCompatibleVersion))
                     {
                         string appName = AppDisplayNames.GetAppNameFromSettings();
-                        result.ErrorMessage = $"此文件需要更新版本的 {appName} 才能打开（最低版本: {manifest.MinCompatibleVersion}）";
+                        result.ErrorMessage = LocalizationService.Instance.Format(
+                            "WbiImporter_RequireNewerVersion_Format",
+                            appName,
+                            manifest.MinCompatibleVersion ?? string.Empty);
                         return;
                     }
 
@@ -105,7 +108,7 @@ namespace WindBoard.Services.Export
                         {
                             CurrentPage = i + 1,
                             TotalPages = manifest.PageCount,
-                            StatusMessage = $"正在导入第 {i + 1} 页..."
+                            StatusMessage = LocalizationService.Instance.Format("WbiImporter_ImportingPage_Format", i + 1)
                         });
 
                         var page = ImportPage(archive, pageRef, extractFolder, manifest.IncludeImageAssets, result.MissingResources);
@@ -123,16 +126,16 @@ namespace WindBoard.Services.Export
                 {
                     CurrentPage = result.Pages.Count,
                     TotalPages = result.Pages.Count,
-                    StatusMessage = "导入完成"
+                    StatusMessage = LocalizationService.Instance.GetString("WbiImporter_Completed")
                 });
             }
             catch (OperationCanceledException)
             {
-                result.ErrorMessage = "导入已取消";
+                result.ErrorMessage = LocalizationService.Instance.GetString("WbiImporter_Canceled");
             }
             catch (Exception ex)
             {
-                result.ErrorMessage = $"导入失败: {ex.Message}";
+                result.ErrorMessage = LocalizationService.Instance.Format("WbiImporter_Failed_Format", ex.Message);
             }
 
             return result;
@@ -191,7 +194,8 @@ namespace WindBoard.Services.Export
             {
                 string json = reader.ReadToEnd();
                 pageData = JsonConvert.DeserializeObject<WbiPageData>(json)
-                    ?? throw new InvalidDataException($"无法解析页面数据: {pageRef.Id}");
+                    ?? throw new InvalidDataException(
+                        LocalizationService.Instance.Format("WbiImporter_PageDataParseFailed_Format", pageRef.Id));
             }
 
             // 创建 BoardPage
@@ -287,7 +291,7 @@ namespace WindBoard.Services.Export
                         att.FilePath = attData.FilePath;
                         if (!File.Exists(attData.FilePath))
                         {
-                            missingResources.Add($"图片: {attData.FilePath}");
+                            missingResources.Add(LocalizationService.Instance.Format("WbiImporter_MissingResource_Image_Format", attData.FilePath));
                         }
                     }
                     break;
@@ -296,7 +300,7 @@ namespace WindBoard.Services.Export
                     att.FilePath = attData.FilePath;
                     if (!string.IsNullOrEmpty(attData.FilePath) && !File.Exists(attData.FilePath))
                     {
-                        missingResources.Add($"视频: {attData.FilePath}");
+                        missingResources.Add(LocalizationService.Instance.Format("WbiImporter_MissingResource_Video_Format", attData.FilePath));
                     }
                     break;
 

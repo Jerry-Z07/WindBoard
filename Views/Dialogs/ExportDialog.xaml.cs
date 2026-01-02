@@ -39,7 +39,7 @@ namespace WindBoard.Views.Dialogs
         private void Initialize()
         {
             // 设置页面数量
-            TxtPageCount.Text = $"({_pages.Count}页)";
+            TxtPageCount.Text = LocalizationService.Instance.Format("ExportDialog_PageCount_Format", _pages.Count);
 
             // 如果只有一页，禁用全部页面选项
             if (_pages.Count <= 1)
@@ -109,7 +109,7 @@ namespace WindBoard.Views.Dialogs
             }
             catch
             {
-                TxtEstimatedSize.Text = "计算中...";
+                TxtEstimatedSize.Text = LocalizationService.Instance.GetString("ExportDialog_EstimatedSize_Calculating");
             }
         }
 
@@ -223,19 +223,21 @@ namespace WindBoard.Views.Dialogs
             switch (format)
             {
                 case ExportFormat.Png:
-                    dialog.Filter = "PNG 图片|*.png";
+                    dialog.Filter = LocalizationService.Instance.GetString("ExportDialog_SaveFilter_Png");
                     dialog.DefaultExt = ".png";
                     break;
                 case ExportFormat.Jpg:
-                    dialog.Filter = "JPEG 图片|*.jpg";
+                    dialog.Filter = LocalizationService.Instance.GetString("ExportDialog_SaveFilter_Jpg");
                     dialog.DefaultExt = ".jpg";
                     break;
                 case ExportFormat.Pdf:
-                    dialog.Filter = "PDF 文档|*.pdf";
+                    dialog.Filter = LocalizationService.Instance.GetString("ExportDialog_SaveFilter_Pdf");
                     dialog.DefaultExt = ".pdf";
                     break;
                 case ExportFormat.Wbi:
-                    dialog.Filter = $"{AppDisplayNames.GetAppNameFromSettings()} 文件|*.wbi";
+                    dialog.Filter = LocalizationService.Instance.Format(
+                        "ExportDialog_SaveFilter_Wbi",
+                        AppDisplayNames.GetAppNameFromSettings());
                     dialog.DefaultExt = ".wbi";
                     break;
             }

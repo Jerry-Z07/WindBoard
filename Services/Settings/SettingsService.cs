@@ -49,6 +49,8 @@ namespace WindBoard.Services
             {
                 // 保留默认设置
             }
+
+            try { LocalizationService.Instance.ApplyLanguage(Settings.Language); } catch { }
         }
 
         private void Save()
@@ -91,6 +93,7 @@ namespace WindBoard.Services
         {
             Settings.Language = language;
             Save();
+            try { LocalizationService.Instance.ApplyLanguage(language); } catch { }
             SettingsChanged?.Invoke(this, Settings);
         }
 

@@ -13,6 +13,9 @@ namespace WindBoard
         {
             InitializeComponent();
             _colorPopupBox = FindName("ColorPopupBox") as PopupBox;
+            LocalizationService.Instance.LanguageChanged += LocalizationService_LanguageChanged;
+            RefreshAppLanguageItems();
+            RefreshStrokeSmoothingModeItems();
 
             // 初始化颜色为当前设置服务中的背景色
             _currentColor = SettingsService.Instance.GetBackgroundColor();
@@ -128,7 +131,19 @@ namespace WindBoard
 
         protected override void OnClosed(EventArgs e)
         {
+            LocalizationService.Instance.LanguageChanged -= LocalizationService_LanguageChanged;
             base.OnClosed(e);
+        }
+
+        private void LocalizationService_LanguageChanged(object? sender, AppLanguage e)
+        {
+            RefreshAppLanguageItems();
+            RefreshStrokeSmoothingModeItems();
+
+            if (string.IsNullOrWhiteSpace(CamouflageSourcePath))
+            {
+                CamouflageSourceDisplayName = LocalizationService.Instance.GetString("SettingsWindow_General_Camouflage_NoFileSelected");
+            }
         }
     }
 }

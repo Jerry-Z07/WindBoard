@@ -65,10 +65,11 @@ namespace WindBoard
         {
             try
             {
+                var l = LocalizationService.Instance;
                 var dlg = new OpenFileDialog
                 {
-                    Title = "选择视频展台程序",
-                    Filter = "可执行文件 (*.exe)|*.exe|所有文件 (*.*)|*.*",
+                    Title = l.GetString("SettingsWindow_General_VideoPresenter_BrowseDialog_Title"),
+                    Filter = l.GetString("SettingsWindow_General_VideoPresenter_BrowseDialog_Filter"),
                     CheckFileExists = true
                 };
                 if (!string.IsNullOrWhiteSpace(VideoPresenterPath))
@@ -112,4 +113,3 @@ namespace WindBoard
         }
     }
 }
-

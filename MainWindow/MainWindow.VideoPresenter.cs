@@ -96,21 +96,29 @@ namespace WindBoard
 
         private async Task ShowVideoPresenterNotFoundDialog(string? error)
         {
-            string msg = "未找到“视频展台”程序。请前往 基本设置-视频展台 进行设置。";
+            var l = LocalizationService.Instance;
+            string msg = l.GetString("MainWindow_VideoPresenter_NotFound_Message");
             if (!string.IsNullOrWhiteSpace(error))
             {
-                msg += "\n\n错误详情: " + error;
+                msg += "\n\n" + l.Format("MainWindow_VideoPresenter_ErrorDetails_Format", error);
             }
 
             var stackPanel = new StackPanel { Margin = new Thickness(24) };
 
-            var title = CreateTextBlock("视频展台不可用", "MaterialDesignHeadline6TextBlock", new Thickness(0, 0, 0, 12));
+            var title = CreateTextBlock(
+                l.GetString("MainWindow_VideoPresenter_NotAvailable_Title"),
+                "MaterialDesignHeadline6TextBlock",
+                new Thickness(0, 0, 0, 12));
             var body = CreateTextBlock(msg, "MaterialDesignBodyMediumTextBlock", new Thickness(0, 0, 0, 16), wrap: true);
 
             var buttonPanel = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right };
 
-            var cancelButton = CreateButton("取消", "MaterialDesignFlatButton", DialogHost.CloseDialogCommand, false);
-            var settingsButton = CreateButton("前往设置", "MaterialDesignFlatButton", DialogHost.CloseDialogCommand, true);
+            var cancelButton = CreateButton(l.GetString("Common_Cancel"), "MaterialDesignFlatButton", DialogHost.CloseDialogCommand, false);
+            var settingsButton = CreateButton(
+                l.GetString("MainWindow_VideoPresenter_GoToSettings"),
+                "MaterialDesignFlatButton",
+                DialogHost.CloseDialogCommand,
+                true);
 
             buttonPanel.Children.Add(cancelButton);
             buttonPanel.Children.Add(settingsButton);
@@ -129,4 +137,3 @@ namespace WindBoard
         }
     }
 }
-

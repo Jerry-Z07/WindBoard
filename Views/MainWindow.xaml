@@ -69,7 +69,7 @@
                                                      VerticalAlignment="Center"/>
                             <StackPanel Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center">
                                 <TextBlock Text="{Binding DisplayName}" Foreground="#EDEDED" FontWeight="SemiBold" FontSize="14"/>
-                                <TextBlock Text="双击打开外部播放器" Foreground="#BDBDBD" FontSize="12" Margin="0,4,0,0"/>
+                                <TextBlock Text="{DynamicResource MainWindow_Attachment_OpenExternalPlayer}" Foreground="#BDBDBD" FontSize="12" Margin="0,4,0,0"/>
                             </StackPanel>
                         </Grid>
 
@@ -85,7 +85,7 @@
                                                      VerticalAlignment="Center"/>
                             <StackPanel Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center">
                                 <TextBlock Text="{Binding Url}" Foreground="#EDEDED" TextWrapping="Wrap" FontSize="13"/>
-                                <TextBlock Text="双击外部打开" Foreground="#BDBDBD" FontSize="12" Margin="0,4,0,0"/>
+                                <TextBlock Text="{DynamicResource MainWindow_Attachment_OpenExternal}" Foreground="#BDBDBD" FontSize="12" Margin="0,4,0,0"/>
                             </StackPanel>
                         </Grid>
                     </Grid>
@@ -241,19 +241,19 @@
                     Effect="{StaticResource MaterialDesignShadowDepth2}">
                 <StackPanel Orientation="Horizontal">
                     <Button x:Name="BtnSelectionTop"
-                            Content="置顶"
+                            Content="{DynamicResource Common_Pin}"
                             Tag="ArrangeBringToFront"
                             Style="{StaticResource BottomButtonStyle}"
                             Click="BtnSelectionTop_Click">
                     </Button>
                     <Button x:Name="BtnSelectionCopy"
-                            Content="复制"
+                            Content="{DynamicResource Common_Copy}"
                             Tag="ContentCopy"
                             Style="{StaticResource BottomButtonStyle}"
                             Click="BtnSelectionCopy_Click">
                     </Button>
                     <Button x:Name="BtnSelectionDelete"
-                            Content="删除"
+                            Content="{DynamicResource Common_Delete}"
                             Tag="Delete"
                             Style="{StaticResource BottomButtonStyle}"
                             Click="BtnSelectionDelete_Click">
@@ -268,17 +268,17 @@
             <Border Background="#25262A" CornerRadius="12" Padding="5"
                     Effect="{StaticResource MaterialDesignShadowDepth2}">
                 <StackPanel Orientation="Horizontal">
-                    <RadioButton x:Name="RadioSelect" Content="选择" Tag="CursorDefault" GroupName="Tools"
+                    <RadioButton x:Name="RadioSelect" Content="{DynamicResource MainWindow_Tool_Select}" Tag="CursorDefault" GroupName="Tools"
                                  Style="{StaticResource BottomRadioButtonStyle}"
                                  Checked="RadioSelect_Checked"/>
 
-                    <RadioButton x:Name="RadioPen" Content="书写" Tag="Pen" GroupName="Tools" IsChecked="True"
+                    <RadioButton x:Name="RadioPen" Content="{DynamicResource MainWindow_Tool_Pen}" Tag="Pen" GroupName="Tools" IsChecked="True"
                                  Style="{StaticResource BottomRadioButtonStyle}"
                                  Checked="RadioPen_Checked"
                                  PreviewMouseLeftButtonDown="RadioPen_PreviewMouseLeftButtonDown"
-                                 ToolTip="再次单击设置画笔"/>
+                                 ToolTip="{DynamicResource MainWindow_Tool_Pen_Tooltip}"/>
 
-                    <RadioButton x:Name="RadioEraser" Content="擦除" Tag="Eraser" GroupName="Tools"
+                    <RadioButton x:Name="RadioEraser" Content="{DynamicResource MainWindow_Tool_Eraser}" Tag="Eraser" GroupName="Tools"
                                  Style="{StaticResource BottomRadioButtonStyle}"
                                  Checked="RadioEraser_Checked"
                                  PreviewMouseLeftButtonDown="RadioEraser_PreviewMouseLeftButtonDown"
@@ -286,12 +286,12 @@
 
                     <Rectangle Width="1" Height="24" Fill="#505050" Margin="8,0" VerticalAlignment="Center"/>
 
-                    <Button x:Name="BtnUndo" Content="撤销" Tag="Undo"
+                    <Button x:Name="BtnUndo" Content="{DynamicResource MainWindow_Tool_Undo}" Tag="Undo"
                             Style="{StaticResource BottomButtonStyle}"
                             Command="{x:Static ApplicationCommands.Undo}"
                             CommandTarget="{Binding ElementName=MyCanvas}"/>
 
-                    <Button x:Name="BtnRedo" Content="恢复" Tag="Redo"
+                    <Button x:Name="BtnRedo" Content="{DynamicResource MainWindow_Tool_Redo}" Tag="Redo"
                             Style="{StaticResource BottomButtonStyle}"
                             Command="{x:Static ApplicationCommands.Redo}"
                             CommandTarget="{Binding ElementName=MyCanvas}"/>
@@ -308,7 +308,7 @@
                     Visibility="{Binding IsVideoPresenterEnabled, Converter={StaticResource BoolToVis}}">
                 <StackPanel Orientation="Horizontal">
                     <Button x:Name="BtnVideoPresenter"
-                            Content="视频展台"
+                            Content="{DynamicResource MainWindow_VideoPresenter}"
                             Tag="Video"
                             Style="{StaticResource BottomButtonStyle}"
                             Click="BtnVideoPresenter_Click"/>
@@ -341,7 +341,7 @@
                     Effect="{StaticResource MaterialDesignShadowDepth2}">
                 <StackPanel>
                     <!-- 标题栏 -->
-                    <TextBlock Text="画笔设置" FontWeight="Bold" FontSize="16" Foreground="White" Margin="16,12"/>
+                    <TextBlock Text="{DynamicResource MainWindow_PenSettings_Title}" FontWeight="Bold" FontSize="16" Foreground="White" Margin="16,12"/>
 
                     <!-- 分割线 -->
                     <Border Height="1" Background="#505050" Margin="0,0,0,12"/>
@@ -407,7 +407,7 @@
             <Border Background="#E625262A" CornerRadius="16" Margin="0,0,0,10"
                     Effect="{StaticResource MaterialDesignShadowDepth2}">
                 <StackPanel Margin="16,12,16,12">
-                    <TextBlock x:Name="TextClearHint" Text="向右滑动清空"
+                    <TextBlock x:Name="TextClearHint" Text="{DynamicResource MainWindow_SlideToClear_Hint}"
                                FontWeight="Bold"
                                FontSize="16"
                                Foreground="White"
@@ -435,13 +435,13 @@
                 Panel.ZIndex="12"
                 Opacity="0.85">
             <StackPanel Orientation="Horizontal">
-                <Button Name="BtnMore" Content="更多" Tag="DotsHorizontal"
+                <Button Name="BtnMore" Content="{DynamicResource Common_More}" Tag="DotsHorizontal"
                         Style="{StaticResource BottomButtonStyle}"
                         Click="BtnMore_Click"/>
-                <Button Name="BtnMinimize" Content="最小化" Tag="WindowMinimize"
+                <Button Name="BtnMinimize" Content="{DynamicResource Common_Minimize}" Tag="WindowMinimize"
                         Style="{StaticResource BottomButtonStyle}"
                         Click="BtnMinimize_Click"/>
-                <Button Name="BtnImport" Content="导入" Tag="Download"
+                <Button Name="BtnImport" Content="{DynamicResource Common_Import}" Tag="Download"
                         Style="{StaticResource BottomButtonStyle}"
                         Click="BtnImport_Click"/>
             </StackPanel>
@@ -457,13 +457,13 @@
             <Border Background="#E625262A" CornerRadius="16" Margin="0,0,0,10"
                     Effect="{StaticResource MaterialDesignShadowDepth2}">
                 <StackPanel Margin="8,8,8,8">
-                    <Button Content="设置" Tag="Cog"
+                    <Button Content="{DynamicResource Common_Settings}" Tag="Cog"
                             Style="{StaticResource BottomButtonStyle}"
                             Click="MenuSettings_Click"/>
-                    <Button Content="导出" Tag="Export"
+                    <Button Content="{DynamicResource Common_Export}" Tag="Export"
                             Style="{StaticResource BottomButtonStyle}"
                             Click="MenuExport_Click"/>
-                    <Button Content="退出" Tag="ExitToApp"
+                    <Button Content="{DynamicResource Common_Exit}" Tag="ExitToApp"
                             Style="{StaticResource BottomButtonStyle}"
                             Click="MenuExit_Click"/>
                 </StackPanel>

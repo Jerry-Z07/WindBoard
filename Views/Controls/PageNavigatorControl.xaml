@@ -106,7 +106,7 @@
                         Width="260"
                         Effect="{StaticResource MaterialDesignShadowDepth2}">
                     <StackPanel>
-                        <TextBlock Text="页面管理"
+                        <TextBlock Text="{DynamicResource PageNavigator_Title}"
                                    Foreground="White"
                                    FontSize="16"
                                    FontWeight="Bold"

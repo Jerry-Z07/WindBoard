@@ -14,7 +14,7 @@
         </Grid.RowDefinitions>
 
         <!-- 标题 -->
-        <TextBlock Text="导出"
+        <TextBlock Text="{DynamicResource ExportDialog_Title}"
                    FontSize="20"
                    FontWeight="SemiBold"
                    Foreground="#111"
@@ -22,22 +22,22 @@
 
         <!-- 导出范围 -->
         <StackPanel Grid.Row="1" Margin="0,0,0,12">
-            <TextBlock Text="导出范围" FontWeight="SemiBold" Foreground="#444" Margin="0,0,0,8"/>
+            <TextBlock Text="{DynamicResource ExportDialog_Scope_Title}" FontWeight="SemiBold" Foreground="#444" Margin="0,0,0,8"/>
             <StackPanel Orientation="Horizontal">
-                <RadioButton Name="RbCurrentPage" Content="当前页" IsChecked="True"
+                <RadioButton Name="RbCurrentPage" Content="{DynamicResource ExportDialog_Scope_CurrentPage}" IsChecked="True"
                              GroupName="ExportScope" Margin="0,0,24,0"
                              Checked="Scope_Changed"/>
-                <RadioButton Name="RbAllPages" Content="全部页面"
+                <RadioButton Name="RbAllPages" Content="{DynamicResource ExportDialog_Scope_AllPages}"
                              GroupName="ExportScope"
                              Checked="Scope_Changed"/>
-                <TextBlock Name="TxtPageCount" Text="(3页)" Foreground="#888" VerticalAlignment="Center" Margin="4,0,0,0"/>
+                <TextBlock Name="TxtPageCount" Text="" Foreground="#888" VerticalAlignment="Center" Margin="4,0,0,0"/>
             </StackPanel>
         </StackPanel>
 
         <!-- 导出格式选项卡 -->
         <TabControl Grid.Row="2" Name="FormatTabControl" SelectionChanged="FormatTab_SelectionChanged">
             <!-- 图片选项卡 -->
-            <TabItem Header="图片">
+            <TabItem Header="{DynamicResource ExportDialog_Tab_Image}">
                 <Grid Margin="0,16,0,0">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
@@ -48,7 +48,7 @@
 
                     <!-- 图片格式 -->
                     <StackPanel Margin="0,0,0,12">
-                        <TextBlock Text="格式" FontWeight="SemiBold" Foreground="#444" Margin="0,0,0,8"/>
+                        <TextBlock Text="{DynamicResource ExportDialog_Image_Format_Title}" FontWeight="SemiBold" Foreground="#444" Margin="0,0,0,8"/>
                         <StackPanel Orientation="Horizontal">
                             <RadioButton Name="RbPng" Content="PNG" IsChecked="True"
                                          GroupName="ImageFormat" Margin="0,0,24,0"
@@ -61,14 +61,14 @@
 
                     <!-- 分辨率 -->
                     <StackPanel Grid.Row="1" Margin="0,0,0,12">
-                        <TextBlock Text="分辨率" FontWeight="SemiBold" Foreground="#444" Margin="0,0,0,8"/>
+                        <TextBlock Text="{DynamicResource ExportDialog_Image_Resolution_Title}" FontWeight="SemiBold" Foreground="#444" Margin="0,0,0,8"/>
                         <StackPanel Orientation="Horizontal">
                             <TextBox Name="TxtWidth" Text="1920" Width="80" Margin="0,0,8,0"
-                                     materialDesign:HintAssist.Hint="宽度"
+                                     materialDesign:HintAssist.Hint="{DynamicResource ExportDialog_Image_Resolution_Width_Hint}"
                                      TextChanged="Resolution_Changed"/>
                             <TextBlock Text="×" VerticalAlignment="Center" Margin="0,0,8,0"/>
                             <TextBox Name="TxtHeight" Text="1080" Width="80"
-                                     materialDesign:HintAssist.Hint="高度"
+                                     materialDesign:HintAssist.Hint="{DynamicResource ExportDialog_Image_Resolution_Height_Hint}"
                                      TextChanged="Resolution_Changed"/>
                             <TextBlock Text="px" VerticalAlignment="Center" Margin="8,0,0,0" Foreground="#888"/>
                         </StackPanel>
@@ -76,7 +76,7 @@
 
                     <!-- 分辨率预设 -->
                     <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,0,0,12">
-                        <TextBlock Text="预设:" VerticalAlignment="Center" Foreground="#666" Margin="0,0,8,0"/>
+                        <TextBlock Text="{DynamicResource ExportDialog_Image_Resolution_Preset_Label}" VerticalAlignment="Center" Foreground="#666" Margin="0,0,8,0"/>
                         <Button Content="1080p" Style="{StaticResource MaterialDesignOutlinedButton}"
                                 Padding="12,4" Margin="0,0,8,0" Click="Preset1080p_Click"/>
                         <Button Content="2K" Style="{StaticResource MaterialDesignOutlinedButton}"
@@ -86,12 +86,12 @@
                     </StackPanel>
 
                     <!-- 保持比例 -->
-                    <CheckBox Grid.Row="3" Name="ChkKeepAspectRatio" Content="保持笔迹宽高比" IsChecked="True"/>
+                    <CheckBox Grid.Row="3" Name="ChkKeepAspectRatio" Content="{DynamicResource ExportDialog_Image_KeepAspectRatio}" IsChecked="True"/>
                 </Grid>
             </TabItem>
 
             <!-- PDF 选项卡 -->
-            <TabItem Header="PDF">
+            <TabItem Header="{DynamicResource ExportDialog_Tab_Pdf}">
                 <Grid Margin="0,16,0,0">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
@@ -101,35 +101,35 @@
 
                     <!-- 纸张方向 -->
                     <StackPanel Margin="0,0,0,12">
-                        <TextBlock Text="纸张方向" FontWeight="SemiBold" Foreground="#444" Margin="0,0,0,8"/>
+                        <TextBlock Text="{DynamicResource ExportDialog_Pdf_Orientation_Title}" FontWeight="SemiBold" Foreground="#444" Margin="0,0,0,8"/>
                         <StackPanel Orientation="Horizontal">
-                            <RadioButton Name="RbOrientAuto" Content="自动" IsChecked="True"
+                            <RadioButton Name="RbOrientAuto" Content="{DynamicResource ExportDialog_Pdf_Orientation_Auto}" IsChecked="True"
                                          GroupName="PdfOrientation" Margin="0,0,24,0"/>
-                            <RadioButton Name="RbOrientLandscape" Content="横向"
+                            <RadioButton Name="RbOrientLandscape" Content="{DynamicResource ExportDialog_Pdf_Orientation_Landscape}"
                                          GroupName="PdfOrientation" Margin="0,0,24,0"/>
-                            <RadioButton Name="RbOrientPortrait" Content="纵向"
+                            <RadioButton Name="RbOrientPortrait" Content="{DynamicResource ExportDialog_Pdf_Orientation_Portrait}"
                                          GroupName="PdfOrientation"/>
                         </StackPanel>
                     </StackPanel>
 
                     <!-- 缩放模式 -->
                     <StackPanel Grid.Row="1" Margin="0,0,0,12">
-                        <TextBlock Text="缩放模式" FontWeight="SemiBold" Foreground="#444" Margin="0,0,0,8"/>
+                        <TextBlock Text="{DynamicResource ExportDialog_Pdf_ScaleMode_Title}" FontWeight="SemiBold" Foreground="#444" Margin="0,0,0,8"/>
                         <StackPanel Orientation="Horizontal">
-                            <RadioButton Name="RbFitPage" Content="适合页面（保持比例）" IsChecked="True"
+                            <RadioButton Name="RbFitPage" Content="{DynamicResource ExportDialog_Pdf_ScaleMode_FitPage}" IsChecked="True"
                                          GroupName="PdfScaleMode" Margin="0,0,24,0"/>
-                            <RadioButton Name="RbFillPage" Content="填满页面"
+                            <RadioButton Name="RbFillPage" Content="{DynamicResource ExportDialog_Pdf_ScaleMode_FillPage}"
                                          GroupName="PdfScaleMode"/>
                         </StackPanel>
                     </StackPanel>
 
                     <!-- DPI -->
                     <StackPanel Grid.Row="2" Orientation="Horizontal">
-                        <TextBlock Text="渲染质量 (DPI):" VerticalAlignment="Center" Foreground="#666" Margin="0,0,8,0"/>
+                        <TextBlock Text="{DynamicResource ExportDialog_Pdf_Dpi_Label}" VerticalAlignment="Center" Foreground="#666" Margin="0,0,8,0"/>
                         <ComboBox Name="CboPdfDpi" SelectedIndex="1" Width="100">
-                            <ComboBoxItem Content="96 (快速)"/>
-                            <ComboBoxItem Content="150 (标准)"/>
-                            <ComboBoxItem Content="300 (高清)"/>
+                            <ComboBoxItem Content="{DynamicResource ExportDialog_Pdf_Dpi_96}"/>
+                            <ComboBoxItem Content="{DynamicResource ExportDialog_Pdf_Dpi_150}"/>
+                            <ComboBoxItem Content="{DynamicResource ExportDialog_Pdf_Dpi_300}"/>
                         </ComboBox>
                     </StackPanel>
                 </Grid>
@@ -146,28 +146,28 @@
 
                     <!-- 压缩级别 -->
                     <StackPanel Margin="0,0,0,12">
-                        <TextBlock Text="压缩级别" FontWeight="SemiBold" Foreground="#444" Margin="0,0,0,8"/>
+                        <TextBlock Text="{DynamicResource ExportDialog_Wbi_Compression_Title}" FontWeight="SemiBold" Foreground="#444" Margin="0,0,0,8"/>
                         <ComboBox Name="CboCompression" SelectedIndex="2" Width="160">
-                            <ComboBoxItem Content="无压缩（最快）"/>
-                            <ComboBoxItem Content="快速压缩"/>
-                            <ComboBoxItem Content="标准压缩（推荐）"/>
-                            <ComboBoxItem Content="最大压缩（最小）"/>
+                            <ComboBoxItem Content="{DynamicResource ExportDialog_Wbi_Compression_None}"/>
+                            <ComboBoxItem Content="{DynamicResource ExportDialog_Wbi_Compression_Fast}"/>
+                            <ComboBoxItem Content="{DynamicResource ExportDialog_Wbi_Compression_Standard}"/>
+                            <ComboBoxItem Content="{DynamicResource ExportDialog_Wbi_Compression_Max}"/>
                         </ComboBox>
                     </StackPanel>
 
                     <!-- 包含图片附件 -->
-                    <StackPanel Grid.Row="1" Margin="0,0,0,12">
-                        <CheckBox Name="ChkIncludeImages" Content="包含图片附件原始文件" IsChecked="True"
+                        <StackPanel Grid.Row="1" Margin="0,0,0,12">
+                        <CheckBox Name="ChkIncludeImages" Content="{DynamicResource ExportDialog_Wbi_IncludeImages}" IsChecked="True"
                                   Checked="WbiOptions_Changed" Unchecked="WbiOptions_Changed"/>
-                        <TextBlock Text="视频和链接仅保存路径/URL" Foreground="#888" FontSize="12" Margin="24,4,0,0"/>
+                        <TextBlock Text="{DynamicResource ExportDialog_Wbi_IncludeImages_Hint}" Foreground="#888" FontSize="12" Margin="24,4,0,0"/>
                     </StackPanel>
 
                     <!-- 说明 -->
                     <Border Grid.Row="2" Background="#FFF8E1" CornerRadius="8" Padding="12">
                         <StackPanel>
-                            <TextBlock Text="WBI 格式说明" FontWeight="SemiBold" Foreground="#F57C00"/>
+                            <TextBlock Text="{DynamicResource ExportDialog_Wbi_About_Title}" FontWeight="SemiBold" Foreground="#F57C00"/>
                             <TextBlock TextWrapping="Wrap" Foreground="#666" Margin="0,4,0,0"
-                                       Text="WBI 是轻风白板专用格式，可通过「导入」功能完整恢复导出时的画布状态（包括笔迹、附件、视图位置等）。"/>
+                                       Text="{DynamicResource ExportDialog_Wbi_About_Text}"/>
                         </StackPanel>
                     </Border>
                 </Grid>
@@ -177,7 +177,7 @@
         <!-- 预估大小 -->
         <Border Grid.Row="3" Background="#F5F5F5" CornerRadius="8" Padding="12" Margin="0,16,0,0">
             <StackPanel Orientation="Horizontal">
-                <TextBlock Text="预估文件大小:" Foreground="#666" VerticalAlignment="Center"/>
+                <TextBlock Text="{DynamicResource ExportDialog_EstimatedSize_Label}" Foreground="#666" VerticalAlignment="Center"/>
                 <TextBlock Name="TxtEstimatedSize" Text="~2.3 MB" FontWeight="SemiBold" Margin="8,0,0,0" VerticalAlignment="Center"/>
             </StackPanel>
         </Border>
@@ -187,15 +187,13 @@
             <Button Style="{StaticResource MaterialDesignOutlinedButton}"
                     MinWidth="90"
                     Margin="0,0,8,0"
-                    Command="{x:Static materialDesign:DialogHost.CloseDialogCommand}">
-                取消
-            </Button>
+                    Command="{x:Static materialDesign:DialogHost.CloseDialogCommand}"
+                    Content="{DynamicResource Common_Cancel}"/>
             <Button Name="BtnExport"
                     Style="{StaticResource MaterialDesignRaisedButton}"
                     MinWidth="120"
-                    Click="Export_Click">
-                导出...
-            </Button>
+                    Click="Export_Click"
+                    Content="{DynamicResource ExportDialog_Button_Export}"/>
         </StackPanel>
     </Grid>
 </UserControl>

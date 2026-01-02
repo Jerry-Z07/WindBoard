@@ -83,6 +83,7 @@ namespace WindBoard
                 _colorPopupBox.IsPopupOpen = false;
             }
 
+            var l = LocalizationService.Instance;
             var colorPicker = new ColorPicker
             {
                 Color = CurrentColor,
@@ -95,7 +96,7 @@ namespace WindBoard
 
             var title = new TextBlock
             {
-                Text = "自定义颜色",
+                Text = l.GetString("SettingsWindow_Appearance_CustomColor_DialogTitle"),
                 Style = (Style)FindResource("MaterialDesignHeadline6TextBlock"),
                 Margin = new Thickness(0, 0, 0, 16)
             };
@@ -108,7 +109,7 @@ namespace WindBoard
 
             var cancelButton = new Button
             {
-                Content = "取消",
+                Content = l.GetString("Common_Cancel"),
                 Style = (Style)FindResource("MaterialDesignFlatButton"),
                 IsCancel = true,
                 Command = DialogHost.CloseDialogCommand,
@@ -117,7 +118,7 @@ namespace WindBoard
 
             var okButton = new Button
             {
-                Content = "确定",
+                Content = l.GetString("Common_OK"),
                 Style = (Style)FindResource("MaterialDesignFlatButton"),
                 IsDefault = true,
                 Command = DialogHost.CloseDialogCommand,
@@ -195,4 +196,3 @@ namespace WindBoard
         }
     }
 }
-
