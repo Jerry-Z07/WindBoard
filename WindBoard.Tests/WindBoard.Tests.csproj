@@ -24,4 +24,11 @@
     <ProjectReference Include="..\WindBoard.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Content Include="..\resources\fonts\*.ttf">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <TargetPath>resources\fonts\%(Filename)%(Extension)</TargetPath>
+    </Content>
+  </ItemGroup>
+
 </Project>

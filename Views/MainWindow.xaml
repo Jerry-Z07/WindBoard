@@ -8,7 +8,7 @@
         ResizeMode="NoResize"
         WindowState="Maximized"
         Style="{StaticResource MaterialDesignWindow}"
-        TextElement.FontFamily="pack://application:,,,/WindBoard;component/resources/fonts/#MiSans"
+        TextElement.FontFamily="{DynamicResource AppFontFamily}"
         Loaded="Window_Loaded">
 
     <materialDesign:DialogHost Identifier="MainDialogHost" DialogTheme="Inherit">

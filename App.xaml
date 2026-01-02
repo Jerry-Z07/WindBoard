@@ -11,11 +11,12 @@
                 <ResourceDictionary Source="pack://application:,,,/MaterialDesignThemes.Wpf;component/Themes/MaterialDesign3.Defaults.xaml" />
                 <ResourceDictionary Source="Styles/BottomBarStyles.xaml" />
             </ResourceDictionary.MergedDictionaries>
+            <FontFamily x:Key="AppFontFamily">Segoe UI</FontFamily>
             <Style TargetType="Control">
-                <Setter Property="FontFamily" Value="pack://application:,,,/WindBoard;component/resources/fonts/#MiSans"/>
+                <Setter Property="FontFamily" Value="{DynamicResource AppFontFamily}"/>
             </Style>
             <Style TargetType="TextBlock">
-                <Setter Property="FontFamily" Value="pack://application:,,,/WindBoard;component/resources/fonts/#MiSans"/>
+                <Setter Property="FontFamily" Value="{DynamicResource AppFontFamily}"/>
             </Style>
             <BooleanToVisibilityConverter x:Key="BoolToVis"/>
         </ResourceDictionary>
