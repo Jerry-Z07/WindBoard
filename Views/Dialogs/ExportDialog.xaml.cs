@@ -7,6 +7,7 @@ using MaterialDesignThemes.Wpf;
 using Microsoft.Win32;
 using WindBoard.Models.Export;
 using WindBoard.Services.Export;
+using WindBoard.Services;
 
 namespace WindBoard.Views.Dialogs
 {
@@ -234,12 +235,12 @@ namespace WindBoard.Views.Dialogs
                     dialog.DefaultExt = ".pdf";
                     break;
                 case ExportFormat.Wbi:
-                    dialog.Filter = "WindBoard 文件|*.wbi";
+                    dialog.Filter = $"{AppDisplayNames.GetAppNameFromSettings()} 文件|*.wbi";
                     dialog.DefaultExt = ".wbi";
                     break;
             }
 
-            dialog.FileName = $"WindBoard_Export_{DateTime.Now:yyyyMMdd_HHmmss}";
+            dialog.FileName = $"{AppDisplayNames.GetAppNameFromSettings()}_Export_{DateTime.Now:yyyyMMdd_HHmmss}";
 
             if (dialog.ShowDialog() == true)
             {

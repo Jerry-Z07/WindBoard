@@ -6,6 +6,10 @@ namespace WindBoard.Models
     // 应用设置模型（后续可以扩展更多设置项）
     public class AppSettings
     {
+        // 语言（当前主要用于软件名显示；后续可扩展为完整本地化）
+        [JsonConverter(typeof(StringEnumConverter))]
+        public AppLanguage Language { get; set; } = AppLanguage.Chinese;
+
         // 背景颜色（HEX 或 #AARRGGBB）
         public string BackgroundColorHex { get; set; } = "#2E2F33";
 

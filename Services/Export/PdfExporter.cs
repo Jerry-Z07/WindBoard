@@ -36,7 +36,7 @@ namespace WindBoard.Services.Export
             {
                 using var document = new PdfDocument();
                 document.Info.Title = Path.GetFileNameWithoutExtension(filePath);
-                document.Info.Creator = "WindBoard";
+                document.Info.Creator = AppDisplayNames.GetAppNameFromSettings();
 
                 for (int i = 0; i < pages.Count; i++)
                 {

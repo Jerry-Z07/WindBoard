@@ -30,10 +30,10 @@ namespace WindBoard
 
         private void InitializeSettings()
         {
-            _defaultTitle = WindowTitle;
             _defaultIcon = Icon;
 
             SettingsService.Instance.Load();
+            UpdateDefaultTitleFromLanguage();
             ApplySettingsSnapshot(isStartup: true);
             _lastCamouflageSettingsSignature = CamouflageService.Instance.GetCamouflageShortcutSettingsSignature();
             SettingsService.Instance.SettingsChanged += SettingsService_SettingsChanged;
@@ -46,6 +46,7 @@ namespace WindBoard
 
         private void ApplySettingsSnapshot(bool isStartup)
         {
+            UpdateDefaultTitleFromLanguage();
             SetBackgroundColor(SettingsService.Instance.GetBackgroundColor());
             IsVideoPresenterEnabled = SettingsService.Instance.GetVideoPresenterEnabled();
             var camouflageResult = ApplyCamouflageFromSettings();
@@ -65,6 +66,18 @@ namespace WindBoard
             if (!isStartup)
             {
                 TryScheduleCamouflageShortcutUpdate(camouflageResult);
+            }
+        }
+
+        private void UpdateDefaultTitleFromLanguage()
+        {
+            try
+            {
+                _defaultTitle = AppDisplayNames.GetAppName(SettingsService.Instance.GetLanguage());
+            }
+            catch
+            {
+                _defaultTitle = AppDisplayNames.ChineseName;
             }
         }
 

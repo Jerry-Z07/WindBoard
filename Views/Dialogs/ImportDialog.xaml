@@ -192,7 +192,7 @@
                         <StackPanel>
                             <TextBlock Text="WBI 导入说明" FontWeight="SemiBold" Foreground="#1565C0"/>
                             <TextBlock TextWrapping="Wrap" Foreground="#666" Margin="0,4,0,0"
-                                       Text="WBI 是 WindBoard 的专用格式，导入后将恢复导出时的完整画布状态，包括笔迹、附件位置、视图缩放等。"/>
+                                       Text="WBI 是轻风白板的专用格式，导入后将恢复导出时的完整画布状态，包括笔迹、附件位置、视图缩放等。"/>
                             <TextBlock Name="TxtWbiWarning" TextWrapping="Wrap" Foreground="#E65100" Margin="0,8,0,0"
                                        Visibility="Collapsed"/>
                         </StackPanel>

@@ -138,7 +138,7 @@ namespace WindBoard
             try
             {
                 // 默认标题仅作为“未开启伪装/未填写标题”时的兜底
-                const string defaultTitle = "WindBoard";
+                string defaultTitle = AppDisplayNames.GetAppNameFromSettings();
 
                 var result = CamouflageService.Instance.BuildResult(defaultIcon: null, defaultTitle: defaultTitle);
                 string signature = CamouflageService.Instance.GetCamouflageShortcutSettingsSignature();

@@ -5,6 +5,7 @@ using System.Windows;
 using System.Windows.Media;
 using MaterialDesignThemes.Wpf;
 using WindBoard.Models.Export;
+using WindBoard.Services;
 using WindBoard.Services.Export;
 using WindBoard.Views.Dialogs;
 
@@ -177,7 +178,8 @@ namespace WindBoard
 
         private void ShowMessage(string message)
         {
-            MessageBox.Show(message, "WindBoard", MessageBoxButton.OK, MessageBoxImage.Information);
+            string caption = string.IsNullOrWhiteSpace(WindowTitle) ? AppDisplayNames.GetAppNameFromSettings() : WindowTitle;
+            MessageBox.Show(message, caption, MessageBoxButton.OK, MessageBoxImage.Information);
         }
     }
 }

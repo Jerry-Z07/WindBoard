@@ -84,6 +84,16 @@ namespace WindBoard.Services
             SettingsChanged?.Invoke(this, Settings);
         }
 
+        // --- 语言设置 ---
+        public AppLanguage GetLanguage() => Settings.Language;
+
+        public void SetLanguage(AppLanguage language)
+        {
+            Settings.Language = language;
+            Save();
+            SettingsChanged?.Invoke(this, Settings);
+        }
+
         // --- 视频展台相关设置 ---
         public bool GetVideoPresenterEnabled() => Settings.VideoPresenterEnabled;
 

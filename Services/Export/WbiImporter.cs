@@ -81,7 +81,8 @@ namespace WindBoard.Services.Export
                     // 版本检查
                     if (!IsVersionCompatible(manifest.MinCompatibleVersion))
                     {
-                        result.ErrorMessage = $"此文件需要更新版本的 WindBoard 才能打开（最低版本: {manifest.MinCompatibleVersion}）";
+                        string appName = AppDisplayNames.GetAppNameFromSettings();
+                        result.ErrorMessage = $"此文件需要更新版本的 {appName} 才能打开（最低版本: {manifest.MinCompatibleVersion}）";
                         return;
                     }
 

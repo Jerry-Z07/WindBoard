@@ -8,6 +8,9 @@ namespace WindBoard
 {
     public partial class SettingsWindow
     {
+        // --- 基本设置 ---
+        private AppLanguage _appLanguage = AppLanguage.Chinese;
+
         // --- 外观设置 ---
         private Color _currentColor;
         private PopupBox? _colorPopupBox;

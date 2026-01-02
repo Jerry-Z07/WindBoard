@@ -19,6 +19,17 @@ namespace WindBoard
             OnPropertyChanged(nameof(CurrentColor));
             OnPropertyChanged(nameof(CurrentColorHex));
 
+            // 初始化语言
+            try
+            {
+                _appLanguage = SettingsService.Instance.GetLanguage();
+            }
+            catch
+            {
+                _appLanguage = AppLanguage.Chinese;
+            }
+            OnPropertyChanged(nameof(AppLanguage));
+
             // 初始化 Hex 文本框内容改为依赖绑定刷新（避免破坏 XAML 绑定）
             // 不再直接赋值 HexTextBox.Text，CurrentColor/CurrentColorHex 的 OnPropertyChanged 将驱动界面更新。
 
@@ -93,6 +104,7 @@ namespace WindBoard
         // 统一底部按钮：应用/确定/取消
         private void ApplyAllSettings()
         {
+            try { SettingsService.Instance.SetLanguage(AppLanguage); } catch { }
             try { SettingsService.Instance.SetVideoPresenterPath(VideoPresenterPath); } catch { }
             try { SettingsService.Instance.SetVideoPresenterArgs(VideoPresenterArgs); } catch { }
             try { SettingsService.Instance.SetBackgroundColor(CurrentColor); } catch { }

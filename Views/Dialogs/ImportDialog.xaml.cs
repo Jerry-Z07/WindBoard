@@ -10,6 +10,7 @@ using MaterialDesignThemes.Wpf;
 using Microsoft.Win32;
 using WindBoard.Models.Wbi;
 using WindBoard.Services.Export;
+using WindBoard.Services;
 
 namespace WindBoard.Views.Dialogs
 {
@@ -143,7 +144,7 @@ namespace WindBoard.Views.Dialogs
             var dlg = new OpenFileDialog
             {
                 Title = "选择 WBI 文件",
-                Filter = "WindBoard 文件|*.wbi|所有文件|*.*",
+                Filter = $"{AppDisplayNames.GetAppNameFromSettings()} 文件|*.wbi|所有文件|*.*",
                 Multiselect = false
             };
 
