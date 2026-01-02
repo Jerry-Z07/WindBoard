@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
-using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Ink;
@@ -51,7 +50,7 @@ namespace WindBoard.Services.Export
                     {
                         Version = "1.0",
                         MinCompatibleVersion = "1.0",
-                        AppVersion = GetAppVersion(),
+                        AppVersion = AppVersionInfo.Version,
                         CreatedAt = DateTime.UtcNow,
                         PageCount = pages.Count,
                         IncludeImageAssets = options.IncludeImageAssets
@@ -313,16 +312,5 @@ namespace WindBoard.Services.Export
             };
         }
 
-        private string? GetAppVersion()
-        {
-            try
-            {
-                return Assembly.GetExecutingAssembly().GetName().Version?.ToString();
-            }
-            catch
-            {
-                return null;
-            }
-        }
     }
 }

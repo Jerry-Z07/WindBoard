@@ -534,6 +534,68 @@
                             </Grid>
                         </materialDesign:Card>
                     </StackPanel>
+
+                    <!-- 关于 面板（索引 3） -->
+                    <StackPanel x:Name="AboutPanel">
+                        <StackPanel.Style>
+                            <Style TargetType="StackPanel">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding ElementName=NavList, Path=SelectedIndex}" Value="3">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </StackPanel.Style>
+
+                        <materialDesign:Card Padding="28" Margin="0,0,0,20" UniformCornerRadius="12" materialDesign:ElevationAssist.Elevation="Dp2">
+                            <StackPanel HorizontalAlignment="Center">
+                                <Border Width="96" Height="96" CornerRadius="24" Background="{DynamicResource PrimaryHueLightBrush}" Padding="14">
+                                    <Image Source="/Resources/icons/icon.png" Stretch="Uniform" RenderOptions.BitmapScalingMode="HighQuality"/>
+                                </Border>
+
+                                <TextBlock Text="{DynamicResource App_Name}"
+                                           Style="{StaticResource MaterialDesignHeadline5TextBlock}"
+                                           FontWeight="SemiBold"
+                                           TextAlignment="Center"
+                                           Margin="0,16,0,6"/>
+
+                                <TextBlock Text="{DynamicResource App_Tagline}"
+                                           Style="{StaticResource MaterialDesignBodyMediumTextBlock}"
+                                           Opacity="0.7"
+                                           TextAlignment="Center"
+                                           TextWrapping="Wrap"
+                                           MaxWidth="420"/>
+
+                                <TextBlock Margin="0,16,0,0" FontSize="13" Opacity="0.75" TextAlignment="Center">
+                                    <Run Text="{DynamicResource SettingsWindow_About_Version_Label}"/>
+                                    <Run Text="{Binding ElementName=SettingsWindowRoot, Path=AppVersion, Mode=OneWay}"/>
+                                </TextBlock>
+                            </StackPanel>
+                        </materialDesign:Card>
+
+                        <materialDesign:Card Padding="20" UniformCornerRadius="12" materialDesign:ElevationAssist.Elevation="Dp2">
+                            <StackPanel>
+                                <TextBlock Text="{DynamicResource SettingsWindow_About_Links_Title}"
+                                           Style="{StaticResource MaterialDesignSubtitle1TextBlock}"
+                                           FontWeight="SemiBold"
+                                           Margin="0,0,0,12"/>
+
+                                <WrapPanel HorizontalAlignment="Center">
+                                    <Button Click="BtnOpenGitHub_Click"
+                                            Style="{StaticResource MaterialDesignOutlinedButton}"
+                                            Height="40"
+                                            Padding="20,0"
+                                            materialDesign:ButtonAssist.CornerRadius="10">
+                                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                            <materialDesign:PackIcon Kind="Github" Width="20" Height="20" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                            <TextBlock Text="{DynamicResource SettingsWindow_About_Github_Button}" VerticalAlignment="Center" FontSize="14" Margin="0,1,0,0"/>
+                                        </StackPanel>
+                                    </Button>
+                                </WrapPanel>
+                            </StackPanel>
+                        </materialDesign:Card>
+                    </StackPanel>
                     </StackPanel>
                 </ScrollViewer>
             </Grid>
