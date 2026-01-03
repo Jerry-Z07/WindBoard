@@ -95,6 +95,8 @@ jobs:
             $arch = $v.Arch
             $publishDirSc = Join-Path $PWD ("publish/{0}/sc" -f $rid)
             $issPath = Join-Path $PWD 'installer/WindBoard.iss'
+            $publishDirScForIss = Join-Path '..' ("publish\\{0}\\sc" -f $rid)
+            $distForIss = Join-Path '..' 'dist'
 
             $setupFileName = "WindBoardSetup-$version-$rid.exe"
             $setupPath = Join-Path $dist $setupFileName
@@ -112,8 +114,8 @@ jobs:
 
             & $iscc `
               "/DMyAppVersion=$version" `
-              ("/DMySourceDir={0}" -f ('"' + $publishDirSc + '"')) `
-              ("/DMyOutputDir={0}" -f ('"' + $dist + '"')) `
+              "/DMySourceDir=$publishDirScForIss" `
+              "/DMyOutputDir=$distForIss" `
               "/DMyArch=$arch" `
               "/DMyRid=$rid" `
               $issPath
