@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using WindBoard.Models.Update;
 using WindBoard.Services;
+using WindBoard.Services.Notifications;
 using Xunit;
 
 namespace WindBoard.Tests.Services;
@@ -38,6 +39,26 @@ public sealed class UpdateServiceTests
     }
 
     [Fact]
+    public void SelectAssetForInstallation_InstallerMode_PicksInstaller()
+    {
+        var info = new UpdateInfo
+        {
+            Assets =
+            {
+                new UpdateAsset { Arch = "x64", Runtime = "self-contained", FileName = "sc.zip", DownloadUrl = "https://example/sc.zip" },
+                new UpdateAsset { Arch = "x64", Runtime = "installer", FileName = "setup.exe", DownloadUrl = "https://example/setup.exe" }
+            }
+        };
+
+        var env = new InstallEnvironment(InstallMode.InstallerPerMachine, DeploymentRuntime.SelfContained, executablePath: "C:\\Program Files\\WindBoard\\WindBoard.exe", installRoot: "C:\\Program Files\\WindBoard");
+
+        UpdateAsset? selected = UpdateService.SelectAssetForInstallation(info, env, arch: "x64");
+
+        Assert.NotNull(selected);
+        Assert.Equal("installer", selected!.Runtime);
+    }
+
+    [Fact]
     public async Task CheckForUpdatesAsync_ParsesLatestJsonAndDetectsUpdate()
     {
         const string latestJson = """
@@ -66,7 +87,7 @@ public sealed class UpdateServiceTests
         });
 
         var client = new HttpClient(handler);
-        var svc = new UpdateService(client)
+        var svc = new UpdateService(client, new NullNotificationService())
         {
             LatestJsonUrl = "https://example/latest.json"
         };
@@ -98,7 +119,7 @@ public sealed class UpdateServiceTests
         });
 
         var client = new HttpClient(handler);
-        var svc = new UpdateService(client)
+        var svc = new UpdateService(client, new NullNotificationService())
         {
             LatestJsonUrl = "https://example/latest.json"
         };
@@ -124,5 +145,11 @@ public sealed class UpdateServiceTests
             return Task.FromResult(_handler(request));
         }
     }
-}
 
+    private sealed class NullNotificationService : INotificationService
+    {
+        public void ShowUpdateAvailable(UpdateInfo updateInfo)
+        {
+        }
+    }
+}

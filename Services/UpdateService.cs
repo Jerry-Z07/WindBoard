@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
@@ -9,9 +8,8 @@ using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Threading;
 using System.Threading.Tasks;
-using Windows.Data.Xml.Dom;
-using Windows.UI.Notifications;
 using WindBoard.Models.Update;
+using WindBoard.Services.Notifications;
 
 namespace WindBoard.Services
 {
@@ -23,17 +21,19 @@ namespace WindBoard.Services
         public const string DefaultLatestJsonUrl = "https://github.com/Jerry-Z07/WindBoard/releases/latest/download/latest.json";
 
         private readonly HttpClient _httpClient;
+        private readonly INotificationService _notificationService;
 
         public string LatestJsonUrl { get; set; }
 
-        internal UpdateService(HttpClient httpClient)
+        internal UpdateService(HttpClient httpClient, INotificationService notificationService)
         {
             _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
+            _notificationService = notificationService ?? throw new ArgumentNullException(nameof(notificationService));
             LatestJsonUrl = GetLatestJsonUrlFromEnvironment() ?? DefaultLatestJsonUrl;
         }
 
         private UpdateService()
-            : this(BuildDefaultHttpClient())
+            : this(BuildDefaultHttpClient(), new WindowsToastNotificationService())
         {
         }
 
@@ -180,6 +180,85 @@ namespace WindBoard.Services
                 ?? candidates.FirstOrDefault();
         }
 
+        public UpdateAsset? SelectAssetForCurrentInstallation(UpdateInfo updateInfo, InstallEnvironment? environment)
+        {
+            if (updateInfo == null) throw new ArgumentNullException(nameof(updateInfo));
+            string arch = GetCurrentArchitecture();
+            return SelectAssetForInstallation(updateInfo, environment, arch);
+        }
+
+        internal static UpdateAsset? SelectAssetForInstallation(UpdateInfo updateInfo, InstallEnvironment? environment, string arch)
+        {
+            if (updateInfo == null) throw new ArgumentNullException(nameof(updateInfo));
+
+            if (updateInfo.Assets == null || updateInfo.Assets.Count == 0)
+            {
+                return null;
+            }
+
+            IEnumerable<UpdateAsset> candidates = updateInfo.Assets
+                .Where(a => a != null
+                    && !string.IsNullOrWhiteSpace(a.DownloadUrl)
+                    && string.Equals(a.Arch?.Trim(), arch, StringComparison.OrdinalIgnoreCase));
+
+            if (!candidates.Any())
+            {
+                candidates = updateInfo.Assets.Where(a => a != null && !string.IsNullOrWhiteSpace(a.DownloadUrl));
+            }
+
+            string? runtimeWanted = null;
+            if (environment != null)
+            {
+                if (environment.InstallMode == InstallMode.InstallerPerMachine)
+                {
+                    runtimeWanted = "installer";
+                }
+                else if (environment.InstallMode == InstallMode.Portable)
+                {
+                    runtimeWanted = environment.DeploymentRuntime switch
+                    {
+                        DeploymentRuntime.FrameworkDependent => "framework-dependent",
+                        DeploymentRuntime.SelfContained => "self-contained",
+                        _ => "self-contained"
+                    };
+                }
+            }
+
+            if (!string.IsNullOrWhiteSpace(runtimeWanted))
+            {
+                UpdateAsset? match = candidates.FirstOrDefault(a =>
+                    string.Equals(a.Runtime?.Trim(), runtimeWanted, StringComparison.OrdinalIgnoreCase));
+
+                if (match != null)
+                {
+                    return match;
+                }
+            }
+
+            UpdateAsset? installer = candidates.FirstOrDefault(IsInstallerAsset);
+            if (installer != null)
+            {
+                return installer;
+            }
+
+            UpdateAsset? selfContained = candidates.FirstOrDefault(a =>
+                string.Equals(a.Runtime?.Trim(), "self-contained", StringComparison.OrdinalIgnoreCase));
+            if (selfContained != null)
+            {
+                return selfContained;
+            }
+
+            UpdateAsset? frameworkDependent = candidates.FirstOrDefault(a =>
+                string.Equals(a.Runtime?.Trim(), "framework-dependent", StringComparison.OrdinalIgnoreCase));
+            return frameworkDependent ?? candidates.FirstOrDefault();
+        }
+
+        public static bool IsInstallerAsset(UpdateAsset asset)
+        {
+            if (asset == null) throw new ArgumentNullException(nameof(asset));
+            return string.Equals(asset.Runtime?.Trim(), "installer", StringComparison.OrdinalIgnoreCase);
+        }
+
         public async Task<string> DownloadUpdateAsync(UpdateAsset asset, IProgress<DownloadProgress>? progress = null, CancellationToken ct = default)
         {
             if (asset == null) throw new ArgumentNullException(nameof(asset));
@@ -257,29 +336,7 @@ namespace WindBoard.Services
         public void ShowUpdateNotification(UpdateInfo updateInfo)
         {
             if (updateInfo == null) throw new ArgumentNullException(nameof(updateInfo));
-
-            try
-            {
-                string title = LocalizationService.Instance.GetString("Update_Toast_Title");
-                string bodyTemplate = LocalizationService.Instance.GetString("Update_Toast_Body_Format");
-                string body = string.Format(CultureInfo.CurrentUICulture, bodyTemplate, updateInfo.VersionName ?? updateInfo.Version);
-
-                XmlDocument toastXml = ToastNotificationManager.GetTemplateContent(ToastTemplateType.ToastText02);
-                XmlNodeList texts = toastXml.GetElementsByTagName("text");
-                if (texts.Count > 0) texts[0].AppendChild(toastXml.CreateTextNode(title));
-                if (texts.Count > 1) texts[1].AppendChild(toastXml.CreateTextNode(body));
-
-                var toast = new ToastNotification(toastXml)
-                {
-                    Tag = "WindBoard.Update"
-                };
-
-                ToastNotificationManager.CreateToastNotifier("WindBoard").Show(toast);
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"[Update] Failed to show toast notification: {ex}");
-            }
+            _notificationService.ShowUpdateAvailable(updateInfo);
         }
 
         public static string GetCurrentArchitecture()

@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using System.Threading.Tasks;
 using System.Windows.Threading;
 using WindBoard.Models.Update;
@@ -14,7 +15,11 @@ namespace WindBoard
         {
             bool enabled;
             try { enabled = SettingsService.Instance.GetAutoCheckUpdatesEnabled(); }
-            catch { enabled = true; }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[Update] Failed to read AutoCheckUpdatesEnabled: {ex}");
+                enabled = true;
+            }
 
             if (!enabled)
             {
@@ -23,7 +28,10 @@ namespace WindBoard
 
             DateTime? lastCheckUtc = null;
             try { lastCheckUtc = SettingsService.Instance.GetLastUpdateCheckTime()?.ToUniversalTime(); }
-            catch { }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[Update] Failed to read LastUpdateCheckTime: {ex}");
+            }
 
             if (lastCheckUtc.HasValue && (DateTime.UtcNow - lastCheckUtc.Value) < UpdateCheckMinInterval)
             {
@@ -42,12 +50,12 @@ namespace WindBoard
                         Dispatcher.Invoke(() => UpdateService.Instance.ShowUpdateNotification(result.LatestVersion));
                     }
                 }
-                catch
+                catch (Exception ex)
                 {
                     // Silent failure: startup auto-check should not disrupt the user.
+                    Debug.WriteLine($"[Update] Startup update check failed: {ex}");
                 }
             });
         }
     }
 }
-

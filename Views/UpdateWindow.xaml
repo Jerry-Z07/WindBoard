@@ -24,7 +24,7 @@
             <DockPanel>
                 <StackPanel Orientation="Horizontal" DockPanel.Dock="Left">
                     <materialDesign:PackIcon Kind="Update" Width="26" Height="26" VerticalAlignment="Center" Margin="0,0,12,0"/>
-                    <TextBlock Text="{Binding ElementName=UpdateWindowRoot, Path=HeaderTitle}"
+                    <TextBlock Text="{Binding HeaderTitle}"
                                Style="{StaticResource MaterialDesignHeadline6TextBlock}"
                                VerticalAlignment="Center"/>
                 </StackPanel>
@@ -63,20 +63,20 @@
                             </Grid.ColumnDefinitions>
 
                             <TextBlock Grid.Row="0" Grid.Column="0" Margin="0,0,12,8" Opacity="0.75" Text="{DynamicResource UpdateWindow_Info_CurrentVersion}"/>
-                            <TextBlock Grid.Row="0" Grid.Column="1" Margin="0,0,0,8" Text="{Binding ElementName=UpdateWindowRoot, Path=CurrentVersion}" TextTrimming="CharacterEllipsis"/>
+                            <TextBlock Grid.Row="0" Grid.Column="1" Margin="0,0,0,8" Text="{Binding CurrentVersion}" TextTrimming="CharacterEllipsis"/>
 
                             <TextBlock Grid.Row="1" Grid.Column="0" Margin="0,0,12,8" Opacity="0.75" Text="{DynamicResource UpdateWindow_Info_LatestVersion}"/>
-                            <TextBlock Grid.Row="1" Grid.Column="1" Margin="0,0,0,8" Text="{Binding ElementName=UpdateWindowRoot, Path=LatestVersion}" TextTrimming="CharacterEllipsis"/>
+                            <TextBlock Grid.Row="1" Grid.Column="1" Margin="0,0,0,8" Text="{Binding LatestVersion}" TextTrimming="CharacterEllipsis"/>
 
                             <TextBlock Grid.Row="2" Grid.Column="0" Margin="0,0,12,8" Opacity="0.75" Text="{DynamicResource UpdateWindow_Info_ReleaseDate}"/>
-                            <TextBlock Grid.Row="2" Grid.Column="1" Margin="0,0,0,8" Text="{Binding ElementName=UpdateWindowRoot, Path=ReleaseDate}" TextTrimming="CharacterEllipsis"/>
+                            <TextBlock Grid.Row="2" Grid.Column="1" Margin="0,0,0,8" Text="{Binding ReleaseDate}" TextTrimming="CharacterEllipsis"/>
 
                             <TextBlock Grid.Row="3" Grid.Column="0" Margin="0,0,12,0" Opacity="0.75" Text="{DynamicResource UpdateWindow_Info_MinSystemVersion}"/>
-                            <TextBlock Grid.Row="3" Grid.Column="1" Margin="0,0,0,0" Text="{Binding ElementName=UpdateWindowRoot, Path=MinSystemVersion}" TextTrimming="CharacterEllipsis"/>
+                            <TextBlock Grid.Row="3" Grid.Column="1" Margin="0,0,0,0" Text="{Binding MinSystemVersion}" TextTrimming="CharacterEllipsis"/>
                         </Grid>
 
                         <TextBlock Margin="0,14,0,0"
-                                   Text="{Binding ElementName=UpdateWindowRoot, Path=StatusText}"
+                                   Text="{Binding StatusText}"
                                    TextWrapping="Wrap"
                                    Opacity="0.8"/>
                         </StackPanel>
@@ -90,32 +90,32 @@
                                    Margin="0,0,0,12"/>
 
                         <TextBlock Text="{DynamicResource UpdateWindow_Download_AssetLabel}" Opacity="0.75" Margin="0,0,0,6"/>
-                        <TextBlock Text="{Binding ElementName=UpdateWindowRoot, Path=SelectedAssetDisplay, Mode=OneWay}"
+                        <TextBlock Text="{Binding SelectedAssetDisplay, Mode=OneWay}"
                                    TextWrapping="Wrap"
                                    Opacity="0.9"/>
                         <TextBlock Margin="0,6,0,0"
-                                   Text="{Binding ElementName=UpdateWindowRoot, Path=InstallMethodHint, Mode=OneWay}"
+                                   Text="{Binding InstallMethodHint, Mode=OneWay}"
                                    TextWrapping="Wrap"
                                    Opacity="0.75"/>
 
                         <ProgressBar Margin="0,12,0,0"
-                                     Height="6"
-                                     Minimum="0"
-                                     Maximum="100"
-                                     Value="{Binding ElementName=UpdateWindowRoot, Path=DownloadProgressPercent, Mode=OneWay}"
-                                     Visibility="{Binding ElementName=UpdateWindowRoot, Path=DownloadProgressVisible, Converter={StaticResource BoolToVis}}"/>
+                                      Height="6"
+                                      Minimum="0"
+                                      Maximum="100"
+                                      Value="{Binding DownloadProgressPercent, Mode=OneWay}"
+                                      Visibility="{Binding DownloadProgressVisible, Converter={StaticResource BoolToVis}}"/>
 
                         <TextBlock Margin="0,8,0,0"
-                                   Text="{Binding ElementName=UpdateWindowRoot, Path=DownloadProgressText}"
+                                   Text="{Binding DownloadProgressText}"
                                    Opacity="0.8"
-                                   Visibility="{Binding ElementName=UpdateWindowRoot, Path=DownloadProgressVisible, Converter={StaticResource BoolToVis}}"/>
+                                   Visibility="{Binding DownloadProgressVisible, Converter={StaticResource BoolToVis}}"/>
 
                         <WrapPanel Margin="0,14,0,0" HorizontalAlignment="Left">
                             <Button Style="{StaticResource MaterialDesignRaisedButton}"
                                     MinWidth="120"
                                     Margin="0,0,10,0"
                                     Click="BtnDownload_Click"
-                                    IsEnabled="{Binding ElementName=UpdateWindowRoot, Path=CanDownload}">
+                                    IsEnabled="{Binding CanDownload}">
                                 <StackPanel Orientation="Horizontal">
                                     <materialDesign:PackIcon Kind="Download" Width="18" Height="18" Margin="0,0,8,0"/>
                                     <TextBlock Text="{DynamicResource UpdateWindow_Download_Button}"/>
@@ -126,7 +126,7 @@
                                     MinWidth="120"
                                     Margin="0,0,10,0"
                                     Click="BtnOpenFolder_Click"
-                                    IsEnabled="{Binding ElementName=UpdateWindowRoot, Path=CanOpenDownloadedFolder}">
+                                    IsEnabled="{Binding CanOpenDownloadedFolder}">
                                 <StackPanel Orientation="Horizontal">
                                     <materialDesign:PackIcon Kind="FolderOpen" Width="18" Height="18" Margin="0,0,8,0"/>
                                     <TextBlock Text="{DynamicResource UpdateWindow_OpenFolder_Button}"/>
@@ -146,7 +146,7 @@
                                     MinWidth="140"
                                     Margin="10,0,0,0"
                                     Click="BtnInstall_Click"
-                                    Visibility="{Binding ElementName=UpdateWindowRoot, Path=CanInstallDownloaded, Converter={StaticResource BoolToVis}}">
+                                    Visibility="{Binding CanInstallDownloaded, Converter={StaticResource BoolToVis}}">
                                 <StackPanel Orientation="Horizontal">
                                     <materialDesign:PackIcon Kind="Update" Width="18" Height="18" Margin="0,0,8,0"/>
                                     <TextBlock Text="{DynamicResource UpdateWindow_Install_Button}"/>
@@ -165,7 +165,7 @@
                                Style="{StaticResource MaterialDesignSubtitle1TextBlock}"
                                FontWeight="SemiBold"
                                Margin="0,0,0,12"/>
-                    <TextBox Text="{Binding ElementName=UpdateWindowRoot, Path=ChangelogText, Mode=OneWay}"
+                    <TextBox Text="{Binding ChangelogText, Mode=OneWay}"
                              IsReadOnly="True"
                              TextWrapping="Wrap"
                              VerticalScrollBarVisibility="Auto"
@@ -191,7 +191,7 @@
                     <Button Style="{StaticResource MaterialDesignOutlinedButton}"
                             Margin="0,0,8,0"
                             Click="BtnSkipVersion_Click"
-                            IsEnabled="{Binding ElementName=UpdateWindowRoot, Path=CanSkipVersion}"
+                            IsEnabled="{Binding CanSkipVersion}"
                             materialDesign:ButtonAssist.CornerRadius="6">
                         <TextBlock Text="{DynamicResource UpdateWindow_SkipVersion_Button}"/>
                     </Button>
