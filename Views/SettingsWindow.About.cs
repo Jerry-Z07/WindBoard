@@ -1,3 +1,5 @@
+using System;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Windows;
 using WindBoard.Services;
@@ -15,15 +17,29 @@ namespace WindBoard
 
         private static void TryOpenExternal(string pathOrUrl)
         {
+            if (string.IsNullOrWhiteSpace(pathOrUrl))
+                return;
+
             try
             {
                 Process.Start(new ProcessStartInfo(pathOrUrl) { UseShellExecute = true });
             }
-            catch
+            catch (Win32Exception ex)
             {
-                // ignore
+                Debug.WriteLine($"[Settings] Failed to open external resource '{pathOrUrl}': {ex}");
+            }
+            catch (ObjectDisposedException ex)
+            {
+                Debug.WriteLine($"[Settings] Failed to open external resource '{pathOrUrl}': {ex}");
+            }
+            catch (InvalidOperationException ex)
+            {
+                Debug.WriteLine($"[Settings] Failed to open external resource '{pathOrUrl}': {ex}");
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[Settings] Unexpected failure when opening external resource '{pathOrUrl}': {ex}");
             }
         }
     }
 }
-
