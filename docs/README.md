@@ -10,10 +10,11 @@
 
 ## 开发文档
 
-- [构建与运行](dev/build-and-run.md)
-- [编码规范](dev/coding-guidelines.md)
-- [项目结构](dev/project-structure.md)
-- [架构概览](dev/architecture-overview.md)
-- [WBI 文件格式](dev/wbi-format.md)
-- [设置持久化](dev/settings-persistence.md)
-- [测试指南](dev/testing.md)
+- [构建与运行](dev/build-and-run.md)：环境要求、常用命令、测试运行
+- [编码规范](dev/coding-guidelines.md)：代码风格、组织方式、性能注意事项
+- [项目结构](dev/project-structure.md)：目录树、模块职责说明
+- [架构概览](dev/architecture-overview.md)：模块分层、输入流转、核心设计
+- [WBI 文件格式](dev/wbi-format.md)：WBI 格式规范、版本兼容、资源处理
+- [设置持久化](dev/settings-persistence.md)：配置文件路径、设置项说明、新增设置流程
+- [测试指南](dev/testing.md)：测试框架版本、运行测试、编写建议
+

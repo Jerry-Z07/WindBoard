@@ -1,11 +1,10 @@
 # WindBoard
 
+一款基于 WPF 和 Material Design 3 的智能白板应用程序，支持流畅的手写输入与多页面管理。
 
 > [!NOTE]
 > 本项目处于活跃开发阶段，API 和功能可能会频繁变更。生产环境使用请谨慎。
 
-
-一款基于 WPF 和 Material Design 3 的智能白板应用程序，支持流畅的手写输入与多页面管理。
 
 ## 文档
 
@@ -81,7 +80,10 @@
 ### 环境要求
 - .NET 10.0 SDK
 - Windows 10/11
-- Visual Studio 2022 或更高版本、JetBrains Rider 2025.3.1 或更高版本，或者 Visual Studio Code（本软件的一部分开发工作就是在 VSCode 使用 AI 完成的，另一部分在 Codex，还有一部分在 Claude Code）
+- 开发工具：
+  - Visual Studio 2022 或更高版本
+  - JetBrains Rider 2025.3.1 或更高版本
+  - Visual Studio Code（本软件的一部分开发工作就是在 VSCode 使用 AI 完成的，另一部分在 Codex，还有一部分在 Claude Code）
 
 ### 构建和运行
 见[构建与运行](./docs/dev/build-and-run.md)
@@ -89,7 +91,6 @@
 ## Todo
 - [x] 笔迹性能优化
 - [x] 笔锋算法
-- [x] 细节保留平滑算法
 - [ ] 触摸面积识别算法（用于掌擦逻辑）
 - [x] 伪装功能
 - [x] 附件管理功能（图片、视频、文本、链接导入）
@@ -100,28 +101,11 @@
 - [ ] 完善 workflow 等
 - [x] 单元测试框架集成（xUnit）
 
+> [!IMPORTANT]
+> 本项目完全使用 AI 开发，如对此感到不适请寻找其它软件进行替代。
+
 ## 许可证
 
 Apache License 2.0
-
-## 开发规范
-
-### 代码规范
-- **命名规范**：类名和方法名使用 PascalCase，变量名使用 camelCase
-- **代码复用**：优先复用现有代码、组件和包，避免重复实现
-
-### 测试规范
-- 使用 xUnit 作为单元测试框架
-- 使用 Xunit.StaFact 支持 WPF STA 线程测试
-- 核心逻辑（如书写行为、服务层）必须有对应的单元测试
-- 测试文件位于 `WindBoard.Tests/` 目录下，与主项目结构保持一致
-
-> [!WARNING]
-> 本项目完全使用AI开发，如对此感到不适请寻找其它软件进行替代。
-
-
-## 贡献
-
-欢迎提交 Issue 和 Pull Request！
 
 
