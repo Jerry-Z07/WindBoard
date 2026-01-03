@@ -8,7 +8,7 @@ namespace WindBoard.Models.Update
         public string Arch { get; set; } = string.Empty; // "x86", "x64", "arm64"
 
         [JsonProperty("runtime")]
-        public string Runtime { get; set; } = string.Empty; // "self-contained", "framework-dependent"
+        public string Runtime { get; set; } = string.Empty; // "self-contained", "framework-dependent", "installer"
 
         [JsonProperty("fileName")]
         public string FileName { get; set; } = string.Empty;
