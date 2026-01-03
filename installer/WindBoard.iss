@@ -10,19 +10,19 @@
 ;   MyArch        ("x86" | "x64" | "arm64")
 ;   MyRid         ("win-x86" | "win-x64" | "win-arm64")
 
-#ifnexist MyAppVersion
+#ifndef MyAppVersion
   #error MyAppVersion is required
 #endif
-#ifnexist MySourceDir
+#ifndef MySourceDir
   #error MySourceDir is required
 #endif
-#ifnexist MyOutputDir
+#ifndef MyOutputDir
   #error MyOutputDir is required
 #endif
-#ifnexist MyArch
+#ifndef MyArch
   #error MyArch is required
 #endif
-#ifnexist MyRid
+#ifndef MyRid
   #error MyRid is required
 #endif
 
