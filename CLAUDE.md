@@ -4,190 +4,210 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-WindBoard is a WPF-based intelligent whiteboard application built with Material Design 3, supporting handwriting input and multi-page management. The project is entirely AI-developed and actively maintained.
+WindBoard is a WPF-based intelligent whiteboard application built with Material Design 3, featuring smooth handwriting input and multi-page management. This is a .NET 10.0 Windows application actively developed entirely with AI assistance.
 
-**Target Framework**: .NET 10.0 Windows (net10.0-windows10.0.26100.0)
+**Target Framework**: `net10.0-windows10.0.26100.0`
 
-## Essential Commands
+## Build and Development Commands
 
-### Build and Run
+Run from repository root:
+
 ```bash
 # Restore dependencies
 dotnet restore
 
-# Build project
-dotnet build
+# Build solution
+dotnet build WindBoard.sln
 
 # Run application
-dotnet run
+dotnet run --project WindBoard.csproj
 
 # Run all tests
-dotnet test
+dotnet test WindBoard.sln
 
-# Run tests for a specific file (example)
-dotnet test --filter "FullyQualifiedName~InkModeTests"
+# Optional: Run tests with coverage
+dotnet test WindBoard.sln -p:CollectCoverage=true
 ```
 
-### Test Framework
-- Uses **xUnit** for unit testing with **Xunit.StaFact** for WPF STA thread support
-- Tests are located in `WindBoard.Tests/` and mirror the main project structure
-- Core logic (ink behaviors, services) must have corresponding unit tests
+## Architecture: Input Pipeline + Mode System + Services
 
-## Core Architecture
+WindBoard uses a **staged input pipeline** that routes events through interaction modes, coordinated by `MainWindow`.
 
-### Input Processing Pipeline
+### Input Flow
 
-The application uses a **multi-stage input pipeline** that processes all input events (mouse, stylus, touch) through a unified architecture:
+1. **Raw WPF Events** → `MainWindow/MainWindow.InputPipeline.cs` captures Mouse/Touch/Stylus events
+2. **Abstraction** → Events wrapped into `Core/Input/InputEventArgs` (contains device type, coordinates, modifiers, timestamp)
+3. **Routing** → `Core/Input/InputManager` dispatches to current mode via `ModeController`
+4. **Mode Handling** → Modes implement `OnPointerDown/Move/Up` for specific interactions
 
-1. **Raw Input** → Device-specific event handlers (MainWindow.InputPipeline.cs)
-2. **Input Normalization** → `InputEventArgs` unified format with device metadata
-3. **Input Filtering** → `IInputFilter` chain (priority-sorted, e.g., ExclusiveModeFilter)
-4. **Mode Dispatch** → `InputManager.Dispatch()` → `ModeController`
-5. **Mode Handling** → Active interaction mode processes the input
+### Key Systems
 
-**Key Flow**:
-- `MainWindow.InputPipeline.cs` captures WPF events (Mouse*/Stylus*/Touch*)
-- Builds normalized `InputEventArgs` with canvas/viewport coordinates, pressure, device type
-- `InputManager.Dispatch(stage, args)` runs filters first, then dispatches to ModeController
-- Filters can intercept input (return true) before it reaches modes
-- `ModeController` routes to `ActiveMode ?? CurrentMode`
-
-**Special Input Sources**:
-- `RealTimeStylusManager`: Alternative low-latency stylus input path (adaptive based on device support)
-- `InputSourceSelector`: Automatically chooses between RealTimeStylus vs WPF standard input
-
-### Mode System
-
-The application uses a **strategy pattern** for interaction modes managed by `ModeController`:
-
-- **CurrentMode**: The default mode when no specific action is active (set via toolbar)
-- **ActiveMode**: Temporary mode during an interaction (e.g., actively drawing a stroke)
-- Mode lifecycle: `SwitchOn()` → handle pointer events → `SwitchOff()`
-- On pointer Up, `ActiveMode` is cleared and control returns to `CurrentMode`
-
-**Built-in Modes** (Core/Modes/):
-- `InkMode`: Handles ink strokes (no built-in smoothing)
-- `EraserMode`: Eraser functionality with visual cursor overlay
+**Interaction Modes** (`Core/Modes/`):
+- Strategy pattern for switching between interaction behaviors
+- `InkMode`: Handwriting with simulated pressure and detail-preserving smoothing
+- `EraserMode`: Erasing with swipe-to-clear gesture
 - `SelectMode`: Selection and manipulation of strokes/attachments
-- `NoMode`: Disables all canvas interaction (used during gestures/panning)
+- `NoMode`: Input suppression during exclusive operations
+- `ModeController`: Manages mode switching and active mode tracking
 
-**Mode Registration**:
-```csharp
-_modeController.SetCurrentMode(mode);      // Set default mode
-_modeController.ActivateMode(mode);        // Temporarily override
-_modeController.ClearActiveMode();         // Return to CurrentMode
-```
+**Input Pipeline** (`Core/Input/`):
+- Multi-stage event processing with filter support
+- `InputManager`: Central event dispatcher
+- `InputStage`: Pipeline stage abstraction
+- `ExclusiveModeFilter`: Blocks input to exclusive modes
+- `RealTimeStylusAdapter`: Integration for high-performance stylus input
+- `InputSourceSelector`: Automatically selects between RealTimeStylus and WPF standard input
 
-### Ink Input
+**Services Layer** (`Services/`):
+- `PageService`: Multi-page management, state save/restore
+- `StrokeService`: Stroke management and pen thickness control
+- `StrokeUndoHistory`: Per-page undo/redo with transaction support
+- `ZoomPanService`: Camera-style zoom/pan using RenderTransform (not LayoutTransform to avoid layout cascade)
+- `AutoExpandService`: Automatically expands canvas when strokes approach boundaries
+- `TouchGestureService`: Two-finger gesture recognition (pinch zoom, pan)
+- `SettingsService`: JSON persistence to `%APPDATA%\WindBoard\settings.json`
+- `ExportService`, `WbiExporter/WbiImporter`: Export to PNG/JPG/PDF/WBI formats
 
-Ink input is handled in `Core/Modes/InkMode.cs` by appending raw input points to `Stroke`. (Real-time smoothing and LiveTail are removed for now and expected to be reworked later.)
+**Data Models** (`Models/`):
+- `BoardPage`: Stores strokes, attachments, canvas size, view state (zoom/pan)
+- `BoardAttachment`: Supports Image/Video/Text/Link attachments with position, size, z-index
+- `AppSettings`: Application settings with automatic persistence
+- `Wbi/`: WBI format models (manifest, page data)
 
-### Service Layer
+### Critical Performance Constraints
 
-Services are stateful business logic components initialized in `MainWindow.Architecture.cs`:
+**Do NOT violate these performance rules:**
 
-- **PageService**: Multi-page management, current page tracking, page preview rendering
-- **StrokeService**: Pen thickness management with zoom-consistency option
-- **ZoomPanService**: Handles mouse wheel zoom, touch gestures, right-button drag panning
-- **AutoExpandService**: Automatically expands canvas when drawing near edges
-- **TouchGestureService**: Touch gesture recognition (deprecated, functionality moved to ZoomPanService)
-- **SettingsService**: JSON-based settings persistence to local file
+1. **Camera Transform**: Use `RenderTransform` (not `LayoutTransform`) for zoom/pan to avoid layout cascade. Already implemented in `MainWindow.Architecture.cs:69-78`.
 
-### MainWindow Partial Class Architecture
+2. **BitmapCache Scope**: NEVER enable `BitmapCache` on `CanvasHost` (default 8000×8000 canvas causes 100+MB allocation). Only cache `Viewport` (see `SetViewportBitmapCache`).
 
-`MainWindow` is split into multiple partial classes by responsibility:
+3. **Async Image Loading**: Use asynchronous decoding for images to avoid UI blocking. `StaBitmapLoader` already exists for reuse.
 
-- `MainWindow.Architecture.cs`: Core initialization, input pipeline setup, mode wiring
-- `MainWindow.InputPipeline.cs`: Raw input event handlers, InputEventArgs builders
-- `MainWindow.Pages.cs`: Page navigation UI handlers
-- `MainWindow.Attachments.*.cs`: Attachment import, selection, external opening, bitmap loading
-- `MainWindow.ToolUi.cs`: Toolbar button handlers (mode switching, pen settings)
-- `MainWindow.UI.cs`: Window chrome, UI state management
-- `MainWindow.Popups.cs`: Popup/dialog management
-- `MainWindow.SettingsSync.cs`: Settings window integration
-- `MainWindow.SystemDock.cs`: System tray/dock integration
+## Code Organization
+
+### MainWindow Partial Classes (`MainWindow/`)
+
+**DO NOT** add logic to `MainWindow.xaml.cs`. Use domain-specific partial classes:
+
+- `MainWindow.Architecture.cs`: Core initialization, mode/service setup
+- `MainWindow.InputPipeline.cs`: Event routing to InputManager
+- `MainWindow.Attachments.*.cs`: Attachment import, selection, external opening
+- `MainWindow.Export.cs`: Export dialog and operations
+- `MainWindow.Pages.cs`: Page navigation and management
+- `MainWindow.SettingsSync.cs`: Settings synchronization
+- `MainWindow.ToolUi.cs`: Toolbar state management
+- `MainWindow.SystemDock.cs`: System tray integration
 - `MainWindow.VideoPresenter.cs`: External video presenter integration
 
-### Undo/Redo System
+### Module Responsibilities
 
-Each `BoardPage` has its own `StrokeUndoHistory`:
+- `Core/`: Input abstraction, interaction modes, ink algorithms (simulated pressure, detail-preserving smoothing)
+- `Services/`: Business logic (pages, strokes, zoom/pan, settings, import/export)
+- `Models/`: Pure data models (no business logic)
+- `Views/`: XAML + thin code-behind (move complex logic to Services/Core)
+- `Resources/`, `Styles/`: Fonts (MiSans) and XAML resource dictionaries
 
-- Observes `MyCanvas.Strokes.StrokesChanged` events
-- Groups changes into transactions via `Begin()`/`End()`
-- Supports `Cancel()` for discarding in-progress transactions
-- Undo/Redo bound to `ApplicationCommands.Undo`/`Redo`
-- Transaction lifecycle tied to mode pointer Down/Up cycle
+## Ink System Details
 
-### Performance Optimizations
+**Writing Mode** (`Core/Modes/InkMode.cs`):
+- **Smoothing**: `DetailPreservingSmoother` algorithm preserves sharp corners while smoothing curves
+- **Pressure Handling**:
+  - Real pressure from hardware stylus (auto-switches after sufficient samples)
+  - Fallback to simulated pressure based on velocity/time for pen-like effect
+  - Parameters in `SimulatedPressureParameters`, defaults in `SimulatedPressureDefaults`
+- **Thickness Consistency**: Optional feature to maintain consistent stroke thickness across different writing speeds (configured via `StrokeService.SetStrokeThicknessConsistencyEnabled`)
 
-1. **RenderTransform over LayoutTransform**: Zoom/pan uses RenderTransform to avoid layout recalculations
-2. **Viewport BitmapCache**: Temporarily enabled during zoom/pan/gestures, disabled after interaction
-3. **Bitmap Scaling Mode**: Switched to LowQuality during interactions, HighQuality when idle
-4. **Gesture Suppression**: Blocks input and cancels strokes during multi-touch gestures to prevent artifacts
-5. **Deferred Cache Disable**: Uses DispatcherTimer to delay cache cleanup after interaction ends
+## WBI Format (WindBoard Interchange)
 
-## Code Patterns
+WBI files (`.wbi`) are ZIP archives containing:
 
-### Adding New Interaction Modes
+```
+manifest.json          # Version, page count, settings
+pages/
+  page_001.json        # Page metadata (size, zoom, pan, attachments)
+  page_001.isf         # WPF Ink Serialized Format (if strokes exist)
+  page_002.json
+  ...
+assets/                # Optional embedded image assets
+  <guid>.<ext>
+  ...
+```
 
-1. Implement `IInteractionMode` or extend `InteractionModeBase`
-2. Override pointer event handlers: `OnPointerDown/Move/Up/Hover`
-3. Implement `SwitchOn()`/`SwitchOff()` for activation/deactivation logic
-4. Register mode in `MainWindow.Architecture.InitializeArchitecture()`
-5. Wire to toolbar button in `MainWindow.ToolUi.cs`
+**Implementation**: `Services/Export/WbiExporter.cs`, `Services/Export/WbiImporter.cs`
+**Models**: `Models/Wbi/WbiManifest.cs`, `Models/Wbi/WbiPageData.cs`
 
-### Adding Input Filters
+See [`docs/dev/wbi-format.md`](docs/dev/wbi-format.md) for detailed specification.
 
-1. Implement `IInputFilter` or extend `InputFilterBase`
-2. Set `Priority` (higher = runs first)
-3. Implement `Handle(InputStage, InputEventArgs, ModeController)` → return true to block propagation
-4. Register via `_inputManager.RegisterFilter(filter)` in InitializeArchitecture
+## Testing
 
-### Working with Services
+**Framework**: xUnit v2.9.3 + Xunit.StaFact v1.2.69
 
-Services are injected as fields in MainWindow and initialized in `InitializeArchitecture()`:
-- Services should expose events for state changes
-- MainWindow subscribes to service events and updates UI accordingly
-- Services should not directly manipulate UI elements (pass callbacks if needed)
+**WPF Testing**: Use `[StaFact]` for tests involving WPF types (`InkCanvas`, `StrokeCollection`, etc.)
 
-## Testing Guidelines
+**Test Location**: `WindBoard.Tests/` with structure mirroring main project:
+- `WindBoard.Tests/Ink/`: Ink algorithms and writing modes
+- `WindBoard.Tests/Services/`: Service layer tests
 
-- Use `[WpfFact]` attribute (from Xunit.StaFact) for tests requiring WPF STA thread
-- Use `[Theory]` with `[InlineData]` for parameterized tests
-- Core algorithms should have comprehensive unit tests with edge cases
-- Place test helpers in `WindBoard.Tests/TestHelpers/`
-- Test file structure mirrors source modules under `WindBoard.Tests/`
+**Naming Pattern**: `ClassName_MethodUnderTest_ExpectedOutcome`
 
-## Important Conventions
+**Run Tests**:
+```bash
+dotnet test WindBoard.sln
+```
 
-### Naming
-- Classes and methods: PascalCase
-- Variables and fields: camelCase
-- Private fields: _camelCase with underscore prefix
+## Coding Conventions
 
-### Code Reuse
-Prioritize reusing existing code, components, and NuGet packages. Avoid duplicating functionality that already exists in the codebase.
+**Naming**:
+- Types/Methods/Properties: `PascalCase`
+- Locals/Parameters: `camelCase`
+- Private fields: `_camelCase` (when needed)
+- XAML elements: `PascalCase`
 
-### Partial Classes
-When modifying MainWindow, identify the correct partial class file for the change based on the responsibility areas listed above. Add new partial classes if a new responsibility area emerges.
+**Style**:
+- 4-space indentation
+- Nullable reference types enabled (fix warnings, don't suppress)
+- Prefer explicit types, guard clauses, small single-responsibility methods
+- Comments in Chinese or English; complex logic requires comments
 
-### Input Handling
-- Never bypass the input pipeline (always use InputManager.Dispatch)
-- Use AddHandler with handledEventsToo=true to receive events even when InkCanvas marks them handled
-- Filter for real mouse events with `e.StylusDevice == null` to avoid duplicate processing
-- Always call `BeginUndoTransactionForCurrentMode()` on Down and `EndUndoTransactionForCurrentMode()` on Up
+**Code Reuse**: Always prefer reusing existing code, components, and packages over reimplementation. Check existing services/helpers before creating new ones.
 
-### Gesture Suppression
-When implementing multi-touch gestures:
-- Call `BeginGestureSuppression()` to block input and cancel active strokes
-- Call `EndGestureSuppression()` to restore previous mode
-- Set `_strokeSuppressionActive` to prevent strokes during gestures
-- Hook `SuppressGestureStroke` to remove strokes created during gesture window
+**UI Thread**: WPF UI updates must occur on UI thread. Use `Task.Run` for expensive operations. Existing `StaBitmapLoader` available for async image loading.
 
-## Common Pitfalls
+## Commit Conventions
 
-1. **Don't use LayoutTransform for zoom/pan** - causes expensive layout recalculations
-2. **Don't cache CanvasHost with BitmapCache** - it's 8000x8000px and will consume excessive memory
-3. **Don't modify InkCanvas.EditingMode during active strokes** - can cause stroke corruption
-4. **Don't forget to handle RealTimeStylus input** - check `_inputSourceSelector?.ShouldHandleWpfStylus`
-5. **Don't append StylusPoints too frequently** - can hurt rendering performance on long strokes
+Follow Conventional Commits (English or Chinese):
+- `feat:`, `fix:`, `refactor:`, `docs:`, `build:`, `chore:`
+- Optional scope: `fix(SettingsWindow): ...`, `refactor(ZoomPanService): ...`
+
+Always run before committing:
+```bash
+dotnet build WindBoard.sln
+dotnet test WindBoard.sln
+```
+
+## Key Dependencies
+
+- **MaterialDesignThemes** v5.3.0: Material Design 3 UI components
+- **Newtonsoft.Json** v13.0.4: Settings persistence and WBI manifest
+- **PdfSharpCore** v1.3.67: PDF export
+- **System.Drawing.Common** v10.0.1: Image processing
+
+## Important Context
+
+- **App Settings**: Persist to `%APPDATA%\WindBoard\settings.json`, broadcast via `SettingsService.SettingsChanged`
+- **Page State**: Each `BoardPage` stores its own view state (zoom/pan), restored on page switch
+- **Undo System**: Per-page undo/redo with transaction support for multi-stroke operations
+- **Attachment Layers**: Two `ItemsControl` layers in XAML (pinned on top, non-pinned below strokes)
+- **Touch Gestures**: Configurable to require two fingers only (prevents accidental activation)
+- **Camouflage Mode**: Special presentation mode for classroom/demonstration scenarios
+
+## Reference Documentation
+
+For deeper details, see:
+- Architecture: [`docs/dev/architecture-overview.md`](docs/dev/architecture-overview.md)
+- Project Structure: [`docs/dev/project-structure.md`](docs/dev/project-structure.md)
+- Coding Guidelines: [`docs/dev/coding-guidelines.md`](docs/dev/coding-guidelines.md)
+- Testing Guide: [`docs/dev/testing.md`](docs/dev/testing.md)
+- WBI Format: [`docs/dev/wbi-format.md`](docs/dev/wbi-format.md)
+- Settings Persistence: [`docs/dev/settings-persistence.md`](docs/dev/settings-persistence.md)

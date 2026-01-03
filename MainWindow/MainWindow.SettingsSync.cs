@@ -37,6 +37,8 @@ namespace WindBoard
             ApplySettingsSnapshot(isStartup: true);
             _lastCamouflageSettingsSignature = CamouflageService.Instance.GetCamouflageShortcutSettingsSignature();
             SettingsService.Instance.SettingsChanged += SettingsService_SettingsChanged;
+
+            TryCheckUpdatesOnStartup();
         }
 
         private void SettingsService_SettingsChanged(object? sender, AppSettings e)

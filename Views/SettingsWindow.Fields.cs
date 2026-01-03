@@ -35,6 +35,9 @@ namespace WindBoard
         // --- 触摸手势设置 ---
         private bool _zoomPanTwoFingerOnly;
 
+        // --- 更新设置 ---
+        private bool _autoCheckUpdatesEnabled;
+
         private const string DefaultVideoPresenterPath = @"C:\\Program Files (x86)\\Seewo\\EasiCamera\\sweclauncher\\sweclauncher.exe";
         private const string DefaultVideoPresenterArgs = "-from en5";
 

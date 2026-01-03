@@ -213,5 +213,33 @@ namespace WindBoard.Services
             Save();
             SettingsChanged?.Invoke(this, Settings);
         }
+
+        // --- 更新相关设置 ---
+        public bool GetAutoCheckUpdatesEnabled() => Settings.AutoCheckUpdatesEnabled;
+
+        public void SetAutoCheckUpdatesEnabled(bool enabled)
+        {
+            Settings.AutoCheckUpdatesEnabled = enabled;
+            Save();
+            SettingsChanged?.Invoke(this, Settings);
+        }
+
+        public DateTime? GetLastUpdateCheckTime() => Settings.LastUpdateCheckTime;
+
+        public void SetLastUpdateCheckTime(DateTime? utcTime)
+        {
+            Settings.LastUpdateCheckTime = utcTime?.ToUniversalTime();
+            Save();
+            SettingsChanged?.Invoke(this, Settings);
+        }
+
+        public string? GetSkippedUpdateVersion() => Settings.SkippedUpdateVersion;
+
+        public void SetSkippedUpdateVersion(string? version)
+        {
+            Settings.SkippedUpdateVersion = string.IsNullOrWhiteSpace(version) ? null : version.Trim();
+            Save();
+            SettingsChanged?.Invoke(this, Settings);
+        }
     }
 }

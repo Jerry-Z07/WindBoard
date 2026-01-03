@@ -250,4 +250,54 @@
 
     <!-- Core -->
     <sys:String x:Key="StylusPlugInsAccessor_Unavailable">Unable to access StylusPlugIns property</sys:String>
+
+    <!-- Update -->
+    <sys:String x:Key="SettingsWindow_About_CheckUpdates_Button">Check updates</sys:String>
+    <sys:String x:Key="SettingsWindow_About_AutoCheckUpdates_Label">Check updates on startup</sys:String>
+
+    <sys:String x:Key="UpdateWindow_Title">Software Update</sys:String>
+    <sys:String x:Key="UpdateWindow_Header_Checking">Checking</sys:String>
+    <sys:String x:Key="UpdateWindow_Header_NewVersion">New version available</sys:String>
+    <sys:String x:Key="UpdateWindow_Header_UpToDate">Up to date</sys:String>
+    <sys:String x:Key="UpdateWindow_Header_Error">Check failed</sys:String>
+
+    <sys:String x:Key="UpdateWindow_Status_Checking">Checking for updates…</sys:String>
+    <sys:String x:Key="UpdateWindow_Status_UpdateAvailable">An update is available.</sys:String>
+    <sys:String x:Key="UpdateWindow_Status_UpToDate">You're running the latest version.</sys:String>
+    <sys:String x:Key="UpdateWindow_Status_NoInfo">No version information available.</sys:String>
+    <sys:String x:Key="UpdateWindow_Status_Error_Format">Update check failed: {0}</sys:String>
+
+    <sys:String x:Key="UpdateWindow_Info_Title">Version info</sys:String>
+    <sys:String x:Key="UpdateWindow_Info_CurrentVersion">Current</sys:String>
+    <sys:String x:Key="UpdateWindow_Info_LatestVersion">Latest</sys:String>
+    <sys:String x:Key="UpdateWindow_Info_ReleaseDate">Released</sys:String>
+    <sys:String x:Key="UpdateWindow_Info_MinSystemVersion">Min OS</sys:String>
+
+    <sys:String x:Key="UpdateWindow_Download_Title">Download</sys:String>
+    <sys:String x:Key="UpdateWindow_Download_AssetLabel">Package</sys:String>
+    <sys:String x:Key="UpdateWindow_Download_Button">Download</sys:String>
+    <sys:String x:Key="UpdateWindow_OpenFolder_Button">Open folder</sys:String>
+    <sys:String x:Key="UpdateWindow_OpenRelease_Button">Open release</sys:String>
+    <sys:String x:Key="UpdateWindow_Install_Button">Install update</sys:String>
+
+    <sys:String x:Key="UpdateWindow_Download_Hint_Installer">Detected installer-based installation (Program Files). The installer will be downloaded automatically. Click “Install update” when ready.</sys:String>
+    <sys:String x:Key="UpdateWindow_Download_Hint_Portable_SelfContained">Detected portable (self-contained). A ZIP package will be downloaded automatically. Replace your app folder contents to update.</sys:String>
+    <sys:String x:Key="UpdateWindow_Download_Hint_Portable_FrameworkDependent">Detected portable (framework-dependent). A ZIP package will be downloaded automatically. Replace your app folder contents to update.</sys:String>
+    <sys:String x:Key="UpdateWindow_Download_Hint_Portable">Detected portable installation. A matching package will be selected automatically.</sys:String>
+    <sys:String x:Key="UpdateWindow_Download_Hint_Unknown">Unable to detect install mode. A matching package will be selected automatically.</sys:String>
+
+    <sys:String x:Key="UpdateWindow_Changelog_Title">Changelog</sys:String>
+    <sys:String x:Key="UpdateWindow_SkipVersion_Button">Skip this version</sys:String>
+
+    <sys:String x:Key="UpdateWindow_Download_Status_Starting">Starting download…</sys:String>
+    <sys:String x:Key="UpdateWindow_Download_Status_Progress_Format">{0} / {1}</sys:String>
+    <sys:String x:Key="UpdateWindow_Download_Status_Done_Installer">Download complete. Click “Install update” to start installation.</sys:String>
+    <sys:String x:Key="UpdateWindow_Download_Status_Done_Zip">Download complete. Close the app and replace folder contents to update.</sys:String>
+    <sys:String x:Key="UpdateWindow_Download_Status_Canceled">Download canceled.</sys:String>
+    <sys:String x:Key="UpdateWindow_Download_Status_Failed_Format">Download failed: {0}</sys:String>
+
+    <sys:String x:Key="Update_Toast_Title">New WindBoard version</sys:String>
+    <sys:String x:Key="Update_Toast_Body_Format">Version {0} is now available</sys:String>
+
+    <sys:String x:Key="Update_OpenWindowFailed_Format">Unable to open update window: {0}</sys:String>
 </ResourceDictionary>

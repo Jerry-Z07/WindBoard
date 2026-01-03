@@ -1,0 +1,208 @@
+<Window x:Class="WindBoard.UpdateWindow" x:Name="UpdateWindowRoot"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+        mc:Ignorable="d"
+        Title="{DynamicResource UpdateWindow_Title}" Height="580" Width="980"
+        WindowStartupLocation="CenterOwner"
+        Style="{StaticResource MaterialDesignWindow}"
+        Background="{DynamicResource MaterialDesignPaper}"
+        TextElement.Foreground="{DynamicResource MaterialDesignBody}"
+        TextElement.FontFamily="{DynamicResource AppFontFamily}"
+        ResizeMode="CanResizeWithGrip">
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <materialDesign:ColorZone Mode="PrimaryMid" Padding="20,16" materialDesign:ElevationAssist.Elevation="Dp4">
+            <DockPanel>
+                <StackPanel Orientation="Horizontal" DockPanel.Dock="Left">
+                    <materialDesign:PackIcon Kind="Update" Width="26" Height="26" VerticalAlignment="Center" Margin="0,0,12,0"/>
+                    <TextBlock Text="{Binding HeaderTitle}"
+                               Style="{StaticResource MaterialDesignHeadline6TextBlock}"
+                               VerticalAlignment="Center"/>
+                </StackPanel>
+            </DockPanel>
+        </materialDesign:ColorZone>
+
+        <Grid Grid.Row="1" Margin="24">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="360"/>
+                <ColumnDefinition Width="16"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <ScrollViewer Grid.Column="0"
+                          VerticalScrollBarVisibility="Auto"
+                          HorizontalScrollBarVisibility="Disabled"
+                          PanningMode="VerticalOnly">
+                <StackPanel>
+                    <materialDesign:Card Padding="18" UniformCornerRadius="12" materialDesign:ElevationAssist.Elevation="Dp2">
+                        <StackPanel>
+                        <TextBlock Text="{DynamicResource UpdateWindow_Info_Title}"
+                                   Style="{StaticResource MaterialDesignSubtitle1TextBlock}"
+                                   FontWeight="SemiBold"
+                                   Margin="0,0,0,12"/>
+
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <TextBlock Grid.Row="0" Grid.Column="0" Margin="0,0,12,8" Opacity="0.75" Text="{DynamicResource UpdateWindow_Info_CurrentVersion}"/>
+                            <TextBlock Grid.Row="0" Grid.Column="1" Margin="0,0,0,8" Text="{Binding CurrentVersion}" TextTrimming="CharacterEllipsis"/>
+
+                            <TextBlock Grid.Row="1" Grid.Column="0" Margin="0,0,12,8" Opacity="0.75" Text="{DynamicResource UpdateWindow_Info_LatestVersion}"/>
+                            <TextBlock Grid.Row="1" Grid.Column="1" Margin="0,0,0,8" Text="{Binding LatestVersion}" TextTrimming="CharacterEllipsis"/>
+
+                            <TextBlock Grid.Row="2" Grid.Column="0" Margin="0,0,12,8" Opacity="0.75" Text="{DynamicResource UpdateWindow_Info_ReleaseDate}"/>
+                            <TextBlock Grid.Row="2" Grid.Column="1" Margin="0,0,0,8" Text="{Binding ReleaseDate}" TextTrimming="CharacterEllipsis"/>
+
+                            <TextBlock Grid.Row="3" Grid.Column="0" Margin="0,0,12,0" Opacity="0.75" Text="{DynamicResource UpdateWindow_Info_MinSystemVersion}"/>
+                            <TextBlock Grid.Row="3" Grid.Column="1" Margin="0,0,0,0" Text="{Binding MinSystemVersion}" TextTrimming="CharacterEllipsis"/>
+                        </Grid>
+
+                        <TextBlock Margin="0,14,0,0"
+                                   Text="{Binding StatusText}"
+                                   TextWrapping="Wrap"
+                                   Opacity="0.8"/>
+                        </StackPanel>
+                    </materialDesign:Card>
+
+                    <materialDesign:Card Padding="18" UniformCornerRadius="12" materialDesign:ElevationAssist.Elevation="Dp2" Margin="0,16,0,0">
+                        <StackPanel>
+                        <TextBlock Text="{DynamicResource UpdateWindow_Download_Title}"
+                                   Style="{StaticResource MaterialDesignSubtitle1TextBlock}"
+                                   FontWeight="SemiBold"
+                                   Margin="0,0,0,12"/>
+
+                        <TextBlock Text="{DynamicResource UpdateWindow_Download_AssetLabel}" Opacity="0.75" Margin="0,0,0,6"/>
+                        <TextBlock Text="{Binding SelectedAssetDisplay, Mode=OneWay}"
+                                   TextWrapping="Wrap"
+                                   Opacity="0.9"/>
+                        <TextBlock Margin="0,6,0,0"
+                                   Text="{Binding InstallMethodHint, Mode=OneWay}"
+                                   TextWrapping="Wrap"
+                                   Opacity="0.75"/>
+
+                        <ProgressBar Margin="0,12,0,0"
+                                      Height="6"
+                                      Minimum="0"
+                                      Maximum="100"
+                                      Value="{Binding DownloadProgressPercent, Mode=OneWay}"
+                                      Visibility="{Binding DownloadProgressVisible, Converter={StaticResource BoolToVis}}"/>
+
+                        <TextBlock Margin="0,8,0,0"
+                                   Text="{Binding DownloadProgressText}"
+                                   Opacity="0.8"
+                                   Visibility="{Binding DownloadProgressVisible, Converter={StaticResource BoolToVis}}"/>
+
+                        <WrapPanel Margin="0,14,0,0" HorizontalAlignment="Left">
+                            <Button Style="{StaticResource MaterialDesignRaisedButton}"
+                                    MinWidth="120"
+                                    Margin="0,0,10,0"
+                                    Click="BtnDownload_Click"
+                                    IsEnabled="{Binding CanDownload}">
+                                <StackPanel Orientation="Horizontal">
+                                    <materialDesign:PackIcon Kind="Download" Width="18" Height="18" Margin="0,0,8,0"/>
+                                    <TextBlock Text="{DynamicResource UpdateWindow_Download_Button}"/>
+                                </StackPanel>
+                            </Button>
+
+                            <Button Style="{StaticResource MaterialDesignOutlinedButton}"
+                                    MinWidth="120"
+                                    Margin="0,0,10,0"
+                                    Click="BtnOpenFolder_Click"
+                                    IsEnabled="{Binding CanOpenDownloadedFolder}">
+                                <StackPanel Orientation="Horizontal">
+                                    <materialDesign:PackIcon Kind="FolderOpen" Width="18" Height="18" Margin="0,0,8,0"/>
+                                    <TextBlock Text="{DynamicResource UpdateWindow_OpenFolder_Button}"/>
+                                </StackPanel>
+                            </Button>
+
+                            <Button Style="{StaticResource MaterialDesignOutlinedButton}"
+                                    MinWidth="120"
+                                    Click="BtnOpenRelease_Click">
+                                <StackPanel Orientation="Horizontal">
+                                    <materialDesign:PackIcon Kind="OpenInNew" Width="18" Height="18" Margin="0,0,8,0"/>
+                                    <TextBlock Text="{DynamicResource UpdateWindow_OpenRelease_Button}"/>
+                                </StackPanel>
+                            </Button>
+
+                            <Button Style="{StaticResource MaterialDesignRaisedButton}"
+                                    MinWidth="140"
+                                    Margin="10,0,0,0"
+                                    Click="BtnInstall_Click"
+                                    Visibility="{Binding CanInstallDownloaded, Converter={StaticResource BoolToVis}}">
+                                <StackPanel Orientation="Horizontal">
+                                    <materialDesign:PackIcon Kind="Update" Width="18" Height="18" Margin="0,0,8,0"/>
+                                    <TextBlock Text="{DynamicResource UpdateWindow_Install_Button}"/>
+                                </StackPanel>
+                            </Button>
+                        </WrapPanel>
+                        </StackPanel>
+                    </materialDesign:Card>
+                </StackPanel>
+            </ScrollViewer>
+
+            <materialDesign:Card Grid.Column="2" Padding="18" UniformCornerRadius="12" materialDesign:ElevationAssist.Elevation="Dp2">
+                <DockPanel>
+                    <TextBlock DockPanel.Dock="Top"
+                               Text="{DynamicResource UpdateWindow_Changelog_Title}"
+                               Style="{StaticResource MaterialDesignSubtitle1TextBlock}"
+                               FontWeight="SemiBold"
+                               Margin="0,0,0,12"/>
+                    <TextBox Text="{Binding ChangelogText, Mode=OneWay}"
+                             IsReadOnly="True"
+                             TextWrapping="Wrap"
+                             VerticalScrollBarVisibility="Auto"
+                             HorizontalScrollBarVisibility="Auto"
+                             Background="{DynamicResource MaterialDesignCardBackground}"
+                             BorderThickness="0"/>
+                </DockPanel>
+            </materialDesign:Card>
+        </Grid>
+
+        <Border Grid.Row="2"
+                BorderBrush="{DynamicResource MaterialDesignDivider}"
+                BorderThickness="0,1,0,0"
+                Background="{DynamicResource MaterialDesignPaper}"
+                Padding="16,12"
+                materialDesign:ElevationAssist.Elevation="Dp2">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                <StackPanel Grid.Column="1" Orientation="Horizontal">
+                    <Button Style="{StaticResource MaterialDesignOutlinedButton}"
+                            Margin="0,0,8,0"
+                            Click="BtnSkipVersion_Click"
+                            IsEnabled="{Binding CanSkipVersion}"
+                            materialDesign:ButtonAssist.CornerRadius="6">
+                        <TextBlock Text="{DynamicResource UpdateWindow_SkipVersion_Button}"/>
+                    </Button>
+                    <Button Style="{StaticResource MaterialDesignRaisedButton}"
+                            IsDefault="True"
+                            Click="BtnClose_Click"
+                            materialDesign:ButtonAssist.CornerRadius="6">
+                        <TextBlock Text="{DynamicResource Common_OK}"/>
+                    </Button>
+                </StackPanel>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>

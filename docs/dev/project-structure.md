@@ -13,6 +13,7 @@ WindBoard/
 │   │   └── InputFilterBase.cs
 │   ├── Ink/                # 墨迹算法
 │   │   ├── DetailPreservingSmoother.cs
+│   │   ├── SegmentSpatialIndex.cs
 │   │   ├── SimulatedPressure.cs
 │   │   ├── SimulatedPressureDefaults.cs
 │   │   ├── SimulatedPressureParameters.cs
@@ -26,7 +27,8 @@ WindBoard/
 │   │   ├── InputManager.cs
 │   │   ├── InputSourceSelector.cs
 │   │   ├── InputStage.cs
-│   │   └── StylusPlugInsAccessor.cs
+│   │   ├── StylusPlugInsAccessor.cs
+│   │   └── StylusPressureHardware.cs
 │   └── Modes/              # 交互模式
 │       ├── EraserMode.cs
 │       ├── IInteractionMode.cs
@@ -62,11 +64,20 @@ WindBoard/
 │   ├── Wbi/                # WBI 格式模型
 │   │   ├── WbiManifest.cs
 │   │   └── WbiPageData.cs
+│   ├── AppLanguage.cs
 │   ├── AppSettings.cs
 │   ├── BoardAttachment.cs
 │   ├── BoardAttachmentType.cs
 │   ├── BoardPage.cs
-│   └── ImportRequest.cs
+│   ├── ImportRequest.cs
+│   └── StrokeSmoothingMode.cs
+├── Resources/              # 资源文件
+│   ├── Fonts/              # MiSans 字体文件
+│   ├── icons/              # 图标文件
+│   │   ├── icon.ico
+│   │   └── icon.png
+│   ├── Strings.en-US.xaml  # 英文本地化资源
+│   └── Strings.zh-CN.xaml  # 中文本地化资源
 ├── Services/               # 业务服务
 │   ├── Export/            # 导出服务
 │   │   ├── ExportRenderer.cs
@@ -74,8 +85,13 @@ WindBoard/
 │   │   ├── PdfExporter.cs
 │   │   ├── WbiExporter.cs
 │   │   └── WbiImporter.cs
+│   ├── Localization/       # 本地化服务
+│   │   └── LocalizationService.cs
 │   ├── Settings/
 │   │   └── SettingsService.cs
+│   ├── AppDisplayNames.cs
+│   ├── AppFonts.cs
+│   ├── AppVersionInfo.cs
 │   ├── AutoExpandService.cs
 │   ├── CamouflageService.cs
 │   ├── PagePreviewRenderer.cs
@@ -84,6 +100,8 @@ WindBoard/
 │   ├── StrokeUndoHistory.cs
 │   ├── TouchGestureService.cs
 │   └── ZoomPanService.cs
+├── Styles/                 # 样式资源
+│   └── BottomBarStyles.xaml
 ├── Views/                  # 视图和控件（XAML + code-behind）
 │   ├── Controls/
 │   │   ├── PageNavigatorControl.xaml
@@ -95,18 +113,16 @@ WindBoard/
 │   │   └── ImportDialog.xaml.cs
 │   ├── MainWindow.xaml
 │   ├── MainWindow.xaml.cs
+│   ├── SettingsWindow.About.cs
 │   ├── SettingsWindow.Appearance.cs
 │   ├── SettingsWindow.Camouflage.cs
 │   ├── SettingsWindow.Fields.cs
+│   ├── SettingsWindow.Language.cs
 │   ├── SettingsWindow.TouchGestures.cs
 │   ├── SettingsWindow.VideoPresenter.cs
 │   ├── SettingsWindow.Writing.cs
 │   ├── SettingsWindow.xaml
 │   └── SettingsWindow.xaml.cs
-├── Styles/                 # 样式资源
-│   └── BottomBarStyles.xaml
-├── Resources/              # 资源文件
-│   └── Fonts/              # MiSans 字体文件
 ├── WindBoard.Tests/         # 单元测试项目
 │   ├── Ink/                # 墨迹算法测试
 │   │   ├── DetailPreservingSmootherTests.cs
@@ -114,6 +130,9 @@ WindBoard/
 │   │   ├── SimulatedPressureDefaultsTests.cs
 │   │   ├── SimulatedPressureTests.cs
 │   │   └── StrokeThicknessMetadataTests.cs
+│   ├── Resources/          # 资源测试
+│   │   ├── FontDeploymentTests.cs
+│   │   └── LocalizationResourcesTests.cs
 │   ├── Services/           # 服务测试
 │   │   ├── Export/
 │   │   │   ├── ExportRendererTests.cs
@@ -122,8 +141,23 @@ WindBoard/
 │   │   ├── PageServiceTests.cs
 │   │   ├── StrokeUndoHistoryTests.cs
 │   │   └── ZoomPanServiceTests.cs
-│   └── TestHelpers/        # 测试辅助工具
-│       └── InkTestHelpers.cs
+│   ├── TestHelpers/        # 测试辅助工具
+│   │   └── InkTestHelpers.cs
+│   ├── AssemblyInfo.cs
+│   └── WindBoard.Tests.csproj
+├── docs/                   # 文档目录
+│   ├── dev/                # 开发者文档
+│   │   ├── architecture-overview.md
+│   │   ├── build-and-run.md
+│   │   ├── coding-guidelines.md
+│   │   ├── project-structure.md
+│   │   ├── settings-persistence.md
+│   │   ├── testing.md
+│   │   └── wbi-format.md
+│   ├── user/               # 用户文档
+│   │   ├── import-export.md
+│   │   └── quick-start.md
+│   └── README.md
 ├── App.xaml                # 应用程序入口
 └── App.xaml.cs
 ```

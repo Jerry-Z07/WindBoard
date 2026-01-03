@@ -567,10 +567,31 @@
                                            TextWrapping="Wrap"
                                            MaxWidth="420"/>
 
-                                <TextBlock Margin="0,16,0,0" FontSize="13" Opacity="0.75" TextAlignment="Center">
-                                    <Run Text="{DynamicResource SettingsWindow_About_Version_Label}"/>
-                                    <Run Text="{Binding ElementName=SettingsWindowRoot, Path=AppVersion, Mode=OneWay}"/>
-                                </TextBlock>
+                                <StackPanel Margin="0,16,0,0" HorizontalAlignment="Center">
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                        <TextBlock FontSize="13" Opacity="0.75" TextAlignment="Center" VerticalAlignment="Center">
+                                            <Run Text="{DynamicResource SettingsWindow_About_Version_Label}"/>
+                                            <Run Text="{Binding ElementName=SettingsWindowRoot, Path=AppVersion, Mode=OneWay}"/>
+                                        </TextBlock>
+
+                                        <Button Click="BtnCheckUpdates_Click"
+                                                Style="{StaticResource MaterialDesignOutlinedButton}"
+                                                Height="30"
+                                                Margin="12,0,0,0"
+                                                Padding="12,0"
+                                                materialDesign:ButtonAssist.CornerRadius="8">
+                                            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                                <materialDesign:PackIcon Kind="Update" Width="18" Height="18" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                                <TextBlock Text="{DynamicResource SettingsWindow_About_CheckUpdates_Button}" VerticalAlignment="Center" FontSize="13" Margin="0,1,0,0"/>
+                                            </StackPanel>
+                                        </Button>
+                                    </StackPanel>
+
+                                    <CheckBox Margin="0,10,0,0"
+                                              HorizontalAlignment="Center"
+                                              IsChecked="{Binding ElementName=SettingsWindowRoot, Path=AutoCheckUpdatesEnabled, Mode=TwoWay}"
+                                              Content="{DynamicResource SettingsWindow_About_AutoCheckUpdates_Label}"/>
+                                </StackPanel>
                             </StackPanel>
                         </materialDesign:Card>
 
