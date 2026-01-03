@@ -25,6 +25,10 @@
     <sys:String x:Key="Common_Info">Notice</sys:String>
     <sys:String x:Key="Common_UnknownError">Unknown error</sys:String>
 
+    <!-- App -->
+    <sys:String x:Key="App_Name">WindBoard</sys:String>
+    <sys:String x:Key="App_Tagline">Open-source, easy-to-use whiteboard.</sys:String>
+
     <!-- MainWindow -->
     <sys:String x:Key="MainWindow_Attachment_OpenExternalPlayer">Double-click to open in external player</sys:String>
     <sys:String x:Key="MainWindow_Attachment_OpenExternal">Double-click to open externally</sys:String>
@@ -69,6 +73,10 @@
     <sys:String x:Key="SettingsWindow_Nav_Writing">Writing</sys:String>
     <sys:String x:Key="SettingsWindow_Nav_Appearance">Appearance</sys:String>
     <sys:String x:Key="SettingsWindow_Nav_About">About</sys:String>
+
+    <sys:String x:Key="SettingsWindow_About_Version_Label">Version: </sys:String>
+    <sys:String x:Key="SettingsWindow_About_Links_Title">Links</sys:String>
+    <sys:String x:Key="SettingsWindow_About_Github_Button">GitHub</sys:String>
 
     <sys:String x:Key="SettingsWindow_General_Language_Title">Language</sys:String>
     <sys:String x:Key="SettingsWindow_General_Language_Desc">Choose the UI language.</sys:String>

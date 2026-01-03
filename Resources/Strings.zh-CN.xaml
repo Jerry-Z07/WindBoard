@@ -25,6 +25,10 @@
     <sys:String x:Key="Common_Info">提示</sys:String>
     <sys:String x:Key="Common_UnknownError">未知错误</sys:String>
 
+    <!-- App -->
+    <sys:String x:Key="App_Name">轻风白板</sys:String>
+    <sys:String x:Key="App_Tagline">开源、易上手的电子白板。</sys:String>
+
     <!-- MainWindow -->
     <sys:String x:Key="MainWindow_Attachment_OpenExternalPlayer">双击打开外部播放器</sys:String>
     <sys:String x:Key="MainWindow_Attachment_OpenExternal">双击外部打开</sys:String>
@@ -69,6 +73,10 @@
     <sys:String x:Key="SettingsWindow_Nav_Writing">书写设置</sys:String>
     <sys:String x:Key="SettingsWindow_Nav_Appearance">外观设置</sys:String>
     <sys:String x:Key="SettingsWindow_Nav_About">关于</sys:String>
+
+    <sys:String x:Key="SettingsWindow_About_Version_Label">版本: </sys:String>
+    <sys:String x:Key="SettingsWindow_About_Links_Title">链接</sys:String>
+    <sys:String x:Key="SettingsWindow_About_Github_Button">GitHub</sys:String>
 
     <sys:String x:Key="SettingsWindow_General_Language_Title">语言</sys:String>
     <sys:String x:Key="SettingsWindow_General_Language_Desc">选择软件显示语言</sys:String>
