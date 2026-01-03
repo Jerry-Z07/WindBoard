@@ -81,6 +81,17 @@ namespace WindBoard
             }
             OnPropertyChanged(nameof(ZoomPanTwoFingerOnly));
 
+            // 初始化"更新设置"
+            try
+            {
+                _autoCheckUpdatesEnabled = SettingsService.Instance.GetAutoCheckUpdatesEnabled();
+            }
+            catch
+            {
+                _autoCheckUpdatesEnabled = true;
+            }
+            OnPropertyChanged(nameof(AutoCheckUpdatesEnabled));
+
             // 初始化伪装相关设置
             try
             {

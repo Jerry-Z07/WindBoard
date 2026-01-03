@@ -1,5 +1,6 @@
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
+using System;
 
 namespace WindBoard.Models
 {
@@ -49,5 +50,16 @@ namespace WindBoard.Models
 
         // 触摸缩放/平移：仅双指手势（开启后，三指及以上不参与缩放/平移）
         public bool ZoomPanTwoFingerOnly { get; set; } = false;
+
+        // --- 更新相关设置 ---
+
+        // 自动检查更新（默认开启）
+        public bool AutoCheckUpdatesEnabled { get; set; } = true;
+
+        // 上次检查更新时间（UTC）
+        public DateTime? LastUpdateCheckTime { get; set; } = null;
+
+        // 跳过的版本（用户选择"跳过此版本"时）
+        public string? SkippedUpdateVersion { get; set; } = null;
     }
 }

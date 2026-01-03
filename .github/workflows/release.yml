@@ -1,0 +1,165 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Restore
+        run: dotnet restore
+
+      - name: Install Inno Setup
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          choco install innosetup -y --no-progress
+
+      - name: Publish + Package + latest.json
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          $tag = '${{ github.ref_name }}'
+          if ([string]::IsNullOrWhiteSpace($tag)) { throw 'Missing tag name.' }
+          $version = $tag.TrimStart('v', 'V')
+          if ([string]::IsNullOrWhiteSpace($version)) { throw 'Invalid tag version.' }
+
+          $repo = '${{ github.repository }}'
+          $dist = Join-Path $PWD 'dist'
+          New-Item -ItemType Directory -Force -Path $dist | Out-Null
+
+          $variants = @(
+            @{ Rid = 'win-x86';   Arch = 'x86'  }
+            @{ Rid = 'win-x64';   Arch = 'x64'  }
+            @{ Rid = 'win-arm64'; Arch = 'arm64' }
+          )
+
+          $assets = @()
+
+          foreach ($v in $variants) {
+            foreach ($selfContained in @($true, $false)) {
+              $selfContainedArg = $selfContained.ToString().ToLowerInvariant()
+              $rid = $v.Rid
+              $arch = $v.Arch
+              $runtime = if ($selfContained) { 'self-contained' } else { 'framework-dependent' }
+              $suffix = if ($selfContained) { '' } else { '-fd' }
+
+              $fileName = "WindBoard-$version-$rid$suffix.zip"
+              $publishDir = Join-Path $PWD ("publish/{0}/{1}" -f $rid, ($selfContained ? 'sc' : 'fd'))
+
+              dotnet publish WindBoard.csproj `
+                -c Release `
+                -r $rid `
+                --self-contained $selfContainedArg `
+                -o $publishDir
+
+              $zipPath = Join-Path $dist $fileName
+              if (Test-Path $zipPath) { Remove-Item -Force $zipPath }
+              Compress-Archive -Path (Join-Path $publishDir '*') -DestinationPath $zipPath -Force
+
+              $sha256 = (Get-FileHash -Path $zipPath -Algorithm SHA256).Hash.ToLowerInvariant()
+              $size = (Get-Item $zipPath).Length
+              $downloadUrl = "https://github.com/$repo/releases/download/$tag/$fileName"
+
+              $assets += [pscustomobject]@{
+                arch = $arch
+                runtime = $runtime
+                fileName = $fileName
+                downloadUrl = $downloadUrl
+                size = $size
+                sha256 = $sha256
+              }
+            }
+
+            # Build installer from the self-contained publish output.
+            $rid = $v.Rid
+            $arch = $v.Arch
+            $publishDirSc = Join-Path $PWD ("publish/{0}/sc" -f $rid)
+            $issPath = Join-Path $PWD 'installer/WindBoard.iss'
+
+            $setupFileName = "WindBoardSetup-$version-$rid.exe"
+            $setupPath = Join-Path $dist $setupFileName
+
+            if (Test-Path $setupPath) { Remove-Item -Force $setupPath }
+
+            $iscc = (Get-Command iscc -ErrorAction SilentlyContinue)?.Source
+            if ([string]::IsNullOrWhiteSpace($iscc)) {
+              $fallback = Join-Path ${env:ProgramFiles(x86)} 'Inno Setup 6\ISCC.exe'
+              if (Test-Path $fallback) { $iscc = $fallback }
+            }
+            if ([string]::IsNullOrWhiteSpace($iscc) -or !(Test-Path $iscc)) {
+              throw 'ISCC.exe not found in PATH or default install location.'
+            }
+
+            & $iscc `
+              "/DMyAppVersion=$version" `
+              "/DMySourceDir=$publishDirSc" `
+              "/DMyOutputDir=$dist" `
+              "/DMyArch=$arch" `
+              "/DMyRid=$rid" `
+              $issPath
+
+            if (!(Test-Path $setupPath)) { throw "Installer not produced: $setupPath" }
+
+            $setupSha256 = (Get-FileHash -Path $setupPath -Algorithm SHA256).Hash.ToLowerInvariant()
+            $setupSize = (Get-Item $setupPath).Length
+            $setupDownloadUrl = "https://github.com/$repo/releases/download/$tag/$setupFileName"
+
+            $assets += [pscustomobject]@{
+              arch = $arch
+              runtime = 'installer'
+              fileName = $setupFileName
+              downloadUrl = $setupDownloadUrl
+              size = $setupSize
+              sha256 = $setupSha256
+            }
+          }
+
+          $commitLines = git log -n 30 --pretty=format:"- %s"
+          $changelogEn = "## Changes`n$commitLines"
+          $changelogZh = "## 更新内容`n$commitLines"
+
+          $releaseDate = (Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ')
+
+          $latest = [ordered]@{
+            version = $version
+            versionName = $tag
+            releaseDate = $releaseDate
+            minSystemVersion = '10.0.26100.0'
+            changelog = @{
+              'zh-CN' = $changelogZh
+              'en-US' = $changelogEn
+            }
+            assets = $assets
+          }
+
+          $latestJsonPath = Join-Path $dist 'latest.json'
+          ($latest | ConvertTo-Json -Depth 10) | Set-Content -Path $latestJsonPath -Encoding UTF8
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/*.zip
+            dist/*.exe
+            dist/latest.json
+          generate_release_notes: true

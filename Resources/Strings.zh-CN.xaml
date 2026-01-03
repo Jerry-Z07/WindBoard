@@ -250,4 +250,54 @@
 
     <!-- Core -->
     <sys:String x:Key="StylusPlugInsAccessor_Unavailable">无法访问 StylusPlugIns 属性</sys:String>
+
+    <!-- Update -->
+    <sys:String x:Key="SettingsWindow_About_CheckUpdates_Button">检查更新</sys:String>
+    <sys:String x:Key="SettingsWindow_About_AutoCheckUpdates_Label">启动时自动检查更新</sys:String>
+
+    <sys:String x:Key="UpdateWindow_Title">软件更新</sys:String>
+    <sys:String x:Key="UpdateWindow_Header_Checking">检查更新</sys:String>
+    <sys:String x:Key="UpdateWindow_Header_NewVersion">发现新版本</sys:String>
+    <sys:String x:Key="UpdateWindow_Header_UpToDate">已是最新</sys:String>
+    <sys:String x:Key="UpdateWindow_Header_Error">检查失败</sys:String>
+
+    <sys:String x:Key="UpdateWindow_Status_Checking">正在检查更新…</sys:String>
+    <sys:String x:Key="UpdateWindow_Status_UpdateAvailable">发现可用更新。</sys:String>
+    <sys:String x:Key="UpdateWindow_Status_UpToDate">当前已是最新版本。</sys:String>
+    <sys:String x:Key="UpdateWindow_Status_NoInfo">未获取到版本信息。</sys:String>
+    <sys:String x:Key="UpdateWindow_Status_Error_Format">检查更新失败: {0}</sys:String>
+
+    <sys:String x:Key="UpdateWindow_Info_Title">版本信息</sys:String>
+    <sys:String x:Key="UpdateWindow_Info_CurrentVersion">当前版本</sys:String>
+    <sys:String x:Key="UpdateWindow_Info_LatestVersion">最新版本</sys:String>
+    <sys:String x:Key="UpdateWindow_Info_ReleaseDate">发布日期</sys:String>
+    <sys:String x:Key="UpdateWindow_Info_MinSystemVersion">最低系统版本</sys:String>
+
+    <sys:String x:Key="UpdateWindow_Download_Title">下载</sys:String>
+    <sys:String x:Key="UpdateWindow_Download_AssetLabel">将下载</sys:String>
+    <sys:String x:Key="UpdateWindow_Download_Button">下载更新</sys:String>
+    <sys:String x:Key="UpdateWindow_OpenFolder_Button">打开文件夹</sys:String>
+    <sys:String x:Key="UpdateWindow_OpenRelease_Button">打开发布页</sys:String>
+    <sys:String x:Key="UpdateWindow_Install_Button">安装更新</sys:String>
+
+    <sys:String x:Key="UpdateWindow_Download_Hint_Installer">已检测到安装版（安装到 Program Files）。将自动下载安装包，下载完成后点击“安装更新”。</sys:String>
+    <sys:String x:Key="UpdateWindow_Download_Hint_Portable_SelfContained">已检测到便携版（自包含）。将自动下载 ZIP 包，下载后解压覆盖原目录即可更新。</sys:String>
+    <sys:String x:Key="UpdateWindow_Download_Hint_Portable_FrameworkDependent">已检测到便携版（依赖运行时）。将自动下载 ZIP 包，下载后解压覆盖原目录即可更新。</sys:String>
+    <sys:String x:Key="UpdateWindow_Download_Hint_Portable">已检测到便携版。将自动选择匹配的更新包。</sys:String>
+    <sys:String x:Key="UpdateWindow_Download_Hint_Unknown">无法识别安装方式，将自动选择匹配的更新包。</sys:String>
+
+    <sys:String x:Key="UpdateWindow_Changelog_Title">更新日志</sys:String>
+    <sys:String x:Key="UpdateWindow_SkipVersion_Button">跳过此版本</sys:String>
+
+    <sys:String x:Key="UpdateWindow_Download_Status_Starting">正在开始下载…</sys:String>
+    <sys:String x:Key="UpdateWindow_Download_Status_Progress_Format">{0} / {1}</sys:String>
+    <sys:String x:Key="UpdateWindow_Download_Status_Done_Installer">下载完成。点击“安装更新”开始安装。</sys:String>
+    <sys:String x:Key="UpdateWindow_Download_Status_Done_Zip">下载完成。请关闭软件后解压覆盖原目录完成更新。</sys:String>
+    <sys:String x:Key="UpdateWindow_Download_Status_Canceled">下载已取消。</sys:String>
+    <sys:String x:Key="UpdateWindow_Download_Status_Failed_Format">下载失败: {0}</sys:String>
+
+    <sys:String x:Key="Update_Toast_Title">WindBoard 有新版本</sys:String>
+    <sys:String x:Key="Update_Toast_Body_Format">版本 {0} 现已发布</sys:String>
+
+    <sys:String x:Key="Update_OpenWindowFailed_Format">无法打开更新窗口: {0}</sys:String>
 </ResourceDictionary>
