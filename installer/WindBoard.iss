@@ -66,7 +66,13 @@ ArchitecturesInstallIn64BitMode={#MyArchitecturesInstallIn64BitMode}
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
+#ifexist "compiler:Languages\\Unofficial\\ChineseSimplified.isl"
+Name: "chs"; MessagesFile: "compiler:Languages\\Unofficial\\ChineseSimplified.isl"
+#else
+  #ifexist "compiler:Languages\\ChineseSimplified.isl"
 Name: "chs"; MessagesFile: "compiler:Languages\\ChineseSimplified.isl"
+  #endif
+#endif
 
 [Files]
 Source: "{#MySourceDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
