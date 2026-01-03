@@ -112,8 +112,8 @@ jobs:
 
             & $iscc `
               "/DMyAppVersion=$version" `
-              "/DMySourceDir=$publishDirSc" `
-              "/DMyOutputDir=$dist" `
+              ("/DMySourceDir={0}" -f ('"' + $publishDirSc + '"')) `
+              ("/DMyOutputDir={0}" -f ('"' + $dist + '"')) `
               "/DMyArch=$arch" `
               "/DMyRid=$rid" `
               $issPath
