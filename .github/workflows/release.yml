@@ -140,17 +140,34 @@ jobs:
           try { $prevTag = (git describe --tags --abbrev=0 --match "v*" "$tag^" 2>$null).Trim() } catch { }
 
           if (![string]::IsNullOrWhiteSpace($prevTag)) {
-            $commitLines = (git log "$prevTag..$tag" --pretty=format:"- %s") -join "`n"
+            $commitLines = (git log "$prevTag..$tag" --no-merges --pretty=format:"- %s") -join "`n"
             $rangeLabelEn = "$prevTag..$tag"
             $rangeLabelZh = "$prevTag..$tag"
           } else {
-            $commitLines = (git log -n 30 --pretty=format:"- %s") -join "`n"
+            $commitLines = (git log -n 30 --no-merges --pretty=format:"- %s") -join "`n"
             $rangeLabelEn = "latest 30 commits"
             $rangeLabelZh = "最近 30 条提交"
           }
 
           $changelogEn = "## Changes ($rangeLabelEn)`n$commitLines"
           $changelogZh = "## 更新内容（$rangeLabelZh）`n$commitLines"
+
+          $customNotesDir = Join-Path $PWD 'docs/release-notes'
+          $customZhPath = Join-Path $customNotesDir "$tag.zh-CN.md"
+          $customEnPath = Join-Path $customNotesDir "$tag.en-US.md"
+
+          if (Test-Path $customZhPath) {
+            $changelogZh = (Get-Content -Path $customZhPath -Raw -Encoding UTF8).Trim()
+          }
+
+          if (Test-Path $customEnPath) {
+            $changelogEn = (Get-Content -Path $customEnPath -Raw -Encoding UTF8).Trim()
+          } else {
+            $changelogEn = @(
+              "## Changes"
+              "(English changelog not provided for $tag. Please refer to the Chinese section.)"
+            ) -join "`n"
+          }
 
           $releaseDate = (Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ')
 
