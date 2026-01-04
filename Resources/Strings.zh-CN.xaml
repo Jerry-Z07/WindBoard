@@ -271,7 +271,6 @@
     <sys:String x:Key="UpdateWindow_Info_CurrentVersion">当前版本</sys:String>
     <sys:String x:Key="UpdateWindow_Info_LatestVersion">最新版本</sys:String>
     <sys:String x:Key="UpdateWindow_Info_ReleaseDate">发布日期</sys:String>
-    <sys:String x:Key="UpdateWindow_Info_MinSystemVersion">最低系统版本</sys:String>
 
     <sys:String x:Key="UpdateWindow_Download_Title">下载</sys:String>
     <sys:String x:Key="UpdateWindow_Download_AssetLabel">将下载</sys:String>

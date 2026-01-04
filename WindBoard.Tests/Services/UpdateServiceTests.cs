@@ -66,7 +66,6 @@ public sealed class UpdateServiceTests
           "version": "9999.0.0",
           "versionName": "v9999.0.0",
           "releaseDate": "2024-01-15T10:30:00Z",
-          "minSystemVersion": "10.0.0.0",
           "changelog": { "en-US": "Test" },
           "assets": [
             {
@@ -107,7 +106,6 @@ public sealed class UpdateServiceTests
           "version": "9999.0.0",
           "versionName": "v9999.0.0",
           "releaseDate": "2024-01-15T10:30:00Z",
-          "minSystemVersion": "10.0.0.0",
           "changelog": { "en-US": "Test" },
           "assets": []
         }
