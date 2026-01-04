@@ -115,21 +115,6 @@ namespace WindBoard.Services
                 return result;
             }
 
-            if (!string.IsNullOrWhiteSpace(updateInfo.MinSystemVersion))
-            {
-                System.Version? minSystemVersion = TryParseStableVersion(updateInfo.MinSystemVersion);
-                if (minSystemVersion != null)
-                {
-                    System.Version currentSystemVersion = Environment.OSVersion.Version;
-                    if (currentSystemVersion < minSystemVersion)
-                    {
-                        result.UpdateAvailable = false;
-                        result.ErrorMessage = $"Requires Windows {minSystemVersion} or later.";
-                        return result;
-                    }
-                }
-            }
-
             if (!string.IsNullOrWhiteSpace(skippedVersion))
             {
                 System.Version? skippedParsed = TryParseStableVersion(skippedVersion);

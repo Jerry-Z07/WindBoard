@@ -4,8 +4,12 @@ using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Runtime.CompilerServices;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Windows;
+using System.Windows.Documents;
+using Markdig;
 using WindBoard.Models;
 using WindBoard.Models.Update;
 using WindBoard.Services;
@@ -27,8 +31,9 @@ namespace WindBoard.ViewModels
         private string _statusText = string.Empty;
         private string _latestVersion = "-";
         private string _releaseDate = "-";
-        private string _minSystemVersion = "-";
         private string _changelogText = string.Empty;
+        private FlowDocument _changelogDocument = new();
+        private bool _isUpdateAvailable;
 
         private bool _isChecking;
         private bool _isDownloading;
@@ -82,16 +87,32 @@ namespace WindBoard.ViewModels
             private set => SetField(ref _releaseDate, value);
         }
 
-        public string MinSystemVersion
-        {
-            get => _minSystemVersion;
-            private set => SetField(ref _minSystemVersion, value);
-        }
-
         public string ChangelogText
         {
             get => _changelogText;
-            private set => SetField(ref _changelogText, value);
+            private set
+            {
+                if (Equals(_changelogText, value))
+                {
+                    return;
+                }
+
+                _changelogText = value;
+                OnPropertyChanged();
+                UpdateChangelogDocument();
+            }
+        }
+
+        public FlowDocument ChangelogDocument
+        {
+            get => _changelogDocument;
+            private set => SetField(ref _changelogDocument, value);
+        }
+
+        public bool IsUpdateAvailable
+        {
+            get => _isUpdateAvailable;
+            private set => SetField(ref _isUpdateAvailable, value);
         }
 
         public string SelectedAssetDisplay => _selectedAsset?.FileName ?? "-";
@@ -134,13 +155,13 @@ namespace WindBoard.ViewModels
             private set => SetField(ref _downloadProgressText, value);
         }
 
-        public bool CanDownload => !_isChecking && !_isDownloading && _selectedAsset != null;
+        public bool CanDownload => IsUpdateAvailable && !_isChecking && !_isDownloading && _selectedAsset != null;
 
-        public bool CanSkipVersion => !_isChecking && !_isDownloading && _updateInfo != null;
+        public bool CanSkipVersion => IsUpdateAvailable && !_isChecking && !_isDownloading && _updateInfo != null;
 
-        public bool CanOpenDownloadedFolder => !_isChecking && !_isDownloading && !string.IsNullOrWhiteSpace(_downloadedPath);
+        public bool CanOpenDownloadedFolder => IsUpdateAvailable && !_isChecking && !_isDownloading && !string.IsNullOrWhiteSpace(_downloadedPath);
 
-        public bool CanInstallDownloaded => !_isChecking && !_isDownloading && _selectedAsset != null && UpdateService.IsInstallerAsset(_selectedAsset) && !string.IsNullOrWhiteSpace(_downloadedPath);
+        public bool CanInstallDownloaded => IsUpdateAvailable && !_isChecking && !_isDownloading && _selectedAsset != null && UpdateService.IsInstallerAsset(_selectedAsset) && !string.IsNullOrWhiteSpace(_downloadedPath);
 
         public async Task InitializeAsync()
         {
@@ -182,6 +203,7 @@ namespace WindBoard.ViewModels
             }
 
             _updateInfo = result.LatestVersion;
+            IsUpdateAvailable = result.UpdateAvailable;
             _installEnvironment = InstallModeDetector.Detect();
             OnPropertyChanged(nameof(InstallMethodHint));
 
@@ -189,7 +211,6 @@ namespace WindBoard.ViewModels
             ReleaseDate = _updateInfo.ReleaseDate != default
                 ? _updateInfo.ReleaseDate.ToLocalTime().ToString("yyyy-MM-dd HH:mm", CultureInfo.CurrentUICulture)
                 : "-";
-            MinSystemVersion = string.IsNullOrWhiteSpace(_updateInfo.MinSystemVersion) ? "-" : _updateInfo.MinSystemVersion;
             ChangelogText = ResolveLocalizedChangelog(_updateInfo);
 
             _selectedAsset = _updateService.SelectAssetForCurrentInstallation(_updateInfo, _installEnvironment);
@@ -325,7 +346,7 @@ namespace WindBoard.ViewModels
 
         public void SkipThisVersion()
         {
-            if (_updateInfo == null)
+            if (_updateInfo == null || !IsUpdateAvailable)
             {
                 return;
             }
@@ -347,17 +368,104 @@ namespace WindBoard.ViewModels
             _installEnvironment = null;
             _selectedAsset = null;
             _downloadedPath = null;
+            IsUpdateAvailable = false;
 
             DownloadProgressVisible = false;
             DownloadProgressPercent = 0;
             DownloadProgressText = string.Empty;
             LatestVersion = "-";
             ReleaseDate = "-";
-            MinSystemVersion = "-";
             ChangelogText = string.Empty;
 
             OnPropertyChanged(nameof(SelectedAssetDisplay));
             OnPropertyChanged(nameof(InstallMethodHint));
+        }
+
+        private static readonly MarkdownPipeline _markdownPipeline = new MarkdownPipelineBuilder()
+            .UseAdvancedExtensions()
+            .UseSoftlineBreakAsHardlineBreak()
+            .Build();
+
+        private void UpdateChangelogDocument()
+        {
+            string markdown = NormalizeChangelogMarkdown(_changelogText ?? string.Empty);
+
+            FlowDocument document;
+            try
+            {
+                document = Markdig.Wpf.Markdown.ToFlowDocument(markdown, _markdownPipeline);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[Update] Failed to render changelog markdown: {ex}");
+                document = new FlowDocument();
+                document.Blocks.Add(new Paragraph(new Run(markdown)));
+            }
+
+            if (Application.Current?.TryFindResource("AppFontFamily") is System.Windows.Media.FontFamily appFontFamily)
+            {
+                document.FontFamily = appFontFamily;
+            }
+
+            document.PagePadding = new Thickness(0);
+            ChangelogDocument = document;
+        }
+
+        private static string NormalizeChangelogMarkdown(string markdown)
+        {
+            if (string.IsNullOrWhiteSpace(markdown))
+            {
+                return string.Empty;
+            }
+
+            string normalized = markdown.Replace("\r\n", "\n").Replace('\r', '\n');
+
+            // Compatibility: older release workflow embedded a string[] (git log output) into an interpolated string,
+            // which PowerShell joins with spaces, collapsing Markdown list items into a single line.
+            int firstBullet = normalized.IndexOf("\n- ", StringComparison.Ordinal);
+            if (firstBullet < 0)
+            {
+                return normalized;
+            }
+
+            string listPart = normalized[(firstBullet + 1)..];
+            if (CountOccurrences(listPart, "\n- ") > 1)
+            {
+                return normalized;
+            }
+
+            const string prefixes = "feat|fix|docs|refactor|perf|chore|build|ci|test|style|Merge";
+            string pattern = $@"\s-\s(?=(?:{prefixes})(?:\(|:|\s))";
+
+            if (!Regex.IsMatch(listPart, pattern, RegexOptions.IgnoreCase | RegexOptions.CultureInvariant))
+            {
+                return normalized;
+            }
+
+            string fixedList = Regex.Replace(listPart, pattern, "\n- ", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+            return normalized[..(firstBullet + 1)] + fixedList;
+        }
+
+        private static int CountOccurrences(string text, string token)
+        {
+            if (string.IsNullOrEmpty(text) || string.IsNullOrEmpty(token))
+            {
+                return 0;
+            }
+
+            int count = 0;
+            int index = 0;
+            while (true)
+            {
+                int next = text.IndexOf(token, index, StringComparison.Ordinal);
+                if (next < 0)
+                {
+                    return count;
+                }
+
+                count++;
+                index = next + token.Length;
+            }
         }
 
         private string ResolveLocalizedChangelog(UpdateInfo updateInfo)
@@ -426,4 +534,3 @@ namespace WindBoard.ViewModels
         }
     }
 }
-

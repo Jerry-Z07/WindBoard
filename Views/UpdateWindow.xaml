@@ -55,7 +55,6 @@
                                 <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="Auto"/>
                                 <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
                             </Grid.RowDefinitions>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="Auto"/>
@@ -70,9 +69,6 @@
 
                             <TextBlock Grid.Row="2" Grid.Column="0" Margin="0,0,12,8" Opacity="0.75" Text="{DynamicResource UpdateWindow_Info_ReleaseDate}"/>
                             <TextBlock Grid.Row="2" Grid.Column="1" Margin="0,0,0,8" Text="{Binding ReleaseDate}" TextTrimming="CharacterEllipsis"/>
-
-                            <TextBlock Grid.Row="3" Grid.Column="0" Margin="0,0,12,0" Opacity="0.75" Text="{DynamicResource UpdateWindow_Info_MinSystemVersion}"/>
-                            <TextBlock Grid.Row="3" Grid.Column="1" Margin="0,0,0,0" Text="{Binding MinSystemVersion}" TextTrimming="CharacterEllipsis"/>
                         </Grid>
 
                         <TextBlock Margin="0,14,0,0"
@@ -82,7 +78,11 @@
                         </StackPanel>
                     </materialDesign:Card>
 
-                    <materialDesign:Card Padding="18" UniformCornerRadius="12" materialDesign:ElevationAssist.Elevation="Dp2" Margin="0,16,0,0">
+                    <materialDesign:Card Padding="18"
+                                        UniformCornerRadius="12"
+                                        materialDesign:ElevationAssist.Elevation="Dp2"
+                                        Margin="0,16,0,0"
+                                        Visibility="{Binding IsUpdateAvailable, Converter={StaticResource BoolToVis}}">
                         <StackPanel>
                         <TextBlock Text="{DynamicResource UpdateWindow_Download_Title}"
                                    Style="{StaticResource MaterialDesignSubtitle1TextBlock}"
@@ -165,13 +165,13 @@
                                Style="{StaticResource MaterialDesignSubtitle1TextBlock}"
                                FontWeight="SemiBold"
                                Margin="0,0,0,12"/>
-                    <TextBox Text="{Binding ChangelogText, Mode=OneWay}"
-                             IsReadOnly="True"
-                             TextWrapping="Wrap"
-                             VerticalScrollBarVisibility="Auto"
-                             HorizontalScrollBarVisibility="Auto"
-                             Background="{DynamicResource MaterialDesignCardBackground}"
-                             BorderThickness="0"/>
+                    <FlowDocumentScrollViewer Document="{Binding ChangelogDocument}"
+                                              VerticalScrollBarVisibility="Auto"
+                                              HorizontalScrollBarVisibility="Disabled"
+                                              Background="{DynamicResource MaterialDesignCardBackground}"
+                                              BorderThickness="0"
+                                              Padding="0"
+                                              Focusable="False"/>
                 </DockPanel>
             </materialDesign:Card>
         </Grid>
@@ -192,6 +192,7 @@
                             Margin="0,0,8,0"
                             Click="BtnSkipVersion_Click"
                             IsEnabled="{Binding CanSkipVersion}"
+                            Visibility="{Binding IsUpdateAvailable, Converter={StaticResource BoolToVis}}"
                             materialDesign:ButtonAssist.CornerRadius="6">
                         <TextBlock Text="{DynamicResource UpdateWindow_SkipVersion_Button}"/>
                     </Button>

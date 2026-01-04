@@ -136,9 +136,21 @@ jobs:
             }
           }
 
-          $commitLines = git log -n 30 --pretty=format:"- %s"
-          $changelogEn = "## Changes`n$commitLines"
-          $changelogZh = "## 更新内容`n$commitLines"
+          $prevTag = $null
+          try { $prevTag = (git describe --tags --abbrev=0 --match "v*" "$tag^" 2>$null).Trim() } catch { }
+
+          if (![string]::IsNullOrWhiteSpace($prevTag)) {
+            $commitLines = (git log "$prevTag..$tag" --pretty=format:"- %s") -join "`n"
+            $rangeLabelEn = "$prevTag..$tag"
+            $rangeLabelZh = "$prevTag..$tag"
+          } else {
+            $commitLines = (git log -n 30 --pretty=format:"- %s") -join "`n"
+            $rangeLabelEn = "latest 30 commits"
+            $rangeLabelZh = "最近 30 条提交"
+          }
+
+          $changelogEn = "## Changes ($rangeLabelEn)`n$commitLines"
+          $changelogZh = "## 更新内容（$rangeLabelZh）`n$commitLines"
 
           $releaseDate = (Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ')
 
@@ -146,7 +158,6 @@ jobs:
             version = $version
             versionName = $tag
             releaseDate = $releaseDate
-            minSystemVersion = '10.0.26100.0'
             changelog = @{
               'zh-CN' = $changelogZh
               'en-US' = $changelogEn
@@ -157,6 +168,16 @@ jobs:
           $latestJsonPath = Join-Path $dist 'latest.json'
           ($latest | ConvertTo-Json -Depth 10) | Set-Content -Path $latestJsonPath -Encoding UTF8
 
+          $releaseNotes = @"
+          $changelogZh
+
+          ---
+
+          $changelogEn
+          "@
+          $releaseNotesPath = Join-Path $dist 'release-notes.md'
+          $releaseNotes.Trim() | Set-Content -Path $releaseNotesPath -Encoding UTF8
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
@@ -164,4 +185,5 @@ jobs:
             dist/*.zip
             dist/*.exe
             dist/latest.json
-          generate_release_notes: true
+          body_path: dist/release-notes.md
+          generate_release_notes: false

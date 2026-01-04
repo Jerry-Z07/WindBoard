@@ -15,9 +15,6 @@ namespace WindBoard.Models.Update
         [JsonProperty("releaseDate")]
         public DateTime ReleaseDate { get; set; }
 
-        [JsonProperty("minSystemVersion")]
-        public string MinSystemVersion { get; set; } = string.Empty;
-
         [JsonProperty("changelog")]
         public Dictionary<string, string> Changelog { get; set; } = new(StringComparer.OrdinalIgnoreCase);
 
@@ -25,4 +22,3 @@ namespace WindBoard.Models.Update
         public List<UpdateAsset> Assets { get; set; } = new();
     }
 }
-

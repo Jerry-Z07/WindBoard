@@ -271,7 +271,6 @@
     <sys:String x:Key="UpdateWindow_Info_CurrentVersion">Current</sys:String>
     <sys:String x:Key="UpdateWindow_Info_LatestVersion">Latest</sys:String>
     <sys:String x:Key="UpdateWindow_Info_ReleaseDate">Released</sys:String>
-    <sys:String x:Key="UpdateWindow_Info_MinSystemVersion">Min OS</sys:String>
 
     <sys:String x:Key="UpdateWindow_Download_Title">Download</sys:String>
     <sys:String x:Key="UpdateWindow_Download_AssetLabel">Package</sys:String>
