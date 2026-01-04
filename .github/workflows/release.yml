@@ -168,13 +168,13 @@ jobs:
           $latestJsonPath = Join-Path $dist 'latest.json'
           ($latest | ConvertTo-Json -Depth 10) | Set-Content -Path $latestJsonPath -Encoding UTF8
 
-          $releaseNotes = @"
-          $changelogZh
-
-          ---
-
-          $changelogEn
-          "@
+          $releaseNotes = @(
+            $changelogZh
+            ''
+            '---'
+            ''
+            $changelogEn
+          ) -join "`n"
           $releaseNotesPath = Join-Path $dist 'release-notes.md'
           $releaseNotes.Trim() | Set-Content -Path $releaseNotesPath -Encoding UTF8
 

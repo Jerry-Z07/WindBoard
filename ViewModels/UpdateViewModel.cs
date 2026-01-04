@@ -112,7 +112,17 @@ namespace WindBoard.ViewModels
         public bool IsUpdateAvailable
         {
             get => _isUpdateAvailable;
-            private set => SetField(ref _isUpdateAvailable, value);
+            private set
+            {
+                if (Equals(_isUpdateAvailable, value))
+                {
+                    return;
+                }
+
+                _isUpdateAvailable = value;
+                OnPropertyChanged();
+                NotifyComputed();
+            }
         }
 
         public string SelectedAssetDisplay => _selectedAsset?.FileName ?? "-";

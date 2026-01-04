@@ -46,9 +46,28 @@ namespace WindBoard
                 return;
             }
 
+            if (!e.Uri.IsAbsoluteUri)
+            {
+                Debug.WriteLine($"[UpdateWindow] Ignored non-absolute URI: {e.Uri}");
+                e.Handled = true;
+                return;
+            }
+
+            string scheme = e.Uri.Scheme;
+            bool allowed = string.Equals(scheme, Uri.UriSchemeHttp, StringComparison.OrdinalIgnoreCase)
+                || string.Equals(scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase)
+                || string.Equals(scheme, "mailto", StringComparison.OrdinalIgnoreCase);
+
+            if (!allowed)
+            {
+                Debug.WriteLine($"[UpdateWindow] Ignored unsupported URI scheme: {scheme} ({e.Uri})");
+                e.Handled = true;
+                return;
+            }
+
             try
             {
-                Process.Start(new ProcessStartInfo(e.Uri.AbsoluteUri)
+                Process.Start(new ProcessStartInfo(e.Uri.ToString())
                 {
                     UseShellExecute = true
                 });
