@@ -18,3 +18,5 @@
 - [设置持久化](dev/settings-persistence.md)：配置文件路径、设置项说明、新增设置流程
 - [测试指南](dev/testing.md)：测试框架版本、运行测试、编写建议
 
+## Release 发布
+- 发布版本说明（可选双语）：在打 tag 前添加 `docs/release-notes/<tag>.zh-CN.md` 与 `docs/release-notes/<tag>.en-US.md`，release workflow 会优先使用它们生成 GitHub Release 描述与 `latest.json` 的更新日志。
