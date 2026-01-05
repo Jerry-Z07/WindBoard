@@ -1,110 +1,100 @@
-# WindBoard
+<div align="center">
+  <img src="./Resources/icons/icon.png" alt="icon" width="15%" />
+</div>
 
-[![zread](https://img.shields.io/badge/Ask_Zread-_.svg?style=flat&color=00b0aa&labelColor=000000&logo=data%3Aimage%2Fsvg%2Bxml%3Bbase64%2CPHN2ZyB3aWR0aD0iMTYiIGhlaWdodD0iMTYiIHZpZXdCb3g9IjAgMCAxNiAxNiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTQuOTYxNTYgMS42MDAxSDIuMjQxNTZDMS44ODgxIDEuNjAwMSAxLjYwMTU2IDEuODg2NjQgMS42MDE1NiAyLjI0MDFWNC45NjAxQzEuNjAxNTYgNS4zMTM1NiAxLjg4ODEgNS42MDAxIDIuMjQxNTYgNS42MDAxSDQuOTYxNTZDNS4zMTUwMiA1LjYwMDEgNS42MDE1NiA1LjMxMzU2IDUuNjAxNTYgNC45NjAxVjIuMjQwMUM1LjYwMTU2IDEuODg2NjQgNS4zMTUwMiAxLjYwMDEgNC45NjE1NiAxLjYwMDFaIiBmaWxsPSIjZmZmIi8%2BCjxwYXRoIGQ9Ik00Ljk2MTU2IDEwLjM5OTlIMi4yNDE1NkMxLjg4ODEgMTAuMzk5OSAxLjYwMTU2IDEwLjY4NjQgMS42MDE1NiAxMS4wMzk5VjEzLjc1OTlDMS42MDE1NiAxNC4xMTM0IDEuODg4MSAxNC4zOTk5IDIuMjQxNTYgMTQuMzk5OUg0Ljk2MTU2QzUuMzE1MDIgMTQuMzk5OSA1LjYwMTU2IDE0LjExMzQgNS42MDE1NiAxMy43NTk5VjExLjAzOTlDNS42MDE1NiAxMC42ODY0IDUuMzE1MDIgMTAuMzk5OSA0Ljk2MTU2IDEwLjM5OTlaIiBmaWxsPSIjZmZmIi8%2BCjxwYXRoIGQ9Ik0xMy43NTg0IDEuNjAwMUgxMS4wMzg0QzEwLjY4NSAxLjYwMDEgMTAuMzk4NCAxLjg4NjY0IDEwLjM5ODQgMi4yNDAxVjQuOTYwMUMxMC4zOTg0IDUuMzEzNTYgMTAuNjg1IDUuNjAwMSAxMS4wMzg0IDUuNjAwMUgxMy43NTg0QzE0LjExMTkgNS42MDAxIDE0LjM5ODQgNS4zMTM1NiAxNC4zOTg0IDQuOTYwMVYyLjI0MDFDMTQuMzk4NCAxLjg4NjY0IDE0LjExMTkgMS42MDAxIDEzLjc1ODQgMS42MDAxWiIgZmlsbD0iI2ZmZiIvPgo8cGF0aCBkPSJNNCAxMkwxMiA0TDQgMTJaIiBmaWxsPSIjZmZmIi8%2BCjxwYXRoIGQ9Ik00IDEyTDEyIDQiIHN0cm9rZT0iI2ZmZiIgc3Ryb2tlLXdpZHRoPSIxLjUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgo8L3N2Zz4K&logoColor=ffffff)](https://zread.ai/Jerry-Z07/WindBoard)
+<div align="center">
+  <h2><strong>轻风白板</strong></h2>
+</div>
 
-一款基于 WPF 和 Material Design 3 的智能白板应用程序，支持流畅的手写输入与多页面管理。
+<div align="center">
+  开源、简洁、易上手的电子白板
+</div>
+
+---
+
+![GitHub commit activity (branch)](https://img.shields.io/github/commit-activity/m/Jerry-Z07/WindBoard/main) ![GitHub Issues or Pull Requests](https://img.shields.io/github/issues/Jerry-Z07/WindBoard) ![GitHub License](https://img.shields.io/github/license/Jerry-Z07/WindBoard) [![zread](https://img.shields.io/badge/Ask_Zread-_.svg?style=flat&color=00b0aa&labelColor=000000&logo=data%3Aimage%2Fsvg%2Bxml%3Bbase64%2CPHN2ZyB3aWR0aD0iMTYiIGhlaWdodD0iMTYiIHZpZXdCb3g9IjAgMCAxNiAxNiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTQuOTYxNTYgMS42MDAxSDIuMjQxNTZDMS44ODgxIDEuNjAwMSAxLjYwMTU2IDEuODg2NjQgMS42MDE1NiAyLjI0MDFWNC45NjAxQzEuNjAxNTYgNS4zMTM1NiAxLjg4ODEgNS42MDAxIDIuMjQxNTYgNS42MDAxSDQuOTYxNTZDNS4zMTUwMiA1LjYwMDEgNS42MDE1NiA1LjMxMzU2IDUuNjAxNTYgNC45NjAxVjIuMjQwMUM1LjYwMTU2IDEuODg2NjQgNS4zMTUwMiAxLjYwMDEgNC45NjE1NiAxLjYwMDFaIiBmaWxsPSIjZmZmIi8%2BCjxwYXRoIGQ9Ik00Ljk2MTU2IDEwLjM5OTlIMi4yNDE1NkMxLjg4ODEgMTAuMzk5OSAxLjYwMTU2IDEwLjY4NjQgMS42MDE1NiAxMS4wMzk5VjEzLjc1OTlDMS42MDE1NiAxNC4xMTM0IDEuODg4MSAxNC4zOTk5IDIuMjQxNTYgMTQuMzk5OUg0Ljk2MTU2QzUuMzE1MDIgMTQuMzk5OSA1LjYwMTU2IDE0LjExMzQgNS42MDE1NiAxMy43NTk5VjExLjAzOTlDNS42MDE1NiAxMC42ODY0IDUuMzE1MDIgMTAuMzk5OSA0Ljk2MTU2IDEwLjM5OTlaIiBmaWxsPSIjZmZmIi8%2BCjxwYXRoIGQ9Ik0xMy43NTg0IDEuNjAwMUgxMS4wMzg0QzEwLjY4NSAxLjYwMDEgMTAuMzk4NCAxLjg4NjY0IDEwLjM5ODQgMi4yNDAxVjQuOTYwMUMxMC4zOTg0IDUuMzEzNTYgMTAuNjg1IDUuNjAwMSAxMS4wMzg0IDUuNjAwMUgxMy43NTg0QzE0LjExMTkgNS42MDAxIDE0LjM5ODQgNS4zMTM1NiAxNC4zOTg0IDQuOTYwMVYyLjI0MDFDMTQuMzk4NCAxLjg4NjY0IDE0LjExMTkgMS42MDAxIDEzLjc1ODQgMS42MDAxWiIgZmlsbD0iI2ZmZiIvPgo8cGF0aCBkPSJNNCAxMkwxMiA0TDQgMTJaIiBmaWxsPSIjZmZmIi8%2BCjxwYXRoIGQ9Ik00IDEyTDEyIDQiIHN0cm9rZT0iI2ZmZiIgc3Ryb2tlLXdpZHRoPSIxLjUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgo8L3N2Zz4K&logoColor=ffffff)](https://zread.ai/Jerry-Z07/WindBoard) 
+
 
 > [!NOTE]
 > 本项目处于活跃开发阶段，API 和功能可能会频繁变更。生产环境使用请谨慎。
 
+> [!IMPORTANT]
+> 软件尚未成熟，如果将其用于要求较高的生产环境（如课堂等），请保证能够承担由于软件问题导致的一些突发状况（如书写手感异常、崩溃等）的责任。
 
-## 文档
+## 软件截图
+<details>
+<summary>点击查看截图</summary>
 
-- 文档索引：[`docs/README.md`](docs/README.md)
+![主界面](./docs/images/MainWindow.png)
+![设置](./docs/images/Settings.png)
+![导出](./docs/images/Export.png)
+</details>
 
-## 功能特性
+## 功能
+- 基础书写（粗细、颜色、擦除、撤销/恢复等）
+- 导出/导入功能
+- 多页面管理
+- 无界书写
+- 多语言支持
+- ...（开发中）
 
-### 核心功能
-- **手写绘画**：基于 WPF InkCanvas 的高性能绘图引擎
-- **橡皮擦**：支持滑动清屏手势，快速清空画布
-- **选择模式**：选择和操作画布上的笔迹和附件
-- **撤销/恢复**：完整的操作历史记录支持
-- **多页面管理**：支持创建、切换、删除多个页面，带实时预览
-- **缩放和平移**：支持鼠标滚轮缩放和双指手势缩放平移
-- **笔刷设置**：可调节笔刷粗细（3档）和颜色（9种预设颜色）
-- **附件管理**：支持导入图片、视频、文本、链接等多种附件，支持拖拽移动、调整大小、置顶等操作
-- **导出功能**：支持导出为图片（PNG/JPG）、PDF 文档和 WBI 自有格式
-- **导入功能**
 
-### 高级特性
-- **模拟压力**：基于书写速度的模拟压力算法，实现笔锋效果
-- **细节保留平滑**：DetailPreservingSmoother 算法，在平滑笔迹的同时保留关键细节
-- **笔迹粗细一致性**：保持不同书写速度下的笔迹粗细一致性
-- **输入设备适配**：支持多种输入设备，包括 RealTimeStylus 适配器
-- **输入过滤系统**：灵活的输入过滤器架构，支持独占模式等高级输入处理
-- **触摸手势识别**：智能识别触摸手势，支持双指缩放、平移等操作，可配置仅双指触发
-- **伪装功能**：支持伪装模式，用于特殊场景下的演示需求
-- **设置持久化**：应用设置自动保存到本地 JSON 文件
-- **响应式界面**：基于 Material Design 3 的现代化 UI 设计
-- **自动扩展画布**：支持画布自动扩展功能
-- **附件导入**：支持批量导入图片、视频、文本文件、文本内容和链接
-- **视频展台集成**：支持外部视频展台软件的快速启动和参数配置
+### 一些特别功能
+- 伪装：替换白板的软件图标和标题（~~如果有人问这个软件为什么不一样，就说是更新了~~）
+- 视频展台集成：与希沃视频展台的基础集成，提供一个入口供跳转
 
 ## 技术栈
 
-- **框架**：.NET 10.0 Windows (Target: net10.0-windows10.0.26100.0)
-- **UI 框架**：WPF (Windows Presentation Foundation)
-- **UI 库**：MaterialDesignThemes v5.3.0 (Material Design 3)
-- **JSON 处理**：Newtonsoft.Json v13.0.4
-- **PDF 处理**：PdfSharpCore v1.3.67
-- **图形处理**：System.Drawing.Common v10.0.1
-- **测试框架**：xUnit v2.9.3 + Xunit.StaFact v1.2.69 + Microsoft.NET.Test.Sdk v18.0.1
-- **字体**：MiSans 字体系列
-
-## 项目结构
-
-见开发文档：[`docs/dev/project-structure.md`](docs/dev/project-structure.md)
-
-
-## 架构设计
-
-### 核心架构
-- **输入管道**：采用分阶段的输入处理管道，支持多种输入设备和过滤器
-- **模式系统**：基于策略模式的交互模式管理（InkMode、EraserMode、SelectMode 等）
-- **服务层**：模块化的服务设计（PageService、StrokeService、ZoomPanService 等）
-- **事件驱动**：基于 WPF 事件系统的松耦合架构
-
-### 关键设计模式
-- **策略模式**：交互模式的切换和管理
-- **过滤器模式**：输入事件的过滤和处理
-- **观察者模式**：服务间的状态同步
-- **适配器模式**：RealTimeStylus 适配器集成
-
-### 模块职责
-- **Core**：核心算法和基础组件（模拟压力、输入处理、交互模式）
-- **Services**：业务逻辑服务（页面管理、笔迹管理、缩放平移、导出导入等）
-- **MainWindow**：主窗口协调器，整合各模块
-- **Views**：UI 视图和自定义控件
+- **框架**：.NET 10.0 Windows 
+- **UI 框架**：WPF 
+- **UI 库**：MaterialDesignThemes 
 
 
 ## 快速开始
 
-### 环境要求
+> [!IMPORTANT]
+> 本项目完全使用 AI 开发，如对此无法接受请寻找其它软件进行替代。
+
+### 用户
+可跳转 [Releases](https://github.com/Jerry-Z07/WindBoard/releases/latest) 获取软件，其中：
+- 后缀为`.exe`的为安装版，`.zip`为便携版
+- 软件名中，带`-fd`后缀的为不带运行库的版本，你需要自行安装 .NET 10运行库 [点这里下载安装包](https://dotnet.microsoft.com/zh-cn/download/dotnet/thank-you/runtime-desktop-10.0.1-windows-x64-installer)，不带`-fd`的则不需要另外安装运行库
+
+**请阅读[快速开始-软件操作](./docs/user/quick-start.md)获取软件的使用方法**
+
+### 开发者
+#### 环境要求
 - .NET 10.0 SDK
 - Windows 10/11
 - 开发工具：
-  - Visual Studio 2022 或更高版本
+  - Visual Studio 2026 或更高版本
   - JetBrains Rider 2025.3.1 或更高版本
-  - Visual Studio Code（本软件的一部分开发工作就是在 VSCode 使用 AI 完成的，另一部分在 Codex，还有一部分在 Claude Code）
+  - Visual Studio Code
 
-### 构建和运行
-见[构建与运行](./docs/dev/build-and-run.md)
+#### 文档
+它们或许对你有帮助：[文档目录](./docs/README.md)
 
-## Todo
-- [x] 笔迹性能优化
-- [x] 笔锋算法
+
+## Todo / 仍需完善的部分
+- [ ] 更优化的笔迹平滑算法
+- [ ] 大量笔迹的缩放/移动性能
 - [ ] 触摸面积识别算法（用于掌擦逻辑）
-- [x] 伪装功能
-- [x] 附件管理功能（图片、视频、文本、链接导入）
-- [ ] 补全相关设置项
 - [ ] 软件整体性能优化
-- [ ] 软件中文名及图标设计
 - [ ] 完善文档
-- [ ] 完善 workflow 等
-- [x] 单元测试框架集成（xUnit）
 
-> [!IMPORTANT]
-> 本项目完全使用 AI 开发，如对此感到不适请寻找其它软件进行替代。
+## 贡献
+我们欢迎 Pull Request 和 Issue，也非常感谢你对本项目的支持！
+
+
+## 生态
+为保存和还原笔迹状态，我们设计了一个私有格式`.wbi`
+你可以查看[.wbi格式介绍](./docs/dev/wbi-format.md)来查看该文件格式的设计
+
+
+## 碎碎念
+### 为什么要做这个软件？
+由于某白板软件的新版本在班上电脑冷启动耗时极长，且砍掉了视频展台的跳转，加之想探探AI的上限，于是便有了这个项目
+
 
 ## 许可证
 
