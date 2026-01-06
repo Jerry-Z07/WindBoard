@@ -5,7 +5,7 @@
 
 ## 用户文档
 
-- [快速上手](user/quick-start.md)：界面与常用操作（书写/擦除/选择、撤销恢复、缩放平移、多页面）
+- [快速上手](user/quick-start.md)：界面与常用操作
 - [导入、附件与导出](user/import-export.md)：图片/视频/文本/链接/WBI 导入，附件编辑，导出 PNG/JPG/PDF/WBI
 
 ## 开发文档

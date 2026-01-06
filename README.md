@@ -60,7 +60,7 @@
 - 后缀为`.exe`的为安装版，`.zip`为便携版
 - 软件名中，带`-fd`后缀的为不带运行库的版本，你需要自行安装 .NET 10运行库 [点这里下载安装包](https://dotnet.microsoft.com/zh-cn/download/dotnet/thank-you/runtime-desktop-10.0.1-windows-x64-installer)，不带`-fd`的则不需要另外安装运行库
 
-**请阅读[快速开始-软件操作](./docs/user/quick-start.md)获取软件的使用方法**
+**请阅读[快速开始](./docs/user/quick-start.md)获取软件的使用方法**
 
 ### 开发者
 #### 环境要求
