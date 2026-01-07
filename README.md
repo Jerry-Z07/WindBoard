@@ -71,8 +71,6 @@
   - JetBrains Rider 2025.3.1 或更高版本
   - Visual Studio Code
 
-#### 文档
-它们或许对你有帮助：[文档目录](./docs/README.md)
 
 
 ## Todo / 仍需完善的部分
@@ -87,8 +85,8 @@
 
 
 ## 生态
-为保存和还原笔迹状态，我们设计了一个私有格式`.wbi`
-你可以查看[.wbi格式介绍](./docs/dev/wbi-format.md)来查看该文件格式的设计
+为保存和还原笔迹状态，我们设计了一个私有格式`.wbi`  
+你可以查看[.wbi格式介绍](./docs/dev/wbi-format.md)来查看该文件格式的介绍
 
 
 ## 碎碎念

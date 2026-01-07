@@ -4,7 +4,6 @@ using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
-using System.Windows.Ink;
 using System.Windows.Input;
 using System.Windows.Media;
 using WindBoard.Services;
@@ -199,18 +198,16 @@ namespace WindBoard
         {
             if (MyCanvas == null) return;
 
-            var editingMode = MyCanvas.EditingMode;
             try
             {
-                MyCanvas.Select(new StrokeCollection(), Array.Empty<UIElement>());
+                _inkBackend.ClearSelection();
             }
             catch
             {
             }
-            finally
-            {
-                try { MyCanvas.EditingMode = editingMode; } catch { }
-            }
+
+            UpdateInkSelectionMarquee(null);
+            UpdateInkSelectionOverlay();
         }
 
         private bool IsSelectModeActive()
@@ -263,19 +260,6 @@ namespace WindBoard
                 });
         }
 
-        private void MyCanvas_SelectionChanged(object sender, EventArgs e)
-        {
-            var strokes = MyCanvas.GetSelectedStrokes();
-            if (strokes != null && strokes.Count > 0)
-            {
-                SelectAttachment(null);
-            }
-            ScheduleSelectionDockUpdate();
-        }
-
-        private void MyCanvas_SelectionMoved(object sender, EventArgs e) => ScheduleSelectionDockUpdate();
-        private void MyCanvas_SelectionResized(object sender, EventArgs e) => ScheduleSelectionDockUpdate();
-
         private void ScheduleSelectionDockUpdate()
         {
             if (_selectionDockUpdateScheduled) return;
@@ -299,10 +283,9 @@ namespace WindBoard
             }
             else
             {
-                var strokes = MyCanvas.GetSelectedStrokes();
-                if (strokes != null && strokes.Count > 0)
+                if (_inkBackend.HasSelection)
                 {
-                    selectionBounds = MyCanvas.GetSelectionBounds();
+                    selectionBounds = _inkBackend.GetSelectionBounds();
                 }
             }
 
@@ -418,16 +401,8 @@ namespace WindBoard
                 return;
             }
 
-            var selected = MyCanvas.GetSelectedStrokes();
-            if (selected == null || selected.Count == 0) return;
-
-            var list = selected.ToList();
-            foreach (var s in list) MyCanvas.Strokes.Remove(s);
-            foreach (var s in list) MyCanvas.Strokes.Add(s);
-
-            var reselect = new StrokeCollection();
-            foreach (var s in list) reselect.Add(s);
-            MyCanvas.Select(reselect);
+            _inkBackend.BringSelectionToFront();
+            UpdateInkSelectionOverlay();
             ScheduleSelectionDockUpdate();
         }
 
@@ -437,18 +412,17 @@ namespace WindBoard
 
             if (_selectedAttachment != null) return;
 
-            var selected = MyCanvas.GetSelectedStrokes();
-            if (selected == null || selected.Count == 0) return;
-
-            var clones = selected.Clone();
-            var m = new Matrix();
-            m.Translate(20, 20);
-            foreach (var s in clones)
+            _inkService.BeginUndoTransaction();
+            try
             {
-                s.Transform(m, false);
+                _inkBackend.CopySelection(20, 20, replaceSelection: true);
             }
-            foreach (var s in clones) MyCanvas.Strokes.Add(s);
-            MyCanvas.Select(clones);
+            finally
+            {
+                _inkService.EndUndoTransaction();
+            }
+
+            UpdateInkSelectionOverlay();
             ScheduleSelectionDockUpdate();
         }
 
@@ -465,10 +439,17 @@ namespace WindBoard
                 return;
             }
 
-            var selected = MyCanvas.GetSelectedStrokes();
-            if (selected == null || selected.Count == 0) return;
-            foreach (var s in selected.ToList()) MyCanvas.Strokes.Remove(s);
-            ClearInkCanvasSelectionPreserveEditingMode();
+            _inkService.BeginUndoTransaction();
+            try
+            {
+                _inkBackend.DeleteSelection();
+            }
+            finally
+            {
+                _inkService.EndUndoTransaction();
+            }
+
+            UpdateInkSelectionOverlay();
             ScheduleSelectionDockUpdate();
         }
     }

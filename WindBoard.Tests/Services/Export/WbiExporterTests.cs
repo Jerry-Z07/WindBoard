@@ -1,7 +1,9 @@
 using System.IO;
 using System.IO.Compression;
 using System.Windows.Ink;
+using System.Windows.Media;
 using WindBoard.Models.Export;
+using WindBoard.Models.Ink;
 using WindBoard.Models.Wbi;
 using WindBoard.Services.Export;
 using Newtonsoft.Json;
@@ -59,6 +61,58 @@ public sealed class WbiExporterTests : IDisposable
         Assert.NotNull(archive.GetEntry("manifest.json"));
         Assert.NotNull(archive.GetEntry("pages/page_001.json"));
         Assert.NotNull(archive.GetEntry("pages/page_001.isf"));
+    }
+
+    [StaFact]
+    public async Task ExportAsync_WithInkModel_WritesInkPayloadAndBumpsManifestVersion()
+    {
+        var exporter = new WbiExporter();
+        var page = new BoardPage
+        {
+            Number = 1,
+            Strokes = new StrokeCollection(),
+            CanvasWidth = 8000,
+            CanvasHeight = 8000
+        };
+
+        var stroke = new InkStrokeModel
+        {
+            Id = Guid.NewGuid(),
+            ZoomAtCreation = 1.0,
+            Style = new InkStrokeStyle(InkBrushKind.Pen, Colors.White, LogicalThicknessDip: 3.0, UsesPressure: false)
+        };
+        for (int x = 0; x <= 20; x++)
+        {
+            stroke.Points.Add(new InkPoint(x, 0, 0.5f, TimestampTicks: 0));
+        }
+        page.InkStrokes.Add(stroke);
+
+        var filePath = GetTempFilePath();
+        await exporter.ExportAsync(new[] { page }, filePath, new WbiExportOptions());
+
+        using var archive = ZipFile.OpenRead(filePath);
+        Assert.NotNull(archive.GetEntry("pages/page_001.ink.json"));
+        Assert.Null(archive.GetEntry("pages/page_001.isf"));
+
+        var manifestEntry = archive.GetEntry("manifest.json");
+        Assert.NotNull(manifestEntry);
+        using (var reader = new StreamReader(manifestEntry!.Open()))
+        {
+            var manifest = JsonConvert.DeserializeObject<WbiManifest>(reader.ReadToEnd());
+            Assert.NotNull(manifest);
+            Assert.Equal("1.1", manifest!.Version);
+            Assert.Equal("1.1", manifest.MinCompatibleVersion);
+        }
+
+        var pageEntry = archive.GetEntry("pages/page_001.json");
+        Assert.NotNull(pageEntry);
+        using (var reader = new StreamReader(pageEntry!.Open()))
+        {
+            var pageData = JsonConvert.DeserializeObject<WbiPageData>(reader.ReadToEnd());
+            Assert.NotNull(pageData);
+            Assert.Equal("page_001.ink.json", pageData!.InkFile);
+            Assert.Null(pageData.StrokesFile);
+        }
     }
 
     [StaFact]
