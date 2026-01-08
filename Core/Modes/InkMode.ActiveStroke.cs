@@ -1,7 +1,9 @@
 using System.Collections.Generic;
 using System.Windows;
+using System.Windows.Ink;
 using WindBoard.Core.Ink;
-using WindBoard.Models.Ink;
+using StylusPoint = System.Windows.Input.StylusPoint;
+using StylusPointCollection = System.Windows.Input.StylusPointCollection;
 
 namespace WindBoard.Core.Modes
 {
@@ -9,14 +11,12 @@ namespace WindBoard.Core.Modes
     {
         private sealed class ActiveStroke
         {
-            public int PointerId { get; }
-            public InkStrokeStyle Style { get; set; }
-            public double ZoomAtStart { get; }
+            public Stroke Stroke { get; set; }
+            public DrawingAttributes DrawingAttributes { get; }
+            public double LogicalThicknessDip { get; }
             public DetailPreservingSmoother? DetailSmoother { get; }
-
             public Point LastInputCanvasDip { get; set; }
             public long LastInputTicks { get; set; }
-
             public bool UsesRealPressure { get; set; }
             public float LastRealPressure { get; set; }
             public bool HasRealPressureCandidate { get; set; }
@@ -24,31 +24,19 @@ namespace WindBoard.Core.Modes
             public float RealPressureMax { get; set; }
             public int RealPressureSamples { get; set; }
             public SimulatedPressure? SimulatedPressure { get; }
+            public List<Stroke> Segments { get; } = new List<Stroke>(4);
 
-            public List<InkPoint> PendingPoints { get; } = new List<InkPoint>(256);
+            public List<StylusPoint> PendingPoints { get; } = new List<StylusPoint>(256);
             public int PendingStartIndex { get; set; }
             public int PendingPointsCount => PendingPoints.Count - PendingStartIndex;
+            public StylusPointCollection ScratchPoints { get; }
             public List<DetailPreservingSample> SmoothingScratch { get; } = new List<DetailPreservingSample>(4);
 
-            public int SegmentPointCount { get; set; }
-            public InkPoint LastCommittedPoint { get; set; }
-
-            public ActiveStroke(
-                int pointerId,
-                InkStrokeStyle style,
-                double zoomAtStart,
-                DetailPreservingSmoother? detailSmoother,
-                Point lastInputCanvasDip,
-                long lastInputTicks,
-                bool usesRealPressure,
-                float initialRealPressure,
-                bool hasRealPressureCandidate,
-                SimulatedPressure? simulatedPressure,
-                InkPoint initialCommittedPoint)
+            public ActiveStroke(Stroke stroke, DrawingAttributes drawingAttributes, double logicalThicknessDip, DetailPreservingSmoother? detailSmoother, Point lastInputCanvasDip, long lastInputTicks, bool usesRealPressure, float initialRealPressure, bool hasRealPressureCandidate, SimulatedPressure? simulatedPressure)
             {
-                PointerId = pointerId;
-                Style = style;
-                ZoomAtStart = zoomAtStart;
+                Stroke = stroke;
+                DrawingAttributes = drawingAttributes;
+                LogicalThicknessDip = logicalThicknessDip;
                 DetailSmoother = detailSmoother;
                 LastInputCanvasDip = lastInputCanvasDip;
                 LastInputTicks = lastInputTicks;
@@ -59,8 +47,7 @@ namespace WindBoard.Core.Modes
                 RealPressureMax = initialRealPressure;
                 RealPressureSamples = hasRealPressureCandidate ? 1 : 0;
                 SimulatedPressure = simulatedPressure;
-                SegmentPointCount = 1;
-                LastCommittedPoint = initialCommittedPoint;
+                ScratchPoints = new StylusPointCollection(stroke.StylusPoints.Description, 256);
             }
         }
     }

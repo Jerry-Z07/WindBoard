@@ -3,9 +3,7 @@ using System.Runtime.CompilerServices;
 using System.Collections.ObjectModel;
 using System.Windows.Ink;
 using System.Windows.Media;
-using WindBoard.Models.Ink;
 using WindBoard.Services;
-using WindBoard.Services.Ink;
 
 namespace WindBoard
 {
@@ -20,7 +18,6 @@ namespace WindBoard
         internal int ContentVersion { get; set; }
         internal int PreviewVersion { get; set; }
         internal StrokeUndoHistory UndoHistory { get; } = new StrokeUndoHistory();
-        internal InkStrokeUndoHistory InkUndoHistory { get; } = new InkStrokeUndoHistory();
 
         public int Number
         {
@@ -42,9 +39,6 @@ namespace WindBoard
 
         // 页面内容
         public StrokeCollection Strokes { get; set; } = new StrokeCollection();
-
-        // 新笔迹引擎（自绘/模型）使用的数据；迁移期可能与 Strokes 并存并按需转换。
-        public List<InkStrokeModel> InkStrokes { get; set; } = new List<InkStrokeModel>(256);
 
         // 页面附件（导入的图片/视频/文本/链接等）
         public ObservableCollection<BoardAttachment> Attachments { get; } = new ObservableCollection<BoardAttachment>();

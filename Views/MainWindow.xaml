@@ -162,14 +162,6 @@
                     </ItemsControl.ItemContainerStyle>
                 </ItemsControl>
 
-                <!-- 自绘笔迹层：仅在新笔迹引擎启用时显示 -->
-                <controls:InkSurface x:Name="InkSurface"
-                                     Width="{Binding ElementName=MyCanvas, Path=Width}"
-                                     Height="{Binding ElementName=MyCanvas, Path=Height}"
-                                     IsHitTestVisible="False"
-                                     Visibility="Collapsed"
-                                     Panel.ZIndex="9"/>
-
                 <!-- 核心白板控件：不再使用 RenderTransform -->
                 <InkCanvas Name="MyCanvas"
                            Background="Transparent"
@@ -216,11 +208,6 @@
                         </Style>
                     </ItemsControl.ItemContainerStyle>
                 </ItemsControl>
-
-                <!-- 笔迹选择覆盖层：自绘引擎下提供选框/拖拽/缩放句柄 -->
-                <Canvas x:Name="InkSelectionOverlay"
-                        IsHitTestVisible="True"
-                        Panel.ZIndex="28"/>
 
                 <!-- 附件交互覆盖层：仅显示选中框/拖拽/缩放句柄（内容仍在 AttachmentLayer，避免遮挡笔迹） -->
                 <Canvas x:Name="AttachmentSelectionOverlay"

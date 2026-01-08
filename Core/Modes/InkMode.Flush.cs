@@ -1,8 +1,8 @@
 using System;
-using System.Runtime.InteropServices;
 using System.Windows.Controls;
+using System.Windows.Ink;
 using System.Windows.Threading;
-using WindBoard.Models.Ink;
+using WindBoard.Core.Ink;
 
 namespace WindBoard.Core.Modes
 {
@@ -47,7 +47,8 @@ namespace WindBoard.Core.Modes
             {
                 EnsureSegmentCapacity(active, active.PendingPointsCount);
 
-                int remain = MaxStylusPointsPerSegment - active.SegmentPointCount;
+                int curCount = active.Stroke.StylusPoints.Count;
+                int remain = MaxStylusPointsPerSegment - curCount;
                 if (remain <= 0) continue;
 
                 int take = Math.Min(remain, active.PendingPointsCount);
@@ -57,21 +58,38 @@ namespace WindBoard.Core.Modes
 
         private void EnsureSegmentCapacity(ActiveStroke active, int pointsToAppend)
         {
-            if (active.SegmentPointCount + pointsToAppend <= MaxStylusPointsPerSegment) return;
+            int curCount = active.Stroke.StylusPoints.Count;
+            if (curCount + pointsToAppend <= MaxStylusPointsPerSegment) return;
 
             // 分段：避免单个 Stroke 无限增长导致增量更新越来越慢（单笔越画越卡）。
-            _backend.StartNewSegment(active.PointerId, active.LastCommittedPoint);
-            active.SegmentPointCount = 1;
+            var last = curCount > 0
+                ? active.Stroke.StylusPoints[^1]
+                : new System.Windows.Input.StylusPoint(active.LastInputCanvasDip.X, active.LastInputCanvasDip.Y);
+
+            var nextPoints = new System.Windows.Input.StylusPointCollection { last };
+
+            var next = new Stroke(nextPoints)
+            {
+                DrawingAttributes = active.DrawingAttributes
+            };
+            StrokeThicknessMetadata.SetLogicalThicknessDip(next, active.LogicalThicknessDip);
+            _canvas.Strokes.Add(next);
+            active.Segments.Add(next);
+            active.Stroke = next;
         }
 
         private void AppendPendingBatch(ActiveStroke active, int take)
         {
-            int start = active.PendingStartIndex;
-            ReadOnlySpan<InkPoint> span = CollectionsMarshal.AsSpan(active.PendingPoints).Slice(start, take);
-            _backend.AppendPoints(active.PointerId, span);
+            var scratch = active.ScratchPoints;
+            scratch.Clear();
 
-            active.SegmentPointCount += take;
-            active.LastCommittedPoint = span[^1];
+            int start = active.PendingStartIndex;
+            for (int i = 0; i < take; i++)
+            {
+                scratch.Add(active.PendingPoints[start + i]);
+            }
+
+            active.Stroke.StylusPoints.Add(scratch);
 
             active.PendingStartIndex += take;
 

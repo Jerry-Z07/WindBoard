@@ -7,7 +7,6 @@ using System.Windows.Controls;
 using System.Windows.Ink;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
-using WindBoard.Core.Ink.Adapters;
 using WindBoard.Models.Export;
 
 namespace WindBoard.Services.Export
@@ -30,10 +29,8 @@ namespace WindBoard.Services.Export
             bool keepAspectRatio = options.KeepAspectRatio;
             Color backgroundColor = options.BackgroundColor;
 
-            var strokes = GetInkStrokesForRender(page);
-
             // 1. 计算内容边界
-            Rect contentBounds = CalculateContentBounds(page, strokes);
+            Rect contentBounds = CalculateContentBounds(page);
 
             // 如果没有内容，返回空白图片
             if (contentBounds.IsEmpty)
@@ -89,9 +86,9 @@ namespace WindBoard.Services.Export
                 RenderAttachments(dc, page.Attachments.Where(a => !a.IsPinnedTop).OrderBy(a => a.ZIndex));
 
                 // 渲染笔迹
-                if (strokes != null && strokes.Count > 0)
+                if (page.Strokes != null && page.Strokes.Count > 0)
                 {
-                    strokes.Draw(dc);
+                    page.Strokes.Draw(dc);
                 }
 
                 // 渲染置顶附件
@@ -143,17 +140,12 @@ namespace WindBoard.Services.Export
         /// </summary>
         public Rect CalculateContentBounds(BoardPage page)
         {
-            return CalculateContentBounds(page, GetInkStrokesForRender(page));
-        }
-
-        private Rect CalculateContentBounds(BoardPage page, StrokeCollection? strokes)
-        {
             Rect bounds = Rect.Empty;
 
             // 笔迹边界
-            if (strokes != null && strokes.Count > 0)
+            if (page.Strokes != null && page.Strokes.Count > 0)
             {
-                bounds = strokes.GetBounds();
+                bounds = page.Strokes.GetBounds();
             }
 
             // 附件边界
@@ -177,30 +169,10 @@ namespace WindBoard.Services.Export
 
             // 内容复杂度加成
             int strokeCount = page.Strokes?.Count ?? 0;
-            if (strokeCount == 0)
-            {
-                strokeCount = page.InkStrokes?.Count ?? 0;
-            }
             int attachmentCount = page.Attachments.Count;
             double complexityFactor = 1.0 + strokeCount * 0.001 + attachmentCount * 0.05;
 
             return (long)(pixels * factor * complexityFactor);
-        }
-
-        private static StrokeCollection? GetInkStrokesForRender(BoardPage page)
-        {
-            if (page.Strokes != null && page.Strokes.Count > 0)
-            {
-                return page.Strokes;
-            }
-
-            if (page.InkStrokes != null && page.InkStrokes.Count > 0)
-            {
-                double zoom = page.Zoom <= 0 ? 1.0 : page.Zoom;
-                return WpfStrokeAdapter.ToStrokeCollection(page.InkStrokes, zoom);
-            }
-
-            return null;
         }
 
         private BitmapSource CreateEmptyBitmap(int width, int height, Color backgroundColor)

@@ -5,10 +5,10 @@ using System.Windows.Controls;
 using System.Windows.Ink;
 using System.Windows.Threading;
 using WindBoard.Core.Ink;
-using WindBoard.Core.Ink.Backend;
 using WindBoard.Core.Input;
 using WindBoard.Models;
-using WindBoard.Models.Ink;
+using StylusPoint = System.Windows.Input.StylusPoint;
+using StylusPointCollection = System.Windows.Input.StylusPointCollection;
 
 namespace WindBoard.Core.Modes
 {
@@ -16,7 +16,6 @@ namespace WindBoard.Core.Modes
     {
         private const double DipPerMm = 96.0 / 25.4;
         private readonly InkCanvas _canvas;
-        private readonly IInkBackend _backend;
         private readonly Func<double> _zoomProvider;
         private readonly Action? _onStrokeEndedOrCanceled;
         private readonly Dictionary<int, ActiveStroke> _activeStrokes = new();
@@ -25,10 +24,9 @@ namespace WindBoard.Core.Modes
         private bool _simulatedPressureEnabled;
         private StrokeSmoothingMode _strokeSmoothingMode = StrokeSmoothingMode.RawInput;
 
-        public InkMode(InkCanvas canvas, IInkBackend backend, Func<double> zoomProvider, Action? onStrokeEndedOrCanceled = null)
+        public InkMode(InkCanvas canvas, Func<double> zoomProvider, Action? onStrokeEndedOrCanceled = null)
         {
             _canvas = canvas;
-            _backend = backend;
             _zoomProvider = zoomProvider;
             _onStrokeEndedOrCanceled = onStrokeEndedOrCanceled;
         }
@@ -72,7 +70,21 @@ namespace WindBoard.Core.Modes
         {
             if (_activeStrokes.Count == 0) return;
 
-            try { _backend.CancelAllStrokes(); } catch { }
+            foreach (var kv in _activeStrokes)
+            {
+                try
+                {
+                    kv.Value.PendingPoints.Clear();
+                    kv.Value.PendingStartIndex = 0;
+                    foreach (var s in kv.Value.Segments)
+                    {
+                        _canvas.Strokes.Remove(s);
+                    }
+                }
+                catch
+                {
+                }
+            }
             _activeStrokes.Clear();
             _onStrokeEndedOrCanceled?.Invoke();
             StopFlushTimerIfIdle();
@@ -102,14 +114,15 @@ namespace WindBoard.Core.Modes
                 simulatedPressure = new SimulatedPressure(simulatedPressureParameters);
             }
 
+            var stylusPoints = new StylusPointCollection();
             float initialPressure = usesRealPressure
                 ? initialRealPressure
                 : usesSimulatedPressure ? (simulatedPressure?.Current ?? RealPressureBaseline) : RealPressureBaseline;
+            stylusPoints.Add(new StylusPoint(args.CanvasPoint.X, args.CanvasPoint.Y, initialPressure));
 
             var da = _canvas.DefaultDrawingAttributes.Clone();
             da.FitToCurve = false;
-            bool usesPressure = usesRealPressure || usesSimulatedPressure;
-            da.IgnorePressure = !usesPressure;
+            da.IgnorePressure = !(usesRealPressure || usesSimulatedPressure);
 
             if (TryGetSimulatedPressureNominal(simulatedPressureParameters, out float nominalPressure))
             {
@@ -129,27 +142,16 @@ namespace WindBoard.Core.Modes
                     logicalThicknessDip);
             }
 
-            var style = new InkStrokeStyle(
-                InkBrushKind.Pen,
-                da.Color,
-                logicalThicknessDip,
-                usesPressure);
+            var stroke = new Stroke(stylusPoints)
+            {
+                DrawingAttributes = da
+            };
+            StrokeThicknessMetadata.SetLogicalThicknessDip(stroke, logicalThicknessDip);
 
-            var startPoint = new InkPoint(args.CanvasPoint.X, args.CanvasPoint.Y, initialPressure, args.TimestampTicks);
-            _backend.BeginStroke(id, style, startPoint, zoom);
+            _canvas.Strokes.Add(stroke);
 
-            var active = new ActiveStroke(
-                id,
-                style,
-                zoom,
-                detailSmoother,
-                args.CanvasPoint,
-                args.TimestampTicks,
-                usesRealPressure,
-                initialRealPressure,
-                hasRealPressureCandidate,
-                simulatedPressure,
-                startPoint);
+            var active = new ActiveStroke(stroke, da, logicalThicknessDip, detailSmoother, args.CanvasPoint, args.TimestampTicks, usesRealPressure, initialRealPressure, hasRealPressureCandidate, simulatedPressure);
+            active.Segments.Add(stroke);
             _activeStrokes[id] = active;
             EnsureFlushTimer();
         }
@@ -173,7 +175,6 @@ namespace WindBoard.Core.Modes
 
             AppendPoints(active, args, isFinal: true);
             FlushPendingPoints(active);
-            _backend.EndStroke(id);
             _activeStrokes.Remove(id);
             _onStrokeEndedOrCanceled?.Invoke();
             StopFlushTimerIfIdle();
@@ -224,12 +225,7 @@ namespace WindBoard.Core.Modes
             {
                 active.UsesRealPressure = true;
                 active.LastRealPressure = NormalizePressure(args.Pressure.Value);
-
-                if (!active.Style.UsesPressure)
-                {
-                    active.Style = active.Style with { UsesPressure = true };
-                    _backend.UpdateStrokeStyle(active.PointerId, active.Style, active.ZoomAtStart);
-                }
+                active.DrawingAttributes.IgnorePressure = false;
             }
 
             float simulatedStartPressure = 0;
@@ -260,7 +256,7 @@ namespace WindBoard.Core.Modes
 
             if (active.DetailSmoother == null)
             {
-                active.PendingPoints.Add(new InkPoint(args.CanvasPoint.X, args.CanvasPoint.Y, pressure, args.TimestampTicks));
+                active.PendingPoints.Add(new StylusPoint(args.CanvasPoint.X, args.CanvasPoint.Y, pressure));
                 return;
             }
 
@@ -270,7 +266,7 @@ namespace WindBoard.Core.Modes
             for (int i = 0; i < outputs.Count; i++)
             {
                 var s = outputs[i];
-                active.PendingPoints.Add(new InkPoint(s.CanvasDip.X, s.CanvasDip.Y, s.Pressure, args.TimestampTicks));
+                active.PendingPoints.Add(new StylusPoint(s.CanvasDip.X, s.CanvasDip.Y, s.Pressure));
             }
         }
 

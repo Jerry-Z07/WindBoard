@@ -5,10 +5,7 @@ using System.IO.Compression;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Ink;
-using System.Windows.Media;
 using Newtonsoft.Json;
-using WindBoard.Core.Ink.Adapters;
-using WindBoard.Models.Ink;
 using WindBoard.Models.Export;
 using WindBoard.Models.Wbi;
 
@@ -40,7 +37,7 @@ namespace WindBoard.Services.Export
         private const string AssetsFolder = "assets";
 
         /// <summary>当前支持的最高版本</summary>
-        private static readonly Version MaxSupportedVersion = new Version(1, 1);
+        private static readonly Version MaxSupportedVersion = new Version(1, 0);
 
         /// <summary>
         /// 从 WBI 文件导入
@@ -213,27 +210,7 @@ namespace WindBoard.Services.Export
             };
 
             // 导入笔迹
-            if (!string.IsNullOrEmpty(pageData.InkFile))
-            {
-                string inkPath = $"{PagesFolder}/{pageData.InkFile}";
-                var inkEntry = archive.GetEntry(inkPath);
-                if (inkEntry != null)
-                {
-                    using var reader = new StreamReader(inkEntry.Open());
-                    string json = reader.ReadToEnd();
-                    var payload = JsonConvert.DeserializeObject<WbiInkPayload>(json);
-                    if (payload != null && payload.Strokes != null && payload.Strokes.Count > 0)
-                    {
-                        var models = ConvertInkPayloadToModels(payload);
-                        page.InkStrokes.Clear();
-                        page.InkStrokes.AddRange(models);
-
-                        double zoom = page.Zoom <= 0 ? 1.0 : page.Zoom;
-                        page.Strokes = WpfStrokeAdapter.ToStrokeCollection(page.InkStrokes, zoom);
-                    }
-                }
-            }
-            else if (!string.IsNullOrEmpty(pageData.StrokesFile))
+            if (!string.IsNullOrEmpty(pageData.StrokesFile))
             {
                 string isfPath = $"{PagesFolder}/{pageData.StrokesFile}";
                 var isfEntry = archive.GetEntry(isfPath);
@@ -270,52 +247,6 @@ namespace WindBoard.Services.Export
             }
 
             return page;
-        }
-
-        private static List<InkStrokeModel> ConvertInkPayloadToModels(WbiInkPayload payload)
-        {
-            var list = new List<InkStrokeModel>(payload?.Strokes?.Count ?? 0);
-            if (payload?.Strokes == null) return list;
-
-            for (int i = 0; i < payload.Strokes.Count; i++)
-            {
-                var s = payload.Strokes[i];
-                if (s == null) continue;
-
-                var model = new InkStrokeModel
-                {
-                    Id = s.Id == Guid.Empty ? Guid.NewGuid() : s.Id,
-                    ZoomAtCreation = s.ZoomAtCreation > 0 ? s.ZoomAtCreation : 1.0,
-                    Style = new InkStrokeStyle(
-                        s.BrushKind,
-                        UnpackColor(s.ColorArgb),
-                        s.LogicalThicknessDip > 0 ? s.LogicalThicknessDip : 1.0,
-                        s.UsesPressure)
-                };
-
-                if (s.Points != null)
-                {
-                    for (int j = 0; j < s.Points.Count; j++)
-                    {
-                        var p = s.Points[j];
-                        if (p == null) continue;
-                        model.Points.Add(new InkPoint(p.X, p.Y, p.Pressure, p.TimestampTicks));
-                    }
-                }
-
-                list.Add(model);
-            }
-
-            return list;
-        }
-
-        private static Color UnpackColor(uint argb)
-        {
-            return Color.FromArgb(
-                (byte)(argb >> 24),
-                (byte)(argb >> 16),
-                (byte)(argb >> 8),
-                (byte)argb);
         }
 
         private BoardAttachment? ImportAttachment(

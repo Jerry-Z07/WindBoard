@@ -31,12 +31,6 @@ namespace WindBoard
                 return;
             }
 
-            if (IsSelectModeActive() && IsInkSelectionOverlaySource(e.OriginalSource as DependencyObject))
-            {
-                e.Handled = true;
-                return;
-            }
-
             if (e.ChangedButton == MouseButton.Right)
             {
                 _modeBeforePan = _modeController.ActiveMode ?? _modeController.CurrentMode;
@@ -63,11 +57,6 @@ namespace WindBoard
             }
 
             if (!IsRealMouse(e)) return;
-            if (IsSelectModeActive() && IsInkSelectionOverlaySource(e.OriginalSource as DependencyObject))
-            {
-                e.Handled = true;
-                return;
-            }
 
             bool anyPressed = e.LeftButton == MouseButtonState.Pressed
                               || e.RightButton == MouseButtonState.Pressed
@@ -91,11 +80,6 @@ namespace WindBoard
             }
 
             if (!IsRealMouse(e)) return;
-            if (IsSelectModeActive() && IsInkSelectionOverlaySource(e.OriginalSource as DependencyObject))
-            {
-                e.Handled = true;
-                return;
-            }
 
             var args = BuildMouseArgs(e, isInAir: false);
             _inputManager.Dispatch(InputStage.Up, args);
@@ -172,11 +156,6 @@ namespace WindBoard
         {
             if (_inputSourceSelector?.ShouldHandleWpfStylus == false) return;
             if (!IsStylusPen(e)) return;
-            if (IsSelectModeActive() && IsInkSelectionOverlaySource(e.OriginalSource as DependencyObject))
-            {
-                e.Handled = true;
-                return;
-            }
 
             var args = BuildStylusArgs(e, isInAir: false);
             BeginUndoTransactionForCurrentMode();
@@ -187,11 +166,6 @@ namespace WindBoard
         {
             if (_inputSourceSelector?.ShouldHandleWpfStylus == false) return;
             if (!IsStylusPen(e)) return;
-            if (IsSelectModeActive() && IsInkSelectionOverlaySource(e.OriginalSource as DependencyObject))
-            {
-                e.Handled = true;
-                return;
-            }
 
             var args = BuildStylusArgs(e, isInAir: false);
             _inputManager.Dispatch(InputStage.Move, args);
@@ -201,11 +175,6 @@ namespace WindBoard
         {
             if (_inputSourceSelector?.ShouldHandleWpfStylus == false) return;
             if (!IsStylusPen(e)) return;
-            if (IsSelectModeActive() && IsInkSelectionOverlaySource(e.OriginalSource as DependencyObject))
-            {
-                e.Handled = true;
-                return;
-            }
 
             var args = BuildStylusArgs(e, isInAir: false);
             _inputManager.Dispatch(InputStage.Up, args);

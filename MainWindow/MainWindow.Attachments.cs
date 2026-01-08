@@ -41,8 +41,19 @@ namespace WindBoard
              _btnSelectionTop = (Button)FindName("BtnSelectionTop");
              _btnSelectionCopy = (Button)FindName("BtnSelectionCopy");
 
+             if (MyCanvas != null)
+             {
+                MyCanvas.SelectionChanged -= MyCanvas_SelectionChanged;
+                MyCanvas.SelectionChanged += MyCanvas_SelectionChanged;
+
+                MyCanvas.SelectionMoved -= MyCanvas_SelectionMoved;
+                MyCanvas.SelectionMoved += MyCanvas_SelectionMoved;
+
+                MyCanvas.SelectionResized -= MyCanvas_SelectionResized;
+                MyCanvas.SelectionResized += MyCanvas_SelectionResized;
+            }
+
             BuildAttachmentSelectionOverlay();
-            InitializeInkSelectionUi();
 
             if (Viewport == null) return;
             Viewport.SizeChanged -= Viewport_SizeChanged;

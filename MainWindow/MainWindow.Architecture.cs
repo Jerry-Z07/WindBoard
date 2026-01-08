@@ -6,14 +6,11 @@ using System.Windows.Input;
 using System.Windows.Ink;
 using System.Windows.Media;
 using System.Windows.Shapes;
-using WindBoard.Controls;
 using WindBoard.Core.Filters;
 using WindBoard.Core.Input;
 using WindBoard.Core.Input.RealTimeStylus;
-using WindBoard.Core.Ink.Backend;
 using WindBoard.Core.Modes;
 using WindBoard.Services;
-using WindBoard.Services.Ink;
 using System.Windows.Threading;
 using InputEventArgs = WindBoard.Core.Input.InputEventArgs;
 using InputManagerCore = WindBoard.Core.Input.InputManager;
@@ -31,7 +28,6 @@ namespace WindBoard
 
         private Canvas? _eraserOverlay;
         private Border? _eraserCursorRect;
-        private InkSurface? _inkSurface;
 
         private ModeController _modeController = null!;
         private InputManagerCore _inputManager = null!;
@@ -39,7 +35,6 @@ namespace WindBoard
         private InputSourceSelector? _inputSourceSelector;
         private ZoomPanService _zoomPanService = null!;
         private StrokeService _strokeService = null!;
-        private InkService _inkService = null!;
         private AutoExpandService _autoExpandService = null!;
         private PageService _pageService = null!;
         private TouchGestureService _touchGestureService = null!;
@@ -50,13 +45,13 @@ namespace WindBoard
         private bool _viewportBitmapCacheEnabled;
         private DispatcherTimer? _viewportCacheDisableTimer;
         private BitmapCache? _viewportBitmapCache;
+        private StrokeCollection? _undoObservedStrokes;
         private readonly TranslateTransform _panTransform = new TranslateTransform();
 
         private InkMode? _inkMode;
         private EraserMode? _eraserMode;
         private SelectMode? _selectMode;
         private NoMode? _noMode;
-        private CustomInkBackend _inkBackend = null!;
 
         public ObservableCollection<BoardPage> Pages => _pageService.Pages;
         public bool IsMultiPage => _pageService.IsMultiPage;
@@ -67,11 +62,9 @@ namespace WindBoard
         {
             _eraserOverlay = (Canvas)FindName("EraserOverlay");
             _eraserCursorRect = (Border)FindName("EraserCursorRect");
-            _inkSurface = (InkSurface)FindName("InkSurface");
 
             _modeController = new ModeController();
             _strokeService = new StrokeService(MyCanvas, _baseThickness);
-            _inkService = new InkService(MyCanvas, _inkSurface);
 
             // 性能：避免使用 LayoutTransform（会触发布局）；改用 RenderTransform 实现“相机式”缩放/平移。
             // XAML 中仍声明了 ZoomTransform（原用于 LayoutTransform），这里在运行时将其移到 RenderTransform。
@@ -90,34 +83,19 @@ namespace WindBoard
             _strokeService.SetStrokeThicknessConsistencyEnabled(
                 SettingsService.Instance.GetStrokeThicknessConsistencyEnabled(),
                 _zoomPanService.Zoom);
-            // Use the shared InkService to bind per-page ink and track undo/content changes.
-            _pageService = new PageService(MyCanvas, _inkService, _zoomPanService, NotifyPageUiChanged);
-            _autoExpandService = new AutoExpandService(
-                MyCanvas,
-                _zoomPanService,
-                () => _pageService.CurrentPage,
-                () => _inkMode?.HasActiveStroke ?? false,
-                _inkService.ShiftContent);
+            _pageService = new PageService(MyCanvas, _zoomPanService, NotifyPageUiChanged);
+            _autoExpandService = new AutoExpandService(MyCanvas, _zoomPanService, () => _pageService.CurrentPage, () => _inkMode?.HasActiveStroke ?? false);
 
-            _inkBackend = _inkSurface == null
-                ? throw new InvalidOperationException("InkSurface is required when InkCanvas backend is removed.")
-                : new CustomInkBackend(_inkSurface);
-            _inkService.SetBackend(_inkBackend);
-            _inkMode = new InkMode(MyCanvas, _inkBackend, () => _zoomPanService.Zoom, OnInkStrokeEndedOrCanceled);
+            _inkMode = new InkMode(MyCanvas, () => _zoomPanService.Zoom, OnInkStrokeEndedOrCanceled);
             ApplyInkModeSettingsSnapshot();
-            _selectMode = new SelectMode(
-                MyCanvas,
-                backendProvider: () => _inkBackend,
-                marqueeChanged: UpdateInkSelectionMarquee,
-                selectionChanged: OnInkSelectionChanged);
+            _selectMode = new SelectMode(MyCanvas);
             _noMode = new NoMode(MyCanvas);
             _eraserMode = new EraserMode(
                 MyCanvas,
                 _eraserOverlay ?? new Canvas(),
                 _eraserCursorRect ?? new Border(),
                 () => _zoomPanService.Zoom,
-                backendProvider: () => _inkBackend,
-                cursorOffsetY: _eraserCursorOffsetY);
+                _eraserCursorOffsetY);
 
             _modeController.SetCurrentMode(_inkMode);
 
@@ -266,19 +244,25 @@ namespace WindBoard
 
         private void BeginUndoTransactionForCurrentMode()
         {
+            var cur = _pageService.CurrentPage;
+            if (cur == null) return;
+
             var mode = _modeController.ActiveMode ?? _modeController.CurrentMode;
             if (ReferenceEquals(mode, _inkMode) || ReferenceEquals(mode, _eraserMode))
             {
-                _inkService.BeginUndoTransaction();
+                cur.UndoHistory.Begin();
             }
         }
 
         private void EndUndoTransactionForCurrentMode()
         {
+            var cur = _pageService.CurrentPage;
+            if (cur == null) return;
+
             var mode = _modeController.ActiveMode ?? _modeController.CurrentMode;
             if (ReferenceEquals(mode, _inkMode) || ReferenceEquals(mode, _eraserMode))
             {
-                _inkService.EndUndoTransaction();
+                cur.UndoHistory.End();
             }
         }
 
@@ -314,36 +298,54 @@ namespace WindBoard
             MyCanvas.EditingMode = InkCanvasEditingMode.None;
             SetViewportBitmapCache(true);
             _strokeSuppressionActive = true;
-            _inkService.CancelUndoTransaction();
+            _pageService.CurrentPage?.UndoHistory.Cancel();
             _inkMode?.CancelAllStrokes();
         }
 
         private void AttachUndoToCurrentStrokes()
         {
-            // Undo recording is handled by InkService (bound per page).
+            if (_undoObservedStrokes != null)
+            {
+                _undoObservedStrokes.StrokesChanged -= UndoObservedStrokes_StrokesChanged;
+            }
+
+            _undoObservedStrokes = MyCanvas.Strokes;
+            if (_undoObservedStrokes != null)
+            {
+                _undoObservedStrokes.StrokesChanged += UndoObservedStrokes_StrokesChanged;
+            }
+        }
+
+        private void UndoObservedStrokes_StrokesChanged(object? sender, StrokeCollectionChangedEventArgs e)
+        {
+            _pageService.CurrentPage?.UndoHistory.Record(e);
         }
 
         private void Undo_CanExecute(object sender, CanExecuteRoutedEventArgs e)
         {
-            e.CanExecute = _inkService.CanUndo;
+            e.CanExecute = _pageService.CurrentPage?.UndoHistory.CanUndo == true;
             e.Handled = true;
         }
 
         private void Undo_Executed(object sender, ExecutedRoutedEventArgs e)
         {
-            _inkService.Undo();
+            var cur = _pageService.CurrentPage;
+            if (cur == null) return;
+            cur.UndoHistory.Undo(MyCanvas.Strokes);
             e.Handled = true;
         }
 
         private void Redo_CanExecute(object sender, CanExecuteRoutedEventArgs e)
         {
-            e.CanExecute = _inkService.CanRedo;
+            e.CanExecute = _pageService.CurrentPage?.UndoHistory.CanRedo == true;
             e.Handled = true;
         }
 
         private void Redo_Executed(object sender, ExecutedRoutedEventArgs e)
         {
-            _inkService.Redo();
+            var cur = _pageService.CurrentPage;
+            if (cur == null) return;
+            cur.UndoHistory.Redo(MyCanvas.Strokes);
             e.Handled = true;
         }
 
