@@ -26,7 +26,7 @@ WindBoard（轻风白板）是一个面向 Windows 的开源 WPF 电子白板应
   - XAML elements: `PascalCase`
 - Design: 显式类型、guard clauses、小而单一职责的方法；复杂逻辑可用中英双语注释
 - UI boundaries: 避免在 XAML code-behind 堆业务逻辑；重逻辑放到 `Services/` 或 `Core/`
-- MainWindow: 不在 `MainWindow.xaml.cs` 增长逻辑；按职责写到 `MainWindow/` 下对应的 partial 文件
+- MainWindow: 不在 `MainWindow.xaml.cs` 中增加逻辑；按职责写到 `MainWindow/` 下对应的 partial 文件
 
 ### Architecture Patterns
 - **Input Pipeline + Mode System**: `MainWindow/MainWindow.InputPipeline.cs` 捕获 WPF 输入事件，封装为 `Core/Input` 的事件参数并通过 `InputManager` 分发给当前交互模式（`Core/Modes`，策略模式切换行为）。
