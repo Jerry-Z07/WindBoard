@@ -38,12 +38,12 @@
     <sys:String x:Key="MainWindow_Tool_Eraser">Eraser</sys:String>
     <sys:String x:Key="MainWindow_Tool_Undo">Undo</sys:String>
     <sys:String x:Key="MainWindow_Tool_Redo">Redo</sys:String>
-    <sys:String x:Key="MainWindow_VideoPresenter">Document Camera</sys:String>
+    <sys:String x:Key="MainWindow_VideoPresenter">Camera</sys:String>
     <sys:String x:Key="MainWindow_PenSettings_Title">Pen settings</sys:String>
     <sys:String x:Key="MainWindow_SlideToClear_Hint">Slide right to clear</sys:String>
     <sys:String x:Key="MainWindow_SlideToClear_ReleaseHint">Release to clear</sys:String>
 
-    <sys:String x:Key="MainWindow_VideoPresenter_NotFound_Message">Document camera app not found. Please go to Settings &gt; Document Camera to configure it.</sys:String>
+    <sys:String x:Key="MainWindow_VideoPresenter_NotFound_Message">Camera app not found. Please go to Settings &gt; Camera to configure it.</sys:String>
     <sys:String x:Key="MainWindow_VideoPresenter_ErrorDetails_Format">Error details: {0}</sys:String>
     <sys:String x:Key="MainWindow_VideoPresenter_NotAvailable_Title">Document camera unavailable</sys:String>
     <sys:String x:Key="MainWindow_VideoPresenter_GoToSettings">Open Settings</sys:String>
@@ -83,14 +83,14 @@
     <sys:String x:Key="Language_Display_English">English</sys:String>
     <sys:String x:Key="Language_Display_Chinese">中文</sys:String>
 
-    <sys:String x:Key="SettingsWindow_General_VideoPresenter_Title">Document Camera</sys:String>
-    <sys:String x:Key="SettingsWindow_General_VideoPresenter_Desc">Configure the document camera app path and arguments, and toggle the button.</sys:String>
+    <sys:String x:Key="SettingsWindow_General_VideoPresenter_Title">Camera</sys:String>
+    <sys:String x:Key="SettingsWindow_General_VideoPresenter_Desc">Configure the Camera app path and arguments, and toggle the button.</sys:String>
     <sys:String x:Key="SettingsWindow_General_VideoPresenter_Toggle">Show</sys:String>
     <sys:String x:Key="SettingsWindow_General_VideoPresenter_Path_Label">Program path</sys:String>
-    <sys:String x:Key="SettingsWindow_General_VideoPresenter_Path_Hint">Select document camera EXE</sys:String>
+    <sys:String x:Key="SettingsWindow_General_VideoPresenter_Path_Hint">Select Camera EXE</sys:String>
     <sys:String x:Key="SettingsWindow_General_VideoPresenter_Args_Label">Arguments</sys:String>
     <sys:String x:Key="SettingsWindow_General_VideoPresenter_Args_Hint">e.g.: -from en5</sys:String>
-    <sys:String x:Key="SettingsWindow_General_VideoPresenter_BrowseDialog_Title">Select document camera app</sys:String>
+    <sys:String x:Key="SettingsWindow_General_VideoPresenter_BrowseDialog_Title">Select Camera app</sys:String>
     <sys:String x:Key="SettingsWindow_General_VideoPresenter_BrowseDialog_Filter">Executable files (*.exe)|*.exe|All files (*.*)|*.*</sys:String>
 
     <sys:String x:Key="SettingsWindow_General_Camouflage_Title">Camouflage</sys:String>
