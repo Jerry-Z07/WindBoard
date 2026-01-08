@@ -8,6 +8,7 @@ namespace WindBoard.Core.Ink
     {
         public DetailPreservingSmootherParameters(
             double cornerAngleDeg,
+            double cornerMinSegmentMm,
             double projectionFactor,
             double capMinMm,
             double capWidthRatio,
@@ -19,6 +20,7 @@ namespace WindBoard.Core.Ink
             double excludeTailLengthMm)
         {
             CornerAngleDeg = cornerAngleDeg;
+            CornerMinSegmentMm = cornerMinSegmentMm;
             ProjectionFactor = projectionFactor;
             CapMinMm = capMinMm;
             CapWidthRatio = capWidthRatio;
@@ -31,6 +33,7 @@ namespace WindBoard.Core.Ink
         }
 
         public double CornerAngleDeg { get; }
+        public double CornerMinSegmentMm { get; }
         public double ProjectionFactor { get; }
         public double CapMinMm { get; }
         public double CapWidthRatio { get; }
@@ -43,11 +46,12 @@ namespace WindBoard.Core.Ink
 
         public static DetailPreservingSmootherParameters NoPressureDefaults =>
             new DetailPreservingSmootherParameters(
-                cornerAngleDeg: 40.0,
-                projectionFactor: 0.8,
-                capMinMm: 0.25,
-                capWidthRatio: 0.40,
-                capMaxMm: 0.90,
+                cornerAngleDeg: 75.0,
+                cornerMinSegmentMm: 0.30,
+                projectionFactor: 1.0,
+                capMinMm: 0.45,
+                capWidthRatio: 0.70,
+                capMaxMm: 1.80,
                 marginMm: 0.15,
                 clearanceRatio: 0.35,
                 gridCellMm: 2.0,
@@ -156,7 +160,8 @@ namespace WindBoard.Core.Ink
             Point p1 = mid.CanvasDip;
             Point p2 = next.CanvasDip;
 
-            if (IsCorner(p0, p1, p2))
+            double smoothingScale = ComputeSmoothingScale(p0, p1, p2);
+            if (smoothingScale <= 0)
             {
                 EmitRaw(mid, outputs);
                 return;
@@ -192,6 +197,7 @@ namespace WindBoard.Core.Ink
 
             double eLen = Math.Sqrt(eLen2);
             double stepDip = Math.Min(_parameters.ProjectionFactor * eLen, capDip);
+            stepDip *= smoothingScale;
             if (stepDip <= MinMeaningfulDip)
             {
                 EmitRaw(mid, outputs);
@@ -249,7 +255,7 @@ namespace WindBoard.Core.Ink
             return capMm * _mmToDip;
         }
 
-        private bool IsCorner(Point p0, Point p1, Point p2)
+        private double ComputeSmoothingScale(Point p0, Point p1, Point p2)
         {
             var v1 = p1 - p0;
             var v2 = p2 - p1;
@@ -258,19 +264,49 @@ namespace WindBoard.Core.Ink
             double v2Len2 = v2.X * v2.X + v2.Y * v2.Y;
             if (v1Len2 <= MinVectorLengthSquaredDip || v2Len2 <= MinVectorLengthSquaredDip)
             {
-                return true;
+                return 0;
             }
 
             double denom = Math.Sqrt(v1Len2 * v2Len2);
             if (denom <= MinDenominator)
             {
-                return true;
+                return 0;
             }
 
             double cos = (v1.X * v2.X + v1.Y * v2.Y) / denom;
             cos = Math.Clamp(cos, -1.0, 1.0);
             double angleDeg = Math.Acos(cos) * DegreesPerRadian;
-            return angleDeg >= _parameters.CornerAngleDeg;
+
+            double minSegmentDip = Math.Max(0.0, _parameters.CornerMinSegmentMm) * _mmToDip;
+            if (minSegmentDip > MinMeaningfulDip)
+            {
+                double minSegmentLen2 = minSegmentDip * minSegmentDip;
+                if (v1Len2 < minSegmentLen2 || v2Len2 < minSegmentLen2)
+                {
+                    return 1.0;
+                }
+            }
+
+            double cornerAngleDeg = _parameters.CornerAngleDeg;
+            if (cornerAngleDeg <= 0)
+            {
+                return 1.0;
+            }
+
+            if (angleDeg >= cornerAngleDeg)
+            {
+                return 0.0;
+            }
+
+            if (angleDeg <= 0.0)
+            {
+                return 1.0;
+            }
+
+            double t = angleDeg / cornerAngleDeg;
+            t = Math.Clamp(t, 0.0, 1.0);
+            double smooth = t * t * (3.0 - 2.0 * t);
+            return 1.0 - smooth;
         }
     }
 }

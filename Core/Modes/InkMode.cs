@@ -40,15 +40,9 @@ namespace WindBoard.Core.Modes
 
         public void SetStrokeSmoothingMode(StrokeSmoothingMode mode) => _strokeSmoothingMode = mode;
 
-        private bool ShouldEnableDetailSmoother(InputEventArgs args)
+        private bool ShouldEnableDetailSmoother()
         {
-            if (_strokeSmoothingMode == StrokeSmoothingMode.RawInput)
-            {
-                return false;
-            }
-
-            return args.DeviceType == InputDeviceType.Touch
-                   || (args.DeviceType == InputDeviceType.Stylus && !args.HasPressureHardware);
+            return _strokeSmoothingMode != StrokeSmoothingMode.RawInput;
         }
 
         public override void SwitchOn()
@@ -133,7 +127,7 @@ namespace WindBoard.Core.Modes
             double logicalThicknessDip = da.Width * zoom;
 
             DetailPreservingSmoother? detailSmoother = null;
-            if (ShouldEnableDetailSmoother(args))
+            if (ShouldEnableDetailSmoother())
             {
                 detailSmoother = new DetailPreservingSmoother(
                     DetailPreservingSmootherParameters.NoPressureDefaults,

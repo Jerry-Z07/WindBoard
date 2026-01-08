@@ -46,6 +46,25 @@ public sealed class DetailPreservingSmootherTests
     }
 
     [StaFact]
+    public void Push_ModerateTurnAngle_SmoothsButPreservesShape()
+    {
+        var parameters = DetailPreservingSmootherParameters.NoPressureDefaults;
+        var smoother = new DetailPreservingSmoother(parameters, new Point(0, 0), zoomAtStart: 1.0, logicalThicknessDip: 2.0);
+
+        var outputs = new List<DetailPreservingSample>();
+
+        smoother.Push(new DetailPreservingSample(new Point(10, 4), pressure: 0.5f), isFinal: false, outputs);
+        outputs.Clear();
+
+        smoother.Push(new DetailPreservingSample(new Point(20, 0), pressure: 0.5f), isFinal: true, outputs);
+
+        Assert.True(outputs.Count >= 2);
+
+        double y = outputs[0].CanvasDip.Y;
+        Assert.InRange(y, 1.0, 3.99);
+    }
+
+    [StaFact]
     public void Push_NearOldSegment_ClampsMidToRaw()
     {
         var parameters = DetailPreservingSmootherParameters.NoPressureDefaults;
