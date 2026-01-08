@@ -1,9 +1,12 @@
 using System;
+using System.Collections.Generic;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Ink;
+using WindBoard.Controls;
+using WindBoard.Core.Ink.Backend;
 using WindBoard.Core.Input;
 using WindBoard.Core.Modes;
+using WindBoard.Models.Ink;
 using Xunit;
 
 namespace WindBoard.Tests.Ink;
@@ -13,14 +16,13 @@ public sealed class InkModeTests
     [StaFact]
     public void OnPointerUp_Touch_AppendsRawPoints()
     {
-        var canvas = new InkCanvas
-        {
-            Width = 8000,
-            Height = 8000,
-            Strokes = new StrokeCollection()
-        };
+        var canvas = new InkCanvas { Width = 8000, Height = 8000 };
+        var surface = new InkSurface();
+        using var backend = new CustomInkBackend(surface);
+        var document = new List<InkStrokeModel>();
+        backend.BindDocument(document);
 
-        var mode = new InkMode(canvas, () => 1.0);
+        var mode = new InkMode(canvas, backend, () => 1.0);
         mode.SwitchOn();
 
         long ticks = 0;
@@ -44,8 +46,8 @@ public sealed class InkModeTests
             ContactSize = contactSize
         });
 
-        Assert.Single(canvas.Strokes);
-        var stroke = canvas.Strokes[0];
+        Assert.Single(document);
+        var stroke = document[0];
 
         ticks += 16 * TimeSpan.TicksPerMillisecond;
         mode.OnPointerMove(new InputEventArgs
@@ -85,13 +87,13 @@ public sealed class InkModeTests
             ContactSize = contactSize
         });
 
-        Assert.Equal(3, stroke.StylusPoints.Count);
+        Assert.Equal(3, stroke.Points.Count);
 
-        Assert.Equal(0, stroke.StylusPoints[0].X, precision: 6);
-        Assert.Equal(0, stroke.StylusPoints[0].Y, precision: 6);
-        Assert.Equal(1, stroke.StylusPoints[1].X, precision: 6);
-        Assert.Equal(0, stroke.StylusPoints[1].Y, precision: 6);
-        Assert.Equal(2, stroke.StylusPoints[2].X, precision: 6);
-        Assert.Equal(0, stroke.StylusPoints[2].Y, precision: 6);
+        Assert.Equal(0, stroke.Points[0].X, precision: 6);
+        Assert.Equal(0, stroke.Points[0].Y, precision: 6);
+        Assert.Equal(1, stroke.Points[1].X, precision: 6);
+        Assert.Equal(0, stroke.Points[1].Y, precision: 6);
+        Assert.Equal(2, stroke.Points[2].X, precision: 6);
+        Assert.Equal(0, stroke.Points[2].Y, precision: 6);
     }
 }

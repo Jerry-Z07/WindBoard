@@ -153,7 +153,8 @@ namespace WindBoard
                 try { MyCanvas.ReleaseAllTouchCaptures(); } catch { }
                 try { Mouse.Capture(null); } catch { }
 
-                MyCanvas.Strokes.Clear();
+                _inkService?.ClearInk();
+                if (_inkService == null) MyCanvas.Strokes.Clear();
                 MyCanvas.Children.Clear();
 
                 if (_popupEraserClear != null) _popupEraserClear.IsOpen = false;
@@ -224,7 +225,8 @@ namespace WindBoard
                 try { MyCanvas.ReleaseAllTouchCaptures(); } catch { Debug.WriteLine("[DBG] SliderClear_PreviewMouseUp: ReleaseAllTouchCaptures(canvas) failed"); }
                 try { Mouse.Capture(null); } catch { Debug.WriteLine("[DBG] SliderClear_PreviewMouseUp: Mouse.Capture(null) failed"); }
 
-                MyCanvas.Strokes.Clear();
+                _inkService?.ClearInk();
+                if (_inkService == null) MyCanvas.Strokes.Clear();
                 MyCanvas.Children.Clear();
 
                 if (_popupEraserClear != null) _popupEraserClear.IsOpen = false;

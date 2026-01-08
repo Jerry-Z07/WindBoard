@@ -6,9 +6,12 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Ink;
+using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using Newtonsoft.Json;
+using WindBoard.Core.Ink.Adapters;
 using WindBoard.Models.Export;
+using WindBoard.Models.Ink;
 using WindBoard.Models.Wbi;
 
 namespace WindBoard.Services.Export
@@ -57,6 +60,7 @@ namespace WindBoard.Services.Export
                     };
 
                     var assetFiles = new HashSet<string>();
+                    bool usesInkModelPayload = false;
 
                     for (int i = 0; i < pages.Count; i++)
                     {
@@ -79,8 +83,26 @@ namespace WindBoard.Services.Export
                             Number = page.Number
                         });
 
-                        // 导出页面数据
-                        var pageData = ExportPageData(page, pageId, options, archive, assetFiles);
+                        string? strokesFileName = null;
+                        string? inkFileName = null;
+                        StrokeCollection? strokesToExport = null;
+
+                        if (ShouldExportInkModel(page))
+                        {
+                            usesInkModelPayload = true;
+                            inkFileName = $"{pageId}.ink.json";
+                            ExportInkModel(archive, inkFileName, page.InkStrokes, options);
+                        }
+                        else
+                        {
+                            strokesToExport = GetInkStrokesForExport(page);
+                            if (strokesToExport != null && strokesToExport.Count > 0)
+                            {
+                                strokesFileName = $"{pageId}.isf";
+                            }
+                        }
+
+                        var pageData = ExportPageData(page, pageId, options, archive, assetFiles, strokesFileName, inkFileName);
 
                         // 保存页面 JSON
                         string pageJsonPath = $"{PagesFolder}/{pageId}.json";
@@ -92,15 +114,21 @@ namespace WindBoard.Services.Export
                         }
 
                         // 导出笔迹数据
-                        if (page.Strokes != null && page.Strokes.Count > 0)
+                        if (strokesToExport != null && strokesToExport.Count > 0 && !string.IsNullOrEmpty(strokesFileName))
                         {
-                            string isfPath = $"{PagesFolder}/{pageId}.isf";
+                            string isfPath = $"{PagesFolder}/{strokesFileName}";
                             var isfEntry = archive.CreateEntry(isfPath, GetCompressionLevel(options.CompressionLevel));
                             using (var stream = isfEntry.Open())
                             {
-                                page.Strokes.Save(stream);
+                                strokesToExport.Save(stream);
                             }
                         }
+                    }
+
+                    if (usesInkModelPayload)
+                    {
+                        manifest.Version = "1.1";
+                        manifest.MinCompatibleVersion = "1.1";
                     }
 
                     // 保存清单
@@ -146,6 +174,10 @@ namespace WindBoard.Services.Export
             {
                 // 笔迹数据估算（每个点约 20 字节，压缩后约 5 字节）
                 int totalPoints = page.Strokes?.Sum(s => s.StylusPoints.Count) ?? 0;
+                if (totalPoints == 0)
+                {
+                    totalPoints = page.InkStrokes?.Sum(s => s.Points.Count) ?? 0;
+                }
                 totalSize += totalPoints * 5;
 
                 // 附件估算
@@ -181,7 +213,9 @@ namespace WindBoard.Services.Export
             string pageId,
             WbiExportOptions options,
             ZipArchive archive,
-            HashSet<string> assetFiles)
+            HashSet<string> assetFiles,
+            string? strokesFileName,
+            string? inkFileName)
         {
             var pageData = new WbiPageData
             {
@@ -194,10 +228,8 @@ namespace WindBoard.Services.Export
             };
 
             // 笔迹文件引用
-            if (page.Strokes != null && page.Strokes.Count > 0)
-            {
-                pageData.StrokesFile = $"{pageId}.isf";
-            }
+            pageData.StrokesFile = strokesFileName;
+            pageData.InkFile = inkFileName;
 
             // 导出附件
             foreach (var att in page.Attachments)
@@ -261,6 +293,88 @@ namespace WindBoard.Services.Export
             }
 
             return pageData;
+        }
+
+        private static StrokeCollection? GetInkStrokesForExport(BoardPage page)
+        {
+            if (page.Strokes != null && page.Strokes.Count > 0)
+            {
+                return page.Strokes;
+            }
+
+            if (page.InkStrokes != null && page.InkStrokes.Count > 0)
+            {
+                double zoom = page.Zoom <= 0 ? 1.0 : page.Zoom;
+                return WpfStrokeAdapter.ToStrokeCollection(page.InkStrokes, zoom);
+            }
+
+            return null;
+        }
+
+        private static bool ShouldExportInkModel(BoardPage page)
+        {
+            if (page.InkStrokes == null || page.InkStrokes.Count == 0) return false;
+            return page.Strokes == null || page.Strokes.Count == 0;
+        }
+
+        private void ExportInkModel(ZipArchive archive, string inkFileName, List<InkStrokeModel> strokes, WbiExportOptions options)
+        {
+            if (strokes == null || strokes.Count == 0) return;
+
+            var payload = BuildInkPayload(strokes);
+            string inkPath = $"{PagesFolder}/{inkFileName}";
+            var inkEntry = archive.CreateEntry(inkPath, GetCompressionLevel(options.CompressionLevel));
+            using (var writer = new StreamWriter(inkEntry.Open()))
+            {
+                writer.Write(JsonConvert.SerializeObject(payload, Formatting.None));
+            }
+        }
+
+        private static WbiInkPayload BuildInkPayload(List<InkStrokeModel> strokes)
+        {
+            var payload = new WbiInkPayload
+            {
+                Version = "1.0"
+            };
+
+            for (int i = 0; i < strokes.Count; i++)
+            {
+                var s = strokes[i];
+                if (s == null) continue;
+
+                var style = s.Style;
+                var stroke = new WbiInkStrokeData
+                {
+                    Id = s.Id,
+                    ZoomAtCreation = s.ZoomAtCreation,
+                    BrushKind = style.BrushKind,
+                    ColorArgb = PackColor(style.Color),
+                    LogicalThicknessDip = style.LogicalThicknessDip,
+                    UsesPressure = style.UsesPressure
+                };
+
+                var pts = s.Points;
+                for (int j = 0; j < pts.Count; j++)
+                {
+                    var p = pts[j];
+                    stroke.Points.Add(new WbiInkPointData
+                    {
+                        X = p.X,
+                        Y = p.Y,
+                        Pressure = p.Pressure,
+                        TimestampTicks = p.TimestampTicks
+                    });
+                }
+
+                payload.Strokes.Add(stroke);
+            }
+
+            return payload;
+        }
+
+        private static uint PackColor(Color color)
+        {
+            return ((uint)color.A << 24) | ((uint)color.R << 16) | ((uint)color.G << 8) | color.B;
         }
 
         private byte[] CompressImage(string filePath, WbiExportOptions options)

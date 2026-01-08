@@ -1,6 +1,8 @@
 using System.IO;
 using System.Windows.Ink;
+using System.Windows.Media;
 using WindBoard.Models.Export;
+using WindBoard.Models.Ink;
 using WindBoard.Services.Export;
 using Xunit;
 using static WindBoard.Tests.TestHelpers.InkTestHelpers;
@@ -59,6 +61,40 @@ public sealed class WbiImporterTests : IDisposable
         Assert.True(result.Success);
         Assert.Null(result.ErrorMessage);
         Assert.Single(result.Pages);
+    }
+
+    [StaFact]
+    public async Task ImportAsync_WithInkModel_RestoresModelAndStrokes()
+    {
+        var page = new BoardPage
+        {
+            Number = 1,
+            Strokes = new StrokeCollection(),
+            CanvasWidth = 8000,
+            CanvasHeight = 8000
+        };
+
+        var stroke = new InkStrokeModel
+        {
+            Id = Guid.NewGuid(),
+            ZoomAtCreation = 1.0,
+            Style = new InkStrokeStyle(InkBrushKind.Pen, Colors.White, LogicalThicknessDip: 2.0, UsesPressure: false)
+        };
+        for (int x = 0; x <= 20; x++)
+        {
+            stroke.Points.Add(new InkPoint(x, 0, 0.5f, TimestampTicks: 0));
+        }
+        page.InkStrokes.Add(stroke);
+
+        var filePath = await CreateTestWbiFile(new List<BoardPage> { page });
+
+        var importer = new WbiImporter();
+        var result = await importer.ImportAsync(filePath);
+
+        Assert.True(result.Success);
+        Assert.Single(result.Pages);
+        Assert.Single(result.Pages[0].InkStrokes);
+        Assert.Single(result.Pages[0].Strokes);
     }
 
     [StaFact]
