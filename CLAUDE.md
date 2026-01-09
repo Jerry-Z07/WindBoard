@@ -130,7 +130,7 @@ WindBoard uses a **staged input pipeline** that routes events through interactio
 ## Ink System Details
 
 **Writing Mode** (`Core/Modes/InkMode.cs`):
-- **Smoothing**: `DetailPreservingSmoother` algorithm preserves sharp corners while smoothing curves
+- **Smoothing**: Currently raw input points; smoothing will be redesigned (prototype removed)
 - **Pressure Handling**:
   - Real pressure from hardware stylus (auto-switches after sufficient samples)
   - Fallback to simulated pressure based on velocity/time for pen-like effect

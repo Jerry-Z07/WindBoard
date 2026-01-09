@@ -44,13 +44,8 @@ namespace WindBoard.Models
         // 模拟压感（签字笔风格）：用于无压感设备的轻微笔锋效果
         public bool SimulatedPressureEnabled { get; set; } = false;
 
-        // 笔迹平滑：平滑算法/输入方案选择（默认使用原始输入）
-        [JsonConverter(typeof(StringEnumConverter))]
-        public StrokeSmoothingMode StrokeSmoothingMode { get; set; } = StrokeSmoothingMode.RawInput;
-
         // 触摸缩放/平移：仅双指手势（开启后，三指及以上不参与缩放/平移）
         public bool ZoomPanTwoFingerOnly { get; set; } = false;
-
         // --- 更新相关设置 ---
 
         // 自动检查更新（默认开启）

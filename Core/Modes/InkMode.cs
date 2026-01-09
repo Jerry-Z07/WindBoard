@@ -6,7 +6,6 @@ using System.Windows.Ink;
 using System.Windows.Threading;
 using WindBoard.Core.Ink;
 using WindBoard.Core.Input;
-using WindBoard.Models;
 using StylusPoint = System.Windows.Input.StylusPoint;
 using StylusPointCollection = System.Windows.Input.StylusPointCollection;
 
@@ -22,7 +21,6 @@ namespace WindBoard.Core.Modes
         private DispatcherTimer? _flushTimer;
         private const int MaxStylusPointsPerSegment = 1800;
         private bool _simulatedPressureEnabled;
-        private StrokeSmoothingMode _strokeSmoothingMode = StrokeSmoothingMode.RawInput;
 
         public InkMode(InkCanvas canvas, Func<double> zoomProvider, Action? onStrokeEndedOrCanceled = null)
         {
@@ -37,20 +35,6 @@ namespace WindBoard.Core.Modes
         private const float RealPressureMeaningfulEpsilon = 0.06f;
 
         public void SetSimulatedPressureEnabled(bool enabled) => _simulatedPressureEnabled = enabled;
-
-        public void SetStrokeSmoothingMode(StrokeSmoothingMode mode) => _strokeSmoothingMode = mode;
-
-        private bool ShouldEnableDetailSmoother(InputEventArgs args)
-        {
-            if (_strokeSmoothingMode == StrokeSmoothingMode.RawInput)
-            {
-                return false;
-            }
-
-            return args.DeviceType == InputDeviceType.Touch
-                   || (args.DeviceType == InputDeviceType.Stylus && !args.HasPressureHardware);
-        }
-
         public override void SwitchOn()
         {
             _canvas.EditingMode = InkCanvasEditingMode.None;
@@ -131,17 +115,6 @@ namespace WindBoard.Core.Modes
             }
 
             double logicalThicknessDip = da.Width * zoom;
-
-            DetailPreservingSmoother? detailSmoother = null;
-            if (ShouldEnableDetailSmoother(args))
-            {
-                detailSmoother = new DetailPreservingSmoother(
-                    DetailPreservingSmootherParameters.NoPressureDefaults,
-                    args.CanvasPoint,
-                    zoom,
-                    logicalThicknessDip);
-            }
-
             var stroke = new Stroke(stylusPoints)
             {
                 DrawingAttributes = da
@@ -150,7 +123,16 @@ namespace WindBoard.Core.Modes
 
             _canvas.Strokes.Add(stroke);
 
-            var active = new ActiveStroke(stroke, da, logicalThicknessDip, detailSmoother, args.CanvasPoint, args.TimestampTicks, usesRealPressure, initialRealPressure, hasRealPressureCandidate, simulatedPressure);
+            var active = new ActiveStroke(
+                stroke,
+                da,
+                logicalThicknessDip,
+                args.CanvasPoint,
+                args.TimestampTicks,
+                usesRealPressure,
+                initialRealPressure,
+                hasRealPressureCandidate,
+                simulatedPressure);
             active.Segments.Add(stroke);
             _activeStrokes[id] = active;
             EnsureFlushTimer();
@@ -184,24 +166,6 @@ namespace WindBoard.Core.Modes
         {
             Point prevInputCanvasDip = active.LastInputCanvasDip;
             long prevInputTicks = active.LastInputTicks;
-
-            if (!isFinal && _strokeSmoothingMode != StrokeSmoothingMode.RawInput)
-            {
-                // 输入频率过高时做轻量降采样：阈值过大会导致“跟手性”下降（卡/滞后）。
-                const long MinIntervalTicks = 1 * TimeSpan.TicksPerMillisecond;
-                const double MinDistanceDip = 0.25;
-
-                long dtTicks = args.TimestampTicks - prevInputTicks;
-                if (dtTicks >= 0 && dtTicks < MinIntervalTicks)
-                {
-                    var dv = args.CanvasPoint - prevInputCanvasDip;
-                    if (dv.LengthSquared < (MinDistanceDip * MinDistanceDip))
-                    {
-                        return;
-                    }
-                }
-            }
-
             active.LastInputCanvasDip = args.CanvasPoint;
             active.LastInputTicks = args.TimestampTicks;
 
@@ -254,20 +218,7 @@ namespace WindBoard.Core.Modes
                 pressure = RealPressureBaseline;
             }
 
-            if (active.DetailSmoother == null)
-            {
-                active.PendingPoints.Add(new StylusPoint(args.CanvasPoint.X, args.CanvasPoint.Y, pressure));
-                return;
-            }
-
-            var outputs = active.SmoothingScratch;
-            outputs.Clear();
-            active.DetailSmoother.Push(new DetailPreservingSample(args.CanvasPoint, pressure), isFinal, outputs);
-            for (int i = 0; i < outputs.Count; i++)
-            {
-                var s = outputs[i];
-                active.PendingPoints.Add(new StylusPoint(s.CanvasDip.X, s.CanvasDip.Y, s.Pressure));
-            }
+            active.PendingPoints.Add(new StylusPoint(args.CanvasPoint.X, args.CanvasPoint.Y, pressure));
         }
 
         private static int GetPointerKey(InputEventArgs args)
