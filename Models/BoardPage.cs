@@ -21,6 +21,7 @@ namespace WindBoard
         internal int PreviewVersion { get; set; }
         internal StrokeUndoHistory UndoHistory { get; } = new StrokeUndoHistory();
         internal InkUndoHistory InkUndoHistory { get; } = new InkUndoHistory();
+        internal InkSpatialIndex InkSpatialIndex { get; } = new InkSpatialIndex();
 
         public int Number
         {

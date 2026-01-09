@@ -10,6 +10,7 @@ using WindBoard.Core.Filters;
 using WindBoard.Core.Input;
 using WindBoard.Core.Input.RealTimeStylus;
 using WindBoard.Core.Modes;
+using WindBoard.Models.InkV2;
 using WindBoard.Services;
 using System.Windows.Threading;
 using InputEventArgs = WindBoard.Core.Input.InputEventArgs;
@@ -34,7 +35,6 @@ namespace WindBoard
         private RealTimeStylusManager? _realTimeStylusManager;
         private InputSourceSelector? _inputSourceSelector;
         private ZoomPanService _zoomPanService = null!;
-        private StrokeService _strokeService = null!;
         private AutoExpandService _autoExpandService = null!;
         private PageService _pageService = null!;
         private TouchGestureService _touchGestureService = null!;
@@ -64,7 +64,6 @@ namespace WindBoard
             _eraserCursorRect = (Border)FindName("EraserCursorRect");
 
             _modeController = new ModeController();
-            _strokeService = new StrokeService(MyCanvas, _baseThickness);
 
             // 性能：避免使用 LayoutTransform（会触发布局）；改用 RenderTransform 实现“相机式”缩放/平移。
             // XAML 中仍声明了 ZoomTransform（原用于 LayoutTransform），这里在运行时将其移到 RenderTransform。
@@ -77,13 +76,28 @@ namespace WindBoard
                 CanvasHost.RenderTransform = group;
             }
 
-            _zoomPanService = new ZoomPanService(ZoomTransform, _panTransform, MinZoom, MaxZoom, zoom => _strokeService.UpdatePenThickness(zoom));
+            _zoomPanService = new ZoomPanService(ZoomTransform, _panTransform, MinZoom, MaxZoom, UpdateInkStrokeThicknessForZoom);
             _zoomPanService.SetZoomDirect(DefaultZoom);
             ApplyZoomPanGestureSettingsSnapshot();
             _pageService = new PageService(MyCanvas, _zoomPanService, NotifyPageUiChanged);
             _autoExpandService = new AutoExpandService(MyCanvas, _zoomPanService, () => _pageService.CurrentPage, () => _inkMode?.HasActiveStroke ?? false);
 
-            _inkMode = new InkMode(MyCanvas, () => _zoomPanService.Zoom, OnInkStrokeEndedOrCanceled);
+            _inkMode = new InkMode(
+                MyCanvas,
+                () => _zoomPanService.Zoom,
+                () => _pageService.CurrentPage,
+                CreateCurrentInkToolSnapshot,
+                OnInkStrokeEndedOrCanceled);
+
+            try
+            {
+                _inkThicknessSemantics = SettingsService.Instance.GetInkThicknessSemantics();
+                _inkMode.SetSmoothingEnabled(SettingsService.Instance.GetInkV2SmoothingEnabled());
+                _inkMode.SetSimulatedPressureEnabled(SettingsService.Instance.GetInkV2SimulatedPressureEnabled());
+            }
+            catch
+            {
+            }
             _selectMode = new SelectMode(MyCanvas);
             _noMode = new NoMode(MyCanvas);
             _eraserMode = new EraserMode(
@@ -91,7 +105,8 @@ namespace WindBoard
                 _eraserOverlay ?? new Canvas(),
                 _eraserCursorRect ?? new Border(),
                 () => _zoomPanService.Zoom,
-                _eraserCursorOffsetY);
+                _eraserCursorOffsetY,
+                eraseRectAction: EraseInkV2ByRect);
 
             _modeController.SetCurrentMode(_inkMode);
 
@@ -246,7 +261,7 @@ namespace WindBoard
             var mode = _modeController.ActiveMode ?? _modeController.CurrentMode;
             if (ReferenceEquals(mode, _inkMode) || ReferenceEquals(mode, _eraserMode))
             {
-                cur.UndoHistory.Begin();
+                cur.InkUndoHistory.Begin();
             }
         }
 
@@ -258,7 +273,7 @@ namespace WindBoard
             var mode = _modeController.ActiveMode ?? _modeController.CurrentMode;
             if (ReferenceEquals(mode, _inkMode) || ReferenceEquals(mode, _eraserMode))
             {
-                cur.UndoHistory.End();
+                cur.InkUndoHistory.End();
             }
         }
 
@@ -294,7 +309,7 @@ namespace WindBoard
             MyCanvas.EditingMode = InkCanvasEditingMode.None;
             SetViewportBitmapCache(true);
             _strokeSuppressionActive = true;
-            _pageService.CurrentPage?.UndoHistory.Cancel();
+            _pageService.CurrentPage?.InkUndoHistory.Cancel();
             _inkMode?.CancelAllStrokes();
         }
 
@@ -319,7 +334,7 @@ namespace WindBoard
 
         private void Undo_CanExecute(object sender, CanExecuteRoutedEventArgs e)
         {
-            e.CanExecute = _pageService.CurrentPage?.UndoHistory.CanUndo == true;
+            e.CanExecute = _pageService.CurrentPage?.InkUndoHistory.CanUndo == true;
             e.Handled = true;
         }
 
@@ -327,13 +342,16 @@ namespace WindBoard
         {
             var cur = _pageService.CurrentPage;
             if (cur == null) return;
-            cur.UndoHistory.Undo(MyCanvas.Strokes);
+            cur.InkUndoHistory.Undo(cur.Ink);
+            cur.InkSpatialIndex.Rebuild(cur.Ink);
+            RebuildInkCanvasV2Strokes(cur);
+            cur.ContentVersion++;
             e.Handled = true;
         }
 
         private void Redo_CanExecute(object sender, CanExecuteRoutedEventArgs e)
         {
-            e.CanExecute = _pageService.CurrentPage?.UndoHistory.CanRedo == true;
+            e.CanExecute = _pageService.CurrentPage?.InkUndoHistory.CanRedo == true;
             e.Handled = true;
         }
 
@@ -341,7 +359,10 @@ namespace WindBoard
         {
             var cur = _pageService.CurrentPage;
             if (cur == null) return;
-            cur.UndoHistory.Redo(MyCanvas.Strokes);
+            cur.InkUndoHistory.Redo(cur.Ink);
+            cur.InkSpatialIndex.Rebuild(cur.Ink);
+            RebuildInkCanvasV2Strokes(cur);
+            cur.ContentVersion++;
             e.Handled = true;
         }
 

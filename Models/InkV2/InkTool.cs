@@ -6,7 +6,9 @@ namespace WindBoard.Models.InkV2
         uint ColorArgb,
         double BaseThicknessDip,
         InkThicknessSemantics ThicknessSemantics,
-        InkBrushKind BrushKind = InkBrushKind.Pen)
+        InkBrushKind BrushKind = InkBrushKind.Pen,
+        bool UsesPressure = false,
+        float PressureNominal = 1.0f)
     {
         public static InkTool CreateDefault()
         {
@@ -15,7 +17,9 @@ namespace WindBoard.Models.InkV2
                 ColorArgb: 0xFFFFFFFF,
                 BaseThicknessDip: 2.0,
                 ThicknessSemantics: InkThicknessSemantics.ViewInvariant,
-                BrushKind: InkBrushKind.Pen);
+                BrushKind: InkBrushKind.Pen,
+                UsesPressure: false,
+                PressureNominal: 1.0f);
         }
 
         public static InkTool CreateFromColor(uint colorArgb)
@@ -24,8 +28,9 @@ namespace WindBoard.Models.InkV2
                 ColorArgb: colorArgb,
                 BaseThicknessDip: 2.0,
                 ThicknessSemantics: InkThicknessSemantics.ViewInvariant,
-                BrushKind: InkBrushKind.Pen);
+                BrushKind: InkBrushKind.Pen,
+                UsesPressure: false,
+                PressureNominal: 1.0f);
         }
     }
 }
-

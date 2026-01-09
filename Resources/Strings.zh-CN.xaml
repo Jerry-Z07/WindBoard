@@ -40,6 +40,7 @@
     <sys:String x:Key="MainWindow_Tool_Redo">恢复</sys:String>
     <sys:String x:Key="MainWindow_VideoPresenter">视频展台</sys:String>
     <sys:String x:Key="MainWindow_PenSettings_Title">画笔设置</sys:String>
+    <sys:String x:Key="MainWindow_PenSettings_ThicknessWorldInvariant">粗细随缩放变化</sys:String>
     <sys:String x:Key="MainWindow_SlideToClear_Hint">向右滑动清空</sys:String>
     <sys:String x:Key="MainWindow_SlideToClear_ReleaseHint">松开清空</sys:String>
 

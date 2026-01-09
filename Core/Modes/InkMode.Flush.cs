@@ -73,6 +73,8 @@ namespace WindBoard.Core.Modes
                 DrawingAttributes = active.DrawingAttributes
             };
             StrokeThicknessMetadata.SetLogicalThicknessDip(next, active.LogicalThicknessDip);
+            StrokeInkSemanticsMetadata.SetThicknessSemantics(next, active.Tool.ThicknessSemantics);
+            StrokeInkSemanticsMetadata.SetInkStrokeId(next, active.StrokeId);
             _canvas.Strokes.Add(next);
             active.Segments.Add(next);
             active.Stroke = next;

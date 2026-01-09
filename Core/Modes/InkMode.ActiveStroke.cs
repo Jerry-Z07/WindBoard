@@ -1,7 +1,9 @@
 using System.Collections.Generic;
 using System.Windows;
 using System.Windows.Ink;
+using WindBoard;
 using WindBoard.Core.Ink;
+using WindBoard.Models.InkV2;
 using StylusPoint = System.Windows.Input.StylusPoint;
 using StylusPointCollection = System.Windows.Input.StylusPointCollection;
 
@@ -11,6 +13,11 @@ namespace WindBoard.Core.Modes
     {
         private sealed class ActiveStroke
         {
+            public BoardPage Page { get; }
+            public Guid StrokeId { get; }
+            public InkTool Tool { get; set; }
+            public InkFragment Fragment { get; }
+
             public Stroke Stroke { get; set; }
             public DrawingAttributes DrawingAttributes { get; }
             public double LogicalThicknessDip { get; }
@@ -32,8 +39,26 @@ namespace WindBoard.Core.Modes
             public StylusPointCollection ScratchPoints { get; }
             public List<DetailPreservingSample> SmoothingScratch { get; } = new List<DetailPreservingSample>(4);
 
-            public ActiveStroke(Stroke stroke, DrawingAttributes drawingAttributes, double logicalThicknessDip, DetailPreservingSmoother? detailSmoother, Point lastInputCanvasDip, long lastInputTicks, bool usesRealPressure, float initialRealPressure, bool hasRealPressureCandidate, SimulatedPressure? simulatedPressure)
+            public ActiveStroke(
+                BoardPage page,
+                Guid strokeId,
+                InkTool tool,
+                InkFragment fragment,
+                Stroke stroke,
+                DrawingAttributes drawingAttributes,
+                double logicalThicknessDip,
+                DetailPreservingSmoother? detailSmoother,
+                Point lastInputCanvasDip,
+                long lastInputTicks,
+                bool usesRealPressure,
+                float initialRealPressure,
+                bool hasRealPressureCandidate,
+                SimulatedPressure? simulatedPressure)
             {
+                Page = page;
+                StrokeId = strokeId;
+                Tool = tool;
+                Fragment = fragment;
                 Stroke = stroke;
                 DrawingAttributes = drawingAttributes;
                 LogicalThicknessDip = logicalThicknessDip;

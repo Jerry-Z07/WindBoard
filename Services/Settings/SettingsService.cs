@@ -3,6 +3,7 @@ using System.IO;
 using System.Windows.Media;
 using Newtonsoft.Json;
 using WindBoard.Models;
+using WindBoard.Models.InkV2;
 
 namespace WindBoard.Services
 {
@@ -182,6 +183,34 @@ namespace WindBoard.Services
         public void SetZoomPanTwoFingerOnly(bool enabled)
         {
             Settings.ZoomPanTwoFingerOnly = enabled;
+            Save();
+            SettingsChanged?.Invoke(this, Settings);
+        }
+
+        // --- v2 书写设置 ---
+        public InkThicknessSemantics GetInkThicknessSemantics() => Settings.InkThicknessSemantics;
+
+        public void SetInkThicknessSemantics(InkThicknessSemantics semantics)
+        {
+            Settings.InkThicknessSemantics = semantics;
+            Save();
+            SettingsChanged?.Invoke(this, Settings);
+        }
+
+        public bool GetInkV2SmoothingEnabled() => Settings.InkV2SmoothingEnabled;
+
+        public void SetInkV2SmoothingEnabled(bool enabled)
+        {
+            Settings.InkV2SmoothingEnabled = enabled;
+            Save();
+            SettingsChanged?.Invoke(this, Settings);
+        }
+
+        public bool GetInkV2SimulatedPressureEnabled() => Settings.InkV2SimulatedPressureEnabled;
+
+        public void SetInkV2SimulatedPressureEnabled(bool enabled)
+        {
+            Settings.InkV2SimulatedPressureEnabled = enabled;
             Save();
             SettingsChanged?.Invoke(this, Settings);
         }

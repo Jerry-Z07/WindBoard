@@ -4,6 +4,7 @@ using System.Windows.Controls;
 using System.Windows.Ink;
 using WindBoard.Core.Input;
 using WindBoard.Core.Modes;
+using WindBoard.Models.InkV2;
 using Xunit;
 
 namespace WindBoard.Tests.Ink;
@@ -20,7 +21,8 @@ public sealed class InkModeTests
             Strokes = new StrokeCollection()
         };
 
-        var mode = new InkMode(canvas, () => 1.0);
+        var page = new BoardPage();
+        var mode = new InkMode(canvas, () => 1.0, () => page, InkTool.CreateDefault);
         mode.SwitchOn();
 
         long ticks = 0;

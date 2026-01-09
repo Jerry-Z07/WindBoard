@@ -1,6 +1,7 @@
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using System;
+using WindBoard.Models.InkV2;
 
 namespace WindBoard.Models
 {
@@ -40,6 +41,17 @@ namespace WindBoard.Models
 
         // 触摸缩放/平移：仅双指手势（开启后，三指及以上不参与缩放/平移）
         public bool ZoomPanTwoFingerOnly { get; set; } = false;
+
+        // --- v2 书写设置 ---
+
+        [JsonConverter(typeof(StringEnumConverter))]
+        public InkThicknessSemantics InkThicknessSemantics { get; set; } = InkThicknessSemantics.ViewInvariant;
+
+        // v2：是否启用书写平滑（默认开启；算法会在后续重写与参数化）
+        public bool InkV2SmoothingEnabled { get; set; } = true;
+
+        // v2：无压感设备的压感模拟（默认关闭）
+        public bool InkV2SimulatedPressureEnabled { get; set; } = false;
 
         // --- 更新相关设置 ---
 

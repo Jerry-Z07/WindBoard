@@ -54,9 +54,30 @@ namespace WindBoard
             var camouflageResult = ApplyCamouflageFromSettings();
             ApplyZoomPanGestureSettingsSnapshot();
 
-            if (_strokeService != null && _zoomPanService != null)
+            try
             {
-                _strokeService.UpdatePenThickness(_zoomPanService.Zoom);
+                _inkThicknessSemantics = SettingsService.Instance.GetInkThicknessSemantics();
+                if (PenThicknessWorldInvariant != null)
+                {
+                    PenThicknessWorldInvariant.IsChecked = _inkThicknessSemantics == Models.InkV2.InkThicknessSemantics.WorldInvariant;
+                }
+            }
+            catch
+            {
+            }
+
+            try
+            {
+                _inkMode?.SetSmoothingEnabled(SettingsService.Instance.GetInkV2SmoothingEnabled());
+                _inkMode?.SetSimulatedPressureEnabled(SettingsService.Instance.GetInkV2SimulatedPressureEnabled());
+            }
+            catch
+            {
+            }
+
+            if (_zoomPanService != null)
+            {
+                UpdateInkStrokeThicknessForZoom(_zoomPanService.Zoom);
             }
 
             // 伪装快捷方式：仅在设置“发生修改”时自动更新一次；每次启动不再自动生成。

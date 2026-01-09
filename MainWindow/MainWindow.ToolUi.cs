@@ -3,6 +3,8 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using WindBoard.Models.InkV2;
+using WindBoard.Services;
 
 namespace WindBoard
 {
@@ -60,9 +62,7 @@ namespace WindBoard
         {
             if (sender is RadioButton rb && double.TryParse(rb.Tag?.ToString(), out double thickness))
             {
-                if (_strokeService == null) return;
                 _baseThickness = thickness;
-                _strokeService.SetBaseThickness(thickness, _zoomPanService.Zoom);
             }
         }
 
@@ -70,19 +70,34 @@ namespace WindBoard
         {
             if (sender is Button btn && btn.Tag is string colorCode)
             {
-                if (_strokeService == null) return;
                 try
                 {
                     Color color = (Color)ColorConverter.ConvertFromString(colorCode);
-                    _strokeService.SetColor(color);
+                    _inkColorArgb = ((uint)color.A << 24) | ((uint)color.R << 16) | ((uint)color.G << 8) | color.B;
                 }
                 catch (FormatException)
                 {
-                    _strokeService.SetColor(Colors.White);
+                    _inkColorArgb = 0xFFFFFFFF;
                 }
 
                 PopupPenSettings.IsOpen = false;
             }
+        }
+
+        private void ThicknessSemantics_Checked(object sender, RoutedEventArgs e)
+        {
+            if (PenThicknessWorldInvariant == null) return;
+            if (PenThicknessWorldInvariant.IsChecked == true)
+            {
+                _inkThicknessSemantics = InkThicknessSemantics.WorldInvariant;
+            }
+            else
+            {
+                _inkThicknessSemantics = InkThicknessSemantics.ViewInvariant;
+            }
+
+            SettingsService.Instance.SetInkThicknessSemantics(_inkThicknessSemantics);
+            UpdateInkStrokeThicknessForZoom(_zoomPanService.Zoom);
         }
     }
 }

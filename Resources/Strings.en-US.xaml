@@ -40,6 +40,7 @@
     <sys:String x:Key="MainWindow_Tool_Redo">Redo</sys:String>
     <sys:String x:Key="MainWindow_VideoPresenter">Camera</sys:String>
     <sys:String x:Key="MainWindow_PenSettings_Title">Pen settings</sys:String>
+    <sys:String x:Key="MainWindow_PenSettings_ThicknessWorldInvariant">Scale thickness with zoom</sys:String>
     <sys:String x:Key="MainWindow_SlideToClear_Hint">Slide right to clear</sys:String>
     <sys:String x:Key="MainWindow_SlideToClear_ReleaseHint">Release to clear</sys:String>
 
