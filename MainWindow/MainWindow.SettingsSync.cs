@@ -68,7 +68,6 @@ namespace WindBoard
 
             try
             {
-                _inkMode?.SetSmoothingEnabled(SettingsService.Instance.GetInkV2SmoothingEnabled());
                 _inkMode?.SetSimulatedPressureEnabled(SettingsService.Instance.GetInkV2SimulatedPressureEnabled());
             }
             catch

@@ -197,15 +197,6 @@ namespace WindBoard.Services
             SettingsChanged?.Invoke(this, Settings);
         }
 
-        public bool GetInkV2SmoothingEnabled() => Settings.InkV2SmoothingEnabled;
-
-        public void SetInkV2SmoothingEnabled(bool enabled)
-        {
-            Settings.InkV2SmoothingEnabled = enabled;
-            Save();
-            SettingsChanged?.Invoke(this, Settings);
-        }
-
         public bool GetInkV2SimulatedPressureEnabled() => Settings.InkV2SimulatedPressureEnabled;
 
         public void SetInkV2SimulatedPressureEnabled(bool enabled)

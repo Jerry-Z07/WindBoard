@@ -26,7 +26,6 @@ namespace WindBoard.Core.Modes
         private DispatcherTimer? _flushTimer;
         private const int MaxStylusPointsPerSegment = 1800;
         private bool _simulatedPressureEnabled;
-        private bool _smoothingEnabled = true;
 
         public InkMode(
             InkCanvas canvas,
@@ -48,8 +47,6 @@ namespace WindBoard.Core.Modes
         private const float RealPressureMeaningfulEpsilon = 0.06f;
 
         public void SetSimulatedPressureEnabled(bool enabled) => _simulatedPressureEnabled = enabled;
-
-        public void SetSmoothingEnabled(bool enabled) => _smoothingEnabled = enabled;
 
         public override void SwitchOn()
         {
@@ -142,16 +139,6 @@ namespace WindBoard.Core.Modes
             double logicalThicknessDip = InkToolThickness.ComputeLogicalThicknessDip(tool);
             var da = CreateDrawingAttributes(tool, zoom, logicalThicknessDip);
 
-            DetailPreservingSmoother? detailSmoother = null;
-            if (_smoothingEnabled)
-            {
-                detailSmoother = new DetailPreservingSmoother(
-                    DetailPreservingSmootherParameters.NoPressureDefaults,
-                    args.CanvasPoint,
-                    zoom,
-                    InkToolThickness.ComputeScreenThicknessDip(tool, zoom, logicalThicknessDip));
-            }
-
             var stroke = new Stroke(stylusPoints)
             {
                 DrawingAttributes = da
@@ -174,7 +161,6 @@ namespace WindBoard.Core.Modes
                 stroke,
                 da,
                 logicalThicknessDip,
-                detailSmoother,
                 args.CanvasPoint,
                 args.TimestampTicks,
                 usesRealPressure,
@@ -216,23 +202,6 @@ namespace WindBoard.Core.Modes
         {
             Point prevInputCanvasDip = active.LastInputCanvasDip;
             long prevInputTicks = active.LastInputTicks;
-
-            if (!isFinal && _smoothingEnabled)
-            {
-                // 输入频率过高时做轻量降采样：阈值过大会导致“跟手性”下降（卡/滞后）。
-                const long MinIntervalTicks = 1 * TimeSpan.TicksPerMillisecond;
-                const double MinDistanceDip = 0.25;
-
-                long dtTicks = args.TimestampTicks - prevInputTicks;
-                if (dtTicks >= 0 && dtTicks < MinIntervalTicks)
-                {
-                    var dv = args.CanvasPoint - prevInputCanvasDip;
-                    if (dv.LengthSquared < (MinDistanceDip * MinDistanceDip))
-                    {
-                        return;
-                    }
-                }
-            }
 
             active.LastInputCanvasDip = args.CanvasPoint;
             active.LastInputTicks = args.TimestampTicks;
@@ -287,20 +256,7 @@ namespace WindBoard.Core.Modes
                 pressure = RealPressureBaseline;
             }
 
-            if (active.DetailSmoother == null)
-            {
-                AppendOutputPoint(active, args.CanvasPoint, pressure, args.TimestampTicks);
-                return;
-            }
-
-            var outputs = active.SmoothingScratch;
-            outputs.Clear();
-            active.DetailSmoother.Push(new DetailPreservingSample(args.CanvasPoint, pressure), isFinal, outputs);
-            for (int i = 0; i < outputs.Count; i++)
-            {
-                var s = outputs[i];
-                AppendOutputPoint(active, s.CanvasDip, s.Pressure, args.TimestampTicks);
-            }
+            AppendOutputPoint(active, args.CanvasPoint, pressure, args.TimestampTicks);
         }
 
         private static void AppendOutputPoint(ActiveStroke active, Point canvasDip, float pressure, long timestampTicks)

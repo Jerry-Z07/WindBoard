@@ -21,7 +21,6 @@ namespace WindBoard.Core.Modes
             public Stroke Stroke { get; set; }
             public DrawingAttributes DrawingAttributes { get; }
             public double LogicalThicknessDip { get; }
-            public DetailPreservingSmoother? DetailSmoother { get; }
             public Point LastInputCanvasDip { get; set; }
             public long LastInputTicks { get; set; }
             public bool UsesRealPressure { get; set; }
@@ -37,7 +36,6 @@ namespace WindBoard.Core.Modes
             public int PendingStartIndex { get; set; }
             public int PendingPointsCount => PendingPoints.Count - PendingStartIndex;
             public StylusPointCollection ScratchPoints { get; }
-            public List<DetailPreservingSample> SmoothingScratch { get; } = new List<DetailPreservingSample>(4);
 
             public ActiveStroke(
                 BoardPage page,
@@ -47,7 +45,6 @@ namespace WindBoard.Core.Modes
                 Stroke stroke,
                 DrawingAttributes drawingAttributes,
                 double logicalThicknessDip,
-                DetailPreservingSmoother? detailSmoother,
                 Point lastInputCanvasDip,
                 long lastInputTicks,
                 bool usesRealPressure,
@@ -62,7 +59,6 @@ namespace WindBoard.Core.Modes
                 Stroke = stroke;
                 DrawingAttributes = drawingAttributes;
                 LogicalThicknessDip = logicalThicknessDip;
-                DetailSmoother = detailSmoother;
                 LastInputCanvasDip = lastInputCanvasDip;
                 LastInputTicks = lastInputTicks;
                 UsesRealPressure = usesRealPressure;

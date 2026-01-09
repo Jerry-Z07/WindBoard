@@ -47,9 +47,6 @@ namespace WindBoard.Models
         [JsonConverter(typeof(StringEnumConverter))]
         public InkThicknessSemantics InkThicknessSemantics { get; set; } = InkThicknessSemantics.ViewInvariant;
 
-        // v2：是否启用书写平滑（默认开启；算法会在后续重写与参数化）
-        public bool InkV2SmoothingEnabled { get; set; } = true;
-
         // v2：无压感设备的压感模拟（默认关闭）
         public bool InkV2SimulatedPressureEnabled { get; set; } = false;
 
