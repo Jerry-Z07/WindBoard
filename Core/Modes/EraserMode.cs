@@ -14,6 +14,7 @@ namespace WindBoard.Core.Modes
         private readonly Canvas _overlay;
         private readonly Border _cursorRect;
         private readonly Func<double> _zoomProvider;
+        private readonly Action<Rect>? _eraseRectAction;
         private readonly double _cursorOffsetY;
 
         private double _baseWidth = 40.0;
@@ -26,25 +27,32 @@ namespace WindBoard.Core.Modes
         private bool _isPressed;
         private bool _isMouseErasing;
 
-        public EraserMode(InkCanvas canvas, Canvas overlay, Border cursorRect, Func<double> zoomProvider, double cursorOffsetY = 12.0)
+        public EraserMode(
+            InkCanvas canvas,
+            Canvas overlay,
+            Border cursorRect,
+            Func<double> zoomProvider,
+            double cursorOffsetY = 12.0,
+            Action<Rect>? eraseRectAction = null)
         {
             _canvas = canvas;
             _overlay = overlay;
             _cursorRect = cursorRect;
             _zoomProvider = zoomProvider;
             _cursorOffsetY = cursorOffsetY;
+            _eraseRectAction = eraseRectAction;
         }
 
         public override string Name => "Eraser";
 
         public override void SwitchOn()
         {
-            _canvas.EditingMode = InkCanvasEditingMode.EraseByPoint;
+            _canvas.EditingMode = _eraseRectAction != null ? InkCanvasEditingMode.None : InkCanvasEditingMode.EraseByPoint;
             _canvas.UseCustomCursor = true;
             _canvas.Cursor = Cursors.Arrow;
             _isPressed = false;
             _isMouseErasing = false;
-            UpdateEraserVisual(null);
+            _ = UpdateEraserVisual(null);
         }
 
         public override void SwitchOff()
@@ -61,14 +69,22 @@ namespace WindBoard.Core.Modes
             _isPressed = true;
             _isMouseErasing = args.DeviceType == InputDeviceType.Mouse;
             _canvas.Cursor = Cursors.Arrow;
-            UpdateEraserVisual(args.CanvasPoint);
+            Rect? rect = UpdateEraserVisual(args.CanvasPoint);
+            if (rect.HasValue)
+            {
+                _eraseRectAction?.Invoke(rect.Value);
+            }
         }
 
         public override void OnPointerMove(InputEventArgs args)
         {
             if (_isPressed)
             {
-                UpdateEraserVisual(args.CanvasPoint);
+                Rect? rect = UpdateEraserVisual(args.CanvasPoint);
+                if (rect.HasValue)
+                {
+                    _eraseRectAction?.Invoke(rect.Value);
+                }
             }
         }
 
@@ -77,10 +93,10 @@ namespace WindBoard.Core.Modes
             _isPressed = false;
             _isMouseErasing = false;
             _canvas.Cursor = Cursors.Arrow;
-            UpdateEraserVisual(null);
+            _ = UpdateEraserVisual(null);
         }
 
-        private void UpdateEraserVisual(Point? center)
+        private Rect? UpdateEraserVisual(Point? center)
         {
             double zoom = _zoomProvider();
             if (zoom <= 0) zoom = 1;
@@ -97,9 +113,13 @@ namespace WindBoard.Core.Modes
                 _cursorRect.Height = _cachedHeightContent;
                 _cursorRect.CornerRadius = new CornerRadius(radiusContent);
 
-                _canvas.EraserShape = new RectangleStylusShape(_cachedWidthContent, _cachedHeightContent);
+                if (_eraseRectAction == null)
+                {
+                    _canvas.EraserShape = new RectangleStylusShape(_cachedWidthContent, _cachedHeightContent);
+                }
             }
 
+            Rect? rect = null;
             if (center.HasValue)
             {
                 double left = center.Value.X - _cachedWidthContent / 2.0;
@@ -107,11 +127,14 @@ namespace WindBoard.Core.Modes
                 double top = _isMouseErasing ? (topBase + _cachedOffsetYContent) : topBase;
                 Canvas.SetLeft(_cursorRect, left);
                 Canvas.SetTop(_cursorRect, top);
+                rect = new Rect(left, top, _cachedWidthContent, _cachedHeightContent);
             }
 
-            _overlay.Visibility = (_isPressed && _canvas.EditingMode == InkCanvasEditingMode.EraseByPoint)
+            _overlay.Visibility = (_isPressed && (_eraseRectAction != null || _canvas.EditingMode == InkCanvasEditingMode.EraseByPoint))
                 ? Visibility.Visible
                 : Visibility.Collapsed;
+
+            return rect;
         }
 
         private static bool IsClose(double a, double b)
