@@ -80,14 +80,10 @@ namespace WindBoard
             _zoomPanService = new ZoomPanService(ZoomTransform, _panTransform, MinZoom, MaxZoom, zoom => _strokeService.UpdatePenThickness(zoom));
             _zoomPanService.SetZoomDirect(DefaultZoom);
             ApplyZoomPanGestureSettingsSnapshot();
-            _strokeService.SetStrokeThicknessConsistencyEnabled(
-                SettingsService.Instance.GetStrokeThicknessConsistencyEnabled(),
-                _zoomPanService.Zoom);
             _pageService = new PageService(MyCanvas, _zoomPanService, NotifyPageUiChanged);
             _autoExpandService = new AutoExpandService(MyCanvas, _zoomPanService, () => _pageService.CurrentPage, () => _inkMode?.HasActiveStroke ?? false);
 
             _inkMode = new InkMode(MyCanvas, () => _zoomPanService.Zoom, OnInkStrokeEndedOrCanceled);
-            ApplyInkModeSettingsSnapshot();
             _selectMode = new SelectMode(MyCanvas);
             _noMode = new NoMode(MyCanvas);
             _eraserMode = new EraserMode(

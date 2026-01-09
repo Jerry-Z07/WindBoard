@@ -56,13 +56,8 @@ namespace WindBoard
 
             if (_strokeService != null && _zoomPanService != null)
             {
-                _strokeService.SetStrokeThicknessConsistencyEnabled(
-                    SettingsService.Instance.GetStrokeThicknessConsistencyEnabled(),
-                    _zoomPanService.Zoom);
                 _strokeService.UpdatePenThickness(_zoomPanService.Zoom);
             }
-
-            ApplyInkModeSettingsSnapshot();
 
             // 伪装快捷方式：仅在设置“发生修改”时自动更新一次；每次启动不再自动生成。
             if (!isStartup)
@@ -87,17 +82,6 @@ namespace WindBoard
         {
             if (_zoomPanService == null) return;
             try { _zoomPanService.TwoFingerOnly = SettingsService.Instance.GetZoomPanTwoFingerOnly(); } catch { }
-        }
-
-        private void ApplyInkModeSettingsSnapshot()
-        {
-            if (_inkMode == null)
-            {
-                return;
-            }
-
-            _inkMode.SetSimulatedPressureEnabled(SettingsService.Instance.GetSimulatedPressureEnabled());
-            _inkMode.SetStrokeSmoothingMode(SettingsService.Instance.GetStrokeSmoothingMode());
         }
 
         private CamouflageResult ApplyCamouflageFromSettings()
