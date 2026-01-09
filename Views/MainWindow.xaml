@@ -165,21 +165,29 @@
                 <!-- 核心白板控件：不再使用 RenderTransform -->
                 <InkCanvas Name="MyCanvas"
                            Background="Transparent"
-                            Width="8000" Height="8000"
-                            HorizontalAlignment="Left" VerticalAlignment="Top"
-                            Margin="0"
-                            IsManipulationEnabled="False"
-                            Panel.ZIndex="10"
-                            TouchDown="MyCanvas_TouchDown"
-                            TouchMove="MyCanvas_TouchMove"
-                            TouchUp="MyCanvas_TouchUp"
-                            TouchLeave="MyCanvas_TouchUp"
-                            MouseWheel="MyCanvas_MouseWheel">
+                             Width="8000" Height="8000"
+                             HorizontalAlignment="Left" VerticalAlignment="Top"
+                             Margin="0"
+                             IsManipulationEnabled="False"
+                             Panel.ZIndex="10"
+                             TouchDown="MyCanvas_TouchDown"
+                             TouchMove="MyCanvas_TouchMove"
+                             TouchUp="MyCanvas_TouchUp"
+                             TouchLeave="MyCanvas_TouchUp"
+                             MouseWheel="MyCanvas_MouseWheel">
 
                     <InkCanvas.DefaultDrawingAttributes>
                         <DrawingAttributes Color="White" Width="1.75" Height="1.75" IgnorePressure="True" FitToCurve="True"/>
                     </InkCanvas.DefaultDrawingAttributes>
                 </InkCanvas>
+
+                <controls:InkSurface x:Name="InkSurface"
+                                     Width="{Binding ElementName=Viewport, Path=ActualWidth}"
+                                     Height="{Binding ElementName=Viewport, Path=ActualHeight}"
+                                     HorizontalAlignment="Left"
+                                     VerticalAlignment="Top"
+                                     IsHitTestVisible="False"
+                                     Panel.ZIndex="11"/>
 
                 <!-- 导入内容层（置顶层）：用户显式“置顶”的附件会提升到笔迹之上 -->
                 <ItemsControl x:Name="AttachmentLayerTop"
