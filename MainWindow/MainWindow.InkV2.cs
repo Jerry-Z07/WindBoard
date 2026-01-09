@@ -123,6 +123,7 @@ namespace WindBoard
 
             RebuildInkCanvasV2Strokes(page);
             page.ContentVersion++;
+            InvalidateInkSurface();
         }
 
         private static void AddFragmentAsWpfStrokes(

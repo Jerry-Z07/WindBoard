@@ -180,10 +180,12 @@ namespace WindBoard
 
             // 切换到第一个新导入的页面
             int newPageIndex = pages.Count - newPages.Count;
-            if (newPageIndex >= 0 && newPageIndex < pages.Count)
-            {
-                _pageService?.SwitchToPage(newPageIndex);
-            }
+             if (newPageIndex >= 0 && newPageIndex < pages.Count)
+             {
+                 _pageService?.SwitchToPage(newPageIndex);
+                 UpdateInkSurfaceViewportTransform();
+                 InvalidateInkSurface();
+             }
 
             // 异步加载所有图片附件
             foreach (var page in newPages)
@@ -206,8 +208,10 @@ namespace WindBoard
             // 设置笔迹
             MyCanvas.Strokes = page.Strokes ?? new StrokeCollection();
 
-            // 设置视图状态
-            _zoomPanService?.SetViewDirect(page.Zoom, page.PanX, page.PanY);
+             // 设置视图状态
+             _zoomPanService?.SetViewDirect(page.Zoom, page.PanX, page.PanY);
+             UpdateInkSurfaceViewportTransform();
+             InvalidateInkSurface();
 
             // 重新绑定笔迹事件
             _pageService?.AttachStrokeEvents();

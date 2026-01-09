@@ -167,6 +167,7 @@ namespace WindBoard
             MyCanvas.CommandBindings.Add(new CommandBinding(ApplicationCommands.Undo, Undo_Executed, Undo_CanExecute));
             MyCanvas.CommandBindings.Add(new CommandBinding(ApplicationCommands.Redo, Redo_Executed, Redo_CanExecute));
 
+            InitializeInkSurfaceRenderer();
             InitializeAttachmentUi();
         }
 
@@ -178,6 +179,8 @@ namespace WindBoard
             {
                 cur.ContentVersion++;
             }
+
+            InvalidateInkSurface();
         }
 
         private void SetViewportBitmapCache(bool enabled)
@@ -345,6 +348,7 @@ namespace WindBoard
             cur.InkSpatialIndex.Rebuild(cur.Ink);
             RebuildInkCanvasV2Strokes(cur);
             cur.ContentVersion++;
+            InvalidateInkSurface();
             e.Handled = true;
         }
 
@@ -362,6 +366,7 @@ namespace WindBoard
             cur.InkSpatialIndex.Rebuild(cur.Ink);
             RebuildInkCanvasV2Strokes(cur);
             cur.ContentVersion++;
+            InvalidateInkSurface();
             e.Handled = true;
         }
 

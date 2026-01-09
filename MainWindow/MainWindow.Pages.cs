@@ -12,6 +12,8 @@ namespace WindBoard
             AttachUndoToCurrentStrokes();
             ClearInkCanvasSelectionPreserveEditingMode();
             SelectAttachment(null);
+            UpdateInkSurfaceViewportTransform();
+            InvalidateInkSurface();
         }
 
         private void BtnNextPage_Click(object sender, RoutedEventArgs e)
@@ -21,6 +23,8 @@ namespace WindBoard
             AttachUndoToCurrentStrokes();
             ClearInkCanvasSelectionPreserveEditingMode();
             SelectAttachment(null);
+            UpdateInkSurfaceViewportTransform();
+            InvalidateInkSurface();
         }
 
         private void BtnAddPage_Click(object sender, RoutedEventArgs e)
@@ -29,6 +33,8 @@ namespace WindBoard
             AttachUndoToCurrentStrokes();
             ClearInkCanvasSelectionPreserveEditingMode();
             SelectAttachment(null);
+            UpdateInkSurfaceViewportTransform();
+            InvalidateInkSurface();
         }
 
         private void BtnPageIndicator_Click(object sender, RoutedEventArgs e)
@@ -52,6 +58,8 @@ namespace WindBoard
                 AttachUndoToCurrentStrokes();
                 ClearInkCanvasSelectionPreserveEditingMode();
                 SelectAttachment(null);
+                UpdateInkSurfaceViewportTransform();
+                InvalidateInkSurface();
             }
         }
 
@@ -61,6 +69,8 @@ namespace WindBoard
             AttachUndoToCurrentStrokes();
             ClearInkCanvasSelectionPreserveEditingMode();
             SelectAttachment(null);
+            UpdateInkSurfaceViewportTransform();
+            InvalidateInkSurface();
         }
 
         private void PageNavigatorControl_Loaded(object sender, RoutedEventArgs e)

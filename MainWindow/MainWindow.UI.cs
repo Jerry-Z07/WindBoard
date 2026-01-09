@@ -112,11 +112,13 @@ namespace WindBoard
                 }
 
                 double zoom = _zoomPanService.Zoom;
-                double panX = viewportW / 2.0 - (MyCanvas.Width / 2.0) * zoom;
+                 double panX = viewportW / 2.0 - (MyCanvas.Width / 2.0) * zoom;
                  double panY = viewportH / 2.0 - (MyCanvas.Height / 2.0) * zoom;
                  _zoomPanService.SetPanDirect(panX, panY);
 
                  UpdateInkStrokeThicknessForZoom(_zoomPanService.Zoom);
+                 UpdateInkSurfaceViewportTransform();
+                 InvalidateInkSurface();
 
 
              }, System.Windows.Threading.DispatcherPriority.Loaded);

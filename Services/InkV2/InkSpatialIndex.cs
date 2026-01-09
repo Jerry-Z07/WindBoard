@@ -112,7 +112,16 @@ namespace WindBoard.Services.InkV2
         public List<InkSegmentHit> QueryRect(InkRectDip rect)
         {
             var hits = new List<InkSegmentHit>(64);
-            if (rect.Width <= 0 || rect.Height <= 0) return hits;
+            QueryRect(rect, hits);
+            return hits;
+        }
+
+        public void QueryRect(InkRectDip rect, List<InkSegmentHit> hits)
+        {
+            if (hits == null) throw new ArgumentNullException(nameof(hits));
+
+            hits.Clear();
+            if (rect.Width <= 0 || rect.Height <= 0) return;
 
             int minCellX = (int)Math.Floor(rect.Left / _cellSizeDip);
             int maxCellX = (int)Math.Floor(rect.Right / _cellSizeDip);
@@ -150,8 +159,6 @@ namespace WindBoard.Services.InkV2
                     }
                 }
             }
-
-            return hits;
         }
 
         public List<InkSegmentHit> QueryCircle(double centerXDip, double centerYDip, double radiusDip)
@@ -414,4 +421,3 @@ namespace WindBoard.Services.InkV2
         public double ClosestYDip { get; }
     }
 }
-

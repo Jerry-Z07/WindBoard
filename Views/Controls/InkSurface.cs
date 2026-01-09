@@ -148,8 +148,9 @@ namespace WindBoard.Controls
                 ID3D11Device? device = _renderTarget.D3D11Device;
                 ID3D11DeviceContext? context = _renderTarget.D3D11Context;
                 ID3D11RenderTargetView? rtv = _renderTarget.D3D11RenderTargetView;
+                ID3D11Texture2D? texture = _renderTarget.D3D11Texture;
 
-                if (device == null || context == null || rtv == null)
+                if (device == null || context == null || rtv == null || texture == null)
                 {
                     return;
                 }
@@ -162,6 +163,7 @@ namespace WindBoard.Controls
                     new InkSurfaceRenderEventArgs(
                         device,
                         context,
+                        texture,
                         rtv,
                         pixelWidth,
                         pixelHeight,
@@ -202,6 +204,7 @@ namespace WindBoard.Controls
     {
         public ID3D11Device Device { get; }
         public ID3D11DeviceContext Context { get; }
+        public ID3D11Texture2D RenderTargetTexture { get; }
         public ID3D11RenderTargetView RenderTargetView { get; }
         public int PixelWidth { get; }
         public int PixelHeight { get; }
@@ -211,6 +214,7 @@ namespace WindBoard.Controls
         public InkSurfaceRenderEventArgs(
             ID3D11Device device,
             ID3D11DeviceContext context,
+            ID3D11Texture2D renderTargetTexture,
             ID3D11RenderTargetView renderTargetView,
             int pixelWidth,
             int pixelHeight,
@@ -219,6 +223,7 @@ namespace WindBoard.Controls
         {
             Device = device;
             Context = context;
+            RenderTargetTexture = renderTargetTexture;
             RenderTargetView = renderTargetView;
             PixelWidth = pixelWidth;
             PixelHeight = pixelHeight;
@@ -227,4 +232,3 @@ namespace WindBoard.Controls
         }
     }
 }
-

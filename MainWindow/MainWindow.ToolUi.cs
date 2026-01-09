@@ -38,6 +38,7 @@ namespace WindBoard
             // 退出选择模式时，隐藏选中框与悬浮 Dock
             ClearInkCanvasSelectionPreserveEditingMode();
             SelectAttachment(null);
+            SetInkSurfaceEnabled(true);
         }
 
         private void RadioEraser_Checked(object sender, RoutedEventArgs e)
@@ -48,6 +49,7 @@ namespace WindBoard
             // 退出选择模式时，隐藏选中框与悬浮 Dock
             ClearInkCanvasSelectionPreserveEditingMode();
             SelectAttachment(null);
+            SetInkSurfaceEnabled(true);
         }
 
         private void RadioSelect_Checked(object sender, RoutedEventArgs e)
@@ -56,6 +58,7 @@ namespace WindBoard
             _modeController.SetCurrentMode(_selectMode);
             if (_popupEraserClear != null)
                 _popupEraserClear.IsOpen = false;
+            SetInkSurfaceEnabled(false);
         }
 
         private void Thickness_Checked(object sender, RoutedEventArgs e)
