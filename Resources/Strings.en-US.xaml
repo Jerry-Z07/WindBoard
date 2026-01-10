@@ -115,11 +115,6 @@
     <sys:String x:Key="SettingsWindow_General_TouchGestures_Desc">Zoom/pan only triggers on two-finger touch.</sys:String>
     <sys:String x:Key="SettingsWindow_General_TouchGestures_Toggle">Two-finger only</sys:String>
 
-    <sys:String x:Key="SettingsWindow_Writing_Smoothing_Title">Stroke smoothing</sys:String>
-    <sys:String x:Key="SettingsWindow_Writing_Smoothing_Desc">Existing (DPS): applies a smoothing algorithm on top of raw input. RawInput: no smoothing (default).</sys:String>
-    <sys:String x:Key="SettingsWindow_Writing_Smoothing_RawInput">RawInput</sys:String>
-    <sys:String x:Key="SettingsWindow_Writing_ThicknessConsistency_Title">Consistent stroke thickness</sys:String>
-    <sys:String x:Key="SettingsWindow_Writing_ThicknessConsistency_Desc">Keeps stroke thickness consistent across different zoom levels.</sys:String>
     <sys:String x:Key="SettingsWindow_Writing_SimulatedPressure_Title">Simulated pressure (signature pen)</sys:String>
     <sys:String x:Key="SettingsWindow_Writing_SimulatedPressure_Desc">Adds subtle stroke variation without pressure input: slightly thicker at low speed, slightly thinner at high speed.</sys:String>
 
