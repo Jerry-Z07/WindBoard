@@ -1,25 +1,23 @@
-using System.Windows.Controls;
-using System.Windows.Ink;
+using System.Windows;
 using WindBoard.Core.Input;
 
 namespace WindBoard.Core.Modes
 {
-    public class NoMode : InteractionModeBase
+    public sealed class NoMode : InteractionModeBase
     {
-        private readonly InkCanvas _canvas;
+        private readonly FrameworkElement _inputSurface;
 
-        public NoMode(InkCanvas canvas)
+        public NoMode(FrameworkElement inputSurface)
         {
-            _canvas = canvas;
+            _inputSurface = inputSurface;
         }
 
         public override string Name => "None";
 
         public override void SwitchOn()
         {
-            _canvas.EditingMode = InkCanvasEditingMode.None;
-            _canvas.UseCustomCursor = false;
-            _canvas.ClearValue(Control.CursorProperty);
+            _inputSurface.ClearValue(FrameworkElement.CursorProperty);
         }
     }
 }
+

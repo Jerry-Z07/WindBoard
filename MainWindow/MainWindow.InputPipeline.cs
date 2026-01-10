@@ -2,7 +2,6 @@ using System;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
-using System.Windows.Ink;
 using WindBoard.Core.Input;
 using InputEventArgs = WindBoard.Core.Input.InputEventArgs;
 
@@ -38,7 +37,6 @@ namespace WindBoard
                 _modeBeforePan = _modeController.ActiveMode ?? _modeController.CurrentMode;
                 _zoomPanService.BeginMousePan(e.GetPosition(Viewport));
                 SetViewportBitmapCache(true);
-                MyCanvas.EditingMode = InkCanvasEditingMode.None;
                 MyCanvas.CaptureMouse();
                 e.Handled = true;
                 return;

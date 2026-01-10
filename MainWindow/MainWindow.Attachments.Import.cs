@@ -5,7 +5,6 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
-using System.Windows.Ink;
 using System.Windows.Media.Imaging;
 using MaterialDesignThemes.Wpf;
 using WindBoard.Services;
@@ -121,33 +120,12 @@ namespace WindBoard
 
         private async Task ReplaceAllPagesWithWbiAsync(List<BoardPage> newPages)
         {
-            // 保存当前页状态
-            _pageService?.SaveCurrentPage();
+            if (_pageService == null) return;
 
-            // 清空现有页面
-            var pages = _pageService?.Pages;
-            if (pages == null) return;
-
-            pages.Clear();
-
-            // 添加新页面
-            foreach (var page in newPages)
-            {
-                pages.Add(page);
-            }
-
-            // 切换到第一页
-            if (pages.Count > 0)
-            {
-                // 重新编号
-                for (int i = 0; i < pages.Count; i++)
-                {
-                    pages[i].Number = i + 1;
-                }
-
-                // 加载第一页到画布
-                LoadPageIntoCanvas(pages[0]);
-            }
+            _pageService.SaveCurrentPage();
+            _pageService.ReplaceAllPages(newPages, currentIndex: 0);
+            UpdateInkSurfaceViewportTransform();
+            InvalidateInkSurface();
 
             // 异步加载所有图片附件
             foreach (var page in newPages)
@@ -197,27 +175,6 @@ namespace WindBoard
             }
 
             await Task.CompletedTask;
-        }
-
-        private void LoadPageIntoCanvas(BoardPage page)
-        {
-            // 设置画布尺寸
-            MyCanvas.Width = page.CanvasWidth;
-            MyCanvas.Height = page.CanvasHeight;
-
-            // 设置笔迹
-            MyCanvas.Strokes = page.Strokes ?? new StrokeCollection();
-
-             // 设置视图状态
-             _zoomPanService?.SetViewDirect(page.Zoom, page.PanX, page.PanY);
-             UpdateInkSurfaceViewportTransform();
-             InvalidateInkSurface();
-
-            // 重新绑定笔迹事件
-            _pageService?.AttachStrokeEvents();
-
-            // 更新附件显示
-            OnPropertyChanged(nameof(CurrentAttachments));
         }
 
         private async Task ImportAttachmentsAsync(ImportRequest req)

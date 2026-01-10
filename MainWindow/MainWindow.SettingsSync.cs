@@ -76,7 +76,7 @@ namespace WindBoard
 
             if (_zoomPanService != null)
             {
-                UpdateInkStrokeThicknessForZoom(_zoomPanService.Zoom);
+                InvalidateInkSurface();
             }
 
             // 伪装快捷方式：仅在设置“发生修改”时自动更新一次；每次启动不再自动生成。
@@ -208,7 +208,7 @@ namespace WindBoard
             if (CanvasHost != null) CanvasHost.Background = brush;
             if (Viewport != null) Viewport.Background = brush;
 
-            // InkCanvas 必须保持透明，否则会遮住“底层附件”
+            // 输入承载层必须保持透明，否则会遮住“底层附件”/墨迹渲染层。
             if (MyCanvas != null) MyCanvas.Background = Brushes.Transparent;
         }
     }

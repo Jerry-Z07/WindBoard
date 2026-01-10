@@ -36,7 +36,7 @@ namespace WindBoard
                 _popupEraserClear.IsOpen = false;
 
             // 退出选择模式时，隐藏选中框与悬浮 Dock
-            ClearInkCanvasSelectionPreserveEditingMode();
+            ClearSelectedInkStrokes();
             SelectAttachment(null);
             SetInkSurfaceEnabled(true);
         }
@@ -47,7 +47,7 @@ namespace WindBoard
             _modeController.SetCurrentMode(_eraserMode);
 
             // 退出选择模式时，隐藏选中框与悬浮 Dock
-            ClearInkCanvasSelectionPreserveEditingMode();
+            ClearSelectedInkStrokes();
             SelectAttachment(null);
             SetInkSurfaceEnabled(true);
         }
@@ -58,7 +58,7 @@ namespace WindBoard
             _modeController.SetCurrentMode(_selectMode);
             if (_popupEraserClear != null)
                 _popupEraserClear.IsOpen = false;
-            SetInkSurfaceEnabled(false);
+            SetInkSurfaceEnabled(true);
         }
 
         private void Thickness_Checked(object sender, RoutedEventArgs e)
@@ -100,7 +100,7 @@ namespace WindBoard
             }
 
             SettingsService.Instance.SetInkThicknessSemantics(_inkThicknessSemantics);
-            UpdateInkStrokeThicknessForZoom(_zoomPanService.Zoom);
+            InvalidateInkSurface();
         }
     }
 }

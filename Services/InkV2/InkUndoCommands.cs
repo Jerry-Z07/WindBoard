@@ -154,7 +154,7 @@ namespace WindBoard.Services.InkV2
             {
                 fragment.Points.Add(points[i]);
             }
+            fragment.PointsVersion++;
         }
     }
 }
-

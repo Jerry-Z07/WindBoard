@@ -48,7 +48,8 @@ namespace WindBoard.Services.InkV2.Rendering
             double zoom,
             double panXDip,
             double panYDip,
-            bool isInteracting)
+            bool isInteracting,
+            IReadOnlyCollection<InkFragment>? forceVisibleFragments = null)
         {
             if (document == null) throw new ArgumentNullException(nameof(document));
             if (spatialIndex == null) throw new ArgumentNullException(nameof(spatialIndex));
@@ -75,7 +76,8 @@ namespace WindBoard.Services.InkV2.Rendering
                 zoom,
                 panXDip,
                 panYDip,
-                cullMarginScreenDip: DefaultCullMarginScreenDip);
+                cullMarginScreenDip: DefaultCullMarginScreenDip,
+                forceVisibleFragments: forceVisibleFragments);
 
             var dc = _d2dContext;
             dc.Target = _d2dTargetBitmap;
@@ -222,7 +224,8 @@ namespace WindBoard.Services.InkV2.Rendering
             double zoom,
             double panXDip,
             double panYDip,
-            double cullMarginScreenDip)
+            double cullMarginScreenDip,
+            IReadOnlyCollection<InkFragment>? forceVisibleFragments)
         {
             _visibleFragments.Clear();
             _hitScratch.Clear();
@@ -247,6 +250,17 @@ namespace WindBoard.Services.InkV2.Rendering
             for (int i = 0; i < _hitScratch.Count; i++)
             {
                 _visibleFragments.Add(_hitScratch[i].Fragment);
+            }
+
+            if (forceVisibleFragments == null || forceVisibleFragments.Count == 0)
+            {
+                return;
+            }
+
+            foreach (InkFragment fragment in forceVisibleFragments)
+            {
+                if (fragment == null) continue;
+                _visibleFragments.Add(fragment);
             }
         }
 
@@ -282,6 +296,7 @@ namespace WindBoard.Services.InkV2.Rendering
             }
 
             int pointCount = fragment.Points.Count;
+            int pointsVersion = fragment.PointsVersion;
             if (pointCount < 2)
             {
                 return null;
@@ -289,22 +304,25 @@ namespace WindBoard.Services.InkV2.Rendering
 
             if (lodToleranceDip <= 0)
             {
-                if (cache.FullGeometry == null || cache.FullPointCount != pointCount)
+                if (cache.FullGeometry == null || cache.FullPointCount != pointCount || cache.FullPointsVersion != pointsVersion)
                 {
                     cache.FullGeometry?.Dispose();
                     cache.FullGeometry = BuildPolylineGeometry(fragment.Points);
                     cache.FullPointCount = pointCount;
+                    cache.FullPointsVersion = pointsVersion;
                 }
                 return cache.FullGeometry;
             }
 
             if (cache.LodGeometry == null ||
                 cache.LodPointCount != pointCount ||
+                cache.LodPointsVersion != pointsVersion ||
                 Math.Abs(cache.LodToleranceDip - lodToleranceDip) > 0.0001)
             {
                 cache.LodGeometry?.Dispose();
                 cache.LodGeometry = BuildLodPolylineGeometry(fragment.Points, lodToleranceDip);
                 cache.LodPointCount = pointCount;
+                cache.LodPointsVersion = pointsVersion;
                 cache.LodToleranceDip = lodToleranceDip;
             }
 
@@ -611,8 +629,10 @@ namespace WindBoard.Services.InkV2.Rendering
         private sealed class FragmentCache : IDisposable
         {
             public int FullPointCount { get; set; }
+            public int FullPointsVersion { get; set; }
             public ID2D1PathGeometry? FullGeometry { get; set; }
             public int LodPointCount { get; set; }
+            public int LodPointsVersion { get; set; }
             public double LodToleranceDip { get; set; }
             public ID2D1PathGeometry? LodGeometry { get; set; }
 

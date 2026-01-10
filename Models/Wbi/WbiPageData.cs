@@ -37,6 +37,10 @@ namespace WindBoard.Models.Wbi
         [JsonProperty("strokes_file")]
         public string? StrokesFile { get; set; }
 
+        /// <summary>v2 笔迹文件名（.ink.json）</summary>
+        [JsonProperty("ink_file")]
+        public string? InkFile { get; set; }
+
         /// <summary>附件列表</summary>
         [JsonProperty("attachments")]
         public List<WbiAttachmentData> Attachments { get; set; } = new();

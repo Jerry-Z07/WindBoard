@@ -9,8 +9,7 @@ namespace WindBoard
         {
             if (_pageService.CurrentPageIndex <= 0) return;
             _pageService.SwitchToPage(_pageService.CurrentPageIndex - 1);
-            AttachUndoToCurrentStrokes();
-            ClearInkCanvasSelectionPreserveEditingMode();
+            ClearSelectedInkStrokes();
             SelectAttachment(null);
             UpdateInkSurfaceViewportTransform();
             InvalidateInkSurface();
@@ -20,8 +19,7 @@ namespace WindBoard
         {
             if (_pageService.CurrentPageIndex >= Pages.Count - 1) return;
             _pageService.SwitchToPage(_pageService.CurrentPageIndex + 1);
-            AttachUndoToCurrentStrokes();
-            ClearInkCanvasSelectionPreserveEditingMode();
+            ClearSelectedInkStrokes();
             SelectAttachment(null);
             UpdateInkSurfaceViewportTransform();
             InvalidateInkSurface();
@@ -30,8 +28,7 @@ namespace WindBoard
         private void BtnAddPage_Click(object sender, RoutedEventArgs e)
         {
             _pageService.AddPage();
-            AttachUndoToCurrentStrokes();
-            ClearInkCanvasSelectionPreserveEditingMode();
+            ClearSelectedInkStrokes();
             SelectAttachment(null);
             UpdateInkSurfaceViewportTransform();
             InvalidateInkSurface();
@@ -55,8 +52,7 @@ namespace WindBoard
             if (index >= 0)
             {
                 _pageService.SwitchToPage(index);
-                AttachUndoToCurrentStrokes();
-                ClearInkCanvasSelectionPreserveEditingMode();
+                ClearSelectedInkStrokes();
                 SelectAttachment(null);
                 UpdateInkSurfaceViewportTransform();
                 InvalidateInkSurface();
@@ -66,8 +62,7 @@ namespace WindBoard
         private void PageNavigator_PageDeleteRequested(object sender, BoardPageEventArgs e)
         {
             _pageService.DeletePage(e.Page);
-            AttachUndoToCurrentStrokes();
-            ClearInkCanvasSelectionPreserveEditingMode();
+            ClearSelectedInkStrokes();
             SelectAttachment(null);
             UpdateInkSurfaceViewportTransform();
             InvalidateInkSurface();

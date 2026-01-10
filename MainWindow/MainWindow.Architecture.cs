@@ -3,7 +3,6 @@ using System.Collections.ObjectModel;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
-using System.Windows.Ink;
 using System.Windows.Media;
 using System.Windows.Shapes;
 using WindBoard.Core.Filters;
@@ -41,11 +40,9 @@ namespace WindBoard
         private IInteractionMode? _modeBeforePan;
         private IInteractionMode? _modeBeforeGesture;
         private bool _gestureInputSuppressed;
-        private bool _strokeSuppressionActive;
         private bool _viewportBitmapCacheEnabled;
         private DispatcherTimer? _viewportCacheDisableTimer;
         private BitmapCache? _viewportBitmapCache;
-        private StrokeCollection? _undoObservedStrokes;
         private readonly TranslateTransform _panTransform = new TranslateTransform();
 
         private InkMode? _inkMode;
@@ -76,7 +73,7 @@ namespace WindBoard
                 CanvasHost.RenderTransform = group;
             }
 
-            _zoomPanService = new ZoomPanService(ZoomTransform, _panTransform, MinZoom, MaxZoom, UpdateInkStrokeThicknessForZoom);
+            _zoomPanService = new ZoomPanService(ZoomTransform, _panTransform, MinZoom, MaxZoom, onZoomChanged: null);
             _zoomPanService.SetZoomDirect(DefaultZoom);
             ApplyZoomPanGestureSettingsSnapshot();
             _pageService = new PageService(MyCanvas, _zoomPanService, NotifyPageUiChanged);
@@ -87,7 +84,8 @@ namespace WindBoard
                 () => _zoomPanService.Zoom,
                 () => _pageService.CurrentPage,
                 CreateCurrentInkToolSnapshot,
-                OnInkStrokeEndedOrCanceled);
+                OnInkStrokeEndedOrCanceled,
+                invalidateSurface: InvalidateInkSurface);
 
             try
             {
@@ -97,7 +95,11 @@ namespace WindBoard
             catch
             {
             }
-            _selectMode = new SelectMode(MyCanvas);
+            _selectMode = new SelectMode(
+                () => _pageService.CurrentPage,
+                () => _zoomPanService.Zoom,
+                SetSelectedInkStrokes,
+                SetInkMarqueeRect);
             _noMode = new NoMode(MyCanvas);
             _eraserMode = new EraserMode(
                 MyCanvas,
@@ -133,7 +135,7 @@ namespace WindBoard
 
             if (MyCanvas == null) return;
 
-            // 即使 InkCanvas 将事件标记为 Handled，也要接收
+            // 即使事件被标记为 Handled，也要接收
             MyCanvas.AddHandler(MouseDownEvent, new MouseButtonEventHandler(MyCanvas_MouseDown), true);
             MyCanvas.AddHandler(MouseMoveEvent, new MouseEventHandler(MyCanvas_MouseMove), true);
             MyCanvas.AddHandler(MouseUpEvent, new MouseButtonEventHandler(MyCanvas_MouseUp), true);
@@ -156,14 +158,10 @@ namespace WindBoard
             MyCanvas.TouchLeave += MyCanvas_TouchUp;
 #pragma warning restore CS8622 // 参数类型中引用类型的为 Null 性与目标委托不匹配(可能是由于为 Null 性特性)。
 
-            MyCanvas.StrokeCollected += _autoExpandService.OnStrokeCollected;
-            MyCanvas.StrokeCollected += SuppressGestureStroke;
-
             _pageService.InitializePagesIfNeeded();
             _pageService.Pages.CollectionChanged += (s, e) => NotifyPageUiChanged();
             NotifyPageUiChanged();
 
-            AttachUndoToCurrentStrokes();
             MyCanvas.CommandBindings.Add(new CommandBinding(ApplicationCommands.Undo, Undo_Executed, Undo_CanExecute));
             MyCanvas.CommandBindings.Add(new CommandBinding(ApplicationCommands.Redo, Redo_Executed, Redo_CanExecute));
 
@@ -308,30 +306,9 @@ namespace WindBoard
             _modeBeforeGesture = _modeController.CurrentMode;
             _modeController.ClearActiveMode();
             _inputManager.InputSuppressed = true;
-            MyCanvas.EditingMode = InkCanvasEditingMode.None;
             SetViewportBitmapCache(true);
-            _strokeSuppressionActive = true;
             _pageService.CurrentPage?.InkUndoHistory.Cancel();
             _inkMode?.CancelAllStrokes();
-        }
-
-        private void AttachUndoToCurrentStrokes()
-        {
-            if (_undoObservedStrokes != null)
-            {
-                _undoObservedStrokes.StrokesChanged -= UndoObservedStrokes_StrokesChanged;
-            }
-
-            _undoObservedStrokes = MyCanvas.Strokes;
-            if (_undoObservedStrokes != null)
-            {
-                _undoObservedStrokes.StrokesChanged += UndoObservedStrokes_StrokesChanged;
-            }
-        }
-
-        private void UndoObservedStrokes_StrokesChanged(object? sender, StrokeCollectionChangedEventArgs e)
-        {
-            _pageService.CurrentPage?.UndoHistory.Record(e);
         }
 
         private void Undo_CanExecute(object sender, CanExecuteRoutedEventArgs e)
@@ -346,7 +323,6 @@ namespace WindBoard
             if (cur == null) return;
             cur.InkUndoHistory.Undo(cur.Ink);
             cur.InkSpatialIndex.Rebuild(cur.Ink);
-            RebuildInkCanvasV2Strokes(cur);
             cur.ContentVersion++;
             InvalidateInkSurface();
             e.Handled = true;
@@ -364,7 +340,6 @@ namespace WindBoard
             if (cur == null) return;
             cur.InkUndoHistory.Redo(cur.Ink);
             cur.InkSpatialIndex.Rebuild(cur.Ink);
-            RebuildInkCanvasV2Strokes(cur);
             cur.ContentVersion++;
             InvalidateInkSurface();
             e.Handled = true;
@@ -375,7 +350,6 @@ namespace WindBoard
             if (!_gestureInputSuppressed) return;
             _gestureInputSuppressed = false;
             _inputManager.InputSuppressed = false;
-            _strokeSuppressionActive = false;
 
             var targetMode = _modeBeforeGesture ?? _inkMode;
             if (targetMode != null)
@@ -391,18 +365,6 @@ namespace WindBoard
             }
             _modeBeforeGesture = null;
             ScheduleViewportCacheDisable();
-        }
-
-        private void SuppressGestureStroke(object? sender, InkCanvasStrokeCollectedEventArgs e)
-        {
-            if (!_strokeSuppressionActive) return;
-            try
-            {
-                MyCanvas.Strokes.Remove(e.Stroke);
-            }
-            catch
-            {
-            }
         }
     }
 }

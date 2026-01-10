@@ -13,14 +13,14 @@ namespace WindBoard.Core.Input.RealTimeStylus
 {
     internal sealed class RealTimeStylusAdapter : StylusPlugIn
     {
-        private readonly InkCanvas _canvas;
+        private readonly UIElement _inputSurface;
         private readonly ScrollViewer _viewport;
         private readonly Action<InputStage, InputEventArgs> _dispatch;
         private readonly Dictionary<int, InputDeviceType> _deviceTypeCache = new();
 
-        public RealTimeStylusAdapter(InkCanvas canvas, ScrollViewer viewport, Action<InputStage, InputEventArgs> dispatch)
+        public RealTimeStylusAdapter(UIElement inputSurface, ScrollViewer viewport, Action<InputStage, InputEventArgs> dispatch)
         {
-            _canvas = canvas;
+            _inputSurface = inputSurface;
             _viewport = viewport;
             _dispatch = dispatch;
         }
@@ -102,7 +102,7 @@ namespace WindBoard.Core.Input.RealTimeStylus
                 GeneralTransform? canvasToViewport = null;
                 try
                 {
-                    canvasToViewport = _canvas.TransformToVisual(_viewport);
+                    canvasToViewport = _inputSurface.TransformToVisual(_viewport);
                 }
                 catch
                 {

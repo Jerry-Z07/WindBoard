@@ -61,6 +61,32 @@ namespace WindBoard.Services.InkV2
             }
         }
 
+        public void AddStroke(InkStroke stroke)
+        {
+            if (stroke == null) throw new ArgumentNullException(nameof(stroke));
+
+            for (int fi = 0; fi < stroke.Fragments.Count; fi++)
+            {
+                InkFragment fragment = stroke.Fragments[fi];
+                List<InkPoint> points = fragment.Points;
+                if (points.Count < 2) continue;
+
+                for (int pi = 0; pi < points.Count - 1; pi++)
+                {
+                    InkPoint a = points[pi];
+                    InkPoint b = points[pi + 1];
+                    AddSegment(
+                        stroke,
+                        fragment,
+                        startPointIndex: pi,
+                        ax: a.XDip,
+                        ay: a.YDip,
+                        bx: b.XDip,
+                        by: b.YDip);
+                }
+            }
+        }
+
         public InkPointHitTestResult? HitTestPoint(double xDip, double yDip, double radiusDip)
         {
             if (radiusDip <= 0) return null;

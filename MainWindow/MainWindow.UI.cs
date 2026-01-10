@@ -116,7 +116,6 @@ namespace WindBoard
                  double panY = viewportH / 2.0 - (MyCanvas.Height / 2.0) * zoom;
                  _zoomPanService.SetPanDirect(panX, panY);
 
-                 UpdateInkStrokeThicknessForZoom(_zoomPanService.Zoom);
                  UpdateInkSurfaceViewportTransform();
                  InvalidateInkSurface();
 

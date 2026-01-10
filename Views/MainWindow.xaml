@@ -128,7 +128,7 @@
                       PanningMode="None"
                       IsManipulationEnabled="False">
 
-            <!-- 承载层：负责整体缩放（不要缩放 InkCanvas 自己） -->
+            <!-- 承载层：负责整体缩放/平移 -->
             <Grid x:Name="CanvasHost" Background="#2E2F33">
                 <Grid.LayoutTransform>
                     <ScaleTransform x:Name="ZoomTransform" ScaleX="1" ScaleY="1"/>
@@ -162,24 +162,21 @@
                     </ItemsControl.ItemContainerStyle>
                 </ItemsControl>
 
-                <!-- 核心白板控件：不再使用 RenderTransform -->
-                <InkCanvas Name="MyCanvas"
-                           Background="Transparent"
-                             Width="8000" Height="8000"
-                             HorizontalAlignment="Left" VerticalAlignment="Top"
-                             Margin="0"
-                             IsManipulationEnabled="False"
-                             Panel.ZIndex="10"
-                             TouchDown="MyCanvas_TouchDown"
-                             TouchMove="MyCanvas_TouchMove"
-                             TouchUp="MyCanvas_TouchUp"
-                             TouchLeave="MyCanvas_TouchUp"
-                             MouseWheel="MyCanvas_MouseWheel">
-
-                    <InkCanvas.DefaultDrawingAttributes>
-                        <DrawingAttributes Color="White" Width="1.75" Height="1.75" IgnorePressure="True" FitToCurve="True"/>
-                    </InkCanvas.DefaultDrawingAttributes>
-                </InkCanvas>
+                <!-- 输入承载层：负责接收鼠标/触摸/笔输入（不渲染笔迹） -->
+                <Canvas Name="MyCanvas"
+                        Background="Transparent"
+                        Width="8000"
+                        Height="8000"
+                        HorizontalAlignment="Left"
+                        VerticalAlignment="Top"
+                        Margin="0"
+                        IsManipulationEnabled="False"
+                        Panel.ZIndex="10"
+                        TouchDown="MyCanvas_TouchDown"
+                        TouchMove="MyCanvas_TouchMove"
+                        TouchUp="MyCanvas_TouchUp"
+                        TouchLeave="MyCanvas_TouchUp"
+                        MouseWheel="MyCanvas_MouseWheel"/>
 
                 <controls:InkSurface x:Name="InkSurface"
                                      Width="{Binding ElementName=Viewport, Path=ActualWidth}"

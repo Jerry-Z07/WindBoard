@@ -1,16 +1,15 @@
 using System;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Ink;
 using System.Windows.Input;
 using WindBoard.Core.Input;
 using InputEventArgs = WindBoard.Core.Input.InputEventArgs;
 
 namespace WindBoard.Core.Modes
 {
-    public class EraserMode : InteractionModeBase
+    public sealed class EraserMode : InteractionModeBase
     {
-        private readonly InkCanvas _canvas;
+        private readonly FrameworkElement _inputSurface;
         private readonly Canvas _overlay;
         private readonly Border _cursorRect;
         private readonly Func<double> _zoomProvider;
@@ -28,14 +27,14 @@ namespace WindBoard.Core.Modes
         private bool _isMouseErasing;
 
         public EraserMode(
-            InkCanvas canvas,
+            FrameworkElement inputSurface,
             Canvas overlay,
             Border cursorRect,
             Func<double> zoomProvider,
             double cursorOffsetY = 12.0,
             Action<Rect>? eraseRectAction = null)
         {
-            _canvas = canvas;
+            _inputSurface = inputSurface;
             _overlay = overlay;
             _cursorRect = cursorRect;
             _zoomProvider = zoomProvider;
@@ -47,9 +46,7 @@ namespace WindBoard.Core.Modes
 
         public override void SwitchOn()
         {
-            _canvas.EditingMode = _eraseRectAction != null ? InkCanvasEditingMode.None : InkCanvasEditingMode.EraseByPoint;
-            _canvas.UseCustomCursor = true;
-            _canvas.Cursor = Cursors.Arrow;
+            _inputSurface.Cursor = Cursors.Arrow;
             _isPressed = false;
             _isMouseErasing = false;
             _ = UpdateEraserVisual(null);
@@ -60,15 +57,14 @@ namespace WindBoard.Core.Modes
             _isPressed = false;
             _isMouseErasing = false;
             _overlay.Visibility = Visibility.Collapsed;
-            _canvas.UseCustomCursor = false;
-            _canvas.ClearValue(Control.CursorProperty);
+            _inputSurface.ClearValue(FrameworkElement.CursorProperty);
         }
 
         public override void OnPointerDown(InputEventArgs args)
         {
             _isPressed = true;
             _isMouseErasing = args.DeviceType == InputDeviceType.Mouse;
-            _canvas.Cursor = Cursors.Arrow;
+            _inputSurface.Cursor = Cursors.Arrow;
             Rect? rect = UpdateEraserVisual(args.CanvasPoint);
             if (rect.HasValue)
             {
@@ -92,7 +88,7 @@ namespace WindBoard.Core.Modes
         {
             _isPressed = false;
             _isMouseErasing = false;
-            _canvas.Cursor = Cursors.Arrow;
+            _inputSurface.Cursor = Cursors.Arrow;
             _ = UpdateEraserVisual(null);
         }
 
@@ -112,11 +108,6 @@ namespace WindBoard.Core.Modes
                 _cursorRect.Width = _cachedWidthContent;
                 _cursorRect.Height = _cachedHeightContent;
                 _cursorRect.CornerRadius = new CornerRadius(radiusContent);
-
-                if (_eraseRectAction == null)
-                {
-                    _canvas.EraserShape = new RectangleStylusShape(_cachedWidthContent, _cachedHeightContent);
-                }
             }
 
             Rect? rect = null;
@@ -130,7 +121,7 @@ namespace WindBoard.Core.Modes
                 rect = new Rect(left, top, _cachedWidthContent, _cachedHeightContent);
             }
 
-            _overlay.Visibility = (_isPressed && (_eraseRectAction != null || _canvas.EditingMode == InkCanvasEditingMode.EraseByPoint))
+            _overlay.Visibility = (_isPressed && _eraseRectAction != null)
                 ? Visibility.Visible
                 : Visibility.Collapsed;
 
@@ -144,3 +135,4 @@ namespace WindBoard.Core.Modes
         }
     }
 }
+

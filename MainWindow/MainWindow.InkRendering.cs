@@ -1,7 +1,9 @@
 using System;
+using System.Collections.Generic;
 using System.Windows;
 using System.Windows.Media;
 using WindBoard.Controls;
+using WindBoard.Models.InkV2;
 using WindBoard.Services.InkV2.Rendering;
 
 namespace WindBoard
@@ -11,6 +13,7 @@ namespace WindBoard
         private InkDxRenderer? _inkDxRenderer;
         private TranslateTransform? _inkSurfaceInverseTranslate;
         private ScaleTransform? _inkSurfaceInverseScale;
+        private readonly List<InkFragment> _forceVisibleFragments = new(256);
 
         private void InitializeInkSurfaceRenderer()
         {
@@ -77,6 +80,8 @@ namespace WindBoard
 
             try
             {
+                IReadOnlyCollection<InkFragment>? forceVisible = BuildForceVisibleFragments();
+
                 _inkDxRenderer.Render(
                     page.Ink,
                     page.InkSpatialIndex,
@@ -89,11 +94,36 @@ namespace WindBoard
                     _zoomPanService.Zoom,
                     _zoomPanService.PanX,
                     _zoomPanService.PanY,
-                    isInteracting);
+                    isInteracting,
+                    forceVisibleFragments: forceVisible);
             }
             catch
             {
             }
+        }
+
+        private IReadOnlyCollection<InkFragment>? BuildForceVisibleFragments()
+        {
+            _forceVisibleFragments.Clear();
+
+            if (_inkMode?.HasActiveStroke == true)
+            {
+                _inkMode.CollectActiveFragments(_forceVisibleFragments);
+            }
+
+            if (_selectedInkStrokes.Count > 0)
+            {
+                for (int si = 0; si < _selectedInkStrokes.Count; si++)
+                {
+                    InkStroke stroke = _selectedInkStrokes[si];
+                    for (int fi = 0; fi < stroke.Fragments.Count; fi++)
+                    {
+                        _forceVisibleFragments.Add(stroke.Fragments[fi]);
+                    }
+                }
+            }
+
+            return _forceVisibleFragments.Count == 0 ? null : _forceVisibleFragments;
         }
 
         private void SetInkSurfaceEnabled(bool enabled)
@@ -109,4 +139,3 @@ namespace WindBoard
         }
     }
 }
-
