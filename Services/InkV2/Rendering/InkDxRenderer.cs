@@ -36,6 +36,12 @@ namespace WindBoard.Services.InkV2.Rendering
         private readonly List<InkSegmentHit> _hitScratch = new(2048);
         private readonly HashSet<InkFragment> _visibleFragments = new();
 
+        internal int LastSpatialHitCount { get; private set; }
+        internal int LastVisibleFragmentCount { get; private set; }
+        internal int LastForceVisibleFragmentCount { get; private set; }
+        internal bool LastSelfHealRebuildAttempted { get; private set; }
+        internal bool LastSelfHealFallbackAllFragments { get; private set; }
+
         public void Render(
             InkDocument document,
             InkSpatialIndex spatialIndex,
@@ -227,6 +233,12 @@ namespace WindBoard.Services.InkV2.Rendering
             double cullMarginScreenDip,
             IReadOnlyCollection<InkFragment>? forceVisibleFragments)
         {
+            LastSpatialHitCount = 0;
+            LastVisibleFragmentCount = 0;
+            LastForceVisibleFragmentCount = forceVisibleFragments?.Count ?? 0;
+            LastSelfHealRebuildAttempted = false;
+            LastSelfHealFallbackAllFragments = false;
+
             _visibleFragments.Clear();
             _hitScratch.Clear();
 
@@ -246,14 +258,45 @@ namespace WindBoard.Services.InkV2.Rendering
                 worldHeight + marginWorld * 2);
 
             spatialIndex.QueryRect(rect, _hitScratch);
+            LastSpatialHitCount = _hitScratch.Count;
 
             for (int i = 0; i < _hitScratch.Count; i++)
             {
                 _visibleFragments.Add(_hitScratch[i].Fragment);
             }
 
+            if (_visibleFragments.Count == 0 &&
+                (forceVisibleFragments == null || forceVisibleFragments.Count == 0) &&
+                document.Strokes.Count > 0 &&
+                TryComputeInkBounds(document, out double inkMinX, out double inkMinY, out double inkMaxX, out double inkMaxY) &&
+                rect.Intersects(inkMinX, inkMinY, inkMaxX, inkMaxY))
+            {
+                try
+                {
+                    LastSelfHealRebuildAttempted = true;
+                    spatialIndex.Rebuild(document);
+                    _visibleFragments.Clear();
+                    spatialIndex.QueryRect(rect, _hitScratch);
+                    LastSpatialHitCount = _hitScratch.Count;
+                    for (int i = 0; i < _hitScratch.Count; i++)
+                    {
+                        _visibleFragments.Add(_hitScratch[i].Fragment);
+                    }
+                }
+                catch
+                {
+                }
+
+                if (_visibleFragments.Count == 0)
+                {
+                    LastSelfHealFallbackAllFragments = true;
+                    AddAllFragments(document, _visibleFragments);
+                }
+            }
+
             if (forceVisibleFragments == null || forceVisibleFragments.Count == 0)
             {
+                LastVisibleFragmentCount = _visibleFragments.Count;
                 return;
             }
 
@@ -262,6 +305,59 @@ namespace WindBoard.Services.InkV2.Rendering
                 if (fragment == null) continue;
                 _visibleFragments.Add(fragment);
             }
+
+            LastVisibleFragmentCount = _visibleFragments.Count;
+        }
+
+        private static void AddAllFragments(InkDocument document, HashSet<InkFragment> destination)
+        {
+            for (int si = 0; si < document.Strokes.Count; si++)
+            {
+                InkStroke stroke = document.Strokes[si];
+                for (int fi = 0; fi < stroke.Fragments.Count; fi++)
+                {
+                    InkFragment fragment = stroke.Fragments[fi];
+                    destination.Add(fragment);
+                }
+            }
+        }
+
+        private static bool TryComputeInkBounds(InkDocument document, out double minX, out double minY, out double maxX, out double maxY)
+        {
+            minX = 0;
+            minY = 0;
+            maxX = 0;
+            maxY = 0;
+
+            bool any = false;
+
+            for (int si = 0; si < document.Strokes.Count; si++)
+            {
+                InkStroke stroke = document.Strokes[si];
+                for (int fi = 0; fi < stroke.Fragments.Count; fi++)
+                {
+                    InkFragment fragment = stroke.Fragments[fi];
+                    List<InkPointV2> points = fragment.Points;
+                    for (int pi = 0; pi < points.Count; pi++)
+                    {
+                        InkPointV2 p = points[pi];
+                        if (!any)
+                        {
+                            any = true;
+                            minX = maxX = p.XDip;
+                            minY = maxY = p.YDip;
+                            continue;
+                        }
+
+                        minX = Math.Min(minX, p.XDip);
+                        minY = Math.Min(minY, p.YDip);
+                        maxX = Math.Max(maxX, p.XDip);
+                        maxY = Math.Max(maxY, p.YDip);
+                    }
+                }
+            }
+
+            return any;
         }
 
         private ID2D1SolidColorBrush GetSolidBrush(uint argb)

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using System.Windows;
 using System.Windows.Media;
 using WindBoard.Models.InkV2;
@@ -8,6 +9,15 @@ namespace WindBoard.Services.InkV2.Rendering
 {
     internal static class InkCpuRenderer
     {
+        private sealed class FragmentGeometryCache
+        {
+            public int PointCount { get; set; }
+            public int PointsVersion { get; set; }
+            public StreamGeometry? Geometry { get; set; }
+        }
+
+        private static readonly ConditionalWeakTable<InkFragment, FragmentGeometryCache> GeometryCache = new();
+
         public static Rect CalculateInkBounds(InkDocument document)
         {
             if (document.Strokes.Count == 0)
@@ -52,6 +62,11 @@ namespace WindBoard.Services.InkV2.Rendering
 
         public static void RenderInk(DrawingContext dc, InkDocument document, double zoom)
         {
+            RenderInk(dc, document, zoom, visibleFragments: null);
+        }
+
+        public static void RenderInk(DrawingContext dc, InkDocument document, double zoom, ISet<InkFragment>? visibleFragments)
+        {
             if (document.Strokes.Count == 0) return;
             if (zoom <= 0) zoom = 1.0;
 
@@ -66,7 +81,12 @@ namespace WindBoard.Services.InkV2.Rendering
                 for (int fi = 0; fi < stroke.Fragments.Count; fi++)
                 {
                     InkFragment fragment = stroke.Fragments[fi];
-                    StreamGeometry? geometry = BuildPolylineGeometry(fragment.Points);
+                    if (visibleFragments != null && !visibleFragments.Contains(fragment))
+                    {
+                        continue;
+                    }
+
+                    StreamGeometry? geometry = GetFragmentGeometry(fragment);
                     if (geometry == null) continue;
 
                     dc.DrawGeometry(null, pen, geometry);
@@ -112,6 +132,25 @@ namespace WindBoard.Services.InkV2.Rendering
             };
             pen.Freeze();
             return pen;
+        }
+
+        private static StreamGeometry? GetFragmentGeometry(InkFragment fragment)
+        {
+            List<InkPoint> points = fragment.Points;
+            if (points.Count < 2) return null;
+
+            FragmentGeometryCache cache = GeometryCache.GetOrCreateValue(fragment);
+            int pointCount = points.Count;
+            int version = fragment.PointsVersion;
+
+            if (cache.Geometry == null || cache.PointCount != pointCount || cache.PointsVersion != version)
+            {
+                cache.Geometry = BuildPolylineGeometry(points);
+                cache.PointCount = pointCount;
+                cache.PointsVersion = version;
+            }
+
+            return cache.Geometry;
         }
 
         private static StreamGeometry? BuildPolylineGeometry(List<InkPoint> points)
@@ -164,4 +203,3 @@ namespace WindBoard.Services.InkV2.Rendering
         }
     }
 }
-

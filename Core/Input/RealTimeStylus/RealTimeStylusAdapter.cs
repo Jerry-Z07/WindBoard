@@ -151,8 +151,14 @@ namespace WindBoard.Core.Input.RealTimeStylus
                 for (int i = 0; i < count; i++)
                 {
                     StylusPoint pt = points[i];
-                    var canvasPoint = new Point(pt.X, pt.Y);
-                    var viewportPoint = canvasToViewport?.Transform(canvasPoint) ?? canvasPoint;
+                    var rawPoint = new Point(pt.X, pt.Y);
+                    MapStylusPointToCanvasAndViewport(
+                        rawPoint,
+                        canvasToViewport,
+                        viewportWidthDip: _viewport.ActualWidth,
+                        viewportHeightDip: _viewport.ActualHeight,
+                        out Point canvasPoint,
+                        out Point viewportPoint);
 
                     args.CanvasPoint = canvasPoint;
                     args.ViewportPoint = viewportPoint;
@@ -170,6 +176,89 @@ namespace WindBoard.Core.Input.RealTimeStylus
             {
                 packet.Dispose();
             }
+        }
+
+        internal static void MapStylusPointToCanvasAndViewport(
+            Point rawPoint,
+            GeneralTransform? canvasToViewport,
+            double viewportWidthDip,
+            double viewportHeightDip,
+            out Point canvasPoint,
+            out Point viewportPoint)
+        {
+            canvasPoint = rawPoint;
+            viewportPoint = rawPoint;
+
+            if (canvasToViewport == null)
+            {
+                return;
+            }
+
+            Point viewportFromCanvas;
+            try
+            {
+                viewportFromCanvas = canvasToViewport.Transform(rawPoint);
+            }
+            catch
+            {
+                viewportFromCanvas = rawPoint;
+            }
+
+            bool hasViewportSize = viewportWidthDip > 1 && viewportHeightDip > 1;
+            if (!hasViewportSize)
+            {
+                canvasPoint = rawPoint;
+                viewportPoint = viewportFromCanvas;
+                return;
+            }
+
+            double penaltyRaw = ViewportPenalty(rawPoint, viewportWidthDip, viewportHeightDip);
+            double penaltyCanvas = ViewportPenalty(viewportFromCanvas, viewportWidthDip, viewportHeightDip);
+
+            bool rawLooksLikeViewport = penaltyRaw <= penaltyCanvas;
+
+            if (rawLooksLikeViewport)
+            {
+                GeneralTransform? viewportToCanvas = null;
+                try
+                {
+                    viewportToCanvas = canvasToViewport.Inverse;
+                }
+                catch
+                {
+                }
+
+                if (viewportToCanvas != null)
+                {
+                    try
+                    {
+                        canvasPoint = viewportToCanvas.Transform(rawPoint);
+                    }
+                    catch
+                    {
+                        canvasPoint = rawPoint;
+                    }
+                    viewportPoint = rawPoint;
+                    return;
+                }
+            }
+
+            canvasPoint = rawPoint;
+            viewportPoint = viewportFromCanvas;
+        }
+
+        private static double ViewportPenalty(Point p, double width, double height)
+        {
+            double dx = OutOfBoundsDistance(p.X, min: 0, max: width);
+            double dy = OutOfBoundsDistance(p.Y, min: 0, max: height);
+            return (dx * dx) + (dy * dy);
+        }
+
+        private static double OutOfBoundsDistance(double value, double min, double max)
+        {
+            if (value < min) return min - value;
+            if (value > max) return value - max;
+            return 0;
         }
 
         private static double? TryReadPressure(StylusPoint pt)

@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using System.Windows;
 using System.Windows.Interop;
 using SharpGen.Runtime;
@@ -15,6 +16,7 @@ namespace WindBoard.Services.InkV2.Rendering
 
         private ID3D11Device? _d3d11Device;
         private ID3D11DeviceContext? _d3d11Context;
+        private DriverType _d3d11DriverType = DriverType.Unknown;
 
         private IDirect3D9Ex? _d3d9;
         private IDirect3DDevice9Ex? _d3d9Device;
@@ -27,16 +29,20 @@ namespace WindBoard.Services.InkV2.Rendering
 
         private int _pixelWidth;
         private int _pixelHeight;
+        private string? _lastFailureReason;
+        private long _lastFailureLogTick;
 
         public D3DImage ImageSource => _imageSource;
         public bool IsFrontBufferAvailable => _imageSource.IsFrontBufferAvailable;
         public int PixelWidth => _pixelWidth;
         public int PixelHeight => _pixelHeight;
+        internal string? LastFailureReason => _lastFailureReason;
 
         public ID3D11Device? D3D11Device => _d3d11Device;
         public ID3D11DeviceContext? D3D11Context => _d3d11Context;
         public ID3D11Texture2D? D3D11Texture => _d3d11Texture;
         public ID3D11RenderTargetView? D3D11RenderTargetView => _d3d11Rtv;
+        public DriverType D3D11DriverType => _d3d11DriverType;
 
         public D3DImageRenderTarget()
         {
@@ -45,9 +51,22 @@ namespace WindBoard.Services.InkV2.Rendering
 
         public bool TryBeginDraw(IntPtr hwnd, int pixelWidth, int pixelHeight)
         {
-            if (!_imageSource.IsFrontBufferAvailable) return false;
-            if (!TryEnsureResources(hwnd, pixelWidth, pixelHeight)) return false;
-            if (!_imageSource.IsFrontBufferAvailable) return false;
+            if (!_imageSource.IsFrontBufferAvailable)
+            {
+                _lastFailureReason = "FrontBufferUnavailable";
+                return false;
+            }
+
+            if (!TryEnsureResources(hwnd, pixelWidth, pixelHeight))
+            {
+                return false;
+            }
+
+            if (!_imageSource.IsFrontBufferAvailable)
+            {
+                _lastFailureReason = "FrontBufferUnavailableAfterEnsureResources";
+                return false;
+            }
 
             _imageSource.Lock();
             return true;
@@ -76,13 +95,18 @@ namespace WindBoard.Services.InkV2.Rendering
 
         private bool TryEnsureResources(IntPtr hwnd, int pixelWidth, int pixelHeight)
         {
-            if (hwnd == IntPtr.Zero) return false;
+            if (hwnd == IntPtr.Zero)
+            {
+                _lastFailureReason = "InvalidHwnd";
+                return false;
+            }
             if (pixelWidth <= 0 || pixelHeight <= 0)
             {
                 DetachBackBuffer();
                 DisposeBackBuffer();
                 _pixelWidth = 0;
                 _pixelHeight = 0;
+                _lastFailureReason = "InvalidSize";
                 return false;
             }
 
@@ -122,16 +146,20 @@ namespace WindBoard.Services.InkV2.Rendering
 
             try
             {
-                if (!TryCreateD3D11Device(DriverType.Hardware, out var device, out var context))
+                if (!TryCreateD3D11Device(DriverType.Hardware, out var device, out var context, out DriverType createdDriverType))
                 {
+                    _lastFailureReason = "D3D11CreateDeviceFailed";
                     return false;
                 }
                 _d3d11Device = device;
                 _d3d11Context = context;
+                _d3d11DriverType = createdDriverType;
+                Debug.WriteLine($"[D3D] D3D11 device created: {createdDriverType}");
 
                 Result d3d9Result = D3D9.Direct3DCreate9Ex(out _d3d9);
                 if (d3d9Result.Failure || _d3d9 == null)
                 {
+                    _lastFailureReason = $"D3D9Create9ExFailed: 0x{d3d9Result.Code:X8}";
                     DisposeDevices();
                     return false;
                 }
@@ -148,27 +176,41 @@ namespace WindBoard.Services.InkV2.Rendering
                     PresentationInterval = Vortice.Direct3D9.PresentInterval.Immediate
                 };
 
+                // Windowed 模式下不需要提供 fullscreenDisplayMode（传入默认结构体可能触发 D3DERR_INVALIDCALL）。
                 _d3d9Device = _d3d9.CreateDeviceEx(
                     0,
                     Vortice.Direct3D9.DeviceType.Hardware,
                     hwnd,
                     CreateFlags.HardwareVertexProcessing | CreateFlags.Multithreaded | CreateFlags.FpuPreserve,
-                    pp,
-                    default(Vortice.Direct3D9.DisplayModeEx));
+                    pp);
 
-                return _d3d9Device != null;
+                if (_d3d9Device == null)
+                {
+                    _lastFailureReason = "D3D9CreateDeviceExReturnedNull";
+                    return false;
+                }
+
+                _lastFailureReason = null;
+                return true;
             }
-            catch
+            catch (Exception ex)
             {
+                _lastFailureReason = $"EnsureDevicesException: {ex.GetType().Name} 0x{ex.HResult:X8} {ex.Message}";
+                TryLogFailure(_lastFailureReason);
                 DisposeDevices();
                 return false;
             }
         }
 
-        private static bool TryCreateD3D11Device(DriverType driverType, out ID3D11Device? device, out ID3D11DeviceContext? context)
+        private static bool TryCreateD3D11Device(
+            DriverType driverType,
+            out ID3D11Device? device,
+            out ID3D11DeviceContext? context,
+            out DriverType createdDriverType)
         {
             device = null;
             context = null;
+            createdDriverType = DriverType.Unknown;
 
             FeatureLevel[] featureLevels = new[]
             {
@@ -192,12 +234,13 @@ namespace WindBoard.Services.InkV2.Rendering
 
             if (result.Success)
             {
+                createdDriverType = driverType;
                 return device != null && context != null;
             }
 
             if (driverType == DriverType.Hardware)
             {
-                return TryCreateD3D11Device(DriverType.Warp, out device, out context);
+                return TryCreateD3D11Device(DriverType.Warp, out device, out context, out createdDriverType);
             }
 
             return false;
@@ -251,6 +294,7 @@ namespace WindBoard.Services.InkV2.Rendering
 
                 if (_d3d11Texture == null)
                 {
+                    _lastFailureReason = "CreateTexture2DReturnedNull";
                     return;
                 }
 
@@ -260,6 +304,7 @@ namespace WindBoard.Services.InkV2.Rendering
                 IntPtr sharedHandle = dxgiResource.SharedHandle;
                 if (sharedHandle == IntPtr.Zero)
                 {
+                    _lastFailureReason = "SharedHandleIsZero";
                     return;
                 }
 
@@ -273,15 +318,41 @@ namespace WindBoard.Services.InkV2.Rendering
                     Vortice.Direct3D9.Pool.Default,
                     ref sharedHandle);
 
+                if (_d3d9Texture == null)
+                {
+                    _lastFailureReason = "D3D9CreateTextureReturnedNull";
+                    return;
+                }
+
                 _d3d9Surface = _d3d9Texture.GetSurfaceLevel(0);
+                if (_d3d9Surface == null)
+                {
+                    _lastFailureReason = "D3D9GetSurfaceLevelReturnedNull";
+                    return;
+                }
 
                 AttachBackBuffer();
+                _lastFailureReason = null;
             }
-            catch
+            catch (Exception ex)
             {
+                _lastFailureReason = $"CreateBackBufferException: {ex.GetType().Name} 0x{ex.HResult:X8} {ex.Message}";
+                TryLogFailure(_lastFailureReason);
                 DetachBackBuffer();
                 DisposeBackBuffer();
             }
+        }
+
+        private void TryLogFailure(string reason)
+        {
+            long now = Environment.TickCount64;
+            if (now - _lastFailureLogTick < 2000)
+            {
+                return;
+            }
+
+            _lastFailureLogTick = now;
+            Debug.WriteLine($"[D3D] {reason}");
         }
 
         private void AttachBackBuffer()
@@ -335,6 +406,7 @@ namespace WindBoard.Services.InkV2.Rendering
 
             _d3d11Device?.Dispose();
             _d3d11Device = null;
+            _d3d11DriverType = DriverType.Unknown;
         }
 
         public void Dispose()

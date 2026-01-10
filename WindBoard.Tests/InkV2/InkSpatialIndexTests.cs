@@ -47,5 +47,23 @@ namespace WindBoard.Tests.InkV2
             Assert.NotEmpty(hits);
             Assert.Contains(hits, h => ReferenceEquals(h.Stroke, stroke) && ReferenceEquals(h.Fragment, fragment));
         }
+
+        [Fact]
+        public void AddStroke_QueryRect_IntersectingSegment_ReturnsHits()
+        {
+            var stroke = new InkStroke(InkTool.CreateDefault());
+            var fragment = new InkFragment();
+            fragment.Points.Add(new InkPoint(4000, 4000));
+            fragment.Points.Add(new InkPoint(4100, 4000));
+            stroke.Fragments.Add(fragment);
+
+            var index = new InkSpatialIndex(cellSizeDip: 72);
+            index.AddStroke(stroke);
+
+            var hits = index.QueryRect(new InkRectDip(x: 3980, y: 3980, width: 200, height: 80));
+
+            Assert.NotEmpty(hits);
+            Assert.Contains(hits, h => ReferenceEquals(h.Stroke, stroke) && ReferenceEquals(h.Fragment, fragment));
+        }
     }
 }

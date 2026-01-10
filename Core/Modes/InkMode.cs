@@ -255,8 +255,22 @@ namespace WindBoard.Core.Modes
         {
             if (active.Fragment.Points.Count < 2)
             {
+                System.Diagnostics.Debug.WriteLine($"[InkMode] Discard stroke: points={active.Fragment.Points.Count}");
                 RemoveUncommittedStroke(active);
                 return;
+            }
+
+            try
+            {
+                var pts = active.Fragment.Points;
+                var first = pts[0];
+                var last = pts[^1];
+                System.Diagnostics.Debug.WriteLine(
+                    $"[InkMode] Commit stroke: points={pts.Count} index={active.StrokeIndex} " +
+                    $"first=({first.XDip:F1},{first.YDip:F1}) last=({last.XDip:F1},{last.YDip:F1})");
+            }
+            catch
+            {
             }
 
             BoardPage page = active.Page;

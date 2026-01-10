@@ -15,6 +15,9 @@ namespace WindBoard.Services.InkV2
         private readonly List<int> _segmentQueryStamp = new(1024);
         private int _queryStampCounter = 1;
 
+        internal int SegmentCount => _segments.Count;
+        internal int CellCount => _segmentGrid.Count;
+
         public InkSpatialIndex(double cellSizeDip = 72.0)
         {
             if (cellSizeDip <= 0) throw new ArgumentOutOfRangeException(nameof(cellSizeDip));

@@ -176,6 +176,8 @@ namespace WindBoard
             if (cur != null)
             {
                 cur.ContentVersion++;
+                DebugMarkPostStrokeRenderCheck(cur);
+                System.Diagnostics.Debug.WriteLine($"[Ink] StrokeEndedOrCanceled: strokes={cur.Ink.Strokes.Count} contentVersion={cur.ContentVersion}");
             }
 
             InvalidateInkSurface();
