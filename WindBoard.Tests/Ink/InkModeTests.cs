@@ -1,7 +1,6 @@
 using System;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Ink;
 using WindBoard.Core.Input;
 using WindBoard.Core.Modes;
 using WindBoard.Models.InkV2;
@@ -14,12 +13,7 @@ public sealed class InkModeTests
     [StaFact]
     public void OnPointerUp_Touch_AppendsRawPoints()
     {
-        var canvas = new InkCanvas
-        {
-            Width = 8000,
-            Height = 8000,
-            Strokes = new StrokeCollection()
-        };
+        var canvas = new Canvas { Width = 8000, Height = 8000 };
 
         var page = new BoardPage();
         var mode = new InkMode(canvas, () => 1.0, () => page, InkTool.CreateDefault);
@@ -45,9 +39,6 @@ public sealed class InkModeTests
             TimestampTicks = ticks,
             ContactSize = contactSize
         });
-
-        Assert.Single(canvas.Strokes);
-        var stroke = canvas.Strokes[0];
 
         ticks += 16 * TimeSpan.TicksPerMillisecond;
         mode.OnPointerMove(new InputEventArgs
@@ -87,13 +78,17 @@ public sealed class InkModeTests
             ContactSize = contactSize
         });
 
-        Assert.Equal(3, stroke.StylusPoints.Count);
+        Assert.Single(page.Ink.Strokes);
+        var stroke = page.Ink.Strokes[0];
+        Assert.Single(stroke.Fragments);
+        var fragment = stroke.Fragments[0];
+        Assert.Equal(3, fragment.Points.Count);
 
-        Assert.Equal(0, stroke.StylusPoints[0].X, precision: 6);
-        Assert.Equal(0, stroke.StylusPoints[0].Y, precision: 6);
-        Assert.Equal(1, stroke.StylusPoints[1].X, precision: 6);
-        Assert.Equal(0, stroke.StylusPoints[1].Y, precision: 6);
-        Assert.Equal(2, stroke.StylusPoints[2].X, precision: 6);
-        Assert.Equal(0, stroke.StylusPoints[2].Y, precision: 6);
+        Assert.Equal(0, fragment.Points[0].XDip, precision: 6);
+        Assert.Equal(0, fragment.Points[0].YDip, precision: 6);
+        Assert.Equal(1, fragment.Points[1].XDip, precision: 6);
+        Assert.Equal(0, fragment.Points[1].YDip, precision: 6);
+        Assert.Equal(2, fragment.Points[2].XDip, precision: 6);
+        Assert.Equal(0, fragment.Points[2].YDip, precision: 6);
     }
 }

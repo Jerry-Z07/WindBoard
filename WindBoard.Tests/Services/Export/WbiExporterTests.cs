@@ -1,12 +1,11 @@
 using System.IO;
 using System.IO.Compression;
-using System.Windows.Ink;
 using WindBoard.Models.Export;
 using WindBoard.Models.Wbi;
 using WindBoard.Services.Export;
 using Newtonsoft.Json;
 using Xunit;
-using static WindBoard.Tests.TestHelpers.InkTestHelpers;
+using static WindBoard.Tests.TestHelpers.InkV2TestHelpers;
 
 namespace WindBoard.Tests.Services.Export;
 
@@ -38,12 +37,11 @@ public sealed class WbiExporterTests : IDisposable
             new BoardPage
             {
                 Number = 1,
-                Strokes = new StrokeCollection(),
                 CanvasWidth = 8000,
                 CanvasHeight = 8000
             }
         };
-        pages[0].Strokes.Add(CreateStroke(100, 100, 200, 200));
+        pages[0].Ink.Strokes.Add(CreateLineStroke(100, 100, 200, 200));
 
         var filePath = GetTempFilePath();
         var options = new WbiExportOptions
@@ -58,7 +56,7 @@ public sealed class WbiExporterTests : IDisposable
         using var archive = ZipFile.OpenRead(filePath);
         Assert.NotNull(archive.GetEntry("manifest.json"));
         Assert.NotNull(archive.GetEntry("pages/page_001.json"));
-        Assert.NotNull(archive.GetEntry("pages/page_001.isf"));
+        Assert.NotNull(archive.GetEntry("pages/page_001.ink.json"));
     }
 
     [StaFact]
@@ -67,14 +65,14 @@ public sealed class WbiExporterTests : IDisposable
         var exporter = new WbiExporter();
         var pages = new List<BoardPage>
         {
-            new BoardPage { Number = 1, Strokes = new StrokeCollection() },
-            new BoardPage { Number = 2, Strokes = new StrokeCollection() },
-            new BoardPage { Number = 3, Strokes = new StrokeCollection() }
+            new BoardPage { Number = 1 },
+            new BoardPage { Number = 2 },
+            new BoardPage { Number = 3 }
         };
 
         foreach (var page in pages)
         {
-            page.Strokes.Add(CreateStroke(0, 0, 50, 50));
+            page.Ink.Strokes.Add(CreateLineStroke(0, 0, 50, 50));
         }
 
         var filePath = GetTempFilePath();
@@ -94,8 +92,8 @@ public sealed class WbiExporterTests : IDisposable
         var exporter = new WbiExporter();
         var pages = new List<BoardPage>
         {
-            new BoardPage { Number = 1, Strokes = new StrokeCollection() },
-            new BoardPage { Number = 2, Strokes = new StrokeCollection() }
+            new BoardPage { Number = 1 },
+            new BoardPage { Number = 2 }
         };
 
         var filePath = GetTempFilePath();
@@ -112,7 +110,7 @@ public sealed class WbiExporterTests : IDisposable
         var manifest = JsonConvert.DeserializeObject<WbiManifest>(json);
 
         Assert.NotNull(manifest);
-        Assert.Equal("1.0", manifest!.Version);
+        Assert.Equal("2.0", manifest!.Version);
         Assert.Equal(2, manifest.PageCount);
         Assert.True(manifest.IncludeImageAssets);
         Assert.Equal(2, manifest.Pages.Count);
@@ -125,14 +123,13 @@ public sealed class WbiExporterTests : IDisposable
         var page = new BoardPage
         {
             Number = 1,
-            Strokes = new StrokeCollection(),
             CanvasWidth = 8000,
             CanvasHeight = 6000,
             Zoom = 1.5,
             PanX = -500,
             PanY = -300
         };
-        page.Strokes.Add(CreateStroke(0, 0, 100, 100));
+        page.Ink.Strokes.Add(CreateLineStroke(0, 0, 100, 100));
 
         var filePath = GetTempFilePath();
         await exporter.ExportAsync(new[] { page }, filePath, new WbiExportOptions());
@@ -151,6 +148,7 @@ public sealed class WbiExporterTests : IDisposable
         Assert.Equal(1.5, pageData.Zoom);
         Assert.Equal(-500, pageData.PanX);
         Assert.Equal(-300, pageData.PanY);
+        Assert.Equal("page_001.ink.json", pageData.InkFile);
     }
 
     [StaFact]
@@ -160,7 +158,6 @@ public sealed class WbiExporterTests : IDisposable
         var page = new BoardPage
         {
             Number = 1,
-            Strokes = new StrokeCollection()
         };
         page.Attachments.Add(new BoardAttachment
         {
@@ -198,7 +195,6 @@ public sealed class WbiExporterTests : IDisposable
         var page = new BoardPage
         {
             Number = 1,
-            Strokes = new StrokeCollection()
         };
         page.Attachments.Add(new BoardAttachment
         {
@@ -240,10 +236,10 @@ public sealed class WbiExporterTests : IDisposable
         var exporter = new WbiExporter();
         var pages = new List<BoardPage>
         {
-            new BoardPage { Number = 1, Strokes = new StrokeCollection() },
-            new BoardPage { Number = 2, Strokes = new StrokeCollection() }
+            new BoardPage { Number = 1 },
+            new BoardPage { Number = 2 }
         };
-        foreach (var p in pages) p.Strokes.Add(CreateStroke(0, 0, 10, 10));
+        foreach (var p in pages) p.Ink.Strokes.Add(CreateLineStroke(0, 0, 10, 10));
 
         var filePath = GetTempFilePath();
         var progressReports = new List<ExportProgress>();
@@ -264,9 +260,9 @@ public sealed class WbiExporterTests : IDisposable
         var exporter = new WbiExporter();
         var pages = new List<BoardPage>
         {
-            new BoardPage { Number = 1, Strokes = new StrokeCollection() }
+            new BoardPage { Number = 1 }
         };
-        pages[0].Strokes.Add(CreateStroke(0, 0, 100, 100));
+        pages[0].Ink.Strokes.Add(CreateLineStroke(0, 0, 100, 100));
 
         var options = new WbiExportOptions { IncludeImageAssets = false };
         var estimate = exporter.EstimateFileSize(pages, options);
@@ -278,8 +274,8 @@ public sealed class WbiExporterTests : IDisposable
     public async Task ExportAsync_DifferentCompressionLevels_AllSucceed()
     {
         var exporter = new WbiExporter();
-        var page = new BoardPage { Number = 1, Strokes = new StrokeCollection() };
-        page.Strokes.Add(CreateStroke(0, 0, 100, 100));
+        var page = new BoardPage { Number = 1 };
+        page.Ink.Strokes.Add(CreateLineStroke(0, 0, 100, 100));
 
         var levels = new[]
         {
