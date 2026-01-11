@@ -86,6 +86,7 @@ namespace WindBoard
                 _rootGrid.AddHandler(PreviewTouchDownEvent, new EventHandler<TouchEventArgs>(Root_PreviewTouchDown), true);
             }
             PreviewKeyDown += Window_PreviewKeyDown;
+            Deactivated += Window_Deactivated;
 
             InitializeArchitecture();
         }

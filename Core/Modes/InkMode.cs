@@ -174,6 +174,13 @@ namespace WindBoard.Core.Modes
 
         public override void OnPointerUp(InputEventArgs args)
         {
+            // Mouse 模式下仅以“左键抬起”作为一次笔迹的结束信号。
+            // 右键用于平移视图，若右键抬起时左键仍按下，则不应中断当前笔迹。
+            if (args.DeviceType == InputDeviceType.Mouse && args.LeftButton)
+            {
+                return;
+            }
+
             int id = GetPointerKey(args);
             if (!_activeStrokes.TryGetValue(id, out var active))
             {

@@ -21,7 +21,7 @@ namespace WindBoard
     {
         private const double MinZoom = 0.25;
         private const double MaxZoom = 5.25;
-        private const double DefaultZoom = 1.2;
+        private const double DefaultZoom = 0.8;
 
         private double _baseThickness = 1.0;
         private readonly double _eraserCursorOffsetY = 12.0;
@@ -42,7 +42,6 @@ namespace WindBoard
         private bool _gestureInputSuppressed;
         private bool _viewportBitmapCacheEnabled;
         private DispatcherTimer? _viewportCacheDisableTimer;
-        private BitmapCache? _viewportBitmapCache;
         private readonly TranslateTransform _panTransform = new TranslateTransform();
 
         private InkMode? _inkMode;
@@ -145,6 +144,11 @@ namespace WindBoard
             MyCanvas.AddHandler(StylusUpEvent, new StylusEventHandler(MyCanvas_StylusUp), true);
             MyCanvas.AddHandler(StylusInAirMoveEvent, new StylusEventHandler(MyCanvas_StylusInAirMove), true);
 
+            MyCanvas.LostMouseCapture -= MyCanvas_LostMouseCapture;
+            MyCanvas.LostMouseCapture += MyCanvas_LostMouseCapture;
+            MyCanvas.LostTouchCapture -= MyCanvas_LostTouchCapture;
+            MyCanvas.LostTouchCapture += MyCanvas_LostTouchCapture;
+
 #pragma warning disable CS8622 // 参数类型中引用类型的为 Null 性与目标委托不匹配(可能是由于为 Null 性特性)。
             MyCanvas.TouchDown += MyCanvas_TouchDown;
 #pragma warning restore CS8622 // 参数类型中引用类型的为 Null 性与目标委托不匹配(可能是由于为 Null 性特性)。
@@ -185,33 +189,23 @@ namespace WindBoard
 
         private void SetViewportBitmapCache(bool enabled)
         {
-            // 注意：不要对 CanvasHost 做 BitmapCache，它的尺寸等于整张画布（默认 8000x8000），
-            // 会直接分配上百 MB 的缓存位图，拖动时内存暴涨。
             if (Viewport == null) return;
 
-            if (enabled)
-            {
-                if (_viewportBitmapCacheEnabled) return;
-                _viewportBitmapCache ??= new BitmapCache(1.0);
-                Viewport.CacheMode = _viewportBitmapCache;
+            // 注意：不要对 CanvasHost 做 BitmapCache，它的尺寸等于整张画布（默认 8000x8000），会直接分配上百 MB 的缓存位图。
+            // 同时，Viewport BitmapCache 会导致 D3DImage（InkSurface）在部分机器上出现“画面冻结/残影”，因此这里仅保留缩放质量的降级。
+            Viewport.CacheMode = null;
 
-                // 降低交互时缩放质量以减轻 GPU/CPU 压力（结束后恢复）
-                if (CanvasHost != null)
-                {
-                    RenderOptions.SetBitmapScalingMode(CanvasHost, BitmapScalingMode.LowQuality);
-                }
-                _viewportBitmapCacheEnabled = true;
-            }
-            else
+            if (enabled == _viewportBitmapCacheEnabled)
             {
-                if (!_viewportBitmapCacheEnabled) return;
-                Viewport.CacheMode = null;
-                if (CanvasHost != null)
-                {
-                    RenderOptions.SetBitmapScalingMode(CanvasHost, BitmapScalingMode.HighQuality);
-                }
-                _viewportBitmapCacheEnabled = false;
+                return;
             }
+
+            // 降低交互时缩放质量以减轻 GPU/CPU 压力（结束后恢复）
+            if (CanvasHost != null)
+            {
+                RenderOptions.SetBitmapScalingMode(CanvasHost, enabled ? BitmapScalingMode.LowQuality : BitmapScalingMode.HighQuality);
+            }
+            _viewportBitmapCacheEnabled = enabled;
         }
 
         private void ConfigureStylusForTouchInk()

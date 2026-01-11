@@ -23,8 +23,27 @@ namespace WindBoard
         private static bool IsRealMouse(MouseEventArgs e) => e.StylusDevice == null;
         private static bool IsRealMouse(MouseButtonEventArgs e) => e.StylusDevice == null;
 
+        private bool ShouldIgnoreMouseBecauseStylusInContact()
+        {
+            if (_inputSourceSelector?.IsRealTimeStylusActive != true)
+            {
+                return false;
+            }
+
+            try
+            {
+                var stylus = Stylus.CurrentStylusDevice;
+                return stylus != null && !stylus.InAir;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
         private void MyCanvas_MouseDown(object sender, MouseButtonEventArgs e)
         {
+            if (ShouldIgnoreMouseBecauseStylusInContact()) return;
             if (!IsRealMouse(e)) return;
 
             if (TryHandleAttachmentSelectModeMouseDown(e))
@@ -58,6 +77,7 @@ namespace WindBoard
                 return;
             }
 
+            if (ShouldIgnoreMouseBecauseStylusInContact()) return;
             if (!IsRealMouse(e)) return;
 
             bool anyPressed = e.LeftButton == MouseButtonState.Pressed
@@ -83,6 +103,7 @@ namespace WindBoard
                 e.Handled = true;
             }
 
+            if (ShouldIgnoreMouseBecauseStylusInContact()) return;
             if (!IsRealMouse(e)) return;
 
             var args = BuildMouseArgs(e, isInAir: false);

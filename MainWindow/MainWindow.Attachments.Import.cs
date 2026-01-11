@@ -122,6 +122,7 @@ namespace WindBoard
         {
             if (_pageService == null) return;
 
+            PrepareForPageTransition();
             _pageService.SaveCurrentPage();
             _pageService.ReplaceAllPages(newPages, currentIndex: 0);
             UpdateInkSurfaceViewportTransform();
@@ -142,6 +143,7 @@ namespace WindBoard
         private async Task AppendWbiPagesAsync(List<BoardPage> newPages)
         {
             // 保存当前页状态
+            PrepareForPageTransition();
             _pageService?.SaveCurrentPage();
 
             var pages = _pageService?.Pages;
@@ -160,6 +162,7 @@ namespace WindBoard
             int newPageIndex = pages.Count - newPages.Count;
              if (newPageIndex >= 0 && newPageIndex < pages.Count)
              {
+                 PrepareForPageTransition();
                  _pageService?.SwitchToPage(newPageIndex);
                  UpdateInkSurfaceViewportTransform();
                  InvalidateInkSurface();

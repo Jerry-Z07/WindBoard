@@ -82,11 +82,21 @@ namespace WindBoard.Services
         {
             SaveCurrentPage();
 
+            double canvasSize = Math.Max(_canvas.Width, _canvas.Height);
+            if (canvasSize > 0 && !double.IsNaN(canvasSize) && !double.IsInfinity(canvasSize))
+            {
+                canvasSize = Math.Round(canvasSize);
+            }
+            else
+            {
+                canvasSize = _canvas.Width;
+            }
+
             var newPage = new BoardPage
             {
                 Number = Pages.Count + 1,
-                CanvasWidth = 8000,
-                CanvasHeight = 8000,
+                CanvasWidth = canvasSize,
+                CanvasHeight = canvasSize,
                 Zoom = _zoomPanService.Zoom,
                 PanX = 0,
                 PanY = 0
@@ -94,7 +104,11 @@ namespace WindBoard.Services
 
             Pages.Add(newPage);
             RenumberPages();
-            SwitchToPage(Pages.Count - 1);
+
+            _currentPageIndex = Pages.Count - 1;
+            LoadPageIntoCanvas(Pages[_currentPageIndex]);
+            MarkCurrentPage();
+            _onPageStateChanged?.Invoke();
         }
 
         public void ReplaceAllPages(IList<BoardPage> newPages, int currentIndex = 0)

@@ -94,6 +94,12 @@ namespace WindBoard.Services
             ShiftCanvasContent(dx, dy);
         }
 
+        public void DiscardPendingShift()
+        {
+            _pendingShiftX = 0;
+            _pendingShiftY = 0;
+        }
+
         private void ShiftCanvasContent(double dx, double dy)
         {
             if (dx == 0 && dy == 0) return;

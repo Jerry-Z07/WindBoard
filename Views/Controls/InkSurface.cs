@@ -77,6 +77,22 @@ namespace WindBoard.Controls
             InvalidateVisual();
         }
 
+        public void ResetSurface()
+        {
+            try
+            {
+                EnsureRenderTarget();
+                _renderTarget?.ResetBackBuffer();
+                _useCpuFallback = false;
+                ResetDxRetry();
+                _needsRender = true;
+                InvalidateVisual();
+            }
+            catch
+            {
+            }
+        }
+
         private void InkSurface_Loaded(object sender, RoutedEventArgs e)
         {
             EnsureRenderTarget();

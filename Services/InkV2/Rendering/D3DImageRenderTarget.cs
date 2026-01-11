@@ -49,6 +49,14 @@ namespace WindBoard.Services.InkV2.Rendering
             _imageSource.IsFrontBufferAvailableChanged += ImageSource_IsFrontBufferAvailableChanged;
         }
 
+        internal void ResetBackBuffer()
+        {
+            DetachBackBuffer();
+            DisposeBackBuffer();
+            _pixelWidth = 0;
+            _pixelHeight = 0;
+        }
+
         public bool TryBeginDraw(IntPtr hwnd, int pixelWidth, int pixelHeight)
         {
             if (!_imageSource.IsFrontBufferAvailable)
