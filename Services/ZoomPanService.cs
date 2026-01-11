@@ -103,6 +103,8 @@ namespace WindBoard.Services
 
         public void SetPanDirect(double panX, double panY)
         {
+            if (double.IsNaN(panX) || double.IsInfinity(panX)) panX = 0;
+            if (double.IsNaN(panY) || double.IsInfinity(panY)) panY = 0;
             PanX = panX;
             PanY = panY;
             _panTransform.X = PanX;
@@ -134,6 +136,15 @@ namespace WindBoard.Services
         public void EndMousePan()
         {
             _isMousePanning = false;
+        }
+
+        public void CancelGesture()
+        {
+            _activeTouches.Clear();
+            _smoothedTouches.Clear();
+            _gestureActive = false;
+            _lastGestureCenter = new Point(0, 0);
+            _lastGestureSpread = 0;
         }
 
         public bool TouchDown(int id, Point viewportPoint)
@@ -324,6 +335,11 @@ namespace WindBoard.Services
 
         private double Clamp(double v)
         {
+            if (double.IsNaN(v) || double.IsInfinity(v))
+            {
+                v = 1.0;
+            }
+
             if (v < _minZoom) return _minZoom;
             if (v > _maxZoom) return _maxZoom;
             return v;

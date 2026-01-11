@@ -5,11 +5,11 @@ using System.IO.Compression;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Windows.Ink;
 using System.Windows.Media.Imaging;
 using Newtonsoft.Json;
 using WindBoard.Models.Export;
 using WindBoard.Models.Wbi;
+using WindBoard.Models.InkV2;
 
 namespace WindBoard.Services.Export
 {
@@ -21,6 +21,7 @@ namespace WindBoard.Services.Export
         private const string ManifestFileName = "manifest.json";
         private const string PagesFolder = "pages";
         private const string AssetsFolder = "assets";
+        private const string InkV2Extension = ".ink.json";
 
         /// <summary>
         /// 导出为 WBI 文件
@@ -48,8 +49,8 @@ namespace WindBoard.Services.Export
 
                     var manifest = new WbiManifest
                     {
-                        Version = "1.0",
-                        MinCompatibleVersion = "1.0",
+                        Version = "2.0",
+                        MinCompatibleVersion = "2.0",
                         AppVersion = AppVersionInfo.Version,
                         CreatedAt = DateTime.UtcNow,
                         PageCount = pages.Count,
@@ -91,15 +92,15 @@ namespace WindBoard.Services.Export
                             writer.Write(json);
                         }
 
-                        // 导出笔迹数据
-                        if (page.Strokes != null && page.Strokes.Count > 0)
+                        // 导出 v2 笔迹数据
+                        if (page.Ink.Strokes.Count > 0)
                         {
-                            string isfPath = $"{PagesFolder}/{pageId}.isf";
-                            var isfEntry = archive.CreateEntry(isfPath, GetCompressionLevel(options.CompressionLevel));
-                            using (var stream = isfEntry.Open())
-                            {
-                                page.Strokes.Save(stream);
-                            }
+                            var inkData = ExportInkV2(page.Ink);
+                            string inkPath = $"{PagesFolder}/{pageId}{InkV2Extension}";
+                            var inkEntry = archive.CreateEntry(inkPath, GetCompressionLevel(options.CompressionLevel));
+                            using var writer = new StreamWriter(inkEntry.Open());
+                            string json = JsonConvert.SerializeObject(inkData, Formatting.None);
+                            writer.Write(json);
                         }
                     }
 
@@ -144,8 +145,8 @@ namespace WindBoard.Services.Export
 
             foreach (var page in pages)
             {
-                // 笔迹数据估算（每个点约 20 字节，压缩后约 5 字节）
-                int totalPoints = page.Strokes?.Sum(s => s.StylusPoints.Count) ?? 0;
+                // 笔迹数据估算（每个点约 20 字节，压缩后约 5 字节；v2 ink 的压缩比例相近）
+                int totalPoints = CountInkPoints(page.Ink);
                 totalSize += totalPoints * 5;
 
                 // 附件估算
@@ -194,9 +195,9 @@ namespace WindBoard.Services.Export
             };
 
             // 笔迹文件引用
-            if (page.Strokes != null && page.Strokes.Count > 0)
+            if (page.Ink.Strokes.Count > 0)
             {
-                pageData.StrokesFile = $"{pageId}.isf";
+                pageData.InkFile = $"{pageId}{InkV2Extension}";
             }
 
             // 导出附件
@@ -261,6 +262,84 @@ namespace WindBoard.Services.Export
             }
 
             return pageData;
+        }
+
+        private static int CountInkPoints(InkDocument document)
+        {
+            if (document.Strokes.Count == 0) return 0;
+
+            int total = 0;
+            for (int si = 0; si < document.Strokes.Count; si++)
+            {
+                InkStroke stroke = document.Strokes[si];
+                for (int fi = 0; fi < stroke.Fragments.Count; fi++)
+                {
+                    total += stroke.Fragments[fi].Points.Count;
+                }
+            }
+            return total;
+        }
+
+        private static WbiInkV2DocumentData ExportInkV2(InkDocument document)
+        {
+            var data = new WbiInkV2DocumentData();
+            if (document.Strokes.Count == 0) return data;
+
+            data.Strokes.Capacity = Math.Max(data.Strokes.Capacity, document.Strokes.Count);
+
+            for (int si = 0; si < document.Strokes.Count; si++)
+            {
+                InkStroke stroke = document.Strokes[si];
+                var strokeData = new WbiInkV2StrokeData
+                {
+                    Id = stroke.StrokeId,
+                    Tool = ExportTool(stroke.Tool)
+                };
+
+                strokeData.Fragments.Capacity = Math.Max(strokeData.Fragments.Capacity, stroke.Fragments.Count);
+
+                for (int fi = 0; fi < stroke.Fragments.Count; fi++)
+                {
+                    InkFragment fragment = stroke.Fragments[fi];
+                    var fragmentData = new WbiInkV2FragmentData
+                    {
+                        Id = fragment.FragmentId
+                    };
+
+                    List<InkPoint> points = fragment.Points;
+                    fragmentData.Points.Capacity = Math.Max(fragmentData.Points.Capacity, points.Count);
+                    for (int pi = 0; pi < points.Count; pi++)
+                    {
+                        InkPoint p = points[pi];
+                        fragmentData.Points.Add(new WbiInkV2PointData
+                        {
+                            XDip = p.XDip,
+                            YDip = p.YDip,
+                            Pressure = p.Pressure,
+                            TimestampTicks = p.TimestampTicks
+                        });
+                    }
+
+                    strokeData.Fragments.Add(fragmentData);
+                }
+
+                data.Strokes.Add(strokeData);
+            }
+
+            return data;
+        }
+
+        private static WbiInkV2ToolData ExportTool(InkTool tool)
+        {
+            return new WbiInkV2ToolData
+            {
+                ColorArgb = tool.ColorArgb,
+                BaseThicknessDip = tool.BaseThicknessDip,
+                ThicknessSemantics = (int)tool.ThicknessSemantics,
+                BrushKind = (int)tool.BrushKind,
+                UsesPressure = tool.UsesPressure,
+                PressureNominal = tool.PressureNominal
+            };
         }
 
         private byte[] CompressImage(string filePath, WbiExportOptions options)

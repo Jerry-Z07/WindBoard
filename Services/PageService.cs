@@ -1,26 +1,24 @@
 using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Ink;
 using WindBoard;
 
 namespace WindBoard.Services
 {
     public class PageService
     {
-        private readonly InkCanvas _canvas;
+        private readonly FrameworkElement _canvas;
         private readonly ZoomPanService _zoomPanService;
         private readonly Action? _onPageStateChanged;
 
-        private StrokeCollection? _observedStrokes;
-        private bool _suppressStrokeEvents;
         private int _currentPageIndex;
         private readonly PagePreviewRenderer _previewRenderer = new();
 
         public ObservableCollection<BoardPage> Pages { get; } = new ObservableCollection<BoardPage>();
 
-        public PageService(InkCanvas canvas, ZoomPanService zoomPanService, Action? onPageStateChanged = null)
+        public PageService(FrameworkElement canvas, ZoomPanService zoomPanService, Action? onPageStateChanged = null)
         {
             _canvas = canvas;
             _zoomPanService = zoomPanService;
@@ -45,15 +43,13 @@ namespace WindBoard.Services
                 CanvasHeight = _canvas.Height,
                 Zoom = _zoomPanService.Zoom,
                 PanX = _zoomPanService.PanX,
-                PanY = _zoomPanService.PanY,
-                Strokes = _canvas.Strokes
+                PanY = _zoomPanService.PanY
             };
 
             Pages.Add(p);
             _currentPageIndex = 0;
             MarkCurrentPage();
             _onPageStateChanged?.Invoke();
-            AttachStrokeEvents();
         }
 
         public void SaveCurrentPage()
@@ -66,10 +62,6 @@ namespace WindBoard.Services
             cur.Zoom = _zoomPanService.Zoom;
             cur.PanX = _zoomPanService.PanX;
             cur.PanY = _zoomPanService.PanY;
-
-            // 重要：不要 Clone 当前页笔迹。InkCanvas 与当前页共享同一个 StrokeCollection，
-            // 否则在“页面管理/切页”时会产生常驻双份笔迹，导致内存暴涨且无法回落。
-            cur.Strokes = _canvas.Strokes;
         }
 
         public void SwitchToPage(int newIndex)
@@ -90,20 +82,59 @@ namespace WindBoard.Services
         {
             SaveCurrentPage();
 
+            double canvasSize = Math.Max(_canvas.Width, _canvas.Height);
+            if (canvasSize > 0 && !double.IsNaN(canvasSize) && !double.IsInfinity(canvasSize))
+            {
+                canvasSize = Math.Round(canvasSize);
+            }
+            else
+            {
+                canvasSize = _canvas.Width;
+            }
+
             var newPage = new BoardPage
             {
                 Number = Pages.Count + 1,
-                CanvasWidth = 8000,
-                CanvasHeight = 8000,
+                CanvasWidth = canvasSize,
+                CanvasHeight = canvasSize,
                 Zoom = _zoomPanService.Zoom,
                 PanX = 0,
-                PanY = 0,
-                Strokes = new StrokeCollection()
+                PanY = 0
             };
 
             Pages.Add(newPage);
             RenumberPages();
-            SwitchToPage(Pages.Count - 1);
+
+            _currentPageIndex = Pages.Count - 1;
+            LoadPageIntoCanvas(Pages[_currentPageIndex]);
+            MarkCurrentPage();
+            _onPageStateChanged?.Invoke();
+        }
+
+        public void ReplaceAllPages(IList<BoardPage> newPages, int currentIndex = 0)
+        {
+            if (newPages == null) throw new ArgumentNullException(nameof(newPages));
+
+            Pages.Clear();
+            for (int i = 0; i < newPages.Count; i++)
+            {
+                Pages.Add(newPages[i]);
+            }
+
+            RenumberPages();
+
+            if (Pages.Count == 0)
+            {
+                _currentPageIndex = 0;
+                _onPageStateChanged?.Invoke();
+                return;
+            }
+
+            _currentPageIndex = Math.Clamp(currentIndex, 0, Pages.Count - 1);
+            LoadPageIntoCanvas(Pages[_currentPageIndex]);
+
+            MarkCurrentPage();
+            _onPageStateChanged?.Invoke();
         }
 
         public void DeletePage(BoardPage page)
@@ -140,47 +171,11 @@ namespace WindBoard.Services
             UpdatePagePreview(page);
         }
 
-        public void AttachStrokeEvents()
-        {
-            if (_observedStrokes != null)
-            {
-                _observedStrokes.StrokesChanged -= CurrentStrokes_StrokesChanged;
-            }
-
-            _observedStrokes = _canvas.Strokes;
-            if (_observedStrokes != null)
-            {
-                _observedStrokes.StrokesChanged += CurrentStrokes_StrokesChanged;
-            }
-        }
-
-        private void CurrentStrokes_StrokesChanged(object? sender, StrokeCollectionChangedEventArgs e)
-        {
-            if (_suppressStrokeEvents) return;
-            if (Pages.Count == 0) return;
-
-            // 仅做“内容变更”标记，不做渲染（缩略图在弹窗打开时按需生成）。
-            Pages[_currentPageIndex].ContentVersion++;
-        }
-
         private void LoadPageIntoCanvas(BoardPage page)
         {
-            _suppressStrokeEvents = true;
-            try
-            {
-                _canvas.Width = page.CanvasWidth;
-                _canvas.Height = page.CanvasHeight;
-
-                // 直接复用每页的 StrokeCollection（切页不克隆）
-                _canvas.Strokes = page.Strokes ?? new StrokeCollection();
-                AttachStrokeEvents();
-
-                _zoomPanService.SetViewDirect(page.Zoom, page.PanX, page.PanY);
-            }
-            finally
-            {
-                _suppressStrokeEvents = false;
-            }
+            _canvas.Width = page.CanvasWidth;
+            _canvas.Height = page.CanvasHeight;
+            _zoomPanService.SetViewDirect(page.Zoom, page.PanX, page.PanY);
         }
 
         private void MarkCurrentPage()
@@ -216,7 +211,7 @@ namespace WindBoard.Services
             }
 
             page.Preview = _previewRenderer.Render(
-                page.Strokes,
+                page,
                 canvasWidth: page.CanvasWidth,
                 canvasHeight: page.CanvasHeight,
                 width: 220,

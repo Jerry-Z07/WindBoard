@@ -13,6 +13,7 @@ namespace WindBoard
                 _touchGestureService?.RestoreSystemGestures(windowHandle);
                 _touchGestureService?.Dispose();
                 _realTimeStylusManager?.Dispose();
+                _inkDxRenderer?.Dispose();
             }
             catch
             {

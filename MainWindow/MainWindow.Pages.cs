@@ -8,27 +8,33 @@ namespace WindBoard
         private void BtnPrevPage_Click(object sender, RoutedEventArgs e)
         {
             if (_pageService.CurrentPageIndex <= 0) return;
+            PrepareForPageTransition();
             _pageService.SwitchToPage(_pageService.CurrentPageIndex - 1);
-            AttachUndoToCurrentStrokes();
-            ClearInkCanvasSelectionPreserveEditingMode();
+            ClearSelectedInkStrokes();
             SelectAttachment(null);
+            UpdateInkSurfaceViewportTransform();
+            InvalidateInkSurface();
         }
 
         private void BtnNextPage_Click(object sender, RoutedEventArgs e)
         {
             if (_pageService.CurrentPageIndex >= Pages.Count - 1) return;
+            PrepareForPageTransition();
             _pageService.SwitchToPage(_pageService.CurrentPageIndex + 1);
-            AttachUndoToCurrentStrokes();
-            ClearInkCanvasSelectionPreserveEditingMode();
+            ClearSelectedInkStrokes();
             SelectAttachment(null);
+            UpdateInkSurfaceViewportTransform();
+            InvalidateInkSurface();
         }
 
         private void BtnAddPage_Click(object sender, RoutedEventArgs e)
         {
+            PrepareForPageTransition();
             _pageService.AddPage();
-            AttachUndoToCurrentStrokes();
-            ClearInkCanvasSelectionPreserveEditingMode();
+            ClearSelectedInkStrokes();
             SelectAttachment(null);
+            UpdateInkSurfaceViewportTransform();
+            InvalidateInkSurface();
         }
 
         private void BtnPageIndicator_Click(object sender, RoutedEventArgs e)
@@ -48,19 +54,23 @@ namespace WindBoard
             int index = Pages.IndexOf(e.Page);
             if (index >= 0)
             {
+                PrepareForPageTransition();
                 _pageService.SwitchToPage(index);
-                AttachUndoToCurrentStrokes();
-                ClearInkCanvasSelectionPreserveEditingMode();
+                ClearSelectedInkStrokes();
                 SelectAttachment(null);
+                UpdateInkSurfaceViewportTransform();
+                InvalidateInkSurface();
             }
         }
 
         private void PageNavigator_PageDeleteRequested(object sender, BoardPageEventArgs e)
         {
+            PrepareForPageTransition();
             _pageService.DeletePage(e.Page);
-            AttachUndoToCurrentStrokes();
-            ClearInkCanvasSelectionPreserveEditingMode();
+            ClearSelectedInkStrokes();
             SelectAttachment(null);
+            UpdateInkSurfaceViewportTransform();
+            InvalidateInkSurface();
         }
 
         private void PageNavigatorControl_Loaded(object sender, RoutedEventArgs e)

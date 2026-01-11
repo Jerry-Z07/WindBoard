@@ -1,9 +1,15 @@
 using System.IO;
+using System.IO.Compression;
 using System.Windows.Ink;
+using Newtonsoft.Json;
+using WindBoard.Core.Ink;
 using WindBoard.Models.Export;
+using WindBoard.Models.InkV2;
+using WindBoard.Models.Wbi;
 using WindBoard.Services.Export;
 using Xunit;
 using static WindBoard.Tests.TestHelpers.InkTestHelpers;
+using static WindBoard.Tests.TestHelpers.InkV2TestHelpers;
 
 namespace WindBoard.Tests.Services.Export;
 
@@ -46,11 +52,64 @@ public sealed class WbiImporterTests : IDisposable
         return filePath;
     }
 
+    private string CreateLegacyWbiWithIsf(StrokeCollection strokes, double zoom)
+    {
+        string filePath = GetTempFilePath();
+
+        using var archive = ZipFile.Open(filePath, ZipArchiveMode.Create);
+
+        var manifest = new WbiManifest
+        {
+            Version = "1.0",
+            MinCompatibleVersion = "1.0",
+            AppVersion = "test",
+            CreatedAt = DateTime.UtcNow,
+            PageCount = 1,
+            IncludeImageAssets = false
+        };
+        manifest.Pages.Add(new WbiPageRef { Id = "page_001", Number = 1 });
+
+        var pageData = new WbiPageData
+        {
+            Number = 1,
+            CanvasWidth = 8000,
+            CanvasHeight = 6000,
+            Zoom = zoom,
+            PanX = 0,
+            PanY = 0,
+            StrokesFile = "page_001.isf"
+        };
+
+        var manifestEntry = archive.CreateEntry("manifest.json", CompressionLevel.Optimal);
+        using (var writer = new StreamWriter(manifestEntry.Open()))
+        {
+            writer.Write(JsonConvert.SerializeObject(manifest, Formatting.Indented));
+        }
+
+        var pageEntry = archive.CreateEntry("pages/page_001.json", CompressionLevel.Optimal);
+        using (var writer = new StreamWriter(pageEntry.Open()))
+        {
+            writer.Write(JsonConvert.SerializeObject(pageData, Formatting.Indented));
+        }
+
+        using var ms = new MemoryStream();
+        strokes.Save(ms);
+        ms.Position = 0;
+
+        var isfEntry = archive.CreateEntry("pages/page_001.isf", CompressionLevel.Optimal);
+        using (var stream = isfEntry.Open())
+        {
+            ms.CopyTo(stream);
+        }
+
+        return filePath;
+    }
+
     [StaFact]
     public async Task ImportAsync_WithValidFile_ReturnsSuccessResult()
     {
-        var originalPage = new BoardPage { Number = 1, Strokes = new StrokeCollection() };
-        originalPage.Strokes.Add(CreateStroke(100, 100, 200, 200));
+        var originalPage = new BoardPage { Number = 1 };
+        originalPage.Ink.Strokes.Add(CreateLineStroke(100, 100, 200, 200));
         var filePath = await CreateTestWbiFile(new List<BoardPage> { originalPage });
 
         var importer = new WbiImporter();
@@ -64,16 +123,16 @@ public sealed class WbiImporterTests : IDisposable
     [StaFact]
     public async Task ImportAsync_RestoresStrokes()
     {
-        var originalPage = new BoardPage { Number = 1, Strokes = new StrokeCollection() };
-        originalPage.Strokes.Add(CreateStroke(50, 50, 150, 150));
-        originalPage.Strokes.Add(CreateStroke(200, 200, 300, 300));
+        var originalPage = new BoardPage { Number = 1 };
+        originalPage.Ink.Strokes.Add(CreateLineStroke(50, 50, 150, 150));
+        originalPage.Ink.Strokes.Add(CreateLineStroke(200, 200, 300, 300));
         var filePath = await CreateTestWbiFile(new List<BoardPage> { originalPage });
 
         var importer = new WbiImporter();
         var result = await importer.ImportAsync(filePath);
 
         Assert.True(result.Success);
-        Assert.Equal(2, result.Pages[0].Strokes.Count);
+        Assert.Equal(2, result.Pages[0].Ink.Strokes.Count);
     }
 
     [StaFact]
@@ -82,14 +141,13 @@ public sealed class WbiImporterTests : IDisposable
         var originalPage = new BoardPage
         {
             Number = 1,
-            Strokes = new StrokeCollection(),
             CanvasWidth = 8000,
             CanvasHeight = 6000,
             Zoom = 2.5,
             PanX = -1000,
             PanY = -800
         };
-        originalPage.Strokes.Add(CreateStroke(0, 0, 10, 10));
+        originalPage.Ink.Strokes.Add(CreateLineStroke(0, 0, 10, 10));
         var filePath = await CreateTestWbiFile(new List<BoardPage> { originalPage });
 
         var importer = new WbiImporter();
@@ -107,7 +165,7 @@ public sealed class WbiImporterTests : IDisposable
     [StaFact]
     public async Task ImportAsync_RestoresTextAttachment()
     {
-        var originalPage = new BoardPage { Number = 1, Strokes = new StrokeCollection() };
+        var originalPage = new BoardPage { Number = 1 };
         originalPage.Attachments.Add(new BoardAttachment
         {
             Type = BoardAttachmentType.Text,
@@ -140,7 +198,7 @@ public sealed class WbiImporterTests : IDisposable
     [StaFact]
     public async Task ImportAsync_RestoresLinkAttachment()
     {
-        var originalPage = new BoardPage { Number = 1, Strokes = new StrokeCollection() };
+        var originalPage = new BoardPage { Number = 1 };
         originalPage.Attachments.Add(new BoardAttachment
         {
             Type = BoardAttachmentType.Link,
@@ -164,11 +222,11 @@ public sealed class WbiImporterTests : IDisposable
     {
         var pages = new List<BoardPage>
         {
-            new BoardPage { Number = 1, Strokes = new StrokeCollection(), Zoom = 1.0 },
-            new BoardPage { Number = 2, Strokes = new StrokeCollection(), Zoom = 1.5 },
-            new BoardPage { Number = 3, Strokes = new StrokeCollection(), Zoom = 2.0 }
+            new BoardPage { Number = 1, Zoom = 1.0 },
+            new BoardPage { Number = 2, Zoom = 1.5 },
+            new BoardPage { Number = 3, Zoom = 2.0 }
         };
-        foreach (var p in pages) p.Strokes.Add(CreateStroke(0, 0, 100, 100));
+        foreach (var p in pages) p.Ink.Strokes.Add(CreateLineStroke(0, 0, 100, 100));
         var filePath = await CreateTestWbiFile(pages);
 
         var importer = new WbiImporter();
@@ -197,10 +255,10 @@ public sealed class WbiImporterTests : IDisposable
     {
         var pages = new List<BoardPage>
         {
-            new BoardPage { Number = 1, Strokes = new StrokeCollection() },
-            new BoardPage { Number = 2, Strokes = new StrokeCollection() }
+            new BoardPage { Number = 1 },
+            new BoardPage { Number = 2 }
         };
-        foreach (var p in pages) p.Strokes.Add(CreateStroke(0, 0, 10, 10));
+        foreach (var p in pages) p.Ink.Strokes.Add(CreateLineStroke(0, 0, 10, 10));
         var filePath = await CreateTestWbiFile(pages);
 
         var importer = new WbiImporter();
@@ -220,17 +278,17 @@ public sealed class WbiImporterTests : IDisposable
     {
         var pages = new List<BoardPage>
         {
-            new BoardPage { Number = 1, Strokes = new StrokeCollection() },
-            new BoardPage { Number = 2, Strokes = new StrokeCollection() }
+            new BoardPage { Number = 1 },
+            new BoardPage { Number = 2 }
         };
-        foreach (var p in pages) p.Strokes.Add(CreateStroke(0, 0, 10, 10));
+        foreach (var p in pages) p.Ink.Strokes.Add(CreateLineStroke(0, 0, 10, 10));
         var filePath = await CreateTestWbiFile(pages, new WbiExportOptions { IncludeImageAssets = true });
 
         var importer = new WbiImporter();
         var manifest = importer.GetManifest(filePath);
 
         Assert.NotNull(manifest);
-        Assert.Equal("1.0", manifest!.Version);
+        Assert.Equal("2.0", manifest!.Version);
         Assert.Equal(2, manifest.PageCount);
         Assert.True(manifest.IncludeImageAssets);
     }
@@ -251,7 +309,6 @@ public sealed class WbiImporterTests : IDisposable
         var originalPage = new BoardPage
         {
             Number = 1,
-            Strokes = new StrokeCollection(),
             CanvasWidth = 10000,
             CanvasHeight = 8000,
             Zoom = 1.75,
@@ -260,9 +317,19 @@ public sealed class WbiImporterTests : IDisposable
         };
 
         // Add multiple strokes
-        originalPage.Strokes.Add(CreateStroke(100, 100, 200, 200));
-        originalPage.Strokes.Add(CreateStroke(300, 300, 400, 400));
-        originalPage.Strokes.Add(CreateStroke(500, 500, 600, 600));
+        var viewTool = InkTool.CreateDefault() with
+        {
+            ThicknessSemantics = InkThicknessSemantics.ViewInvariant,
+            BaseThicknessDip = 2.0
+        };
+        var worldTool = viewTool with
+        {
+            ThicknessSemantics = InkThicknessSemantics.WorldInvariant,
+            BaseThicknessDip = 5.0
+        };
+        originalPage.Ink.Strokes.Add(CreateLineStroke(100, 100, 200, 200, tool: viewTool));
+        originalPage.Ink.Strokes.Add(CreateLineStroke(300, 300, 400, 400, tool: worldTool));
+        originalPage.Ink.Strokes.Add(CreateLineStroke(500, 500, 600, 600, tool: viewTool with { BaseThicknessDip = 3.0 }));
 
         // Add various attachments
         originalPage.Attachments.Add(new BoardAttachment
@@ -297,7 +364,61 @@ public sealed class WbiImporterTests : IDisposable
         Assert.Equal(originalPage.Zoom, importedPage.Zoom);
         Assert.Equal(originalPage.PanX, importedPage.PanX);
         Assert.Equal(originalPage.PanY, importedPage.PanY);
-        Assert.Equal(originalPage.Strokes.Count, importedPage.Strokes.Count);
+        Assert.Equal(originalPage.Ink.Strokes.Count, importedPage.Ink.Strokes.Count);
         Assert.Equal(originalPage.Attachments.Count, importedPage.Attachments.Count);
+
+        for (int i = 0; i < originalPage.Ink.Strokes.Count; i++)
+        {
+            Assert.Equal(originalPage.Ink.Strokes[i].StrokeId, importedPage.Ink.Strokes[i].StrokeId);
+            Assert.Equal(originalPage.Ink.Strokes[i].Tool.ThicknessSemantics, importedPage.Ink.Strokes[i].Tool.ThicknessSemantics);
+            Assert.Equal(originalPage.Ink.Strokes[i].Tool.BaseThicknessDip, importedPage.Ink.Strokes[i].Tool.BaseThicknessDip, precision: 12);
+        }
+    }
+
+    [StaFact]
+    public async Task LegacyIsf_ImportThenExportThenImport_PreservesSemanticsAndThickness()
+    {
+        var strokes = new StrokeCollection();
+
+        var s1 = CreateStroke(0, 0, 10, 0);
+        s1.DrawingAttributes.Width = 2;
+        s1.DrawingAttributes.Height = 2;
+        StrokeThicknessMetadata.SetLogicalThicknessDip(s1, 7.5);
+        StrokeInkSemanticsMetadata.SetThicknessSemantics(s1, InkThicknessSemantics.ViewInvariant);
+        strokes.Add(s1);
+
+        var s2 = CreateStroke(0, 0, 0, 10);
+        s2.DrawingAttributes.Width = 3;
+        s2.DrawingAttributes.Height = 3;
+        StrokeInkSemanticsMetadata.SetThicknessSemantics(s2, InkThicknessSemantics.WorldInvariant);
+        strokes.Add(s2);
+
+        string legacyPath = CreateLegacyWbiWithIsf(strokes, zoom: 2.0);
+
+        var importer = new WbiImporter();
+        var importedLegacy = await importer.ImportAsync(legacyPath);
+
+        Assert.True(importedLegacy.Success);
+        Assert.Single(importedLegacy.Pages);
+        Assert.Equal(2, importedLegacy.Pages[0].Ink.Strokes.Count);
+
+        Assert.Equal(InkThicknessSemantics.ViewInvariant, importedLegacy.Pages[0].Ink.Strokes[0].Tool.ThicknessSemantics);
+        Assert.Equal(7.5, importedLegacy.Pages[0].Ink.Strokes[0].Tool.BaseThicknessDip, precision: 6);
+        Assert.Equal(InkThicknessSemantics.WorldInvariant, importedLegacy.Pages[0].Ink.Strokes[1].Tool.ThicknessSemantics);
+        Assert.Equal(3.0, importedLegacy.Pages[0].Ink.Strokes[1].Tool.BaseThicknessDip, precision: 6);
+
+        var exporter = new WbiExporter();
+        string v2Path = GetTempFilePath();
+        await exporter.ExportAsync(importedLegacy.Pages, v2Path, new WbiExportOptions { IncludeImageAssets = false });
+
+        var reimported = await importer.ImportAsync(v2Path);
+
+        Assert.True(reimported.Success);
+        Assert.Single(reimported.Pages);
+        Assert.Equal(2, reimported.Pages[0].Ink.Strokes.Count);
+        Assert.Equal(importedLegacy.Pages[0].Ink.Strokes[0].Tool.ThicknessSemantics, reimported.Pages[0].Ink.Strokes[0].Tool.ThicknessSemantics);
+        Assert.Equal(importedLegacy.Pages[0].Ink.Strokes[0].Tool.BaseThicknessDip, reimported.Pages[0].Ink.Strokes[0].Tool.BaseThicknessDip, precision: 6);
+        Assert.Equal(importedLegacy.Pages[0].Ink.Strokes[1].Tool.ThicknessSemantics, reimported.Pages[0].Ink.Strokes[1].Tool.ThicknessSemantics);
+        Assert.Equal(importedLegacy.Pages[0].Ink.Strokes[1].Tool.BaseThicknessDip, reimported.Pages[0].Ink.Strokes[1].Tool.BaseThicknessDip, precision: 6);
     }
 }

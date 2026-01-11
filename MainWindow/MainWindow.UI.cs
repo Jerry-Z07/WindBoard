@@ -86,6 +86,7 @@ namespace WindBoard
                 _rootGrid.AddHandler(PreviewTouchDownEvent, new EventHandler<TouchEventArgs>(Root_PreviewTouchDown), true);
             }
             PreviewKeyDown += Window_PreviewKeyDown;
+            Deactivated += Window_Deactivated;
 
             InitializeArchitecture();
         }
@@ -112,15 +113,16 @@ namespace WindBoard
                 }
 
                 double zoom = _zoomPanService.Zoom;
-                double panX = viewportW / 2.0 - (MyCanvas.Width / 2.0) * zoom;
-                double panY = viewportH / 2.0 - (MyCanvas.Height / 2.0) * zoom;
-                _zoomPanService.SetPanDirect(panX, panY);
+                 double panX = viewportW / 2.0 - (MyCanvas.Width / 2.0) * zoom;
+                 double panY = viewportH / 2.0 - (MyCanvas.Height / 2.0) * zoom;
+                 _zoomPanService.SetPanDirect(panX, panY);
 
-                _strokeService.UpdatePenThickness(_zoomPanService.Zoom);
+                 UpdateInkSurfaceViewportTransform();
+                 InvalidateInkSurface();
 
 
-            }, System.Windows.Threading.DispatcherPriority.Loaded);
-        }
+             }, System.Windows.Threading.DispatcherPriority.Loaded);
+         }
 
 
 

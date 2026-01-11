@@ -13,14 +13,15 @@ namespace WindBoard.Core.Input.RealTimeStylus
 {
     internal sealed class RealTimeStylusAdapter : StylusPlugIn
     {
-        private readonly InkCanvas _canvas;
+        private readonly UIElement _inputSurface;
         private readonly ScrollViewer _viewport;
         private readonly Action<InputStage, InputEventArgs> _dispatch;
         private readonly Dictionary<int, InputDeviceType> _deviceTypeCache = new();
+        private long _lastMousePacketSkipLogTick;
 
-        public RealTimeStylusAdapter(InkCanvas canvas, ScrollViewer viewport, Action<InputStage, InputEventArgs> dispatch)
+        public RealTimeStylusAdapter(UIElement inputSurface, ScrollViewer viewport, Action<InputStage, InputEventArgs> dispatch)
         {
-            _canvas = canvas;
+            _inputSurface = inputSurface;
             _viewport = viewport;
             _dispatch = dispatch;
         }
@@ -67,7 +68,7 @@ namespace WindBoard.Core.Input.RealTimeStylus
 
                 int pointCount = stylusPoints.Count;
                 StylusPoint[] buffer = ArrayPool<StylusPoint>.Shared.Rent(pointCount);
-                var packet = new StylusPacket(stage, buffer, pointCount, rawStylusInput.Timestamp, rawStylusInput.StylusDeviceId, isInAir);
+                var packet = new StylusPacket(stage, buffer, pointCount, rawStylusInput.Timestamp, rawStylusInput.StylusDeviceId, rawStylusInput.TabletDeviceId, isInAir);
                 try
                 {
                     stylusPoints.CopyTo(buffer, 0);
@@ -99,10 +100,18 @@ namespace WindBoard.Core.Input.RealTimeStylus
                     return;
                 }
 
+                // RTS 也会收到 Mouse 的 Stylus packets（来自 “Mouse TabletDevice”），而 Mouse 同时会走 WPF Mouse 事件。
+                // 若不在此处过滤，会导致“鼠标书写第一笔双重笔迹”。
+                if (packet.TabletDeviceId == 0)
+                {
+                    TryLogMousePacketSkip(packet);
+                    return;
+                }
+
                 GeneralTransform? canvasToViewport = null;
                 try
                 {
-                    canvasToViewport = _canvas.TransformToVisual(_viewport);
+                    canvasToViewport = _inputSurface.TransformToVisual(_viewport);
                 }
                 catch
                 {
@@ -116,7 +125,7 @@ namespace WindBoard.Core.Input.RealTimeStylus
                 var deviceType = ResolveDeviceType(packet.StylusDeviceId);
 
                 // 触摸仍交由 WPF Touch 管道处理，避免重复分发
-                if (deviceType == InputDeviceType.Touch)
+                if (deviceType == InputDeviceType.Touch || deviceType == InputDeviceType.Unknown)
                 {
                     return;
                 }
@@ -151,8 +160,14 @@ namespace WindBoard.Core.Input.RealTimeStylus
                 for (int i = 0; i < count; i++)
                 {
                     StylusPoint pt = points[i];
-                    var canvasPoint = new Point(pt.X, pt.Y);
-                    var viewportPoint = canvasToViewport?.Transform(canvasPoint) ?? canvasPoint;
+                    var rawPoint = new Point(pt.X, pt.Y);
+                    MapStylusPointToCanvasAndViewport(
+                        rawPoint,
+                        canvasToViewport,
+                        viewportWidthDip: _viewport.ActualWidth,
+                        viewportHeightDip: _viewport.ActualHeight,
+                        out Point canvasPoint,
+                        out Point viewportPoint);
 
                     args.CanvasPoint = canvasPoint;
                     args.ViewportPoint = viewportPoint;
@@ -170,6 +185,89 @@ namespace WindBoard.Core.Input.RealTimeStylus
             {
                 packet.Dispose();
             }
+        }
+
+        internal static void MapStylusPointToCanvasAndViewport(
+            Point rawPoint,
+            GeneralTransform? canvasToViewport,
+            double viewportWidthDip,
+            double viewportHeightDip,
+            out Point canvasPoint,
+            out Point viewportPoint)
+        {
+            canvasPoint = rawPoint;
+            viewportPoint = rawPoint;
+
+            if (canvasToViewport == null)
+            {
+                return;
+            }
+
+            Point viewportFromCanvas;
+            try
+            {
+                viewportFromCanvas = canvasToViewport.Transform(rawPoint);
+            }
+            catch
+            {
+                viewportFromCanvas = rawPoint;
+            }
+
+            bool hasViewportSize = viewportWidthDip > 1 && viewportHeightDip > 1;
+            if (!hasViewportSize)
+            {
+                canvasPoint = rawPoint;
+                viewportPoint = viewportFromCanvas;
+                return;
+            }
+
+            double penaltyRaw = ViewportPenalty(rawPoint, viewportWidthDip, viewportHeightDip);
+            double penaltyCanvas = ViewportPenalty(viewportFromCanvas, viewportWidthDip, viewportHeightDip);
+
+            bool rawLooksLikeViewport = penaltyRaw <= penaltyCanvas;
+
+            if (rawLooksLikeViewport)
+            {
+                GeneralTransform? viewportToCanvas = null;
+                try
+                {
+                    viewportToCanvas = canvasToViewport.Inverse;
+                }
+                catch
+                {
+                }
+
+                if (viewportToCanvas != null)
+                {
+                    try
+                    {
+                        canvasPoint = viewportToCanvas.Transform(rawPoint);
+                    }
+                    catch
+                    {
+                        canvasPoint = rawPoint;
+                    }
+                    viewportPoint = rawPoint;
+                    return;
+                }
+            }
+
+            canvasPoint = rawPoint;
+            viewportPoint = viewportFromCanvas;
+        }
+
+        private static double ViewportPenalty(Point p, double width, double height)
+        {
+            double dx = OutOfBoundsDistance(p.X, min: 0, max: width);
+            double dy = OutOfBoundsDistance(p.Y, min: 0, max: height);
+            return (dx * dx) + (dy * dy);
+        }
+
+        private static double OutOfBoundsDistance(double value, double min, double max)
+        {
+            if (value < min) return min - value;
+            if (value > max) return value - max;
+            return 0;
         }
 
         private static double? TryReadPressure(StylusPoint pt)
@@ -230,6 +328,13 @@ namespace WindBoard.Core.Input.RealTimeStylus
                     {
                         if (stylus.Id == stylusDeviceId)
                         {
+                            if (tablet.Type != TabletDeviceType.Touch && IsMouseTablet(tablet, stylus))
+                            {
+                                mapped = InputDeviceType.Unknown;
+                                _deviceTypeCache[stylusDeviceId] = mapped;
+                                return mapped;
+                            }
+
                             mapped = tablet.Type == TabletDeviceType.Touch
                                 ? InputDeviceType.Touch
                                 : InputDeviceType.Stylus;
@@ -245,6 +350,47 @@ namespace WindBoard.Core.Input.RealTimeStylus
 
             _deviceTypeCache[stylusDeviceId] = mapped;
             return mapped;
+        }
+
+        private static bool IsMouseTablet(TabletDevice tablet, StylusDevice stylus)
+        {
+            try
+            {
+                string tabletName = tablet.Name ?? string.Empty;
+                string stylusName = stylus.Name ?? string.Empty;
+
+                if (tabletName.Contains("mouse", StringComparison.OrdinalIgnoreCase) ||
+                    stylusName.Contains("mouse", StringComparison.OrdinalIgnoreCase))
+                {
+                    return true;
+                }
+
+                // WPF 可能会提供一个“Mouse”TabletDevice（硬件能力为 None），用于把鼠标输入走 Stylus 管线。
+                // 这些输入同时也会触发 WPF Mouse 事件，若不在 RTS 层过滤，将导致同一笔输入被分发两次。
+                if (tablet.TabletHardwareCapabilities == TabletHardwareCapabilities.None &&
+                    (string.IsNullOrWhiteSpace(tablet.ProductId) || string.Equals(tablet.ProductId, "0", StringComparison.OrdinalIgnoreCase)) &&
+                    (tablet.Id == 0 || stylus.Id == 0))
+                {
+                    return true;
+                }
+            }
+            catch
+            {
+            }
+
+            return false;
+        }
+
+        private void TryLogMousePacketSkip(StylusPacket packet)
+        {
+            long now = Environment.TickCount64;
+            if (now - _lastMousePacketSkipLogTick < 1200)
+            {
+                return;
+            }
+
+            _lastMousePacketSkipLogTick = now;
+            Debug.WriteLine($"[RTS] Ignore mouse stylus packet: stylusId={packet.StylusDeviceId} tabletId={packet.TabletDeviceId}");
         }
 
         private static InputStage GetDispatchStage(InputStage packetStage, int index, int count)
@@ -267,15 +413,17 @@ namespace WindBoard.Core.Input.RealTimeStylus
             public int Count => _count;
             public int Timestamp { get; }
             public int StylusDeviceId { get; }
+            public int TabletDeviceId { get; }
             public bool IsInAir { get; }
 
-            public StylusPacket(InputStage stage, StylusPoint[] points, int count, int timestamp, int stylusDeviceId, bool isInAir)
+            public StylusPacket(InputStage stage, StylusPoint[] points, int count, int timestamp, int stylusDeviceId, int tabletDeviceId, bool isInAir)
             {
                 Stage = stage;
                 _points = points;
                 _count = Math.Clamp(count, 0, points.Length);
                 Timestamp = timestamp;
                 StylusDeviceId = stylusDeviceId;
+                TabletDeviceId = tabletDeviceId;
                 IsInAir = isInAir;
             }
 

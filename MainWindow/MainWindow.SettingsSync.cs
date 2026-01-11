@@ -54,15 +54,30 @@ namespace WindBoard
             var camouflageResult = ApplyCamouflageFromSettings();
             ApplyZoomPanGestureSettingsSnapshot();
 
-            if (_strokeService != null && _zoomPanService != null)
+            try
             {
-                _strokeService.SetStrokeThicknessConsistencyEnabled(
-                    SettingsService.Instance.GetStrokeThicknessConsistencyEnabled(),
-                    _zoomPanService.Zoom);
-                _strokeService.UpdatePenThickness(_zoomPanService.Zoom);
+                _inkThicknessSemantics = SettingsService.Instance.GetInkThicknessSemantics();
+                if (PenThicknessWorldInvariant != null)
+                {
+                    PenThicknessWorldInvariant.IsChecked = _inkThicknessSemantics == Models.InkV2.InkThicknessSemantics.WorldInvariant;
+                }
+            }
+            catch
+            {
             }
 
-            ApplyInkModeSettingsSnapshot();
+            try
+            {
+                _inkMode?.SetSimulatedPressureEnabled(SettingsService.Instance.GetInkV2SimulatedPressureEnabled());
+            }
+            catch
+            {
+            }
+
+            if (_zoomPanService != null)
+            {
+                InvalidateInkSurface();
+            }
 
             // 伪装快捷方式：仅在设置“发生修改”时自动更新一次；每次启动不再自动生成。
             if (!isStartup)
@@ -87,17 +102,6 @@ namespace WindBoard
         {
             if (_zoomPanService == null) return;
             try { _zoomPanService.TwoFingerOnly = SettingsService.Instance.GetZoomPanTwoFingerOnly(); } catch { }
-        }
-
-        private void ApplyInkModeSettingsSnapshot()
-        {
-            if (_inkMode == null)
-            {
-                return;
-            }
-
-            _inkMode.SetSimulatedPressureEnabled(SettingsService.Instance.GetSimulatedPressureEnabled());
-            _inkMode.SetStrokeSmoothingMode(SettingsService.Instance.GetStrokeSmoothingMode());
         }
 
         private CamouflageResult ApplyCamouflageFromSettings()
@@ -204,7 +208,7 @@ namespace WindBoard
             if (CanvasHost != null) CanvasHost.Background = brush;
             if (Viewport != null) Viewport.Background = brush;
 
-            // InkCanvas 必须保持透明，否则会遮住“底层附件”
+            // 输入承载层必须保持透明，否则会遮住“底层附件”/墨迹渲染层。
             if (MyCanvas != null) MyCanvas.Background = Brushes.Transparent;
         }
     }
