@@ -100,4 +100,7 @@ appsettings.*.Local.json
 # Ignore specific temp files that appear in this workspace
 *.wpftmp.*
 
+
+
+.ace-tool/
 # End
