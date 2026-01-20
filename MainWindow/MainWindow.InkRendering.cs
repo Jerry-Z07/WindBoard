@@ -219,90 +219,30 @@ namespace WindBoard
             double viewportWidthDip = e.PixelWidth / Math.Max(0.0001, e.DpiScaleX);
             double viewportHeightDip = e.PixelHeight / Math.Max(0.0001, e.DpiScaleY);
 
-            _cpuVisibleFragments.Clear();
-            _cpuHitScratch.Clear();
-
-            double marginWorld = 24.0 / zoom;
-            double worldLeft = (0 - _zoomPanService.PanX) / zoom;
-            double worldTop = (0 - _zoomPanService.PanY) / zoom;
-            double worldWidth = viewportWidthDip / zoom;
-            double worldHeight = viewportHeightDip / zoom;
-
-            var rect = new InkRectDip(
-                worldLeft - marginWorld,
-                worldTop - marginWorld,
-                worldWidth + marginWorld * 2,
-                worldHeight + marginWorld * 2);
-
             IReadOnlyCollection<InkFragment>? forceVisible = BuildForceVisibleFragments();
-            bool selfHealRebuildAttempted = false;
-            bool selfHealFallbackAllFragments = false;
 
-            try
-            {
-                page.InkSpatialIndex.QueryRect(rect, _cpuHitScratch);
-            }
-            catch
-            {
-            }
+            InkRectDip cullRect = InkVisibilityCulling.ComputeWorldCullRect(
+                viewportWidthDip,
+                viewportHeightDip,
+                zoom,
+                _zoomPanService.PanX,
+                _zoomPanService.PanY,
+                cullMarginScreenDip: 24.0);
 
-            for (int i = 0; i < _cpuHitScratch.Count; i++)
-            {
-                _cpuVisibleFragments.Add(_cpuHitScratch[i].Fragment);
-            }
-
-            if (_cpuVisibleFragments.Count == 0 &&
-                (forceVisible == null || forceVisible.Count == 0) &&
-                page.Ink.Strokes.Count > 0)
-            {
-                Rect bounds = InkCpuRenderer.CalculateInkBounds(page.Ink);
-                if (!bounds.IsEmpty && rect.Intersects(bounds.Left, bounds.Top, bounds.Right, bounds.Bottom))
-                {
-                    try
-                    {
-                        selfHealRebuildAttempted = true;
-                        page.InkSpatialIndex.Rebuild(page.Ink);
-                        page.InkSpatialIndex.QueryRect(rect, _cpuHitScratch);
-                    }
-                    catch
-                    {
-                    }
-
-                    _cpuVisibleFragments.Clear();
-                    for (int i = 0; i < _cpuHitScratch.Count; i++)
-                    {
-                        _cpuVisibleFragments.Add(_cpuHitScratch[i].Fragment);
-                    }
-
-                    if (_cpuVisibleFragments.Count == 0)
-                    {
-                        selfHealFallbackAllFragments = true;
-                        for (int si = 0; si < page.Ink.Strokes.Count; si++)
-                        {
-                            InkStroke stroke = page.Ink.Strokes[si];
-                            for (int fi = 0; fi < stroke.Fragments.Count; fi++)
-                            {
-                                _cpuVisibleFragments.Add(stroke.Fragments[fi]);
-                            }
-                        }
-                    }
-                }
-            }
-
-            if (forceVisible != null)
-            {
-                foreach (InkFragment fragment in forceVisible)
-                {
-                    _cpuVisibleFragments.Add(fragment);
-                }
-            }
+            InkVisibilityStats visStats = InkVisibilityCulling.GatherVisibleFragments(
+                page.Ink,
+                page.InkSpatialIndex,
+                cullRect,
+                _cpuHitScratch,
+                _cpuVisibleFragments,
+                forceVisible);
 
             TryLogPostStrokeRenderSummary(page, rendererName: "CPU", extra: () =>
             {
                 Debug.WriteLine(
-                    $"[InkRender][CPU] hits={_cpuHitScratch.Count} visibleFragments={_cpuVisibleFragments.Count} " +
-                    $"forceVisible={(forceVisible?.Count ?? 0)} selfHealRebuild={selfHealRebuildAttempted} " +
-                    $"selfHealAll={selfHealFallbackAllFragments}");
+                    $"[InkRender][CPU] hits={visStats.SpatialHitCount} visibleFragments={visStats.VisibleFragmentCount} " +
+                    $"forceVisible={visStats.ForceVisibleFragmentCount} selfHealRebuild={visStats.SelfHealRebuildAttempted} " +
+                    $"selfHealAll={visStats.SelfHealFallbackAllFragments}");
             });
 
             try

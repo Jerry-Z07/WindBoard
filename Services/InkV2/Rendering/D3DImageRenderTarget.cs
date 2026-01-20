@@ -10,7 +10,7 @@ using Vortice.DXGI;
 
 namespace WindBoard.Services.InkV2.Rendering
 {
-    internal sealed class D3DImageRenderTarget : IDisposable
+    internal sealed class D3DImageRenderTarget : IInkSurfaceRenderTarget
     {
         private readonly D3DImage _imageSource = new D3DImage();
 
@@ -36,7 +36,7 @@ namespace WindBoard.Services.InkV2.Rendering
         public bool IsFrontBufferAvailable => _imageSource.IsFrontBufferAvailable;
         public int PixelWidth => _pixelWidth;
         public int PixelHeight => _pixelHeight;
-        internal string? LastFailureReason => _lastFailureReason;
+        public string? LastFailureReason => _lastFailureReason;
 
         public ID3D11Device? D3D11Device => _d3d11Device;
         public ID3D11DeviceContext? D3D11Context => _d3d11Context;
@@ -49,7 +49,7 @@ namespace WindBoard.Services.InkV2.Rendering
             _imageSource.IsFrontBufferAvailableChanged += ImageSource_IsFrontBufferAvailableChanged;
         }
 
-        internal void ResetBackBuffer()
+        public void ResetBackBuffer()
         {
             DetachBackBuffer();
             DisposeBackBuffer();

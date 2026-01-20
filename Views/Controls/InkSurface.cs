@@ -11,16 +11,30 @@ namespace WindBoard.Controls
 {
     public sealed class InkSurface : Image
     {
-        private D3DImageRenderTarget? _renderTarget;
+        private IInkSurfaceRenderTarget? _renderTarget;
         private bool _isRenderingSubscribed;
         private bool _needsRender = true;
         private bool _useCpuFallback;
+        private bool _dxPermanentlyDisabled;
         private long _nextDxRetryTick;
         private int _dxRetryDelayMs = 1200;
         private int _dxFailureCount;
+        private const int MaxDxFailuresBeforeDisable = 12;
 
         public event EventHandler<InkSurfaceRenderEventArgs>? RenderFrame;
         public event EventHandler<InkSurfaceFallbackRenderEventArgs>? RenderFallbackFrame;
+
+        public static readonly DependencyProperty ForceCpuFallbackProperty = DependencyProperty.Register(
+            nameof(ForceCpuFallback),
+            typeof(bool),
+            typeof(InkSurface),
+            new FrameworkPropertyMetadata(false, FrameworkPropertyMetadataOptions.AffectsRender, ForceCpuFallbackPropertyChanged));
+
+        public bool ForceCpuFallback
+        {
+            get => (bool)GetValue(ForceCpuFallbackProperty);
+            set => SetValue(ForceCpuFallbackProperty, value);
+        }
 
         public InkSurface()
         {
@@ -185,6 +199,17 @@ namespace WindBoard.Controls
                 if (_renderTarget == null) return;
             }
 
+            if (ForceCpuFallback || _dxPermanentlyDisabled)
+            {
+                if (!_useCpuFallback)
+                {
+                    _useCpuFallback = true;
+                    _needsRender = true;
+                    InvalidateVisual();
+                }
+                return;
+            }
+
             var dpi = VisualTreeHelper.GetDpi(this);
             double dipWidth = ActualWidth;
             double dipHeight = ActualHeight;
@@ -301,6 +326,11 @@ namespace WindBoard.Controls
 
         private bool ShouldAttemptDxRetry()
         {
+            if (_dxPermanentlyDisabled)
+            {
+                return false;
+            }
+
             long now = Environment.TickCount64;
             return now >= _nextDxRetryTick;
         }
@@ -313,6 +343,12 @@ namespace WindBoard.Controls
             _dxRetryDelayMs = Math.Min(delay * 2, 20000);
             _dxFailureCount++;
 
+            if (!_dxPermanentlyDisabled && _dxFailureCount >= MaxDxFailuresBeforeDisable)
+            {
+                _dxPermanentlyDisabled = true;
+                Debug.WriteLine($"[InkSurface] DX disabled for this session after {_dxFailureCount} failures");
+            }
+
             if (_dxFailureCount == 4)
             {
                 Debug.WriteLine($"[InkSurface] DX retry backoff -> {delay}ms");
@@ -324,11 +360,12 @@ namespace WindBoard.Controls
             _dxFailureCount = 0;
             _dxRetryDelayMs = 1200;
             _nextDxRetryTick = 0;
+            _dxPermanentlyDisabled = false;
         }
 
         protected override void OnRender(DrawingContext drawingContext)
         {
-            if (_useCpuFallback && RenderFallbackFrame != null)
+            if ((ForceCpuFallback || _useCpuFallback || _dxPermanentlyDisabled) && RenderFallbackFrame != null)
             {
                 var dpi = VisualTreeHelper.GetDpi(this);
                 double dipWidth = ActualWidth;
@@ -352,6 +389,29 @@ namespace WindBoard.Controls
             }
 
             base.OnRender(drawingContext);
+        }
+
+        private static void ForceCpuFallbackPropertyChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+        {
+            if (d is not InkSurface self)
+            {
+                return;
+            }
+
+            bool enabled = e.NewValue is true;
+            if (enabled)
+            {
+                self._useCpuFallback = true;
+            }
+            else
+            {
+                // Allow DX to attempt again immediately.
+                self._useCpuFallback = false;
+                self.ResetDxRetry();
+            }
+
+            self._needsRender = true;
+            self.InvalidateVisual();
         }
 
         private long _lastZeroSizeLogTick;
