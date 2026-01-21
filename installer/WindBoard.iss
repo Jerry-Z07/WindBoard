@@ -75,17 +75,11 @@ ArchitecturesInstallIn64BitMode={#MyArchitecturesInstallIn64BitMode}
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
-#ifexist "compiler:Languages\\Unofficial\\ChineseSimplified.isl"
-Name: "chs"; MessagesFile: "compiler:Languages\\Unofficial\\ChineseSimplified.isl"
-#else
-  #ifexist "compiler:Languages\\ChineseSimplified.isl"
-Name: "chs"; MessagesFile: "compiler:Languages\\ChineseSimplified.isl"
-  #endif
-#endif
+Name: "chinesesimplified"; MessagesFile: "ChineseSimplified.isl"
 
 [CustomMessages]
 english.AppShortcutName=WindBoard
-chs.AppShortcutName=轻风白板
+chinesesimplified.AppShortcutName=轻风白板
 
 [Files]
 Source: "{#MySourceDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
