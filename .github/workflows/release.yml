@@ -148,7 +148,7 @@ jobs:
               "/DMyOutputDir=$distForIss" `
               "/DMyArch=$arch" `
               "/DMyRid=$rid" `
-              '/DMyVariantSuffix="-fd"' `
+              "/DMyVariantSuffix=-fd" `
               $issPath
 
             if (!(Test-Path $setupPathFd)) { throw "Installer not produced: $setupPathFd" }
