@@ -268,7 +268,14 @@
         </Canvas>
 
         <!-- 悬浮工具栏区域（覆盖在视口之上，不参与缩放） -->
-        <StackPanel Orientation="Horizontal" VerticalAlignment="Bottom" HorizontalAlignment="Center" Margin="0,0,0,25" Panel.ZIndex="10" Opacity="0.85">
+        <StackPanel Orientation="Horizontal"
+                    VerticalAlignment="Bottom"
+                    HorizontalAlignment="Center"
+                    Margin="0,0,0,25"
+                    Panel.ZIndex="10"
+                    Opacity="0.85"
+                    SnapsToDevicePixels="True"
+                    UseLayoutRounding="True">
             <!-- 主工具栏 -->
             <Border Background="#25262A" CornerRadius="12" Padding="5"
                     Effect="{StaticResource MaterialDesignShadowDepth2}">
