@@ -15,7 +15,6 @@ namespace WindBoard
             _colorPopupBox = FindName("ColorPopupBox") as PopupBox;
             LocalizationService.Instance.LanguageChanged += LocalizationService_LanguageChanged;
             RefreshAppLanguageItems();
-            RefreshStrokeSmoothingModeItems();
 
             // 初始化颜色为当前设置服务中的背景色
             _currentColor = SettingsService.Instance.GetBackgroundColor();
@@ -52,23 +51,6 @@ namespace WindBoard
             OnPropertyChanged(nameof(VideoPresenterEnabled));
             OnPropertyChanged(nameof(VideoPresenterPath));
             OnPropertyChanged(nameof(VideoPresenterArgs));
-
-            // 初始化"书写设置"
-            try
-            {
-                _strokeSmoothingMode = SettingsService.Instance.GetStrokeSmoothingMode();
-                _strokeThicknessConsistencyEnabled = SettingsService.Instance.GetStrokeThicknessConsistencyEnabled();
-                _simulatedPressureEnabled = SettingsService.Instance.GetSimulatedPressureEnabled();
-            }
-            catch
-            {
-                _strokeSmoothingMode = StrokeSmoothingMode.RawInput;
-                _strokeThicknessConsistencyEnabled = false;
-                _simulatedPressureEnabled = false;
-            }
-            OnPropertyChanged(nameof(StrokeSmoothingMode));
-            OnPropertyChanged(nameof(StrokeThicknessConsistencyEnabled));
-            OnPropertyChanged(nameof(SimulatedPressureEnabled));
 
             // 初始化"触摸手势"
             try
@@ -125,9 +107,6 @@ namespace WindBoard
             try { SettingsService.Instance.SetCamouflageEnabled(CamouflageEnabled); } catch { }
             try { SettingsService.Instance.SetCamouflageTitle(CamouflageTitle); } catch { }
             try { SettingsService.Instance.SetCamouflageSourcePath(CamouflageSourcePath); } catch { }
-            try { SettingsService.Instance.SetStrokeSmoothingMode(StrokeSmoothingMode); } catch { }
-            try { SettingsService.Instance.SetStrokeThicknessConsistencyEnabled(StrokeThicknessConsistencyEnabled); } catch { }
-            try { SettingsService.Instance.SetSimulatedPressureEnabled(SimulatedPressureEnabled); } catch { }
         }
 
         private void BtnApply_Click(object sender, RoutedEventArgs e) => ApplyAllSettings();
@@ -149,7 +128,6 @@ namespace WindBoard
         private void LocalizationService_LanguageChanged(object? sender, AppLanguage e)
         {
             RefreshAppLanguageItems();
-            RefreshStrokeSmoothingModeItems();
 
             if (string.IsNullOrWhiteSpace(CamouflageSourcePath))
             {

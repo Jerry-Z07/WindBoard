@@ -52,12 +52,6 @@
                         </ListBoxItem>
                         <ListBoxItem>
                             <StackPanel Orientation="Horizontal">
-                                <materialDesign:PackIcon Kind="Pen" Width="20" Height="20" Margin="0,0,14,0" VerticalAlignment="Center"/>
-                                <TextBlock Text="{DynamicResource SettingsWindow_Nav_Writing}" VerticalAlignment="Center" FontSize="14"/>
-                            </StackPanel>
-                        </ListBoxItem>
-                        <ListBoxItem>
-                            <StackPanel Orientation="Horizontal">
                                 <materialDesign:PackIcon Kind="PaletteOutline" Width="20" Height="20" Margin="0,0,14,0" VerticalAlignment="Center"/>
                                 <TextBlock Text="{DynamicResource SettingsWindow_Nav_Appearance}" VerticalAlignment="Center" FontSize="14"/>
                             </StackPanel>
@@ -325,107 +319,13 @@
                         </materialDesign:Card>
                     </StackPanel>
 
-                    <!-- 书写设置 面板（索引 1） -->
-                    <StackPanel x:Name="InkSettingsPanel">
-                        <StackPanel.Style>
-                            <Style TargetType="StackPanel">
-                                <Setter Property="Visibility" Value="Collapsed"/>
-                                <Style.Triggers>
-                                    <DataTrigger Binding="{Binding ElementName=NavList, Path=SelectedIndex}" Value="1">
-                                        <Setter Property="Visibility" Value="Visible"/>
-                                    </DataTrigger>
-                                </Style.Triggers>
-                            </Style>
-                        </StackPanel.Style>
-
-                        <!-- 书写设置 · 笔迹平滑 -->
-                        <materialDesign:Card Padding="20" Margin="0,0,0,20" UniformCornerRadius="12" materialDesign:ElevationAssist.Elevation="Dp2">
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto"/>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                </Grid.ColumnDefinitions>
-
-                                <Border Width="48" Height="48" CornerRadius="8" Background="{DynamicResource PrimaryHueLightBrush}" Grid.Column="0" VerticalAlignment="Center">
-                                    <materialDesign:PackIcon Kind="Brush" Width="24" Height="24" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="{DynamicResource PrimaryHueMidBrush}"/>
-                                </Border>
-
-                                <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="16,0,0,0">
-                                    <TextBlock Text="{DynamicResource SettingsWindow_Writing_Smoothing_Title}" Style="{StaticResource MaterialDesignSubtitle1TextBlock}" FontWeight="SemiBold"/>
-                                    <TextBlock Text="{DynamicResource SettingsWindow_Writing_Smoothing_Desc}" Style="{StaticResource MaterialDesignBodyMediumTextBlock}" Opacity="0.6" TextWrapping="Wrap"/>
-                                </StackPanel>
-
-                                <ComboBox Grid.Column="2"
-                                          VerticalAlignment="Center"
-                                          MinWidth="160"
-                                          ItemsSource="{Binding ElementName=SettingsWindowRoot, Path=StrokeSmoothingModeItems}"
-                                          DisplayMemberPath="DisplayName"
-                                          SelectedValuePath="Mode"
-                                          SelectedValue="{Binding ElementName=SettingsWindowRoot, Path=StrokeSmoothingMode, Mode=TwoWay}"/>
-                            </Grid>
-                        </materialDesign:Card>
-
-                        <!-- 书写设置 · 笔触粗细一致性 -->
-                        <materialDesign:Card Padding="20" Margin="0,0,0,20" UniformCornerRadius="12" materialDesign:ElevationAssist.Elevation="Dp2">
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto"/>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                </Grid.ColumnDefinitions>
-
-                                <Border Width="48" Height="48" CornerRadius="8" Background="{DynamicResource PrimaryHueLightBrush}" Grid.Column="0" VerticalAlignment="Center">
-                                    <materialDesign:PackIcon Kind="FormatLineWeight" Width="24" Height="24" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="{DynamicResource PrimaryHueMidBrush}"/>
-                                </Border>
-
-                                <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="16,0,0,0">
-                                    <TextBlock Text="{DynamicResource SettingsWindow_Writing_ThicknessConsistency_Title}" Style="{StaticResource MaterialDesignSubtitle1TextBlock}" FontWeight="SemiBold"/>
-                                    <TextBlock Text="{DynamicResource SettingsWindow_Writing_ThicknessConsistency_Desc}" Style="{StaticResource MaterialDesignBodyMediumTextBlock}" Opacity="0.6" TextWrapping="Wrap"/>
-                                </StackPanel>
-
-                                <CheckBox Grid.Column="2" VerticalAlignment="Center"
-                                          Content="{DynamicResource Common_Enable}"
-                                          IsChecked="{Binding ElementName=SettingsWindowRoot, Path=StrokeThicknessConsistencyEnabled, Mode=TwoWay}"
-                                          Checked="ToggleStrokeThicknessConsistency_Checked"
-                                          Unchecked="ToggleStrokeThicknessConsistency_Unchecked"/>
-                            </Grid>
-                        </materialDesign:Card>
-
-                        <!-- 书写设置 · 模拟压感（签字笔） -->
-                        <materialDesign:Card Padding="20" Margin="0,0,0,20" UniformCornerRadius="12" materialDesign:ElevationAssist.Elevation="Dp2">
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto"/>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                </Grid.ColumnDefinitions>
-
-                                <Border Width="48" Height="48" CornerRadius="8" Background="{DynamicResource PrimaryHueLightBrush}" Grid.Column="0" VerticalAlignment="Center">
-                                    <materialDesign:PackIcon Kind="Pen" Width="24" Height="24" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="{DynamicResource PrimaryHueMidBrush}"/>
-                                </Border>
-
-                                <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="16,0,0,0">
-                                    <TextBlock Text="{DynamicResource SettingsWindow_Writing_SimulatedPressure_Title}" Style="{StaticResource MaterialDesignSubtitle1TextBlock}" FontWeight="SemiBold"/>
-                                    <TextBlock Text="{DynamicResource SettingsWindow_Writing_SimulatedPressure_Desc}" Style="{StaticResource MaterialDesignBodyMediumTextBlock}" Opacity="0.6" TextWrapping="Wrap"/>
-                                </StackPanel>
-
-                                <CheckBox Grid.Column="2" VerticalAlignment="Center"
-                                          Content="{DynamicResource Common_Enable}"
-                                          IsChecked="{Binding ElementName=SettingsWindowRoot, Path=SimulatedPressureEnabled, Mode=TwoWay}"
-                                          Checked="ToggleSimulatedPressure_Checked"
-                                          Unchecked="ToggleSimulatedPressure_Unchecked"/>
-                            </Grid>
-                        </materialDesign:Card>
-                    </StackPanel>
-
-                    <!-- 外观设置 面板（索引 2） -->
+                    <!-- 外观设置 面板（索引 1） -->
                     <StackPanel x:Name="AppearanceSettingsPanel">
                         <StackPanel.Style>
                             <Style TargetType="StackPanel">
                                 <Setter Property="Visibility" Value="Collapsed"/>
                                 <Style.Triggers>
-                                    <DataTrigger Binding="{Binding ElementName=NavList, Path=SelectedIndex}" Value="2">
+                                    <DataTrigger Binding="{Binding ElementName=NavList, Path=SelectedIndex}" Value="1">
                                         <Setter Property="Visibility" Value="Visible"/>
                                     </DataTrigger>
                                 </Style.Triggers>
@@ -535,13 +435,13 @@
                         </materialDesign:Card>
                     </StackPanel>
 
-                    <!-- 关于 面板（索引 3） -->
+                    <!-- 关于 面板（索引 2） -->
                     <StackPanel x:Name="AboutPanel">
                         <StackPanel.Style>
                             <Style TargetType="StackPanel">
                                 <Setter Property="Visibility" Value="Collapsed"/>
                                 <Style.Triggers>
-                                    <DataTrigger Binding="{Binding ElementName=NavList, Path=SelectedIndex}" Value="3">
+                                    <DataTrigger Binding="{Binding ElementName=NavList, Path=SelectedIndex}" Value="2">
                                         <Setter Property="Visibility" Value="Visible"/>
                                     </DataTrigger>
                                 </Style.Triggers>

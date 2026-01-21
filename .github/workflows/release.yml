@@ -56,52 +56,49 @@ jobs:
           $assets = @()
 
           foreach ($v in $variants) {
-            foreach ($selfContained in @($true, $false)) {
-              $selfContainedArg = $selfContained.ToString().ToLowerInvariant()
-              $rid = $v.Rid
-              $arch = $v.Arch
-              $runtime = if ($selfContained) { 'self-contained' } else { 'framework-dependent' }
-              $suffix = if ($selfContained) { '' } else { '-fd' }
-
-              $fileName = "WindBoard-$version-$rid$suffix.zip"
-              $publishDir = Join-Path $PWD ("publish/{0}/{1}" -f $rid, ($selfContained ? 'sc' : 'fd'))
-
-              dotnet publish WindBoard.csproj `
-                -c Release `
-                -r $rid `
-                --self-contained $selfContainedArg `
-                -o $publishDir
-
-              $zipPath = Join-Path $dist $fileName
-              if (Test-Path $zipPath) { Remove-Item -Force $zipPath }
-              Compress-Archive -Path (Join-Path $publishDir '*') -DestinationPath $zipPath -Force
-
-              $sha256 = (Get-FileHash -Path $zipPath -Algorithm SHA256).Hash.ToLowerInvariant()
-              $size = (Get-Item $zipPath).Length
-              $downloadUrl = "https://github.com/$repo/releases/download/$tag/$fileName"
-
-              $assets += [pscustomobject]@{
-                arch = $arch
-                runtime = $runtime
-                fileName = $fileName
-                downloadUrl = $downloadUrl
-                size = $size
-                sha256 = $sha256
-              }
-            }
-
-            # Build installer from the self-contained publish output.
             $rid = $v.Rid
             $arch = $v.Arch
+
+            # --- 便携版（带运行库，自包含）---
+            $publishDirSc = Join-Path $PWD ("publish/{0}/sc" -f $rid)
+            dotnet publish WindBoard.csproj `
+              -c Release `
+              -r $rid `
+              --self-contained true `
+              -o $publishDirSc
+
+            $portableFileName = "WindBoard-$version-$rid.zip"
+            $portableZipPath = Join-Path $dist $portableFileName
+            if (Test-Path $portableZipPath) { Remove-Item -Force $portableZipPath }
+            Compress-Archive -Path (Join-Path $publishDirSc '*') -DestinationPath $portableZipPath -Force
+
+            $portableSha256 = (Get-FileHash -Path $portableZipPath -Algorithm SHA256).Hash.ToLowerInvariant()
+            $portableSize = (Get-Item $portableZipPath).Length
+            $portableDownloadUrl = "https://github.com/$repo/releases/download/$tag/$portableFileName"
+
+            $assets += [pscustomobject]@{
+              arch = $arch
+              runtime = 'self-contained'
+              fileName = $portableFileName
+              downloadUrl = $portableDownloadUrl
+              size = $portableSize
+              sha256 = $portableSha256
+            }
+
+            # --- 安装包（不带运行库，依赖运行时）---
+            $publishDirFd = Join-Path $PWD ("publish/{0}/fd" -f $rid)
+            dotnet publish WindBoard.csproj `
+              -c Release `
+              -r $rid `
+              --self-contained false `
+              -o $publishDirFd
+
+            # --- 生成安装包（带/不带运行库）---
             $publishDirSc = Join-Path $PWD ("publish/{0}/sc" -f $rid)
             $issPath = Join-Path $PWD 'installer/WindBoard.iss'
             $publishDirScForIss = Join-Path '..' ("publish\\{0}\\sc" -f $rid)
+            $publishDirFdForIss = Join-Path '..' ("publish\\{0}\\fd" -f $rid)
             $distForIss = Join-Path '..' 'dist'
-
-            $setupFileName = "WindBoardSetup-$version-$rid.exe"
-            $setupPath = Join-Path $dist $setupFileName
-
-            if (Test-Path $setupPath) { Remove-Item -Force $setupPath }
 
             $iscc = (Get-Command iscc -ErrorAction SilentlyContinue)?.Source
             if ([string]::IsNullOrWhiteSpace($iscc)) {
@@ -112,6 +109,11 @@ jobs:
               throw 'ISCC.exe not found in PATH or default install location.'
             }
 
+            # 安装包：带运行库（自包含）
+            $setupFileNameSc = "WindBoardSetup-$version-$rid.exe"
+            $setupPathSc = Join-Path $dist $setupFileNameSc
+            if (Test-Path $setupPathSc) { Remove-Item -Force $setupPathSc }
+
             & $iscc `
               "/DMyAppVersion=$version" `
               "/DMySourceDir=$publishDirScForIss" `
@@ -120,19 +122,48 @@ jobs:
               "/DMyRid=$rid" `
               $issPath
 
-            if (!(Test-Path $setupPath)) { throw "Installer not produced: $setupPath" }
+            if (!(Test-Path $setupPathSc)) { throw "Installer not produced: $setupPathSc" }
 
-            $setupSha256 = (Get-FileHash -Path $setupPath -Algorithm SHA256).Hash.ToLowerInvariant()
-            $setupSize = (Get-Item $setupPath).Length
-            $setupDownloadUrl = "https://github.com/$repo/releases/download/$tag/$setupFileName"
+            $setupSha256Sc = (Get-FileHash -Path $setupPathSc -Algorithm SHA256).Hash.ToLowerInvariant()
+            $setupSizeSc = (Get-Item $setupPathSc).Length
+            $setupDownloadUrlSc = "https://github.com/$repo/releases/download/$tag/$setupFileNameSc"
 
             $assets += [pscustomobject]@{
               arch = $arch
               runtime = 'installer'
-              fileName = $setupFileName
-              downloadUrl = $setupDownloadUrl
-              size = $setupSize
-              sha256 = $setupSha256
+              fileName = $setupFileNameSc
+              downloadUrl = $setupDownloadUrlSc
+              size = $setupSizeSc
+              sha256 = $setupSha256Sc
+            }
+
+            # 安装包：不带运行库（framework-dependent）
+            $setupFileNameFd = "WindBoardSetup-$version-$rid-fd.exe"
+            $setupPathFd = Join-Path $dist $setupFileNameFd
+            if (Test-Path $setupPathFd) { Remove-Item -Force $setupPathFd }
+
+            & $iscc `
+              "/DMyAppVersion=$version" `
+              "/DMySourceDir=$publishDirFdForIss" `
+              "/DMyOutputDir=$distForIss" `
+              "/DMyArch=$arch" `
+              "/DMyRid=$rid" `
+              '/DMyVariantSuffix="-fd"' `
+              $issPath
+
+            if (!(Test-Path $setupPathFd)) { throw "Installer not produced: $setupPathFd" }
+
+            $setupSha256Fd = (Get-FileHash -Path $setupPathFd -Algorithm SHA256).Hash.ToLowerInvariant()
+            $setupSizeFd = (Get-Item $setupPathFd).Length
+            $setupDownloadUrlFd = "https://github.com/$repo/releases/download/$tag/$setupFileNameFd"
+
+            $assets += [pscustomobject]@{
+              arch = $arch
+              runtime = 'installer'
+              fileName = $setupFileNameFd
+              downloadUrl = $setupDownloadUrlFd
+              size = $setupSizeFd
+              sha256 = $setupSha256Fd
             }
           }
 

@@ -3,13 +3,13 @@ using System.Collections.ObjectModel;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
-using System.Windows.Ink;
 using System.Windows.Media;
 using System.Windows.Shapes;
 using WindBoard.Core.Filters;
 using WindBoard.Core.Input;
 using WindBoard.Core.Input.RealTimeStylus;
 using WindBoard.Core.Modes;
+using WindBoard.Models.InkV2;
 using WindBoard.Services;
 using System.Windows.Threading;
 using InputEventArgs = WindBoard.Core.Input.InputEventArgs;
@@ -21,7 +21,7 @@ namespace WindBoard
     {
         private const double MinZoom = 0.25;
         private const double MaxZoom = 5.25;
-        private const double DefaultZoom = 1.2;
+        private const double DefaultZoom = 0.8;
 
         private double _baseThickness = 1.0;
         private readonly double _eraserCursorOffsetY = 12.0;
@@ -34,18 +34,14 @@ namespace WindBoard
         private RealTimeStylusManager? _realTimeStylusManager;
         private InputSourceSelector? _inputSourceSelector;
         private ZoomPanService _zoomPanService = null!;
-        private StrokeService _strokeService = null!;
         private AutoExpandService _autoExpandService = null!;
         private PageService _pageService = null!;
         private TouchGestureService _touchGestureService = null!;
         private IInteractionMode? _modeBeforePan;
         private IInteractionMode? _modeBeforeGesture;
         private bool _gestureInputSuppressed;
-        private bool _strokeSuppressionActive;
         private bool _viewportBitmapCacheEnabled;
         private DispatcherTimer? _viewportCacheDisableTimer;
-        private BitmapCache? _viewportBitmapCache;
-        private StrokeCollection? _undoObservedStrokes;
         private readonly TranslateTransform _panTransform = new TranslateTransform();
 
         private InkMode? _inkMode;
@@ -64,7 +60,6 @@ namespace WindBoard
             _eraserCursorRect = (Border)FindName("EraserCursorRect");
 
             _modeController = new ModeController();
-            _strokeService = new StrokeService(MyCanvas, _baseThickness);
 
             // 性能：避免使用 LayoutTransform（会触发布局）；改用 RenderTransform 实现“相机式”缩放/平移。
             // XAML 中仍声明了 ZoomTransform（原用于 LayoutTransform），这里在运行时将其移到 RenderTransform。
@@ -77,25 +72,41 @@ namespace WindBoard
                 CanvasHost.RenderTransform = group;
             }
 
-            _zoomPanService = new ZoomPanService(ZoomTransform, _panTransform, MinZoom, MaxZoom, zoom => _strokeService.UpdatePenThickness(zoom));
+            _zoomPanService = new ZoomPanService(ZoomTransform, _panTransform, MinZoom, MaxZoom, onZoomChanged: null);
             _zoomPanService.SetZoomDirect(DefaultZoom);
             ApplyZoomPanGestureSettingsSnapshot();
-            _strokeService.SetStrokeThicknessConsistencyEnabled(
-                SettingsService.Instance.GetStrokeThicknessConsistencyEnabled(),
-                _zoomPanService.Zoom);
             _pageService = new PageService(MyCanvas, _zoomPanService, NotifyPageUiChanged);
             _autoExpandService = new AutoExpandService(MyCanvas, _zoomPanService, () => _pageService.CurrentPage, () => _inkMode?.HasActiveStroke ?? false);
 
-            _inkMode = new InkMode(MyCanvas, () => _zoomPanService.Zoom, OnInkStrokeEndedOrCanceled);
-            ApplyInkModeSettingsSnapshot();
-            _selectMode = new SelectMode(MyCanvas);
+            _inkMode = new InkMode(
+                MyCanvas,
+                () => _zoomPanService.Zoom,
+                () => _pageService.CurrentPage,
+                CreateCurrentInkToolSnapshot,
+                OnInkStrokeEndedOrCanceled,
+                invalidateSurface: InvalidateInkSurface);
+
+            try
+            {
+                _inkThicknessSemantics = SettingsService.Instance.GetInkThicknessSemantics();
+                _inkMode.SetSimulatedPressureEnabled(SettingsService.Instance.GetInkV2SimulatedPressureEnabled());
+            }
+            catch
+            {
+            }
+            _selectMode = new SelectMode(
+                () => _pageService.CurrentPage,
+                () => _zoomPanService.Zoom,
+                SetSelectedInkStrokes,
+                SetInkMarqueeRect);
             _noMode = new NoMode(MyCanvas);
             _eraserMode = new EraserMode(
                 MyCanvas,
                 _eraserOverlay ?? new Canvas(),
                 _eraserCursorRect ?? new Border(),
                 () => _zoomPanService.Zoom,
-                _eraserCursorOffsetY);
+                _eraserCursorOffsetY,
+                eraseRectAction: EraseInkV2ByRect);
 
             _modeController.SetCurrentMode(_inkMode);
 
@@ -123,7 +134,7 @@ namespace WindBoard
 
             if (MyCanvas == null) return;
 
-            // 即使 InkCanvas 将事件标记为 Handled，也要接收
+            // 即使事件被标记为 Handled，也要接收
             MyCanvas.AddHandler(MouseDownEvent, new MouseButtonEventHandler(MyCanvas_MouseDown), true);
             MyCanvas.AddHandler(MouseMoveEvent, new MouseEventHandler(MyCanvas_MouseMove), true);
             MyCanvas.AddHandler(MouseUpEvent, new MouseButtonEventHandler(MyCanvas_MouseUp), true);
@@ -132,6 +143,11 @@ namespace WindBoard
             MyCanvas.AddHandler(StylusMoveEvent, new StylusEventHandler(MyCanvas_StylusMove), true);
             MyCanvas.AddHandler(StylusUpEvent, new StylusEventHandler(MyCanvas_StylusUp), true);
             MyCanvas.AddHandler(StylusInAirMoveEvent, new StylusEventHandler(MyCanvas_StylusInAirMove), true);
+
+            MyCanvas.LostMouseCapture -= MyCanvas_LostMouseCapture;
+            MyCanvas.LostMouseCapture += MyCanvas_LostMouseCapture;
+            MyCanvas.LostTouchCapture -= MyCanvas_LostTouchCapture;
+            MyCanvas.LostTouchCapture += MyCanvas_LostTouchCapture;
 
 #pragma warning disable CS8622 // 参数类型中引用类型的为 Null 性与目标委托不匹配(可能是由于为 Null 性特性)。
             MyCanvas.TouchDown += MyCanvas_TouchDown;
@@ -146,17 +162,14 @@ namespace WindBoard
             MyCanvas.TouchLeave += MyCanvas_TouchUp;
 #pragma warning restore CS8622 // 参数类型中引用类型的为 Null 性与目标委托不匹配(可能是由于为 Null 性特性)。
 
-            MyCanvas.StrokeCollected += _autoExpandService.OnStrokeCollected;
-            MyCanvas.StrokeCollected += SuppressGestureStroke;
-
             _pageService.InitializePagesIfNeeded();
             _pageService.Pages.CollectionChanged += (s, e) => NotifyPageUiChanged();
             NotifyPageUiChanged();
 
-            AttachUndoToCurrentStrokes();
             MyCanvas.CommandBindings.Add(new CommandBinding(ApplicationCommands.Undo, Undo_Executed, Undo_CanExecute));
             MyCanvas.CommandBindings.Add(new CommandBinding(ApplicationCommands.Redo, Redo_Executed, Redo_CanExecute));
 
+            InitializeInkSurfaceRenderer();
             InitializeAttachmentUi();
         }
 
@@ -167,38 +180,32 @@ namespace WindBoard
             if (cur != null)
             {
                 cur.ContentVersion++;
+                DebugMarkPostStrokeRenderCheck(cur);
+                System.Diagnostics.Debug.WriteLine($"[Ink] StrokeEndedOrCanceled: strokes={cur.Ink.Strokes.Count} contentVersion={cur.ContentVersion}");
             }
+
+            InvalidateInkSurface();
         }
 
         private void SetViewportBitmapCache(bool enabled)
         {
-            // 注意：不要对 CanvasHost 做 BitmapCache，它的尺寸等于整张画布（默认 8000x8000），
-            // 会直接分配上百 MB 的缓存位图，拖动时内存暴涨。
             if (Viewport == null) return;
 
-            if (enabled)
-            {
-                if (_viewportBitmapCacheEnabled) return;
-                _viewportBitmapCache ??= new BitmapCache(1.0);
-                Viewport.CacheMode = _viewportBitmapCache;
+            // 注意：不要对 CanvasHost 做 BitmapCache，它的尺寸等于整张画布（默认 8000x8000），会直接分配上百 MB 的缓存位图。
+            // 同时，Viewport BitmapCache 会导致 D3DImage（InkSurface）在部分机器上出现“画面冻结/残影”，因此这里仅保留缩放质量的降级。
+            Viewport.CacheMode = null;
 
-                // 降低交互时缩放质量以减轻 GPU/CPU 压力（结束后恢复）
-                if (CanvasHost != null)
-                {
-                    RenderOptions.SetBitmapScalingMode(CanvasHost, BitmapScalingMode.LowQuality);
-                }
-                _viewportBitmapCacheEnabled = true;
-            }
-            else
+            if (enabled == _viewportBitmapCacheEnabled)
             {
-                if (!_viewportBitmapCacheEnabled) return;
-                Viewport.CacheMode = null;
-                if (CanvasHost != null)
-                {
-                    RenderOptions.SetBitmapScalingMode(CanvasHost, BitmapScalingMode.HighQuality);
-                }
-                _viewportBitmapCacheEnabled = false;
+                return;
             }
+
+            // 降低交互时缩放质量以减轻 GPU/CPU 压力（结束后恢复）
+            if (CanvasHost != null)
+            {
+                RenderOptions.SetBitmapScalingMode(CanvasHost, enabled ? BitmapScalingMode.LowQuality : BitmapScalingMode.HighQuality);
+            }
+            _viewportBitmapCacheEnabled = enabled;
         }
 
         private void ConfigureStylusForTouchInk()
@@ -250,7 +257,7 @@ namespace WindBoard
             var mode = _modeController.ActiveMode ?? _modeController.CurrentMode;
             if (ReferenceEquals(mode, _inkMode) || ReferenceEquals(mode, _eraserMode))
             {
-                cur.UndoHistory.Begin();
+                cur.InkUndoHistory.Begin();
             }
         }
 
@@ -262,7 +269,7 @@ namespace WindBoard
             var mode = _modeController.ActiveMode ?? _modeController.CurrentMode;
             if (ReferenceEquals(mode, _inkMode) || ReferenceEquals(mode, _eraserMode))
             {
-                cur.UndoHistory.End();
+                cur.InkUndoHistory.End();
             }
         }
 
@@ -295,35 +302,14 @@ namespace WindBoard
             _modeBeforeGesture = _modeController.CurrentMode;
             _modeController.ClearActiveMode();
             _inputManager.InputSuppressed = true;
-            MyCanvas.EditingMode = InkCanvasEditingMode.None;
             SetViewportBitmapCache(true);
-            _strokeSuppressionActive = true;
-            _pageService.CurrentPage?.UndoHistory.Cancel();
+            _pageService.CurrentPage?.InkUndoHistory.Cancel();
             _inkMode?.CancelAllStrokes();
-        }
-
-        private void AttachUndoToCurrentStrokes()
-        {
-            if (_undoObservedStrokes != null)
-            {
-                _undoObservedStrokes.StrokesChanged -= UndoObservedStrokes_StrokesChanged;
-            }
-
-            _undoObservedStrokes = MyCanvas.Strokes;
-            if (_undoObservedStrokes != null)
-            {
-                _undoObservedStrokes.StrokesChanged += UndoObservedStrokes_StrokesChanged;
-            }
-        }
-
-        private void UndoObservedStrokes_StrokesChanged(object? sender, StrokeCollectionChangedEventArgs e)
-        {
-            _pageService.CurrentPage?.UndoHistory.Record(e);
         }
 
         private void Undo_CanExecute(object sender, CanExecuteRoutedEventArgs e)
         {
-            e.CanExecute = _pageService.CurrentPage?.UndoHistory.CanUndo == true;
+            e.CanExecute = _pageService.CurrentPage?.InkUndoHistory.CanUndo == true;
             e.Handled = true;
         }
 
@@ -331,13 +317,16 @@ namespace WindBoard
         {
             var cur = _pageService.CurrentPage;
             if (cur == null) return;
-            cur.UndoHistory.Undo(MyCanvas.Strokes);
+            cur.InkUndoHistory.Undo(cur.Ink);
+            cur.InkSpatialIndex.Rebuild(cur.Ink);
+            cur.ContentVersion++;
+            InvalidateInkSurface();
             e.Handled = true;
         }
 
         private void Redo_CanExecute(object sender, CanExecuteRoutedEventArgs e)
         {
-            e.CanExecute = _pageService.CurrentPage?.UndoHistory.CanRedo == true;
+            e.CanExecute = _pageService.CurrentPage?.InkUndoHistory.CanRedo == true;
             e.Handled = true;
         }
 
@@ -345,7 +334,10 @@ namespace WindBoard
         {
             var cur = _pageService.CurrentPage;
             if (cur == null) return;
-            cur.UndoHistory.Redo(MyCanvas.Strokes);
+            cur.InkUndoHistory.Redo(cur.Ink);
+            cur.InkSpatialIndex.Rebuild(cur.Ink);
+            cur.ContentVersion++;
+            InvalidateInkSurface();
             e.Handled = true;
         }
 
@@ -354,7 +346,6 @@ namespace WindBoard
             if (!_gestureInputSuppressed) return;
             _gestureInputSuppressed = false;
             _inputManager.InputSuppressed = false;
-            _strokeSuppressionActive = false;
 
             var targetMode = _modeBeforeGesture ?? _inkMode;
             if (targetMode != null)
@@ -370,18 +361,6 @@ namespace WindBoard
             }
             _modeBeforeGesture = null;
             ScheduleViewportCacheDisable();
-        }
-
-        private void SuppressGestureStroke(object? sender, InkCanvasStrokeCollectedEventArgs e)
-        {
-            if (!_strokeSuppressionActive) return;
-            try
-            {
-                MyCanvas.Strokes.Remove(e.Stroke);
-            }
-            catch
-            {
-            }
         }
     }
 }

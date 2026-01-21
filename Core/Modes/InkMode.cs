@@ -2,69 +2,72 @@ using System;
 using System.Collections.Generic;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Ink;
-using System.Windows.Threading;
+using WindBoard;
 using WindBoard.Core.Ink;
 using WindBoard.Core.Input;
-using WindBoard.Models;
-using StylusPoint = System.Windows.Input.StylusPoint;
-using StylusPointCollection = System.Windows.Input.StylusPointCollection;
+using WindBoard.Models.InkV2;
+using WindBoard.Services.InkV2;
 
 namespace WindBoard.Core.Modes
 {
-    public partial class InkMode : InteractionModeBase
+    public sealed class InkMode : InteractionModeBase
     {
         private const double DipPerMm = 96.0 / 25.4;
-        private readonly InkCanvas _canvas;
-        private readonly Func<double> _zoomProvider;
-        private readonly Action? _onStrokeEndedOrCanceled;
-        private readonly Dictionary<int, ActiveStroke> _activeStrokes = new();
-        private DispatcherTimer? _flushTimer;
-        private const int MaxStylusPointsPerSegment = 1800;
-        private bool _simulatedPressureEnabled;
-        private StrokeSmoothingMode _strokeSmoothingMode = StrokeSmoothingMode.RawInput;
+        private const float RealPressureBaseline = 0.5f;
+        private const float RealPressureMeaningfulEpsilon = 0.06f;
+        private const double MinDistanceSquaredDip = 0.25;
 
-        public InkMode(InkCanvas canvas, Func<double> zoomProvider, Action? onStrokeEndedOrCanceled = null)
+        private readonly FrameworkElement _inputSurface;
+        private readonly Func<double> _zoomProvider;
+        private readonly Func<BoardPage?> _currentPageProvider;
+        private readonly Func<InkTool> _toolProvider;
+        private readonly Action? _onStrokeEndedOrCanceled;
+        private readonly Action? _invalidateSurface;
+
+        private readonly Dictionary<int, ActiveStroke> _activeStrokes = new();
+        private bool _simulatedPressureEnabled;
+
+        public InkMode(
+            FrameworkElement inputSurface,
+            Func<double> zoomProvider,
+            Func<BoardPage?> currentPageProvider,
+            Func<InkTool> toolProvider,
+            Action? onStrokeEndedOrCanceled = null,
+            Action? invalidateSurface = null)
         {
-            _canvas = canvas;
+            _inputSurface = inputSurface;
             _zoomProvider = zoomProvider;
+            _currentPageProvider = currentPageProvider;
+            _toolProvider = toolProvider;
             _onStrokeEndedOrCanceled = onStrokeEndedOrCanceled;
+            _invalidateSurface = invalidateSurface;
         }
 
         public override string Name => "Ink";
 
-        private const float RealPressureBaseline = 0.5f;
-        private const float RealPressureMeaningfulEpsilon = 0.06f;
+        public bool HasActiveStroke => _activeStrokes.Count > 0;
+
+        public void CollectActiveFragments(List<InkFragment> destination)
+        {
+            if (destination == null) throw new ArgumentNullException(nameof(destination));
+
+            foreach (var kv in _activeStrokes)
+            {
+                destination.Add(kv.Value.Fragment);
+            }
+        }
 
         public void SetSimulatedPressureEnabled(bool enabled) => _simulatedPressureEnabled = enabled;
 
-        public void SetStrokeSmoothingMode(StrokeSmoothingMode mode) => _strokeSmoothingMode = mode;
-
-        private bool ShouldEnableDetailSmoother(InputEventArgs args)
-        {
-            if (_strokeSmoothingMode == StrokeSmoothingMode.RawInput)
-            {
-                return false;
-            }
-
-            return args.DeviceType == InputDeviceType.Touch
-                   || (args.DeviceType == InputDeviceType.Stylus && !args.HasPressureHardware);
-        }
-
         public override void SwitchOn()
         {
-            _canvas.EditingMode = InkCanvasEditingMode.None;
-            _canvas.UseCustomCursor = false;
-            _canvas.ClearValue(Control.CursorProperty);
+            _inputSurface.ClearValue(FrameworkElement.CursorProperty);
         }
 
         public override void SwitchOff()
         {
             CancelAllStrokes();
-            StopFlushTimerIfIdle();
         }
-
-        public bool HasActiveStroke => _activeStrokes.Count > 0;
 
         public void CancelAllStrokes()
         {
@@ -74,20 +77,15 @@ namespace WindBoard.Core.Modes
             {
                 try
                 {
-                    kv.Value.PendingPoints.Clear();
-                    kv.Value.PendingStartIndex = 0;
-                    foreach (var s in kv.Value.Segments)
-                    {
-                        _canvas.Strokes.Remove(s);
-                    }
+                    RemoveUncommittedStroke(kv.Value);
                 }
                 catch
                 {
                 }
             }
+
             _activeStrokes.Clear();
             _onStrokeEndedOrCanceled?.Invoke();
-            StopFlushTimerIfIdle();
         }
 
         public override void OnPointerDown(InputEventArgs args)
@@ -98,10 +96,15 @@ namespace WindBoard.Core.Modes
             int id = GetPointerKey(args);
             if (_activeStrokes.ContainsKey(id)) return;
 
+            BoardPage? page = _currentPageProvider();
+            if (page == null) return;
+
             double zoom = _zoomProvider();
             if (zoom <= 0) zoom = 1;
 
-            bool hasRealPressureCandidate = args.DeviceType == InputDeviceType.Stylus && args.Pressure.HasValue;
+            InkTool baseTool = _toolProvider();
+
+            bool hasRealPressureCandidate = args.DeviceType == InputDeviceType.Stylus && args.HasPressureHardware && args.Pressure.HasValue;
             float initialRealPressure = hasRealPressureCandidate ? NormalizePressure(args.Pressure!.Value) : RealPressureBaseline;
             bool usesRealPressure = hasRealPressureCandidate && IsRealPressureLikely(initialRealPressure);
 
@@ -114,126 +117,114 @@ namespace WindBoard.Core.Modes
                 simulatedPressure = new SimulatedPressure(simulatedPressureParameters);
             }
 
-            var stylusPoints = new StylusPointCollection();
+            bool usesPressure = usesRealPressure || usesSimulatedPressure;
+            float pressureNominal = 1.0f;
+            if (usesSimulatedPressure && TryGetSimulatedPressureNominal(simulatedPressureParameters, out float nominalPressure))
+            {
+                pressureNominal = nominalPressure;
+            }
+
+            InkTool tool = baseTool with { UsesPressure = usesPressure, PressureNominal = pressureNominal };
+
+            var fragment = new InkFragment();
+            var stroke = new InkStroke(tool);
+            stroke.Fragments.Add(fragment);
+
+            int strokeIndex = page.Ink.Strokes.Count;
+            page.Ink.Strokes.Add(stroke);
+
+            var active = new ActiveStroke(
+                page,
+                stroke,
+                fragment,
+                strokeIndex,
+                args.CanvasPoint,
+                args.TimestampTicks,
+                usesRealPressure,
+                initialRealPressure,
+                hasRealPressureCandidate,
+                simulatedPressure);
+
+            _activeStrokes.Add(id, active);
+
             float initialPressure = usesRealPressure
                 ? initialRealPressure
-                : usesSimulatedPressure ? (simulatedPressure?.Current ?? RealPressureBaseline) : RealPressureBaseline;
-            stylusPoints.Add(new StylusPoint(args.CanvasPoint.X, args.CanvasPoint.Y, initialPressure));
+                : usesSimulatedPressure && simulatedPressure != null ? simulatedPressure.Current : RealPressureBaseline;
 
-            var da = _canvas.DefaultDrawingAttributes.Clone();
-            da.FitToCurve = false;
-            da.IgnorePressure = !(usesRealPressure || usesSimulatedPressure);
-
-            if (TryGetSimulatedPressureNominal(simulatedPressureParameters, out float nominalPressure))
-            {
-                da.Width /= nominalPressure;
-                da.Height /= nominalPressure;
-            }
-
-            double logicalThicknessDip = da.Width * zoom;
-
-            DetailPreservingSmoother? detailSmoother = null;
-            if (ShouldEnableDetailSmoother(args))
-            {
-                detailSmoother = new DetailPreservingSmoother(
-                    DetailPreservingSmootherParameters.NoPressureDefaults,
-                    args.CanvasPoint,
-                    zoom,
-                    logicalThicknessDip);
-            }
-
-            var stroke = new Stroke(stylusPoints)
-            {
-                DrawingAttributes = da
-            };
-            StrokeThicknessMetadata.SetLogicalThicknessDip(stroke, logicalThicknessDip);
-
-            _canvas.Strokes.Add(stroke);
-
-            var active = new ActiveStroke(stroke, da, logicalThicknessDip, detailSmoother, args.CanvasPoint, args.TimestampTicks, usesRealPressure, initialRealPressure, hasRealPressureCandidate, simulatedPressure);
-            active.Segments.Add(stroke);
-            _activeStrokes[id] = active;
-            EnsureFlushTimer();
+            AppendPoint(active, args.CanvasPoint, initialPressure, args.TimestampTicks);
+            _invalidateSurface?.Invoke();
         }
 
         public override void OnPointerMove(InputEventArgs args)
         {
-            if (args.IsInAir) return;
-            if (args.DeviceType == InputDeviceType.Mouse && !args.LeftButton) return;
-
             int id = GetPointerKey(args);
-            if (!_activeStrokes.TryGetValue(id, out var active)) return;
+            if (!_activeStrokes.TryGetValue(id, out var active))
+            {
+                return;
+            }
 
-            AppendPoints(active, args, isFinal: false);
-            EnsureFlushTimer();
+            if (args.IsInAir)
+            {
+                return;
+            }
+
+            AppendPointWithPressure(active, args, isFinal: false);
+            _invalidateSurface?.Invoke();
         }
 
         public override void OnPointerUp(InputEventArgs args)
         {
-            int id = GetPointerKey(args);
-            if (!_activeStrokes.TryGetValue(id, out var active)) return;
+            // Mouse 模式下仅以“左键抬起”作为一次笔迹的结束信号。
+            // 右键用于平移视图，若右键抬起时左键仍按下，则不应中断当前笔迹。
+            if (args.DeviceType == InputDeviceType.Mouse && args.LeftButton)
+            {
+                return;
+            }
 
-            AppendPoints(active, args, isFinal: true);
-            FlushPendingPoints(active);
+            int id = GetPointerKey(args);
+            if (!_activeStrokes.TryGetValue(id, out var active))
+            {
+                return;
+            }
+
             _activeStrokes.Remove(id);
+
+            AppendPointWithPressure(active, args, isFinal: true);
+
+            CommitOrDiscard(active);
             _onStrokeEndedOrCanceled?.Invoke();
-            StopFlushTimerIfIdle();
         }
 
-        private void AppendPoints(ActiveStroke active, InputEventArgs args, bool isFinal)
+        private void AppendPointWithPressure(ActiveStroke active, InputEventArgs args, bool isFinal)
         {
-            Point prevInputCanvasDip = active.LastInputCanvasDip;
-            long prevInputTicks = active.LastInputTicks;
-
-            if (!isFinal && _strokeSmoothingMode != StrokeSmoothingMode.RawInput)
+            double dxDip = args.CanvasPoint.X - active.LastInputCanvasDip.X;
+            double dyDip = args.CanvasPoint.Y - active.LastInputCanvasDip.Y;
+            double dist2 = (dxDip * dxDip) + (dyDip * dyDip);
+            if (dist2 < MinDistanceSquaredDip)
             {
-                // 输入频率过高时做轻量降采样：阈值过大会导致“跟手性”下降（卡/滞后）。
-                const long MinIntervalTicks = 1 * TimeSpan.TicksPerMillisecond;
-                const double MinDistanceDip = 0.25;
-
-                long dtTicks = args.TimestampTicks - prevInputTicks;
-                if (dtTicks >= 0 && dtTicks < MinIntervalTicks)
+                if (isFinal)
                 {
-                    var dv = args.CanvasPoint - prevInputCanvasDip;
-                    if (dv.LengthSquared < (MinDistanceDip * MinDistanceDip))
-                    {
-                        return;
-                    }
+                    active.LastInputCanvasDip = args.CanvasPoint;
+                    active.LastInputTicks = args.TimestampTicks;
                 }
+                return;
             }
 
-            active.LastInputCanvasDip = args.CanvasPoint;
-            active.LastInputTicks = args.TimestampTicks;
+            long dtTicks = args.TimestampTicks - active.LastInputTicks;
+            if (dtTicks <= 0) dtTicks = TimeSpan.TicksPerMillisecond;
+            double dtSec = dtTicks / (double)TimeSpan.TicksPerSecond;
 
-            double zoom = _zoomProvider();
-            if (zoom <= 0) zoom = 1;
+            double distDip = Math.Sqrt(dist2);
+            double speedDipPerSec = distDip / Math.Max(0.0001, dtSec);
+            double speedMmPerSec = speedDipPerSec / DipPerMm;
 
-            double dtSec = 0.016;
-            double speedMmPerSec = 0;
-            if (active.SimulatedPressure != null)
+            if (active.HasRealPressureCandidate && !active.UsesRealPressure && args.Pressure.HasValue)
             {
-                dtSec = (args.TimestampTicks - prevInputTicks) / (double)TimeSpan.TicksPerSecond;
-                dtSec = Math.Clamp(dtSec, 0.001, 0.05);
-
-                // CanvasPoint 是画布坐标（RenderTransform 下会被逆变换回“未缩放”的 DIP）；
-                // 乘 zoom 可还原到屏幕空间长度，用于近似物理速度。
-                double distMm = (args.CanvasPoint - prevInputCanvasDip).Length * zoom / DipPerMm;
-                speedMmPerSec = distMm <= 0 ? 0 : distMm / dtSec;
-            }
-
-            if (!active.UsesRealPressure && active.HasRealPressureCandidate && args.Pressure.HasValue && ShouldSwitchToRealPressure(active, NormalizePressure(args.Pressure.Value)))
-            {
-                active.UsesRealPressure = true;
-                active.LastRealPressure = NormalizePressure(args.Pressure.Value);
-                active.DrawingAttributes.IgnorePressure = false;
-            }
-
-            float simulatedStartPressure = 0;
-            float simulatedEndPressure = 0;
-            if (!active.UsesRealPressure && active.SimulatedPressure != null)
-            {
-                simulatedStartPressure = active.SimulatedPressure.Update(speedMmPerSec, dtSec);
-                simulatedEndPressure = isFinal ? active.SimulatedPressure.Finish() : simulatedStartPressure;
+                float normalized = NormalizePressure(args.Pressure.Value);
+                if (ShouldSwitchToRealPressure(active, normalized))
+                {
+                    active.UsesRealPressure = true;
+                }
             }
 
             float pressure;
@@ -243,31 +234,61 @@ namespace WindBoard.Core.Modes
                 {
                     active.LastRealPressure = NormalizePressure(args.Pressure.Value);
                 }
+
                 pressure = active.LastRealPressure;
             }
             else if (active.SimulatedPressure != null)
             {
-                pressure = isFinal ? simulatedEndPressure : simulatedStartPressure;
+                float start = active.SimulatedPressure.Update(speedMmPerSec, dtSec);
+                pressure = isFinal ? active.SimulatedPressure.Finish() : start;
             }
             else
             {
                 pressure = RealPressureBaseline;
             }
 
-            if (active.DetailSmoother == null)
+            AppendPoint(active, args.CanvasPoint, pressure, args.TimestampTicks);
+        }
+
+        private static void AppendPoint(ActiveStroke active, Point canvasDip, float pressure, long timestampTicks)
+        {
+            active.LastInputCanvasDip = canvasDip;
+            active.LastInputTicks = timestampTicks;
+
+            active.Fragment.Points.Add(new InkPoint(canvasDip.X, canvasDip.Y, pressure, timestampTicks));
+        }
+
+        private void CommitOrDiscard(ActiveStroke active)
+        {
+            if (active.Fragment.Points.Count < 2)
             {
-                active.PendingPoints.Add(new StylusPoint(args.CanvasPoint.X, args.CanvasPoint.Y, pressure));
+                System.Diagnostics.Debug.WriteLine($"[InkMode] Discard stroke: points={active.Fragment.Points.Count}");
+                RemoveUncommittedStroke(active);
                 return;
             }
 
-            var outputs = active.SmoothingScratch;
-            outputs.Clear();
-            active.DetailSmoother.Push(new DetailPreservingSample(args.CanvasPoint, pressure), isFinal, outputs);
-            for (int i = 0; i < outputs.Count; i++)
+            try
             {
-                var s = outputs[i];
-                active.PendingPoints.Add(new StylusPoint(s.CanvasDip.X, s.CanvasDip.Y, s.Pressure));
+                var pts = active.Fragment.Points;
+                var first = pts[0];
+                var last = pts[^1];
+                System.Diagnostics.Debug.WriteLine(
+                    $"[InkMode] Commit stroke: points={pts.Count} index={active.StrokeIndex} " +
+                    $"first=({first.XDip:F1},{first.YDip:F1}) last=({last.XDip:F1},{last.YDip:F1})");
             }
+            catch
+            {
+            }
+
+            BoardPage page = active.Page;
+            page.InkUndoHistory.Record(new InsertStrokeCommand(active.StrokeIndex, active.Stroke));
+            page.InkSpatialIndex.AddStroke(active.Stroke);
+        }
+
+        private static void RemoveUncommittedStroke(ActiveStroke active)
+        {
+            BoardPage page = active.Page;
+            _ = page.Ink.Strokes.Remove(active.Stroke);
         }
 
         private static int GetPointerKey(InputEventArgs args)
@@ -311,6 +332,52 @@ namespace WindBoard.Core.Modes
 
             nominalPressure = nominal;
             return true;
+        }
+
+        private sealed class ActiveStroke
+        {
+            public ActiveStroke(
+                BoardPage page,
+                InkStroke stroke,
+                InkFragment fragment,
+                int strokeIndex,
+                Point lastInputCanvasDip,
+                long lastInputTicks,
+                bool usesRealPressure,
+                float initialRealPressure,
+                bool hasRealPressureCandidate,
+                SimulatedPressure? simulatedPressure)
+            {
+                Page = page;
+                Stroke = stroke;
+                Fragment = fragment;
+                StrokeIndex = strokeIndex;
+                LastInputCanvasDip = lastInputCanvasDip;
+                LastInputTicks = lastInputTicks;
+                UsesRealPressure = usesRealPressure;
+                LastRealPressure = initialRealPressure;
+                HasRealPressureCandidate = hasRealPressureCandidate;
+                RealPressureMin = initialRealPressure;
+                RealPressureMax = initialRealPressure;
+                RealPressureSamples = hasRealPressureCandidate ? 1 : 0;
+                SimulatedPressure = simulatedPressure;
+            }
+
+            public BoardPage Page { get; }
+            public InkStroke Stroke { get; }
+            public InkFragment Fragment { get; }
+            public int StrokeIndex { get; }
+
+            public Point LastInputCanvasDip { get; set; }
+            public long LastInputTicks { get; set; }
+
+            public bool UsesRealPressure { get; set; }
+            public float LastRealPressure { get; set; }
+            public bool HasRealPressureCandidate { get; }
+            public float RealPressureMin { get; set; }
+            public float RealPressureMax { get; set; }
+            public int RealPressureSamples { get; set; }
+            public SimulatedPressure? SimulatedPressure { get; }
         }
     }
 }

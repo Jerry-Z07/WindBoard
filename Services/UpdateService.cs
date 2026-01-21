@@ -191,57 +191,93 @@ namespace WindBoard.Services
                 candidates = updateInfo.Assets.Where(a => a != null && !string.IsNullOrWhiteSpace(a.DownloadUrl));
             }
 
-            string? runtimeWanted = null;
-            if (environment != null)
+            var candidateList = candidates.ToList();
+            var installerCandidates = candidateList.Where(IsInstallerAsset).ToList();
+            var nonInstallerCandidates = candidateList.Where(a => !IsInstallerAsset(a)).ToList();
+
+            // 规则：安装版优先安装包；便携版优先 ZIP（避免误选安装包）
+            if (environment != null && environment.InstallMode == InstallMode.InstallerPerMachine)
             {
-                if (environment.InstallMode == InstallMode.InstallerPerMachine)
+                UpdateAsset? installer = SelectInstallerForRuntime(installerCandidates, environment.DeploymentRuntime);
+                if (installer != null)
                 {
-                    runtimeWanted = "installer";
+                    return installer;
                 }
-                else if (environment.InstallMode == InstallMode.Portable)
-                {
-                    runtimeWanted = environment.DeploymentRuntime switch
-                    {
-                        DeploymentRuntime.FrameworkDependent => "framework-dependent",
-                        DeploymentRuntime.SelfContained => "self-contained",
-                        _ => "self-contained"
-                    };
-                }
+
+                // 安装模式但没有安装包时，回退到 ZIP
+                return SelectPortableAsset(nonInstallerCandidates, preferFrameworkDependent: false);
             }
 
-            if (!string.IsNullOrWhiteSpace(runtimeWanted))
+            // 便携版 / 未知：优先 ZIP
+            bool preferFd = environment != null
+                && environment.InstallMode == InstallMode.Portable
+                && environment.DeploymentRuntime == DeploymentRuntime.FrameworkDependent;
+
+            UpdateAsset? portable = SelectPortableAsset(nonInstallerCandidates, preferFrameworkDependent: preferFd);
+            if (portable != null)
             {
-                UpdateAsset? match = candidates.FirstOrDefault(a =>
-                    string.Equals(a.Runtime?.Trim(), runtimeWanted, StringComparison.OrdinalIgnoreCase));
-
-                if (match != null)
-                {
-                    return match;
-                }
+                return portable;
             }
 
-            UpdateAsset? installer = candidates.FirstOrDefault(IsInstallerAsset);
-            if (installer != null)
-            {
-                return installer;
-            }
-
-            UpdateAsset? selfContained = candidates.FirstOrDefault(a =>
-                string.Equals(a.Runtime?.Trim(), "self-contained", StringComparison.OrdinalIgnoreCase));
-            if (selfContained != null)
-            {
-                return selfContained;
-            }
-
-            UpdateAsset? frameworkDependent = candidates.FirstOrDefault(a =>
-                string.Equals(a.Runtime?.Trim(), "framework-dependent", StringComparison.OrdinalIgnoreCase));
-            return frameworkDependent ?? candidates.FirstOrDefault();
+            // 兜底：如果没有 ZIP，再回退到安装包
+            return installerCandidates.FirstOrDefault();
         }
 
         public static bool IsInstallerAsset(UpdateAsset asset)
         {
             if (asset == null) throw new ArgumentNullException(nameof(asset));
             return string.Equals(asset.Runtime?.Trim(), "installer", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static UpdateAsset? SelectInstallerForRuntime(IEnumerable<UpdateAsset> installerCandidates, DeploymentRuntime runtime)
+        {
+            if (installerCandidates == null) throw new ArgumentNullException(nameof(installerCandidates));
+
+            var list = installerCandidates.Where(a => a != null).ToList();
+            if (list.Count == 0)
+            {
+                return null;
+            }
+
+            // 约定：带 “-fd” 后缀表示不带运行库的安装包
+            bool wantFd = runtime == DeploymentRuntime.FrameworkDependent;
+            UpdateAsset? match = list.FirstOrDefault(a => IsFrameworkDependentPackageName(a.FileName) == wantFd);
+            return match ?? list.FirstOrDefault();
+        }
+
+        private static UpdateAsset? SelectPortableAsset(IEnumerable<UpdateAsset> candidates, bool preferFrameworkDependent)
+        {
+            if (candidates == null) throw new ArgumentNullException(nameof(candidates));
+
+            var list = candidates.Where(a => a != null).ToList();
+            if (list.Count == 0)
+            {
+                return null;
+            }
+
+            string preferredRuntime = preferFrameworkDependent ? "framework-dependent" : "self-contained";
+            string fallbackRuntime = preferFrameworkDependent ? "self-contained" : "framework-dependent";
+
+            UpdateAsset? preferred = list.FirstOrDefault(a =>
+                string.Equals(a.Runtime?.Trim(), preferredRuntime, StringComparison.OrdinalIgnoreCase));
+            if (preferred != null)
+            {
+                return preferred;
+            }
+
+            return list.FirstOrDefault(a =>
+                string.Equals(a.Runtime?.Trim(), fallbackRuntime, StringComparison.OrdinalIgnoreCase))
+                ?? list.FirstOrDefault();
+        }
+
+        private static bool IsFrameworkDependentPackageName(string? fileName)
+        {
+            if (string.IsNullOrWhiteSpace(fileName))
+            {
+                return false;
+            }
+
+            return fileName.Contains("-fd", StringComparison.OrdinalIgnoreCase);
         }
 
         public async Task<string> DownloadUpdateAsync(UpdateAsset asset, IProgress<DownloadProgress>? progress = null, CancellationToken ct = default)

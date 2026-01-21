@@ -2,7 +2,6 @@ using System;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
-using System.Windows.Ink;
 using WindBoard.Core.Input;
 using InputEventArgs = WindBoard.Core.Input.InputEventArgs;
 
@@ -14,6 +13,8 @@ namespace WindBoard
         {
             SetViewportBitmapCache(true);
             _zoomPanService.ZoomByWheel(e.GetPosition(Viewport), e.Delta);
+            UpdateInkSurfaceViewportTransform();
+            InvalidateInkSurface();
             ScheduleViewportCacheDisable();
             ScheduleSelectionDockUpdate();
             e.Handled = true;
@@ -22,8 +23,27 @@ namespace WindBoard
         private static bool IsRealMouse(MouseEventArgs e) => e.StylusDevice == null;
         private static bool IsRealMouse(MouseButtonEventArgs e) => e.StylusDevice == null;
 
+        private bool ShouldIgnoreMouseBecauseStylusInContact()
+        {
+            if (_inputSourceSelector?.IsRealTimeStylusActive != true)
+            {
+                return false;
+            }
+
+            try
+            {
+                var stylus = Stylus.CurrentStylusDevice;
+                return stylus != null && !stylus.InAir;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
         private void MyCanvas_MouseDown(object sender, MouseButtonEventArgs e)
         {
+            if (ShouldIgnoreMouseBecauseStylusInContact()) return;
             if (!IsRealMouse(e)) return;
 
             if (TryHandleAttachmentSelectModeMouseDown(e))
@@ -36,7 +56,6 @@ namespace WindBoard
                 _modeBeforePan = _modeController.ActiveMode ?? _modeController.CurrentMode;
                 _zoomPanService.BeginMousePan(e.GetPosition(Viewport));
                 SetViewportBitmapCache(true);
-                MyCanvas.EditingMode = InkCanvasEditingMode.None;
                 MyCanvas.CaptureMouse();
                 e.Handled = true;
                 return;
@@ -51,11 +70,14 @@ namespace WindBoard
         {
             if (_zoomPanService.UpdateMousePan(e.GetPosition(Viewport)))
             {
+                UpdateInkSurfaceViewportTransform();
+                InvalidateInkSurface();
                 ScheduleSelectionDockUpdate();
                 e.Handled = true;
                 return;
             }
 
+            if (ShouldIgnoreMouseBecauseStylusInContact()) return;
             if (!IsRealMouse(e)) return;
 
             bool anyPressed = e.LeftButton == MouseButtonState.Pressed
@@ -74,11 +96,14 @@ namespace WindBoard
                 MyCanvas.ReleaseMouseCapture();
                 _modeBeforePan?.SwitchOn();
                 _modeBeforePan = null;
+                UpdateInkSurfaceViewportTransform();
+                InvalidateInkSurface();
                 ScheduleViewportCacheDisable();
                 ScheduleSelectionDockUpdate();
                 e.Handled = true;
             }
 
+            if (ShouldIgnoreMouseBecauseStylusInContact()) return;
             if (!IsRealMouse(e)) return;
 
             var args = BuildMouseArgs(e, isInAir: false);
@@ -109,6 +134,8 @@ namespace WindBoard
             var viewportPoint = e.GetTouchPoint(Viewport).Position;
             if (_zoomPanService.TouchMove(e.TouchDevice.Id, viewportPoint))
             {
+                UpdateInkSurfaceViewportTransform();
+                InvalidateInkSurface();
                 BeginGestureSuppression();
                 e.Handled = true;
                 return;
@@ -140,6 +167,8 @@ namespace WindBoard
             if (_gestureInputSuppressed)
             {
                 EndGestureSuppression();
+                UpdateInkSurfaceViewportTransform();
+                InvalidateInkSurface();
                 e.Handled = true;
                 MyCanvas.ReleaseTouchCapture(e.TouchDevice);
                 return;

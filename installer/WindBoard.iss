@@ -26,6 +26,10 @@
   #error MyRid is required
 #endif
 
+#ifndef MyVariantSuffix
+  #define MyVariantSuffix ""
+#endif
+
 #if MyArch == "x64"
   #define MyArchitecturesAllowed "x64"
   #define MyArchitecturesInstallIn64BitMode "x64"
@@ -51,13 +55,18 @@ DisableProgramGroupPage=yes
 PrivilegesRequired=admin
 
 OutputDir={#MyOutputDir}
-OutputBaseFilename=WindBoardSetup-{#MyAppVersion}-{#MyRid}
+OutputBaseFilename=WindBoardSetup-{#MyAppVersion}-{#MyRid}{#MyVariantSuffix}
 Compression=lzma2
 SolidCompression=yes
 
 WizardStyle=modern
 SetupIconFile=..\Resources\icons\icon.ico
 UninstallDisplayIcon={app}\{#MyAppExeName}
+
+; 在中文系统上自动使用中文（避免默认英文）
+ShowLanguageDialog=auto
+LanguageDetectionMethod=uilanguage
+UsePreviousLanguage=no
 
 ArchitecturesAllowed={#MyArchitecturesAllowed}
 #if Len(MyArchitecturesInstallIn64BitMode) > 0
@@ -74,12 +83,16 @@ Name: "chs"; MessagesFile: "compiler:Languages\\ChineseSimplified.isl"
   #endif
 #endif
 
+[CustomMessages]
+english.AppShortcutName=WindBoard
+chs.AppShortcutName=轻风白板
+
 [Files]
 Source: "{#MySourceDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
-Name: "{autoprograms}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
-Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon
+Name: "{autoprograms}\{cm:AppShortcutName}"; Filename: "{app}\{#MyAppExeName}"
+Name: "{autodesktop}\{cm:AppShortcutName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon
 
 [Tasks]
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked

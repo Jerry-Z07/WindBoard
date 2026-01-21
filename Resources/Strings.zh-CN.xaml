@@ -40,6 +40,7 @@
     <sys:String x:Key="MainWindow_Tool_Redo">恢复</sys:String>
     <sys:String x:Key="MainWindow_VideoPresenter">视频展台</sys:String>
     <sys:String x:Key="MainWindow_PenSettings_Title">画笔设置</sys:String>
+    <sys:String x:Key="MainWindow_PenSettings_ThicknessWorldInvariant">粗细随缩放变化</sys:String>
     <sys:String x:Key="MainWindow_SlideToClear_Hint">向右滑动清空</sys:String>
     <sys:String x:Key="MainWindow_SlideToClear_ReleaseHint">松开清空</sys:String>
 
@@ -114,11 +115,6 @@
     <sys:String x:Key="SettingsWindow_General_TouchGestures_Desc">缩放/平移仅在双指触摸时触发</sys:String>
     <sys:String x:Key="SettingsWindow_General_TouchGestures_Toggle">仅双指</sys:String>
 
-    <sys:String x:Key="SettingsWindow_Writing_Smoothing_Title">笔迹平滑</sys:String>
-    <sys:String x:Key="SettingsWindow_Writing_Smoothing_Desc">现有方案（DPS）：在原始输入上叠加平滑算法；原始输入方案：不使用平滑算法（默认）</sys:String>
-    <sys:String x:Key="SettingsWindow_Writing_Smoothing_RawInput">原始输入方案</sys:String>
-    <sys:String x:Key="SettingsWindow_Writing_ThicknessConsistency_Title">笔触粗细一致性</sys:String>
-    <sys:String x:Key="SettingsWindow_Writing_ThicknessConsistency_Desc">使不同缩放级别下书写的笔迹在同一缩放下粗细保持一致</sys:String>
     <sys:String x:Key="SettingsWindow_Writing_SimulatedPressure_Title">模拟压感（签字笔）</sys:String>
     <sys:String x:Key="SettingsWindow_Writing_SimulatedPressure_Desc">无压感设备也能有轻微笔锋：低速略粗，高速略细，收笔尾尖</sys:String>
 

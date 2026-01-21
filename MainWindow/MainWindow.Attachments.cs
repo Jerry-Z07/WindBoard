@@ -9,11 +9,11 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
-using System.Windows.Ink;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using MaterialDesignThemes.Wpf;
+using WindBoard.Models.InkV2;
 using WindBoard.Views.Dialogs;
 
 namespace WindBoard
@@ -23,10 +23,20 @@ namespace WindBoard
         private const double AttachmentMinSize = 60;
 
         private BoardAttachment? _selectedAttachment;
+        private readonly List<InkStroke> _selectedInkStrokes = new();
 
         private Border? _attachmentSelectionFrame;
         private Thumb? _attachmentMoveThumb;
         private readonly Dictionary<string, Thumb> _attachmentResizeThumbs = new();
+
+        private Border? _inkSelectionFrame;
+        private Thumb? _inkMoveThumb;
+        private readonly Dictionary<string, Thumb> _inkResizeThumbs = new();
+        private Border? _inkMarqueeFrame;
+
+        private Dictionary<InkFragment, InkPoint[]>? _inkTransformBeforePoints;
+        private Rect _inkTransformInitialBounds;
+        private Rect _inkTransformCurrentBounds;
 
          private Border? _selectionDock;
          private Button? _btnSelectionTop;
@@ -41,19 +51,9 @@ namespace WindBoard
              _btnSelectionTop = (Button)FindName("BtnSelectionTop");
              _btnSelectionCopy = (Button)FindName("BtnSelectionCopy");
 
-             if (MyCanvas != null)
-             {
-                MyCanvas.SelectionChanged -= MyCanvas_SelectionChanged;
-                MyCanvas.SelectionChanged += MyCanvas_SelectionChanged;
-
-                MyCanvas.SelectionMoved -= MyCanvas_SelectionMoved;
-                MyCanvas.SelectionMoved += MyCanvas_SelectionMoved;
-
-                MyCanvas.SelectionResized -= MyCanvas_SelectionResized;
-                MyCanvas.SelectionResized += MyCanvas_SelectionResized;
-            }
-
             BuildAttachmentSelectionOverlay();
+            BuildInkSelectionOverlay();
+            BuildInkMarqueeOverlay();
 
             if (Viewport == null) return;
             Viewport.SizeChanged -= Viewport_SizeChanged;

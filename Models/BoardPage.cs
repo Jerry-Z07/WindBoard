@@ -1,9 +1,9 @@
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Collections.ObjectModel;
-using System.Windows.Ink;
 using System.Windows.Media;
-using WindBoard.Services;
+using WindBoard.Models.InkV2;
+using WindBoard.Services.InkV2;
 
 namespace WindBoard
 {
@@ -17,7 +17,8 @@ namespace WindBoard
 
         internal int ContentVersion { get; set; }
         internal int PreviewVersion { get; set; }
-        internal StrokeUndoHistory UndoHistory { get; } = new StrokeUndoHistory();
+        internal InkUndoHistory InkUndoHistory { get; } = new InkUndoHistory();
+        internal InkSpatialIndex InkSpatialIndex { get; } = new InkSpatialIndex();
 
         public int Number
         {
@@ -37,8 +38,8 @@ namespace WindBoard
             set { _preview = value; OnPropertyChanged(); }
         }
 
-        // 页面内容
-        public StrokeCollection Strokes { get; set; } = new StrokeCollection();
+        // v2 墨迹内容（由新引擎驱动）
+        public InkDocument Ink { get; set; } = new InkDocument();
 
         // 页面附件（导入的图片/视频/文本/链接等）
         public ObservableCollection<BoardAttachment> Attachments { get; } = new ObservableCollection<BoardAttachment>();
