@@ -23,6 +23,22 @@ namespace WindBoard.Services
 
         private SettingsService()
         {
+            // 根据安装方式决定配置落盘位置：安装版走 AppData，便携版走程序目录
+            try
+            {
+                var env = InstallModeDetector.Detect();
+                if (env.InstallMode == InstallMode.Portable && !string.IsNullOrWhiteSpace(env.InstallRoot))
+                {
+                    _settingsDir = env.InstallRoot;
+                    _settingsPath = Path.Combine(_settingsDir, "settings.json");
+                    return;
+                }
+            }
+            catch
+            {
+                // 探测失败则回退到 AppData（更稳妥，避免写入 Program Files 失败）
+            }
+
             var appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
             _settingsDir = Path.Combine(appData, "WindBoard");
             _settingsPath = Path.Combine(_settingsDir, "settings.json");

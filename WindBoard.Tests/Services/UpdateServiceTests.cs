@@ -46,7 +46,8 @@ public sealed class UpdateServiceTests
             Assets =
             {
                 new UpdateAsset { Arch = "x64", Runtime = "self-contained", FileName = "sc.zip", DownloadUrl = "https://example/sc.zip" },
-                new UpdateAsset { Arch = "x64", Runtime = "installer", FileName = "setup.exe", DownloadUrl = "https://example/setup.exe" }
+                new UpdateAsset { Arch = "x64", Runtime = "installer", FileName = "setup.exe", DownloadUrl = "https://example/setup.exe" },
+                new UpdateAsset { Arch = "x64", Runtime = "installer", FileName = "setup-fd.exe", DownloadUrl = "https://example/setup-fd.exe" }
             }
         };
 
@@ -56,6 +57,51 @@ public sealed class UpdateServiceTests
 
         Assert.NotNull(selected);
         Assert.Equal("installer", selected!.Runtime);
+        Assert.Equal("setup.exe", selected.FileName);
+    }
+
+    [Fact]
+    public void SelectAssetForInstallation_InstallerMode_FrameworkDependent_PicksFdInstaller()
+    {
+        var info = new UpdateInfo
+        {
+            Assets =
+            {
+                new UpdateAsset { Arch = "x64", Runtime = "self-contained", FileName = "sc.zip", DownloadUrl = "https://example/sc.zip" },
+                new UpdateAsset { Arch = "x64", Runtime = "installer", FileName = "setup.exe", DownloadUrl = "https://example/setup.exe" },
+                new UpdateAsset { Arch = "x64", Runtime = "installer", FileName = "setup-fd.exe", DownloadUrl = "https://example/setup-fd.exe" }
+            }
+        };
+
+        var env = new InstallEnvironment(InstallMode.InstallerPerMachine, DeploymentRuntime.FrameworkDependent, executablePath: "C:\\Program Files\\WindBoard\\WindBoard.exe", installRoot: "C:\\Program Files\\WindBoard");
+
+        UpdateAsset? selected = UpdateService.SelectAssetForInstallation(info, env, arch: "x64");
+
+        Assert.NotNull(selected);
+        Assert.Equal("installer", selected!.Runtime);
+        Assert.Equal("setup-fd.exe", selected.FileName);
+    }
+
+    [Fact]
+    public void SelectAssetForInstallation_PortableFrameworkDependent_WhenMissingFdZip_PicksZipNotInstaller()
+    {
+        var info = new UpdateInfo
+        {
+            Assets =
+            {
+                new UpdateAsset { Arch = "x64", Runtime = "self-contained", FileName = "sc.zip", DownloadUrl = "https://example/sc.zip" },
+                new UpdateAsset { Arch = "x64", Runtime = "installer", FileName = "setup.exe", DownloadUrl = "https://example/setup.exe" },
+                new UpdateAsset { Arch = "x64", Runtime = "installer", FileName = "setup-fd.exe", DownloadUrl = "https://example/setup-fd.exe" }
+            }
+        };
+
+        var env = new InstallEnvironment(InstallMode.Portable, DeploymentRuntime.FrameworkDependent, executablePath: "C:\\Portable\\WindBoard.exe", installRoot: "C:\\Portable");
+
+        UpdateAsset? selected = UpdateService.SelectAssetForInstallation(info, env, arch: "x64");
+
+        Assert.NotNull(selected);
+        Assert.Equal("self-contained", selected!.Runtime);
+        Assert.Equal("sc.zip", selected.FileName);
     }
 
     [Fact]
