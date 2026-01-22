@@ -28,7 +28,6 @@ namespace WindBoard
         private string _camouflageSourceDisplayName = string.Empty;
 
         // --- 书写设置 ---
-        private StrokeSmoothingMode _strokeSmoothingMode = StrokeSmoothingMode.RawInput;
         private bool _strokeThicknessConsistencyEnabled;
         private bool _simulatedPressureEnabled;
 
