@@ -4,11 +4,10 @@ using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
+using System.Windows.Ink;
 using System.Windows.Input;
 using System.Windows.Media;
-using WindBoard.Models.InkV2;
 using WindBoard.Services;
-using WindBoard.Services.InkV2;
 
 namespace WindBoard
 {
@@ -52,487 +51,6 @@ namespace WindBoard
             AddResizeThumb(grid, "BR", HorizontalAlignment.Right, VerticalAlignment.Bottom, Cursors.SizeNWSE);
 
             AttachmentSelectionOverlay.Children.Add(_attachmentSelectionFrame);
-        }
-
-        private void BuildInkSelectionOverlay()
-        {
-            if (AttachmentSelectionOverlay == null) return;
-
-            _inkSelectionFrame = new Border
-            {
-                BorderBrush = new SolidColorBrush(Color.FromRgb(0xFF, 0xC1, 0x3D)),
-                BorderThickness = new Thickness(2),
-                Background = Brushes.Transparent,
-                CornerRadius = new CornerRadius(8),
-                Visibility = Visibility.Collapsed
-            };
-
-            var grid = new Grid();
-            _inkSelectionFrame.Child = grid;
-
-            _inkMoveThumb = new Thumb
-            {
-                Cursor = Cursors.SizeAll,
-                Background = Brushes.Transparent
-            };
-            _inkMoveThumb.DragStarted += InkTransform_DragStarted;
-            _inkMoveThumb.DragDelta += InkMoveThumb_DragDelta;
-            _inkMoveThumb.DragCompleted += InkTransform_DragCompleted;
-            grid.Children.Add(_inkMoveThumb);
-
-            AddInkResizeThumb(grid, "TL", HorizontalAlignment.Left, VerticalAlignment.Top, Cursors.SizeNWSE);
-            AddInkResizeThumb(grid, "T", HorizontalAlignment.Center, VerticalAlignment.Top, Cursors.SizeNS);
-            AddInkResizeThumb(grid, "TR", HorizontalAlignment.Right, VerticalAlignment.Top, Cursors.SizeNESW);
-            AddInkResizeThumb(grid, "L", HorizontalAlignment.Left, VerticalAlignment.Center, Cursors.SizeWE);
-            AddInkResizeThumb(grid, "R", HorizontalAlignment.Right, VerticalAlignment.Center, Cursors.SizeWE);
-            AddInkResizeThumb(grid, "BL", HorizontalAlignment.Left, VerticalAlignment.Bottom, Cursors.SizeNESW);
-            AddInkResizeThumb(grid, "B", HorizontalAlignment.Center, VerticalAlignment.Bottom, Cursors.SizeNS);
-            AddInkResizeThumb(grid, "BR", HorizontalAlignment.Right, VerticalAlignment.Bottom, Cursors.SizeNWSE);
-
-            AttachmentSelectionOverlay.Children.Add(_inkSelectionFrame);
-        }
-
-        private void BuildInkMarqueeOverlay()
-        {
-            if (AttachmentSelectionOverlay == null) return;
-
-            _inkMarqueeFrame = new Border
-            {
-                BorderBrush = new SolidColorBrush(Color.FromRgb(0xFF, 0xC1, 0x3D)),
-                BorderThickness = new Thickness(1),
-                Background = new SolidColorBrush(Color.FromArgb(32, 0xFF, 0xC1, 0x3D)),
-                Visibility = Visibility.Collapsed,
-                IsHitTestVisible = false
-            };
-
-            AttachmentSelectionOverlay.Children.Add(_inkMarqueeFrame);
-        }
-
-        private void AddInkResizeThumb(Grid host, string key, HorizontalAlignment h, VerticalAlignment v, Cursor cursor)
-        {
-            var thumb = new Thumb
-            {
-                Width = 14,
-                Height = 14,
-                HorizontalAlignment = h,
-                VerticalAlignment = v,
-                Cursor = cursor,
-                Background = Brushes.White,
-                BorderBrush = new SolidColorBrush(Color.FromRgb(0xFF, 0xC1, 0x3D)),
-                BorderThickness = new Thickness(2),
-                Margin = new Thickness(-7)
-            };
-            thumb.DragStarted += InkTransform_DragStarted;
-            thumb.DragDelta += InkResizeThumb_DragDelta;
-            thumb.DragCompleted += InkTransform_DragCompleted;
-            thumb.Tag = key;
-
-            _inkResizeThumbs[key] = thumb;
-            host.Children.Add(thumb);
-        }
-
-        private void SetSelectedInkStrokes(IReadOnlyList<InkStroke> strokes)
-        {
-            if (strokes == null || strokes.Count == 0)
-            {
-                ClearSelectedInkStrokes();
-                return;
-            }
-
-            SelectAttachment(null);
-
-            _selectedInkStrokes.Clear();
-            for (int i = 0; i < strokes.Count; i++)
-            {
-                InkStroke stroke = strokes[i];
-                if (stroke != null)
-                {
-                    _selectedInkStrokes.Add(stroke);
-                }
-            }
-
-            UpdateInkSelectionOverlay();
-            ScheduleSelectionDockUpdate();
-            InvalidateInkSurface();
-        }
-
-        private void ClearSelectedInkStrokes()
-        {
-            _selectedInkStrokes.Clear();
-            _inkTransformBeforePoints = null;
-            _inkTransformInitialBounds = Rect.Empty;
-            _inkTransformCurrentBounds = Rect.Empty;
-
-            if (_inkMarqueeFrame != null)
-            {
-                _inkMarqueeFrame.Visibility = Visibility.Collapsed;
-            }
-
-            UpdateInkSelectionOverlay();
-            ScheduleSelectionDockUpdate();
-        }
-
-        private void SetInkMarqueeRect(Rect? rect)
-        {
-            if (_inkMarqueeFrame == null) return;
-
-            if (rect == null || rect.Value.IsEmpty)
-            {
-                _inkMarqueeFrame.Visibility = Visibility.Collapsed;
-                return;
-            }
-
-            Rect b = rect.Value;
-            _inkMarqueeFrame.Visibility = Visibility.Visible;
-            Canvas.SetLeft(_inkMarqueeFrame, b.X);
-            Canvas.SetTop(_inkMarqueeFrame, b.Y);
-            _inkMarqueeFrame.Width = Math.Max(0, b.Width);
-            _inkMarqueeFrame.Height = Math.Max(0, b.Height);
-        }
-
-        private Rect GetSelectedInkBounds()
-        {
-            if (_inkTransformBeforePoints != null && !_inkTransformCurrentBounds.IsEmpty)
-            {
-                return _inkTransformCurrentBounds;
-            }
-
-            return TryComputeInkBounds(_selectedInkStrokes, out Rect bounds) ? bounds : Rect.Empty;
-        }
-
-        private void UpdateInkSelectionOverlay()
-        {
-            if (_inkSelectionFrame == null || AttachmentSelectionOverlay == null) return;
-
-            if (!IsSelectModeActive() || _selectedInkStrokes.Count == 0)
-            {
-                _inkSelectionFrame.Visibility = Visibility.Collapsed;
-                return;
-            }
-
-            Rect bounds = GetSelectedInkBounds();
-            if (bounds.IsEmpty)
-            {
-                _inkSelectionFrame.Visibility = Visibility.Collapsed;
-                return;
-            }
-
-            _inkSelectionFrame.Visibility = Visibility.Visible;
-            Canvas.SetLeft(_inkSelectionFrame, bounds.X);
-            Canvas.SetTop(_inkSelectionFrame, bounds.Y);
-            _inkSelectionFrame.Width = Math.Max(0, bounds.Width);
-            _inkSelectionFrame.Height = Math.Max(0, bounds.Height);
-        }
-
-        private void InkTransform_DragStarted(object sender, DragStartedEventArgs e)
-        {
-            if (!IsSelectModeActive()) return;
-            if (_selectedInkStrokes.Count == 0) return;
-            if (_inkTransformBeforePoints != null) return;
-
-            BoardPage? page = _pageService.CurrentPage;
-            if (page == null) return;
-
-            if (!TryComputeInkBounds(_selectedInkStrokes, out Rect bounds) || bounds.IsEmpty)
-            {
-                return;
-            }
-
-            _inkTransformBeforePoints = CaptureInkPoints(_selectedInkStrokes);
-            _inkTransformInitialBounds = bounds;
-            _inkTransformCurrentBounds = bounds;
-
-            page.InkUndoHistory.Begin();
-        }
-
-        private void InkTransform_DragCompleted(object sender, DragCompletedEventArgs e)
-        {
-            if (!IsSelectModeActive()) return;
-
-            BoardPage? page = _pageService.CurrentPage;
-            if (page == null)
-            {
-                _inkTransformBeforePoints = null;
-                return;
-            }
-
-            var before = _inkTransformBeforePoints;
-            if (before == null)
-            {
-                return;
-            }
-
-            foreach (var kv in before)
-            {
-                InkFragment fragment = kv.Key;
-                InkPoint[] beforePoints = kv.Value;
-                InkPoint[] afterPoints = fragment.Points.ToArray();
-                if (AreSamePoints(beforePoints, afterPoints))
-                {
-                    continue;
-                }
-
-                page.InkUndoHistory.Record(new ReplaceFragmentPointsCommand(fragment, beforePoints, afterPoints));
-            }
-
-            page.InkUndoHistory.End();
-            page.InkSpatialIndex.Rebuild(page.Ink);
-            page.ContentVersion++;
-
-            _inkTransformBeforePoints = null;
-            _inkTransformInitialBounds = Rect.Empty;
-            _inkTransformCurrentBounds = Rect.Empty;
-
-            UpdateInkSelectionOverlay();
-            ScheduleSelectionDockUpdate();
-            InvalidateInkSurface();
-        }
-
-        private void InkMoveThumb_DragDelta(object sender, DragDeltaEventArgs e)
-        {
-            if (!IsSelectModeActive()) return;
-            if (_selectedInkStrokes.Count == 0) return;
-
-            var page = _pageService.CurrentPage;
-            if (page == null) return;
-
-            double dx = e.HorizontalChange;
-            double dy = e.VerticalChange;
-            if (dx == 0 && dy == 0) return;
-
-            TranslateInkStrokes(_selectedInkStrokes, dx, dy);
-
-            if (_inkTransformBeforePoints != null && !_inkTransformCurrentBounds.IsEmpty)
-            {
-                _inkTransformCurrentBounds = new Rect(
-                    _inkTransformCurrentBounds.X + dx,
-                    _inkTransformCurrentBounds.Y + dy,
-                    _inkTransformCurrentBounds.Width,
-                    _inkTransformCurrentBounds.Height);
-            }
-
-            UpdateInkSelectionOverlay();
-            ScheduleSelectionDockUpdate();
-            InvalidateInkSurface();
-        }
-
-        private void InkResizeThumb_DragDelta(object sender, DragDeltaEventArgs e)
-        {
-            if (!IsSelectModeActive()) return;
-            if (_selectedInkStrokes.Count == 0) return;
-            if (_inkTransformBeforePoints == null) return;
-            if (sender is not Thumb t || t.Tag is not string key) return;
-
-            Rect b = _inkTransformCurrentBounds;
-            double x = b.X;
-            double y = b.Y;
-            double w = b.Width;
-            double h = b.Height;
-
-            double dx = e.HorizontalChange;
-            double dy = e.VerticalChange;
-
-            switch (key)
-            {
-                case "TL":
-                    x += dx; y += dy; w -= dx; h -= dy;
-                    break;
-                case "T":
-                    y += dy; h -= dy;
-                    break;
-                case "TR":
-                    y += dy; w += dx; h -= dy;
-                    break;
-                case "L":
-                    x += dx; w -= dx;
-                    break;
-                case "R":
-                    w += dx;
-                    break;
-                case "BL":
-                    x += dx; w -= dx; h += dy;
-                    break;
-                case "B":
-                    h += dy;
-                    break;
-                case "BR":
-                    w += dx; h += dy;
-                    break;
-            }
-
-            const double minSize = 10;
-            if (w < minSize)
-            {
-                double diff = minSize - w;
-                w = minSize;
-                if (key is "TL" or "L" or "BL") x -= diff;
-            }
-            if (h < minSize)
-            {
-                double diff = minSize - h;
-                h = minSize;
-                if (key is "TL" or "T" or "TR") y -= diff;
-            }
-
-            var next = new Rect(x, y, w, h);
-            _inkTransformCurrentBounds = next;
-
-            ApplyInkScaleFromTransformSnapshot(next);
-            UpdateInkSelectionOverlay();
-            ScheduleSelectionDockUpdate();
-            InvalidateInkSurface();
-        }
-
-        private void ApplyInkScaleFromTransformSnapshot(Rect targetBounds)
-        {
-            var before = _inkTransformBeforePoints;
-            if (before == null) return;
-
-            Rect initial = _inkTransformInitialBounds;
-            if (initial.IsEmpty) return;
-
-            double denomX = Math.Abs(initial.Width) <= 1e-9 ? 1.0 : initial.Width;
-            double denomY = Math.Abs(initial.Height) <= 1e-9 ? 1.0 : initial.Height;
-
-            for (int si = 0; si < _selectedInkStrokes.Count; si++)
-            {
-                InkStroke stroke = _selectedInkStrokes[si];
-                for (int fi = 0; fi < stroke.Fragments.Count; fi++)
-                {
-                    InkFragment fragment = stroke.Fragments[fi];
-                    if (!before.TryGetValue(fragment, out InkPoint[]? originalPoints))
-                    {
-                        continue;
-                    }
-
-                    fragment.Points.Clear();
-                    for (int pi = 0; pi < originalPoints.Length; pi++)
-                    {
-                        InkPoint p = originalPoints[pi];
-                        double tx = (p.XDip - initial.X) / denomX;
-                        double ty = (p.YDip - initial.Y) / denomY;
-
-                        fragment.Points.Add(
-                            new InkPoint(
-                                targetBounds.X + tx * targetBounds.Width,
-                                targetBounds.Y + ty * targetBounds.Height,
-                                p.Pressure,
-                                p.TimestampTicks));
-                    }
-                    fragment.PointsVersion++;
-                }
-            }
-        }
-
-        private static Dictionary<InkFragment, InkPoint[]> CaptureInkPoints(IReadOnlyList<InkStroke> strokes)
-        {
-            var map = new Dictionary<InkFragment, InkPoint[]>(strokes.Count * 2);
-            for (int si = 0; si < strokes.Count; si++)
-            {
-                InkStroke stroke = strokes[si];
-                for (int fi = 0; fi < stroke.Fragments.Count; fi++)
-                {
-                    InkFragment fragment = stroke.Fragments[fi];
-                    map[fragment] = fragment.Points.ToArray();
-                }
-            }
-            return map;
-        }
-
-        private static void TranslateInkStrokes(IReadOnlyList<InkStroke> strokes, double dx, double dy)
-        {
-            for (int si = 0; si < strokes.Count; si++)
-            {
-                InkStroke stroke = strokes[si];
-                for (int fi = 0; fi < stroke.Fragments.Count; fi++)
-                {
-                    InkFragment fragment = stroke.Fragments[fi];
-                    List<InkPoint> points = fragment.Points;
-                    for (int pi = 0; pi < points.Count; pi++)
-                    {
-                        InkPoint p = points[pi];
-                        points[pi] = new InkPoint(p.XDip + dx, p.YDip + dy, p.Pressure, p.TimestampTicks);
-                    }
-                    fragment.PointsVersion++;
-                }
-            }
-        }
-
-        private static bool TryComputeInkBounds(IReadOnlyList<InkStroke> strokes, out Rect bounds)
-        {
-            bounds = Rect.Empty;
-            if (strokes.Count == 0) return false;
-
-            bool any = false;
-            double minX = 0;
-            double minY = 0;
-            double maxX = 0;
-            double maxY = 0;
-
-            for (int si = 0; si < strokes.Count; si++)
-            {
-                InkStroke stroke = strokes[si];
-                for (int fi = 0; fi < stroke.Fragments.Count; fi++)
-                {
-                    InkFragment fragment = stroke.Fragments[fi];
-                    List<InkPoint> points = fragment.Points;
-                    for (int pi = 0; pi < points.Count; pi++)
-                    {
-                        InkPoint p = points[pi];
-                        if (!any)
-                        {
-                            any = true;
-                            minX = maxX = p.XDip;
-                            minY = maxY = p.YDip;
-                            continue;
-                        }
-
-                        minX = Math.Min(minX, p.XDip);
-                        minY = Math.Min(minY, p.YDip);
-                        maxX = Math.Max(maxX, p.XDip);
-                        maxY = Math.Max(maxY, p.YDip);
-                    }
-                }
-            }
-
-            if (!any)
-            {
-                return false;
-            }
-
-            bounds = new Rect(minX, minY, maxX - minX, maxY - minY);
-            return true;
-        }
-
-        private static bool AreSamePoints(InkPoint[] a, InkPoint[] b)
-        {
-            if (a.Length != b.Length) return false;
-            for (int i = 0; i < a.Length; i++)
-            {
-                if (!a[i].Equals(b[i]))
-                {
-                    return false;
-                }
-            }
-            return true;
-        }
-
-        private static InkStroke CloneInkStrokeWithOffset(InkStroke stroke, double dx, double dy)
-        {
-            var clone = new InkStroke(stroke.Tool);
-            for (int fi = 0; fi < stroke.Fragments.Count; fi++)
-            {
-                InkFragment source = stroke.Fragments[fi];
-                var fragment = new InkFragment();
-                for (int pi = 0; pi < source.Points.Count; pi++)
-                {
-                    InkPoint p = source.Points[pi];
-                    fragment.Points.Add(new InkPoint(p.XDip + dx, p.YDip + dy, p.Pressure, p.TimestampTicks));
-                }
-                clone.Fragments.Add(fragment);
-            }
-
-            return clone;
         }
 
         private void AddResizeThumb(Grid host, string key, HorizontalAlignment h, VerticalAlignment v, Cursor cursor)
@@ -670,11 +188,29 @@ namespace WindBoard
                 _selectedAttachment.IsSelected = true;
 
                 // 清空笔迹选择，避免同时出现两套选择语义
-                ClearSelectedInkStrokes();
+                ClearInkCanvasSelectionPreserveEditingMode();
             }
 
             UpdateAttachmentSelectionOverlay();
             ScheduleSelectionDockUpdate();
+        }
+
+        private void ClearInkCanvasSelectionPreserveEditingMode()
+        {
+            if (MyCanvas == null) return;
+
+            var editingMode = MyCanvas.EditingMode;
+            try
+            {
+                MyCanvas.Select(new StrokeCollection(), Array.Empty<UIElement>());
+            }
+            catch
+            {
+            }
+            finally
+            {
+                try { MyCanvas.EditingMode = editingMode; } catch { }
+            }
         }
 
         private bool IsSelectModeActive()
@@ -692,7 +228,7 @@ namespace WindBoard
             var hit = HitTestAttachment(canvasPoint);
             if (hit == null)
             {
-                // 未命中附件：清除附件选择，交给 SelectMode 处理墨迹选择
+                // 未命中附件：交给 InkCanvas 做笔迹选择，同时清除当前附件选择框
                 SelectAttachment(null);
                 return false;
             }
@@ -727,6 +263,19 @@ namespace WindBoard
                 });
         }
 
+        private void MyCanvas_SelectionChanged(object sender, EventArgs e)
+        {
+            var strokes = MyCanvas.GetSelectedStrokes();
+            if (strokes != null && strokes.Count > 0)
+            {
+                SelectAttachment(null);
+            }
+            ScheduleSelectionDockUpdate();
+        }
+
+        private void MyCanvas_SelectionMoved(object sender, EventArgs e) => ScheduleSelectionDockUpdate();
+        private void MyCanvas_SelectionResized(object sender, EventArgs e) => ScheduleSelectionDockUpdate();
+
         private void ScheduleSelectionDockUpdate()
         {
             if (_selectionDockUpdateScheduled) return;
@@ -748,9 +297,13 @@ namespace WindBoard
             {
                 selectionBounds = new Rect(_selectedAttachment.X, _selectedAttachment.Y, _selectedAttachment.Width, _selectedAttachment.Height);
             }
-            else if (_selectedInkStrokes.Count > 0)
+            else
             {
-                selectionBounds = GetSelectedInkBounds();
+                var strokes = MyCanvas.GetSelectedStrokes();
+                if (strokes != null && strokes.Count > 0)
+                {
+                    selectionBounds = MyCanvas.GetSelectionBounds();
+                }
             }
 
             if (selectionBounds == null || selectionBounds.Value.IsEmpty)
@@ -865,31 +418,16 @@ namespace WindBoard
                 return;
             }
 
-            if (_selectedInkStrokes.Count == 0) return;
+            var selected = MyCanvas.GetSelectedStrokes();
+            if (selected == null || selected.Count == 0) return;
 
-            var pageInk = _pageService.CurrentPage;
-            if (pageInk == null) return;
+            var list = selected.ToList();
+            foreach (var s in list) MyCanvas.Strokes.Remove(s);
+            foreach (var s in list) MyCanvas.Strokes.Add(s);
 
-            var before = new List<InkStroke>(pageInk.Ink.Strokes);
-
-            var selected = _selectedInkStrokes.ToList();
-            for (int i = 0; i < selected.Count; i++)
-            {
-                _ = pageInk.Ink.Strokes.Remove(selected[i]);
-            }
-            for (int i = 0; i < selected.Count; i++)
-            {
-                pageInk.Ink.Strokes.Add(selected[i]);
-            }
-
-            var after = new List<InkStroke>(pageInk.Ink.Strokes);
-
-            pageInk.InkUndoHistory.Begin();
-            pageInk.InkUndoHistory.Record(new ReorderStrokesCommand(before, after));
-            pageInk.InkUndoHistory.End();
-
-            pageInk.ContentVersion++;
-            InvalidateInkSurface();
+            var reselect = new StrokeCollection();
+            foreach (var s in list) reselect.Add(s);
+            MyCanvas.Select(reselect);
             ScheduleSelectionDockUpdate();
         }
 
@@ -899,39 +437,18 @@ namespace WindBoard
 
             if (_selectedAttachment != null) return;
 
-            if (_selectedInkStrokes.Count == 0) return;
+            var selected = MyCanvas.GetSelectedStrokes();
+            if (selected == null || selected.Count == 0) return;
 
-            var page = _pageService.CurrentPage;
-            if (page == null) return;
-
-            const double offset = 20;
-            var clones = new List<InkStroke>(_selectedInkStrokes.Count);
-
-            for (int i = 0; i < _selectedInkStrokes.Count; i++)
+            var clones = selected.Clone();
+            var m = new Matrix();
+            m.Translate(20, 20);
+            foreach (var s in clones)
             {
-                InkStroke source = _selectedInkStrokes[i];
-                clones.Add(CloneInkStrokeWithOffset(source, offset, offset));
+                s.Transform(m, false);
             }
-
-            page.InkUndoHistory.Begin();
-
-            for (int i = 0; i < clones.Count; i++)
-            {
-                InkStroke stroke = clones[i];
-                int index = page.Ink.Strokes.Count;
-                page.Ink.Strokes.Add(stroke);
-                page.InkUndoHistory.Record(new InsertStrokeCommand(index, stroke));
-                page.InkSpatialIndex.AddStroke(stroke);
-            }
-
-            page.InkUndoHistory.End();
-
-            _selectedInkStrokes.Clear();
-            _selectedInkStrokes.AddRange(clones);
-            UpdateInkSelectionOverlay();
-
-            page.ContentVersion++;
-            InvalidateInkSurface();
+            foreach (var s in clones) MyCanvas.Strokes.Add(s);
+            MyCanvas.Select(clones);
             ScheduleSelectionDockUpdate();
         }
 
@@ -948,41 +465,10 @@ namespace WindBoard
                 return;
             }
 
-            if (_selectedInkStrokes.Count == 0) return;
-
-            var cur = _pageService.CurrentPage;
-            if (cur == null) return;
-
-            var strokeIndices = new List<(int Index, InkStroke Stroke)>(_selectedInkStrokes.Count);
-            for (int i = 0; i < _selectedInkStrokes.Count; i++)
-            {
-                InkStroke stroke = _selectedInkStrokes[i];
-                int index = cur.Ink.Strokes.IndexOf(stroke);
-                if (index >= 0)
-                {
-                    strokeIndices.Add((index, stroke));
-                }
-            }
-
-            if (strokeIndices.Count == 0) return;
-
-            strokeIndices.Sort((a, b) => b.Index.CompareTo(a.Index));
-
-            cur.InkUndoHistory.Begin();
-            for (int i = 0; i < strokeIndices.Count; i++)
-            {
-                (int index, InkStroke stroke) = strokeIndices[i];
-                if (cur.Ink.Strokes.Remove(stroke))
-                {
-                    cur.InkUndoHistory.Record(new RemoveStrokeCommand(index, stroke));
-                }
-            }
-            cur.InkUndoHistory.End();
-
-            cur.InkSpatialIndex.Rebuild(cur.Ink);
-            cur.ContentVersion++;
-            ClearSelectedInkStrokes();
-            InvalidateInkSurface();
+            var selected = MyCanvas.GetSelectedStrokes();
+            if (selected == null || selected.Count == 0) return;
+            foreach (var s in selected.ToList()) MyCanvas.Strokes.Remove(s);
+            ClearInkCanvasSelectionPreserveEditingMode();
             ScheduleSelectionDockUpdate();
         }
     }

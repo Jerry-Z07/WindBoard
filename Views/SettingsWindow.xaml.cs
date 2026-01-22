@@ -52,6 +52,20 @@ namespace WindBoard
             OnPropertyChanged(nameof(VideoPresenterPath));
             OnPropertyChanged(nameof(VideoPresenterArgs));
 
+            // 初始化"书写设置"
+            try
+            {
+                _strokeThicknessConsistencyEnabled = SettingsService.Instance.GetStrokeThicknessConsistencyEnabled();
+                _simulatedPressureEnabled = SettingsService.Instance.GetSimulatedPressureEnabled();
+            }
+            catch
+            {
+                _strokeThicknessConsistencyEnabled = false;
+                _simulatedPressureEnabled = false;
+            }
+            OnPropertyChanged(nameof(StrokeThicknessConsistencyEnabled));
+            OnPropertyChanged(nameof(SimulatedPressureEnabled));
+
             // 初始化"触摸手势"
             try
             {
@@ -107,6 +121,8 @@ namespace WindBoard
             try { SettingsService.Instance.SetCamouflageEnabled(CamouflageEnabled); } catch { }
             try { SettingsService.Instance.SetCamouflageTitle(CamouflageTitle); } catch { }
             try { SettingsService.Instance.SetCamouflageSourcePath(CamouflageSourcePath); } catch { }
+            try { SettingsService.Instance.SetStrokeThicknessConsistencyEnabled(StrokeThicknessConsistencyEnabled); } catch { }
+            try { SettingsService.Instance.SetSimulatedPressureEnabled(SimulatedPressureEnabled); } catch { }
         }
 
         private void BtnApply_Click(object sender, RoutedEventArgs e) => ApplyAllSettings();

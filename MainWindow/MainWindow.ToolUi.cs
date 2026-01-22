@@ -3,8 +3,6 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
-using WindBoard.Models.InkV2;
-using WindBoard.Services;
 
 namespace WindBoard
 {
@@ -36,9 +34,8 @@ namespace WindBoard
                 _popupEraserClear.IsOpen = false;
 
             // 退出选择模式时，隐藏选中框与悬浮 Dock
-            ClearSelectedInkStrokes();
+            ClearInkCanvasSelectionPreserveEditingMode();
             SelectAttachment(null);
-            SetInkSurfaceEnabled(true);
         }
 
         private void RadioEraser_Checked(object sender, RoutedEventArgs e)
@@ -47,9 +44,8 @@ namespace WindBoard
             _modeController.SetCurrentMode(_eraserMode);
 
             // 退出选择模式时，隐藏选中框与悬浮 Dock
-            ClearSelectedInkStrokes();
+            ClearInkCanvasSelectionPreserveEditingMode();
             SelectAttachment(null);
-            SetInkSurfaceEnabled(true);
         }
 
         private void RadioSelect_Checked(object sender, RoutedEventArgs e)
@@ -58,14 +54,15 @@ namespace WindBoard
             _modeController.SetCurrentMode(_selectMode);
             if (_popupEraserClear != null)
                 _popupEraserClear.IsOpen = false;
-            SetInkSurfaceEnabled(true);
         }
 
         private void Thickness_Checked(object sender, RoutedEventArgs e)
         {
             if (sender is RadioButton rb && double.TryParse(rb.Tag?.ToString(), out double thickness))
             {
+                if (_strokeService == null) return;
                 _baseThickness = thickness;
+                _strokeService.SetBaseThickness(thickness, _zoomPanService.Zoom);
             }
         }
 
@@ -73,34 +70,19 @@ namespace WindBoard
         {
             if (sender is Button btn && btn.Tag is string colorCode)
             {
+                if (_strokeService == null) return;
                 try
                 {
                     Color color = (Color)ColorConverter.ConvertFromString(colorCode);
-                    _inkColorArgb = ((uint)color.A << 24) | ((uint)color.R << 16) | ((uint)color.G << 8) | color.B;
+                    _strokeService.SetColor(color);
                 }
                 catch (FormatException)
                 {
-                    _inkColorArgb = 0xFFFFFFFF;
+                    _strokeService.SetColor(Colors.White);
                 }
 
                 PopupPenSettings.IsOpen = false;
             }
-        }
-
-        private void ThicknessSemantics_Checked(object sender, RoutedEventArgs e)
-        {
-            if (PenThicknessWorldInvariant == null) return;
-            if (PenThicknessWorldInvariant.IsChecked == true)
-            {
-                _inkThicknessSemantics = InkThicknessSemantics.WorldInvariant;
-            }
-            else
-            {
-                _inkThicknessSemantics = InkThicknessSemantics.ViewInvariant;
-            }
-
-            SettingsService.Instance.SetInkThicknessSemantics(_inkThicknessSemantics);
-            InvalidateInkSurface();
         }
     }
 }

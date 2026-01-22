@@ -153,7 +153,8 @@ namespace WindBoard
                 try { MyCanvas.ReleaseAllTouchCaptures(); } catch { }
                 try { Mouse.Capture(null); } catch { }
 
-                 ClearCurrentPageContent();
+                MyCanvas.Strokes.Clear();
+                MyCanvas.Children.Clear();
 
                 if (_popupEraserClear != null) _popupEraserClear.IsOpen = false;
                 try { slider.BeginAnimation(RangeBase.ValueProperty, null); } catch { }
@@ -223,7 +224,8 @@ namespace WindBoard
                 try { MyCanvas.ReleaseAllTouchCaptures(); } catch { Debug.WriteLine("[DBG] SliderClear_PreviewMouseUp: ReleaseAllTouchCaptures(canvas) failed"); }
                 try { Mouse.Capture(null); } catch { Debug.WriteLine("[DBG] SliderClear_PreviewMouseUp: Mouse.Capture(null) failed"); }
 
-                 ClearCurrentPageContent();
+                MyCanvas.Strokes.Clear();
+                MyCanvas.Children.Clear();
 
                 if (_popupEraserClear != null) _popupEraserClear.IsOpen = false;
                 try { slider.BeginAnimation(RangeBase.ValueProperty, null); } catch { }
@@ -249,22 +251,6 @@ namespace WindBoard
             try { MyCanvas.ReleaseAllTouchCaptures(); } catch { Debug.WriteLine("[DBG] PopupEraserClear_Closed: ReleaseAllTouchCaptures(canvas) failed"); }
             try { Mouse.Capture(null); } catch { Debug.WriteLine("[DBG] PopupEraserClear_Closed: Mouse.Capture(null) failed"); }
             _clearPendingClose = false;
-        }
-
-        private void ClearCurrentPageContent()
-        {
-            var page = _pageService?.CurrentPage;
-            if (page == null) return;
-
-            page.InkUndoHistory.Clear();
-            page.InkSpatialIndex.Clear();
-            page.Ink.Strokes.Clear();
-            page.Attachments.Clear();
-            page.ContentVersion++;
-
-            SelectAttachment(null);
-            ClearSelectedInkStrokes();
-            InvalidateInkSurface();
         }
 
         // 点击外部关闭弹窗（支持鼠标与触摸） + Esc 关闭

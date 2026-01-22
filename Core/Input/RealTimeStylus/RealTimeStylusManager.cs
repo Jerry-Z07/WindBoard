@@ -1,6 +1,5 @@
 using System;
 using System.Diagnostics;
-using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using WindBoard.Core.Input;
@@ -9,7 +8,7 @@ namespace WindBoard.Core.Input.RealTimeStylus
 {
     public class RealTimeStylusManager : IDisposable
     {
-        private readonly UIElement _inputSurface;
+        private readonly InkCanvas _canvas;
         private readonly ScrollViewer _viewport;
         private readonly Action<InputStage, InputEventArgs> _dispatch;
         private RealTimeStylusAdapter? _adapter;
@@ -18,9 +17,9 @@ namespace WindBoard.Core.Input.RealTimeStylus
 
         public bool IsSupported => Tablet.TabletDevices.Count > 0;
 
-        public RealTimeStylusManager(UIElement inputSurface, ScrollViewer viewport, Action<InputStage, InputEventArgs> dispatch)
+        public RealTimeStylusManager(InkCanvas canvas, ScrollViewer viewport, Action<InputStage, InputEventArgs> dispatch)
         {
-            _inputSurface = inputSurface;
+            _canvas = canvas;
             _viewport = viewport;
             _dispatch = dispatch;
         }
@@ -34,8 +33,8 @@ namespace WindBoard.Core.Input.RealTimeStylus
 
             try
             {
-                _adapter ??= new RealTimeStylusAdapter(_inputSurface, _viewport, _dispatch);
-                var stylusPlugIns = StylusPlugInsAccessor.Get(_inputSurface);
+                _adapter ??= new RealTimeStylusAdapter(_canvas, _viewport, _dispatch);
+                var stylusPlugIns = StylusPlugInsAccessor.Get(_canvas);
                 if (!stylusPlugIns.Contains(_adapter))
                 {
                     stylusPlugIns.Add(_adapter);
@@ -64,7 +63,7 @@ namespace WindBoard.Core.Input.RealTimeStylus
             {
                 try
                 {
-                    var stylusPlugIns = StylusPlugInsAccessor.Get(_inputSurface);
+                    var stylusPlugIns = StylusPlugInsAccessor.Get(_canvas);
                     stylusPlugIns.Remove(_adapter);
                 }
                 catch (Exception ex)
