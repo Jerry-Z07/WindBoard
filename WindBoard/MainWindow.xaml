@@ -14,6 +14,21 @@
     </Window.SystemBackdrop>
 
     <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
 
+        <CommandBar DefaultLabelPosition="Right">
+            <AppBarButton x:Name="UndoButton" Icon="Undo" Label="撤销" />
+            <AppBarButton x:Name="RedoButton" Icon="Redo" Label="重做" />
+            <AppBarSeparator />
+            <AppBarButton x:Name="ClearButton" Icon="Delete" Label="清空" />
+            <AppBarSeparator />
+            <AppBarButton x:Name="SaveButton" Icon="Save" Label="保存" IsEnabled="False" />
+            <AppBarButton x:Name="ExportButton" Icon="OpenFile" Label="导出" IsEnabled="False" />
+        </CommandBar>
+
+        <SwapChainPanel x:Name="CanvasPanel" Grid.Row="1" />
     </Grid>
 </Window>
