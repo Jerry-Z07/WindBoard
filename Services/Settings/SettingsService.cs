@@ -3,7 +3,6 @@ using System.IO;
 using System.Windows.Media;
 using Newtonsoft.Json;
 using WindBoard.Models;
-using WindBoard.Models.InkV2;
 
 namespace WindBoard.Services
 {
@@ -193,31 +192,40 @@ namespace WindBoard.Services
             SettingsChanged?.Invoke(this, Settings);
         }
 
+        // --- 书写相关设置 ---
+        public bool GetStrokeThicknessConsistencyEnabled() => Settings.StrokeThicknessConsistencyEnabled;
+
+        public void SetStrokeThicknessConsistencyEnabled(bool enabled)
+        {
+            Settings.StrokeThicknessConsistencyEnabled = enabled;
+            Save();
+            SettingsChanged?.Invoke(this, Settings);
+        }
+
+        public bool GetSimulatedPressureEnabled() => Settings.SimulatedPressureEnabled;
+
+        public void SetSimulatedPressureEnabled(bool enabled)
+        {
+            Settings.SimulatedPressureEnabled = enabled;
+            Save();
+            SettingsChanged?.Invoke(this, Settings);
+        }
+
+        public StrokeSmoothingMode GetStrokeSmoothingMode() => Settings.StrokeSmoothingMode;
+
+        public void SetStrokeSmoothingMode(StrokeSmoothingMode mode)
+        {
+            Settings.StrokeSmoothingMode = mode;
+            Save();
+            SettingsChanged?.Invoke(this, Settings);
+        }
+
         // --- 触摸手势相关设置 ---
         public bool GetZoomPanTwoFingerOnly() => Settings.ZoomPanTwoFingerOnly;
 
         public void SetZoomPanTwoFingerOnly(bool enabled)
         {
             Settings.ZoomPanTwoFingerOnly = enabled;
-            Save();
-            SettingsChanged?.Invoke(this, Settings);
-        }
-
-        // --- v2 书写设置 ---
-        public InkThicknessSemantics GetInkThicknessSemantics() => Settings.InkThicknessSemantics;
-
-        public void SetInkThicknessSemantics(InkThicknessSemantics semantics)
-        {
-            Settings.InkThicknessSemantics = semantics;
-            Save();
-            SettingsChanged?.Invoke(this, Settings);
-        }
-
-        public bool GetInkV2SimulatedPressureEnabled() => Settings.InkV2SimulatedPressureEnabled;
-
-        public void SetInkV2SimulatedPressureEnabled(bool enabled)
-        {
-            Settings.InkV2SimulatedPressureEnabled = enabled;
             Save();
             SettingsChanged?.Invoke(this, Settings);
         }

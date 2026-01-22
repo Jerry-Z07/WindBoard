@@ -27,6 +27,11 @@ namespace WindBoard
         private ImageSource? _camouflageIconPreview;
         private string _camouflageSourceDisplayName = string.Empty;
 
+        // --- 书写设置 ---
+        private StrokeSmoothingMode _strokeSmoothingMode = StrokeSmoothingMode.RawInput;
+        private bool _strokeThicknessConsistencyEnabled;
+        private bool _simulatedPressureEnabled;
+
         // --- 触摸手势设置 ---
         private bool _zoomPanTwoFingerOnly;
 

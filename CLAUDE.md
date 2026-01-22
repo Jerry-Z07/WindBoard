@@ -23,7 +23,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-WindBoard is a WPF-based intelligent whiteboard application built with Material Design 3, featuring handwriting input and multi-page management. This is a .NET 10.0 Windows application actively developed entirely with AI assistance.
+WindBoard is a WPF-based intelligent whiteboard application built with Material Design 3, featuring smooth handwriting input and multi-page management. This is a .NET 10.0 Windows application actively developed entirely with AI assistance.
 
 **Target Framework**: `net10.0-windows10.0.26100.0`
 
@@ -63,7 +63,7 @@ WindBoard uses a **staged input pipeline** that routes events through interactio
 
 **Interaction Modes** (`Core/Modes/`):
 - Strategy pattern for switching between interaction behaviors
-- `InkMode`: Handwriting with optional simulated pressure (smoothing currently off)
+- `InkMode`: Handwriting with simulated pressure and detail-preserving smoothing
 - `EraserMode`: Erasing with swipe-to-clear gesture
 - `SelectMode`: Selection and manipulation of strokes/attachments
 - `NoMode`: Input suppression during exclusive operations
@@ -79,6 +79,8 @@ WindBoard uses a **staged input pipeline** that routes events through interactio
 
 **Services Layer** (`Services/`):
 - `PageService`: Multi-page management, state save/restore
+- `StrokeService`: Stroke management and pen thickness control
+- `StrokeUndoHistory`: Per-page undo/redo with transaction support
 - `ZoomPanService`: Camera-style zoom/pan using RenderTransform (not LayoutTransform to avoid layout cascade)
 - `AutoExpandService`: Automatically expands canvas when strokes approach boundaries
 - `TouchGestureService`: Two-finger gesture recognition (pinch zoom, pan)
@@ -86,7 +88,7 @@ WindBoard uses a **staged input pipeline** that routes events through interactio
 - `ExportService`, `WbiExporter/WbiImporter`: Export to PNG/JPG/PDF/WBI formats
 
 **Data Models** (`Models/`):
-- `BoardPage`: Stores v2 ink (`InkDocument`), attachments, canvas size, view state (zoom/pan)
+- `BoardPage`: Stores strokes, attachments, canvas size, view state (zoom/pan)
 - `BoardAttachment`: Supports Image/Video/Text/Link attachments with position, size, z-index
 - `AppSettings`: Application settings with automatic persistence
 - `Wbi/`: WBI format models (manifest, page data)
@@ -119,7 +121,7 @@ WindBoard uses a **staged input pipeline** that routes events through interactio
 
 ### Module Responsibilities
 
-- `Core/`: Input abstraction, interaction modes, ink algorithms (simulated pressure, erasing, spatial index)
+- `Core/`: Input abstraction, interaction modes, ink algorithms (simulated pressure, detail-preserving smoothing)
 - `Services/`: Business logic (pages, strokes, zoom/pan, settings, import/export)
 - `Models/`: Pure data models (no business logic)
 - `Views/`: XAML + thin code-behind (move complex logic to Services/Core)
@@ -128,12 +130,12 @@ WindBoard uses a **staged input pipeline** that routes events through interactio
 ## Ink System Details
 
 **Writing Mode** (`Core/Modes/InkMode.cs`):
-- **Smoothing**: Currently raw input points; smoothing will be redesigned later.
+- **Smoothing**: `DetailPreservingSmoother` algorithm preserves sharp corners while smoothing curves
 - **Pressure Handling**:
   - Real pressure from hardware stylus (auto-switches after sufficient samples)
   - Fallback to simulated pressure based on velocity/time for pen-like effect
   - Parameters in `SimulatedPressureParameters`, defaults in `SimulatedPressureDefaults`
-- **Thickness Semantics**: View-invariant vs world-invariant thickness, persisted per stroke via `InkTool`
+- **Thickness Consistency**: Optional feature to maintain consistent stroke thickness across different writing speeds (configured via `StrokeService.SetStrokeThicknessConsistencyEnabled`)
 
 ## WBI Format (WindBoard Interchange)
 
@@ -143,8 +145,7 @@ WBI files (`.wbi`) are ZIP archives containing:
 manifest.json          # Version, page count, settings
 pages/
   page_001.json        # Page metadata (size, zoom, pan, attachments)
-  page_001.ink.json    # v2 ink data (if ink exists)
-  page_001.isf         # Legacy WPF Ink Serialized Format (legacy files only; importer converts to v2)
+  page_001.isf         # WPF Ink Serialized Format (if strokes exist)
   page_002.json
   ...
 assets/                # Optional embedded image assets

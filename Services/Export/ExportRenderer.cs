@@ -3,10 +3,11 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Ink;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using WindBoard.Models.Export;
-using WindBoard.Services.InkV2.Rendering;
 
 namespace WindBoard.Services.Export
 {
@@ -85,7 +86,10 @@ namespace WindBoard.Services.Export
                 RenderAttachments(dc, page.Attachments.Where(a => !a.IsPinnedTop).OrderBy(a => a.ZIndex));
 
                 // 渲染笔迹
-                InkCpuRenderer.RenderInk(dc, page.Ink, zoom: scale);
+                if (page.Strokes != null && page.Strokes.Count > 0)
+                {
+                    page.Strokes.Draw(dc);
+                }
 
                 // 渲染置顶附件
                 RenderAttachments(dc, page.Attachments.Where(a => a.IsPinnedTop).OrderBy(a => a.ZIndex));
@@ -139,7 +143,10 @@ namespace WindBoard.Services.Export
             Rect bounds = Rect.Empty;
 
             // 笔迹边界
-            bounds = InkCpuRenderer.CalculateInkBounds(page.Ink);
+            if (page.Strokes != null && page.Strokes.Count > 0)
+            {
+                bounds = page.Strokes.GetBounds();
+            }
 
             // 附件边界
             foreach (var att in page.Attachments)
@@ -161,7 +168,7 @@ namespace WindBoard.Services.Export
             double factor = options.Format == ExportFormat.Png ? 0.5 : 0.15;
 
             // 内容复杂度加成
-            int strokeCount = page.Ink.Strokes.Count;
+            int strokeCount = page.Strokes?.Count ?? 0;
             int attachmentCount = page.Attachments.Count;
             double complexityFactor = 1.0 + strokeCount * 0.001 + attachmentCount * 0.05;
 

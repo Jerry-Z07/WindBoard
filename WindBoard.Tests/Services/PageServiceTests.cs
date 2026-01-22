@@ -1,19 +1,19 @@
-using System.Collections.Generic;
 using System.Windows.Controls;
+using System.Windows.Ink;
 using System.Windows.Media;
 using WindBoard.Services;
 using Xunit;
+using static WindBoard.Tests.TestHelpers.InkTestHelpers;
 
 namespace WindBoard.Tests.Services;
 
 public sealed class PageServiceTests
 {
     [StaFact]
-    public void InitializePagesIfNeeded_CreatesSingleCurrentPage_AndCapturesViewState()
+    public void InitializePagesIfNeeded_CreatesSingleCurrentPage_SharingCanvasStrokes()
     {
-        var canvas = new Canvas { Width = 8000, Height = 6000 };
+        var canvas = new InkCanvas { Width = 8000, Height = 6000, Strokes = new StrokeCollection() };
         var zoomPan = new ZoomPanService(new ScaleTransform(1, 1), new TranslateTransform(0, 0));
-        zoomPan.SetViewDirect(zoom: 1.25, panX: -100, panY: -200);
         var svc = new PageService(canvas, zoomPan);
 
         svc.InitializePagesIfNeeded();
@@ -22,60 +22,44 @@ public sealed class PageServiceTests
         Assert.Equal(0, svc.CurrentPageIndex);
         Assert.NotNull(svc.CurrentPage);
         Assert.True(svc.CurrentPage!.IsCurrent);
-        Assert.Equal(8000, svc.CurrentPage.CanvasWidth);
-        Assert.Equal(6000, svc.CurrentPage.CanvasHeight);
-        Assert.Equal(1.25, svc.CurrentPage.Zoom, precision: 6);
-        Assert.Equal(-100, svc.CurrentPage.PanX, precision: 6);
-        Assert.Equal(-200, svc.CurrentPage.PanY, precision: 6);
+        Assert.Same(canvas.Strokes, svc.CurrentPage.Strokes);
         Assert.Equal("1 / 1", svc.PageIndicatorText);
     }
 
     [StaFact]
-    public void AddPage_SwitchesToNewPage_AndUpdatesCanvasAndView()
+    public void AddPage_SwitchesToNewPage_AndCanvasUsesNewStrokeCollection()
     {
-        var canvas = new Canvas { Width = 8000, Height = 6000 };
+        var canvas = new InkCanvas { Width = 8000, Height = 6000, Strokes = new StrokeCollection() };
         var zoomPan = new ZoomPanService(new ScaleTransform(1, 1), new TranslateTransform(0, 0));
-        zoomPan.SetViewDirect(zoom: 1.5, panX: -10, panY: -20);
         var svc = new PageService(canvas, zoomPan);
         svc.InitializePagesIfNeeded();
+        var firstStrokes = canvas.Strokes;
 
         svc.AddPage();
 
         Assert.Equal(2, svc.Pages.Count);
         Assert.Equal(1, svc.CurrentPageIndex);
         Assert.True(svc.IsMultiPage);
-        Assert.Equal(8000, canvas.Width);
-        Assert.Equal(8000, canvas.Height);
-        Assert.Equal(1.5, zoomPan.Zoom, precision: 6);
-        Assert.Equal(0, zoomPan.PanX, precision: 6);
-        Assert.Equal(0, zoomPan.PanY, precision: 6);
+        Assert.NotSame(firstStrokes, canvas.Strokes);
+        Assert.Same(canvas.Strokes, svc.CurrentPage!.Strokes);
         Assert.Equal("2 / 2", svc.PageIndicatorText);
         Assert.True(svc.Pages[1].IsCurrent);
         Assert.False(svc.Pages[0].IsCurrent);
     }
 
     [StaFact]
-    public void ReplaceAllPages_LoadsCurrentPageIntoCanvas_AndRenumbersPages()
+    public void StrokeChanges_IncrementCurrentPageContentVersion()
     {
-        var canvas = new Canvas { Width = 8000, Height = 6000 };
+        var canvas = new InkCanvas { Width = 8000, Height = 6000, Strokes = new StrokeCollection() };
         var zoomPan = new ZoomPanService(new ScaleTransform(1, 1), new TranslateTransform(0, 0));
         var svc = new PageService(canvas, zoomPan);
+        svc.InitializePagesIfNeeded();
 
-        var pages = new List<BoardPage>
-        {
-            new BoardPage { Number = 99, CanvasWidth = 1000, CanvasHeight = 2000, Zoom = 1.0, PanX = 10, PanY = 20 },
-            new BoardPage { Number = 42, CanvasWidth = 3000, CanvasHeight = 4000, Zoom = 2.0, PanX = -5, PanY = -6 }
-        };
+        var page = svc.CurrentPage!;
+        int before = page.ContentVersion;
 
-        svc.ReplaceAllPages(pages, currentIndex: 1);
+        canvas.Strokes.Add(CreateStroke());
 
-        Assert.Equal(2, svc.Pages.Count);
-        Assert.Equal(2, svc.Pages[1].Number);
-        Assert.Equal(1, svc.CurrentPageIndex);
-        Assert.Equal(3000, canvas.Width);
-        Assert.Equal(4000, canvas.Height);
-        Assert.Equal(2.0, zoomPan.Zoom, precision: 6);
-        Assert.Equal(-5, zoomPan.PanX, precision: 6);
-        Assert.Equal(-6, zoomPan.PanY, precision: 6);
+        Assert.True(page.ContentVersion > before);
     }
 }
