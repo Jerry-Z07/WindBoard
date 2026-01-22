@@ -1,11 +1,11 @@
 using System.Windows;
+using System.Windows.Ink;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using WindBoard.Models.Export;
-using WindBoard.Models.InkV2;
 using WindBoard.Services.Export;
 using Xunit;
-using static WindBoard.Tests.TestHelpers.InkV2TestHelpers;
+using static WindBoard.Tests.TestHelpers.InkTestHelpers;
 
 namespace WindBoard.Tests.Services.Export;
 
@@ -15,7 +15,7 @@ public sealed class ExportRendererTests
     public void RenderPage_WithEmptyPage_ReturnsBackgroundOnlyBitmap()
     {
         var renderer = new ExportRenderer();
-        var page = new BoardPage();
+        var page = new BoardPage { Strokes = new StrokeCollection() };
         var options = new ImageExportOptions
         {
             Width = 800,
@@ -34,8 +34,8 @@ public sealed class ExportRendererTests
     public void RenderPage_WithStrokes_ReturnsBitmapContainingContent()
     {
         var renderer = new ExportRenderer();
-        var page = new BoardPage();
-        page.Ink.Strokes.Add(CreateLineStroke(100, 100, 200, 200));
+        var page = new BoardPage { Strokes = new StrokeCollection() };
+        page.Strokes.Add(CreateStroke(100, 100, 200, 200));
 
         var options = new ImageExportOptions
         {
@@ -56,7 +56,7 @@ public sealed class ExportRendererTests
     public void CalculateContentBounds_WithNoContent_ReturnsEmptyRect()
     {
         var renderer = new ExportRenderer();
-        var page = new BoardPage();
+        var page = new BoardPage { Strokes = new StrokeCollection() };
 
         var bounds = renderer.CalculateContentBounds(page);
 
@@ -67,8 +67,8 @@ public sealed class ExportRendererTests
     public void CalculateContentBounds_WithStrokes_ReturnsStrokeBounds()
     {
         var renderer = new ExportRenderer();
-        var page = new BoardPage();
-        page.Ink.Strokes.Add(CreateLineStroke(100, 100, 300, 300));
+        var page = new BoardPage { Strokes = new StrokeCollection() };
+        page.Strokes.Add(CreateStroke(100, 100, 300, 300));
 
         var bounds = renderer.CalculateContentBounds(page);
 
@@ -81,7 +81,7 @@ public sealed class ExportRendererTests
     public void CalculateContentBounds_WithAttachments_IncludesAttachmentBounds()
     {
         var renderer = new ExportRenderer();
-        var page = new BoardPage();
+        var page = new BoardPage { Strokes = new StrokeCollection() };
         page.Attachments.Add(new BoardAttachment
         {
             Type = BoardAttachmentType.Text,
@@ -103,8 +103,8 @@ public sealed class ExportRendererTests
     public void CalculateContentBounds_WithStrokesAndAttachments_ReturnsUnionBounds()
     {
         var renderer = new ExportRenderer();
-        var page = new BoardPage();
-        page.Ink.Strokes.Add(CreateLineStroke(100, 100, 200, 200));
+        var page = new BoardPage { Strokes = new StrokeCollection() };
+        page.Strokes.Add(CreateStroke(100, 100, 200, 200));
         page.Attachments.Add(new BoardAttachment
         {
             Type = BoardAttachmentType.Text,
@@ -127,8 +127,8 @@ public sealed class ExportRendererTests
     public void RenderPageToPng_ReturnsValidPngData()
     {
         var renderer = new ExportRenderer();
-        var page = new BoardPage();
-        page.Ink.Strokes.Add(CreateLineStroke(50, 50, 150, 150));
+        var page = new BoardPage { Strokes = new StrokeCollection() };
+        page.Strokes.Add(CreateStroke(50, 50, 150, 150));
 
         var options = new ImageExportOptions
         {
@@ -152,8 +152,8 @@ public sealed class ExportRendererTests
     public void RenderPageToJpeg_ReturnsValidJpegData()
     {
         var renderer = new ExportRenderer();
-        var page = new BoardPage();
-        page.Ink.Strokes.Add(CreateLineStroke(50, 50, 150, 150));
+        var page = new BoardPage { Strokes = new StrokeCollection() };
+        page.Strokes.Add(CreateStroke(50, 50, 150, 150));
 
         var options = new ImageExportOptions
         {
@@ -176,8 +176,8 @@ public sealed class ExportRendererTests
     public void EstimateFileSize_ReturnsPositiveValue()
     {
         var renderer = new ExportRenderer();
-        var page = new BoardPage();
-        page.Ink.Strokes.Add(CreateLineStroke(0, 0, 100, 100));
+        var page = new BoardPage { Strokes = new StrokeCollection() };
+        page.Strokes.Add(CreateStroke(0, 0, 100, 100));
 
         var options = new ImageExportOptions
         {
@@ -195,8 +195,8 @@ public sealed class ExportRendererTests
     public void RenderPage_WithDifferentResolutions_ProducesCorrectSizes()
     {
         var renderer = new ExportRenderer();
-        var page = new BoardPage();
-        page.Ink.Strokes.Add(CreateLineStroke(0, 0, 100, 100));
+        var page = new BoardPage { Strokes = new StrokeCollection() };
+        page.Strokes.Add(CreateStroke(0, 0, 100, 100));
 
         var options1080p = new ImageExportOptions { Width = 1920, Height = 1080 };
         var options4K = new ImageExportOptions { Width = 3840, Height = 2160 };

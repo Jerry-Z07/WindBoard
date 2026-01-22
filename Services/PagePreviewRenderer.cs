@@ -1,14 +1,13 @@
 using System;
 using System.Windows;
+using System.Windows.Ink;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
-using WindBoard.Models.InkV2;
-using WindBoard.Services.InkV2.Rendering;
 
 namespace WindBoard.Services
 {
     /// <summary>
-    /// 页面缩略图渲染服务：将 v2 ink 渲染为固定尺寸的预览图。
+    /// 页面缩略图渲染服务：将 StrokeCollection 渲染为固定尺寸的预览图。
     /// </summary>
     public class PagePreviewRenderer
     {
@@ -17,7 +16,7 @@ namespace WindBoard.Services
         /// <summary>
         /// 渲染预览图。
         /// </summary>
-        /// <param name="page">用于渲染的页面（包含 v2 ink）。</param>
+        /// <param name="strokes">用于渲染的笔迹集合（可为 null 或空）。</param>
         /// <param name="canvasWidth">原画布宽度（用于限制过度放大）。</param>
         /// <param name="canvasHeight">原画布高度（用于限制过度放大）。</param>
         /// <param name="width">目标宽度（像素）。</param>
@@ -26,7 +25,7 @@ namespace WindBoard.Services
         /// <param name="maxZoomInFactor">相对画布适配的最大放大倍数（避免少量笔迹被无限放大）。</param>
         /// <returns>渲染后的位图（已 Freeze）。</returns>
         public ImageSource Render(
-            BoardPage page,
+            StrokeCollection? strokes,
             double canvasWidth,
             double canvasHeight,
             int width = 220,
@@ -47,10 +46,9 @@ namespace WindBoard.Services
                     new Rect(0, 0, w, h),
                     10, 10);
 
-                InkDocument? ink = page?.Ink;
-                if (ink != null && ink.Strokes.Count > 0)
+                if (strokes != null && strokes.Count > 0)
                 {
-                    Rect bounds = InkCpuRenderer.CalculateInkBounds(ink);
+                    Rect bounds = strokes.GetBounds();
                     if (bounds.IsEmpty) goto Done;
 
                     double innerW = w - 2 * padding;
@@ -80,7 +78,7 @@ namespace WindBoard.Services
                     dc.PushTransform(new ScaleTransform(scale, scale));
                     dc.PushTransform(new TranslateTransform(-bounds.X, -bounds.Y));
 
-                    InkCpuRenderer.RenderInk(dc, ink, zoom: scale);
+                    strokes.Draw(dc);
 
                     // 还原 transform
                     dc.Pop(); dc.Pop(); dc.Pop();

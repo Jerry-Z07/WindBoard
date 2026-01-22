@@ -1,7 +1,6 @@
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using System;
-using WindBoard.Models.InkV2;
 
 namespace WindBoard.Models
 {
@@ -39,17 +38,14 @@ namespace WindBoard.Models
         // 伪装：桌面快捷方式“最后生成时”的签名（用于避免每次启动都自动刷新快捷方式）
         public string CamouflageShortcutLastGeneratedSignature { get; set; } = string.Empty;
 
+        // 新笔迹粗细模式：开启后，不同缩放下书写的笔迹在同一缩放下粗细一致
+        public bool StrokeThicknessConsistencyEnabled { get; set; } = false;
+
+        // 模拟压感（签字笔风格）：用于无压感设备的轻微笔锋效果
+        public bool SimulatedPressureEnabled { get; set; } = false;
+
         // 触摸缩放/平移：仅双指手势（开启后，三指及以上不参与缩放/平移）
         public bool ZoomPanTwoFingerOnly { get; set; } = false;
-
-        // --- v2 书写设置 ---
-
-        [JsonConverter(typeof(StringEnumConverter))]
-        public InkThicknessSemantics InkThicknessSemantics { get; set; } = InkThicknessSemantics.ViewInvariant;
-
-        // v2：无压感设备的压感模拟（默认关闭）
-        public bool InkV2SimulatedPressureEnabled { get; set; } = false;
-
         // --- 更新相关设置 ---
 
         // 自动检查更新（默认开启）
