@@ -11,9 +11,9 @@ using WinRT;
 
 namespace WindBoard.Rendering
 {
-    internal sealed class DxSwapChainPanelRenderer : IDisposable
+    internal sealed partial class DxSwapChainPanelRenderer(SwapChainPanel panel) : IDisposable
     {
-        private readonly SwapChainPanel _panel;
+        private readonly SwapChainPanel _panel = panel;
 
         private ID3D11Device? _d3dDevice;
         private ID3D11DeviceContext? _d3dContext;
@@ -28,12 +28,8 @@ namespace WindBoard.Rendering
 
         private int _pixelWidth;
         private int _pixelHeight;
-        private float _dpi;
-
-        public DxSwapChainPanelRenderer(SwapChainPanel panel)
-        {
-            _panel = panel;
-        }
+        private float _dpiX;
+        private float _dpiY;
 
         public bool IsInitialized { get; private set; }
 
@@ -61,7 +57,14 @@ namespace WindBoard.Rendering
 
         public void Render(Action<ID2D1DeviceContext> draw)
         {
-            if (!IsInitialized || _d2dContext is null || _swapChain is null)
+            if (!IsInitialized)
+            {
+                return;
+            }
+
+            CreateOrResizeSwapChainAndTargets();
+
+            if (_d2dContext is null || _swapChain is null)
             {
                 return;
             }
@@ -132,14 +135,13 @@ namespace WindBoard.Rendering
             device = null;
             context = null;
 
-            Vortice.Direct3D.FeatureLevel createdFeatureLevel;
             var result = D3D11.D3D11CreateDevice(
                 IntPtr.Zero,
                 driverType,
                 flags,
                 featureLevels,
                 out device,
-                out createdFeatureLevel,
+                out Vortice.Direct3D.FeatureLevel createdFeatureLevel,
                 out context);
 
             if (result.Failure || device is null || context is null)
@@ -161,11 +163,31 @@ namespace WindBoard.Rendering
                 return;
             }
 
-            double rasterizationScale = _panel.XamlRoot?.RasterizationScale ?? 1.0;
-            _dpi = (float)(96.0 * rasterizationScale);
+            double compositionScaleX = _panel.CompositionScaleX;
+            double compositionScaleY = _panel.CompositionScaleY;
+            if (compositionScaleX <= 0.0)
+            {
+                compositionScaleX = 1.0;
+            }
 
-            int newPixelWidth = Math.Max(1, (int)Math.Round(_panel.ActualWidth * rasterizationScale));
-            int newPixelHeight = Math.Max(1, (int)Math.Round(_panel.ActualHeight * rasterizationScale));
+            if (compositionScaleY <= 0.0)
+            {
+                compositionScaleY = 1.0;
+            }
+
+            float newDpiX = (float)(96.0 * compositionScaleX);
+            float newDpiY = (float)(96.0 * compositionScaleY);
+
+            int newPixelWidth = Math.Max(1, (int)Math.Round(_panel.ActualWidth * compositionScaleX));
+            int newPixelHeight = Math.Max(1, (int)Math.Round(_panel.ActualHeight * compositionScaleY));
+
+            bool sizeChanged = newPixelWidth != _pixelWidth || newPixelHeight != _pixelHeight;
+            bool dpiChanged = Math.Abs(newDpiX - _dpiX) > 0.01f || Math.Abs(newDpiY - _dpiY) > 0.01f;
+
+            _dpiX = newDpiX;
+            _dpiY = newDpiY;
+
+            bool needRecreateTarget = false;
 
             if (_swapChain is null)
             {
@@ -188,37 +210,78 @@ namespace WindBoard.Rendering
 
                 _swapChain = factory.CreateSwapChainForComposition(_d3dDevice, desc, null);
                 SetSwapChainOnPanel(_swapChain);
+                ApplySwapChainPanelTransform(_swapChain, compositionScaleX, compositionScaleY, newPixelWidth, newPixelHeight);
+                needRecreateTarget = true;
             }
-            else if (newPixelWidth != _pixelWidth || newPixelHeight != _pixelHeight)
+            else if (sizeChanged || dpiChanged)
             {
+                needRecreateTarget = true;
+
                 _d2dContext.Target = null;
                 _d2dTargetBitmap?.Dispose();
                 _d2dTargetBitmap = null;
 
-                _swapChain.ResizeBuffers(
-                    2,
-                    (uint)newPixelWidth,
-                    (uint)newPixelHeight,
-                    Format.B8G8R8A8_UNorm,
-                    SwapChainFlags.None);
+                if (sizeChanged)
+                {
+                    _d3dContext?.Flush();
+
+                    _swapChain.ResizeBuffers(
+                        2,
+                        (uint)newPixelWidth,
+                        (uint)newPixelHeight,
+                        Format.B8G8R8A8_UNorm,
+                        SwapChainFlags.None);
+                }
+
+                ApplySwapChainPanelTransform(_swapChain, compositionScaleX, compositionScaleY, newPixelWidth, newPixelHeight);
             }
 
             _pixelWidth = newPixelWidth;
             _pixelHeight = newPixelHeight;
 
-            using var backBuffer = _swapChain.GetBuffer<IDXGISurface>(0);
-            var bitmapProperties = new BitmapProperties1(
-                new PixelFormat(Format.B8G8R8A8_UNorm, Vortice.DCommon.AlphaMode.Premultiplied),
-                _dpi,
-                _dpi,
-                BitmapOptions.Target | BitmapOptions.CannotDraw,
-                null);
+            if (needRecreateTarget || _d2dTargetBitmap is null)
+            {
+                using var backBuffer = _swapChain.GetBuffer<IDXGISurface>(0);
+                var bitmapProperties = new BitmapProperties1(
+                    new PixelFormat(Format.B8G8R8A8_UNorm, Vortice.DCommon.AlphaMode.Premultiplied),
+                    _dpiX,
+                    _dpiY,
+                    BitmapOptions.Target | BitmapOptions.CannotDraw,
+                    null);
 
-            _d2dTargetBitmap = _d2dContext.CreateBitmapFromDxgiSurface(backBuffer, bitmapProperties);
-            _d2dContext.Target = _d2dTargetBitmap;
-            _d2dContext.SetDpi(_dpi, _dpi);
+                _d2dTargetBitmap = _d2dContext.CreateBitmapFromDxgiSurface(backBuffer, bitmapProperties);
+                _d2dContext.Target = _d2dTargetBitmap;
+                _d2dContext.SetDpi(_dpiX, _dpiY);
+            }
 
             _gridBrush ??= _d2dContext.CreateSolidColorBrush(new Color4(0.90f, 0.90f, 0.90f, 1.0f));
+        }
+
+        private static void ApplySwapChainPanelTransform(
+            IDXGISwapChain1 swapChain,
+            double compositionScaleX,
+            double compositionScaleY,
+            int pixelWidth,
+            int pixelHeight)
+        {
+            try
+            {
+                using var swapChain2 = swapChain.QueryInterface<IDXGISwapChain2>();
+                swapChain2.SetSourceSize((uint)pixelWidth, (uint)pixelHeight);
+
+                var inverseScale = new Matrix3x2(
+                    (float)(1.0 / compositionScaleX),
+                    0.0f,
+                    0.0f,
+                    (float)(1.0 / compositionScaleY),
+                    0.0f,
+                    0.0f);
+                swapChain2.MatrixTransform = inverseScale;
+            }
+            catch
+            {
+                // 如果系统/驱动不支持 SwapChain2，这里忽略即可（至少不会因为缩放接口崩溃）
+            }
         }
 
         private static void SetSwapChainOnPanel(SwapChainPanel panel, IDXGISwapChain1 swapChain)

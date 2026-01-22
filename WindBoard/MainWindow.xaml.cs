@@ -39,6 +39,7 @@ namespace WindBoard
 
             CanvasPanel.Loaded += (_, _) => InitializeRenderer();
             CanvasPanel.SizeChanged += (_, _) => _renderer?.Resize();
+            CanvasPanel.CompositionScaleChanged += (_, _) => _renderer?.Resize();
 
             CanvasPanel.PointerPressed += OnCanvasPointerPressed;
             CanvasPanel.PointerMoved += OnCanvasPointerMoved;
@@ -325,15 +326,10 @@ namespace WindBoard
             void Undo(BoardDocument document);
         }
 
-        private sealed class AddStrokeCommand : IBoardCommand
+        private sealed class AddStrokeCommand(Stroke stroke) : IBoardCommand
         {
-            private readonly Stroke _stroke;
+            private readonly Stroke _stroke = stroke;
             private int? _index;
-
-            public AddStrokeCommand(Stroke stroke)
-            {
-                _stroke = stroke;
-            }
 
             public void Do(BoardDocument document)
             {
@@ -353,14 +349,9 @@ namespace WindBoard
             }
         }
 
-        private sealed class ClearCommand : IBoardCommand
+        private sealed class ClearCommand(List<Stroke> snapshot) : IBoardCommand
         {
-            private readonly List<Stroke> _snapshot;
-
-            public ClearCommand(List<Stroke> snapshot)
-            {
-                _snapshot = snapshot;
-            }
+            private readonly List<Stroke> _snapshot = snapshot;
 
             public void Do(BoardDocument document)
             {
