@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "WindBoard (Package)": {
+      "commandName": "MsixPackage"
+    },
+    "WindBoard (Unpackaged)": {
+      "commandName": "Project"
+    }
+  }
+}
