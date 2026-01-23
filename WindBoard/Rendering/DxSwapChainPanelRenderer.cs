@@ -24,8 +24,6 @@ namespace WindBoard.Rendering
         private ID2D1DeviceContext? _d2dContext;
         private ID2D1Bitmap1? _d2dTargetBitmap;
 
-        private ID2D1SolidColorBrush? _gridBrush;
-
         private int _pixelWidth;
         private int _pixelHeight;
         private float _dpiX;
@@ -69,14 +67,11 @@ namespace WindBoard.Rendering
                 return;
             }
 
-            float widthDip = (float)Math.Max(1.0, _panel.ActualWidth);
-            float heightDip = (float)Math.Max(1.0, _panel.ActualHeight);
-
             var ctx = _d2dContext;
 
             ctx.BeginDraw();
+            ctx.Transform = Matrix3x2.Identity;
             ctx.Clear(new Color4(1.0f, 1.0f, 1.0f, 1.0f));
-            DrawGrid(ctx, widthDip, heightDip);
             draw(ctx);
             ctx.EndDraw(out _, out _);
 
@@ -254,7 +249,6 @@ namespace WindBoard.Rendering
                 _d2dContext.SetDpi(_dpiX, _dpiY);
             }
 
-            _gridBrush ??= _d2dContext.CreateSolidColorBrush(new Color4(0.90f, 0.90f, 0.90f, 1.0f));
         }
 
         private static void ApplySwapChainPanelTransform(
@@ -295,31 +289,8 @@ namespace WindBoard.Rendering
             SetSwapChainOnPanel(_panel, swapChain);
         }
 
-        private void DrawGrid(ID2D1DeviceContext ctx, float widthDip, float heightDip)
-        {
-            if (_gridBrush is null)
-            {
-                return;
-            }
-
-            const float step = 40.0f;
-
-            for (float x = 0; x <= widthDip; x += step)
-            {
-                ctx.DrawLine(new Vector2(x, 0), new Vector2(x, heightDip), _gridBrush, 1.0f);
-            }
-
-            for (float y = 0; y <= heightDip; y += step)
-            {
-                ctx.DrawLine(new Vector2(0, y), new Vector2(widthDip, y), _gridBrush, 1.0f);
-            }
-        }
-
         public void Dispose()
         {
-            _gridBrush?.Dispose();
-            _gridBrush = null;
-
             _d2dTargetBitmap?.Dispose();
             _d2dTargetBitmap = null;
 
