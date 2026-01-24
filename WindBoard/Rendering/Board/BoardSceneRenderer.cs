@@ -58,6 +58,56 @@ namespace WindBoard.Rendering.Board
             ctx.Transform = oldTransform;
         }
 
+        public void DrawBackground(ID2D1DeviceContext ctx, BoardDocument document, BoardViewport viewport)
+        {
+            _strokeBrush ??= ctx.CreateSolidColorBrush(new Color4(0, 0, 0, 1));
+            _gridMinorBrush ??= ctx.CreateSolidColorBrush(new Color4(0.92f, 0.92f, 0.92f, 1.0f));
+            _gridMajorBrush ??= ctx.CreateSolidColorBrush(new Color4(0.86f, 0.86f, 0.86f, 1.0f));
+            _axisBrush ??= ctx.CreateSolidColorBrush(new Color4(0.78f, 0.78f, 0.78f, 1.0f));
+
+            using ID2D1DeviceContext2? ctx2 = TryGetDeviceContext2(ctx);
+            EnsureInkStyle(ctx2);
+            PruneInkCache(document, null);
+
+            Matrix3x2 oldTransform = ctx.Transform;
+            ctx.Transform = viewport.GetWorldToScreenTransform();
+
+            viewport.GetVisibleWorldBounds(out Vector2 visibleMinWorld, out Vector2 visibleMaxWorld);
+
+            DrawInfiniteGrid(ctx, viewport, visibleMinWorld, visibleMaxWorld);
+
+            foreach (var stroke in document.Strokes)
+            {
+                if (!IsStrokeVisible(stroke, visibleMinWorld, visibleMaxWorld))
+                {
+                    continue;
+                }
+
+                DrawStroke(ctx, ctx2, stroke);
+            }
+
+            ctx.Transform = oldTransform;
+        }
+
+        public void DrawActiveStroke(ID2D1DeviceContext ctx, Stroke activeStroke, BoardViewport viewport)
+        {
+            _strokeBrush ??= ctx.CreateSolidColorBrush(new Color4(0, 0, 0, 1));
+
+            using ID2D1DeviceContext2? ctx2 = TryGetDeviceContext2(ctx);
+            EnsureInkStyle(ctx2);
+
+            Matrix3x2 oldTransform = ctx.Transform;
+            ctx.Transform = viewport.GetWorldToScreenTransform();
+
+            viewport.GetVisibleWorldBounds(out Vector2 visibleMinWorld, out Vector2 visibleMaxWorld);
+            if (IsStrokeVisible(activeStroke, visibleMinWorld, visibleMaxWorld))
+            {
+                DrawStroke(ctx, ctx2, activeStroke);
+            }
+
+            ctx.Transform = oldTransform;
+        }
+
         private void DrawStroke(ID2D1DeviceContext ctx, ID2D1DeviceContext2? ctx2, Stroke stroke)
         {
             if (_strokeBrush is null)

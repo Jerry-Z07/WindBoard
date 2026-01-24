@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Numerics;
+using Microsoft.UI.Dispatching;
 using Microsoft.UI.Input;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
@@ -14,6 +15,9 @@ namespace WindBoard.Interaction
 {
     internal sealed class BoardInputController
     {
+        private const int WheelZoomIdleTimeoutMs = 150;
+        private const int WheelZoomTimerIntervalMs = 50;
+
         private readonly SwapChainPanel _panel;
         private readonly BoardSession _session;
         private readonly BoardViewport _viewport;
@@ -25,6 +29,9 @@ namespace WindBoard.Interaction
         private readonly HashSet<uint> _activeTouchPointers = new();
         private bool _isManipulating;
         private bool _isInteracting;
+        private bool _isWheelZooming;
+        private DateTimeOffset _lastWheelZoomAt;
+        private DispatcherQueueTimer? _wheelZoomTimer;
 
         public BoardInputController(SwapChainPanel panel, BoardSession session, BoardViewport viewport)
         {
@@ -34,6 +41,10 @@ namespace WindBoard.Interaction
         }
 
         public Stroke? ActiveStroke { get; private set; }
+
+        public bool IsWheelZooming => _isWheelZooming;
+
+        public bool IsContinuousViewportInteraction => _panPointerId is not null || _isManipulating;
 
         public event Action? StateChanged;
 
@@ -69,6 +80,16 @@ namespace WindBoard.Interaction
             _panel.ManipulationStarting -= OnCanvasManipulationStarting;
             _panel.ManipulationDelta -= OnCanvasManipulationDelta;
             _panel.ManipulationCompleted -= OnCanvasManipulationCompleted;
+
+            if (_wheelZoomTimer is not null)
+            {
+                _wheelZoomTimer.Stop();
+                _wheelZoomTimer.Tick -= OnWheelZoomTimerTick;
+                _wheelZoomTimer = null;
+            }
+
+            _isWheelZooming = false;
+            _lastWheelZoomAt = default;
         }
 
         public void DiscardActiveStroke()
@@ -331,11 +352,57 @@ namespace WindBoard.Interaction
                 return;
             }
 
+            BeginWheelZoomInteraction();
+
             // 以鼠标所在位置为锚点缩放，避免缩放时“跳动”
             float factor = (float)Math.Pow(1.1, delta / 120.0);
             _viewport.ZoomAboutScreenPoint(new Vector2((float)point.Position.X, (float)point.Position.Y), factor);
             e.Handled = true;
             FrameInvalidated?.Invoke();
+        }
+
+        private void BeginWheelZoomInteraction()
+        {
+            _lastWheelZoomAt = DateTimeOffset.UtcNow;
+
+            if (_wheelZoomTimer is null)
+            {
+                _wheelZoomTimer = _panel.DispatcherQueue.CreateTimer();
+                _wheelZoomTimer.Interval = TimeSpan.FromMilliseconds(WheelZoomTimerIntervalMs);
+                _wheelZoomTimer.IsRepeating = true;
+                _wheelZoomTimer.Tick += OnWheelZoomTimerTick;
+            }
+
+            if (!_wheelZoomTimer.IsRunning)
+            {
+                _wheelZoomTimer.Start();
+            }
+
+            if (_isWheelZooming)
+            {
+                return;
+            }
+
+            _isWheelZooming = true;
+            UpdateInteractionState();
+        }
+
+        private void OnWheelZoomTimerTick(DispatcherQueueTimer sender, object args)
+        {
+            if (!_isWheelZooming)
+            {
+                sender.Stop();
+                return;
+            }
+
+            if ((DateTimeOffset.UtcNow - _lastWheelZoomAt).TotalMilliseconds < WheelZoomIdleTimeoutMs)
+            {
+                return;
+            }
+
+            _isWheelZooming = false;
+            sender.Stop();
+            UpdateInteractionState();
         }
 
         private void OnCanvasManipulationStarting(object sender, ManipulationStartingRoutedEventArgs e)
@@ -460,7 +527,8 @@ namespace WindBoard.Interaction
         {
             bool isInteracting = ActiveStroke is not null
                 || _panPointerId is not null
-                || _isManipulating;
+                || _isManipulating
+                || _isWheelZooming;
 
             if (_isInteracting == isInteracting)
             {

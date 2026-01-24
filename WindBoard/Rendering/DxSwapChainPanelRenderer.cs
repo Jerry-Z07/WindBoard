@@ -15,7 +15,7 @@ namespace WindBoard.Rendering
     {
         private const float MinRenderScale = 0.25f;
         private const float MaxRenderScale = 1.0f;
-        private const float InteractiveRenderScale = 0.75f;
+        private const float InteractiveRenderScale = 0.95f;
 
         private readonly SwapChainPanel _panel = panel;
 
@@ -27,6 +27,13 @@ namespace WindBoard.Rendering
         private ID2D1Device? _d2dDevice;
         private ID2D1DeviceContext? _d2dContext;
         private ID2D1Bitmap1? _d2dTargetBitmap;
+
+        private ID2D1Bitmap1? _cachedBackgroundBitmap;
+        private int _cachedBackgroundPixelWidth;
+        private int _cachedBackgroundPixelHeight;
+        private float _cachedBackgroundDpiX;
+        private float _cachedBackgroundDpiY;
+        private bool _cachedBackgroundDirty = true;
 
         private int _pixelWidth;
         private int _pixelHeight;
@@ -90,12 +97,14 @@ namespace WindBoard.Rendering
 
             CreateOrResizeSwapChainAndTargets();
 
-            if (_d2dContext is null || _swapChain is null)
+            if (_d2dContext is null || _swapChain is null || _d2dTargetBitmap is null)
             {
                 return;
             }
 
             var ctx = _d2dContext;
+            ctx.Target = _d2dTargetBitmap;
+            ctx.SetDpi(_dpiX, _dpiY);
 
             ctx.BeginDraw();
             ctx.Transform = Matrix3x2.Identity;
@@ -104,6 +113,78 @@ namespace WindBoard.Rendering
             ctx.EndDraw(out _, out _);
 
             _swapChain.Present(1, PresentFlags.None);
+        }
+
+        public void InvalidateCachedBackground()
+        {
+            _cachedBackgroundDirty = true;
+        }
+
+        public void ReleaseCachedBackground()
+        {
+            _cachedBackgroundBitmap?.Dispose();
+            _cachedBackgroundBitmap = null;
+            _cachedBackgroundDirty = true;
+        }
+
+        public void RenderWithCachedBackground(Action<ID2D1DeviceContext> drawBackground, Action<ID2D1DeviceContext> drawOverlay)
+        {
+            if (!IsInitialized)
+            {
+                return;
+            }
+
+            CreateOrResizeSwapChainAndTargets();
+
+            if (_d2dContext is null || _swapChain is null || _d2dTargetBitmap is null)
+            {
+                return;
+            }
+
+            var ctx = _d2dContext;
+
+            try
+            {
+                EnsureCachedBackgroundBitmap(ctx);
+
+                if (_cachedBackgroundBitmap is null)
+                {
+                    Render(ctx2 =>
+                    {
+                        drawBackground(ctx2);
+                        drawOverlay(ctx2);
+                    });
+                    return;
+                }
+
+                if (_cachedBackgroundDirty)
+                {
+                    RenderCachedBackground(ctx, drawBackground);
+                    _cachedBackgroundDirty = false;
+                }
+
+                ctx.Target = _d2dTargetBitmap;
+                ctx.SetDpi(_dpiX, _dpiY);
+
+                ctx.BeginDraw();
+                ctx.Transform = Matrix3x2.Identity;
+
+                // 背景缓存是全屏不透明（白底），这里无需 Clear，减少一次全屏填充。
+                ctx.DrawBitmap(_cachedBackgroundBitmap, 1.0f, BitmapInterpolationMode.Linear);
+                drawOverlay(ctx);
+
+                ctx.EndDraw(out _, out _);
+                _swapChain.Present(1, PresentFlags.None);
+            }
+            catch
+            {
+                // 缓存路径失败时降级为全量渲染，确保功能可用。
+                Render(ctx2 =>
+                {
+                    drawBackground(ctx2);
+                    drawOverlay(ctx2);
+                });
+            }
         }
 
         private void CreateDeviceResources()
@@ -238,6 +319,7 @@ namespace WindBoard.Rendering
                 SetSwapChainOnPanel(_swapChain);
                 ApplySwapChainPanelTransform(_swapChain, effectiveScaleX, effectiveScaleY, newPixelWidth, newPixelHeight);
                 needRecreateTarget = true;
+                ReleaseCachedBackground();
             }
             else if (sizeChanged || dpiChanged)
             {
@@ -260,6 +342,7 @@ namespace WindBoard.Rendering
                 }
 
                 ApplySwapChainPanelTransform(_swapChain, effectiveScaleX, effectiveScaleY, newPixelWidth, newPixelHeight);
+                ReleaseCachedBackground();
             }
 
             _pixelWidth = newPixelWidth;
@@ -280,6 +363,53 @@ namespace WindBoard.Rendering
                 _d2dContext.SetDpi(_dpiX, _dpiY);
             }
 
+        }
+
+        private void EnsureCachedBackgroundBitmap(ID2D1DeviceContext ctx)
+        {
+            bool needRecreate = _cachedBackgroundBitmap is null
+                || _cachedBackgroundPixelWidth != _pixelWidth
+                || _cachedBackgroundPixelHeight != _pixelHeight
+                || Math.Abs(_cachedBackgroundDpiX - _dpiX) > 0.01f
+                || Math.Abs(_cachedBackgroundDpiY - _dpiY) > 0.01f;
+
+            if (!needRecreate)
+            {
+                return;
+            }
+
+            ReleaseCachedBackground();
+
+            var bitmapProperties = new BitmapProperties1(
+                new PixelFormat(Format.B8G8R8A8_UNorm, Vortice.DCommon.AlphaMode.Premultiplied),
+                _dpiX,
+                _dpiY,
+                BitmapOptions.Target,
+                null);
+
+            _cachedBackgroundBitmap = ctx.CreateBitmap(new SizeI(_pixelWidth, _pixelHeight), IntPtr.Zero, 0, bitmapProperties);
+            _cachedBackgroundPixelWidth = _pixelWidth;
+            _cachedBackgroundPixelHeight = _pixelHeight;
+            _cachedBackgroundDpiX = _dpiX;
+            _cachedBackgroundDpiY = _dpiY;
+            _cachedBackgroundDirty = true;
+        }
+
+        private void RenderCachedBackground(ID2D1DeviceContext ctx, Action<ID2D1DeviceContext> drawBackground)
+        {
+            if (_cachedBackgroundBitmap is null)
+            {
+                return;
+            }
+
+            ctx.Target = _cachedBackgroundBitmap;
+            ctx.SetDpi(_dpiX, _dpiY);
+
+            ctx.BeginDraw();
+            ctx.Transform = Matrix3x2.Identity;
+            ctx.Clear(new Color4(1.0f, 1.0f, 1.0f, 1.0f));
+            drawBackground(ctx);
+            ctx.EndDraw(out _, out _);
         }
 
         private static void ApplySwapChainPanelTransform(
@@ -322,6 +452,8 @@ namespace WindBoard.Rendering
 
         public void Dispose()
         {
+            ReleaseCachedBackground();
+
             _d2dTargetBitmap?.Dispose();
             _d2dTargetBitmap = null;
 

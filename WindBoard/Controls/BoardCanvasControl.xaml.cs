@@ -1,8 +1,10 @@
 using System;
+using System.Diagnostics;
 using System.Numerics;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
+using WindBoard.Board;
 using WindBoard.Board.Editing;
 using WindBoard.Board.Viewport;
 using WindBoard.Interaction;
@@ -13,6 +15,8 @@ namespace WindBoard.Controls
 {
     public sealed partial class BoardCanvasControl : UserControl, IDisposable
     {
+        private const int MaxInteractiveFps = 60;
+
         private DxSwapChainPanelRenderer? _renderer;
         private readonly BoardSession _session = new();
         private readonly BoardViewport _viewport = new();
@@ -21,6 +25,8 @@ namespace WindBoard.Controls
         private bool _isInitialized;
         private bool _isRenderingLoopActive;
         private bool _isRenderQueued;
+        private long _lastRenderingLoopTick;
+        private bool _wasWriting;
 
         public BoardCanvasControl()
         {
@@ -118,7 +124,35 @@ namespace WindBoard.Controls
 
         private void OnRendering(object? sender, object e)
         {
+            if (!ShouldRenderInLoop())
+            {
+                return;
+            }
+
             RenderFrame();
+        }
+
+        private bool ShouldRenderInLoop()
+        {
+            if (!_isRenderingLoopActive)
+            {
+                return true;
+            }
+
+            long minDelta = Stopwatch.Frequency / MaxInteractiveFps;
+            if (minDelta <= 0)
+            {
+                return true;
+            }
+
+            long now = Stopwatch.GetTimestamp();
+            if (_lastRenderingLoopTick != 0 && now - _lastRenderingLoopTick < minDelta)
+            {
+                return false;
+            }
+
+            _lastRenderingLoopTick = now;
+            return true;
         }
 
         private void RaiseCommandStateChanged()
@@ -128,12 +162,14 @@ namespace WindBoard.Controls
 
         private void OnSessionStateChanged()
         {
+            _renderer?.InvalidateCachedBackground();
             RaiseCommandStateChanged();
             RequestRender();
         }
 
         private void OnInputStateChanged()
         {
+            UpdateWritingCacheState();
             RaiseCommandStateChanged();
             RequestRender();
         }
@@ -162,7 +198,16 @@ namespace WindBoard.Controls
                 }
 
                 _renderer.SetInteractiveMode(true);
-                SetRenderingLoopActive(true);
+
+                if (_input?.IsContinuousViewportInteraction == true)
+                {
+                    SetRenderingLoopActive(true);
+                }
+                else
+                {
+                    SetRenderingLoopActive(false);
+                    RequestRender();
+                }
                 return;
             }
 
@@ -180,6 +225,7 @@ namespace WindBoard.Controls
 
             if (active)
             {
+                _lastRenderingLoopTick = 0;
                 CompositionTarget.Rendering += OnRendering;
             }
             else
@@ -240,10 +286,40 @@ namespace WindBoard.Controls
                 return;
             }
 
-            _renderer.Render(ctx =>
+            Stroke? activeStroke = _input?.ActiveStroke;
+            if (activeStroke is not null)
             {
-                _sceneRenderer.Draw(ctx, _session.Document, _input?.ActiveStroke, _viewport);
-            });
+                _renderer.RenderWithCachedBackground(
+                    drawBackground: ctx => _sceneRenderer.DrawBackground(ctx, _session.Document, _viewport),
+                    drawOverlay: ctx => _sceneRenderer.DrawActiveStroke(ctx, activeStroke, _viewport));
+                return;
+            }
+
+            _renderer.Render(ctx => _sceneRenderer.Draw(ctx, _session.Document, null, _viewport));
+        }
+
+        private void UpdateWritingCacheState()
+        {
+            bool isWriting = _input?.ActiveStroke is not null;
+            if (_wasWriting == isWriting)
+            {
+                return;
+            }
+
+            _wasWriting = isWriting;
+
+            if (_renderer is null)
+            {
+                return;
+            }
+
+            if (isWriting)
+            {
+                _renderer.InvalidateCachedBackground();
+                return;
+            }
+
+            _renderer.ReleaseCachedBackground();
         }
 
         public void Dispose()
