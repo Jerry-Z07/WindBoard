@@ -19,6 +19,8 @@ namespace WindBoard.Controls
         private readonly BoardSceneRenderer _sceneRenderer = new();
         private BoardInputController? _input;
         private bool _isInitialized;
+        private bool _isRenderingLoopActive;
+        private bool _isRenderQueued;
 
         public BoardCanvasControl()
         {
@@ -75,31 +77,36 @@ namespace WindBoard.Controls
                 CanvasPanel.XamlRoot.Changed += OnXamlRootChanged;
             }
 
-            _session.StateChanged += RaiseCommandStateChanged;
-            _input.StateChanged += RaiseCommandStateChanged;
+            _session.StateChanged += OnSessionStateChanged;
+            _input.StateChanged += OnInputStateChanged;
+            _input.FrameInvalidated += OnFrameInvalidated;
+            _input.InteractionStateChanged += OnInteractionStateChanged;
 
             UpdateViewportSize();
 
-            CompositionTarget.Rendering += OnRendering;
             _isInitialized = true;
 
             RaiseCommandStateChanged();
+            RequestRender();
         }
 
         private void OnXamlRootChanged(Microsoft.UI.Xaml.XamlRoot sender, XamlRootChangedEventArgs args)
         {
             _renderer?.Resize();
+            RequestRender();
         }
 
         private void OnCanvasSizeChanged(object sender, SizeChangedEventArgs e)
         {
             UpdateViewportSize();
             _renderer?.Resize();
+            RequestRender();
         }
 
         private void OnCanvasCompositionScaleChanged(SwapChainPanel sender, object args)
         {
             _renderer?.Resize();
+            RequestRender();
         }
 
         private void UpdateViewportSize()
@@ -111,7 +118,124 @@ namespace WindBoard.Controls
 
         private void OnRendering(object? sender, object e)
         {
-            if (_renderer is null)
+            RenderFrame();
+        }
+
+        private void RaiseCommandStateChanged()
+        {
+            CommandStateChanged?.Invoke(this, EventArgs.Empty);
+        }
+
+        private void OnSessionStateChanged()
+        {
+            RaiseCommandStateChanged();
+            RequestRender();
+        }
+
+        private void OnInputStateChanged()
+        {
+            RaiseCommandStateChanged();
+            RequestRender();
+        }
+
+        private void OnFrameInvalidated()
+        {
+            RequestRender();
+        }
+
+        private void OnInteractionStateChanged(bool isInteracting)
+        {
+            if (!_isInitialized || _renderer is null)
+            {
+                return;
+            }
+
+            if (isInteracting)
+            {
+                // 书写时保持全分辨率，避免笔迹模糊；仅在平移/捏合缩放等视口操作时降低分辨率以减轻 GPU 压力。
+                if (_input?.ActiveStroke is not null)
+                {
+                    SetRenderingLoopActive(false);
+                    _renderer.SetInteractiveMode(false);
+                    RequestRender();
+                    return;
+                }
+
+                _renderer.SetInteractiveMode(true);
+                SetRenderingLoopActive(true);
+                return;
+            }
+
+            SetRenderingLoopActive(false);
+            _renderer.SetInteractiveMode(false);
+            RequestRender();
+        }
+
+        private void SetRenderingLoopActive(bool active)
+        {
+            if (!_isInitialized || _isRenderingLoopActive == active)
+            {
+                return;
+            }
+
+            if (active)
+            {
+                CompositionTarget.Rendering += OnRendering;
+            }
+            else
+            {
+                CompositionTarget.Rendering -= OnRendering;
+            }
+
+            _isRenderingLoopActive = active;
+        }
+
+        private void RequestRender()
+        {
+            if (!_isInitialized || _renderer is null)
+            {
+                return;
+            }
+
+            if (_isRenderingLoopActive)
+            {
+                return;
+            }
+
+            if (_isRenderQueued)
+            {
+                return;
+            }
+
+            _isRenderQueued = true;
+            bool enqueued = DispatcherQueue.TryEnqueue(() =>
+            {
+                _isRenderQueued = false;
+
+                if (!_isInitialized || _renderer is null || _isRenderingLoopActive)
+                {
+                    return;
+                }
+
+                RenderFrame();
+            });
+
+            if (!enqueued)
+            {
+                _isRenderQueued = false;
+
+                if (!_isInitialized || _renderer is null || _isRenderingLoopActive)
+                {
+                    return;
+                }
+
+                RenderFrame();
+            }
+        }
+
+        private void RenderFrame()
+        {
+            if (!_isInitialized || _renderer is null)
             {
                 return;
             }
@@ -122,11 +246,6 @@ namespace WindBoard.Controls
             });
         }
 
-        private void RaiseCommandStateChanged()
-        {
-            CommandStateChanged?.Invoke(this, EventArgs.Empty);
-        }
-
         public void Dispose()
         {
             if (!_isInitialized)
@@ -134,7 +253,7 @@ namespace WindBoard.Controls
                 return;
             }
 
-            CompositionTarget.Rendering -= OnRendering;
+            SetRenderingLoopActive(false);
 
             CanvasPanel.SizeChanged -= OnCanvasSizeChanged;
             CanvasPanel.CompositionScaleChanged -= OnCanvasCompositionScaleChanged;
@@ -144,11 +263,13 @@ namespace WindBoard.Controls
                 CanvasPanel.XamlRoot.Changed -= OnXamlRootChanged;
             }
 
-            _session.StateChanged -= RaiseCommandStateChanged;
+            _session.StateChanged -= OnSessionStateChanged;
 
             if (_input is not null)
             {
-                _input.StateChanged -= RaiseCommandStateChanged;
+                _input.StateChanged -= OnInputStateChanged;
+                _input.FrameInvalidated -= OnFrameInvalidated;
+                _input.InteractionStateChanged -= OnInteractionStateChanged;
                 _input.Detach();
             }
 

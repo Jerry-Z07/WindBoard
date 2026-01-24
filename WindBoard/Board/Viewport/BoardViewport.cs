@@ -37,6 +37,20 @@ namespace WindBoard.Board.Viewport
             return (screenDip - viewportCenter) / Math.Max(0.0001f, Zoom) + CameraWorld;
         }
 
+        public void GetVisibleWorldBounds(out Vector2 minWorld, out Vector2 maxWorld)
+        {
+            Vector2 worldTopLeft = ScreenToWorld(Vector2.Zero);
+            Vector2 worldBottomRight = ScreenToWorld(ViewportSizeDip);
+
+            minWorld = new Vector2(
+                Math.Min(worldTopLeft.X, worldBottomRight.X),
+                Math.Min(worldTopLeft.Y, worldBottomRight.Y));
+
+            maxWorld = new Vector2(
+                Math.Max(worldTopLeft.X, worldBottomRight.X),
+                Math.Max(worldTopLeft.Y, worldBottomRight.Y));
+        }
+
         public void PanByScreenDelta(Vector2 deltaScreenDip)
         {
             CameraWorld -= deltaScreenDip / Math.Max(0.0001f, Zoom);
@@ -64,4 +78,3 @@ namespace WindBoard.Board.Viewport
         }
     }
 }
-

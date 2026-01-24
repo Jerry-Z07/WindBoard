@@ -13,6 +13,10 @@ namespace WindBoard.Rendering
 {
     internal sealed partial class DxSwapChainPanelRenderer(SwapChainPanel panel) : IDisposable
     {
+        private const float MinRenderScale = 0.25f;
+        private const float MaxRenderScale = 1.0f;
+        private const float InteractiveRenderScale = 0.75f;
+
         private readonly SwapChainPanel _panel = panel;
 
         private ID3D11Device? _d3dDevice;
@@ -28,8 +32,11 @@ namespace WindBoard.Rendering
         private int _pixelHeight;
         private float _dpiX;
         private float _dpiY;
+        private float _renderScale = 1.0f;
 
         public bool IsInitialized { get; private set; }
+
+        public float RenderScale => _renderScale;
 
         public void Initialize()
         {
@@ -41,6 +48,27 @@ namespace WindBoard.Rendering
             CreateDeviceResources();
             CreateOrResizeSwapChainAndTargets();
             IsInitialized = true;
+        }
+
+        public void SetInteractiveMode(bool isInteractive)
+        {
+            SetRenderScale(isInteractive ? InteractiveRenderScale : 1.0f);
+        }
+
+        public void SetRenderScale(float scale)
+        {
+            float clamped = Math.Clamp(scale, MinRenderScale, MaxRenderScale);
+            if (Math.Abs(clamped - _renderScale) < 0.0001f)
+            {
+                return;
+            }
+
+            _renderScale = clamped;
+
+            if (IsInitialized)
+            {
+                CreateOrResizeSwapChainAndTargets();
+            }
         }
 
         public void Resize()
@@ -170,11 +198,14 @@ namespace WindBoard.Rendering
                 compositionScaleY = 1.0;
             }
 
-            float newDpiX = (float)(96.0 * compositionScaleX);
-            float newDpiY = (float)(96.0 * compositionScaleY);
+            double effectiveScaleX = compositionScaleX * _renderScale;
+            double effectiveScaleY = compositionScaleY * _renderScale;
 
-            int newPixelWidth = Math.Max(1, (int)Math.Round(_panel.ActualWidth * compositionScaleX));
-            int newPixelHeight = Math.Max(1, (int)Math.Round(_panel.ActualHeight * compositionScaleY));
+            float newDpiX = (float)(96.0 * effectiveScaleX);
+            float newDpiY = (float)(96.0 * effectiveScaleY);
+
+            int newPixelWidth = Math.Max(1, (int)Math.Round(_panel.ActualWidth * effectiveScaleX));
+            int newPixelHeight = Math.Max(1, (int)Math.Round(_panel.ActualHeight * effectiveScaleY));
 
             bool sizeChanged = newPixelWidth != _pixelWidth || newPixelHeight != _pixelHeight;
             bool dpiChanged = Math.Abs(newDpiX - _dpiX) > 0.01f || Math.Abs(newDpiY - _dpiY) > 0.01f;
@@ -205,7 +236,7 @@ namespace WindBoard.Rendering
 
                 _swapChain = factory.CreateSwapChainForComposition(_d3dDevice, desc, null);
                 SetSwapChainOnPanel(_swapChain);
-                ApplySwapChainPanelTransform(_swapChain, compositionScaleX, compositionScaleY, newPixelWidth, newPixelHeight);
+                ApplySwapChainPanelTransform(_swapChain, effectiveScaleX, effectiveScaleY, newPixelWidth, newPixelHeight);
                 needRecreateTarget = true;
             }
             else if (sizeChanged || dpiChanged)
@@ -228,7 +259,7 @@ namespace WindBoard.Rendering
                         SwapChainFlags.None);
                 }
 
-                ApplySwapChainPanelTransform(_swapChain, compositionScaleX, compositionScaleY, newPixelWidth, newPixelHeight);
+                ApplySwapChainPanelTransform(_swapChain, effectiveScaleX, effectiveScaleY, newPixelWidth, newPixelHeight);
             }
 
             _pixelWidth = newPixelWidth;
@@ -253,8 +284,8 @@ namespace WindBoard.Rendering
 
         private static void ApplySwapChainPanelTransform(
             IDXGISwapChain1 swapChain,
-            double compositionScaleX,
-            double compositionScaleY,
+            double scaleX,
+            double scaleY,
             int pixelWidth,
             int pixelHeight)
         {
@@ -264,10 +295,10 @@ namespace WindBoard.Rendering
                 swapChain2.SetSourceSize((uint)pixelWidth, (uint)pixelHeight);
 
                 var inverseScale = new Matrix3x2(
-                    (float)(1.0 / compositionScaleX),
+                    (float)(1.0 / scaleX),
                     0.0f,
                     0.0f,
-                    (float)(1.0 / compositionScaleY),
+                    (float)(1.0 / scaleY),
                     0.0f,
                     0.0f);
                 swapChain2.MatrixTransform = inverseScale;

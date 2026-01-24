@@ -23,6 +23,8 @@ namespace WindBoard.Interaction
         private Vector2 _lastPanScreen = Vector2.Zero;
         private PointerDeviceType? _activeStrokeDeviceType;
         private readonly HashSet<uint> _activeTouchPointers = new();
+        private bool _isManipulating;
+        private bool _isInteracting;
 
         public BoardInputController(SwapChainPanel panel, BoardSession session, BoardViewport viewport)
         {
@@ -34,6 +36,10 @@ namespace WindBoard.Interaction
         public Stroke? ActiveStroke { get; private set; }
 
         public event Action? StateChanged;
+
+        public event Action? FrameInvalidated;
+
+        public event Action<bool>? InteractionStateChanged;
 
         public void Attach()
         {
@@ -76,6 +82,8 @@ namespace WindBoard.Interaction
             _activePointerId = null;
             _activeStrokeDeviceType = null;
             _panel.ReleasePointerCaptures();
+            UpdateInteractionState();
+            FrameInvalidated?.Invoke();
             StateChanged?.Invoke();
         }
 
@@ -90,6 +98,8 @@ namespace WindBoard.Interaction
             _activePointerId = null;
             _activeStrokeDeviceType = null;
             _panel.ReleasePointerCaptures();
+            UpdateInteractionState();
+            FrameInvalidated?.Invoke();
             StateChanged?.Invoke();
         }
 
@@ -100,6 +110,7 @@ namespace WindBoard.Interaction
             if (e.Pointer.PointerDeviceType == PointerDeviceType.Touch)
             {
                 _activeTouchPointers.Add(e.Pointer.PointerId);
+                UpdateInteractionState();
 
                 // 多指触摸：交给 Manipulation 处理缩放/拖动；如果正在用“触摸单指画线”，则先结束画线
                 if (_activeTouchPointers.Count >= 2)
@@ -118,6 +129,7 @@ namespace WindBoard.Interaction
                     }
 
                     e.Handled = true;
+                    FrameInvalidated?.Invoke();
                     return;
                 }
 
@@ -138,7 +150,11 @@ namespace WindBoard.Interaction
                     EnablePressure = true,
                 };
 
-                AppendPoint(ActiveStroke, e.Pointer, point);
+                if (AppendPoint(ActiveStroke, e.Pointer, point))
+                {
+                    FrameInvalidated?.Invoke();
+                }
+                UpdateInteractionState();
                 e.Handled = true;
                 StateChanged?.Invoke();
                 return;
@@ -155,6 +171,8 @@ namespace WindBoard.Interaction
                 _panPointerId = e.Pointer.PointerId;
                 _lastPanScreen = new Vector2((float)point.Position.X, (float)point.Position.Y);
                 e.Handled = true;
+                UpdateInteractionState();
+                FrameInvalidated?.Invoke();
                 StateChanged?.Invoke();
                 return;
             }
@@ -175,7 +193,11 @@ namespace WindBoard.Interaction
                 EnablePressure = true,
             };
 
-            AppendPoint(ActiveStroke, e.Pointer, point);
+            if (AppendPoint(ActiveStroke, e.Pointer, point))
+            {
+                FrameInvalidated?.Invoke();
+            }
+            UpdateInteractionState();
             e.Handled = true;
             StateChanged?.Invoke();
         }
@@ -190,6 +212,7 @@ namespace WindBoard.Interaction
                 _lastPanScreen = current;
                 _viewport.PanByScreenDelta(delta);
                 e.Handled = true;
+                FrameInvalidated?.Invoke();
                 return;
             }
 
@@ -204,7 +227,10 @@ namespace WindBoard.Interaction
             }
 
             PointerPoint point2 = e.GetCurrentPoint(_panel);
-            AppendPoint(ActiveStroke, e.Pointer, point2);
+            if (AppendPoint(ActiveStroke, e.Pointer, point2))
+            {
+                FrameInvalidated?.Invoke();
+            }
             e.Handled = true;
         }
 
@@ -213,6 +239,7 @@ namespace WindBoard.Interaction
             if (e.Pointer.PointerDeviceType == PointerDeviceType.Touch)
             {
                 _activeTouchPointers.Remove(e.Pointer.PointerId);
+                UpdateInteractionState();
             }
 
             if (_panPointerId == e.Pointer.PointerId)
@@ -220,6 +247,8 @@ namespace WindBoard.Interaction
                 _panPointerId = null;
                 _panel.ReleasePointerCaptures();
                 e.Handled = true;
+                UpdateInteractionState();
+                FrameInvalidated?.Invoke();
                 StateChanged?.Invoke();
                 return;
             }
@@ -238,6 +267,7 @@ namespace WindBoard.Interaction
             if (e.Pointer.PointerDeviceType == PointerDeviceType.Touch)
             {
                 _activeTouchPointers.Remove(e.Pointer.PointerId);
+                UpdateInteractionState();
             }
 
             if (_panPointerId == e.Pointer.PointerId)
@@ -245,6 +275,8 @@ namespace WindBoard.Interaction
                 _panPointerId = null;
                 _panel.ReleasePointerCaptures();
                 e.Handled = true;
+                UpdateInteractionState();
+                FrameInvalidated?.Invoke();
                 StateChanged?.Invoke();
                 return;
             }
@@ -263,12 +295,15 @@ namespace WindBoard.Interaction
             if (e.Pointer.PointerDeviceType == PointerDeviceType.Touch)
             {
                 _activeTouchPointers.Remove(e.Pointer.PointerId);
+                UpdateInteractionState();
             }
 
             if (_panPointerId == e.Pointer.PointerId)
             {
                 _panPointerId = null;
                 e.Handled = true;
+                UpdateInteractionState();
+                FrameInvalidated?.Invoke();
                 StateChanged?.Invoke();
                 return;
             }
@@ -300,6 +335,7 @@ namespace WindBoard.Interaction
             float factor = (float)Math.Pow(1.1, delta / 120.0);
             _viewport.ZoomAboutScreenPoint(new Vector2((float)point.Position.X, (float)point.Position.Y), factor);
             e.Handled = true;
+            FrameInvalidated?.Invoke();
         }
 
         private void OnCanvasManipulationStarting(object sender, ManipulationStartingRoutedEventArgs e)
@@ -311,6 +347,9 @@ namespace WindBoard.Interaction
                 return;
             }
 
+            _isManipulating = _activeTouchPointers.Count >= 2;
+            UpdateInteractionState();
+            FrameInvalidated?.Invoke();
             e.Handled = true;
         }
 
@@ -329,6 +368,12 @@ namespace WindBoard.Interaction
                 return;
             }
 
+            if (!_isManipulating)
+            {
+                _isManipulating = true;
+                UpdateInteractionState();
+            }
+
             Vector2 anchor = new((float)e.Position.X, (float)e.Position.Y);
 
             float scale = (float)e.Delta.Scale;
@@ -344,6 +389,7 @@ namespace WindBoard.Interaction
             }
 
             e.Handled = true;
+            FrameInvalidated?.Invoke();
         }
 
         private void OnCanvasManipulationCompleted(object sender, ManipulationCompletedRoutedEventArgs e)
@@ -351,10 +397,13 @@ namespace WindBoard.Interaction
             // 在三指及以上的复杂触摸手势下，系统可能不会为每个触点都完整触发 PointerReleased/PointerCanceled。
             // 为避免触点残留导致始终被判定为“多指”，这里在手势结束时强制清空触摸状态。
             _activeTouchPointers.Clear();
+            _isManipulating = false;
+            UpdateInteractionState();
+            FrameInvalidated?.Invoke();
             e.Handled = true;
         }
 
-        private void AppendPoint(Stroke stroke, Pointer pointer, PointerPoint point)
+        private bool AppendPoint(Stroke stroke, Pointer pointer, PointerPoint point)
         {
             Vector2 screen = new((float)point.Position.X, (float)point.Position.Y);
             Vector2 pos = _viewport.ScreenToWorld(screen);
@@ -366,11 +415,13 @@ namespace WindBoard.Interaction
                 float minDistWorld = 0.5f / Math.Max(0.0001f, _viewport.Zoom);
                 if (Vector2.DistanceSquared(last, pos) < minDistWorld * minDistWorld)
                 {
-                    return;
+                    return false;
                 }
             }
 
             stroke.Points.Add(new StrokePoint(pos, pressure));
+            stroke.ExpandBounds(pos, pressure);
+            return true;
         }
 
         private static bool ShouldStartStroke(Pointer pointer, PointerPoint point)
@@ -404,6 +455,20 @@ namespace WindBoard.Interaction
             float p = (float)props.Pressure;
             return Math.Clamp(p, 0.1f, 1.0f);
         }
+
+        private void UpdateInteractionState()
+        {
+            bool isInteracting = ActiveStroke is not null
+                || _panPointerId is not null
+                || _isManipulating;
+
+            if (_isInteracting == isInteracting)
+            {
+                return;
+            }
+
+            _isInteracting = isInteracting;
+            InteractionStateChanged?.Invoke(isInteracting);
+        }
     }
 }
-
