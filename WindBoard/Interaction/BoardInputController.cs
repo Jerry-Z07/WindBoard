@@ -518,73 +518,13 @@ namespace WindBoard.Interaction
             stroke.Points.Add(new StrokePoint(pos, pressure));
             stroke.ExpandBounds(pos, pressure);
 
-            UpdatePendingStrokeDirtyRect(stroke, screen);
+            _pendingStrokeDirtyRect = BoardInputDirtyRectCalculator.UpdatePendingStrokeDirtyRect(
+                _pendingStrokeDirtyRect,
+                stroke,
+                _viewport,
+                screen,
+                DirtyRectExtraDip);
             return true;
-        }
-
-        private void UpdatePendingStrokeDirtyRect(Stroke stroke, Vector2 latestScreenDip)
-        {
-            if (stroke.Points.Count == 0)
-            {
-                return;
-            }
-
-            float zoom = _viewport.Zoom;
-            if (zoom <= 0.0001f)
-            {
-                return;
-            }
-
-            int pointCount = stroke.Points.Count;
-
-            float padding = DirtyRectExtraDip;
-            float x0 = latestScreenDip.X;
-            float y0 = latestScreenDip.Y;
-            float x1 = x0;
-            float y1 = y0;
-
-            float pressure0 = stroke.Points[^1].Pressure;
-            float pressure1 = pressure0;
-
-            if (pointCount >= 2)
-            {
-                StrokePoint prev = stroke.Points[^2];
-                Vector2 prevScreen = Vector2.Transform(prev.Position, _viewport.GetWorldToScreenTransform());
-                x0 = prevScreen.X;
-                y0 = prevScreen.Y;
-                x1 = latestScreenDip.X;
-                y1 = latestScreenDip.Y;
-
-                pressure0 = prev.Pressure;
-                pressure1 = stroke.Points[^1].Pressure;
-            }
-
-            float widthFactor = stroke.EnablePressure
-                ? Math.Clamp((pressure0 + pressure1) / 2.0f, 0.1f, 1.0f)
-                : 1.0f;
-
-            float halfWidthWorld = Math.Max(0.25f, stroke.BaseSize * widthFactor / 2.0f);
-            float halfWidthScreen = halfWidthWorld * zoom;
-            padding += halfWidthScreen;
-
-            float left = Math.Min(x0, x1) - padding;
-            float top = Math.Min(y0, y1) - padding;
-            float right = Math.Max(x0, x1) + padding;
-            float bottom = Math.Max(y0, y1) + padding;
-
-            Rect rect = Rect.FromLTRB(left, top, right, bottom);
-            if (_pendingStrokeDirtyRect is Rect existing)
-            {
-                _pendingStrokeDirtyRect = Rect.FromLTRB(
-                    Math.Min(existing.Left, rect.Left),
-                    Math.Min(existing.Top, rect.Top),
-                    Math.Max(existing.Right, rect.Right),
-                    Math.Max(existing.Bottom, rect.Bottom));
-            }
-            else
-            {
-                _pendingStrokeDirtyRect = rect;
-            }
         }
 
         private static bool ShouldStartStroke(Pointer pointer, PointerPoint point)

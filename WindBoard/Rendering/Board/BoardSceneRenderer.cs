@@ -148,7 +148,7 @@ namespace WindBoard.Rendering.Board
 
             foreach (var stroke in document.Strokes)
             {
-                if (!IsStrokeVisible(stroke, visibleMinWorld, visibleMaxWorld))
+                if (!BoardSceneMath.IsStrokeVisible(stroke, visibleMinWorld, visibleMaxWorld))
                 {
                     continue;
                 }
@@ -166,7 +166,7 @@ namespace WindBoard.Rendering.Board
 
         private void DrawStrokeIfVisible(ID2D1DeviceContext ctx, ID2D1DeviceContext2? ctx2, Stroke stroke, Vector2 visibleMinWorld, Vector2 visibleMaxWorld)
         {
-            if (!IsStrokeVisible(stroke, visibleMinWorld, visibleMaxWorld))
+            if (!BoardSceneMath.IsStrokeVisible(stroke, visibleMinWorld, visibleMaxWorld))
             {
                 return;
             }
@@ -190,7 +190,7 @@ namespace WindBoard.Rendering.Board
 
             if (stroke.Points.Count == 1)
             {
-                float radius = Math.Max(0.5f, stroke.BaseSize * GetStrokeWidthFactor(stroke.Points[0].Pressure) / 2.0f);
+                float radius = Math.Max(0.5f, stroke.BaseSize * BoardSceneMath.GetStrokeWidthFactor(stroke.Points[0].Pressure) / 2.0f);
                 ctx.FillEllipse(new Ellipse(stroke.Points[0].Position, radius, radius), _strokeBrush);
                 return;
             }
@@ -209,7 +209,7 @@ namespace WindBoard.Rendering.Board
                 StrokePoint p1 = stroke.Points[i];
 
                 float widthFactor = stroke.EnablePressure
-                    ? GetStrokeWidthFactor((p0.Pressure + p1.Pressure) / 2.0f)
+                    ? BoardSceneMath.GetStrokeWidthFactor((p0.Pressure + p1.Pressure) / 2.0f)
                     : 1.0f;
 
                 float strokeWidth = Math.Max(0.5f, stroke.BaseSize * widthFactor);
@@ -394,7 +394,7 @@ namespace WindBoard.Rendering.Board
 
         private static InkPoint CreateInkPoint(Stroke stroke, StrokePoint point)
         {
-            float widthFactor = stroke.EnablePressure ? GetStrokeWidthFactor(point.Pressure) : 1.0f;
+            float widthFactor = stroke.EnablePressure ? BoardSceneMath.GetStrokeWidthFactor(point.Pressure) : 1.0f;
             float diameter = Math.Max(0.5f, stroke.BaseSize * widthFactor);
             float radius = diameter / 2.0f;
 
@@ -440,7 +440,7 @@ namespace WindBoard.Rendering.Board
             float minY = visibleMinWorld.Y;
             float maxY = visibleMaxWorld.Y;
 
-            float step = GetAdaptiveGridStepWorld(viewport.Zoom);
+            float step = BoardSceneMath.GetAdaptiveGridStepWorld(viewport.Zoom);
             if (step <= 0.0f)
             {
                 return;
@@ -488,55 +488,6 @@ namespace WindBoard.Rendering.Board
             {
                 ctx.DrawLine(new Vector2(minX, 0.0f), new Vector2(maxX, 0.0f), _axisBrush, axisThicknessWorld);
             }
-        }
-
-        private static float GetAdaptiveGridStepWorld(float zoom)
-        {
-            // 基准：zoom=1 时每 40 DIP 一格。根据缩放自适应，保证屏幕上网格密度大致稳定。
-            float step = 40.0f;
-            float stepScreen = step * zoom;
-
-            while (stepScreen < 20.0f)
-            {
-                step *= 2.0f;
-                stepScreen = step * zoom;
-            }
-
-            while (stepScreen > 80.0f)
-            {
-                step /= 2.0f;
-                stepScreen = step * zoom;
-            }
-
-            return step;
-        }
-
-        private static float GetStrokeWidthFactor(float normalizedPressure)
-        {
-            return Math.Clamp(normalizedPressure, 0.1f, 1.0f);
-        }
-
-        private static bool IsStrokeVisible(Stroke stroke, Vector2 visibleMinWorld, Vector2 visibleMaxWorld)
-        {
-            if (stroke.Points.Count == 0)
-            {
-                return false;
-            }
-
-            if (!stroke.HasBounds)
-            {
-                return true;
-            }
-
-            return IntersectsAabb(stroke.BoundsMin, stroke.BoundsMax, visibleMinWorld, visibleMaxWorld);
-        }
-
-        private static bool IntersectsAabb(Vector2 aMin, Vector2 aMax, Vector2 bMin, Vector2 bMax)
-        {
-            return aMin.X <= bMax.X
-                && aMax.X >= bMin.X
-                && aMin.Y <= bMax.Y
-                && aMax.Y >= bMin.Y;
         }
 
         public void Dispose()

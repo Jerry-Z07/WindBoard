@@ -268,7 +268,7 @@ namespace WindBoard.Rendering
             }
 
             var scrollRectPixels = new RectI(scrollLeft, scrollTop, scrollRight - scrollLeft, scrollBottom - scrollTop);
-            var dirtyRectsPixels = CreatePanDirtyRectsPixels(width, height, dxPixels, dyPixels);
+            var dirtyRectsPixels = DxDirtyRectCalculator.CreatePanDirtyRectsPixels(width, height, dxPixels, dyPixels);
             if (dirtyRectsPixels.Length == 0)
             {
                 return false;
@@ -614,41 +614,6 @@ namespace WindBoard.Rendering
             ctx.Clear(new Color4(1.0f, 1.0f, 1.0f, 1.0f));
             drawBackground(ctx);
             ctx.EndDraw(out _, out _);
-        }
-
-        private static RectI[] CreatePanDirtyRectsPixels(int width, int height, int dxPixels, int dyPixels)
-        {
-            RectI? vertical = null;
-            if (dxPixels > 0)
-            {
-                vertical = new RectI(0, 0, dxPixels, height);
-            }
-            else if (dxPixels < 0)
-            {
-                vertical = new RectI(width + dxPixels, 0, -dxPixels, height);
-            }
-
-            RectI? horizontal = null;
-            if (dyPixels > 0)
-            {
-                horizontal = new RectI(0, 0, width, dyPixels);
-            }
-            else if (dyPixels < 0)
-            {
-                horizontal = new RectI(0, height + dyPixels, width, -dyPixels);
-            }
-
-            if (vertical is null && horizontal is null)
-            {
-                return Array.Empty<RectI>();
-            }
-
-            if (vertical is not null && horizontal is not null)
-            {
-                return new[] { vertical.Value, horizontal.Value };
-            }
-
-            return new[] { vertical ?? horizontal ?? default };
         }
 
         private float GetPixelsPerDipX() => _dpiX / 96.0f;
