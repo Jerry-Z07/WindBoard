@@ -4,6 +4,7 @@ using System.Numerics;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
+using Vortice.Mathematics;
 using WindBoard.Board;
 using WindBoard.Board.Editing;
 using WindBoard.Board.Viewport;
@@ -27,6 +28,7 @@ namespace WindBoard.Controls
         private bool _isRenderQueued;
         private long _lastRenderingLoopTick;
         private bool _wasWriting;
+        private float _lastRenderedZoom = float.NaN;
 
         public BoardCanvasControl()
         {
@@ -289,13 +291,50 @@ namespace WindBoard.Controls
             Stroke? activeStroke = _input?.ActiveStroke;
             if (activeStroke is not null)
             {
-                _renderer.RenderWithCachedBackground(
-                    drawBackground: ctx => _sceneRenderer.DrawBackground(ctx, _session.Document, _viewport),
-                    drawOverlay: ctx => _sceneRenderer.DrawActiveStroke(ctx, activeStroke, _viewport));
+                if (_input?.TryConsumeStrokeDirtyRect(out Rect dirtyRectDip) == true)
+                {
+                    _renderer.RenderWithCachedBackgroundDirtyRect(
+                        dirtyRectDip,
+                        drawBackground: ctx => _sceneRenderer.DrawBackground(ctx, _session.Document, _viewport),
+                        drawOverlay: ctx => _sceneRenderer.DrawActiveStroke(ctx, activeStroke, _viewport));
+                }
+                else
+                {
+                    _renderer.RenderWithCachedBackground(
+                        drawBackground: ctx => _sceneRenderer.DrawBackground(ctx, _session.Document, _viewport),
+                        drawOverlay: ctx => _sceneRenderer.DrawActiveStroke(ctx, activeStroke, _viewport));
+                }
+
+                _lastRenderedZoom = _viewport.Zoom;
+                return;
+            }
+
+            Vector2 panDeltaDip = _input?.ConsumePanScreenDelta() ?? Vector2.Zero;
+            if (panDeltaDip.LengthSquared() > 0.0001f
+                && !float.IsNaN(_lastRenderedZoom)
+                && Math.Abs(_viewport.Zoom - _lastRenderedZoom) < 0.000001f)
+            {
+                bool presented = _renderer.TryRenderWithScroll(
+                    panDeltaDip,
+                    (ctx, dirtyDip) => _sceneRenderer.DrawBackgroundInScreenRect(ctx, _session.Document, _viewport, dirtyDip));
+
+                if (presented)
+                {
+                    _lastRenderedZoom = _viewport.Zoom;
+                    return;
+                }
+            }
+
+            if (_isRenderingLoopActive
+                && panDeltaDip.LengthSquared() <= 0.0001f
+                && !float.IsNaN(_lastRenderedZoom)
+                && Math.Abs(_viewport.Zoom - _lastRenderedZoom) < 0.000001f)
+            {
                 return;
             }
 
             _renderer.Render(ctx => _sceneRenderer.Draw(ctx, _session.Document, null, _viewport));
+            _lastRenderedZoom = _viewport.Zoom;
         }
 
         private void UpdateWritingCacheState()

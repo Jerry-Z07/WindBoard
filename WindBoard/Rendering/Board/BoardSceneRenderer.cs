@@ -89,6 +89,46 @@ namespace WindBoard.Rendering.Board
             ctx.Transform = oldTransform;
         }
 
+        public void DrawBackgroundInScreenRect(ID2D1DeviceContext ctx, BoardDocument document, BoardViewport viewport, Rect screenRectDip)
+        {
+            _strokeBrush ??= ctx.CreateSolidColorBrush(new Color4(0, 0, 0, 1));
+            _gridMinorBrush ??= ctx.CreateSolidColorBrush(new Color4(0.92f, 0.92f, 0.92f, 1.0f));
+            _gridMajorBrush ??= ctx.CreateSolidColorBrush(new Color4(0.86f, 0.86f, 0.86f, 1.0f));
+            _axisBrush ??= ctx.CreateSolidColorBrush(new Color4(0.78f, 0.78f, 0.78f, 1.0f));
+
+            using ID2D1DeviceContext2? ctx2 = TryGetDeviceContext2(ctx);
+            EnsureInkStyle(ctx2);
+            PruneInkCache(document, null);
+
+            Vector2 worldTopLeft = viewport.ScreenToWorld(new Vector2(screenRectDip.Left, screenRectDip.Top));
+            Vector2 worldBottomRight = viewport.ScreenToWorld(new Vector2(screenRectDip.Right, screenRectDip.Bottom));
+
+            Vector2 visibleMinWorld = new(
+                Math.Min(worldTopLeft.X, worldBottomRight.X),
+                Math.Min(worldTopLeft.Y, worldBottomRight.Y));
+
+            Vector2 visibleMaxWorld = new(
+                Math.Max(worldTopLeft.X, worldBottomRight.X),
+                Math.Max(worldTopLeft.Y, worldBottomRight.Y));
+
+            Matrix3x2 oldTransform = ctx.Transform;
+            ctx.Transform = viewport.GetWorldToScreenTransform();
+
+            DrawInfiniteGrid(ctx, viewport, visibleMinWorld, visibleMaxWorld);
+
+            foreach (var stroke in document.Strokes)
+            {
+                if (!IsStrokeVisible(stroke, visibleMinWorld, visibleMaxWorld))
+                {
+                    continue;
+                }
+
+                DrawStroke(ctx, ctx2, stroke);
+            }
+
+            ctx.Transform = oldTransform;
+        }
+
         public void DrawActiveStroke(ID2D1DeviceContext ctx, Stroke activeStroke, BoardViewport viewport)
         {
             _strokeBrush ??= ctx.CreateSolidColorBrush(new Color4(0, 0, 0, 1));

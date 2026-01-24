@@ -2,6 +2,7 @@ using System;
 using System.Numerics;
 using System.Runtime.InteropServices;
 using Microsoft.UI.Xaml.Controls;
+using Vortice;
 using Vortice.DCommon;
 using Vortice.Direct2D1;
 using Vortice.Direct3D11;
@@ -13,6 +14,7 @@ namespace WindBoard.Rendering
 {
     internal sealed partial class DxSwapChainPanelRenderer(SwapChainPanel panel) : IDisposable
     {
+        private const int DirtyRectExtraPixels = 2;
         private const float MinRenderScale = 0.25f;
         private const float MaxRenderScale = 1.0f;
         private const float InteractiveRenderScale = 0.95f;
@@ -27,6 +29,7 @@ namespace WindBoard.Rendering
         private ID2D1Device? _d2dDevice;
         private ID2D1DeviceContext? _d2dContext;
         private ID2D1Bitmap1? _d2dTargetBitmap;
+        private ID2D1SolidColorBrush? _whiteBrush;
 
         private ID2D1Bitmap1? _cachedBackgroundBitmap;
         private int _cachedBackgroundPixelWidth;
@@ -40,6 +43,7 @@ namespace WindBoard.Rendering
         private float _dpiX;
         private float _dpiY;
         private float _renderScale = 1.0f;
+        private bool _hasValidPresentHistory;
 
         public bool IsInitialized { get; private set; }
 
@@ -113,6 +117,7 @@ namespace WindBoard.Rendering
             ctx.EndDraw(out _, out _);
 
             _swapChain.Present(1, PresentFlags.None);
+            _hasValidPresentHistory = true;
         }
 
         public void InvalidateCachedBackground()
@@ -125,6 +130,202 @@ namespace WindBoard.Rendering
             _cachedBackgroundBitmap?.Dispose();
             _cachedBackgroundBitmap = null;
             _cachedBackgroundDirty = true;
+        }
+
+        public void RenderWithCachedBackgroundDirtyRect(Rect dirtyRectDip, Action<ID2D1DeviceContext> drawBackground, Action<ID2D1DeviceContext> drawOverlay)
+        {
+            if (!IsInitialized)
+            {
+                return;
+            }
+
+            if (!_hasValidPresentHistory)
+            {
+                RenderWithCachedBackground(drawBackground, drawOverlay);
+                return;
+            }
+
+            CreateOrResizeSwapChainAndTargets();
+
+            if (_d2dContext is null || _swapChain is null || _d2dTargetBitmap is null)
+            {
+                return;
+            }
+
+            var ctx = _d2dContext;
+
+            try
+            {
+                EnsureCachedBackgroundBitmap(ctx);
+
+                if (_cachedBackgroundBitmap is null)
+                {
+                    Render(ctx2 =>
+                    {
+                        drawBackground(ctx2);
+                        drawOverlay(ctx2);
+                    });
+                    return;
+                }
+
+                if (_cachedBackgroundDirty)
+                {
+                    RenderCachedBackground(ctx, drawBackground);
+                    _cachedBackgroundDirty = false;
+                }
+
+                RectI dirtyRectPixels = DipRectToPixelRect(dirtyRectDip, DirtyRectExtraPixels);
+                if (dirtyRectPixels.Width <= 0 || dirtyRectPixels.Height <= 0)
+                {
+                    return;
+                }
+
+                Rect clipDip = PixelRectToDipRect(dirtyRectPixels);
+
+                ctx.Target = _d2dTargetBitmap;
+                ctx.SetDpi(_dpiX, _dpiY);
+
+                ctx.BeginDraw();
+                ctx.Transform = Matrix3x2.Identity;
+
+                ctx.PushAxisAlignedClip(clipDip, AntialiasMode.Aliased);
+                ctx.DrawBitmap(_cachedBackgroundBitmap, 1.0f, BitmapInterpolationMode.Linear);
+                drawOverlay(ctx);
+                ctx.PopAxisAlignedClip();
+
+                ctx.EndDraw(out _, out _);
+
+                var present = new PresentParameters
+                {
+                    DirtyRectangles = new RawRect[] { dirtyRectPixels },
+                    ScrollRectangle = null,
+                    ScrollOffset = null,
+                };
+
+                _swapChain.Present1(1, PresentFlags.None, present);
+                _hasValidPresentHistory = true;
+            }
+            catch
+            {
+                RenderWithCachedBackground(drawBackground, drawOverlay);
+            }
+        }
+
+        public bool TryRenderWithScroll(Vector2 scrollOffsetDip, Action<ID2D1DeviceContext, Rect> drawDirtyRegion)
+        {
+            if (!IsInitialized)
+            {
+                return false;
+            }
+
+            if (!_hasValidPresentHistory)
+            {
+                return false;
+            }
+
+            CreateOrResizeSwapChainAndTargets();
+
+            if (_d2dContext is null || _swapChain is null || _d2dTargetBitmap is null)
+            {
+                return false;
+            }
+
+            float pixelsPerDipX = GetPixelsPerDipX();
+            float pixelsPerDipY = GetPixelsPerDipY();
+            if (pixelsPerDipX <= 0.0001f || pixelsPerDipY <= 0.0001f)
+            {
+                return false;
+            }
+
+            int dxPixels = (int)Math.Round(scrollOffsetDip.X * pixelsPerDipX);
+            int dyPixels = (int)Math.Round(scrollOffsetDip.Y * pixelsPerDipY);
+            if (dxPixels == 0 && dyPixels == 0)
+            {
+                return false;
+            }
+
+            int width = _pixelWidth;
+            int height = _pixelHeight;
+            if (width <= 0 || height <= 0)
+            {
+                return false;
+            }
+
+            if (Math.Abs(dxPixels) >= width || Math.Abs(dyPixels) >= height)
+            {
+                return false;
+            }
+
+            // DXGI_PRESENT_PARAMETERS.pScrollRect 描述的是“当前帧的目标区域”，也就是滚动后仍然可复用上一帧内容的区域。
+            // pScrollOffset 是从上一帧源区域到当前帧目标区域的偏移（source + offset = dest）。
+            int scrollLeft = Math.Max(0, dxPixels);
+            int scrollTop = Math.Max(0, dyPixels);
+            int scrollRight = width + Math.Min(0, dxPixels);
+            int scrollBottom = height + Math.Min(0, dyPixels);
+            if (scrollRight <= scrollLeft || scrollBottom <= scrollTop)
+            {
+                return false;
+            }
+
+            var scrollRectPixels = new RectI(scrollLeft, scrollTop, scrollRight - scrollLeft, scrollBottom - scrollTop);
+            var dirtyRectsPixels = CreatePanDirtyRectsPixels(width, height, dxPixels, dyPixels);
+            if (dirtyRectsPixels.Length == 0)
+            {
+                return false;
+            }
+
+            var ctx = _d2dContext;
+            EnsureWhiteBrush(ctx);
+
+            try
+            {
+                ctx.Target = _d2dTargetBitmap;
+                ctx.SetDpi(_dpiX, _dpiY);
+
+                ctx.BeginDraw();
+                ctx.Transform = Matrix3x2.Identity;
+
+                foreach (RectI dirtyRectPixels in dirtyRectsPixels)
+                {
+                    if (dirtyRectPixels.Width <= 0 || dirtyRectPixels.Height <= 0)
+                    {
+                        continue;
+                    }
+
+                    Rect dirtyDip = PixelRectToDipRect(dirtyRectPixels);
+
+                    ctx.PushAxisAlignedClip(dirtyDip, AntialiasMode.Aliased);
+                    if (_whiteBrush is not null)
+                    {
+                        ctx.FillRectangle(dirtyDip, _whiteBrush);
+                    }
+                    drawDirtyRegion(ctx, dirtyDip);
+                    ctx.PopAxisAlignedClip();
+                }
+
+                ctx.EndDraw(out _, out _);
+
+                var dirtyRawRects = new RawRect[dirtyRectsPixels.Length];
+                for (int i = 0; i < dirtyRectsPixels.Length; i++)
+                {
+                    dirtyRawRects[i] = dirtyRectsPixels[i];
+                }
+
+                var present = new PresentParameters
+                {
+                    DirtyRectangles = dirtyRawRects,
+                    ScrollRectangle = (RawRect)scrollRectPixels,
+                    ScrollOffset = new Int2(dxPixels, dyPixels),
+                };
+
+                _swapChain.Present1(1, PresentFlags.None, present);
+                _hasValidPresentHistory = true;
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
         }
 
         public void RenderWithCachedBackground(Action<ID2D1DeviceContext> drawBackground, Action<ID2D1DeviceContext> drawOverlay)
@@ -175,6 +376,7 @@ namespace WindBoard.Rendering
 
                 ctx.EndDraw(out _, out _);
                 _swapChain.Present(1, PresentFlags.None);
+                _hasValidPresentHistory = true;
             }
             catch
             {
@@ -320,6 +522,7 @@ namespace WindBoard.Rendering
                 ApplySwapChainPanelTransform(_swapChain, effectiveScaleX, effectiveScaleY, newPixelWidth, newPixelHeight);
                 needRecreateTarget = true;
                 ReleaseCachedBackground();
+                _hasValidPresentHistory = false;
             }
             else if (sizeChanged || dpiChanged)
             {
@@ -343,6 +546,7 @@ namespace WindBoard.Rendering
 
                 ApplySwapChainPanelTransform(_swapChain, effectiveScaleX, effectiveScaleY, newPixelWidth, newPixelHeight);
                 ReleaseCachedBackground();
+                _hasValidPresentHistory = false;
             }
 
             _pixelWidth = newPixelWidth;
@@ -412,6 +616,85 @@ namespace WindBoard.Rendering
             ctx.EndDraw(out _, out _);
         }
 
+        private static RectI[] CreatePanDirtyRectsPixels(int width, int height, int dxPixels, int dyPixels)
+        {
+            RectI? vertical = null;
+            if (dxPixels > 0)
+            {
+                vertical = new RectI(0, 0, dxPixels, height);
+            }
+            else if (dxPixels < 0)
+            {
+                vertical = new RectI(width + dxPixels, 0, -dxPixels, height);
+            }
+
+            RectI? horizontal = null;
+            if (dyPixels > 0)
+            {
+                horizontal = new RectI(0, 0, width, dyPixels);
+            }
+            else if (dyPixels < 0)
+            {
+                horizontal = new RectI(0, height + dyPixels, width, -dyPixels);
+            }
+
+            if (vertical is null && horizontal is null)
+            {
+                return Array.Empty<RectI>();
+            }
+
+            if (vertical is not null && horizontal is not null)
+            {
+                return new[] { vertical.Value, horizontal.Value };
+            }
+
+            return new[] { vertical ?? horizontal ?? default };
+        }
+
+        private float GetPixelsPerDipX() => _dpiX / 96.0f;
+
+        private float GetPixelsPerDipY() => _dpiY / 96.0f;
+
+        private RectI DipRectToPixelRect(Rect rectDip, int extraPixels)
+        {
+            float pixelsPerDipX = GetPixelsPerDipX();
+            float pixelsPerDipY = GetPixelsPerDipY();
+
+            int left = (int)Math.Floor(rectDip.Left * pixelsPerDipX) - extraPixels;
+            int top = (int)Math.Floor(rectDip.Top * pixelsPerDipY) - extraPixels;
+            int right = (int)Math.Ceiling(rectDip.Right * pixelsPerDipX) + extraPixels;
+            int bottom = (int)Math.Ceiling(rectDip.Bottom * pixelsPerDipY) + extraPixels;
+
+            left = Math.Clamp(left, 0, _pixelWidth);
+            top = Math.Clamp(top, 0, _pixelHeight);
+            right = Math.Clamp(right, 0, _pixelWidth);
+            bottom = Math.Clamp(bottom, 0, _pixelHeight);
+
+            return new RectI(left, top, Math.Max(0, right - left), Math.Max(0, bottom - top));
+        }
+
+        private Rect PixelRectToDipRect(RectI rectPixels)
+        {
+            float pixelsPerDipX = GetPixelsPerDipX();
+            float pixelsPerDipY = GetPixelsPerDipY();
+
+            if (pixelsPerDipX <= 0.0001f || pixelsPerDipY <= 0.0001f)
+            {
+                return Rect.FromLTRB(0, 0, 0, 0);
+            }
+
+            float left = rectPixels.Left / pixelsPerDipX;
+            float top = rectPixels.Top / pixelsPerDipY;
+            float right = rectPixels.Right / pixelsPerDipX;
+            float bottom = rectPixels.Bottom / pixelsPerDipY;
+            return Rect.FromLTRB(left, top, right, bottom);
+        }
+
+        private void EnsureWhiteBrush(ID2D1DeviceContext ctx)
+        {
+            _whiteBrush ??= ctx.CreateSolidColorBrush(new Color4(1.0f, 1.0f, 1.0f, 1.0f));
+        }
+
         private static void ApplySwapChainPanelTransform(
             IDXGISwapChain1 swapChain,
             double scaleX,
@@ -453,6 +736,9 @@ namespace WindBoard.Rendering
         public void Dispose()
         {
             ReleaseCachedBackground();
+
+            _whiteBrush?.Dispose();
+            _whiteBrush = null;
 
             _d2dTargetBitmap?.Dispose();
             _d2dTargetBitmap = null;
