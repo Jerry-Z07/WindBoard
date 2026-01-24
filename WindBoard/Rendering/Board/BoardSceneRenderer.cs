@@ -21,99 +21,129 @@ namespace WindBoard.Rendering.Board
 
         public void Draw(ID2D1DeviceContext ctx, BoardDocument document, Stroke? activeStroke, BoardViewport viewport)
         {
-            _strokeBrush ??= ctx.CreateSolidColorBrush(new Color4(0, 0, 0, 1));
-            _gridMinorBrush ??= ctx.CreateSolidColorBrush(new Color4(0.92f, 0.92f, 0.92f, 1.0f));
-            _gridMajorBrush ??= ctx.CreateSolidColorBrush(new Color4(0.86f, 0.86f, 0.86f, 1.0f));
-            _axisBrush ??= ctx.CreateSolidColorBrush(new Color4(0.78f, 0.78f, 0.78f, 1.0f));
+            EnsureStrokeBrush(ctx);
+            EnsureBackgroundBrushes(ctx);
 
-            using ID2D1DeviceContext2? ctx2 = TryGetDeviceContext2(ctx);
-            EnsureInkStyle(ctx2);
-            PruneInkCache(document, activeStroke);
-
-            Matrix3x2 oldTransform = ctx.Transform;
-            ctx.Transform = viewport.GetWorldToScreenTransform();
-
-            viewport.GetVisibleWorldBounds(out Vector2 visibleMinWorld, out Vector2 visibleMaxWorld);
-
-            DrawInfiniteGrid(ctx, viewport, visibleMinWorld, visibleMaxWorld);
-
-            foreach (var stroke in document.Strokes)
+            WithOptionalDeviceContext2(ctx, ctx2 =>
             {
-                if (!IsStrokeVisible(stroke, visibleMinWorld, visibleMaxWorld))
+                PruneInkCache(document, activeStroke);
+
+                WithWorldTransform(ctx, viewport, () =>
                 {
-                    continue;
-                }
-
-                DrawStroke(ctx, ctx2, stroke);
-            }
-
-            if (activeStroke is not null)
-            {
-                if (IsStrokeVisible(activeStroke, visibleMinWorld, visibleMaxWorld))
-                {
-                    DrawStroke(ctx, ctx2, activeStroke);
-                }
-            }
-
-            ctx.Transform = oldTransform;
+                    viewport.GetVisibleWorldBounds(out Vector2 visibleMinWorld, out Vector2 visibleMaxWorld);
+                    DrawSceneInWorldBounds(ctx, ctx2, document, activeStroke, viewport, visibleMinWorld, visibleMaxWorld);
+                });
+            });
         }
 
         public void DrawBackground(ID2D1DeviceContext ctx, BoardDocument document, BoardViewport viewport)
         {
-            _strokeBrush ??= ctx.CreateSolidColorBrush(new Color4(0, 0, 0, 1));
-            _gridMinorBrush ??= ctx.CreateSolidColorBrush(new Color4(0.92f, 0.92f, 0.92f, 1.0f));
-            _gridMajorBrush ??= ctx.CreateSolidColorBrush(new Color4(0.86f, 0.86f, 0.86f, 1.0f));
-            _axisBrush ??= ctx.CreateSolidColorBrush(new Color4(0.78f, 0.78f, 0.78f, 1.0f));
+            EnsureStrokeBrush(ctx);
+            EnsureBackgroundBrushes(ctx);
 
-            using ID2D1DeviceContext2? ctx2 = TryGetDeviceContext2(ctx);
-            EnsureInkStyle(ctx2);
-            PruneInkCache(document, null);
-
-            Matrix3x2 oldTransform = ctx.Transform;
-            ctx.Transform = viewport.GetWorldToScreenTransform();
-
-            viewport.GetVisibleWorldBounds(out Vector2 visibleMinWorld, out Vector2 visibleMaxWorld);
-
-            DrawInfiniteGrid(ctx, viewport, visibleMinWorld, visibleMaxWorld);
-
-            foreach (var stroke in document.Strokes)
+            WithOptionalDeviceContext2(ctx, ctx2 =>
             {
-                if (!IsStrokeVisible(stroke, visibleMinWorld, visibleMaxWorld))
+                PruneInkCache(document, null);
+
+                WithWorldTransform(ctx, viewport, () =>
                 {
-                    continue;
-                }
-
-                DrawStroke(ctx, ctx2, stroke);
-            }
-
-            ctx.Transform = oldTransform;
+                    viewport.GetVisibleWorldBounds(out Vector2 visibleMinWorld, out Vector2 visibleMaxWorld);
+                    DrawSceneInWorldBounds(ctx, ctx2, document, null, viewport, visibleMinWorld, visibleMaxWorld);
+                });
+            });
         }
 
         public void DrawBackgroundInScreenRect(ID2D1DeviceContext ctx, BoardDocument document, BoardViewport viewport, Rect screenRectDip)
         {
+            EnsureStrokeBrush(ctx);
+            EnsureBackgroundBrushes(ctx);
+
+            GetVisibleWorldBoundsFromScreenRect(viewport, screenRectDip, out Vector2 visibleMinWorld, out Vector2 visibleMaxWorld);
+
+            WithOptionalDeviceContext2(ctx, ctx2 =>
+            {
+                PruneInkCache(document, null);
+
+                WithWorldTransform(ctx, viewport, () =>
+                {
+                    DrawSceneInWorldBounds(ctx, ctx2, document, null, viewport, visibleMinWorld, visibleMaxWorld);
+                });
+            });
+        }
+
+        public void DrawActiveStroke(ID2D1DeviceContext ctx, Stroke activeStroke, BoardViewport viewport)
+        {
+            EnsureStrokeBrush(ctx);
+
+            WithOptionalDeviceContext2(ctx, ctx2 =>
+            {
+                WithWorldTransform(ctx, viewport, () =>
+                {
+                    viewport.GetVisibleWorldBounds(out Vector2 visibleMinWorld, out Vector2 visibleMaxWorld);
+                    DrawStrokeIfVisible(ctx, ctx2, activeStroke, visibleMinWorld, visibleMaxWorld);
+                });
+            });
+        }
+
+        private void EnsureStrokeBrush(ID2D1DeviceContext ctx)
+        {
             _strokeBrush ??= ctx.CreateSolidColorBrush(new Color4(0, 0, 0, 1));
+        }
+
+        private void EnsureBackgroundBrushes(ID2D1DeviceContext ctx)
+        {
             _gridMinorBrush ??= ctx.CreateSolidColorBrush(new Color4(0.92f, 0.92f, 0.92f, 1.0f));
             _gridMajorBrush ??= ctx.CreateSolidColorBrush(new Color4(0.86f, 0.86f, 0.86f, 1.0f));
             _axisBrush ??= ctx.CreateSolidColorBrush(new Color4(0.78f, 0.78f, 0.78f, 1.0f));
+        }
 
+        private void WithOptionalDeviceContext2(ID2D1DeviceContext ctx, Action<ID2D1DeviceContext2?> action)
+        {
+            // 某些系统/驱动环境可能不支持 DeviceContext2，这里做一次安全降级。
             using ID2D1DeviceContext2? ctx2 = TryGetDeviceContext2(ctx);
             EnsureInkStyle(ctx2);
-            PruneInkCache(document, null);
+            action(ctx2);
+        }
 
+        private static void WithWorldTransform(ID2D1DeviceContext ctx, BoardViewport viewport, Action action)
+        {
+            Matrix3x2 oldTransform = ctx.Transform;
+            ctx.Transform = viewport.GetWorldToScreenTransform();
+            try
+            {
+                action();
+            }
+            finally
+            {
+                ctx.Transform = oldTransform;
+            }
+        }
+
+        private static void GetVisibleWorldBoundsFromScreenRect(BoardViewport viewport, Rect screenRectDip, out Vector2 visibleMinWorld, out Vector2 visibleMaxWorld)
+        {
+            // 局部重绘：把屏幕矩形转换为世界坐标 AABB，用于裁剪可见笔迹/网格的计算。
             Vector2 worldTopLeft = viewport.ScreenToWorld(new Vector2(screenRectDip.Left, screenRectDip.Top));
             Vector2 worldBottomRight = viewport.ScreenToWorld(new Vector2(screenRectDip.Right, screenRectDip.Bottom));
 
-            Vector2 visibleMinWorld = new(
+            visibleMinWorld = new Vector2(
                 Math.Min(worldTopLeft.X, worldBottomRight.X),
                 Math.Min(worldTopLeft.Y, worldBottomRight.Y));
 
-            Vector2 visibleMaxWorld = new(
+            visibleMaxWorld = new Vector2(
                 Math.Max(worldTopLeft.X, worldBottomRight.X),
                 Math.Max(worldTopLeft.Y, worldBottomRight.Y));
+        }
 
-            Matrix3x2 oldTransform = ctx.Transform;
-            ctx.Transform = viewport.GetWorldToScreenTransform();
-
+        private void DrawSceneInWorldBounds(
+            ID2D1DeviceContext ctx,
+            ID2D1DeviceContext2? ctx2,
+            BoardDocument document,
+            Stroke? activeStroke,
+            BoardViewport viewport,
+            Vector2 visibleMinWorld,
+            Vector2 visibleMaxWorld)
+        {
+            // 绘制顺序：网格（背景）→ 文档笔迹 → 活动笔迹（可选）。
             DrawInfiniteGrid(ctx, viewport, visibleMinWorld, visibleMaxWorld);
 
             foreach (var stroke in document.Strokes)
@@ -126,26 +156,22 @@ namespace WindBoard.Rendering.Board
                 DrawStroke(ctx, ctx2, stroke);
             }
 
-            ctx.Transform = oldTransform;
-        }
-
-        public void DrawActiveStroke(ID2D1DeviceContext ctx, Stroke activeStroke, BoardViewport viewport)
-        {
-            _strokeBrush ??= ctx.CreateSolidColorBrush(new Color4(0, 0, 0, 1));
-
-            using ID2D1DeviceContext2? ctx2 = TryGetDeviceContext2(ctx);
-            EnsureInkStyle(ctx2);
-
-            Matrix3x2 oldTransform = ctx.Transform;
-            ctx.Transform = viewport.GetWorldToScreenTransform();
-
-            viewport.GetVisibleWorldBounds(out Vector2 visibleMinWorld, out Vector2 visibleMaxWorld);
-            if (IsStrokeVisible(activeStroke, visibleMinWorld, visibleMaxWorld))
+            if (activeStroke is null)
             {
-                DrawStroke(ctx, ctx2, activeStroke);
+                return;
             }
 
-            ctx.Transform = oldTransform;
+            DrawStrokeIfVisible(ctx, ctx2, activeStroke, visibleMinWorld, visibleMaxWorld);
+        }
+
+        private void DrawStrokeIfVisible(ID2D1DeviceContext ctx, ID2D1DeviceContext2? ctx2, Stroke stroke, Vector2 visibleMinWorld, Vector2 visibleMaxWorld)
+        {
+            if (!IsStrokeVisible(stroke, visibleMinWorld, visibleMaxWorld))
+            {
+                return;
+            }
+
+            DrawStroke(ctx, ctx2, stroke);
         }
 
         private void DrawStroke(ID2D1DeviceContext ctx, ID2D1DeviceContext2? ctx2, Stroke stroke)
