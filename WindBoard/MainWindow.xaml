@@ -25,6 +25,7 @@
             <AppBarButton x:Name="RedoButton" Icon="Redo" Label="重做" />
             <AppBarSeparator />
             <AppBarButton x:Name="ClearButton" Icon="Delete" Label="清空" />
+            <AppBarToggleButton x:Name="EraserToggleButton" Icon="Edit" Label="擦除" />
             <AppBarSeparator />
             <AppBarButton x:Name="SaveButton" Icon="Save" Label="保存" IsEnabled="False" />
             <AppBarButton x:Name="ExportButton" Icon="OpenFile" Label="导出" IsEnabled="False" />

@@ -23,6 +23,8 @@ namespace WindBoard.Controls
         private readonly BoardViewport _viewport = new();
         private readonly BoardSceneRenderer _sceneRenderer = new();
         private BoardInputController? _input;
+        private BoardTool _tool = BoardTool.Pen;
+        private IBoardEraser _eraser = new WholeStrokeEraser();
         private bool _isInitialized;
         private bool _isRenderingLoopActive;
         private bool _isRenderQueued;
@@ -40,6 +42,45 @@ namespace WindBoard.Controls
 
         public event EventHandler? CommandStateChanged;
 
+        internal BoardTool Tool
+        {
+            get => _tool;
+            set
+            {
+                if (_tool == value)
+                {
+                    return;
+                }
+
+                _tool = value;
+
+                // 切换工具前结束当前动作，避免遗留捕获/状态。
+                _input?.CancelActiveToolOperation();
+
+                if (_input is not null)
+                {
+                    _input.Tool = _tool;
+                }
+
+                RaiseCommandStateChanged();
+                RequestRender();
+            }
+        }
+
+        internal IBoardEraser Eraser
+        {
+            get => _eraser;
+            set
+            {
+                _eraser = value ?? throw new ArgumentNullException(nameof(value));
+
+                if (_input is not null)
+                {
+                    _input.Eraser = _eraser;
+                }
+            }
+        }
+
         internal bool CanUndo => _session.CanUndo;
 
         internal bool CanRedo => _session.CanRedo;
@@ -48,19 +89,19 @@ namespace WindBoard.Controls
 
         internal void Undo()
         {
-            _input?.DiscardActiveStroke();
+            _input?.CancelActiveToolOperation();
             _session.Undo();
         }
 
         internal void Redo()
         {
-            _input?.DiscardActiveStroke();
+            _input?.CancelActiveToolOperation();
             _session.Redo();
         }
 
         internal void ClearAll()
         {
-            _input?.DiscardActiveStroke();
+            _input?.CancelActiveToolOperation();
             _session.ClearAll();
         }
 
@@ -74,7 +115,9 @@ namespace WindBoard.Controls
             _renderer = new DxSwapChainPanelRenderer(CanvasPanel);
             _renderer.Initialize();
 
-            _input = new BoardInputController(CanvasPanel, _session, _viewport);
+            _input = new BoardInputController(CanvasPanel, _session, _viewport, _eraser);
+            _input.Tool = _tool;
+            _input.Eraser = _eraser;
             _input.Attach();
 
             CanvasPanel.SizeChanged += OnCanvasSizeChanged;
@@ -191,7 +234,7 @@ namespace WindBoard.Controls
             if (isInteracting)
             {
                 // 书写时保持全分辨率，避免笔迹模糊；仅在平移/捏合缩放等视口操作时降低分辨率以减轻 GPU 压力。
-                if (_input?.ActiveStroke is not null)
+                if (_input?.ActiveStroke is not null || _input?.IsErasing == true)
                 {
                     SetRenderingLoopActive(false);
                     _renderer.SetInteractiveMode(false);

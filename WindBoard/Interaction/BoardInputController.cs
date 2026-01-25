@@ -18,10 +18,12 @@ namespace WindBoard.Interaction
         private const int WheelZoomIdleTimeoutMs = 150;
         private const int WheelZoomTimerIntervalMs = 50;
         private const float DirtyRectExtraDip = 2.0f;
+        private const float EraserRadiusDip = 12.0f;
 
         private readonly SwapChainPanel _panel;
         private readonly BoardSession _session;
         private readonly BoardViewport _viewport;
+        private IBoardEraser _eraser;
 
         private uint? _activePointerId;
         private uint? _panPointerId;
@@ -35,15 +37,29 @@ namespace WindBoard.Interaction
         private DispatcherQueueTimer? _wheelZoomTimer;
         private Vector2 _pendingPanScreenDelta = Vector2.Zero;
         private Rect? _pendingStrokeDirtyRect;
+        private bool _isErasing;
+        private Vector2? _lastEraserWorld;
+        private List<Stroke>? _eraseBeforeSnapshot;
 
-        public BoardInputController(SwapChainPanel panel, BoardSession session, BoardViewport viewport)
+        public BoardInputController(SwapChainPanel panel, BoardSession session, BoardViewport viewport, IBoardEraser? eraser = null)
         {
             _panel = panel;
             _session = session;
             _viewport = viewport;
+            _eraser = eraser ?? new WholeStrokeEraser();
+        }
+
+        public BoardTool Tool { get; set; } = BoardTool.Pen;
+
+        public IBoardEraser Eraser
+        {
+            get => _eraser;
+            set => _eraser = value ?? throw new ArgumentNullException(nameof(value));
         }
 
         public Stroke? ActiveStroke { get; private set; }
+
+        public bool IsErasing => _isErasing;
 
         public bool IsWheelZooming => _isWheelZooming;
 
@@ -132,6 +148,18 @@ namespace WindBoard.Interaction
             StateChanged?.Invoke();
         }
 
+        public void CancelActiveToolOperation()
+        {
+            // 外部操作（例如工具切换/撤销/重做/清空）前，用于安全结束当前工具动作，避免留下捕获/状态。
+            if (_isErasing)
+            {
+                CancelEraserGesture();
+                return;
+            }
+
+            DiscardActiveStroke();
+        }
+
         private void CommitActiveStroke()
         {
             if (ActiveStroke is not null && ActiveStroke.Points.Count > 0)
@@ -147,6 +175,127 @@ namespace WindBoard.Interaction
             UpdateInteractionState();
             FrameInvalidated?.Invoke();
             StateChanged?.Invoke();
+        }
+
+        private void BeginEraserGesture(Pointer pointer, PointerPoint point)
+        {
+            // 记录擦除前的快照：整笔擦除与未来局部擦除都可以复用这套“前后快照 + 单条命令”机制。
+            _eraseBeforeSnapshot = new List<Stroke>(_session.Document.Strokes);
+            _isErasing = true;
+            _pendingStrokeDirtyRect = null;
+
+            Vector2 screen = new((float)point.Position.X, (float)point.Position.Y);
+            Vector2 world = _viewport.ScreenToWorld(screen);
+            _lastEraserWorld = world;
+
+            ApplyEraserSegment(world, world);
+        }
+
+        private void UpdateEraserGesture(Pointer pointer, PointerPoint point)
+        {
+            Vector2 screen = new((float)point.Position.X, (float)point.Position.Y);
+            Vector2 currentWorld = _viewport.ScreenToWorld(screen);
+
+            if (_lastEraserWorld is not Vector2 lastWorld)
+            {
+                _lastEraserWorld = currentWorld;
+                ApplyEraserSegment(currentWorld, currentWorld);
+                return;
+            }
+
+            float minDistWorld = 0.75f / Math.Max(0.0001f, _viewport.Zoom);
+            if (Vector2.DistanceSquared(lastWorld, currentWorld) < minDistWorld * minDistWorld)
+            {
+                return;
+            }
+
+            _lastEraserWorld = currentWorld;
+            ApplyEraserSegment(lastWorld, currentWorld);
+        }
+
+        private void ApplyEraserSegment(Vector2 fromWorld, Vector2 toWorld)
+        {
+            float zoom = Math.Max(0.0001f, _viewport.Zoom);
+            float radiusWorld = EraserRadiusDip / zoom;
+
+            if (_eraser.Erase(_session.Document, fromWorld, toWorld, radiusWorld))
+            {
+                FrameInvalidated?.Invoke();
+            }
+        }
+
+        private void CommitEraserGesture()
+        {
+            if (!_isErasing)
+            {
+                return;
+            }
+
+            List<Stroke>? before = _eraseBeforeSnapshot;
+            _eraseBeforeSnapshot = null;
+
+            _isErasing = false;
+            _lastEraserWorld = null;
+
+            if (before is not null)
+            {
+                var after = new List<Stroke>(_session.Document.Strokes);
+                if (!IsSameStrokeList(before, after))
+                {
+                    _session.Execute(new ReplaceStrokesCommand(before, after));
+                }
+            }
+
+            _activePointerId = null;
+            _activeStrokeDeviceType = null;
+            _panel.ReleasePointerCaptures();
+            UpdateInteractionState();
+            FrameInvalidated?.Invoke();
+            StateChanged?.Invoke();
+        }
+
+        private void CancelEraserGesture()
+        {
+            if (!_isErasing)
+            {
+                return;
+            }
+
+            // 系统取消/外部打断时：恢复擦除前快照，不写入撤销栈，避免产生“半截”历史。
+            if (_eraseBeforeSnapshot is not null)
+            {
+                _session.Document.Strokes.Clear();
+                _session.Document.Strokes.AddRange(_eraseBeforeSnapshot);
+            }
+
+            _eraseBeforeSnapshot = null;
+            _isErasing = false;
+            _lastEraserWorld = null;
+
+            _activePointerId = null;
+            _activeStrokeDeviceType = null;
+            _panel.ReleasePointerCaptures();
+            UpdateInteractionState();
+            FrameInvalidated?.Invoke();
+            StateChanged?.Invoke();
+        }
+
+        private static bool IsSameStrokeList(List<Stroke> a, List<Stroke> b)
+        {
+            if (a.Count != b.Count)
+            {
+                return false;
+            }
+
+            for (int i = 0; i < a.Count; i++)
+            {
+                if (!ReferenceEquals(a[i], b[i]))
+                {
+                    return false;
+                }
+            }
+
+            return true;
         }
 
         private void OnCanvasPointerPressed(object sender, PointerRoutedEventArgs e)
@@ -173,13 +322,17 @@ namespace WindBoard.Interaction
                             CommitActiveStroke();
                         }
                     }
+                    else if (_isErasing && _activeStrokeDeviceType == PointerDeviceType.Touch)
+                    {
+                        CommitEraserGesture();
+                    }
 
                     e.Handled = true;
                     FrameInvalidated?.Invoke();
                     return;
                 }
 
-                // 单指触摸：画线
+                // 单指触摸：画线 / 擦除
                 if (_activePointerId is not null || _panPointerId is not null)
                 {
                     return;
@@ -189,6 +342,15 @@ namespace WindBoard.Interaction
                 _activePointerId = e.Pointer.PointerId;
                 _activeStrokeDeviceType = e.Pointer.PointerDeviceType;
                 _pendingStrokeDirtyRect = null;
+
+                if (Tool == BoardTool.Eraser)
+                {
+                    BeginEraserGesture(e.Pointer, point);
+                    UpdateInteractionState();
+                    e.Handled = true;
+                    StateChanged?.Invoke();
+                    return;
+                }
 
                 ActiveStroke = new Stroke
                 {
@@ -234,6 +396,15 @@ namespace WindBoard.Interaction
             _activeStrokeDeviceType = e.Pointer.PointerDeviceType;
             _pendingStrokeDirtyRect = null;
 
+            if (Tool == BoardTool.Eraser)
+            {
+                BeginEraserGesture(e.Pointer, point);
+                UpdateInteractionState();
+                e.Handled = true;
+                StateChanged?.Invoke();
+                return;
+            }
+
             ActiveStroke = new Stroke
             {
                 Color = new Color4(0, 0, 0, 1),
@@ -267,6 +438,14 @@ namespace WindBoard.Interaction
 
             if (_activePointerId != e.Pointer.PointerId)
             {
+                return;
+            }
+
+            if (_isErasing)
+            {
+                PointerPoint erasePoint = e.GetCurrentPoint(_panel);
+                UpdateEraserGesture(e.Pointer, erasePoint);
+                e.Handled = true;
                 return;
             }
 
@@ -307,6 +486,13 @@ namespace WindBoard.Interaction
                 return;
             }
 
+            if (_isErasing)
+            {
+                CommitEraserGesture();
+                e.Handled = true;
+                return;
+            }
+
             CommitActiveStroke();
             e.Handled = true;
         }
@@ -332,6 +518,13 @@ namespace WindBoard.Interaction
 
             if (_activePointerId != e.Pointer.PointerId)
             {
+                return;
+            }
+
+            if (_isErasing)
+            {
+                CancelEraserGesture();
+                e.Handled = true;
                 return;
             }
 
@@ -362,13 +555,20 @@ namespace WindBoard.Interaction
                 return;
             }
 
+            if (_isErasing)
+            {
+                CommitEraserGesture();
+                e.Handled = true;
+                return;
+            }
+
             CommitActiveStroke();
             e.Handled = true;
         }
 
         private void OnCanvasPointerWheelChanged(object sender, PointerRoutedEventArgs e)
         {
-            if (ActiveStroke is not null || _panPointerId is not null)
+            if (ActiveStroke is not null || _isErasing || _panPointerId is not null)
             {
                 return;
             }
@@ -436,7 +636,7 @@ namespace WindBoard.Interaction
         private void OnCanvasManipulationStarting(object sender, ManipulationStartingRoutedEventArgs e)
         {
             // 触摸手势以 CanvasPanel 为坐标系
-            if (ActiveStroke is not null || _panPointerId is not null)
+            if (ActiveStroke is not null || _isErasing || _panPointerId is not null)
             {
                 e.Handled = true;
                 return;
@@ -451,7 +651,7 @@ namespace WindBoard.Interaction
         private void OnCanvasManipulationDelta(object sender, ManipulationDeltaRoutedEventArgs e)
         {
             // 触摸：多指拖动 + 捏合缩放（以手势中心为缩放锚点）
-            if (ActiveStroke is not null || _panPointerId is not null)
+            if (ActiveStroke is not null || _isErasing || _panPointerId is not null)
             {
                 e.Handled = true;
                 return;
@@ -562,6 +762,7 @@ namespace WindBoard.Interaction
         private void UpdateInteractionState()
         {
             bool isInteracting = ActiveStroke is not null
+                || _isErasing
                 || _panPointerId is not null
                 || _isManipulating
                 || _isWheelZooming;
