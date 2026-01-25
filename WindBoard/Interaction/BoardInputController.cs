@@ -157,7 +157,23 @@ namespace WindBoard.Interaction
                 return;
             }
 
+            if (_panPointerId is not null)
+            {
+                CancelPanGesture();
+                return;
+            }
+
             DiscardActiveStroke();
+        }
+
+        private void CancelPanGesture()
+        {
+            _panPointerId = null;
+            _pendingPanScreenDelta = Vector2.Zero;
+            _panel.ReleasePointerCaptures();
+            UpdateInteractionState();
+            FrameInvalidated?.Invoke();
+            StateChanged?.Invoke();
         }
 
         private void CommitActiveStroke()
@@ -332,6 +348,14 @@ namespace WindBoard.Interaction
                     return;
                 }
 
+                if (Tool == BoardTool.Select)
+                {
+                    // 选择/浏览模式：单指拖拽平移由 Manipulation 处理；此处不启动画线/擦除。
+                    e.Handled = true;
+                    StateChanged?.Invoke();
+                    return;
+                }
+
                 // 单指触摸：画线 / 擦除
                 if (_activePointerId is not null || _panPointerId is not null)
                 {
@@ -374,15 +398,18 @@ namespace WindBoard.Interaction
                 return;
             }
 
+            if (Tool == BoardTool.Select)
+            {
+                // 选择/浏览模式：鼠标左键/触控笔拖拽默认视为平移（为后续“选择/框选/拖拽”预留入口）。
+                BeginPanGesture(e.Pointer, point);
+                e.Handled = true;
+                return;
+            }
+
             if (ShouldStartPan(e.Pointer, point))
             {
-                _panel.CapturePointer(e.Pointer);
-                _panPointerId = e.Pointer.PointerId;
-                _lastPanScreen = new Vector2((float)point.Position.X, (float)point.Position.Y);
+                BeginPanGesture(e.Pointer, point);
                 e.Handled = true;
-                UpdateInteractionState();
-                FrameInvalidated?.Invoke();
-                StateChanged?.Invoke();
                 return;
             }
 
@@ -418,6 +445,16 @@ namespace WindBoard.Interaction
             }
             UpdateInteractionState();
             e.Handled = true;
+            StateChanged?.Invoke();
+        }
+
+        private void BeginPanGesture(Pointer pointer, PointerPoint point)
+        {
+            _panel.CapturePointer(pointer);
+            _panPointerId = pointer.PointerId;
+            _lastPanScreen = new Vector2((float)point.Position.X, (float)point.Position.Y);
+            UpdateInteractionState();
+            FrameInvalidated?.Invoke();
             StateChanged?.Invoke();
         }
 
@@ -642,7 +679,9 @@ namespace WindBoard.Interaction
                 return;
             }
 
-            _isManipulating = _activeTouchPointers.Count >= 2;
+            // 默认：双指/多指才进入手势模式；选择工具下允许单指拖拽平移。
+            int minTouchCount = Tool == BoardTool.Select ? 1 : 2;
+            _isManipulating = _activeTouchPointers.Count >= minTouchCount;
             UpdateInteractionState();
             FrameInvalidated?.Invoke();
             e.Handled = true;
@@ -657,7 +696,8 @@ namespace WindBoard.Interaction
                 return;
             }
 
-            if (_activeTouchPointers.Count < 2)
+            int minTouchCount = Tool == BoardTool.Select ? 1 : 2;
+            if (_activeTouchPointers.Count < minTouchCount)
             {
                 e.Handled = true;
                 return;
@@ -671,10 +711,14 @@ namespace WindBoard.Interaction
 
             Vector2 anchor = new((float)e.Position.X, (float)e.Position.Y);
 
-            float scale = (float)e.Delta.Scale;
-            if (Math.Abs(scale - 1.0f) > 0.0001f)
+            // 单指：只做平移；双指及以上：平移 + 捏合缩放。
+            if (_activeTouchPointers.Count >= 2)
             {
-                _viewport.ZoomAboutScreenPoint(anchor, scale);
+                float scale = (float)e.Delta.Scale;
+                if (Math.Abs(scale - 1.0f) > 0.0001f)
+                {
+                    _viewport.ZoomAboutScreenPoint(anchor, scale);
+                }
             }
 
             Vector2 translation = new((float)e.Delta.Translation.X, (float)e.Delta.Translation.Y);

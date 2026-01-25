@@ -3,7 +3,6 @@
     x:Class="WindBoard.MainWindow"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:local="using:WindBoard"
     xmlns:controls="using:WindBoard.Controls"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
@@ -15,22 +14,191 @@
     </Window.SystemBackdrop>
 
     <Grid>
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="*" />
-        </Grid.RowDefinitions>
+        <controls:BoardCanvasControl x:Name="BoardCanvas" />
 
-        <CommandBar DefaultLabelPosition="Right">
-            <AppBarButton x:Name="UndoButton" Icon="Undo" Label="撤销" />
-            <AppBarButton x:Name="RedoButton" Icon="Redo" Label="重做" />
-            <AppBarSeparator />
-            <AppBarButton x:Name="ClearButton" Icon="Delete" Label="清空" />
-            <AppBarToggleButton x:Name="EraserToggleButton" Icon="Edit" Label="擦除" />
-            <AppBarSeparator />
-            <AppBarButton x:Name="SaveButton" Icon="Save" Label="保存" IsEnabled="False" />
-            <AppBarButton x:Name="ExportButton" Icon="OpenFile" Label="导出" IsEnabled="False" />
-        </CommandBar>
+        <!-- 底部 Dock：左侧“更多/最小化/导入”，中部“工具/撤销重做”，右侧“+”入口 -->
+        <!-- 使用三块浮层分别对齐 Left/Center/Right，保证中部 Dock 始终以窗口居中对齐。 -->
+        <Grid VerticalAlignment="Bottom" Margin="14,0,14,14">
 
-        <controls:BoardCanvasControl x:Name="BoardCanvas" Grid.Row="1" />
+            <!-- 左侧 Dock -->
+            <Border
+                HorizontalAlignment="Left"
+                Background="#CC202020"
+                BorderBrush="#33FFFFFF"
+                BorderThickness="1"
+                CornerRadius="14"
+                Padding="5">
+                <StackPanel Orientation="Horizontal" Spacing="3">
+                    <Button
+                        x:Name="MoreButton"
+                        MinWidth="60"
+                        MinHeight="52"
+                        Padding="8,6"
+                        CornerRadius="10"
+                        HorizontalContentAlignment="Center"
+                        VerticalContentAlignment="Center">
+                        <Button.Flyout>
+                            <MenuFlyout>
+                                <MenuFlyoutItem Text="设置" Click="OnSettingsClicked">
+                                    <MenuFlyoutItem.Icon>
+                                        <SymbolIcon Symbol="Setting" />
+                                    </MenuFlyoutItem.Icon>
+                                </MenuFlyoutItem>
+                                <MenuFlyoutSeparator />
+                                <MenuFlyoutItem Text="导出" Click="OnExportClicked">
+                                    <MenuFlyoutItem.Icon>
+                                        <SymbolIcon Symbol="OpenFile" />
+                                    </MenuFlyoutItem.Icon>
+                                </MenuFlyoutItem>
+                                <MenuFlyoutSeparator />
+                                <MenuFlyoutItem Text="退出" Click="OnExitClicked">
+                                    <MenuFlyoutItem.Icon>
+                                        <SymbolIcon Symbol="Cancel" />
+                                    </MenuFlyoutItem.Icon>
+                                </MenuFlyoutItem>
+                            </MenuFlyout>
+                        </Button.Flyout>
+
+                        <StackPanel Orientation="Vertical">
+                            <SymbolIcon Symbol="More" />
+                            <TextBlock FontSize="11" Margin="0,3,0,0" HorizontalAlignment="Center" Text="更多" />
+                        </StackPanel>
+                    </Button>
+
+                    <Button
+                        x:Name="MinimizeButton"
+                        MinWidth="60"
+                        MinHeight="52"
+                        Padding="8,6"
+                        CornerRadius="10"
+                        HorizontalContentAlignment="Center"
+                        VerticalContentAlignment="Center">
+                        <StackPanel Orientation="Vertical">
+                            <SymbolIcon Symbol="BackToWindow" />
+                            <TextBlock FontSize="11" Margin="0,3,0,0" HorizontalAlignment="Center" Text="最小化" />
+                        </StackPanel>
+                    </Button>
+
+                    <Button
+                        x:Name="ImportButton"
+                        MinWidth="60"
+                        MinHeight="52"
+                        Padding="8,6"
+                        CornerRadius="10"
+                        HorizontalContentAlignment="Center"
+                        VerticalContentAlignment="Center">
+                        <StackPanel Orientation="Vertical">
+                            <SymbolIcon Symbol="Download" />
+                            <TextBlock FontSize="11" Margin="0,3,0,0" HorizontalAlignment="Center" Text="导入" />
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
+            </Border>
+
+            <!-- 中部 Dock -->
+            <Border
+                HorizontalAlignment="Center"
+                Background="#CC202020"
+                BorderBrush="#33FFFFFF"
+                BorderThickness="1"
+                CornerRadius="14"
+                Padding="5">
+                <StackPanel Orientation="Horizontal" Spacing="3">
+                    <ToggleButton
+                        x:Name="SelectToolToggleButton"
+                        MinWidth="60"
+                        MinHeight="52"
+                        Padding="8,6"
+                        CornerRadius="10"
+                        HorizontalContentAlignment="Center"
+                        VerticalContentAlignment="Center">
+                        <StackPanel Orientation="Vertical">
+                            <SymbolIcon Symbol="TouchPointer" />
+                            <TextBlock FontSize="11" Margin="0,3,0,0" HorizontalAlignment="Center" Text="选择" />
+                        </StackPanel>
+                    </ToggleButton>
+
+                    <ToggleButton
+                        x:Name="PenToolToggleButton"
+                        IsChecked="True"
+                        MinWidth="60"
+                        MinHeight="52"
+                        Padding="8,6"
+                        CornerRadius="10"
+                        HorizontalContentAlignment="Center"
+                        VerticalContentAlignment="Center">
+                        <StackPanel Orientation="Vertical">
+                            <SymbolIcon Symbol="Edit" />
+                            <TextBlock FontSize="11" Margin="0,3,0,0" HorizontalAlignment="Center" Text="书写" />
+                        </StackPanel>
+                    </ToggleButton>
+
+                    <ToggleButton
+                        x:Name="EraserToggleButton"
+                        MinWidth="60"
+                        MinHeight="52"
+                        Padding="8,6"
+                        CornerRadius="10"
+                        HorizontalContentAlignment="Center"
+                        VerticalContentAlignment="Center">
+                        <StackPanel Orientation="Vertical">
+                            <!-- Segoe MDL2 Assets：E75C = EraseTool（橡皮擦） -->
+                            <FontIcon FontFamily="Segoe MDL2 Assets" FontSize="20" Glyph="&#xE75C;" />
+                            <TextBlock FontSize="11" Margin="0,3,0,0" HorizontalAlignment="Center" Text="擦除" />
+                        </StackPanel>
+                    </ToggleButton>
+
+                    <Rectangle Width="1" Height="30" Fill="#33FFFFFF" Margin="5,0" VerticalAlignment="Center" />
+
+                    <Button
+                        x:Name="UndoButton"
+                        MinWidth="60"
+                        MinHeight="52"
+                        Padding="8,6"
+                        CornerRadius="10"
+                        HorizontalContentAlignment="Center"
+                        VerticalContentAlignment="Center">
+                        <StackPanel Orientation="Vertical">
+                            <SymbolIcon Symbol="Undo" />
+                            <TextBlock FontSize="11" Margin="0,3,0,0" HorizontalAlignment="Center" Text="撤销" />
+                        </StackPanel>
+                    </Button>
+
+                    <Button
+                        x:Name="RedoButton"
+                        MinWidth="60"
+                        MinHeight="52"
+                        Padding="8,6"
+                        CornerRadius="10"
+                        HorizontalContentAlignment="Center"
+                        VerticalContentAlignment="Center">
+                        <StackPanel Orientation="Vertical">
+                            <SymbolIcon Symbol="Redo" />
+                            <TextBlock FontSize="11" Margin="0,3,0,0" HorizontalAlignment="Center" Text="重做" />
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
+            </Border>
+
+            <!-- 右侧 Dock：预留“+”入口（例如：新建页/插入内容等） -->
+            <Border
+                HorizontalAlignment="Right"
+                Background="#CC202020"
+                BorderBrush="#33FFFFFF"
+                BorderThickness="1"
+                CornerRadius="14"
+                Padding="5">
+                <Button
+                    x:Name="AddButton"
+                    MinWidth="52"
+                    MinHeight="52"
+                    Padding="0"
+                    CornerRadius="10"
+                    HorizontalContentAlignment="Center"
+                    VerticalContentAlignment="Center">
+                    <SymbolIcon Symbol="Add" />
+                </Button>
+            </Border>
+        </Grid>
     </Grid>
 </Window>
