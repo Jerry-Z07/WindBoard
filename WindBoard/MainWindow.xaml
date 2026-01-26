@@ -23,8 +23,8 @@
             <!-- 左侧 Dock -->
             <Border
                 HorizontalAlignment="Left"
-                Background="#CC202020"
-                BorderBrush="#33FFFFFF"
+                Background="{ThemeResource SystemControlBackgroundChromeMediumLowBrush}"
+                BorderBrush="{ThemeResource SystemControlForegroundBaseMediumLowBrush}"
                 BorderThickness="1"
                 CornerRadius="14"
                 Padding="5">
@@ -98,8 +98,8 @@
             <!-- 中部 Dock -->
             <Border
                 HorizontalAlignment="Center"
-                Background="#CC202020"
-                BorderBrush="#33FFFFFF"
+                Background="{ThemeResource SystemControlBackgroundChromeMediumLowBrush}"
+                BorderBrush="{ThemeResource SystemControlForegroundBaseMediumLowBrush}"
                 BorderThickness="1"
                 CornerRadius="14"
                 Padding="5">
@@ -148,7 +148,12 @@
                         </StackPanel>
                     </ToggleButton>
 
-                    <Rectangle Width="1" Height="30" Fill="#33FFFFFF" Margin="5,0" VerticalAlignment="Center" />
+                    <Rectangle
+                        Width="1"
+                        Height="30"
+                        Fill="{ThemeResource SystemControlForegroundBaseMediumLowBrush}"
+                        Margin="5,0"
+                        VerticalAlignment="Center" />
 
                     <Button
                         x:Name="UndoButton"
@@ -183,8 +188,8 @@
             <!-- 右侧 Dock：预留“+”入口（例如：新建页/插入内容等） -->
             <Border
                 HorizontalAlignment="Right"
-                Background="#CC202020"
-                BorderBrush="#33FFFFFF"
+                Background="{ThemeResource SystemControlBackgroundChromeMediumLowBrush}"
+                BorderBrush="{ThemeResource SystemControlForegroundBaseMediumLowBrush}"
                 BorderThickness="1"
                 CornerRadius="14"
                 Padding="5">
