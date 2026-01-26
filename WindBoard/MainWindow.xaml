@@ -141,6 +141,72 @@
                         CornerRadius="10"
                         HorizontalContentAlignment="Center"
                         VerticalContentAlignment="Center">
+                        <!-- 擦除模式二次点击：弹出“滑动清屏”（清空画布）入口，避免误触一键清空。 -->
+                        <FlyoutBase.AttachedFlyout>
+                            <Flyout Placement="Top" Opened="OnEraserFlyoutOpened" Closed="OnEraserFlyoutClosed">
+                                <Flyout.FlyoutPresenterStyle>
+                                    <Style TargetType="FlyoutPresenter">
+                                        <Setter Property="Padding" Value="0" />
+                                        <Setter Property="BorderThickness" Value="0" />
+                                        <!-- 禁用 Flyout 默认边框/阴影/焦点框，避免出现“白色方形外框” -->
+                                        <Setter Property="CornerRadius" Value="14" />
+                                        <Setter Property="Background" Value="Transparent" />
+                                        <Setter Property="Shadow" Value="{x:Null}" />
+                                        <Setter Property="IsTabStop" Value="False" />
+                                        <Setter Property="UseSystemFocusVisuals" Value="False" />
+                                        <Setter Property="FocusVisualPrimaryBrush" Value="Transparent" />
+                                        <Setter Property="FocusVisualSecondaryBrush" Value="Transparent" />
+                                    </Style>
+                                </Flyout.FlyoutPresenterStyle>
+
+                                <!-- “滑动清屏”确认条 -->
+                                <Grid x:Name="ClearCanvasSlideHost" Width="232" Height="52">
+                                    <Border
+                                        CornerRadius="14"
+                                        Background="#C72E333D"
+                                        BorderBrush="{ThemeResource SystemControlForegroundBaseMediumLowBrush}"
+                                        BorderThickness="1" />
+                                    <TextBlock
+                                        x:Name="ClearCanvasSlideText"
+                                        Text="滑动清屏"
+                                        Foreground="White"
+                                        FontSize="15"
+                                        FontWeight="SemiBold"
+                                        HorizontalAlignment="Center"
+                                        VerticalAlignment="Center" />
+
+                                    <!-- 拖动圆形把手：使用指针捕获实现拖动，避免 Thumb 在 Flyout 场景下失效 -->
+                                    <Border
+                                        x:Name="ClearCanvasSlideThumb"
+                                        Width="44"
+                                        Height="44"
+                                        HorizontalAlignment="Left"
+                                        VerticalAlignment="Center"
+                                        Margin="6,0,0,0"
+                                        Background="#F2F2F2"
+                                        CornerRadius="22"
+                                        BorderBrush="#33FFFFFF"
+                                        BorderThickness="1"
+                                        PointerPressed="OnClearCanvasThumbPointerPressed"
+                                        PointerMoved="OnClearCanvasThumbPointerMoved"
+                                        PointerReleased="OnClearCanvasThumbPointerReleased"
+                                        PointerCanceled="OnClearCanvasThumbPointerCanceled"
+                                        PointerCaptureLost="OnClearCanvasThumbPointerCaptureLost">
+                                        <Border.RenderTransform>
+                                            <TranslateTransform x:Name="ClearCanvasSlideThumbTransform" />
+                                        </Border.RenderTransform>
+                                        <FontIcon
+                                            FontFamily="Segoe MDL2 Assets"
+                                            FontSize="16"
+                                            Foreground="#6B6B6B"
+                                            Glyph="&#xE74D;"
+                                            HorizontalAlignment="Center"
+                                            VerticalAlignment="Center" />
+                                    </Border>
+                                </Grid>
+                            </Flyout>
+                        </FlyoutBase.AttachedFlyout>
+
                         <StackPanel Orientation="Vertical">
                             <!-- Segoe MDL2 Assets：E75C = EraseTool（橡皮擦） -->
                             <FontIcon FontFamily="Segoe MDL2 Assets" FontSize="20" Glyph="&#xE75C;" />
