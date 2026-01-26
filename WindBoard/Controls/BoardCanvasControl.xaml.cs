@@ -19,7 +19,7 @@ namespace WindBoard.Controls
         private const int MaxInteractiveFps = 60;
 
         private DxSwapChainPanelRenderer? _renderer;
-        private readonly BoardSession _session = new();
+        private BoardSession _session = new();
         private readonly BoardViewport _viewport = new();
         private readonly BoardSceneRenderer _sceneRenderer = new();
         private BoardInputController? _input;
@@ -103,6 +103,67 @@ namespace WindBoard.Controls
         {
             _input?.CancelActiveToolOperation();
             _session.ClearAll();
+        }
+
+        /// <summary>
+        /// 绑定编辑会话（用于多页面切换）。
+        /// 
+        /// 注意：
+        /// - 需要重新创建 <see cref="BoardInputController"/>，因为它在构造时持有会话引用。
+        /// - 切换时会终止当前交互，避免指针捕获/临时状态残留。
+        /// </summary>
+        internal void BindSession(BoardSession session)
+        {
+            if (session is null)
+            {
+                throw new ArgumentNullException(nameof(session));
+            }
+
+            if (ReferenceEquals(_session, session))
+            {
+                return;
+            }
+
+            // 未初始化时仅替换引用，让 EnsureInitialized 使用新的会话创建输入控制器。
+            if (!_isInitialized)
+            {
+                _session = session;
+                return;
+            }
+
+            // 切页时强制结束当前动作，避免跨页面遗留捕获/状态。
+            _input?.CancelActiveToolOperation();
+            SetRenderingLoopActive(false);
+
+            _session.StateChanged -= OnSessionStateChanged;
+            _session = session;
+            _session.StateChanged += OnSessionStateChanged;
+
+            // 会话切换后需要重建输入控制器（内部引用不可变）。
+            if (_input is not null)
+            {
+                _input.StateChanged -= OnInputStateChanged;
+                _input.FrameInvalidated -= OnFrameInvalidated;
+                _input.InteractionStateChanged -= OnInteractionStateChanged;
+                _input.Detach();
+            }
+
+            _input = new BoardInputController(CanvasPanel, _session, _viewport, _eraser)
+            {
+                Tool = _tool,
+                Eraser = _eraser,
+            };
+            _input.Attach();
+            _input.StateChanged += OnInputStateChanged;
+            _input.FrameInvalidated += OnFrameInvalidated;
+            _input.InteractionStateChanged += OnInteractionStateChanged;
+
+            // 避免把旧页面缓存背景“带到”新页面。
+            _renderer?.InvalidateCachedBackground();
+            _wasWriting = false;
+
+            RaiseCommandStateChanged();
+            RequestRender();
         }
 
         private void EnsureInitialized()

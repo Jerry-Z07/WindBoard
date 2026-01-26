@@ -251,7 +251,7 @@
                 </StackPanel>
             </Border>
 
-            <!-- 右侧 Dock：预留“+”入口（例如：新建页/插入内容等） -->
+            <!-- 右侧 Dock：页面切换与页面管理入口 -->
             <Border
                 HorizontalAlignment="Right"
                 Background="{ThemeResource SystemControlBackgroundChromeMediumLowBrush}"
@@ -259,16 +259,129 @@
                 BorderThickness="1"
                 CornerRadius="14"
                 Padding="5">
-                <Button
-                    x:Name="AddButton"
-                    MinWidth="52"
-                    MinHeight="52"
-                    Padding="0"
-                    CornerRadius="10"
-                    HorizontalContentAlignment="Center"
-                    VerticalContentAlignment="Center">
-                    <SymbolIcon Symbol="Add" />
-                </Button>
+                <StackPanel Orientation="Horizontal" Spacing="3">
+                    <Button
+                        x:Name="PagePrevButton"
+                        MinWidth="52"
+                        MinHeight="52"
+                        Padding="0"
+                        CornerRadius="10"
+                        HorizontalContentAlignment="Center"
+                        VerticalContentAlignment="Center">
+                        <SymbolIcon Symbol="Back" />
+                    </Button>
+
+                    <Button
+                        x:Name="PageIndicatorButton"
+                        MinWidth="84"
+                        MinHeight="52"
+                        Padding="8,0"
+                        CornerRadius="10"
+                        HorizontalContentAlignment="Center"
+                        VerticalContentAlignment="Center">
+                        <Button.Flyout>
+                            <Flyout x:Name="PagesFlyout" Placement="TopEdgeAlignedRight">
+                                <Flyout.FlyoutPresenterStyle>
+                                    <!-- 移除 Flyout 默认外框，避免与内部容器叠加造成“臃肿” -->
+                                    <Style TargetType="FlyoutPresenter">
+                                        <Setter Property="Background" Value="Transparent" />
+                                        <Setter Property="BorderThickness" Value="0" />
+                                        <Setter Property="Padding" Value="0" />
+                                    </Style>
+                                </Flyout.FlyoutPresenterStyle>
+
+                                <Border
+                                    Width="280"
+                                    MaxHeight="520"
+                                    Background="{ThemeResource SystemControlBackgroundChromeMediumLowBrush}"
+                                    CornerRadius="14"
+                                    Padding="12">
+                                    <Grid RowDefinitions="Auto,*" RowSpacing="10">
+                                        <TextBlock
+                                            Text="页面管理"
+                                            FontSize="16"
+                                            FontWeight="SemiBold" />
+
+                                        <ListView
+                                            x:Name="PagesListView"
+                                            Grid.Row="1"
+                                            SelectionMode="Single"
+                                            IsItemClickEnabled="True"
+                                            ItemClick="OnPagesListItemClick"
+                                            ScrollViewer.VerticalScrollBarVisibility="Auto">
+                                            <ListView.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Border
+                                                        Background="{ThemeResource SystemControlBackgroundBaseLowBrush}"
+                                                        BorderBrush="{ThemeResource SystemControlForegroundBaseMediumLowBrush}"
+                                                        BorderThickness="1"
+                                                        CornerRadius="12"
+                                                        Padding="8"
+                                                        Margin="0,0,0,8">
+                                                        <Grid RowDefinitions="26,*" RowSpacing="6">
+                                                            <Grid ColumnDefinitions="Auto,*,Auto" VerticalAlignment="Center">
+                                                                <TextBlock
+                                                                    Text="{Binding Number}"
+                                                                    FontSize="14"
+                                                                    FontWeight="SemiBold" />
+
+                                                                <Button
+                                                                    Grid.Column="2"
+                                                                    MinWidth="28"
+                                                                    MinHeight="28"
+                                                                    Padding="0"
+                                                                    CornerRadius="8"
+                                                                    HorizontalContentAlignment="Center"
+                                                                    VerticalContentAlignment="Center"
+                                                                    Tag="{Binding}"
+                                                                    Click="OnDeletePageClicked">
+                                                                    <SymbolIcon Symbol="Delete" />
+                                                                </Button>
+                                                            </Grid>
+
+                                                            <controls:PageThumbnailControl
+                                                                Grid.Row="1"
+                                                                Height="92"
+                                                                Page="{Binding Page}" />
+                                                        </Grid>
+                                                    </Border>
+                                                </DataTemplate>
+                                            </ListView.ItemTemplate>
+                                        </ListView>
+                                    </Grid>
+                                </Border>
+                            </Flyout>
+                        </Button.Flyout>
+
+                        <TextBlock
+                            x:Name="PageIndicatorText"
+                            FontSize="12"
+                            FontWeight="SemiBold"
+                            Text="1 / 1" />
+                    </Button>
+
+                    <Button
+                        x:Name="PageNextButton"
+                        MinWidth="52"
+                        MinHeight="52"
+                        Padding="0"
+                        CornerRadius="10"
+                        HorizontalContentAlignment="Center"
+                        VerticalContentAlignment="Center">
+                        <SymbolIcon Symbol="Forward" />
+                    </Button>
+
+                    <Button
+                        x:Name="AddButton"
+                        MinWidth="52"
+                        MinHeight="52"
+                        Padding="0"
+                        CornerRadius="10"
+                        HorizontalContentAlignment="Center"
+                        VerticalContentAlignment="Center">
+                        <SymbolIcon Symbol="Add" />
+                    </Button>
+                </StackPanel>
             </Border>
         </Grid>
     </Grid>
