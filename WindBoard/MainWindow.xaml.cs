@@ -50,6 +50,7 @@ namespace WindBoard
 
             // 右侧 Dock：页面切换与管理
             PagePrevButton.Click += (_, _) => _workspace.TryMoveToPreviousPage();
+            PageIndicatorButton.Click += OnPageIndicatorButtonClicked;
             PageNextButton.Click += (_, _) => _workspace.TryMoveToNextPage();
             AddButton.Click += OnAddClicked;
 
@@ -327,6 +328,12 @@ namespace WindBoard
         {
             // “+”约定为新增页面。
             _workspace.AddPage();
+        }
+
+        private void OnPageIndicatorButtonClicked(object sender, RoutedEventArgs e)
+        {
+            // 页面管理弹出层锚定到右侧 Dock 容器，保证弹出区域正对 Dock 上方。
+            FlyoutBase.ShowAttachedFlyout(PagesDockBorder);
         }
 
         private void InitializePages()

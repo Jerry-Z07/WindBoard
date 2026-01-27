@@ -14,27 +14,73 @@
     </Window.SystemBackdrop>
 
     <Grid>
+        <Grid.Resources>
+            <ResourceDictionary>
+                <!-- 底部 Dock：参考截图的“分段控制”样式。
+                     目标：未交互时按钮透明，只有选中项有高亮底色，避免出现“容器套容器”的多层矩形。 -->
+
+                <Style
+                    x:Key="DockButtonStyle"
+                    TargetType="Button"
+                    BasedOn="{StaticResource DefaultButtonStyle}">
+                    <Setter Property="Background" Value="Transparent" />
+                    <Setter Property="BorderThickness" Value="0" />
+                    <Setter Property="CornerRadius" Value="10" />
+                    <Setter Property="HorizontalContentAlignment" Value="Center" />
+                    <Setter Property="VerticalContentAlignment" Value="Center" />
+                </Style>
+
+                <Style
+                    x:Key="DockToggleButtonStyle"
+                    TargetType="ToggleButton"
+                    BasedOn="{StaticResource DefaultToggleButtonStyle}">
+                    <Setter Property="Background" Value="Transparent" />
+                    <Setter Property="BorderThickness" Value="0" />
+                    <Setter Property="CornerRadius" Value="10" />
+                    <Setter Property="HorizontalContentAlignment" Value="Center" />
+                    <Setter Property="VerticalContentAlignment" Value="Center" />
+                </Style>
+            </ResourceDictionary>
+        </Grid.Resources>
+
         <controls:BoardCanvasControl x:Name="BoardCanvas" />
 
         <!-- 底部 Dock：左侧“更多/最小化/导入”，中部“工具/撤销重做”，右侧“+”入口 -->
         <!-- 使用三块浮层分别对齐 Left/Center/Right，保证中部 Dock 始终以窗口居中对齐。 -->
         <Grid VerticalAlignment="Bottom" Margin="14,0,14,14">
+            <Grid.Resources>
+                <ResourceDictionary>
+                    <!-- Dock 内按钮/切换按钮的交互态配色：选中态使用灰色高亮（截图风格） -->
+                    <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="#14FFFFFF" />
+                    <SolidColorBrush x:Key="ButtonBackgroundPressed" Color="#22FFFFFF" />
+                    <SolidColorBrush x:Key="ButtonBackgroundDisabled" Color="#00000000" />
+
+                    <SolidColorBrush x:Key="ToggleButtonBackgroundPointerOver" Color="#14FFFFFF" />
+                    <SolidColorBrush x:Key="ToggleButtonBackgroundPressed" Color="#22FFFFFF" />
+                    <SolidColorBrush x:Key="ToggleButtonBackgroundChecked" Color="#1976D2" />
+                    <SolidColorBrush x:Key="ToggleButtonBackgroundCheckedPointerOver" Color="#1976D2" />
+                    <SolidColorBrush x:Key="ToggleButtonBackgroundCheckedPressed" Color="#1976D2" />
+                    <SolidColorBrush x:Key="ToggleButtonBackgroundDisabled" Color="#00000000" />
+                    <SolidColorBrush x:Key="ToggleButtonBackgroundCheckedDisabled" Color="#1976D2" />
+                </ResourceDictionary>
+            </Grid.Resources>
 
             <!-- 左侧 Dock -->
-            <Border
+            <Grid
                 HorizontalAlignment="Left"
-                Background="{ThemeResource SystemControlBackgroundChromeMediumLowBrush}"
-                BorderBrush="{ThemeResource SystemControlForegroundBaseMediumLowBrush}"
-                BorderThickness="1"
-                CornerRadius="14"
-                Padding="5">
-                <StackPanel Orientation="Horizontal" Spacing="3">
+                VerticalAlignment="Bottom">
+                <!-- 外层底板：仅背景 0.85 透明度，避免影响内部图标/文字不透明度 -->
+                <Border
+                    Background="{ThemeResource SystemControlBackgroundChromeMediumLowBrush}"
+                    CornerRadius="14"
+                    Opacity="0.85" />
+                <StackPanel Orientation="Horizontal" Spacing="4" Margin="5">
                     <Button
                         x:Name="MoreButton"
                         MinWidth="60"
                         MinHeight="52"
                         Padding="8,6"
-                        CornerRadius="10"
+                        Style="{StaticResource DockButtonStyle}"
                         HorizontalContentAlignment="Center"
                         VerticalContentAlignment="Center">
                         <Button.Flyout>
@@ -70,7 +116,7 @@
                         MinWidth="60"
                         MinHeight="52"
                         Padding="8,6"
-                        CornerRadius="10"
+                        Style="{StaticResource DockButtonStyle}"
                         HorizontalContentAlignment="Center"
                         VerticalContentAlignment="Center">
                         <StackPanel Orientation="Vertical">
@@ -84,7 +130,7 @@
                         MinWidth="60"
                         MinHeight="52"
                         Padding="8,6"
-                        CornerRadius="10"
+                        Style="{StaticResource DockButtonStyle}"
                         HorizontalContentAlignment="Center"
                         VerticalContentAlignment="Center">
                         <StackPanel Orientation="Vertical">
@@ -93,23 +139,23 @@
                         </StackPanel>
                     </Button>
                 </StackPanel>
-            </Border>
+            </Grid>
 
             <!-- 中部 Dock -->
-            <Border
+            <Grid
                 HorizontalAlignment="Center"
-                Background="{ThemeResource SystemControlBackgroundChromeMediumLowBrush}"
-                BorderBrush="{ThemeResource SystemControlForegroundBaseMediumLowBrush}"
-                BorderThickness="1"
-                CornerRadius="14"
-                Padding="5">
-                <StackPanel Orientation="Horizontal" Spacing="3">
+                VerticalAlignment="Bottom">
+                <Border
+                    Background="{ThemeResource SystemControlBackgroundChromeMediumLowBrush}"
+                    CornerRadius="14"
+                    Opacity="0.85" />
+                <StackPanel Orientation="Horizontal" Spacing="4" Margin="5">
                     <ToggleButton
                         x:Name="SelectToolToggleButton"
                         MinWidth="60"
                         MinHeight="52"
                         Padding="8,6"
-                        CornerRadius="10"
+                        Style="{StaticResource DockToggleButtonStyle}"
                         HorizontalContentAlignment="Center"
                         VerticalContentAlignment="Center">
                         <StackPanel Orientation="Vertical">
@@ -124,7 +170,7 @@
                         MinWidth="60"
                         MinHeight="52"
                         Padding="8,6"
-                        CornerRadius="10"
+                        Style="{StaticResource DockToggleButtonStyle}"
                         HorizontalContentAlignment="Center"
                         VerticalContentAlignment="Center">
                         <StackPanel Orientation="Vertical">
@@ -138,7 +184,7 @@
                         MinWidth="60"
                         MinHeight="52"
                         Padding="8,6"
-                        CornerRadius="10"
+                        Style="{StaticResource DockToggleButtonStyle}"
                         HorizontalContentAlignment="Center"
                         VerticalContentAlignment="Center">
                         <!-- 擦除模式二次点击：弹出“滑动清屏”（清空画布）入口，避免误触一键清空。 -->
@@ -218,7 +264,6 @@
                         Width="1"
                         Height="30"
                         Fill="{ThemeResource SystemControlForegroundBaseMediumLowBrush}"
-                        Margin="5,0"
                         VerticalAlignment="Center" />
 
                     <Button
@@ -226,7 +271,7 @@
                         MinWidth="60"
                         MinHeight="52"
                         Padding="8,6"
-                        CornerRadius="10"
+                        Style="{StaticResource DockButtonStyle}"
                         HorizontalContentAlignment="Center"
                         VerticalContentAlignment="Center">
                         <StackPanel Orientation="Vertical">
@@ -240,7 +285,7 @@
                         MinWidth="60"
                         MinHeight="52"
                         Padding="8,6"
-                        CornerRadius="10"
+                        Style="{StaticResource DockButtonStyle}"
                         HorizontalContentAlignment="Center"
                         VerticalContentAlignment="Center">
                         <StackPanel Orientation="Vertical">
@@ -249,23 +294,118 @@
                         </StackPanel>
                     </Button>
                 </StackPanel>
-            </Border>
+            </Grid>
 
             <!-- 右侧 Dock：页面切换与页面管理入口 -->
-            <Border
+            <Grid
+                x:Name="PagesDockBorder"
                 HorizontalAlignment="Right"
-                Background="{ThemeResource SystemControlBackgroundChromeMediumLowBrush}"
-                BorderBrush="{ThemeResource SystemControlForegroundBaseMediumLowBrush}"
-                BorderThickness="1"
-                CornerRadius="14"
-                Padding="5">
-                <StackPanel Orientation="Horizontal" Spacing="3">
+                VerticalAlignment="Bottom">
+                <!-- 页面管理弹出层：以整个右侧 Dock 作为锚点，保证弹出区域正对 Dock 上方 -->
+                <FlyoutBase.AttachedFlyout>
+                    <Flyout x:Name="PagesFlyout" Placement="TopEdgeAlignedRight">
+                        <Flyout.FlyoutPresenterStyle>
+                            <Style TargetType="FlyoutPresenter">
+                                <!-- 禁用 Flyout 默认边框/阴影/焦点框 -->
+                                <Setter Property="Background" Value="Transparent" />
+                                <Setter Property="BorderThickness" Value="0" />
+                                <Setter Property="Padding" Value="0" />
+                                <Setter Property="Shadow" Value="{x:Null}" />
+                                <Setter Property="IsTabStop" Value="False" />
+                                <Setter Property="UseSystemFocusVisuals" Value="False" />
+                                <Setter Property="FocusVisualPrimaryBrush" Value="Transparent" />
+                                <Setter Property="FocusVisualSecondaryBrush" Value="Transparent" />
+                            </Style>
+                        </Flyout.FlyoutPresenterStyle>
+
+                        <Border
+                            Width="280"
+                            MaxHeight="520"
+                            Background="{ThemeResource SystemControlBackgroundChromeMediumLowBrush}"
+                            CornerRadius="14"
+                            Padding="12">
+                            <Grid RowDefinitions="Auto,*" RowSpacing="10">
+                                <TextBlock
+                                    Text="页面管理"
+                                    FontSize="16"
+                                    FontWeight="SemiBold" />
+
+                                <ListView
+                                    x:Name="PagesListView"
+                                    Grid.Row="1"
+                                    SelectionMode="Single"
+                                    IsItemClickEnabled="True"
+                                    ItemClick="OnPagesListItemClick"
+                                    ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                    ScrollViewer.VerticalScrollBarVisibility="Auto">
+                                    <ListView.ItemContainerStyle>
+                                        <!-- 去掉 ListViewItem 默认左右 Padding，避免内容被裁剪（尤其是右侧删除按钮） -->
+                                        <Style TargetType="ListViewItem">
+                                            <Setter Property="Padding" Value="0" />
+                                            <Setter Property="HorizontalContentAlignment" Value="Center" />
+                                        </Style>
+                                    </ListView.ItemContainerStyle>
+
+                                    <ListView.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border
+                                                Width="240"
+                                                Background="{ThemeResource SystemControlBackgroundBaseLowBrush}"
+                                                BorderBrush="{ThemeResource SystemControlForegroundBaseMediumLowBrush}"
+                                                BorderThickness="1"
+                                                CornerRadius="12"
+                                                Padding="8"
+                                                Margin="0,0,0,8">
+                                                <Grid RowDefinitions="24,*" RowSpacing="6">
+                                                    <Grid ColumnDefinitions="Auto,*,Auto" VerticalAlignment="Center">
+                                                        <TextBlock
+                                                            Text="{Binding Number}"
+                                                            FontSize="14"
+                                                            FontWeight="SemiBold" />
+
+                                                        <Button
+                                                            Grid.Column="2"
+                                                            Width="24"
+                                                            Height="24"
+                                                            Padding="0"
+                                                            CornerRadius="7"
+                                                            HorizontalContentAlignment="Center"
+                                                            VerticalContentAlignment="Center"
+                                                            Tag="{Binding}"
+                                                            Click="OnDeletePageClicked">
+                                                            <FontIcon
+                                                                FontFamily="Segoe MDL2 Assets"
+                                                                FontSize="12"
+                                                                Glyph="&#xE74D;" />
+                                                        </Button>
+                                                    </Grid>
+
+                                                    <controls:PageThumbnailControl
+                                                        Grid.Row="1"
+                                                        Height="104"
+                                                        Page="{Binding Page}" />
+                                                </Grid>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ListView.ItemTemplate>
+                                </ListView>
+                            </Grid>
+                        </Border>
+                    </Flyout>
+                </FlyoutBase.AttachedFlyout>
+
+                <Border
+                    Background="{ThemeResource SystemControlBackgroundChromeMediumLowBrush}"
+                    CornerRadius="14"
+                    Opacity="0.85" />
+
+                <StackPanel Orientation="Horizontal" Spacing="4" Margin="5">
                     <Button
                         x:Name="PagePrevButton"
                         MinWidth="52"
                         MinHeight="52"
                         Padding="0"
-                        CornerRadius="10"
+                        Style="{StaticResource DockButtonStyle}"
                         HorizontalContentAlignment="Center"
                         VerticalContentAlignment="Center">
                         <SymbolIcon Symbol="Back" />
@@ -276,101 +416,9 @@
                         MinWidth="84"
                         MinHeight="52"
                         Padding="8,0"
-                        CornerRadius="10"
+                        Style="{StaticResource DockButtonStyle}"
                         HorizontalContentAlignment="Center"
                         VerticalContentAlignment="Center">
-                        <Button.Flyout>
-                            <Flyout x:Name="PagesFlyout" Placement="TopEdgeAlignedRight">
-                                <Flyout.FlyoutPresenterStyle>
-                                    <Style TargetType="FlyoutPresenter">
-                                        <!-- 禁用 Flyout 默认边框/阴影/焦点框 -->
-                                        <Setter Property="Background" Value="Transparent" />
-                                        <Setter Property="BorderThickness" Value="0" />
-                                        <Setter Property="Padding" Value="0" />
-                                        <Setter Property="Shadow" Value="{x:Null}" />
-                                        <Setter Property="IsTabStop" Value="False" />
-                                        <Setter Property="UseSystemFocusVisuals" Value="False" />
-                                        <Setter Property="FocusVisualPrimaryBrush" Value="Transparent" />
-                                        <Setter Property="FocusVisualSecondaryBrush" Value="Transparent" />
-                                    </Style>
-                                </Flyout.FlyoutPresenterStyle>
-
-                                <Border
-                                    Width="280"
-                                    MaxHeight="520"
-                                    Background="{ThemeResource SystemControlBackgroundChromeMediumLowBrush}"
-                                    CornerRadius="14"
-                                    Padding="12">
-                                    <Grid RowDefinitions="Auto,*" RowSpacing="10">
-                                        <TextBlock
-                                            Text="页面管理"
-                                            FontSize="16"
-                                            FontWeight="SemiBold" />
-
-                                        <ListView
-                                            x:Name="PagesListView"
-                                            Grid.Row="1"
-                                            SelectionMode="Single"
-                                            IsItemClickEnabled="True"
-                                            ItemClick="OnPagesListItemClick"
-                                            ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-                                            ScrollViewer.VerticalScrollBarVisibility="Auto">
-                                            <ListView.ItemContainerStyle>
-                                                <!-- 去掉 ListViewItem 默认左右 Padding，避免内容被裁剪（尤其是右侧删除按钮） -->
-                                                <Style TargetType="ListViewItem">
-                                                    <Setter Property="Padding" Value="0" />
-                                                    <Setter Property="HorizontalContentAlignment" Value="Center" />
-                                                </Style>
-                                            </ListView.ItemContainerStyle>
-
-                                            <ListView.ItemTemplate>
-                                                <DataTemplate>
-                                                    <Border
-                                                        Width="240"
-                                                        Background="{ThemeResource SystemControlBackgroundBaseLowBrush}"
-                                                        BorderBrush="{ThemeResource SystemControlForegroundBaseMediumLowBrush}"
-                                                        BorderThickness="1"
-                                                        CornerRadius="12"
-                                                        Padding="8"
-                                                        Margin="0,0,0,8">
-                                                        <Grid RowDefinitions="24,*" RowSpacing="6">
-                                                            <Grid ColumnDefinitions="Auto,*,Auto" VerticalAlignment="Center">
-                                                                <TextBlock
-                                                                    Text="{Binding Number}"
-                                                                    FontSize="14"
-                                                                    FontWeight="SemiBold" />
-
-                                                                <Button
-                                                                    Grid.Column="2"
-                                                                    Width="24"
-                                                                    Height="24"
-                                                                    Padding="0"
-                                                                    CornerRadius="7"
-                                                                    HorizontalContentAlignment="Center"
-                                                                    VerticalContentAlignment="Center"
-                                                                    Tag="{Binding}"
-                                                                    Click="OnDeletePageClicked">
-                                                                    <FontIcon
-                                                                        FontFamily="Segoe MDL2 Assets"
-                                                                        FontSize="12"
-                                                                        Glyph="&#xE74D;" />
-                                                                </Button>
-                                                            </Grid>
-
-                                                            <controls:PageThumbnailControl
-                                                                Grid.Row="1"
-                                                                Height="104"
-                                                                Page="{Binding Page}" />
-                                                        </Grid>
-                                                    </Border>
-                                                </DataTemplate>
-                                            </ListView.ItemTemplate>
-                                        </ListView>
-                                    </Grid>
-                                </Border>
-                            </Flyout>
-                        </Button.Flyout>
-
                         <TextBlock
                             x:Name="PageIndicatorText"
                             FontSize="12"
@@ -383,7 +431,7 @@
                         MinWidth="52"
                         MinHeight="52"
                         Padding="0"
-                        CornerRadius="10"
+                        Style="{StaticResource DockButtonStyle}"
                         HorizontalContentAlignment="Center"
                         VerticalContentAlignment="Center">
                         <SymbolIcon Symbol="Forward" />
@@ -394,13 +442,13 @@
                         MinWidth="52"
                         MinHeight="52"
                         Padding="0"
-                        CornerRadius="10"
+                        Style="{StaticResource DockButtonStyle}"
                         HorizontalContentAlignment="Center"
                         VerticalContentAlignment="Center">
                         <SymbolIcon Symbol="Add" />
                     </Button>
                 </StackPanel>
-            </Border>
+            </Grid>
         </Grid>
     </Grid>
 </Window>
