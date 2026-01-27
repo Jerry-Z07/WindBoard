@@ -7,6 +7,7 @@ using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Shapes;
 using WindBoard.Board;
 using WindBoard.Board.Editing;
+using WindBoard.Rendering.Board;
 using Windows.Foundation;
 using Windows.UI;
 
@@ -25,7 +26,10 @@ namespace WindBoard.Controls
     {
         private const double CanvasPadding = 8;
         private const int MaxPointsPerStroke = 240;
-        private static readonly Brush DefaultThumbnailBackgroundBrush = new SolidColorBrush(Color.FromArgb(255, 15, 18, 24));
+        private const int GridMajorEvery = 5;
+        private static readonly Brush DefaultThumbnailBackgroundBrush = new SolidColorBrush(Color.FromArgb(255, 255, 255, 255));
+        private static readonly Brush GridMinorBrush = new SolidColorBrush(Color.FromArgb(255, 235, 235, 235));
+        private static readonly Brush GridMajorBrush = new SolidColorBrush(Color.FromArgb(255, 219, 219, 219));
 
         private BoardPage? _page;
         private readonly DispatcherQueue _dispatcherQueue;
@@ -145,12 +149,37 @@ namespace WindBoard.Controls
             if (document is null || document.Strokes.Count == 0)
             {
                 EmptyHintText.Opacity = 0.65;
+
+                // 空白页也展示网格背景，保持与画布一致的视觉基调。
+                DrawGrid(
+                    StrokeCanvas,
+                    width,
+                    height,
+                    scale: 1.0,
+                    minX: 0,
+                    minY: 0,
+                    baseX: CanvasPadding,
+                    baseY: CanvasPadding);
+
+                StrokeCanvas.Clip = new RectangleGeometry { Rect = new Rect(0, 0, width, height) };
                 return;
             }
 
             if (!TryGetDocumentBounds(document.Strokes, out float minX, out float minY, out float maxX, out float maxY))
             {
                 EmptyHintText.Opacity = 0.65;
+
+                DrawGrid(
+                    StrokeCanvas,
+                    width,
+                    height,
+                    scale: 1.0,
+                    minX: 0,
+                    minY: 0,
+                    baseX: CanvasPadding,
+                    baseY: CanvasPadding);
+
+                StrokeCanvas.Clip = new RectangleGeometry { Rect = new Rect(0, 0, width, height) };
                 return;
             }
 
@@ -164,10 +193,17 @@ namespace WindBoard.Controls
             double scale = Math.Min(availableW / boundsW, availableH / boundsH);
             // 缩略图只做“缩小适配”，不做“放大填充”：避免少量笔迹（点/短线）被异常放大显示。
             scale = Math.Min(scale, 1.0);
+            scale = Math.Max(scale, 0.0001);
             double scaledW = boundsW * scale;
             double scaledH = boundsH * scale;
             double offsetX = (availableW - scaledW) / 2;
             double offsetY = (availableH - scaledH) / 2;
+
+            double baseX = CanvasPadding + offsetX;
+            double baseY = CanvasPadding + offsetY;
+
+            // 先画网格，再画笔迹，保持与主画布一致的顺序。
+            DrawGrid(StrokeCanvas, width, height, scale, minX, minY, baseX, baseY);
 
             // 轻量渲染：每条笔迹用一条 Polyline 近似。
             foreach (Stroke stroke in document.Strokes)
@@ -190,8 +226,8 @@ namespace WindBoard.Controls
                 var points = new PointCollection();
                 foreach (StrokePoint point in EnumeratePointsForThumbnail(stroke.Points))
                 {
-                    double x = CanvasPadding + offsetX + (point.Position.X - minX) * scale;
-                    double y = CanvasPadding + offsetY + (point.Position.Y - minY) * scale;
+                    double x = baseX + (point.Position.X - minX) * scale;
+                    double y = baseY + (point.Position.Y - minY) * scale;
                     points.Add(new Point(x, y));
                 }
 
@@ -203,6 +239,68 @@ namespace WindBoard.Controls
             }
 
             StrokeCanvas.Clip = new RectangleGeometry { Rect = new Rect(0, 0, width, height) };
+        }
+
+        private static void DrawGrid(Canvas canvas, double width, double height, double scale, float minX, float minY, double baseX, double baseY)
+        {
+            if (width <= 1 || height <= 1 || scale <= 0.0001)
+            {
+                return;
+            }
+
+            float stepWorld = BoardSceneMath.GetAdaptiveGridStepWorld((float)scale);
+            if (stepWorld <= 0)
+            {
+                return;
+            }
+
+            double worldLeft = minX + (0 - baseX) / scale;
+            double worldRight = minX + (width - baseX) / scale;
+            double worldTop = minY + (0 - baseY) / scale;
+            double worldBottom = minY + (height - baseY) / scale;
+
+            long firstX = (long)Math.Floor(worldLeft / stepWorld);
+            long lastX = (long)Math.Ceiling(worldRight / stepWorld);
+            long firstY = (long)Math.Floor(worldTop / stepWorld);
+            long lastY = (long)Math.Ceiling(worldBottom / stepWorld);
+
+            // 竖线
+            for (long ix = firstX; ix <= lastX; ix++)
+            {
+                double worldX = ix * stepWorld;
+                double x = baseX + (worldX - minX) * scale;
+
+                var line = new Line
+                {
+                    X1 = x,
+                    X2 = x,
+                    Y1 = 0,
+                    Y2 = height,
+                    Stroke = ix % GridMajorEvery == 0 ? GridMajorBrush : GridMinorBrush,
+                    StrokeThickness = ix % GridMajorEvery == 0 ? 1.2 : 1.0,
+                    IsHitTestVisible = false,
+                };
+                canvas.Children.Add(line);
+            }
+
+            // 横线
+            for (long iy = firstY; iy <= lastY; iy++)
+            {
+                double worldY = iy * stepWorld;
+                double y = baseY + (worldY - minY) * scale;
+
+                var line = new Line
+                {
+                    X1 = 0,
+                    X2 = width,
+                    Y1 = y,
+                    Y2 = y,
+                    Stroke = iy % GridMajorEvery == 0 ? GridMajorBrush : GridMinorBrush,
+                    StrokeThickness = iy % GridMajorEvery == 0 ? 1.2 : 1.0,
+                    IsHitTestVisible = false,
+                };
+                canvas.Children.Add(line);
+            }
         }
 
         private static bool TryGetDocumentBounds(IReadOnlyList<Stroke> strokes, out float minX, out float minY, out float maxX, out float maxY)
