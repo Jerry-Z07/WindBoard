@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="WindBoard.Settings.Pages.AppearanceSettingsPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <ScrollViewer>
+        <StackPanel Spacing="16" Padding="24">
+            <TextBlock Text="外观" Style="{ThemeResource TitleTextBlockStyle}" />
+
+            <!-- 采用 Windows 设置页的“卡片入口”布局：顶层页只展示分组，具体项进入二级页面/弹窗。 -->
+            <StackPanel Spacing="10">
+                <Button Style="{StaticResource SettingsCardButtonStyle}" Click="OnBackgroundClicked">
+                    <Grid ColumnSpacing="12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <SymbolIcon Symbol="Setting" VerticalAlignment="Center" />
+
+                        <StackPanel Grid.Column="1" Spacing="2">
+                            <TextBlock Text="背景" FontWeight="SemiBold" />
+                            <TextBlock Text="画布背景颜色" Opacity="0.75" TextWrapping="WrapWholeWords" />
+                        </StackPanel>
+
+                        <!-- 右侧箭头（Segoe MDL2 Assets：ChevronRight） -->
+                        <FontIcon
+                            Grid.Column="2"
+                            Glyph="&#xE76C;"
+                            FontFamily="Segoe MDL2 Assets"
+                            Opacity="0.65"
+                            VerticalAlignment="Center" />
+                    </Grid>
+                </Button>
+            </StackPanel>
+        </StackPanel>
+    </ScrollViewer>
+</Page>

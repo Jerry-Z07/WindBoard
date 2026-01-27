@@ -5,6 +5,7 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using Vortice.Mathematics;
+using UiColor = Windows.UI.Color;
 using WindBoard.Board;
 using WindBoard.Board.Editing;
 using WindBoard.Board.Viewport;
@@ -25,6 +26,7 @@ namespace WindBoard.Controls
         private BoardInputController? _input;
         private BoardTool _tool = BoardTool.Pen;
         private IBoardEraser _eraser = new WholeStrokeEraser();
+        private UiColor _canvasBackgroundColor = UiColor.FromArgb(0xFF, 0x2E, 0x2F, 0x33);
         private bool _isInitialized;
         private bool _isRenderingLoopActive;
         private bool _isRenderQueued;
@@ -41,6 +43,25 @@ namespace WindBoard.Controls
         }
 
         public event EventHandler? CommandStateChanged;
+
+        /// <summary>
+        /// 画布背景色（用于渲染层清屏）。
+        /// </summary>
+        internal UiColor CanvasBackgroundColor
+        {
+            get => _canvasBackgroundColor;
+            set
+            {
+                if (_canvasBackgroundColor == value)
+                {
+                    return;
+                }
+
+                _canvasBackgroundColor = value;
+                ApplyCanvasBackgroundToRenderer();
+                RequestRender();
+            }
+        }
 
         internal BoardTool Tool
         {
@@ -175,6 +196,7 @@ namespace WindBoard.Controls
 
             _renderer = new DxSwapChainPanelRenderer(CanvasPanel);
             _renderer.Initialize();
+            ApplyCanvasBackgroundToRenderer();
 
             _input = new BoardInputController(CanvasPanel, _session, _viewport, _eraser);
             _input.Tool = _tool;
@@ -200,6 +222,30 @@ namespace WindBoard.Controls
 
             RaiseCommandStateChanged();
             RequestRender();
+        }
+
+        private void ApplyCanvasBackgroundToRenderer()
+        {
+            if (_renderer is null)
+            {
+                return;
+            }
+
+            // 背景色变更需要同时影响：
+            // - 正常 Render 的清屏色
+            // - 背景缓存（cached background）的清屏色
+            // - 平移滚动优化时的脏区填充色
+            _renderer.ClearColor = ToColor4(_canvasBackgroundColor);
+            _renderer.InvalidateCachedBackground();
+        }
+
+        private static Color4 ToColor4(UiColor color)
+        {
+            return new Color4(
+                color.R / 255.0f,
+                color.G / 255.0f,
+                color.B / 255.0f,
+                color.A / 255.0f);
         }
 
         private void OnXamlRootChanged(Microsoft.UI.Xaml.XamlRoot sender, XamlRootChangedEventArgs args)

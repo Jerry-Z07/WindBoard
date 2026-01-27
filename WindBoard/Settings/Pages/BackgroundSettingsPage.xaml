@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="WindBoard.Settings.Pages.BackgroundSettingsPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+    <Page.Resources>
+        <SolidColorBrush x:Name="CanvasBackgroundPreviewBrush" Color="#2E2F33" />
+    </Page.Resources>
+
+    <Grid>
+        <ScrollViewer>
+            <StackPanel Spacing="16" Padding="24">
+                <TextBlock Text="背景" Style="{ThemeResource TitleTextBlockStyle}" />
+
+                <StackPanel Spacing="10">
+                    <TextBlock Text="画布" Style="{ThemeResource SubtitleTextBlockStyle}" />
+
+                    <!-- 入口卡片：点击打开二级弹窗（颜色选择器 + HEX 输入） -->
+                    <Button Style="{StaticResource SettingsCardButtonStyle}" Click="OnCanvasBackgroundClicked">
+                        <Grid ColumnSpacing="12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+
+                            <SymbolIcon Symbol="Setting" VerticalAlignment="Center" />
+
+                            <StackPanel Grid.Column="1" Spacing="2">
+                                <TextBlock Text="画布背景颜色" FontWeight="SemiBold" />
+                                <TextBlock Text="设置画布的背景颜色" Opacity="0.75" TextWrapping="WrapWholeWords" />
+                            </StackPanel>
+
+                            <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                                <Border
+                                    Width="20"
+                                    Height="20"
+                                    CornerRadius="4"
+                                    Background="{x:Bind CanvasBackgroundPreviewBrush}"
+                                    BorderThickness="1"
+                                    BorderBrush="{ThemeResource SystemControlForegroundBaseLowBrush}" />
+                                <TextBlock x:Name="CurrentHexTextBlock" Text="#2E2F33" Opacity="0.75" />
+                            </StackPanel>
+
+                            <FontIcon
+                                Grid.Column="3"
+                                Glyph="&#xE76C;"
+                                FontFamily="Segoe MDL2 Assets"
+                                Opacity="0.65"
+                                VerticalAlignment="Center" />
+                        </Grid>
+                    </Button>
+
+                    <Button
+                        Content="恢复默认"
+                        HorizontalAlignment="Left"
+                        Click="OnResetToDefaultClicked" />
+                </StackPanel>
+            </StackPanel>
+        </ScrollViewer>
+
+        <ContentDialog
+            x:Name="CanvasBackgroundDialog"
+            Title="画布背景颜色"
+            PrimaryButtonText="确定"
+            CloseButtonText="取消">
+            <StackPanel Spacing="12">
+                <ColorPicker
+                    x:Name="DialogColorPicker"
+                    IsAlphaEnabled="False"
+                    IsColorChannelTextInputVisible="False"
+                    IsMoreButtonVisible="False"
+                    ColorSpectrumShape="Box"
+                    ColorChanged="OnDialogColorChanged" />
+
+                <Grid ColumnSpacing="12">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <TextBox
+                        x:Name="DialogHexTextBox"
+                        Header="HEX"
+                        PlaceholderText="#2E2F33"
+                        TextChanged="OnDialogHexTextChanged" />
+
+                    <Button
+                        Grid.Column="1"
+                        Content="恢复默认"
+                        VerticalAlignment="Bottom"
+                        Click="OnDialogResetToDefaultClicked" />
+                </Grid>
+
+                <InfoBar
+                    x:Name="DialogHexErrorBar"
+                    IsOpen="False"
+                    Severity="Error"
+                    Message="HEX 颜色格式无效，请使用 #RRGGBB（例如 #2E2F33）"
+                    IsIconVisible="True" />
+            </StackPanel>
+        </ContentDialog>
+    </Grid>
+</Page>

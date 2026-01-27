@@ -29,7 +29,8 @@ namespace WindBoard.Rendering
         private ID2D1Device? _d2dDevice;
         private ID2D1DeviceContext? _d2dContext;
         private ID2D1Bitmap1? _d2dTargetBitmap;
-        private ID2D1SolidColorBrush? _whiteBrush;
+        private ID2D1SolidColorBrush? _clearBrush;
+        private Color4 _clearBrushColor;
 
         private ID2D1Bitmap1? _cachedBackgroundBitmap;
         private int _cachedBackgroundPixelWidth;
@@ -38,6 +39,7 @@ namespace WindBoard.Rendering
         private float _cachedBackgroundDpiY;
         private bool _cachedBackgroundDirty = true;
 
+        private Color4 _clearColor = new(1.0f, 1.0f, 1.0f, 1.0f);
         private int _pixelWidth;
         private int _pixelHeight;
         private float _dpiX;
@@ -48,6 +50,25 @@ namespace WindBoard.Rendering
         public bool IsInitialized { get; private set; }
 
         public float RenderScale => _renderScale;
+
+        /// <summary>
+        /// 画布清屏色（同时用于背景缓存与滚动脏区填充）。
+        /// </summary>
+        public Color4 ClearColor
+        {
+            get => _clearColor;
+            set
+            {
+                if (AreClose(_clearColor, value))
+                {
+                    return;
+                }
+
+                _clearColor = value;
+                _cachedBackgroundDirty = true;
+                _hasValidPresentHistory = false;
+            }
+        }
 
         public void Initialize()
         {
@@ -112,7 +133,7 @@ namespace WindBoard.Rendering
 
             ctx.BeginDraw();
             ctx.Transform = Matrix3x2.Identity;
-            ctx.Clear(new Color4(1.0f, 1.0f, 1.0f, 1.0f));
+            ctx.Clear(_clearColor);
             draw(ctx);
             ctx.EndDraw(out _, out _);
 
@@ -275,7 +296,7 @@ namespace WindBoard.Rendering
             }
 
             var ctx = _d2dContext;
-            EnsureWhiteBrush(ctx);
+            EnsureClearBrush(ctx);
 
             try
             {
@@ -295,9 +316,9 @@ namespace WindBoard.Rendering
                     Rect dirtyDip = PixelRectToDipRect(dirtyRectPixels);
 
                     ctx.PushAxisAlignedClip(dirtyDip, AntialiasMode.Aliased);
-                    if (_whiteBrush is not null)
+                    if (_clearBrush is not null)
                     {
-                        ctx.FillRectangle(dirtyDip, _whiteBrush);
+                        ctx.FillRectangle(dirtyDip, _clearBrush);
                     }
                     drawDirtyRegion(ctx, dirtyDip);
                     ctx.PopAxisAlignedClip();
@@ -611,7 +632,7 @@ namespace WindBoard.Rendering
 
             ctx.BeginDraw();
             ctx.Transform = Matrix3x2.Identity;
-            ctx.Clear(new Color4(1.0f, 1.0f, 1.0f, 1.0f));
+            ctx.Clear(_clearColor);
             drawBackground(ctx);
             ctx.EndDraw(out _, out _);
         }
@@ -655,9 +676,24 @@ namespace WindBoard.Rendering
             return Rect.FromLTRB(left, top, right, bottom);
         }
 
-        private void EnsureWhiteBrush(ID2D1DeviceContext ctx)
+        private void EnsureClearBrush(ID2D1DeviceContext ctx)
         {
-            _whiteBrush ??= ctx.CreateSolidColorBrush(new Color4(1.0f, 1.0f, 1.0f, 1.0f));
+            if (_clearBrush is not null && AreClose(_clearBrushColor, _clearColor))
+            {
+                return;
+            }
+
+            _clearBrush?.Dispose();
+            _clearBrush = ctx.CreateSolidColorBrush(_clearColor);
+            _clearBrushColor = _clearColor;
+        }
+
+        private static bool AreClose(Color4 a, Color4 b)
+        {
+            return Math.Abs(a.R - b.R) < 0.0001f
+                && Math.Abs(a.G - b.G) < 0.0001f
+                && Math.Abs(a.B - b.B) < 0.0001f
+                && Math.Abs(a.A - b.A) < 0.0001f;
         }
 
         private static void ApplySwapChainPanelTransform(
@@ -702,8 +738,8 @@ namespace WindBoard.Rendering
         {
             ReleaseCachedBackground();
 
-            _whiteBrush?.Dispose();
-            _whiteBrush = null;
+            _clearBrush?.Dispose();
+            _clearBrush = null;
 
             _d2dTargetBitmap?.Dispose();
             _d2dTargetBitmap = null;

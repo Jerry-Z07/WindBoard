@@ -16,8 +16,7 @@
     <Grid>
         <Grid.Resources>
             <ResourceDictionary>
-                <!-- 底部 Dock：参考截图的“分段控制”样式。
-                     目标：未交互时按钮透明，只有选中项有高亮底色，避免出现“容器套容器”的多层矩形。 -->
+                <!-- 底部 Dock -->
 
                 <Style
                     x:Key="DockButtonStyle"

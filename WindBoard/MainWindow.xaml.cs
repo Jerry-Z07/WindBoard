@@ -9,6 +9,7 @@ using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media.Animation;
 using WindBoard.Board.Editing;
 using WindBoard.Interaction;
+using WindBoard.Settings;
 
 namespace WindBoard
 {
@@ -28,6 +29,7 @@ namespace WindBoard
         private readonly BoardWorkspace _workspace = new();
         private readonly ObservableCollection<PageListItem> _pageItems = new();
         private bool _isUpdatingPageSelection;
+        private SettingsWindow? _settingsWindow;
 
         public MainWindow()
         {
@@ -61,7 +63,50 @@ namespace WindBoard
 
             UpdateCommandStates();
 
-            Closed += (_, _) => BoardCanvas.Dispose();
+            ApplyAppSettingsToCanvas();
+            AppSettingsService.Instance.Changed += OnAppSettingsChanged;
+
+            Closed += (_, _) =>
+            {
+                AppSettingsService.Instance.Changed -= OnAppSettingsChanged;
+
+                // 以主窗口为“应用主生命周期”窗口：主窗口退出时同步关闭设置窗口，
+                // 避免设置窗口残留导致进程不退出。
+                try
+                {
+                    _settingsWindow?.Close();
+                }
+                catch
+                {
+                    // 忽略关闭失败：不阻断主窗口退出流程
+                }
+
+                // 关闭前尽量落盘一次，避免防抖未触发导致设置丢失。
+                try
+                {
+                    AppSettingsService.Instance.SaveAsync().GetAwaiter().GetResult();
+                }
+                catch
+                {
+                    // 忽略保存失败：不阻断关闭流程
+                }
+
+                BoardCanvas.Dispose();
+            };
+        }
+
+        private void OnAppSettingsChanged(object? sender, EventArgs e)
+        {
+            // 变更可能来自不同线程（例如未来接入后台同步），这里统一切回 UI 线程更新控件。
+            if (!DispatcherQueue.TryEnqueue(ApplyAppSettingsToCanvas))
+            {
+                ApplyAppSettingsToCanvas();
+            }
+        }
+
+        private void ApplyAppSettingsToCanvas()
+        {
+            BoardCanvas.CanvasBackgroundColor = AppSettingsService.Instance.GetCanvasBackgroundColor();
         }
 
         private void ApplyToolSelection(BoardTool tool)
@@ -291,9 +336,17 @@ namespace WindBoard
             flyout?.Hide();
         }
 
-        private async void OnSettingsClicked(object sender, RoutedEventArgs e)
+        private void OnSettingsClicked(object sender, RoutedEventArgs e)
         {
-            await ShowNotImplementedDialogAsync("设置");
+            _settingsWindow ??= CreateSettingsWindow();
+            _settingsWindow.Activate();
+        }
+
+        private SettingsWindow CreateSettingsWindow()
+        {
+            var window = new SettingsWindow();
+            window.Closed += (_, _) => _settingsWindow = null;
+            return window;
         }
 
         private async void OnExportClicked(object sender, RoutedEventArgs e)

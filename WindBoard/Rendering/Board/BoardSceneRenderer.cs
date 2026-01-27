@@ -15,14 +15,10 @@ namespace WindBoard.Rendering.Board
         private ID2D1StrokeStyle? _strokeStyle;
         private ID2D1InkStyle? _inkStyle;
         private readonly Dictionary<Stroke, StrokeInkCacheEntry> _inkCache = new();
-        private ID2D1SolidColorBrush? _gridMinorBrush;
-        private ID2D1SolidColorBrush? _gridMajorBrush;
-        private ID2D1SolidColorBrush? _axisBrush;
 
         public void Draw(ID2D1DeviceContext ctx, BoardDocument document, Stroke? activeStroke, BoardViewport viewport)
         {
             EnsureStrokeBrush(ctx);
-            EnsureBackgroundBrushes(ctx);
 
             WithOptionalDeviceContext2(ctx, ctx2 =>
             {
@@ -39,7 +35,6 @@ namespace WindBoard.Rendering.Board
         public void DrawBackground(ID2D1DeviceContext ctx, BoardDocument document, BoardViewport viewport)
         {
             EnsureStrokeBrush(ctx);
-            EnsureBackgroundBrushes(ctx);
 
             WithOptionalDeviceContext2(ctx, ctx2 =>
             {
@@ -56,7 +51,6 @@ namespace WindBoard.Rendering.Board
         public void DrawBackgroundInScreenRect(ID2D1DeviceContext ctx, BoardDocument document, BoardViewport viewport, Rect screenRectDip)
         {
             EnsureStrokeBrush(ctx);
-            EnsureBackgroundBrushes(ctx);
 
             GetVisibleWorldBoundsFromScreenRect(viewport, screenRectDip, out Vector2 visibleMinWorld, out Vector2 visibleMaxWorld);
 
@@ -90,13 +84,6 @@ namespace WindBoard.Rendering.Board
             _strokeBrush ??= ctx.CreateSolidColorBrush(new Color4(0, 0, 0, 1));
         }
 
-        private void EnsureBackgroundBrushes(ID2D1DeviceContext ctx)
-        {
-            _gridMinorBrush ??= ctx.CreateSolidColorBrush(new Color4(0.92f, 0.92f, 0.92f, 1.0f));
-            _gridMajorBrush ??= ctx.CreateSolidColorBrush(new Color4(0.86f, 0.86f, 0.86f, 1.0f));
-            _axisBrush ??= ctx.CreateSolidColorBrush(new Color4(0.78f, 0.78f, 0.78f, 1.0f));
-        }
-
         private void WithOptionalDeviceContext2(ID2D1DeviceContext ctx, Action<ID2D1DeviceContext2?> action)
         {
             // 某些系统/驱动环境可能不支持 DeviceContext2，这里做一次安全降级。
@@ -121,7 +108,7 @@ namespace WindBoard.Rendering.Board
 
         private static void GetVisibleWorldBoundsFromScreenRect(BoardViewport viewport, Rect screenRectDip, out Vector2 visibleMinWorld, out Vector2 visibleMaxWorld)
         {
-            // 局部重绘：把屏幕矩形转换为世界坐标 AABB，用于裁剪可见笔迹/网格的计算。
+            // 局部重绘：把屏幕矩形转换为世界坐标 AABB，用于裁剪可见笔迹的计算。
             Vector2 worldTopLeft = viewport.ScreenToWorld(new Vector2(screenRectDip.Left, screenRectDip.Top));
             Vector2 worldBottomRight = viewport.ScreenToWorld(new Vector2(screenRectDip.Right, screenRectDip.Bottom));
 
@@ -143,8 +130,7 @@ namespace WindBoard.Rendering.Board
             Vector2 visibleMinWorld,
             Vector2 visibleMaxWorld)
         {
-            // 绘制顺序：网格（背景）→ 文档笔迹 → 活动笔迹（可选）。
-            DrawInfiniteGrid(ctx, viewport, visibleMinWorld, visibleMaxWorld);
+            // 绘制顺序：文档笔迹 → 活动笔迹（可选）。
 
             foreach (var stroke in document.Strokes)
             {
@@ -428,68 +414,6 @@ namespace WindBoard.Rendering.Board
             };
         }
 
-        private void DrawInfiniteGrid(ID2D1DeviceContext ctx, BoardViewport viewport, Vector2 visibleMinWorld, Vector2 visibleMaxWorld)
-        {
-            if (_gridMinorBrush is null || _gridMajorBrush is null || _axisBrush is null)
-            {
-                return;
-            }
-
-            float minX = visibleMinWorld.X;
-            float maxX = visibleMaxWorld.X;
-            float minY = visibleMinWorld.Y;
-            float maxY = visibleMaxWorld.Y;
-
-            float step = BoardSceneMath.GetAdaptiveGridStepWorld(viewport.Zoom);
-            if (step <= 0.0f)
-            {
-                return;
-            }
-
-            const int majorEvery = 5;
-            float minorThicknessWorld = 1.0f / Math.Max(0.0001f, viewport.Zoom);
-            float majorThicknessWorld = 1.5f / Math.Max(0.0001f, viewport.Zoom);
-            float axisThicknessWorld = 2.0f / Math.Max(0.0001f, viewport.Zoom);
-
-            long firstX = (long)Math.Floor(minX / step);
-            long lastX = (long)Math.Ceiling(maxX / step);
-            long firstY = (long)Math.Floor(minY / step);
-            long lastY = (long)Math.Ceiling(maxY / step);
-
-            for (long ix = firstX; ix <= lastX; ix++)
-            {
-                float x = (float)(ix * step);
-                bool isMajor = ix % majorEvery == 0;
-                ctx.DrawLine(
-                    new Vector2(x, minY),
-                    new Vector2(x, maxY),
-                    isMajor ? _gridMajorBrush : _gridMinorBrush,
-                    isMajor ? majorThicknessWorld : minorThicknessWorld);
-            }
-
-            for (long iy = firstY; iy <= lastY; iy++)
-            {
-                float y = (float)(iy * step);
-                bool isMajor = iy % majorEvery == 0;
-                ctx.DrawLine(
-                    new Vector2(minX, y),
-                    new Vector2(maxX, y),
-                    isMajor ? _gridMajorBrush : _gridMinorBrush,
-                    isMajor ? majorThicknessWorld : minorThicknessWorld);
-            }
-
-            // 世界坐标原点轴（用于方向感）
-            if (0.0f >= minX && 0.0f <= maxX)
-            {
-                ctx.DrawLine(new Vector2(0.0f, minY), new Vector2(0.0f, maxY), _axisBrush, axisThicknessWorld);
-            }
-
-            if (0.0f >= minY && 0.0f <= maxY)
-            {
-                ctx.DrawLine(new Vector2(minX, 0.0f), new Vector2(maxX, 0.0f), _axisBrush, axisThicknessWorld);
-            }
-        }
-
         public void Dispose()
         {
             _strokeBrush?.Dispose();
@@ -509,15 +433,6 @@ namespace WindBoard.Rendering.Board
 
             _factory?.Dispose();
             _factory = null;
-
-            _gridMinorBrush?.Dispose();
-            _gridMinorBrush = null;
-
-            _gridMajorBrush?.Dispose();
-            _gridMajorBrush = null;
-
-            _axisBrush?.Dispose();
-            _axisBrush = null;
         }
     }
 }
