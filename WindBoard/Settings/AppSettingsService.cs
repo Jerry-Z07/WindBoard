@@ -11,7 +11,7 @@ namespace WindBoard.Settings
     /// 职责：
     /// - 启动时加载设置
     /// - 运行时提供更新入口并广播变更事件
-    /// - 对高频更新（ColorPicker 拖动）做保存防抖，减少频繁写磁盘
+    /// - 对高频更新做保存防抖，减少频繁写磁盘
     /// </summary>
     internal sealed class AppSettingsService
     {
@@ -22,7 +22,7 @@ namespace WindBoard.Settings
         private readonly object _gate = new();
         private readonly AppSettingsStore _store;
         private readonly SemaphoreSlim _ioGate = new(1, 1);
-        private CancellationTokenSource? _saveDebounceCts;
+        private Timer? _saveDebounceTimer;
 
         internal AppSettings Current { get; private set; } = new();
 
@@ -84,25 +84,29 @@ namespace WindBoard.Settings
 
         private void RequestSaveDebounced()
         {
-            CancellationTokenSource cts;
             lock (_gate)
             {
-                _saveDebounceCts?.Cancel();
-                _saveDebounceCts?.Dispose();
-                _saveDebounceCts = new CancellationTokenSource();
-                cts = _saveDebounceCts;
-            }
+                // 高频 Update 如果用 CancellationToken + Task.Delay 做防抖，
+                // 频繁取消会抛出 TaskCanceledException（即使被 catch，调试输出仍会提示“异常已引发”）。
+                // 这里改为 Timer 防抖：仅在一段时间内没有新的更新时才触发保存，不产生取消异常噪音。
+                _saveDebounceTimer ??= new Timer(
+                    static state => ((AppSettingsService)state!).OnSaveDebounceTimerTick(),
+                    this,
+                    Timeout.InfiniteTimeSpan,
+                    Timeout.InfiniteTimeSpan);
 
+                _saveDebounceTimer.Change(SaveDebounceDelay, Timeout.InfiniteTimeSpan);
+            }
+        }
+
+        private void OnSaveDebounceTimerTick()
+        {
+            // Timer 回调不能直接 async/await：转为后台任务，并确保异常被观察到（避免影响主流程）。
             _ = Task.Run(async () =>
             {
                 try
                 {
-                    await Task.Delay(SaveDebounceDelay, cts.Token).ConfigureAwait(false);
-                    await SaveAsync(cts.Token).ConfigureAwait(false);
-                }
-                catch (TaskCanceledException)
-                {
-                    // 防抖取消：忽略
+                    await SaveAsync().ConfigureAwait(false);
                 }
                 catch
                 {
@@ -138,4 +142,3 @@ namespace WindBoard.Settings
         }
     }
 }
-

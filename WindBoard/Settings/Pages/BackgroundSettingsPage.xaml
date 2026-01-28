@@ -28,7 +28,12 @@
                                 <ColumnDefinition Width="Auto" />
                             </Grid.ColumnDefinitions>
 
-                            <SymbolIcon Symbol="Setting" VerticalAlignment="Center" />
+                            <!-- Segoe MDL2 Assets：Color（更贴合“画布背景颜色”语义） -->
+                            <FontIcon
+                                FontFamily="Segoe MDL2 Assets"
+                                FontSize="16"
+                                Glyph="&#xE790;"
+                                VerticalAlignment="Center" />
 
                             <StackPanel Grid.Column="1" Spacing="2">
                                 <TextBlock Text="画布背景颜色" FontWeight="SemiBold" />
