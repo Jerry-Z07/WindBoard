@@ -6,6 +6,8 @@ namespace WindBoard.Settings
     internal sealed class AppSettings
     {
         public AppearanceSettings Appearance { get; set; } = new();
+
+        public DockSettings Dock { get; set; } = new();
     }
 
     internal sealed class AppearanceSettings
@@ -16,4 +18,3 @@ namespace WindBoard.Settings
         public string CanvasBackgroundHex { get; set; } = ColorHex.DefaultCanvasBackgroundHex;
     }
 }
-

@@ -74,7 +74,7 @@
                     Background="{ThemeResource SystemControlBackgroundChromeMediumLowBrush}"
                     CornerRadius="14"
                     Opacity="0.85" />
-                <StackPanel Orientation="Horizontal" Spacing="4" Margin="5">
+                <StackPanel x:Name="LeftDockPanel" Orientation="Horizontal" Spacing="4" Margin="5">
                     <Button
                         x:Name="MoreButton"
                         MinWidth="60"
@@ -150,6 +150,7 @@
                     CornerRadius="14"
                     Opacity="0.85" />
                 <StackPanel Orientation="Horizontal" Spacing="4" Margin="5">
+                    <StackPanel x:Name="ToolsDockPanel" Orientation="Horizontal" Spacing="4">
                     <ToggleButton
                         x:Name="SelectToolToggleButton"
                         MinWidth="60"
@@ -259,40 +260,44 @@
                             <TextBlock FontSize="11" Margin="0,3,0,0" HorizontalAlignment="Center" Text="擦除" />
                         </StackPanel>
                     </ToggleButton>
+                    </StackPanel>
 
                     <Rectangle
+                        x:Name="UndoRedoSeparator"
                         Width="1"
                         Height="30"
                         Fill="{ThemeResource SystemControlForegroundBaseMediumLowBrush}"
                         VerticalAlignment="Center" />
 
-                    <Button
-                        x:Name="UndoButton"
-                        MinWidth="60"
-                        MinHeight="52"
-                        Padding="8,6"
-                        Style="{StaticResource DockButtonStyle}"
-                        HorizontalContentAlignment="Center"
-                        VerticalContentAlignment="Center">
-                        <StackPanel Orientation="Vertical">
-                            <SymbolIcon Symbol="Undo" />
-                            <TextBlock FontSize="11" Margin="0,3,0,0" HorizontalAlignment="Center" Text="撤销" />
-                        </StackPanel>
-                    </Button>
+                    <StackPanel x:Name="UndoRedoDockPanel" Orientation="Horizontal" Spacing="4">
+                        <Button
+                            x:Name="UndoButton"
+                            MinWidth="60"
+                            MinHeight="52"
+                            Padding="8,6"
+                            Style="{StaticResource DockButtonStyle}"
+                            HorizontalContentAlignment="Center"
+                            VerticalContentAlignment="Center">
+                            <StackPanel Orientation="Vertical">
+                                <SymbolIcon Symbol="Undo" />
+                                <TextBlock FontSize="11" Margin="0,3,0,0" HorizontalAlignment="Center" Text="撤销" />
+                            </StackPanel>
+                        </Button>
 
-                    <Button
-                        x:Name="RedoButton"
-                        MinWidth="60"
-                        MinHeight="52"
-                        Padding="8,6"
-                        Style="{StaticResource DockButtonStyle}"
-                        HorizontalContentAlignment="Center"
-                        VerticalContentAlignment="Center">
-                        <StackPanel Orientation="Vertical">
-                            <SymbolIcon Symbol="Redo" />
-                            <TextBlock FontSize="11" Margin="0,3,0,0" HorizontalAlignment="Center" Text="重做" />
-                        </StackPanel>
-                    </Button>
+                        <Button
+                            x:Name="RedoButton"
+                            MinWidth="60"
+                            MinHeight="52"
+                            Padding="8,6"
+                            Style="{StaticResource DockButtonStyle}"
+                            HorizontalContentAlignment="Center"
+                            VerticalContentAlignment="Center">
+                            <StackPanel Orientation="Vertical">
+                                <SymbolIcon Symbol="Redo" />
+                                <TextBlock FontSize="11" Margin="0,3,0,0" HorizontalAlignment="Center" Text="重做" />
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
                 </StackPanel>
             </Grid>
 
@@ -399,7 +404,7 @@
                     CornerRadius="14"
                     Opacity="0.85" />
 
-                <StackPanel Orientation="Horizontal" Spacing="4" Margin="5">
+                <StackPanel x:Name="PagesDockPanel" Orientation="Horizontal" Spacing="4" Margin="5">
                     <Button
                         x:Name="PagePrevButton"
                         MinWidth="52"

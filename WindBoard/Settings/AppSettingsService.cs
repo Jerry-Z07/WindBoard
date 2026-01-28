@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Windows.UI;
@@ -52,6 +53,21 @@ namespace WindBoard.Settings
             }
 
             return ColorHex.ParseOrDefault(hex, ColorHex.DefaultCanvasBackgroundColor);
+        }
+
+        internal DockSettings GetDockSettingsSnapshot()
+        {
+            lock (_gate)
+            {
+                return new DockSettings
+                {
+                    LeftOrder = new List<string>(Current.Dock?.LeftOrder ?? DockSettingsDefaults.LeftOrder),
+                    ToolsOrder = new List<string>(Current.Dock?.ToolsOrder ?? DockSettingsDefaults.ToolsOrder),
+                    UndoRedoOrder = new List<string>(Current.Dock?.UndoRedoOrder ?? DockSettingsDefaults.UndoRedoOrder),
+                    PagesOrder = new List<string>(Current.Dock?.PagesOrder ?? DockSettingsDefaults.PagesOrder),
+                    IsUndoRedoVisible = Current.Dock?.IsUndoRedoVisible ?? true,
+                };
+            }
         }
 
         internal void Update(Action<AppSettings> update)
@@ -137,6 +153,14 @@ namespace WindBoard.Settings
                 Appearance = new AppearanceSettings
                 {
                     CanvasBackgroundHex = settings.Appearance?.CanvasBackgroundHex ?? ColorHex.DefaultCanvasBackgroundHex,
+                },
+                Dock = new DockSettings
+                {
+                    LeftOrder = new List<string>(settings.Dock?.LeftOrder ?? DockSettingsDefaults.LeftOrder),
+                    ToolsOrder = new List<string>(settings.Dock?.ToolsOrder ?? DockSettingsDefaults.ToolsOrder),
+                    UndoRedoOrder = new List<string>(settings.Dock?.UndoRedoOrder ?? DockSettingsDefaults.UndoRedoOrder),
+                    PagesOrder = new List<string>(settings.Dock?.PagesOrder ?? DockSettingsDefaults.PagesOrder),
+                    IsUndoRedoVisible = settings.Dock?.IsUndoRedoVisible ?? true,
                 },
             };
         }

@@ -173,5 +173,10 @@ namespace WindBoard.Settings.Pages
         {
             AppSettingsService.Instance.Update(s => s.Appearance.CanvasBackgroundHex = ColorHex.DefaultCanvasBackgroundHex);
         }
+
+        private void OnDockSettingsClicked(object sender, RoutedEventArgs e)
+        {
+            Frame.Navigate(typeof(DockSettingsPage));
+        }
     }
 }

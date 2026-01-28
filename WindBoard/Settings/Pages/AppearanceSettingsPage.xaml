@@ -67,6 +67,38 @@
                         HorizontalAlignment="Left"
                         Click="OnResetToDefaultClicked" />
                 </StackPanel>
+
+                <StackPanel Spacing="10">
+                    <TextBlock Text="Dock" Style="{ThemeResource SubtitleTextBlockStyle}" />
+
+                    <Button Style="{StaticResource SettingsCardButtonStyle}" Click="OnDockSettingsClicked">
+                        <Grid ColumnSpacing="12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+
+                            <FontIcon
+                                FontFamily="Segoe MDL2 Assets"
+                                FontSize="16"
+                                Glyph="&#xE8A5;"
+                                VerticalAlignment="Center" />
+
+                            <StackPanel Grid.Column="1" Spacing="2">
+                                <TextBlock Text="Dock 设置" FontWeight="SemiBold" />
+                                <TextBlock Text="调整 Dock 内组件的位置与显隐" Opacity="0.75" TextWrapping="WrapWholeWords" />
+                            </StackPanel>
+
+                            <FontIcon
+                                Grid.Column="2"
+                                Glyph="&#xE76C;"
+                                FontFamily="Segoe MDL2 Assets"
+                                Opacity="0.65"
+                                VerticalAlignment="Center" />
+                        </Grid>
+                    </Button>
+                </StackPanel>
             </StackPanel>
         </ScrollViewer>
 

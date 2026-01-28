@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Text.Json;
 
@@ -93,6 +94,9 @@ namespace WindBoard.Settings
             settings.Appearance.CanvasBackgroundHex = ColorHex.NormalizeToHexRgbOrDefault(
                 settings.Appearance.CanvasBackgroundHex,
                 ColorHex.DefaultCanvasBackgroundHex);
+
+            settings.Dock ??= new DockSettings();
+            NormalizeDockSettingsInPlace(settings.Dock);
             return settings;
         }
 
@@ -105,10 +109,69 @@ namespace WindBoard.Settings
                 {
                     CanvasBackgroundHex = settings.Appearance?.CanvasBackgroundHex ?? ColorHex.DefaultCanvasBackgroundHex,
                 },
+                Dock = new DockSettings
+                {
+                    LeftOrder = new List<string>(settings.Dock?.LeftOrder ?? DockSettingsDefaults.LeftOrder),
+                    ToolsOrder = new List<string>(settings.Dock?.ToolsOrder ?? DockSettingsDefaults.ToolsOrder),
+                    UndoRedoOrder = new List<string>(settings.Dock?.UndoRedoOrder ?? DockSettingsDefaults.UndoRedoOrder),
+                    PagesOrder = new List<string>(settings.Dock?.PagesOrder ?? DockSettingsDefaults.PagesOrder),
+                    IsUndoRedoVisible = settings.Dock?.IsUndoRedoVisible ?? true,
+                },
             };
 
             return NormalizeInPlace(clone);
         }
+
+        private static void NormalizeDockSettingsInPlace(DockSettings settings)
+        {
+            settings.LeftOrder = NormalizeOrder(settings.LeftOrder, DockSettingsDefaults.LeftOrder);
+            settings.ToolsOrder = NormalizeOrder(settings.ToolsOrder, DockSettingsDefaults.ToolsOrder);
+            settings.UndoRedoOrder = NormalizeOrder(settings.UndoRedoOrder, DockSettingsDefaults.UndoRedoOrder);
+            settings.PagesOrder = NormalizeOrder(settings.PagesOrder, DockSettingsDefaults.PagesOrder);
+        }
+
+        private static List<string> NormalizeOrder(IEnumerable<string>? order, IReadOnlyList<string> defaults)
+        {
+            // 目标：
+            // - 过滤未知项
+            // - 去重（保留首次出现）
+            // - 补齐缺失项（按默认顺序追加）
+            HashSet<string> allowed = new(defaults, StringComparer.Ordinal);
+            HashSet<string> seen = new(StringComparer.Ordinal);
+            List<string> normalized = new();
+
+            if (order is not null)
+            {
+                foreach (string? id in order)
+                {
+                    if (string.IsNullOrWhiteSpace(id))
+                    {
+                        continue;
+                    }
+
+                    if (!allowed.Contains(id))
+                    {
+                        continue;
+                    }
+
+                    if (!seen.Add(id))
+                    {
+                        continue;
+                    }
+
+                    normalized.Add(id);
+                }
+            }
+
+            foreach (string id in defaults)
+            {
+                if (seen.Add(id))
+                {
+                    normalized.Add(id);
+                }
+            }
+
+            return normalized;
+        }
     }
 }
-
