@@ -2,15 +2,30 @@
 
 ## 项目结构（Project Structure）
 
-- `WindBoard.slnx`：解决方案入口（包含 `WindBoard/WindBoard.csproj`、`WindBoard.Tests/WindBoard.Tests.csproj`）。
+- `WindBoard.slnx`：解决方案入口。
+  - 支持平台：x86、x64、ARM64（默认 AnyCPU 映射到 x64）
 - `WindBoard/`：WinUI 3 桌面应用（C# / XAML，Windows App SDK）。
   - `Board/`：画板核心模型（文档/会话/命令/视口）。
+    - `Commands/`：命令模式实现（添加笔画/清空/替换笔画等）
+    - `Editing/`：编辑功能（页面/会话/工作区/橡皮擦/命中测试）
+    - `Persistence/`：持久化（工作区快照/序列化接口）
+    - `Viewport/`：视口管理
   - `Rendering/`：DirectX 渲染层（Vortice，SwapChain/场景渲染）。
-  - `Interaction/`：输入与交互（笔/鼠标/触控、缩放/平移）。
-  - `Controls/`：自定义控件（例如 `BoardCanvasControl`）。
+    - `Board/`：场景数学计算与渲染器
+    - `DxDirtyRectCalculator.cs`：脏矩形计算
+    - `DxSwapChainPanelRenderer.cs`：交换链面板渲染器
+  - `Interaction/`：输入与交互（笔/鼠标/触控、缩放/平移、脏矩形计算）。
+  - `Controls/`：自定义控件。
+  - `Settings/`：设置相关。
+  - `Persistence/`：持久化服务接口。
   - `Assets/`：应用图标与启动资源。
-  - `Properties/PublishProfiles/`：发布配置（`win-x64.pubxml` 等）。
-- `WindBoard.Tests/`：xUnit 单元测试工程（通过 `ProjectReference` 引用 `WindBoard`）。
+  - `Properties/PublishProfiles/`：发布配置。
+- `WindBoard.Tests/`：xUnit 单元测试工程。
+  - `Board/`：核心模型测试（命令/编辑/视口/笔画）
+  - `Interaction/`：交互层测试（脏矩形计算）
+  - `Rendering/`：渲染层测试（场景数学/脏矩形计算）
+  - `Settings/`：设置模块测试（设置存储/颜色处理）
+  - `AssertEx.cs`：测试辅助工具
 
 
 ## 编码规范（Coding Style & Naming）
