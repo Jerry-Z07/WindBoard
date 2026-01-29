@@ -21,6 +21,7 @@
                 Text="空白"
                 FontSize="12"
                 Opacity="0.65"
+                Visibility="Collapsed"
                 HorizontalAlignment="Center"
                 VerticalAlignment="Center"
                 IsHitTestVisible="False" />

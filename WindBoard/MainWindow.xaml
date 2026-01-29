@@ -388,6 +388,7 @@
                                                     <controls:PageThumbnailControl
                                                         Grid.Row="1"
                                                         Height="104"
+                                                        ThumbnailBackground="{StaticResource CanvasBackgroundBrush}"
                                                         Page="{Binding Page}" />
                                                 </Grid>
                                             </Border>

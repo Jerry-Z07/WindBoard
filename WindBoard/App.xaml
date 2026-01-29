@@ -31,6 +31,9 @@
                 </ResourceDictionary>
             </ResourceDictionary.ThemeDictionaries>
 
+            <!-- 画布背景色：供页面缩略图等 XAML 元素复用（运行时会同步为当前设置值）。 -->
+            <SolidColorBrush x:Key="CanvasBackgroundBrush" Color="#2E2F33" />
+
             <Style
                 x:Key="SettingsCardButtonStyle"
                 TargetType="Button"

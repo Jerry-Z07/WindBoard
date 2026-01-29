@@ -7,7 +7,9 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.UI.Xaml.Input;
+using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Animation;
+using Windows.UI;
 using WindBoard.Board.Editing;
 using WindBoard.Interaction;
 using WindBoard.Settings;
@@ -107,8 +109,26 @@ namespace WindBoard
 
         private void ApplyAppSettingsToUi()
         {
-            BoardCanvas.CanvasBackgroundColor = AppSettingsService.Instance.GetCanvasBackgroundColor();
+            Color canvasBackgroundColor = AppSettingsService.Instance.GetCanvasBackgroundColor();
+            BoardCanvas.CanvasBackgroundColor = canvasBackgroundColor;
+            UpdateCanvasBackgroundBrush(canvasBackgroundColor);
             ApplyDockSettingsToUi();
+        }
+
+        private static void UpdateCanvasBackgroundBrush(Color color)
+        {
+            // 页面管理缩略图等 XAML 视觉元素使用该资源刷子作为背景色；
+            // 这里同步更新颜色，保证与 DirectX 渲染清屏色一致。
+            if (Application.Current is null)
+            {
+                return;
+            }
+
+            if (Application.Current.Resources.TryGetValue("CanvasBackgroundBrush", out object? brushObj)
+                && brushObj is SolidColorBrush brush)
+            {
+                brush.Color = color;
+            }
         }
 
         private void ApplyDockSettingsToUi()
