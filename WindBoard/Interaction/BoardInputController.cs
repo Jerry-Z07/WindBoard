@@ -18,7 +18,15 @@ namespace WindBoard.Interaction
         private const int WheelZoomIdleTimeoutMs = 150;
         private const int WheelZoomTimerIntervalMs = 50;
         private const float DirtyRectExtraDip = 2.0f;
-        private const float EraserRadiusDip = 12.0f;
+
+        /// <summary>
+        /// 橡皮擦半径（DIP）：X/Y 分量分别表示水平/垂直半径。
+        /// 
+        /// 说明：
+        /// - 该值需要与擦除光标的视觉尺寸保持一致，避免出现“擦除范围与光标不一致”。
+        /// - 默认值与当前 SVG 光标（48×72 DIP）对齐：半径为 (24, 36)。
+        /// </summary>
+        public Vector2 EraserRadiusDip { get; set; } = new(24.0f, 36.0f);
 
         private readonly SwapChainPanel _panel;
         private readonly BoardSession _session;
@@ -46,7 +54,8 @@ namespace WindBoard.Interaction
             _panel = panel;
             _session = session;
             _viewport = viewport;
-            _eraser = eraser ?? new WholeStrokeEraser();
+            // 默认使用“像素级擦除”（局部擦除），更符合常见橡皮擦体验。
+            _eraser = eraser ?? new PixelStrokeEraser();
         }
 
         public BoardTool Tool { get; set; } = BoardTool.Pen;
@@ -232,7 +241,7 @@ namespace WindBoard.Interaction
         private void ApplyEraserSegment(Vector2 fromWorld, Vector2 toWorld)
         {
             float zoom = Math.Max(0.0001f, _viewport.Zoom);
-            float radiusWorld = EraserRadiusDip / zoom;
+            Vector2 radiusWorld = EraserRadiusDip / zoom;
 
             if (_eraser.Erase(_session.Document, fromWorld, toWorld, radiusWorld))
             {

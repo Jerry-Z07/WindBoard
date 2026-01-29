@@ -7,6 +7,16 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d">
 
-    <SwapChainPanel x:Name="CanvasPanel" />
-</UserControl>
+    <Grid>
+        <SwapChainPanel x:Name="CanvasPanel" />
 
+        <!-- 自绘光标：用于擦除模式（后续可基于擦除大小做缩放）。 -->
+        <Canvas x:Name="OverlayCanvas" IsHitTestVisible="False">
+            <Image x:Name="EraserCursorImage" Width="48" Height="72" Stretch="Fill" Visibility="Collapsed">
+                <Image.Source>
+                    <SvgImageSource UriSource="ms-appx:///Assets/Eraser.svg" />
+                </Image.Source>
+            </Image>
+        </Canvas>
+    </Grid>
+</UserControl>

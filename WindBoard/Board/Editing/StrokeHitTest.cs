@@ -11,7 +11,7 @@ namespace WindBoard.Board.Editing
         /// <summary>
         /// 判断某条笔迹是否被“橡皮擦轨迹线段”命中。
         /// </summary>
-        internal static bool IsStrokeHitByEraserSegment(Stroke stroke, Vector2 eraserFromWorld, Vector2 eraserToWorld, float eraserRadiusWorld)
+        internal static bool IsStrokeHitByEraserSegment(Stroke stroke, Vector2 eraserFromWorld, Vector2 eraserToWorld, Vector2 eraserRadiusWorld)
         {
             if (stroke.Points.Count == 0)
             {
@@ -22,12 +22,12 @@ namespace WindBoard.Board.Editing
             if (stroke.HasBounds)
             {
                 Vector2 eraserMin = new(
-                    Math.Min(eraserFromWorld.X, eraserToWorld.X) - eraserRadiusWorld,
-                    Math.Min(eraserFromWorld.Y, eraserToWorld.Y) - eraserRadiusWorld);
+                    Math.Min(eraserFromWorld.X, eraserToWorld.X) - eraserRadiusWorld.X,
+                    Math.Min(eraserFromWorld.Y, eraserToWorld.Y) - eraserRadiusWorld.Y);
 
                 Vector2 eraserMax = new(
-                    Math.Max(eraserFromWorld.X, eraserToWorld.X) + eraserRadiusWorld,
-                    Math.Max(eraserFromWorld.Y, eraserToWorld.Y) + eraserRadiusWorld);
+                    Math.Max(eraserFromWorld.X, eraserToWorld.X) + eraserRadiusWorld.X,
+                    Math.Max(eraserFromWorld.Y, eraserToWorld.Y) + eraserRadiusWorld.Y);
 
                 if (!IntersectsAabb(stroke.BoundsMin, stroke.BoundsMax, eraserMin, eraserMax))
                 {
@@ -40,8 +40,18 @@ namespace WindBoard.Board.Editing
             {
                 StrokePoint p = stroke.Points[0];
                 float halfWidth = GetHalfStrokeWidthWorld(stroke, p.Pressure, p.Pressure);
-                float threshold = Math.Max(0.0f, eraserRadiusWorld) + halfWidth;
-                return DistanceSquaredPointToSegment(p.Position, eraserFromWorld, eraserToWorld) <= threshold * threshold;
+                Vector2 r = new(
+                    Math.Max(0.0f, eraserRadiusWorld.X) + halfWidth,
+                    Math.Max(0.0f, eraserRadiusWorld.Y) + halfWidth);
+
+                Vector2 inv = new(
+                    1.0f / Math.Max(0.0000001f, r.X),
+                    1.0f / Math.Max(0.0000001f, r.Y));
+
+                return DistanceSquaredPointToSegment(
+                    new Vector2(p.Position.X * inv.X, p.Position.Y * inv.Y),
+                    new Vector2(eraserFromWorld.X * inv.X, eraserFromWorld.Y * inv.Y),
+                    new Vector2(eraserToWorld.X * inv.X, eraserToWorld.Y * inv.Y)) <= 1.0f;
             }
 
             // 多点笔迹：把笔迹视为折线段集合，与橡皮擦轨迹线段做“线段-线段最短距离”检测。
@@ -51,10 +61,21 @@ namespace WindBoard.Board.Editing
                 StrokePoint p1 = stroke.Points[i];
 
                 float halfWidth = GetHalfStrokeWidthWorld(stroke, p0.Pressure, p1.Pressure);
-                float threshold = Math.Max(0.0f, eraserRadiusWorld) + halfWidth;
+                Vector2 r = new(
+                    Math.Max(0.0f, eraserRadiusWorld.X) + halfWidth,
+                    Math.Max(0.0f, eraserRadiusWorld.Y) + halfWidth);
 
-                float d2 = DistanceSquaredSegmentToSegment(eraserFromWorld, eraserToWorld, p0.Position, p1.Position);
-                if (d2 <= threshold * threshold)
+                Vector2 inv = new(
+                    1.0f / Math.Max(0.0000001f, r.X),
+                    1.0f / Math.Max(0.0000001f, r.Y));
+
+                float d2 = DistanceSquaredSegmentToSegment(
+                    new Vector2(eraserFromWorld.X * inv.X, eraserFromWorld.Y * inv.Y),
+                    new Vector2(eraserToWorld.X * inv.X, eraserToWorld.Y * inv.Y),
+                    new Vector2(p0.Position.X * inv.X, p0.Position.Y * inv.Y),
+                    new Vector2(p1.Position.X * inv.X, p1.Position.Y * inv.Y));
+
+                if (d2 <= 1.0f)
                 {
                     return true;
                 }
@@ -166,4 +187,3 @@ namespace WindBoard.Board.Editing
         private static float Cross(Vector2 a, Vector2 b) => a.X * b.Y - a.Y * b.X;
     }
 }
-

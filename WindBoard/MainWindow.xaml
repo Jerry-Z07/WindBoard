@@ -206,51 +206,98 @@
                                     </Style>
                                 </Flyout.FlyoutPresenterStyle>
 
-                                <!-- “滑动清屏”确认条 -->
-                                <Grid x:Name="ClearCanvasSlideHost" Width="232" Height="52">
+                                <StackPanel Width="232" Spacing="10">
+                                    <!-- 擦除模式切换：默认像素擦除 -->
                                     <Border
                                         CornerRadius="14"
                                         Background="#C72E333D"
                                         BorderBrush="#33FFFFFF"
-                                        BorderThickness="1" />
-                                    <TextBlock
-                                        x:Name="ClearCanvasSlideText"
-                                        Text="滑动清屏"
-                                        Foreground="White"
-                                        FontSize="15"
-                                        FontWeight="SemiBold"
-                                        HorizontalAlignment="Center"
-                                        VerticalAlignment="Center" />
-
-                                    <!-- 拖动圆形把手：使用指针捕获实现拖动，避免 Thumb 在 Flyout 场景下失效 -->
-                                    <Border
-                                        x:Name="ClearCanvasSlideThumb"
-                                        Width="44"
-                                        Height="44"
-                                        HorizontalAlignment="Left"
-                                        VerticalAlignment="Center"
-                                        Margin="6,0,0,0"
-                                        Background="#F2F2F2"
-                                        CornerRadius="22"
-                                        BorderBrush="#33FFFFFF"
                                         BorderThickness="1"
-                                        PointerPressed="OnClearCanvasThumbPointerPressed"
-                                        PointerMoved="OnClearCanvasThumbPointerMoved"
-                                        PointerReleased="OnClearCanvasThumbPointerReleased"
-                                        PointerCanceled="OnClearCanvasThumbPointerCanceled"
-                                        PointerCaptureLost="OnClearCanvasThumbPointerCaptureLost">
-                                        <Border.RenderTransform>
-                                            <TranslateTransform x:Name="ClearCanvasSlideThumbTransform" />
-                                        </Border.RenderTransform>
-                                        <FontIcon
-                                            FontFamily="Segoe MDL2 Assets"
-                                            FontSize="16"
-                                            Foreground="#6B6B6B"
-                                            Glyph="&#xE74D;"
+                                        Padding="12,10,12,10">
+                                        <!-- 仅对该区域的 RadioButton 禁用 PointerOver 变色（Dock 全局资源会影响 ToggleButton/RadioButton）。 -->
+                                        <Border.Resources>
+                                            <SolidColorBrush x:Key="ToggleButtonBackgroundPointerOver" Color="#00000000" />
+                                            <SolidColorBrush x:Key="ToggleButtonBackgroundPressed" Color="#00000000" />
+                                            <SolidColorBrush x:Key="ToggleButtonForegroundPointerOver" Color="#FFFFFFFF" />
+                                            <SolidColorBrush x:Key="ToggleButtonForegroundPressed" Color="#FFFFFFFF" />
+                                            <SolidColorBrush x:Key="RadioButtonBackgroundPointerOver" Color="#00000000" />
+                                            <SolidColorBrush x:Key="RadioButtonBackgroundPressed" Color="#00000000" />
+                                            <SolidColorBrush x:Key="RadioButtonForegroundPointerOver" Color="#FFFFFFFF" />
+                                            <SolidColorBrush x:Key="RadioButtonForegroundPressed" Color="#FFFFFFFF" />
+                                            <SolidColorBrush x:Key="RadioButtonForegroundCheckedPointerOver" Color="#FFFFFFFF" />
+                                            <SolidColorBrush x:Key="RadioButtonForegroundCheckedPressed" Color="#FFFFFFFF" />
+                                        </Border.Resources>
+
+                                        <StackPanel Spacing="8">
+                                            <TextBlock
+                                                Text="擦除模式"
+                                                Foreground="White"
+                                                FontSize="12"
+                                                Opacity="0.85" />
+                                            <StackPanel Orientation="Horizontal" Spacing="16">
+                                                <RadioButton
+                                                    x:Name="PixelEraserRadioButton"
+                                                    Content="像素擦除"
+                                                    GroupName="EraserMode"
+                                                    IsChecked="True"
+                                                    Foreground="White"
+                                                    Checked="OnEraserModeChecked" />
+                                                <RadioButton
+                                                    x:Name="StrokeEraserRadioButton"
+                                                    Content="笔划擦除"
+                                                    GroupName="EraserMode"
+                                                    Foreground="White"
+                                                    Checked="OnEraserModeChecked" />
+                                            </StackPanel>
+                                        </StackPanel>
+                                    </Border>
+
+                                    <!-- “滑动清屏”确认条 -->
+                                    <Grid x:Name="ClearCanvasSlideHost" Width="232" Height="52">
+                                        <Border
+                                            CornerRadius="14"
+                                            Background="#C72E333D"
+                                            BorderBrush="#33FFFFFF"
+                                            BorderThickness="1" />
+                                        <TextBlock
+                                            x:Name="ClearCanvasSlideText"
+                                            Text="滑动清屏"
+                                            Foreground="White"
+                                            FontSize="15"
+                                            FontWeight="SemiBold"
                                             HorizontalAlignment="Center"
                                             VerticalAlignment="Center" />
-                                    </Border>
-                                </Grid>
+
+                                        <!-- 拖动圆形把手：使用指针捕获实现拖动，避免 Thumb 在 Flyout 场景下失效 -->
+                                        <Border
+                                            x:Name="ClearCanvasSlideThumb"
+                                            Width="44"
+                                            Height="44"
+                                            HorizontalAlignment="Left"
+                                            VerticalAlignment="Center"
+                                            Margin="6,0,0,0"
+                                            Background="#F2F2F2"
+                                            CornerRadius="22"
+                                            BorderBrush="#33FFFFFF"
+                                            BorderThickness="1"
+                                            PointerPressed="OnClearCanvasThumbPointerPressed"
+                                            PointerMoved="OnClearCanvasThumbPointerMoved"
+                                            PointerReleased="OnClearCanvasThumbPointerReleased"
+                                            PointerCanceled="OnClearCanvasThumbPointerCanceled"
+                                            PointerCaptureLost="OnClearCanvasThumbPointerCaptureLost">
+                                            <Border.RenderTransform>
+                                                <TranslateTransform x:Name="ClearCanvasSlideThumbTransform" />
+                                            </Border.RenderTransform>
+                                            <FontIcon
+                                                FontFamily="Segoe MDL2 Assets"
+                                                FontSize="16"
+                                                Foreground="#6B6B6B"
+                                                Glyph="&#xE74D;"
+                                                HorizontalAlignment="Center"
+                                                VerticalAlignment="Center" />
+                                        </Border>
+                                    </Grid>
+                                </StackPanel>
                             </Flyout>
                         </FlyoutBase.AttachedFlyout>
 

@@ -28,7 +28,7 @@ public sealed class WholeStrokeEraserTests
             document,
             fromWorld: new Vector2(5.0f, -5.0f),
             toWorld: new Vector2(5.0f, 5.0f),
-            radiusWorld: 0.0f);
+            radiusWorld: Vector2.Zero);
 
         Assert.True(changed);
         Assert.Single(document.Strokes);
@@ -51,7 +51,7 @@ public sealed class WholeStrokeEraserTests
             document,
             fromWorld: new Vector2(100.0f, 100.0f),
             toWorld: new Vector2(110.0f, 110.0f),
-            radiusWorld: 1.0f);
+            radiusWorld: new Vector2(1.0f, 1.0f));
 
         Assert.False(changed);
         Assert.Single(document.Strokes);
@@ -75,4 +75,3 @@ public sealed class WholeStrokeEraserTests
         return stroke;
     }
 }
-

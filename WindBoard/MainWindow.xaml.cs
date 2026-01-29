@@ -29,6 +29,10 @@ namespace WindBoard
         private double _clearCanvasSlideThumbStartX;
         private Storyboard? _clearCanvasSlideResetStoryboard;
 
+        // 擦除模式：默认像素擦除；整笔擦除作为可选项。
+        private readonly IBoardEraser _pixelEraser = new PixelStrokeEraser();
+        private readonly IBoardEraser _wholeStrokeEraser = new WholeStrokeEraser();
+
         private readonly BoardWorkspace _workspace = new();
         private readonly ObservableCollection<PageListItem> _pageItems = new();
         private bool _isUpdatingPageSelection;
@@ -37,6 +41,9 @@ namespace WindBoard
         public MainWindow()
         {
             InitializeComponent();
+
+            // 与 XAML 默认值对齐：默认像素擦除。
+            BoardCanvas.Eraser = _pixelEraser;
 
             BoardCanvas.CommandStateChanged += (_, _) => UpdateCommandStates();
 
@@ -254,6 +261,21 @@ namespace WindBoard
         {
             _isEraserFlyoutOpen = false;
             ResetClearCanvasSlide(false);
+        }
+
+        private void OnEraserModeChecked(object sender, RoutedEventArgs e)
+        {
+            // 入口位于擦除 Flyout 中：仅切换擦除算法，不影响当前工具状态。
+            if (PixelEraserRadioButton?.IsChecked == true)
+            {
+                BoardCanvas.Eraser = _pixelEraser;
+                return;
+            }
+
+            if (StrokeEraserRadioButton?.IsChecked == true)
+            {
+                BoardCanvas.Eraser = _wholeStrokeEraser;
+            }
         }
 
         private void OnClearCanvasThumbPointerPressed(object sender, PointerRoutedEventArgs e)

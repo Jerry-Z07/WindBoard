@@ -8,7 +8,7 @@ namespace WindBoard.Board.Editing
     /// </summary>
     internal sealed class WholeStrokeEraser : IBoardEraser
     {
-        public bool Erase(BoardDocument document, Vector2 fromWorld, Vector2 toWorld, float radiusWorld)
+        public bool Erase(BoardDocument document, Vector2 fromWorld, Vector2 toWorld, Vector2 radiusWorld)
         {
             if (document.Strokes.Count == 0)
             {
@@ -32,4 +32,3 @@ namespace WindBoard.Board.Editing
         }
     }
 }
-
