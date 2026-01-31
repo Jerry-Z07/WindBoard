@@ -18,7 +18,7 @@
   - `Controls/`：自定义控件。
   - `Settings/`：设置相关。
   - `Persistence/`：持久化服务接口。
-  - `Assets/`：应用图标与启动资源。
+  - `Assets/`：应用资源。
   - `Properties/PublishProfiles/`：发布配置。
 - `WindBoard.Tests/`：xUnit 单元测试工程。
   - `Board/`：核心模型测试（命令/编辑/视口/笔画）
