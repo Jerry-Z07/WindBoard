@@ -174,6 +174,298 @@
                         Style="{StaticResource DockToggleButtonStyle}"
                         HorizontalContentAlignment="Center"
                         VerticalContentAlignment="Center">
+                        <!-- 书写模式二次点击：弹出“颜色/粗细”设置面板 -->
+                        <FlyoutBase.AttachedFlyout>
+                            <Flyout Placement="Top" Opened="OnPenFlyoutOpened" Closed="OnPenFlyoutClosed">
+                                <Flyout.FlyoutPresenterStyle>
+                                    <Style TargetType="FlyoutPresenter">
+                                        <Setter Property="Padding" Value="0" />
+                                        <Setter Property="BorderThickness" Value="0" />
+                                        <!-- 禁用 Flyout 默认边框/阴影/焦点框，避免出现“白色方形外框” -->
+                                        <Setter Property="CornerRadius" Value="14" />
+                                        <Setter Property="Background" Value="Transparent" />
+                                        <Setter Property="Shadow" Value="{x:Null}" />
+                                        <Setter Property="IsTabStop" Value="False" />
+                                        <Setter Property="UseSystemFocusVisuals" Value="False" />
+                                        <Setter Property="FocusVisualPrimaryBrush" Value="Transparent" />
+                                        <Setter Property="FocusVisualSecondaryBrush" Value="Transparent" />
+                                    </Style>
+                                </Flyout.FlyoutPresenterStyle>
+
+                                 <!-- 书写：画笔设置（颜色/粗细） -->
+                                 <Border
+                                     CornerRadius="14"
+                                     Background="{ThemeResource SystemControlBackgroundChromeMediumLowBrush}"
+                                     BorderBrush="{ThemeResource SystemControlForegroundBaseMediumLowBrush}"
+                                     BorderThickness="1"
+                                     RequestedTheme="Light">
+                                    <Border.Resources>
+                                        <SolidColorBrush x:Key="PenFlyoutDividerBrush" Color="#1A000000" />
+                                        <!-- 左侧“粗细”区域使用更柔和的底色，避免与整体背景形成过强的分区对比 -->
+                                        <SolidColorBrush x:Key="PenFlyoutSidePaneBrush" Color="#0F000000" />
+
+                                        <!-- 粗细：用图标表示（选中态浅蓝高亮） -->
+                                        <Style x:Key="PenThicknessToggleButtonStyle" TargetType="ToggleButton" BasedOn="{StaticResource DefaultToggleButtonStyle}">
+                                            <Setter Property="Width" Value="44" />
+                                            <Setter Property="Height" Value="44" />
+                                            <Setter Property="Padding" Value="0" />
+                                            <Setter Property="CornerRadius" Value="10" />
+                                            <Setter Property="BorderThickness" Value="0" />
+                                            <Setter Property="Background" Value="Transparent" />
+                                            <Setter Property="HorizontalContentAlignment" Value="Center" />
+                                            <Setter Property="VerticalContentAlignment" Value="Center" />
+                                            <Setter Property="UseSystemFocusVisuals" Value="False" />
+                                            <Setter Property="FocusVisualPrimaryBrush" Value="Transparent" />
+                                            <Setter Property="FocusVisualSecondaryBrush" Value="Transparent" />
+                                        </Style>
+
+                                        <!-- 颜色：圆形色块（背景始终透明，选中态用描边提示） -->
+                                        <Style x:Key="PenColorSwatchToggleButtonStyle" TargetType="ToggleButton" BasedOn="{StaticResource DefaultToggleButtonStyle}">
+                                            <Setter Property="Width" Value="44" />
+                                            <Setter Property="Height" Value="44" />
+                                            <Setter Property="Padding" Value="0" />
+                                            <Setter Property="CornerRadius" Value="22" />
+                                            <Setter Property="BorderThickness" Value="2" />
+                                            <Setter Property="Background" Value="Transparent" />
+                                            <!-- Ellipse 未显式设置尺寸时，需 Stretch 才能按按钮可用空间正确渲染为圆形色块 -->
+                                            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                                            <Setter Property="VerticalContentAlignment" Value="Stretch" />
+                                            <Setter Property="UseSystemFocusVisuals" Value="False" />
+                                            <Setter Property="FocusVisualPrimaryBrush" Value="Transparent" />
+                                            <Setter Property="FocusVisualSecondaryBrush" Value="Transparent" />
+                                        </Style>
+                                    </Border.Resources>
+
+                                    <Grid>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="1" />
+                                            <RowDefinition Height="Auto" />
+                                        </Grid.RowDefinitions>
+
+                                        <TextBlock
+                                            Text="画笔设置"
+                                            Foreground="{ThemeResource SystemControlForegroundBaseHighBrush}"
+                                            FontSize="14"
+                                            FontWeight="SemiBold"
+                                            Opacity="0.85"
+                                            Margin="16,12,16,10" />
+
+                                        <Rectangle Grid.Row="1" Height="1" Fill="{StaticResource PenFlyoutDividerBrush}" />
+
+                                        <!-- 这里不使用 ColumnSpacing，避免颜色区在 * 列里居中后产生“中间大空隙”的观感 -->
+                                         <Grid Grid.Row="2" ColumnSpacing="0">
+                                             <Grid.ColumnDefinitions>
+                                                 <ColumnDefinition Width="72" />
+                                                 <ColumnDefinition Width="1" />
+                                                 <!-- 颜色区按内容自适应，避免右侧出现大块留白 -->
+                                                 <ColumnDefinition Width="Auto" />
+                                             </Grid.ColumnDefinitions>
+
+                                            <Border
+                                                Background="{StaticResource PenFlyoutSidePaneBrush}"
+                                                Padding="14"
+                                                CornerRadius="0,0,0,14">
+                                                <Border.Resources>
+                                                    <SolidColorBrush x:Key="ToggleButtonBackground" Color="#00000000" />
+                                                    <SolidColorBrush x:Key="ToggleButtonBackgroundPointerOver" Color="#0F000000" />
+                                                    <SolidColorBrush x:Key="ToggleButtonBackgroundPressed" Color="#1A000000" />
+                                                    <SolidColorBrush x:Key="ToggleButtonBackgroundDisabled" Color="#00000000" />
+                                                    <SolidColorBrush x:Key="ToggleButtonBackgroundChecked" Color="#331976D2" />
+                                                    <SolidColorBrush x:Key="ToggleButtonBackgroundCheckedPointerOver" Color="#401976D2" />
+                                                    <SolidColorBrush x:Key="ToggleButtonBackgroundCheckedPressed" Color="#501976D2" />
+                                                    <SolidColorBrush x:Key="ToggleButtonBackgroundCheckedDisabled" Color="#201976D2" />
+                                                </Border.Resources>
+                                                <!-- 粗细：三档（细/中/粗） -->
+                                                <StackPanel x:Name="PenThicknessPanel" Spacing="14" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                                    <ToggleButton
+                                                        Tag="2"
+                                                        Style="{StaticResource PenThicknessToggleButtonStyle}"
+                                                        Click="OnPenThicknessClicked"
+                                                        AutomationProperties.Name="画笔粗细：细">
+                                                        <Line
+                                                            X1="12"
+                                                            Y1="22"
+                                                            X2="32"
+                                                            Y2="22"
+                                                            Stroke="{ThemeResource SystemControlForegroundBaseHighBrush}"
+                                                            StrokeThickness="2"
+                                                            StrokeStartLineCap="Round"
+                                                            StrokeEndLineCap="Round" />
+                                                    </ToggleButton>
+
+                                                    <ToggleButton
+                                                        Tag="3"
+                                                        IsChecked="True"
+                                                        Style="{StaticResource PenThicknessToggleButtonStyle}"
+                                                        Click="OnPenThicknessClicked"
+                                                        AutomationProperties.Name="画笔粗细：中">
+                                                        <Line
+                                                            X1="12"
+                                                            Y1="22"
+                                                            X2="32"
+                                                            Y2="22"
+                                                            Stroke="{ThemeResource SystemControlForegroundBaseHighBrush}"
+                                                            StrokeThickness="3"
+                                                            StrokeStartLineCap="Round"
+                                                            StrokeEndLineCap="Round" />
+                                                    </ToggleButton>
+
+                                                    <ToggleButton
+                                                        Tag="5"
+                                                        Style="{StaticResource PenThicknessToggleButtonStyle}"
+                                                        Click="OnPenThicknessClicked"
+                                                        AutomationProperties.Name="画笔粗细：粗">
+                                                        <Line
+                                                            X1="12"
+                                                            Y1="22"
+                                                            X2="32"
+                                                            Y2="22"
+                                                            Stroke="{ThemeResource SystemControlForegroundBaseHighBrush}"
+                                                            StrokeThickness="5"
+                                                            StrokeStartLineCap="Round"
+                                                            StrokeEndLineCap="Round" />
+                                                    </ToggleButton>
+                                                </StackPanel>
+                                    </Border>
+
+                                    <Rectangle
+                                            Grid.Column="1"
+                                            Width="1"
+                                            Fill="{StaticResource PenFlyoutDividerBrush}"
+                                            VerticalAlignment="Stretch" />
+
+                                        <!-- 颜色：九宫格 -->
+                                        <Grid
+                                            x:Name="PenColorGrid"
+                                            Grid.Column="2"
+                                            Margin="14"
+                                            RowSpacing="14"
+                                            ColumnSpacing="14"
+                                            HorizontalAlignment="Left"
+                                            VerticalAlignment="Center">
+                                            <Grid.Resources>
+                                                <SolidColorBrush x:Key="ToggleButtonBackground" Color="#00000000" />
+                                                <SolidColorBrush x:Key="ToggleButtonBackgroundPointerOver" Color="#00000000" />
+                                                <SolidColorBrush x:Key="ToggleButtonBackgroundPressed" Color="#00000000" />
+                                                <SolidColorBrush x:Key="ToggleButtonBackgroundDisabled" Color="#00000000" />
+                                                <SolidColorBrush x:Key="ToggleButtonBackgroundChecked" Color="#00000000" />
+                                                <SolidColorBrush x:Key="ToggleButtonBackgroundCheckedPointerOver" Color="#00000000" />
+                                                <SolidColorBrush x:Key="ToggleButtonBackgroundCheckedPressed" Color="#00000000" />
+                                                <SolidColorBrush x:Key="ToggleButtonBackgroundCheckedDisabled" Color="#00000000" />
+
+                                                <!-- 未选中态边框更轻一些，避免“空心圈”的视觉感；选中态仍用高亮描边提示 -->
+                                                <SolidColorBrush x:Key="ToggleButtonBorderBrush" Color="#1F000000" />
+                                                <SolidColorBrush x:Key="ToggleButtonBorderBrushPointerOver" Color="#33000000" />
+                                                <SolidColorBrush x:Key="ToggleButtonBorderBrushPressed" Color="#33000000" />
+                                                <SolidColorBrush x:Key="ToggleButtonBorderBrushDisabled" Color="#14000000" />
+                                                <SolidColorBrush x:Key="ToggleButtonBorderBrushChecked" Color="#FF1976D2" />
+                                                <SolidColorBrush x:Key="ToggleButtonBorderBrushCheckedPointerOver" Color="#FF1976D2" />
+                                                <SolidColorBrush x:Key="ToggleButtonBorderBrushCheckedPressed" Color="#FF1976D2" />
+                                                <SolidColorBrush x:Key="ToggleButtonBorderBrushCheckedDisabled" Color="#551976D2" />
+                                            </Grid.Resources>
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto" />
+                                                <RowDefinition Height="Auto" />
+                                                <RowDefinition Height="Auto" />
+                                            </Grid.RowDefinitions>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+
+                                            <ToggleButton
+                                                Tag="#FFFFFFFF"
+                                                Style="{StaticResource PenColorSwatchToggleButtonStyle}"
+                                                Click="OnPenColorClicked"
+                                                AutomationProperties.Name="画笔颜色：白"
+                                                Grid.Row="0"
+                                                Grid.Column="0">
+                                                <Ellipse Fill="#FFFFFFFF" Margin="2" />
+                                            </ToggleButton>
+                                            <ToggleButton
+                                                Tag="#FFFF3B30"
+                                                Style="{StaticResource PenColorSwatchToggleButtonStyle}"
+                                                Click="OnPenColorClicked"
+                                                AutomationProperties.Name="画笔颜色：红"
+                                                Grid.Row="0"
+                                                Grid.Column="1">
+                                                <Ellipse Fill="#FFFF3B30" Margin="2" />
+                                            </ToggleButton>
+                                            <ToggleButton
+                                                Tag="#FFFFCC00"
+                                                Style="{StaticResource PenColorSwatchToggleButtonStyle}"
+                                                Click="OnPenColorClicked"
+                                                AutomationProperties.Name="画笔颜色：黄"
+                                                Grid.Row="0"
+                                                Grid.Column="2">
+                                                <Ellipse Fill="#FFFFCC00" Margin="2" />
+                                            </ToggleButton>
+
+                                            <ToggleButton
+                                                Tag="#FF34C759"
+                                                Style="{StaticResource PenColorSwatchToggleButtonStyle}"
+                                                Click="OnPenColorClicked"
+                                                AutomationProperties.Name="画笔颜色：绿"
+                                                Grid.Row="1"
+                                                Grid.Column="0">
+                                                <Ellipse Fill="#FF34C759" Margin="2" />
+                                            </ToggleButton>
+                                            <ToggleButton
+                                                Tag="#FF32ADE6"
+                                                Style="{StaticResource PenColorSwatchToggleButtonStyle}"
+                                                Click="OnPenColorClicked"
+                                                AutomationProperties.Name="画笔颜色：青"
+                                                Grid.Row="1"
+                                                Grid.Column="1">
+                                                <Ellipse Fill="#FF32ADE6" Margin="2" />
+                                            </ToggleButton>
+                                            <ToggleButton
+                                                Tag="#FF0A84FF"
+                                                Style="{StaticResource PenColorSwatchToggleButtonStyle}"
+                                                Click="OnPenColorClicked"
+                                                AutomationProperties.Name="画笔颜色：蓝"
+                                                Grid.Row="1"
+                                                Grid.Column="2">
+                                                <Ellipse Fill="#FF0A84FF" Margin="2" />
+                                            </ToggleButton>
+
+                                            <ToggleButton
+                                                Tag="#FFAF52DE"
+                                                Style="{StaticResource PenColorSwatchToggleButtonStyle}"
+                                                Click="OnPenColorClicked"
+                                                AutomationProperties.Name="画笔颜色：紫"
+                                                Grid.Row="2"
+                                                Grid.Column="0">
+                                                <Ellipse Fill="#FFAF52DE" Margin="2" />
+                                            </ToggleButton>
+                                            <ToggleButton
+                                                Tag="#FFFF2D55"
+                                                Style="{StaticResource PenColorSwatchToggleButtonStyle}"
+                                                Click="OnPenColorClicked"
+                                                AutomationProperties.Name="画笔颜色：粉"
+                                                Grid.Row="2"
+                                                Grid.Column="1">
+                                                <Ellipse Fill="#FFFF2D55" Margin="2" />
+                                            </ToggleButton>
+                                            <ToggleButton
+                                                Tag="#FF000000"
+                                                IsChecked="True"
+                                                Style="{StaticResource PenColorSwatchToggleButtonStyle}"
+                                                Click="OnPenColorClicked"
+                                                AutomationProperties.Name="画笔颜色：黑"
+                                                Grid.Row="2"
+                                                Grid.Column="2">
+                                                <Ellipse Fill="#FF000000" Margin="2" />
+                                            </ToggleButton>
+                                        </Grid>
+                                        </Grid>
+                                    </Grid>
+                                </Border>
+                            </Flyout>
+                        </FlyoutBase.AttachedFlyout>
+
                         <StackPanel Orientation="Vertical">
                             <SymbolIcon Symbol="Edit" />
                             <TextBlock FontSize="11" Margin="0,3,0,0" HorizontalAlignment="Center" Text="书写" />

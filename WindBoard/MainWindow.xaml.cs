@@ -23,6 +23,7 @@ namespace WindBoard
         private const int ClearCanvasSlideResetAnimationMs = 160;
 
         private bool _isEraserFlyoutOpen;
+        private bool _isPenFlyoutOpen;
         private bool _isClearCanvasSlideEnabled;
         private uint? _clearCanvasSlidePointerId;
         private double _clearCanvasSlidePointerStartX;
@@ -49,7 +50,7 @@ namespace WindBoard
 
             // 主 Dock：工具切换（单选）
             SelectToolToggleButton.Click += (_, _) => ApplyToolSelection(BoardTool.Select);
-            PenToolToggleButton.Click += (_, _) => ApplyToolSelection(BoardTool.Pen);
+            PenToolToggleButton.Click += OnPenToolClicked;
             EraserToggleButton.Click += OnEraserToolClicked;
 
             // 中部 Dock：撤销/重做
@@ -219,6 +220,12 @@ namespace WindBoard
             {
                 TryHideEraserFlyout();
             }
+
+            // 离开书写模式时，收起书写弹出层，避免残留在其它工具状态下。
+            if (tool != BoardTool.Pen)
+            {
+                TryHidePenFlyout();
+            }
         }
 
         private void UpdateCommandStates()
@@ -226,6 +233,120 @@ namespace WindBoard
             UndoButton.IsEnabled = BoardCanvas.CanUndo;
             RedoButton.IsEnabled = BoardCanvas.CanRedo;
             UpdateClearCanvasSlideState();
+        }
+
+        private void OnPenToolClicked(object sender, RoutedEventArgs e)
+        {
+            // 逻辑约定：首次点击进入书写；已在书写模式下再次点击则弹出“颜色/粗细”面板。
+            bool alreadyPen = BoardCanvas.Tool == BoardTool.Pen;
+            ApplyToolSelection(BoardTool.Pen);
+
+            if (!alreadyPen)
+            {
+                return;
+            }
+
+            if (_isPenFlyoutOpen)
+            {
+                TryHidePenFlyout();
+                return;
+            }
+
+            SyncPenFlyoutFromCanvas();
+            FlyoutBase.ShowAttachedFlyout(PenToolToggleButton);
+        }
+
+        private void OnPenFlyoutOpened(object sender, object e)
+        {
+            _isPenFlyoutOpen = true;
+            SyncPenFlyoutFromCanvas();
+        }
+
+        private void OnPenFlyoutClosed(object sender, object e)
+        {
+            _isPenFlyoutOpen = false;
+        }
+
+        private void OnPenThicknessClicked(object sender, RoutedEventArgs e)
+        {
+            if (sender is not ToggleButton button)
+            {
+                return;
+            }
+
+            if (!TryParseFloatTag(button.Tag, out float size))
+            {
+                return;
+            }
+
+            BoardCanvas.PenBaseSize = size;
+            SetExclusiveToggleChecked(PenThicknessPanel, button);
+        }
+
+        private void OnPenColorClicked(object sender, RoutedEventArgs e)
+        {
+            if (sender is not ToggleButton button)
+            {
+                return;
+            }
+
+            if (button.Tag is not string hex || !ColorHex.TryParse(hex, out Color color))
+            {
+                return;
+            }
+
+            BoardCanvas.PenColor = color;
+            SetExclusiveToggleChecked(PenColorGrid, button);
+        }
+
+        private void SyncPenFlyoutFromCanvas()
+        {
+            // 书写 Flyout 可能在工具切换/设置恢复等场景下被动打开，这里统一以画布当前值为准做一次同步。
+            Color currentColor = BoardCanvas.PenColor;
+            foreach (UIElement element in PenColorGrid.Children)
+            {
+                if (element is ToggleButton button
+                    && button.Tag is string hex
+                    && ColorHex.TryParse(hex, out Color color))
+                {
+                    button.IsChecked = color.A == currentColor.A
+                        && color.R == currentColor.R
+                        && color.G == currentColor.G
+                        && color.B == currentColor.B;
+                }
+            }
+
+            float currentSize = BoardCanvas.PenBaseSize;
+            foreach (UIElement element in PenThicknessPanel.Children)
+            {
+                if (element is ToggleButton button && TryParseFloatTag(button.Tag, out float size))
+                {
+                    button.IsChecked = Math.Abs(currentSize - size) < 0.001f;
+                }
+            }
+        }
+
+        private static bool TryParseFloatTag(object? tag, out float value)
+        {
+            value = 0;
+
+            if (tag is null)
+            {
+                return false;
+            }
+
+            return float.TryParse(tag.ToString(), out value);
+        }
+
+        private static void SetExclusiveToggleChecked(Panel panel, ToggleButton checkedButton)
+        {
+            foreach (UIElement child in panel.Children)
+            {
+                if (child is ToggleButton button)
+                {
+                    button.IsChecked = ReferenceEquals(button, checkedButton);
+                }
+            }
         }
 
         private void OnEraserToolClicked(object sender, RoutedEventArgs e)
@@ -444,6 +565,12 @@ namespace WindBoard
         private void TryHideEraserFlyout()
         {
             FlyoutBase? flyout = FlyoutBase.GetAttachedFlyout(EraserToggleButton);
+            flyout?.Hide();
+        }
+
+        private void TryHidePenFlyout()
+        {
+            FlyoutBase? flyout = FlyoutBase.GetAttachedFlyout(PenToolToggleButton);
             flyout?.Hide();
         }
 

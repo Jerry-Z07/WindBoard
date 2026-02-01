@@ -30,6 +30,8 @@ namespace WindBoard.Controls
         // 默认使用“像素级擦除”（局部擦除），用户可在 UI 中切换为整笔擦除。
         private IBoardEraser _eraser = new PixelStrokeEraser();
         private UiColor _canvasBackgroundColor = UiColor.FromArgb(0xFF, 0x2E, 0x2F, 0x33);
+        private UiColor _penColor = UiColor.FromArgb(0xFF, 0x00, 0x00, 0x00);
+        private float _penBaseSize = 3.0f;
         private bool _isInitialized;
         private bool _isRenderingLoopActive;
         private bool _isRenderQueued;
@@ -102,6 +104,50 @@ namespace WindBoard.Controls
                 RaiseCommandStateChanged();
                 RequestRender();
                 UpdateEraserCursorVisibility();
+            }
+        }
+
+        /// <summary>
+        /// 当前画笔颜色（仅影响后续新建笔迹）。
+        /// </summary>
+        internal UiColor PenColor
+        {
+            get => _penColor;
+            set
+            {
+                if (_penColor == value)
+                {
+                    return;
+                }
+
+                _penColor = value;
+
+                if (_input is not null)
+                {
+                    _input.PenColor = ToColor4(_penColor);
+                }
+            }
+        }
+
+        /// <summary>
+        /// 当前画笔粗细（世界坐标下的“笔迹直径”，仅影响后续新建笔迹）。
+        /// </summary>
+        internal float PenBaseSize
+        {
+            get => _penBaseSize;
+            set
+            {
+                if (_penBaseSize.Equals(value))
+                {
+                    return;
+                }
+
+                _penBaseSize = value;
+
+                if (_input is not null)
+                {
+                    _input.PenBaseSize = _penBaseSize;
+                }
             }
         }
 
@@ -189,6 +235,8 @@ namespace WindBoard.Controls
             _input = new BoardInputController(CanvasPanel, _session, _viewport, _eraser)
             {
                 Tool = _tool,
+                PenColor = ToColor4(_penColor),
+                PenBaseSize = _penBaseSize,
                 Eraser = _eraser,
                 EraserRadiusDip = GetEraserRadiusDipFromCursor(),
             };
@@ -219,6 +267,8 @@ namespace WindBoard.Controls
 
             _input = new BoardInputController(CanvasPanel, _session, _viewport, _eraser);
             _input.Tool = _tool;
+            _input.PenColor = ToColor4(_penColor);
+            _input.PenBaseSize = _penBaseSize;
             _input.Eraser = _eraser;
             _input.EraserRadiusDip = GetEraserRadiusDipFromCursor();
             _input.Attach();

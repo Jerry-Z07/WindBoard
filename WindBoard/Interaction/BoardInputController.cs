@@ -60,6 +60,21 @@ namespace WindBoard.Interaction
 
         public BoardTool Tool { get; set; } = BoardTool.Pen;
 
+        /// <summary>
+        /// 画笔颜色（仅影响后续新建笔迹）。
+        /// </summary>
+        public Color4 PenColor { get; set; } = new(0, 0, 0, 1);
+
+        /// <summary>
+        /// 画笔粗细（世界坐标下的“笔迹直径”，仅影响后续新建笔迹）。
+        /// </summary>
+        public float PenBaseSize { get; set; } = 3.0f;
+
+        /// <summary>
+        /// 是否启用压感（会影响笔迹宽度随压力变化），仅影响后续新建笔迹。
+        /// </summary>
+        public bool PenEnablePressure { get; set; } = true;
+
         public IBoardEraser Eraser
         {
             get => _eraser;
@@ -387,9 +402,9 @@ namespace WindBoard.Interaction
 
                 ActiveStroke = new Stroke
                 {
-                    Color = new Color4(0, 0, 0, 1),
-                    BaseSize = 3.0f,
-                    EnablePressure = true,
+                    Color = PenColor,
+                    BaseSize = PenBaseSize,
+                    EnablePressure = PenEnablePressure,
                 };
 
                 if (AppendPoint(ActiveStroke, e.Pointer, point))
@@ -443,9 +458,9 @@ namespace WindBoard.Interaction
 
             ActiveStroke = new Stroke
             {
-                Color = new Color4(0, 0, 0, 1),
-                BaseSize = 3.0f,
-                EnablePressure = true,
+                Color = PenColor,
+                BaseSize = PenBaseSize,
+                EnablePressure = PenEnablePressure,
             };
 
             if (AppendPoint(ActiveStroke, e.Pointer, point))
