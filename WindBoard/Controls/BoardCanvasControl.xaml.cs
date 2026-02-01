@@ -9,6 +9,7 @@ using Microsoft.UI.Xaml.Media;
 using Vortice.Mathematics;
 using UiColor = Windows.UI.Color;
 using WindBoard.Board;
+using WindBoard.Board.Commands;
 using WindBoard.Board.Editing;
 using WindBoard.Board.Viewport;
 using WindBoard.Interaction;
@@ -287,6 +288,7 @@ namespace WindBoard.Controls
             _input.InteractionStateChanged += OnInteractionStateChanged;
 
             AttachEraserCursorHandlers();
+            AttachSelectionDockHandlers();
             UpdateEraserCursorVisibility();
 
             UpdateViewportSize();
@@ -295,6 +297,30 @@ namespace WindBoard.Controls
 
             RaiseCommandStateChanged();
             RequestRender();
+        }
+
+        private void AttachSelectionDockHandlers()
+        {
+            if (SelectionDockBorder is not null)
+            {
+                // Dock 尺寸变化（例如首次测量）时，需要重新定位到选择框下方。
+                SelectionDockBorder.SizeChanged += (_, _) => UpdateSelectionOverlay();
+            }
+
+            if (SelectionBringToFrontButton is not null)
+            {
+                SelectionBringToFrontButton.Click += OnSelectionBringToFrontClicked;
+            }
+
+            if (SelectionDuplicateButton is not null)
+            {
+                SelectionDuplicateButton.Click += OnSelectionDuplicateClicked;
+            }
+
+            if (SelectionDeleteButton is not null)
+            {
+                SelectionDeleteButton.Click += OnSelectionDeleteClicked;
+            }
         }
 
         private void ApplyCanvasBackgroundToRenderer()
@@ -388,6 +414,7 @@ namespace WindBoard.Controls
         private void OnSessionStateChanged()
         {
             _renderer?.InvalidateCachedBackground();
+            _input?.ValidateSelection();
             RaiseCommandStateChanged();
             RequestRender();
         }
@@ -422,9 +449,12 @@ namespace WindBoard.Controls
                     return;
                 }
 
-                _renderer.SetInteractiveMode(true);
+                bool isViewportInteraction = _input?.IsContinuousViewportInteraction == true || _input?.IsWheelZooming == true;
 
-                if (_input?.IsContinuousViewportInteraction == true)
+                // 仅在“视口交互”（平移/捏合缩放/滚轮缩放）时降低分辨率；选择框选/移动笔迹等保持全分辨率，避免视觉错位。
+                _renderer.SetInteractiveMode(isViewportInteraction);
+
+                if (isViewportInteraction && _input?.IsContinuousViewportInteraction == true)
                 {
                     SetRenderingLoopActive(true);
                 }
@@ -511,6 +541,8 @@ namespace WindBoard.Controls
                 return;
             }
 
+            UpdateSelectionOverlay();
+
             Stroke? activeStroke = _input?.ActiveStroke;
             if (activeStroke is not null)
             {
@@ -558,6 +590,191 @@ namespace WindBoard.Controls
 
             _renderer.Render(ctx => _sceneRenderer.Draw(ctx, _session.Document, null, _viewport));
             _lastRenderedZoom = _viewport.Zoom;
+        }
+
+        private void UpdateSelectionOverlay()
+        {
+            if (!_isInitialized || _input is null)
+            {
+                return;
+            }
+
+            // 仅在“选择工具”下展示选择框与悬浮 Dock，避免干扰书写/擦除。
+            if (_tool != BoardTool.Select)
+            {
+                HideSelectionOverlay();
+                return;
+            }
+
+            // 正在框选时：展示框选矩形，隐藏 Dock。
+            if (_input.TryGetSelectionMarqueeRectDip(out Rect marqueeRectDip))
+            {
+                if (SelectionBoundsBorder is not null)
+                {
+                    SelectionBoundsBorder.Visibility = Visibility.Visible;
+                    SelectionBoundsBorder.Width = Math.Max(0.0, marqueeRectDip.Width);
+                    SelectionBoundsBorder.Height = Math.Max(0.0, marqueeRectDip.Height);
+                    Canvas.SetLeft(SelectionBoundsBorder, marqueeRectDip.Left);
+                    Canvas.SetTop(SelectionBoundsBorder, marqueeRectDip.Top);
+                }
+
+                if (SelectionDockBorder is not null)
+                {
+                    SelectionDockBorder.Visibility = Visibility.Collapsed;
+                }
+
+                return;
+            }
+
+            if (_input.SelectedStroke is not Stroke stroke || stroke.Points.Count == 0)
+            {
+                HideSelectionOverlay();
+                return;
+            }
+
+            // 某些情况下笔迹可能还未计算 Bounds（例如外部构造/导入），此时这里补算一次。
+            if (!stroke.HasBounds)
+            {
+                stroke.RecalculateBoundsFromPoints();
+            }
+
+            if (!stroke.HasBounds)
+            {
+                HideSelectionOverlay();
+                return;
+            }
+
+            Matrix3x2 worldToScreen = _viewport.GetWorldToScreenTransform();
+            Vector2 minScreen = Vector2.Transform(stroke.BoundsMin, worldToScreen);
+            Vector2 maxScreen = Vector2.Transform(stroke.BoundsMax, worldToScreen);
+
+            float left = Math.Min(minScreen.X, maxScreen.X);
+            float top = Math.Min(minScreen.Y, maxScreen.Y);
+            float right = Math.Max(minScreen.X, maxScreen.X);
+            float bottom = Math.Max(minScreen.Y, maxScreen.Y);
+
+            double width = Math.Max(0.0, right - left);
+            double height = Math.Max(0.0, bottom - top);
+
+            if (SelectionBoundsBorder is not null)
+            {
+                SelectionBoundsBorder.Visibility = Visibility.Visible;
+                SelectionBoundsBorder.Width = width;
+                SelectionBoundsBorder.Height = height;
+                Canvas.SetLeft(SelectionBoundsBorder, left);
+                Canvas.SetTop(SelectionBoundsBorder, top);
+            }
+
+            if (SelectionDockBorder is null)
+            {
+                return;
+            }
+
+            SelectionDockBorder.Visibility = Visibility.Visible;
+
+            // 置顶：当选中笔迹已经是最后绘制（列表末尾）时禁用。
+            if (SelectionBringToFrontButton is not null)
+            {
+                bool isTopMost = _session.Document.Strokes.Count > 0
+                    && ReferenceEquals(_session.Document.Strokes[^1], stroke);
+                SelectionBringToFrontButton.IsEnabled = !isTopMost;
+            }
+
+            // 将 Dock 放在选择框下方居中，并做边界钳制，避免跑出画布。
+            double dockW = SelectionDockBorder.ActualWidth;
+            double dockH = SelectionDockBorder.ActualHeight;
+            if (dockW <= 0.0 || dockH <= 0.0)
+            {
+                SelectionDockBorder.Measure(new Windows.Foundation.Size(double.PositiveInfinity, double.PositiveInfinity));
+                dockW = SelectionDockBorder.DesiredSize.Width;
+                dockH = SelectionDockBorder.DesiredSize.Height;
+            }
+
+            double dockLeft = left + width / 2.0 - dockW / 2.0;
+            double dockTop = bottom + 8.0;
+
+            double maxLeft = Math.Max(0.0, CanvasPanel.ActualWidth - dockW);
+            double maxTop = Math.Max(0.0, CanvasPanel.ActualHeight - dockH);
+
+            dockLeft = Math.Clamp(dockLeft, 0.0, maxLeft);
+            dockTop = Math.Clamp(dockTop, 0.0, maxTop);
+
+            Canvas.SetLeft(SelectionDockBorder, dockLeft);
+            Canvas.SetTop(SelectionDockBorder, dockTop);
+        }
+
+        private void HideSelectionOverlay()
+        {
+            if (SelectionBoundsBorder is not null)
+            {
+                SelectionBoundsBorder.Visibility = Visibility.Collapsed;
+            }
+
+            if (SelectionDockBorder is not null)
+            {
+                SelectionDockBorder.Visibility = Visibility.Collapsed;
+            }
+        }
+
+        private void OnSelectionBringToFrontClicked(object sender, RoutedEventArgs e)
+        {
+            if (_input?.SelectedStroke is not Stroke stroke)
+            {
+                return;
+            }
+
+            // 点击 Dock 时，主动结束输入控制器的连续动作，避免残留捕获/状态。
+            _input.CancelActiveToolOperation();
+            _session.Execute(new BringStrokeToFrontCommand(stroke));
+            _input.ValidateSelection();
+            UpdateSelectionOverlay();
+        }
+
+        private void OnSelectionDuplicateClicked(object sender, RoutedEventArgs e)
+        {
+            if (_input?.SelectedStroke is not Stroke stroke)
+            {
+                return;
+            }
+
+            _input.CancelActiveToolOperation();
+
+            Stroke copy = CloneStroke(stroke);
+
+            // 复制后做一个轻微偏移，避免与原笔迹完全重叠导致“看不见”。
+            float zoom = Math.Max(0.0001f, _viewport.Zoom);
+            copy.Translate(new Vector2(12.0f, 12.0f) / zoom);
+
+            _session.Execute(new AddStrokeCommand(copy));
+            _input.SetSelection(copy);
+            UpdateSelectionOverlay();
+        }
+
+        private void OnSelectionDeleteClicked(object sender, RoutedEventArgs e)
+        {
+            if (_input?.SelectedStroke is not Stroke stroke)
+            {
+                return;
+            }
+
+            _input.CancelActiveToolOperation();
+            _session.Execute(new RemoveStrokeCommand(stroke));
+            _input.ClearSelection();
+            UpdateSelectionOverlay();
+        }
+
+        private static Stroke CloneStroke(Stroke source)
+        {
+            var clone = new Stroke
+            {
+                Color = source.Color,
+                BaseSize = source.BaseSize,
+                EnablePressure = source.EnablePressure,
+            };
+
+            clone.Points.AddRange(source.Points);
+            clone.RecalculateBoundsFromPoints();
+            return clone;
         }
 
         private void UpdateWritingCacheState()

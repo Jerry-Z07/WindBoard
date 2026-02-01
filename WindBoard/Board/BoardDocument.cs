@@ -36,6 +36,66 @@ namespace WindBoard.Board
             ExpandBoundsWithPadding(position, halfWidth);
         }
 
+        /// <summary>
+        /// 重新计算包围盒（基于当前 Points）。
+        /// </summary>
+        /// <remarks>
+        /// 用途：选择变换（平移/缩放/旋转）、导入后重建 Bounds 等。
+        /// </remarks>
+        internal void RecalculateBoundsFromPoints()
+        {
+            BoundsMin = new Vector2(float.PositiveInfinity, float.PositiveInfinity);
+            BoundsMax = new Vector2(float.NegativeInfinity, float.NegativeInfinity);
+
+            for (int i = 0; i < Points.Count; i++)
+            {
+                StrokePoint p = Points[i];
+                ExpandBounds(p.Position, p.Pressure);
+            }
+        }
+
+        /// <summary>
+        /// 平移笔迹（会同步更新 Points 与 Bounds）。
+        /// </summary>
+        internal void Translate(Vector2 deltaWorld)
+        {
+            if (deltaWorld.LengthSquared() <= 0.0000001f)
+            {
+                return;
+            }
+
+            for (int i = 0; i < Points.Count; i++)
+            {
+                StrokePoint p = Points[i];
+                Points[i] = new StrokePoint(p.Position + deltaWorld, p.Pressure);
+            }
+
+            if (HasBounds)
+            {
+                BoundsMin += deltaWorld;
+                BoundsMax += deltaWorld;
+            }
+        }
+
+        /// <summary>
+        /// 对笔迹 Points 应用 2D 变换矩阵，并重建包围盒。
+        /// </summary>
+        internal void Transform(Matrix3x2 transform)
+        {
+            if (Points.Count == 0)
+            {
+                return;
+            }
+
+            for (int i = 0; i < Points.Count; i++)
+            {
+                StrokePoint p = Points[i];
+                Points[i] = new StrokePoint(Vector2.Transform(p.Position, transform), p.Pressure);
+            }
+
+            RecalculateBoundsFromPoints();
+        }
+
         private void ExpandBoundsWithPadding(Vector2 position, float padding)
         {
             Vector2 min = position - new Vector2(padding, padding);

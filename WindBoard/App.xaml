@@ -34,6 +34,29 @@
             <!-- 画布背景色：供页面缩略图等 XAML 元素复用（运行时会同步为当前设置值）。 -->
             <SolidColorBrush x:Key="CanvasBackgroundBrush" Color="#2E2F33" />
 
+            <!-- Dock：通用按钮样式（全局资源，供主 Dock 与选中项 Dock 复用） -->
+            <Style
+                x:Key="DockButtonStyle"
+                TargetType="Button"
+                BasedOn="{StaticResource DefaultButtonStyle}">
+                <Setter Property="Background" Value="Transparent" />
+                <Setter Property="BorderThickness" Value="0" />
+                <Setter Property="CornerRadius" Value="10" />
+                <Setter Property="HorizontalContentAlignment" Value="Center" />
+                <Setter Property="VerticalContentAlignment" Value="Center" />
+            </Style>
+
+            <Style
+                x:Key="DockToggleButtonStyle"
+                TargetType="ToggleButton"
+                BasedOn="{StaticResource DefaultToggleButtonStyle}">
+                <Setter Property="Background" Value="Transparent" />
+                <Setter Property="BorderThickness" Value="0" />
+                <Setter Property="CornerRadius" Value="10" />
+                <Setter Property="HorizontalContentAlignment" Value="Center" />
+                <Setter Property="VerticalContentAlignment" Value="Center" />
+            </Style>
+
             <Style
                 x:Key="SettingsCardButtonStyle"
                 TargetType="Button"

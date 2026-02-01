@@ -14,34 +14,6 @@
     </Window.SystemBackdrop>
 
     <Grid>
-        <Grid.Resources>
-            <ResourceDictionary>
-                <!-- 底部 Dock -->
-
-                <Style
-                    x:Key="DockButtonStyle"
-                    TargetType="Button"
-                    BasedOn="{StaticResource DefaultButtonStyle}">
-                    <Setter Property="Background" Value="Transparent" />
-                    <Setter Property="BorderThickness" Value="0" />
-                    <Setter Property="CornerRadius" Value="10" />
-                    <Setter Property="HorizontalContentAlignment" Value="Center" />
-                    <Setter Property="VerticalContentAlignment" Value="Center" />
-                </Style>
-
-                <Style
-                    x:Key="DockToggleButtonStyle"
-                    TargetType="ToggleButton"
-                    BasedOn="{StaticResource DefaultToggleButtonStyle}">
-                    <Setter Property="Background" Value="Transparent" />
-                    <Setter Property="BorderThickness" Value="0" />
-                    <Setter Property="CornerRadius" Value="10" />
-                    <Setter Property="HorizontalContentAlignment" Value="Center" />
-                    <Setter Property="VerticalContentAlignment" Value="Center" />
-                </Style>
-            </ResourceDictionary>
-        </Grid.Resources>
-
         <controls:BoardCanvasControl x:Name="BoardCanvas" />
 
         <!-- 底部 Dock：左侧“更多/最小化/导入”，中部“工具/撤销重做”，右侧“+”入口 -->

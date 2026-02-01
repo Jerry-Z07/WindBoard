@@ -12,11 +12,75 @@
 
         <!-- 自绘光标：用于擦除模式（后续可基于擦除大小做缩放）。 -->
         <Canvas x:Name="OverlayCanvas" IsHitTestVisible="False">
+            <!-- 选择框：仅用于视觉提示（交互由输入控制器处理）。 -->
+            <Border
+                x:Name="SelectionBoundsBorder"
+                BorderBrush="{ThemeResource SystemAccentColor}"
+                BorderThickness="2"
+                CornerRadius="8"
+                Background="Transparent"
+                Visibility="Collapsed" />
+
             <Image x:Name="EraserCursorImage" Width="48" Height="72" Stretch="Fill" Visibility="Collapsed">
                 <Image.Source>
                     <SvgImageSource UriSource="ms-appx:///Assets/Eraser.svg" />
                 </Image.Source>
             </Image>
+        </Canvas>
+
+        <!-- 选中项 Dock：悬浮于选择框下方，仅 Dock 本体可点击（Canvas 背景为空，避免遮挡画布交互）。 -->
+        <Canvas x:Name="SelectionDockCanvas">
+            <Border
+                x:Name="SelectionDockBorder"
+                Background="{ThemeResource SystemControlBackgroundChromeMediumLowBrush}"
+                CornerRadius="14"
+                Opacity="0.85"
+                Visibility="Collapsed"
+                RequestedTheme="Light">
+                <StackPanel Orientation="Horizontal" Spacing="4" Margin="5">
+                    <Button
+                        x:Name="SelectionBringToFrontButton"
+                        MinWidth="60"
+                        MinHeight="52"
+                        Padding="8,6"
+                        Style="{StaticResource DockButtonStyle}"
+                        HorizontalContentAlignment="Center"
+                        VerticalContentAlignment="Center">
+                        <StackPanel Orientation="Vertical">
+                            <SymbolIcon Symbol="Up" />
+                            <TextBlock FontSize="11" Margin="0,3,0,0" HorizontalAlignment="Center" Text="置顶" />
+                        </StackPanel>
+                    </Button>
+
+                    <Button
+                        x:Name="SelectionDuplicateButton"
+                        MinWidth="60"
+                        MinHeight="52"
+                        Padding="8,6"
+                        Style="{StaticResource DockButtonStyle}"
+                        HorizontalContentAlignment="Center"
+                        VerticalContentAlignment="Center">
+                        <StackPanel Orientation="Vertical">
+                            <SymbolIcon Symbol="Copy" />
+                            <TextBlock FontSize="11" Margin="0,3,0,0" HorizontalAlignment="Center" Text="复制" />
+                        </StackPanel>
+                    </Button>
+
+                    <Button
+                        x:Name="SelectionDeleteButton"
+                        MinWidth="60"
+                        MinHeight="52"
+                        Padding="8,6"
+                        Style="{StaticResource DockButtonStyle}"
+                        HorizontalContentAlignment="Center"
+                        VerticalContentAlignment="Center">
+                        <StackPanel Orientation="Vertical">
+                            <SymbolIcon Symbol="Delete" />
+                            <TextBlock FontSize="11" Margin="0,3,0,0" HorizontalAlignment="Center" Text="删除" />
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
+            </Border>
         </Canvas>
     </Grid>
 </UserControl>
