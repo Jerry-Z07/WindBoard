@@ -1,0 +1,267 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="WindBoard.Settings.Pages.PenSettingsPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <Page.Resources>
+        <SolidColorBrush x:Key="PenFlyoutDividerBrush" Color="#1A000000" />
+
+        <!-- 颜色：圆形色块（背景始终透明，选中态用描边提示） -->
+        <Style x:Key="PenColorSwatchToggleButtonStyle" TargetType="ToggleButton" BasedOn="{StaticResource DefaultToggleButtonStyle}">
+            <Setter Property="Width" Value="44" />
+            <Setter Property="Height" Value="44" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="CornerRadius" Value="22" />
+            <Setter Property="BorderThickness" Value="2" />
+            <Setter Property="Background" Value="Transparent" />
+            <!-- Ellipse 未显式设置尺寸时，需 Stretch 才能按按钮可用空间正确渲染为圆形色块 -->
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <Setter Property="VerticalContentAlignment" Value="Stretch" />
+            <Setter Property="UseSystemFocusVisuals" Value="False" />
+            <Setter Property="FocusVisualPrimaryBrush" Value="Transparent" />
+            <Setter Property="FocusVisualSecondaryBrush" Value="Transparent" />
+        </Style>
+
+        <!-- 粗细：仅用于“预览”，不响应交互 -->
+        <Style x:Key="PenThicknessPreviewToggleButtonStyle" TargetType="ToggleButton" BasedOn="{StaticResource DefaultToggleButtonStyle}">
+            <Setter Property="Width" Value="44" />
+            <Setter Property="Height" Value="44" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="CornerRadius" Value="10" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="IsHitTestVisible" Value="False" />
+            <Setter Property="UseSystemFocusVisuals" Value="False" />
+            <Setter Property="FocusVisualPrimaryBrush" Value="Transparent" />
+            <Setter Property="FocusVisualSecondaryBrush" Value="Transparent" />
+        </Style>
+    </Page.Resources>
+
+    <Grid>
+        <ScrollViewer>
+            <StackPanel Spacing="16" Padding="24">
+                <TextBlock Text="画笔设置" Style="{ThemeResource TitleTextBlockStyle}" />
+
+                <StackPanel Spacing="10">
+                    <TextBlock Text="预览" Style="{ThemeResource SubtitleTextBlockStyle}" />
+
+                    <!-- 预览区域固定为浅色主题，保持与主界面“画笔设置 Flyout”一致 -->
+                    <Border
+                        CornerRadius="14"
+                        Background="{ThemeResource SystemControlBackgroundChromeMediumLowBrush}"
+                        BorderBrush="{ThemeResource SystemControlForegroundBaseMediumLowBrush}"
+                        BorderThickness="1"
+                        HorizontalAlignment="Left"
+                        RequestedTheme="Light">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="1" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+
+                            <TextBlock
+                                Text="画笔设置"
+                                Foreground="{ThemeResource SystemControlForegroundBaseHighBrush}"
+                                FontSize="14"
+                                FontWeight="SemiBold"
+                                Opacity="0.85"
+                                Margin="16,12,16,10" />
+
+                            <Rectangle Grid.Row="1" Height="1" Fill="{StaticResource PenFlyoutDividerBrush}" />
+
+                            <StackPanel Grid.Row="2" Spacing="12" Padding="14">
+                                <!-- 颜色预览（可点击选择要编辑的色块） -->
+                                <Grid
+                                    x:Name="PalettePreviewGrid"
+                                    RowSpacing="14"
+                                    ColumnSpacing="14"
+                                    HorizontalAlignment="Left">
+                                    <Grid.Resources>
+                                        <SolidColorBrush x:Key="ToggleButtonBackground" Color="#00000000" />
+                                        <SolidColorBrush x:Key="ToggleButtonBackgroundPointerOver" Color="#00000000" />
+                                        <SolidColorBrush x:Key="ToggleButtonBackgroundPressed" Color="#00000000" />
+                                        <SolidColorBrush x:Key="ToggleButtonBackgroundDisabled" Color="#00000000" />
+                                        <SolidColorBrush x:Key="ToggleButtonBackgroundChecked" Color="#00000000" />
+                                        <SolidColorBrush x:Key="ToggleButtonBackgroundCheckedPointerOver" Color="#00000000" />
+                                        <SolidColorBrush x:Key="ToggleButtonBackgroundCheckedPressed" Color="#00000000" />
+                                        <SolidColorBrush x:Key="ToggleButtonBackgroundCheckedDisabled" Color="#00000000" />
+
+                                        <!-- 未选中态边框更轻一些；选中态仍用高亮描边提示 -->
+                                        <SolidColorBrush x:Key="ToggleButtonBorderBrush" Color="#1F000000" />
+                                        <SolidColorBrush x:Key="ToggleButtonBorderBrushPointerOver" Color="#33000000" />
+                                        <SolidColorBrush x:Key="ToggleButtonBorderBrushPressed" Color="#33000000" />
+                                        <SolidColorBrush x:Key="ToggleButtonBorderBrushDisabled" Color="#14000000" />
+                                        <SolidColorBrush x:Key="ToggleButtonBorderBrushChecked" Color="#FF1976D2" />
+                                        <SolidColorBrush x:Key="ToggleButtonBorderBrushCheckedPointerOver" Color="#FF1976D2" />
+                                        <SolidColorBrush x:Key="ToggleButtonBorderBrushCheckedPressed" Color="#FF1976D2" />
+                                        <SolidColorBrush x:Key="ToggleButtonBorderBrushCheckedDisabled" Color="#551976D2" />
+                                    </Grid.Resources>
+                                </Grid>
+
+                                <!-- 粗细预览：三档 -->
+                                <StackPanel x:Name="ThicknessPresetsPreviewPanel" Orientation="Horizontal" Spacing="14" HorizontalAlignment="Left">
+                                    <ToggleButton Style="{StaticResource PenThicknessPreviewToggleButtonStyle}">
+                                        <Line
+                                            x:Name="ThicknessPresetPreviewLine1"
+                                            X1="12"
+                                            Y1="22"
+                                            X2="32"
+                                            Y2="22"
+                                            Stroke="{ThemeResource SystemControlForegroundBaseHighBrush}"
+                                            StrokeThickness="2"
+                                            StrokeStartLineCap="Round"
+                                            StrokeEndLineCap="Round" />
+                                    </ToggleButton>
+                                    <ToggleButton Style="{StaticResource PenThicknessPreviewToggleButtonStyle}">
+                                        <Line
+                                            x:Name="ThicknessPresetPreviewLine2"
+                                            X1="12"
+                                            Y1="22"
+                                            X2="32"
+                                            Y2="22"
+                                            Stroke="{ThemeResource SystemControlForegroundBaseHighBrush}"
+                                            StrokeThickness="3"
+                                            StrokeStartLineCap="Round"
+                                            StrokeEndLineCap="Round" />
+                                    </ToggleButton>
+                                    <ToggleButton Style="{StaticResource PenThicknessPreviewToggleButtonStyle}">
+                                        <Line
+                                            x:Name="ThicknessPresetPreviewLine3"
+                                            X1="12"
+                                            Y1="22"
+                                            X2="32"
+                                            Y2="22"
+                                            Stroke="{ThemeResource SystemControlForegroundBaseHighBrush}"
+                                            StrokeThickness="5"
+                                            StrokeStartLineCap="Round"
+                                            StrokeEndLineCap="Round" />
+                                    </ToggleButton>
+                                </StackPanel>
+
+                                <!-- 粗细预览：滑条 -->
+                                <StackPanel x:Name="ThicknessSliderPreviewPanel" Spacing="6" Visibility="Collapsed">
+                                    <TextBlock Text="粗细" Opacity="0.75" />
+                                    <Slider
+                                        x:Name="ThicknessPreviewSlider"
+                                        Minimum="0.5"
+                                        Maximum="64"
+                                        Value="3"
+                                        SmallChange="0.5"
+                                        StepFrequency="0.5"
+                                        IsEnabled="False" />
+                                </StackPanel>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+                </StackPanel>
+
+                <StackPanel Spacing="10">
+                    <TextBlock Text="颜色" Style="{ThemeResource SubtitleTextBlockStyle}" />
+
+                    <NumberBox
+                        x:Name="PaletteCountNumberBox"
+                        Header="颜色数量"
+                        Minimum="3"
+                        Maximum="24"
+                        SmallChange="1"
+                        SpinButtonPlacementMode="Inline"
+                        ValueChanged="OnPaletteCountValueChanged" />
+
+                    <TextBlock
+                        Text="提示：可保留空色块（未设置颜色），后续再选择色块并设置颜色。"
+                        Opacity="0.75"
+                        TextWrapping="WrapWholeWords" />
+
+                    <StackPanel x:Name="SelectColorHintPanel" Spacing="6">
+                        <TextBlock
+                            Text="默认颜色更改"
+                            FontWeight="SemiBold" />
+                        <TextBlock
+                            Text="请先在上方预览区选择一个颜色块，然后再使用颜色选择器修改。"
+                            Opacity="0.75"
+                            TextWrapping="WrapWholeWords" />
+                    </StackPanel>
+
+                    <StackPanel x:Name="ColorEditorPanel" Spacing="12" Visibility="Collapsed">
+                        <TextBlock x:Name="SelectedColorTitleTextBlock" Text="默认颜色更改" FontWeight="SemiBold" />
+
+                        <ColorPicker
+                            x:Name="SelectedColorPicker"
+                            IsAlphaEnabled="False"
+                            IsColorChannelTextInputVisible="False"
+                            IsMoreButtonVisible="False"
+                            ColorSpectrumShape="Box"
+                            ColorChanged="OnSelectedColorChanged" />
+
+                        <Button
+                            Content="清空该色块"
+                            HorizontalAlignment="Left"
+                            Click="OnClearSelectedColorClicked" />
+                    </StackPanel>
+                </StackPanel>
+
+                <StackPanel Spacing="10">
+                    <TextBlock Text="粗细" Style="{ThemeResource SubtitleTextBlockStyle}" />
+
+                    <ToggleSwitch
+                        x:Name="UseThicknessSliderToggleSwitch"
+                        Header="通过滑条调整粗细"
+                        OffContent="三档"
+                        OnContent="滑条"
+                        Toggled="OnUseThicknessSliderToggled" />
+
+                    <StackPanel x:Name="ThicknessPresetsEditorPanel" Spacing="12">
+                        <TextBlock Text="三档粗细默认值（细 / 中 / 粗）" Opacity="0.75" TextWrapping="WrapWholeWords" />
+
+                        <Grid ColumnSpacing="12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+
+                            <NumberBox
+                                x:Name="ThicknessPreset1NumberBox"
+                                Header="档位 1（细）"
+                                Minimum="0.5"
+                                Maximum="64"
+                                SmallChange="0.5"
+                                SpinButtonPlacementMode="Inline"
+                                Tag="0"
+                                ValueChanged="OnThicknessPresetValueChanged" />
+
+                            <NumberBox
+                                x:Name="ThicknessPreset2NumberBox"
+                                Grid.Column="1"
+                                Header="档位 2（中）"
+                                Minimum="0.5"
+                                Maximum="64"
+                                SmallChange="0.5"
+                                SpinButtonPlacementMode="Inline"
+                                Tag="1"
+                                ValueChanged="OnThicknessPresetValueChanged" />
+
+                            <NumberBox
+                                x:Name="ThicknessPreset3NumberBox"
+                                Grid.Column="2"
+                                Header="档位 3（粗）"
+                                Minimum="0.5"
+                                Maximum="64"
+                                SmallChange="0.5"
+                                SpinButtonPlacementMode="Inline"
+                                Tag="2"
+                                ValueChanged="OnThicknessPresetValueChanged" />
+                        </Grid>
+                    </StackPanel>
+                </StackPanel>
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</Page>

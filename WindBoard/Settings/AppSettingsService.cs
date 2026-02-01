@@ -70,6 +70,40 @@ namespace WindBoard.Settings
             }
         }
 
+        internal PenSettingsSnapshot GetPenSettingsSnapshot()
+        {
+            lock (_gate)
+            {
+                PenSettings? pen = Current.Writing?.Pen;
+
+                List<string?> palette = pen?.PaletteHexes is null
+                    ? new List<string?>(PenSettingsDefaults.DefaultPaletteHexes)
+                    : new List<string?>(pen.PaletteHexes);
+
+                float[] thicknessPresets;
+                if (pen?.ThicknessPresets is { Count: 3 } presets)
+                {
+                    thicknessPresets = [presets[0], presets[1], presets[2]];
+                }
+                else
+                {
+                    thicknessPresets =
+                    [
+                        PenSettingsDefaults.DefaultThicknessPresets[0],
+                        PenSettingsDefaults.DefaultThicknessPresets[1],
+                        PenSettingsDefaults.DefaultThicknessPresets[2],
+                    ];
+                }
+
+                return new PenSettingsSnapshot
+                {
+                    PaletteHexes = palette,
+                    ThicknessPresets = thicknessPresets,
+                    UseThicknessSlider = pen?.UseThicknessSlider ?? false,
+                };
+            }
+        }
+
         internal void Update(Action<AppSettings> update)
         {
             if (update is null)

@@ -57,6 +57,7 @@ namespace WindBoard.Settings
             Type pageType = tag switch
             {
                 "appearance" => typeof(AppearanceSettingsPage),
+                "writing" => typeof(WritingSettingsPage),
                 _ => typeof(AppearanceSettingsPage),
             };
 

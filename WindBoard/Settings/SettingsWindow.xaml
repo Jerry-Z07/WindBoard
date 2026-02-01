@@ -23,6 +23,12 @@
         <NavigationView.MenuItems>
             <NavigationViewItem Content="外观" Tag="appearance">
                 <NavigationViewItem.Icon>
+                    <!-- 外观：用“调色板/颜色”语义图标，避免与其它项重复 -->
+                    <FontIcon FontFamily="Segoe MDL2 Assets" Glyph="&#xE790;" />
+                </NavigationViewItem.Icon>
+            </NavigationViewItem>
+            <NavigationViewItem Content="书写" Tag="writing">
+                <NavigationViewItem.Icon>
                     <SymbolIcon Symbol="Edit" />
                 </NavigationViewItem.Icon>
             </NavigationViewItem>

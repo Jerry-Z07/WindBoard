@@ -97,6 +97,10 @@ namespace WindBoard.Settings
 
             settings.Dock ??= new DockSettings();
             NormalizeDockSettingsInPlace(settings.Dock);
+
+            settings.Writing ??= new WritingSettings();
+            settings.Writing.Pen ??= new PenSettings();
+            NormalizePenSettingsInPlace(settings.Writing.Pen);
             return settings;
         }
 
@@ -112,6 +116,15 @@ namespace WindBoard.Settings
             settings.ToolsOrder = NormalizeOrder(settings.ToolsOrder, DockSettingsDefaults.ToolsOrder);
             settings.UndoRedoOrder = NormalizeOrder(settings.UndoRedoOrder, DockSettingsDefaults.UndoRedoOrder);
             settings.PagesOrder = NormalizeOrder(settings.PagesOrder, DockSettingsDefaults.PagesOrder);
+        }
+
+        private static void NormalizePenSettingsInPlace(PenSettings settings)
+        {
+            // 色板：长度即数量，允许 null 表示“空色块”。
+            settings.PaletteHexes = PenSettingsDefaults.NormalizePalette(settings.PaletteHexes);
+
+            // 粗细：必须三档，且归一化为递增。
+            settings.ThicknessPresets = PenSettingsDefaults.NormalizeThicknessPresets(settings.ThicknessPresets);
         }
 
         private static List<string> NormalizeOrder(IEnumerable<string>? order, IReadOnlyList<string> defaults)

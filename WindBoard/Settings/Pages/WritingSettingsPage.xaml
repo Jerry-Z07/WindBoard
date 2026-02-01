@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="WindBoard.Settings.Pages.WritingSettingsPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <Grid>
+        <ScrollViewer>
+            <StackPanel Spacing="16" Padding="24">
+                <TextBlock Text="书写" Style="{ThemeResource TitleTextBlockStyle}" />
+
+                <Button
+                    x:Name="PenSettingsCard"
+                    Style="{StaticResource SettingsCardButtonStyle}"
+                    Click="OnPenSettingsClicked">
+                    <Grid ColumnSpacing="12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <!-- 画笔设置：用“设置”图标与左侧导航项区分 -->
+                        <SymbolIcon Symbol="Setting" VerticalAlignment="Center" />
+
+                        <StackPanel Grid.Column="1" Spacing="2">
+                            <TextBlock Text="画笔设置" FontWeight="SemiBold" />
+                            <TextBlock Text="调整固定色板与粗细调节方式" Opacity="0.75" TextWrapping="WrapWholeWords" />
+                        </StackPanel>
+
+                        <FontIcon
+                            Grid.Column="2"
+                            Glyph="&#xE76C;"
+                            FontFamily="Segoe MDL2 Assets"
+                            Opacity="0.65"
+                            VerticalAlignment="Center" />
+                    </Grid>
+                </Button>
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</Page>

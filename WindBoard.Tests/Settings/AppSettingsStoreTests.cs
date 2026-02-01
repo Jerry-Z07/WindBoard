@@ -71,4 +71,49 @@ public sealed class AppSettingsStoreTests
         Assert.Equal(DockSettingsDefaults.PagesOrder, settings.Dock.PagesOrder);
         Assert.False(settings.Dock.IsUndoRedoVisible);
     }
+
+    [Fact]
+    public void NormalizeInPlace_书写设置为空会补齐默认画笔设置()
+    {
+        var settings = new AppSettings
+        {
+            Writing = null!,
+        };
+
+        AppSettingsStore.NormalizeInPlace(settings);
+
+        Assert.NotNull(settings.Writing);
+        Assert.NotNull(settings.Writing.Pen);
+        Assert.Equal(PenSettingsDefaults.DefaultPaletteHexes.Count, settings.Writing.Pen.PaletteHexes.Count);
+        Assert.Equal(PenSettingsDefaults.DefaultThicknessPresets.Count, settings.Writing.Pen.ThicknessPresets.Count);
+        Assert.False(settings.Writing.Pen.UseThicknessSlider);
+    }
+
+    [Fact]
+    public void NormalizeInPlace_画笔色板会归一化数量与颜色格式()
+    {
+        var settings = new AppSettings
+        {
+            Writing = new WritingSettings
+            {
+                Pen = new PenSettings
+                {
+                    // 小于最小数量：应补齐到 3
+                    PaletteHexes = [ "#FF000000", "invalid" ],
+
+                    // 乱序且含非法值：应回退到默认值并排序为递增
+                    ThicknessPresets = [ 5.0f, -1.0f, 3.0f ],
+                },
+            },
+        };
+
+        AppSettingsStore.NormalizeInPlace(settings);
+
+        Assert.Equal(3, settings.Writing.Pen.PaletteHexes.Count);
+        Assert.Equal("#000000", settings.Writing.Pen.PaletteHexes[0]);
+        Assert.Null(settings.Writing.Pen.PaletteHexes[1]);
+        Assert.Null(settings.Writing.Pen.PaletteHexes[2]);
+
+        Assert.Equal(PenSettingsDefaults.DefaultThicknessPresets, settings.Writing.Pen.ThicknessPresets);
+    }
 }

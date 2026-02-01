@@ -33,6 +33,17 @@ namespace WindBoard.Settings
                     PagesOrder = new List<string>(settings.Dock?.PagesOrder ?? DockSettingsDefaults.PagesOrder),
                     IsUndoRedoVisible = settings.Dock?.IsUndoRedoVisible ?? true,
                 },
+                Writing = new WritingSettings
+                {
+                    Pen = new PenSettings
+                    {
+                        PaletteHexes = new List<string?>(
+                            settings.Writing?.Pen?.PaletteHexes ?? PenSettingsDefaults.DefaultPaletteHexes),
+                        ThicknessPresets = new List<float>(
+                            settings.Writing?.Pen?.ThicknessPresets ?? PenSettingsDefaults.DefaultThicknessPresets),
+                        UseThicknessSlider = settings.Writing?.Pen?.UseThicknessSlider ?? false,
+                    },
+                },
             };
         }
     }

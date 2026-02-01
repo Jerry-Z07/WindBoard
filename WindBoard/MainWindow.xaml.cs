@@ -9,6 +9,7 @@ using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Animation;
+using Microsoft.UI.Xaml.Shapes;
 using Windows.UI;
 using WindBoard.Board.Editing;
 using WindBoard.Interaction;
@@ -24,6 +25,7 @@ namespace WindBoard
 
         private bool _isEraserFlyoutOpen;
         private bool _isPenFlyoutOpen;
+        private bool _isPenThicknessSliderSyncing;
         private bool _isClearCanvasSlideEnabled;
         private uint? _clearCanvasSlidePointerId;
         private double _clearCanvasSlidePointerStartX;
@@ -252,6 +254,7 @@ namespace WindBoard
                 return;
             }
 
+            ApplyPenFlyoutSettings();
             SyncPenFlyoutFromCanvas();
             FlyoutBase.ShowAttachedFlyout(PenToolToggleButton);
         }
@@ -259,6 +262,7 @@ namespace WindBoard
         private void OnPenFlyoutOpened(object sender, object e)
         {
             _isPenFlyoutOpen = true;
+            ApplyPenFlyoutSettings();
             SyncPenFlyoutFromCanvas();
         }
 
@@ -283,6 +287,21 @@ namespace WindBoard
             SetExclusiveToggleChecked(PenThicknessPanel, button);
         }
 
+        private void OnPenThicknessSliderValueChanged(object sender, RangeBaseValueChangedEventArgs e)
+        {
+            if (_isPenThicknessSliderSyncing)
+            {
+                return;
+            }
+
+            if (PenThicknessSliderPanel.Visibility != Visibility.Visible)
+            {
+                return;
+            }
+
+            BoardCanvas.PenBaseSize = (float)e.NewValue;
+        }
+
         private void OnPenColorClicked(object sender, RoutedEventArgs e)
         {
             if (sender is not ToggleButton button)
@@ -299,6 +318,137 @@ namespace WindBoard
             SetExclusiveToggleChecked(PenColorGrid, button);
         }
 
+        private void ApplyPenFlyoutSettings()
+        {
+            // 每次打开 Flyout 时按设置重建一次：
+            // - 色板数量 3~24 可变，且允许空色块
+            // - 粗细可在“三档预设 / 滑条”之间切换
+            PenSettingsSnapshot snapshot = AppSettingsService.Instance.GetPenSettingsSnapshot();
+
+            ApplyPenPaletteToFlyout(snapshot.PaletteHexes);
+            ApplyPenThicknessToFlyout(snapshot);
+        }
+
+        private void ApplyPenPaletteToFlyout(IReadOnlyList<string?> paletteHexes)
+        {
+            PenColorGrid.Children.Clear();
+            PenColorGrid.RowDefinitions.Clear();
+            PenColorGrid.ColumnDefinitions.Clear();
+
+            int count = paletteHexes.Count;
+            if (count <= 0)
+            {
+                return;
+            }
+
+            int columns = ComputePaletteColumns(count);
+            int rows = (int)Math.Ceiling(count / (double)columns);
+
+            for (int c = 0; c < columns; c++)
+            {
+                PenColorGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            }
+
+            for (int r = 0; r < rows; r++)
+            {
+                PenColorGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            }
+
+            for (int i = 0; i < count; i++)
+            {
+                ToggleButton button = CreatePenColorSwatchButton(paletteHexes[i]);
+                int row = i / columns;
+                int col = i % columns;
+                Grid.SetRow(button, row);
+                Grid.SetColumn(button, col);
+                PenColorGrid.Children.Add(button);
+            }
+        }
+
+        private ToggleButton CreatePenColorSwatchButton(string? hex)
+        {
+            var button = new ToggleButton
+            {
+                Style = (Style)PenFlyoutRootBorder.Resources["PenColorSwatchToggleButtonStyle"],
+                ClickMode = ClickMode.Release,
+            };
+            button.Click += OnPenColorClicked;
+
+            var ellipse = new Ellipse { Margin = new Thickness(2) };
+
+            if (ColorHex.TryParse(hex, out Color color))
+            {
+                string normalized = ColorHex.ToHexRgb(color);
+                button.Tag = normalized;
+                button.IsEnabled = true;
+                ellipse.Fill = new SolidColorBrush(Color.FromArgb(0xFF, color.R, color.G, color.B));
+            }
+            else
+            {
+                // 空色块：保留描边但禁用点击，避免选中到“无颜色”。
+                button.Tag = null;
+                button.IsEnabled = false;
+                ellipse.Fill = new SolidColorBrush(Color.FromArgb(0, 0, 0, 0));
+            }
+
+            button.Content = ellipse;
+            return button;
+        }
+
+        private void ApplyPenThicknessToFlyout(PenSettingsSnapshot snapshot)
+        {
+            PenThicknessPresetsPanel.Visibility = snapshot.UseThicknessSlider
+                ? Visibility.Collapsed
+                : Visibility.Visible;
+            PenThicknessSliderPanel.Visibility = snapshot.UseThicknessSlider
+                ? Visibility.Visible
+                : Visibility.Collapsed;
+
+            if (!snapshot.UseThicknessSlider)
+            {
+                BuildPenThicknessPresetButtons(snapshot.ThicknessPresets);
+            }
+        }
+
+        private void BuildPenThicknessPresetButtons(float[] presets)
+        {
+            PenThicknessPanel.Children.Clear();
+
+            for (int i = 0; i < presets.Length; i++)
+            {
+                float size = presets[i];
+                var button = new ToggleButton
+                {
+                    Tag = size,
+                    Style = (Style)PenFlyoutRootBorder.Resources["PenThicknessToggleButtonStyle"],
+                };
+                button.Click += OnPenThicknessClicked;
+
+                // 用线段粗细表达“档位粗细”。
+                var line = new Line
+                {
+                    X1 = 12,
+                    Y1 = 22,
+                    X2 = 32,
+                    Y2 = 22,
+                    Stroke = new SolidColorBrush(Color.FromArgb(0xFF, 0, 0, 0)),
+                    StrokeThickness = size,
+                    StrokeStartLineCap = PenLineCap.Round,
+                    StrokeEndLineCap = PenLineCap.Round,
+                };
+
+                button.Content = line;
+                PenThicknessPanel.Children.Add(button);
+            }
+        }
+
+        private static int ComputePaletteColumns(int count)
+        {
+            int columns = (int)Math.Ceiling(Math.Sqrt(count));
+            columns = Math.Clamp(columns, 3, 6);
+            return columns;
+        }
+
         private void SyncPenFlyoutFromCanvas()
         {
             // 书写 Flyout 可能在工具切换/设置恢复等场景下被动打开，这里统一以画布当前值为准做一次同步。
@@ -313,10 +463,30 @@ namespace WindBoard
                         && color.R == currentColor.R
                         && color.G == currentColor.G
                         && color.B == currentColor.B;
-                }
-            }
+                 }
+             }
 
             float currentSize = BoardCanvas.PenBaseSize;
+
+            if (PenThicknessSliderPanel.Visibility == Visibility.Visible)
+            {
+                _isPenThicknessSliderSyncing = true;
+                try
+                {
+                    double clamped = Math.Clamp(currentSize, PenThicknessSlider.Minimum, PenThicknessSlider.Maximum);
+                    if (Math.Abs(PenThicknessSlider.Value - clamped) > 0.001)
+                    {
+                        PenThicknessSlider.Value = clamped;
+                    }
+                }
+                finally
+                {
+                    _isPenThicknessSliderSyncing = false;
+                }
+
+                return;
+            }
+
             foreach (UIElement element in PenThicknessPanel.Children)
             {
                 if (element is ToggleButton button && TryParseFloatTag(button.Tag, out float size))
