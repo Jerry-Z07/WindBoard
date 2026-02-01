@@ -93,28 +93,18 @@ namespace WindBoard.Board.Editing
             // 单点笔迹：按点是否落入橡皮擦“胶囊体”阈值判断删除/保留。
             if (pointCount == 1)
             {
-                return IsPointErased(stroke, stroke.Points[0], eraser)
-                    ? new List<Stroke>()
-                    : new List<Stroke> { stroke };
+                return EraseSinglePointStroke(stroke, stroke.Points[0], eraser);
             }
 
-            float maxHalfWidth = GetMaxHalfStrokeWidthWorld(stroke);
-            Vector2 maxRadius = new(
-                Math.Max(0.0f, eraserRadiusWorld.X) + maxHalfWidth,
-                Math.Max(0.0f, eraserRadiusWorld.Y) + maxHalfWidth);
-
-            Vector2 maxInv = new(
-                1.0f / Math.Max(0.0000001f, maxRadius.X),
-                1.0f / Math.Max(0.0000001f, maxRadius.Y));
+            Vector2 maxInv = ComputeMaxEraserInvWorld(stroke, eraserRadiusWorld);
 
             var result = new List<Stroke>();
-            Stroke? current = null;
 
             // removedAny 用于判断“最终是否真的擦掉了东西”，避免误生成新 Stroke。
-            bool removedAny = false;
-
             StrokePoint prevSample = stroke.Points[0];
             bool prevKeep = !IsPointErased(stroke, prevSample, eraser);
+            Stroke? current = null;
+            bool removedAny = false;
             if (prevKeep)
             {
                 current = CreateDerivedStroke(stroke);
@@ -125,28 +115,75 @@ namespace WindBoard.Board.Editing
                 removedAny = true;
             }
 
+            var state = new EraseState(result, current, prevSample, prevKeep, removedAny);
+            ProcessStrokeSegments(stroke, maxInv, eraser, ref state);
+
+            CommitCurrentIfNotEmpty(ref state.Current, state.Result);
+
+            // 如果没有真正擦到任何点，就直接复用原 Stroke，避免无意义的“替换”。
+            if (!state.RemovedAny)
+            {
+                return new List<Stroke> { stroke };
+            }
+
+            return state.Result;
+        }
+
+        private struct EraseState
+        {
+            public List<Stroke> Result;
+            public Stroke? Current;
+            public StrokePoint PrevSample;
+            public bool PrevKeep;
+            public bool RemovedAny;
+
+            public EraseState(List<Stroke> result, Stroke? current, StrokePoint prevSample, bool prevKeep, bool removedAny)
+            {
+                Result = result;
+                Current = current;
+                PrevSample = prevSample;
+                PrevKeep = prevKeep;
+                RemovedAny = removedAny;
+            }
+        }
+
+        private static List<Stroke> EraseSinglePointStroke(Stroke stroke, StrokePoint point, in EraserCapsule eraser)
+        {
+            return IsPointErased(stroke, point, eraser)
+                ? new List<Stroke>()
+                : new List<Stroke> { stroke };
+        }
+
+        private static Vector2 ComputeMaxEraserInvWorld(Stroke stroke, Vector2 eraserRadiusWorld)
+        {
+            // 采样阶段使用“最大可能半径”做快速过滤：
+            // - 橡皮擦半径可能是椭圆（X/Y 不同），这里分别取上界；
+            // - 再加上笔迹自身的最大半宽，得到“擦除胶囊体”的最宽上界。
+            float maxHalfWidth = GetMaxHalfStrokeWidthWorld(stroke);
+            Vector2 maxRadius = new(
+                Math.Max(0.0f, eraserRadiusWorld.X) + maxHalfWidth,
+                Math.Max(0.0f, eraserRadiusWorld.Y) + maxHalfWidth);
+
+            return new Vector2(
+                1.0f / Math.Max(0.0000001f, maxRadius.X),
+                1.0f / Math.Max(0.0000001f, maxRadius.Y));
+        }
+
+        private static void ProcessStrokeSegments(
+            Stroke stroke,
+            Vector2 maxInv,
+            in EraserCapsule eraser,
+            ref EraseState state)
+        {
             // 逐段处理折线：仅对“可能被擦到”的线段做采样，以平衡性能与精度。
+            int pointCount = stroke.Points.Count;
             for (int i = 1; i < pointCount; i++)
             {
                 StrokePoint a = stroke.Points[i - 1];
                 StrokePoint b = stroke.Points[i];
 
-                float d2 = SegmentMath2D.DistanceSquaredSegmentToSegment(
-                    new Vector2(eraserFromWorld.X * maxInv.X, eraserFromWorld.Y * maxInv.Y),
-                    new Vector2(eraserToWorld.X * maxInv.X, eraserToWorld.Y * maxInv.Y),
-                    new Vector2(a.Position.X * maxInv.X, a.Position.Y * maxInv.Y),
-                    new Vector2(b.Position.X * maxInv.X, b.Position.Y * maxInv.Y));
-
-                bool isNear = d2 <= 1.0f;
-
-                int samples = 1;
-                if (isNear)
-                {
-                    float len = Vector2.Distance(a.Position, b.Position);
-                    samples = (int)MathF.Ceiling(len / Math.Max(0.0001f, NearSegmentSampleStepWorld));
-                    samples = Math.Max(2, samples); // 至少补一个中点，避免“端点都在外侧但中间穿过”的漏擦。
-                    samples = Math.Min(MaxSamplesPerSegment, samples);
-                }
+                bool isNear = IsSegmentNearEraser(eraser, a.Position, b.Position, maxInv);
+                int samples = GetSegmentSamplesCount(a.Position, b.Position, isNear);
 
                 // 注意：跳过 t=0，避免与上一段的末点重复。
                 for (int s = 1; s <= samples; s++)
@@ -154,61 +191,106 @@ namespace WindBoard.Board.Editing
                     float t = s / (float)samples;
                     StrokePoint sample = Lerp(a, b, t);
 
-                    bool keep = !IsPointErased(stroke, sample, eraser);
-                    if (!keep)
-                    {
-                        removedAny = true;
-                    }
-
-                    if (keep == prevKeep)
-                    {
-                        if (keep && current is not null)
-                        {
-                            AddPointWithBounds(current, sample);
-                        }
-                    }
-                    else
-                    {
-                        // 在“保留 ↔ 擦除”的交界处插入边界点，让裁剪更稳定（避免硬断点造成明显缺口）。
-                        StrokePoint boundary = FindBoundaryOutside(
-                            stroke,
-                            prevSample,
-                            sample,
-                            keepAtStart: prevKeep,
-                            eraser);
-
-                        if (prevKeep)
-                        {
-                            // 保留 -> 擦除：先补一个“最后的保留边界点”，然后结束当前段。
-                            if (current is not null)
-                            {
-                                AddPointWithBounds(current, boundary);
-                                CommitCurrentIfNotEmpty(ref current, result);
-                            }
-                        }
-                        else
-                        {
-                            // 擦除 -> 保留：从“第一个保留边界点”开始新段，再接上当前采样点。
-                            current ??= CreateDerivedStroke(stroke);
-                            AddPointWithBounds(current, boundary);
-                            AddPointWithBounds(current, sample);
-                        }
-                    }
-
-                    prevSample = sample;
-                    prevKeep = keep;
+                    ProcessSample(
+                        stroke,
+                        sample,
+                        eraser,
+                        ref state);
                 }
             }
+        }
 
-            CommitCurrentIfNotEmpty(ref current, result);
+        private static bool IsSegmentNearEraser(
+            in EraserCapsule eraser,
+            Vector2 aWorld,
+            Vector2 bWorld,
+            Vector2 maxInv)
+        {
+            float d2 = SegmentMath2D.DistanceSquaredSegmentToSegment(
+                new Vector2(eraser.FromWorld.X * maxInv.X, eraser.FromWorld.Y * maxInv.Y),
+                new Vector2(eraser.ToWorld.X * maxInv.X, eraser.ToWorld.Y * maxInv.Y),
+                new Vector2(aWorld.X * maxInv.X, aWorld.Y * maxInv.Y),
+                new Vector2(bWorld.X * maxInv.X, bWorld.Y * maxInv.Y));
 
-            // 如果没有真正擦到任何点，就直接复用原 Stroke，避免无意义的“替换”。
-            if (!removedAny)
+            return d2 <= 1.0f;
+        }
+
+        private static int GetSegmentSamplesCount(Vector2 aWorld, Vector2 bWorld, bool isNear)
+        {
+            if (!isNear)
             {
-                return new List<Stroke> { stroke };
+                return 1;
             }
 
-            return result;
+            float len = Vector2.Distance(aWorld, bWorld);
+            int samples = (int)MathF.Ceiling(len / Math.Max(0.0001f, NearSegmentSampleStepWorld));
+            samples = Math.Max(2, samples); // 至少补一个中点，避免“端点都在外侧但中间穿过”的漏擦。
+            return Math.Min(MaxSamplesPerSegment, samples);
+        }
+
+        private static void ProcessSample(
+            Stroke source,
+            StrokePoint sample,
+            in EraserCapsule eraser,
+            ref EraseState state)
+        {
+            bool keep = !IsPointErased(source, sample, eraser);
+            if (!keep)
+            {
+                state.RemovedAny = true;
+            }
+
+            if (keep == state.PrevKeep)
+            {
+                if (keep && state.Current is not null)
+                {
+                    AddPointWithBounds(state.Current, sample);
+                }
+
+                state.PrevSample = sample;
+                state.PrevKeep = keep;
+                return;
+            }
+
+            // 在“保留 ↔ 擦除”的交界处插入边界点，让裁剪更稳定（避免硬断点造成明显缺口）。
+            StrokePoint boundary = FindBoundaryOutside(
+                source,
+                state.PrevSample,
+                sample,
+                keepAtStart: state.PrevKeep,
+                eraser);
+
+            if (state.PrevKeep)
+            {
+                // 保留 -> 擦除：先补一个“最后的保留边界点”，然后结束当前段。
+                CommitKeptToErasedTransition(boundary, ref state);
+            }
+            else
+            {
+                // 擦除 -> 保留：从“第一个保留边界点”开始新段，再接上当前采样点。
+                StartKeptAfterErasedTransition(source, boundary, sample, ref state);
+            }
+
+            state.PrevSample = sample;
+            state.PrevKeep = keep;
+        }
+
+        private static void CommitKeptToErasedTransition(StrokePoint boundary, ref EraseState state)
+        {
+            if (state.Current is null)
+            {
+                return;
+            }
+
+            AddPointWithBounds(state.Current, boundary);
+            CommitCurrentIfNotEmpty(ref state.Current, state.Result);
+        }
+
+        private static void StartKeptAfterErasedTransition(Stroke source, StrokePoint boundary, StrokePoint sample, ref EraseState state)
+        {
+            state.Current ??= CreateDerivedStroke(source);
+            AddPointWithBounds(state.Current, boundary);
+            AddPointWithBounds(state.Current, sample);
         }
 
         private static void CommitCurrentIfNotEmpty(ref Stroke? current, List<Stroke> result)

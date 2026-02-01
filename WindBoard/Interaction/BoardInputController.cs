@@ -344,80 +344,72 @@ namespace WindBoard.Interaction
 
             if (e.Pointer.PointerDeviceType == PointerDeviceType.Touch)
             {
-                _activeTouchPointers.Add(e.Pointer.PointerId);
-                UpdateInteractionState();
+                HandleTouchPointerPressed(e, point);
+                return;
+            }
 
-                // 多指触摸：交给 Manipulation 处理缩放/拖动；如果正在用“触摸单指画线”，则先结束画线
-                if (_activeTouchPointers.Count >= 2)
-                {
-                    if (ActiveStroke is not null && _activeStrokeDeviceType == PointerDeviceType.Touch)
-                    {
-                        // 两指及以上时视为手势：如果只是按下的“单点”，不要留下点状笔迹
-                        if (ActiveStroke.Points.Count <= 1)
-                        {
-                            DiscardActiveStroke();
-                        }
-                        else
-                        {
-                            CommitActiveStroke();
-                        }
-                    }
-                    else if (_isErasing && _activeStrokeDeviceType == PointerDeviceType.Touch)
-                    {
-                        CommitEraserGesture();
-                    }
+            HandleNonTouchPointerPressed(e, point);
+        }
 
-                    e.Handled = true;
-                    FrameInvalidated?.Invoke();
-                    return;
-                }
+        private void HandleTouchPointerPressed(PointerRoutedEventArgs e, PointerPoint point)
+        {
+            _activeTouchPointers.Add(e.Pointer.PointerId);
+            UpdateInteractionState();
 
-                if (Tool == BoardTool.Select)
-                {
-                    // 选择/浏览模式：单指拖拽平移由 Manipulation 处理；此处不启动画线/擦除。
-                    e.Handled = true;
-                    StateChanged?.Invoke();
-                    return;
-                }
+            // 多指触摸：交给 Manipulation 处理缩放/拖动；如果正在用“触摸单指画线/擦除”，则先结束。
+            if (_activeTouchPointers.Count >= 2)
+            {
+                EndTouchSingleFingerToolOperationForManipulation();
+                e.Handled = true;
+                FrameInvalidated?.Invoke();
+                return;
+            }
 
-                // 单指触摸：画线 / 擦除
-                if (_activePointerId is not null || _panPointerId is not null)
-                {
-                    return;
-                }
-
-                _panel.CapturePointer(e.Pointer);
-                _activePointerId = e.Pointer.PointerId;
-                _activeStrokeDeviceType = e.Pointer.PointerDeviceType;
-                _pendingStrokeDirtyRect = null;
-
-                if (Tool == BoardTool.Eraser)
-                {
-                    BeginEraserGesture(e.Pointer, point);
-                    UpdateInteractionState();
-                    e.Handled = true;
-                    StateChanged?.Invoke();
-                    return;
-                }
-
-                ActiveStroke = new Stroke
-                {
-                    Color = PenColor,
-                    BaseSize = PenBaseSize,
-                    EnablePressure = PenEnablePressure,
-                };
-
-                if (AppendPoint(ActiveStroke, e.Pointer, point))
-                {
-                    FrameInvalidated?.Invoke();
-                }
-                UpdateInteractionState();
+            if (Tool == BoardTool.Select)
+            {
+                // 选择/浏览模式：单指拖拽平移由 Manipulation 处理；此处不启动画线/擦除。
                 e.Handled = true;
                 StateChanged?.Invoke();
                 return;
             }
 
-            if (_activePointerId is not null || _panPointerId is not null)
+            // 单指触摸：画线 / 擦除
+            if (HasActivePointerCapture)
+            {
+                return;
+            }
+
+            BeginStrokeOrEraserGesture(e.Pointer, point);
+            e.Handled = true;
+            StateChanged?.Invoke();
+        }
+
+        private void EndTouchSingleFingerToolOperationForManipulation()
+        {
+            if (ActiveStroke is not null && _activeStrokeDeviceType == PointerDeviceType.Touch)
+            {
+                // 两指及以上时视为手势：如果只是按下的“单点”，不要留下点状笔迹。
+                if (ActiveStroke.Points.Count <= 1)
+                {
+                    DiscardActiveStroke();
+                }
+                else
+                {
+                    CommitActiveStroke();
+                }
+
+                return;
+            }
+
+            if (_isErasing && _activeStrokeDeviceType == PointerDeviceType.Touch)
+            {
+                CommitEraserGesture();
+            }
+        }
+
+        private void HandleNonTouchPointerPressed(PointerRoutedEventArgs e, PointerPoint point)
+        {
+            if (HasActivePointerCapture)
             {
                 return;
             }
@@ -442,34 +434,49 @@ namespace WindBoard.Interaction
                 return;
             }
 
-            _panel.CapturePointer(e.Pointer);
-            _activePointerId = e.Pointer.PointerId;
-            _activeStrokeDeviceType = e.Pointer.PointerDeviceType;
-            _pendingStrokeDirtyRect = null;
+            BeginStrokeOrEraserGesture(e.Pointer, point);
+            e.Handled = true;
+            StateChanged?.Invoke();
+        }
+
+        private bool HasActivePointerCapture => _activePointerId is not null || _panPointerId is not null;
+
+        private void BeginStrokeOrEraserGesture(Pointer pointer, PointerPoint point)
+        {
+            CaptureStrokePointer(pointer);
 
             if (Tool == BoardTool.Eraser)
             {
-                BeginEraserGesture(e.Pointer, point);
+                BeginEraserGesture(pointer, point);
                 UpdateInteractionState();
-                e.Handled = true;
-                StateChanged?.Invoke();
                 return;
             }
 
-            ActiveStroke = new Stroke
+            ActiveStroke = CreateNewStroke();
+            if (AppendPoint(ActiveStroke, pointer, point))
+            {
+                FrameInvalidated?.Invoke();
+            }
+
+            UpdateInteractionState();
+        }
+
+        private void CaptureStrokePointer(Pointer pointer)
+        {
+            _panel.CapturePointer(pointer);
+            _activePointerId = pointer.PointerId;
+            _activeStrokeDeviceType = pointer.PointerDeviceType;
+            _pendingStrokeDirtyRect = null;
+        }
+
+        private Stroke CreateNewStroke()
+        {
+            return new Stroke
             {
                 Color = PenColor,
                 BaseSize = PenBaseSize,
                 EnablePressure = PenEnablePressure,
             };
-
-            if (AppendPoint(ActiveStroke, e.Pointer, point))
-            {
-                FrameInvalidated?.Invoke();
-            }
-            UpdateInteractionState();
-            e.Handled = true;
-            StateChanged?.Invoke();
         }
 
         private void BeginPanGesture(Pointer pointer, PointerPoint point)
@@ -832,11 +839,9 @@ namespace WindBoard.Interaction
 
         private void UpdateInteractionState()
         {
-            bool isInteracting = ActiveStroke is not null
-                || _isErasing
-                || _panPointerId is not null
-                || _isManipulating
-                || _isWheelZooming;
+            bool hasActiveTool = ActiveStroke is not null || _isErasing;
+            bool hasViewportGesture = _panPointerId is not null || _isManipulating;
+            bool isInteracting = hasActiveTool || hasViewportGesture || _isWheelZooming;
 
             if (_isInteracting == isInteracting)
             {
