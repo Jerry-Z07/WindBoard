@@ -6,8 +6,9 @@ namespace WindBoard.Tests.Settings;
 
 public sealed class AppSettingsStoreTests
 {
+    // 非法背景色会被修正为默认值
     [Fact]
-    public void NormalizeInPlace_非法背景色会被修正为默认值()
+    public void NormalizeInPlace_ResetsInvalidCanvasBackgroundHexToDefault()
     {
         var settings = new AppSettings
         {
@@ -22,8 +23,9 @@ public sealed class AppSettingsStoreTests
         Assert.Equal(ColorHex.DefaultCanvasBackgroundHex, settings.Appearance.CanvasBackgroundHex);
     }
 
+    // Dock 为空会补齐为默认值
     [Fact]
-    public void NormalizeInPlace_Dock为空会补齐为默认值()
+    public void NormalizeInPlace_CreatesDockDefaults_WhenDockIsNull()
     {
         var settings = new AppSettings
         {
@@ -40,8 +42,9 @@ public sealed class AppSettingsStoreTests
         Assert.True(settings.Dock.IsUndoRedoVisible);
     }
 
+    // Dock 顺序会过滤去重并补齐缺失项
     [Fact]
-    public void NormalizeInPlace_Dock顺序会过滤去重并补齐缺失项()
+    public void NormalizeInPlace_NormalizesDockOrders_DedupesAndFillsMissingItems()
     {
         var settings = new AppSettings
         {
@@ -72,8 +75,9 @@ public sealed class AppSettingsStoreTests
         Assert.False(settings.Dock.IsUndoRedoVisible);
     }
 
+    // 书写设置为空会补齐默认画笔设置
     [Fact]
-    public void NormalizeInPlace_书写设置为空会补齐默认画笔设置()
+    public void NormalizeInPlace_CreatesPenDefaults_WhenWritingIsNull()
     {
         var settings = new AppSettings
         {
@@ -89,8 +93,9 @@ public sealed class AppSettingsStoreTests
         Assert.False(settings.Writing.Pen.UseThicknessSlider);
     }
 
+    // 画笔色板会归一化数量与颜色格式
     [Fact]
-    public void NormalizeInPlace_画笔色板会归一化数量与颜色格式()
+    public void NormalizeInPlace_NormalizesPenPalette_CountAndColorFormat()
     {
         var settings = new AppSettings
         {

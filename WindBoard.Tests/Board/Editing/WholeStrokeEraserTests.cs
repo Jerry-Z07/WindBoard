@@ -7,8 +7,9 @@ namespace WindBoard.Tests.Board.Editing;
 
 public sealed class WholeStrokeEraserTests
 {
+    // 命中时会删除整条笔迹
     [Fact]
-    public void Erase_命中时会删除整条笔迹()
+    public void Erase_DeletesWholeStroke_WhenHit()
     {
         var document = new BoardDocument();
 
@@ -35,8 +36,9 @@ public sealed class WholeStrokeEraserTests
         Assert.Same(keepStroke, document.Strokes[0]);
     }
 
+    // 未命中时不会修改文档
     [Fact]
-    public void Erase_未命中时不会修改文档()
+    public void Erase_DoesNotModifyDocument_WhenMissed()
     {
         var document = new BoardDocument();
 

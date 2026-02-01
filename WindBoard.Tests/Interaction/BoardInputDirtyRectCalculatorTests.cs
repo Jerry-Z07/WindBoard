@@ -9,8 +9,9 @@ namespace WindBoard.Tests.Interaction;
 
 public sealed class BoardInputDirtyRectCalculatorTests
 {
+    // 单点会按笔宽与额外 Padding 扩展
     [Fact]
-    public void UpdatePendingStrokeDirtyRect_单点会按笔宽与额外Padding扩展()
+    public void UpdatePendingStrokeDirtyRect_ExpandsByPenWidthAndExtraPadding_WhenSinglePoint()
     {
         var viewport = new BoardViewport();
         viewport.UpdateViewportSize(new Vector2(1.0f, 1.0f));
@@ -40,8 +41,9 @@ public sealed class BoardInputDirtyRectCalculatorTests
         AssertEx.Equal(57.0f, rect.Bottom);
     }
 
+    // 两点会使用上一点屏幕坐标并合并已有 Rect
     [Fact]
-    public void UpdatePendingStrokeDirtyRect_两点会使用上一点屏幕坐标并合并已有Rect()
+    public void UpdatePendingStrokeDirtyRect_UsesPreviousScreenPointAndMergesExistingRect_WhenTwoPoints()
     {
         var viewport = new BoardViewport();
         viewport.UpdateViewportSize(new Vector2(1.0f, 1.0f));
@@ -81,4 +83,3 @@ public sealed class BoardInputDirtyRectCalculatorTests
         AssertEx.Equal(10.25f, rect.Bottom);
     }
 }
-

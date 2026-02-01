@@ -6,8 +6,9 @@ namespace WindBoard.Tests.Board.Commands;
 
 public sealed class AddStrokeCommandTests
 {
+    // Do/Undo/Redo 会保持首次执行时的插入位置
     [Fact]
-    public void Do_Undo_Redo_会保持首次执行时的插入位置()
+    public void Do_Undo_Redo_KeepsOriginalInsertIndex()
     {
         var document = new BoardDocument();
         var a = new Stroke();
@@ -36,8 +37,9 @@ public sealed class AddStrokeCommandTests
         Assert.Same(x, document.Strokes[2]);
     }
 
+    // Undo：当索引位置已变化时仍能移除对应笔迹
     [Fact]
-    public void Undo_当索引位置已变化时仍能移除对应笔迹()
+    public void Undo_RemovesStrokeEvenIfIndexChanged()
     {
         var document = new BoardDocument();
         var a = new Stroke();
@@ -59,4 +61,3 @@ public sealed class AddStrokeCommandTests
         Assert.Same(a, document.Strokes[1]);
     }
 }
-

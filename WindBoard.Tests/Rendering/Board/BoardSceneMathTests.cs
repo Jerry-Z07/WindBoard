@@ -7,16 +7,18 @@ namespace WindBoard.Tests.Rendering.Board;
 
 public sealed class BoardSceneMathTests
 {
+    // 会根据缩放自适应
     [Theory]
     [InlineData(1.0f, 40.0f)]
     [InlineData(0.1f, 320.0f)]
     [InlineData(10.0f, 5.0f)]
-    public void GetAdaptiveGridStepWorld_会根据缩放自适应(float zoom, float expectedStep)
+    public void GetAdaptiveGridStepWorld_AdaptsToZoom(float zoom, float expectedStep)
     {
         float step = BoardSceneMath.GetAdaptiveGridStepWorld(zoom);
         AssertEx.Equal(expectedStep, step, tolerance: 0.0001f);
     }
 
+    // 会钳制到范围
     [Theory]
     [InlineData(-1.0f, 0.1f)]
     [InlineData(0.0f, 0.1f)]
@@ -24,14 +26,15 @@ public sealed class BoardSceneMathTests
     [InlineData(0.1f, 0.1f)]
     [InlineData(0.5f, 0.5f)]
     [InlineData(2.0f, 1.0f)]
-    public void GetStrokeWidthFactor_会钳制到范围(float normalizedPressure, float expectedFactor)
+    public void GetStrokeWidthFactor_IsClampedToRange(float normalizedPressure, float expectedFactor)
     {
         float factor = BoardSceneMath.GetStrokeWidthFactor(normalizedPressure);
         AssertEx.Equal(expectedFactor, factor, tolerance: 0.000001f);
     }
 
+    // 重叠返回 True；分离返回 False
     [Fact]
-    public void IntersectsAabb_重叠返回True_分离返回False()
+    public void IntersectsAabb_ReturnsTrue_WhenOverlaps_AndFalse_WhenSeparated()
     {
         Assert.True(BoardSceneMath.IntersectsAabb(
             new Vector2(0.0f, 0.0f),
@@ -46,8 +49,9 @@ public sealed class BoardSceneMathTests
             new Vector2(3.0f, 3.0f)));
     }
 
+    // 无点不可见；无 Bounds 则默认可见
     [Fact]
-    public void IsStrokeVisible_无点不可见_无Bounds则默认可见()
+    public void IsStrokeVisible_ReturnsFalse_WhenNoPoints_AndTrue_WhenNoBounds()
     {
         var stroke = new Stroke();
         Assert.False(BoardSceneMath.IsStrokeVisible(stroke, new Vector2(-1.0f, -1.0f), new Vector2(1.0f, 1.0f)));
@@ -58,8 +62,9 @@ public sealed class BoardSceneMathTests
         Assert.True(BoardSceneMath.IsStrokeVisible(stroke, new Vector2(-1.0f, -1.0f), new Vector2(1.0f, 1.0f)));
     }
 
+    // 有 Bounds 时按 AABB 判断
     [Fact]
-    public void IsStrokeVisible_有Bounds时按Aabb判断()
+    public void IsStrokeVisible_UsesAabb_WhenHasBounds()
     {
         var stroke = new Stroke
         {
@@ -73,4 +78,3 @@ public sealed class BoardSceneMathTests
         Assert.False(BoardSceneMath.IsStrokeVisible(stroke, new Vector2(100.0f, 100.0f), new Vector2(200.0f, 200.0f)));
     }
 }
-

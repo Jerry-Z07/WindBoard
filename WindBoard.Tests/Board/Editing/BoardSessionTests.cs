@@ -7,8 +7,9 @@ namespace WindBoard.Tests.Board.Editing;
 
 public sealed class BoardSessionTests
 {
+    // Execute/Undo/Redo 会正确更新状态并触发事件
     [Fact]
-    public void Execute_Undo_Redo_会正确更新状态并触发事件()
+    public void Execute_Undo_Redo_UpdatesStateAndRaisesEvent()
     {
         var session = new BoardSession();
         int stateChangedCount = 0;
@@ -34,8 +35,9 @@ public sealed class BoardSessionTests
         Assert.Equal(3, stateChangedCount);
     }
 
+    // Undo/Redo 在无历史时是安全的空操作
     [Fact]
-    public void Undo_Redo_在无历史时是安全的空操作()
+    public void Undo_Redo_AreNoOps_WhenNoHistory()
     {
         var session = new BoardSession();
         int stateChangedCount = 0;
@@ -49,8 +51,9 @@ public sealed class BoardSessionTests
         Assert.Equal(0, stateChangedCount);
     }
 
+    // Execute 会清空 Redo 栈
     [Fact]
-    public void Execute_会清空_Redo_栈()
+    public void Execute_ClearsRedoStack()
     {
         var session = new BoardSession();
 
@@ -67,8 +70,9 @@ public sealed class BoardSessionTests
         Assert.Same(b, session.Document.Strokes[0]);
     }
 
+    // ClearAll 有笔迹时会清空并可撤销
     [Fact]
-    public void ClearAll_有笔迹时会清空并可撤销()
+    public void ClearAll_ClearsAndIsUndoable_WhenHasStrokes()
     {
         var session = new BoardSession();
         var a = new Stroke();
@@ -86,8 +90,9 @@ public sealed class BoardSessionTests
         Assert.Same(b, session.Document.Strokes[1]);
     }
 
+    // ClearAll 无笔迹时不会产生撤销记录
     [Fact]
-    public void ClearAll_无笔迹时不会产生撤销记录()
+    public void ClearAll_DoesNotCreateUndoRecord_WhenNoStrokes()
     {
         var session = new BoardSession();
 
@@ -97,4 +102,3 @@ public sealed class BoardSessionTests
         Assert.False(session.HasStrokes);
     }
 }
-

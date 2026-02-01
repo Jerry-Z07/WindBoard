@@ -5,8 +5,9 @@ namespace WindBoard.Tests.Board.Editing;
 
 public sealed class BoardWorkspaceTests
 {
+    // 默认会创建一页并选中第 1 页
     [Fact]
-    public void Ctor_默认会创建一页并选中第_1_页()
+    public void Ctor_CreatesSinglePageAndSelectsFirst_ByDefault()
     {
         var workspace = new BoardWorkspace();
 
@@ -15,8 +16,9 @@ public sealed class BoardWorkspaceTests
         Assert.Same(workspace.Pages[0], workspace.CurrentPage);
     }
 
+    // 会新增页面并切换到新页面
     [Fact]
-    public void AddPage_会新增页面并切换到新页面()
+    public void AddPage_AddsPageAndSwitchesToIt()
     {
         var workspace = new BoardWorkspace();
 
@@ -29,8 +31,9 @@ public sealed class BoardWorkspaceTests
         Assert.NotSame(original.Session, created.Session);
     }
 
+    // 删除当前页后会选中相邻页
     [Fact]
-    public void RemovePage_删除当前页后会选中相邻页()
+    public void RemovePage_SelectsAdjacentPage_WhenRemovingCurrent()
     {
         var workspace = new BoardWorkspace();
         BoardPage first = workspace.CurrentPage;
@@ -46,8 +49,9 @@ public sealed class BoardWorkspaceTests
         Assert.Equal(0, workspace.CurrentIndex);
     }
 
+    // 删除到空时会自动补一个空白页
     [Fact]
-    public void RemovePage_删除到空时会自动补一个空白页()
+    public void RemovePage_CreatesBlankPage_WhenRemovingLast()
     {
         var workspace = new BoardWorkspace();
         BoardPage only = workspace.CurrentPage;
@@ -60,8 +64,9 @@ public sealed class BoardWorkspaceTests
         Assert.NotSame(only, workspace.CurrentPage);
     }
 
+    // 在边界会返回 false
     [Fact]
-    public void TryMove_在边界会返回_false()
+    public void TryMove_ReturnsFalse_WhenAtBoundary()
     {
         var workspace = new BoardWorkspace();
 
@@ -73,4 +78,3 @@ public sealed class BoardWorkspaceTests
         Assert.True(workspace.TryMoveToNextPage());
     }
 }
-

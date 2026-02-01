@@ -7,8 +7,9 @@ namespace WindBoard.Tests.Board.Commands;
 
 public sealed class ClearCommandTests
 {
+    // Do：会清空笔迹；Undo：会恢复快照
     [Fact]
-    public void Do_会清空笔迹_Undo_会恢复快照()
+    public void Do_ClearsStrokes_Undo_RestoresSnapshot()
     {
         var document = new BoardDocument();
         var a = new Stroke();
@@ -28,4 +29,3 @@ public sealed class ClearCommandTests
         Assert.Same(b, document.Strokes[1]);
     }
 }
-

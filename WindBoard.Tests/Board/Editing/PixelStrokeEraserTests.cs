@@ -8,8 +8,9 @@ namespace WindBoard.Tests.Board.Editing;
 
 public sealed class PixelStrokeEraserTests
 {
+    // 命中中间时会把笔迹分割为两段
     [Fact]
-    public void Erase_命中中间时会把笔迹分割为两段()
+    public void Erase_SplitsStrokeIntoTwo_WhenHitInMiddle()
     {
         var document = new BoardDocument();
 
@@ -36,8 +37,9 @@ public sealed class PixelStrokeEraserTests
         Assert.True(rightMinX > 5.0f);
     }
 
+    // 只命中一端时会截断笔迹
     [Fact]
-    public void Erase_只命中一端时会截断笔迹()
+    public void Erase_TruncatesStroke_WhenHitAtEnd()
     {
         var document = new BoardDocument();
 
@@ -62,8 +64,9 @@ public sealed class PixelStrokeEraserTests
         Assert.True(minX > 0.0f);
     }
 
+    // 覆盖整条笔迹时会删除
     [Fact]
-    public void Erase_覆盖整条笔迹时会删除()
+    public void Erase_DeletesStroke_WhenCoveredCompletely()
     {
         var document = new BoardDocument();
 
@@ -84,8 +87,9 @@ public sealed class PixelStrokeEraserTests
         Assert.Empty(document.Strokes);
     }
 
+    // 未命中时不会修改文档且保持引用
     [Fact]
-    public void Erase_未命中时不会修改文档且保持引用()
+    public void Erase_NoChangeAndKeepsReference_WhenMissed()
     {
         var document = new BoardDocument();
 
@@ -107,8 +111,9 @@ public sealed class PixelStrokeEraserTests
         Assert.Same(stroke, document.Strokes[0]);
     }
 
+    // 只会影响命中的笔迹，未命中的保持引用
     [Fact]
-    public void Erase_只会影响命中的笔迹_未命中的保持引用()
+    public void Erase_OnlyAffectsHitStrokes_AndKeepsOthersReference()
     {
         var document = new BoardDocument();
 

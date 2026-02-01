@@ -7,8 +7,9 @@ namespace WindBoard.Tests.Board.Commands;
 
 public sealed class ReplaceStrokesCommandTests
 {
+    // Do：会把笔迹替换为 after 快照；Undo：会恢复 before 快照
     [Fact]
-    public void Do_会把笔迹替换为_after_快照_Undo_会恢复_before_快照()
+    public void Do_ReplacesStrokesWithAfterSnapshot_UndoRestoresBeforeSnapshot()
     {
         var document = new BoardDocument();
         var a = new Stroke();
@@ -36,4 +37,3 @@ public sealed class ReplaceStrokesCommandTests
         Assert.Same(c, document.Strokes[2]);
     }
 }
-

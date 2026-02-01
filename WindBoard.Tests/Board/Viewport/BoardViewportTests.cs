@@ -6,8 +6,9 @@ namespace WindBoard.Tests.Board.Viewport;
 
 public sealed class BoardViewportTests
 {
+    // 会把宽高钳制到至少 1 DIP
     [Fact]
-    public void UpdateViewportSize_会把宽高钳制到至少_1_DIP()
+    public void UpdateViewportSize_ClampsSizeToAtLeastOneDip()
     {
         var viewport = new BoardViewport();
 
@@ -16,8 +17,9 @@ public sealed class BoardViewportTests
         AssertEx.Equal(new Vector2(1.0f, 1.0f), viewport.ViewportSizeDip);
     }
 
+    // ScreenToWorld 与 WorldToScreen 可近似互逆
     [Fact]
-    public void ScreenToWorld_与_WorldToScreen_可近似互逆()
+    public void ScreenToWorld_And_WorldToScreen_AreApproximatelyInverse()
     {
         var viewport = new BoardViewport();
         viewport.UpdateViewportSize(new Vector2(200.0f, 100.0f));
@@ -33,8 +35,9 @@ public sealed class BoardViewportTests
         AssertEx.Equal(world, roundTrip, tolerance: 0.001f);
     }
 
+    // 缩放后锚点处世界坐标保持不变
     [Fact]
-    public void ZoomAboutScreenPoint_缩放后锚点处世界坐标保持不变()
+    public void ZoomAboutScreenPoint_KeepsAnchorWorldPosition()
     {
         var viewport = new BoardViewport();
         viewport.UpdateViewportSize(new Vector2(300.0f, 200.0f));
@@ -48,8 +51,9 @@ public sealed class BoardViewportTests
         AssertEx.Equal(worldBefore, worldAfter, tolerance: 0.0005f);
     }
 
+    // 会钳制到最小与最大缩放
     [Fact]
-    public void ZoomAboutScreenPoint_会钳制到最小与最大缩放()
+    public void ZoomAboutScreenPoint_ClampsToMinAndMaxZoom()
     {
         var viewport = new BoardViewport();
         viewport.UpdateViewportSize(new Vector2(100.0f, 100.0f));
@@ -63,8 +67,9 @@ public sealed class BoardViewportTests
         AssertEx.Equal(32.0f, viewport.Zoom, tolerance: 0.000001f);
     }
 
+    // 会按当前缩放修正相机位移
     [Fact]
-    public void PanByScreenDelta_会按当前缩放修正相机位移()
+    public void PanByScreenDelta_AdjustsCameraByZoom()
     {
         var viewport = new BoardViewport();
         viewport.UpdateViewportSize(new Vector2(100.0f, 100.0f));
@@ -79,8 +84,9 @@ public sealed class BoardViewportTests
         AssertEx.Equal(before - delta / viewport.Zoom, after, tolerance: 0.000001f);
     }
 
+    // 默认状态下以视口中心对称
     [Fact]
-    public void GetVisibleWorldBounds_默认状态下以视口中心对称()
+    public void GetVisibleWorldBounds_IsSymmetricAroundViewportCenter_ByDefault()
     {
         var viewport = new BoardViewport();
         viewport.UpdateViewportSize(new Vector2(100.0f, 50.0f));
@@ -91,4 +97,3 @@ public sealed class BoardViewportTests
         AssertEx.Equal(new Vector2(50.0f, 25.0f), maxWorld);
     }
 }
-

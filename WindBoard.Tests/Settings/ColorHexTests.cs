@@ -6,8 +6,9 @@ namespace WindBoard.Tests.Settings;
 
 public sealed class ColorHexTests
 {
+    // 支持井号 RGB 格式
     [Fact]
-    public void TryParse_支持井号Rgb格式()
+    public void TryParse_SupportsRgbWithLeadingHash()
     {
         bool ok = ColorHex.TryParse("#2E2F33", out Color color);
 
@@ -18,8 +19,9 @@ public sealed class ColorHexTests
         Assert.Equal(0x33, color.B);
     }
 
+    // 支持无井号 RGB 格式
     [Fact]
-    public void TryParse_支持无井号Rgb格式()
+    public void TryParse_SupportsRgbWithoutLeadingHash()
     {
         bool ok = ColorHex.TryParse("2E2F33", out Color color);
 
@@ -30,8 +32,9 @@ public sealed class ColorHexTests
         Assert.Equal(0x33, color.B);
     }
 
+    // 支持 ARGB 格式
     [Fact]
-    public void TryParse_支持Argb格式()
+    public void TryParse_SupportsArgb()
     {
         bool ok = ColorHex.TryParse("#802E2F33", out Color color);
 
@@ -42,8 +45,9 @@ public sealed class ColorHexTests
         Assert.Equal(0x33, color.B);
     }
 
+    // 统一输出大写 RGB
     [Fact]
-    public void ToHexRgb_统一输出大写Rgb()
+    public void ToHexRgb_OutputsUppercaseRgb()
     {
         bool ok = ColorHex.TryParse("#802e2f33", out Color color);
 
@@ -51,12 +55,12 @@ public sealed class ColorHexTests
         Assert.Equal("#2E2F33", ColorHex.ToHexRgb(color));
     }
 
+    // 非法输入回退默认值
     [Fact]
-    public void NormalizeToHexRgbOrDefault_非法输入回退默认值()
+    public void NormalizeToHexRgbOrDefault_FallsBackToDefault_WhenInvalidInput()
     {
         string normalized = ColorHex.NormalizeToHexRgbOrDefault("not-a-color", ColorHex.DefaultCanvasBackgroundHex);
 
         Assert.Equal(ColorHex.DefaultCanvasBackgroundHex, normalized);
     }
 }
-
