@@ -102,24 +102,8 @@ namespace WindBoard.Settings
 
         private static AppSettings CloneAndNormalize(AppSettings settings)
         {
-            // 设置对象结构简单，这里手动深拷贝，避免并发保存时引用被外部修改。
-            var clone = new AppSettings
-            {
-                Appearance = new AppearanceSettings
-                {
-                    CanvasBackgroundHex = settings.Appearance?.CanvasBackgroundHex ?? ColorHex.DefaultCanvasBackgroundHex,
-                },
-                Dock = new DockSettings
-                {
-                    LeftOrder = new List<string>(settings.Dock?.LeftOrder ?? DockSettingsDefaults.LeftOrder),
-                    ToolsOrder = new List<string>(settings.Dock?.ToolsOrder ?? DockSettingsDefaults.ToolsOrder),
-                    UndoRedoOrder = new List<string>(settings.Dock?.UndoRedoOrder ?? DockSettingsDefaults.UndoRedoOrder),
-                    PagesOrder = new List<string>(settings.Dock?.PagesOrder ?? DockSettingsDefaults.PagesOrder),
-                    IsUndoRedoVisible = settings.Dock?.IsUndoRedoVisible ?? true,
-                },
-            };
-
-            return NormalizeInPlace(clone);
+            // 保存使用“快照 + 归一化”，避免并发保存时引用被外部修改，同时确保落盘数据可用。
+            return NormalizeInPlace(AppSettingsCloner.Clone(settings));
         }
 
         private static void NormalizeDockSettingsInPlace(DockSettings settings)

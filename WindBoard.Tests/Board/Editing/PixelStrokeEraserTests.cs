@@ -13,7 +13,7 @@ public sealed class PixelStrokeEraserTests
     {
         var document = new BoardDocument();
 
-        Stroke stroke = CreateStroke(
+        Stroke stroke = StrokeTestFactory.CreateStroke(
             new Vector2(0.0f, 0.0f),
             new Vector2(10.0f, 0.0f));
 
@@ -41,7 +41,7 @@ public sealed class PixelStrokeEraserTests
     {
         var document = new BoardDocument();
 
-        Stroke stroke = CreateStroke(
+        Stroke stroke = StrokeTestFactory.CreateStroke(
             new Vector2(0.0f, 0.0f),
             new Vector2(10.0f, 0.0f));
 
@@ -67,7 +67,7 @@ public sealed class PixelStrokeEraserTests
     {
         var document = new BoardDocument();
 
-        Stroke stroke = CreateStroke(
+        Stroke stroke = StrokeTestFactory.CreateStroke(
             new Vector2(0.0f, 0.0f),
             new Vector2(10.0f, 0.0f));
 
@@ -89,7 +89,7 @@ public sealed class PixelStrokeEraserTests
     {
         var document = new BoardDocument();
 
-        Stroke stroke = CreateStroke(
+        Stroke stroke = StrokeTestFactory.CreateStroke(
             new Vector2(0.0f, 0.0f),
             new Vector2(10.0f, 0.0f));
 
@@ -112,11 +112,11 @@ public sealed class PixelStrokeEraserTests
     {
         var document = new BoardDocument();
 
-        Stroke hit = CreateStroke(
+        Stroke hit = StrokeTestFactory.CreateStroke(
             new Vector2(0.0f, 0.0f),
             new Vector2(10.0f, 0.0f));
 
-        Stroke keep = CreateStroke(
+        Stroke keep = StrokeTestFactory.CreateStroke(
             new Vector2(100.0f, 100.0f),
             new Vector2(110.0f, 100.0f));
 
@@ -136,20 +136,4 @@ public sealed class PixelStrokeEraserTests
         Assert.Same(keep, document.Strokes[^1]);
     }
 
-    private static Stroke CreateStroke(Vector2 p0, Vector2 p1)
-    {
-        var stroke = new Stroke
-        {
-            BaseSize = 6.0f,
-            EnablePressure = false,
-        };
-
-        stroke.Points.Add(new StrokePoint(p0, 1.0f));
-        stroke.ExpandBounds(p0, 1.0f);
-
-        stroke.Points.Add(new StrokePoint(p1, 1.0f));
-        stroke.ExpandBounds(p1, 1.0f);
-
-        return stroke;
-    }
 }

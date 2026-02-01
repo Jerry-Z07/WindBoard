@@ -525,20 +525,10 @@ namespace WindBoard.Interaction
 
         private void OnCanvasPointerReleased(object sender, PointerRoutedEventArgs e)
         {
-            if (e.Pointer.PointerDeviceType == PointerDeviceType.Touch)
-            {
-                _activeTouchPointers.Remove(e.Pointer.PointerId);
-                UpdateInteractionState();
-            }
+            HandleTouchPointerEnded(e);
 
-            if (_panPointerId == e.Pointer.PointerId)
+            if (TryHandlePanPointerEnded(e, releasePointerCaptures: true))
             {
-                _panPointerId = null;
-                _panel.ReleasePointerCaptures();
-                e.Handled = true;
-                UpdateInteractionState();
-                FrameInvalidated?.Invoke();
-                StateChanged?.Invoke();
                 return;
             }
 
@@ -560,20 +550,10 @@ namespace WindBoard.Interaction
 
         private void OnCanvasPointerCanceled(object sender, PointerRoutedEventArgs e)
         {
-            if (e.Pointer.PointerDeviceType == PointerDeviceType.Touch)
-            {
-                _activeTouchPointers.Remove(e.Pointer.PointerId);
-                UpdateInteractionState();
-            }
+            HandleTouchPointerEnded(e);
 
-            if (_panPointerId == e.Pointer.PointerId)
+            if (TryHandlePanPointerEnded(e, releasePointerCaptures: true))
             {
-                _panPointerId = null;
-                _panel.ReleasePointerCaptures();
-                e.Handled = true;
-                UpdateInteractionState();
-                FrameInvalidated?.Invoke();
-                StateChanged?.Invoke();
                 return;
             }
 
@@ -595,19 +575,10 @@ namespace WindBoard.Interaction
 
         private void OnCanvasPointerCaptureLost(object sender, PointerRoutedEventArgs e)
         {
-            if (e.Pointer.PointerDeviceType == PointerDeviceType.Touch)
-            {
-                _activeTouchPointers.Remove(e.Pointer.PointerId);
-                UpdateInteractionState();
-            }
+            HandleTouchPointerEnded(e);
 
-            if (_panPointerId == e.Pointer.PointerId)
+            if (TryHandlePanPointerEnded(e, releasePointerCaptures: false))
             {
-                _panPointerId = null;
-                e.Handled = true;
-                UpdateInteractionState();
-                FrameInvalidated?.Invoke();
-                StateChanged?.Invoke();
                 return;
             }
 
@@ -625,6 +596,38 @@ namespace WindBoard.Interaction
 
             CommitActiveStroke();
             e.Handled = true;
+        }
+
+        private void HandleTouchPointerEnded(PointerRoutedEventArgs e)
+        {
+            if (e.Pointer.PointerDeviceType != PointerDeviceType.Touch)
+            {
+                return;
+            }
+
+            _activeTouchPointers.Remove(e.Pointer.PointerId);
+            UpdateInteractionState();
+        }
+
+        private bool TryHandlePanPointerEnded(PointerRoutedEventArgs e, bool releasePointerCaptures)
+        {
+            if (_panPointerId != e.Pointer.PointerId)
+            {
+                return false;
+            }
+
+            _panPointerId = null;
+
+            if (releasePointerCaptures)
+            {
+                _panel.ReleasePointerCaptures();
+            }
+
+            e.Handled = true;
+            UpdateInteractionState();
+            FrameInvalidated?.Invoke();
+            StateChanged?.Invoke();
+            return true;
         }
 
         private void OnCanvasPointerWheelChanged(object sender, PointerRoutedEventArgs e)

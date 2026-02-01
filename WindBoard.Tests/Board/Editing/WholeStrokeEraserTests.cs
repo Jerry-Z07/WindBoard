@@ -12,11 +12,11 @@ public sealed class WholeStrokeEraserTests
     {
         var document = new BoardDocument();
 
-        var hitStroke = CreateStroke(
+        var hitStroke = StrokeTestFactory.CreateStroke(
             new Vector2(0.0f, 0.0f),
             new Vector2(10.0f, 0.0f));
 
-        var keepStroke = CreateStroke(
+        var keepStroke = StrokeTestFactory.CreateStroke(
             new Vector2(100.0f, 100.0f),
             new Vector2(110.0f, 100.0f));
 
@@ -40,7 +40,7 @@ public sealed class WholeStrokeEraserTests
     {
         var document = new BoardDocument();
 
-        var stroke = CreateStroke(
+        var stroke = StrokeTestFactory.CreateStroke(
             new Vector2(0.0f, 0.0f),
             new Vector2(10.0f, 0.0f));
 
@@ -58,20 +58,4 @@ public sealed class WholeStrokeEraserTests
         Assert.Same(stroke, document.Strokes[0]);
     }
 
-    private static Stroke CreateStroke(Vector2 p0, Vector2 p1)
-    {
-        var stroke = new Stroke
-        {
-            BaseSize = 6.0f,
-            EnablePressure = false,
-        };
-
-        stroke.Points.Add(new StrokePoint(p0, 1.0f));
-        stroke.ExpandBounds(p0, 1.0f);
-
-        stroke.Points.Add(new StrokePoint(p1, 1.0f));
-        stroke.ExpandBounds(p1, 1.0f);
-
-        return stroke;
-    }
 }

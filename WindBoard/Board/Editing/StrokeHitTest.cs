@@ -48,7 +48,7 @@ namespace WindBoard.Board.Editing
                     1.0f / Math.Max(0.0000001f, r.X),
                     1.0f / Math.Max(0.0000001f, r.Y));
 
-                return DistanceSquaredPointToSegment(
+                return SegmentMath2D.DistanceSquaredPointToSegment(
                     new Vector2(p.Position.X * inv.X, p.Position.Y * inv.Y),
                     new Vector2(eraserFromWorld.X * inv.X, eraserFromWorld.Y * inv.Y),
                     new Vector2(eraserToWorld.X * inv.X, eraserToWorld.Y * inv.Y)) <= 1.0f;
@@ -69,7 +69,7 @@ namespace WindBoard.Board.Editing
                     1.0f / Math.Max(0.0000001f, r.X),
                     1.0f / Math.Max(0.0000001f, r.Y));
 
-                float d2 = DistanceSquaredSegmentToSegment(
+                float d2 = SegmentMath2D.DistanceSquaredSegmentToSegment(
                     new Vector2(eraserFromWorld.X * inv.X, eraserFromWorld.Y * inv.Y),
                     new Vector2(eraserToWorld.X * inv.X, eraserToWorld.Y * inv.Y),
                     new Vector2(p0.Position.X * inv.X, p0.Position.Y * inv.Y),
@@ -102,88 +102,5 @@ namespace WindBoard.Board.Editing
                 && aMax.Y >= bMin.Y;
         }
 
-        private static float DistanceSquaredPointToSegment(Vector2 p, Vector2 a, Vector2 b)
-        {
-            Vector2 ab = b - a;
-            float abLenSq = ab.LengthSquared();
-            if (abLenSq <= 0.0000001f)
-            {
-                return Vector2.DistanceSquared(p, a);
-            }
-
-            float t = Vector2.Dot(p - a, ab) / abLenSq;
-            t = Math.Clamp(t, 0.0f, 1.0f);
-            Vector2 proj = a + ab * t;
-            return Vector2.DistanceSquared(p, proj);
-        }
-
-        private static float DistanceSquaredSegmentToSegment(Vector2 a0, Vector2 a1, Vector2 b0, Vector2 b1)
-        {
-            // 这是 2D 版本的线段-线段最短距离计算：
-            // 1) 若两线段相交（包含共线重叠），距离为 0；
-            // 2) 否则最短距离来自“任一端点到对方线段”的最小值。
-            // 这种写法易读且对擦除命中而言足够稳定。
-            if (SegmentsIntersect(a0, a1, b0, b1))
-            {
-                return 0.0f;
-            }
-
-            float d0 = DistanceSquaredPointToSegment(a0, b0, b1);
-            float d1 = DistanceSquaredPointToSegment(a1, b0, b1);
-            float d2 = DistanceSquaredPointToSegment(b0, a0, a1);
-            float d3 = DistanceSquaredPointToSegment(b1, a0, a1);
-
-            return Math.Min(Math.Min(d0, d1), Math.Min(d2, d3));
-        }
-
-        private static bool SegmentsIntersect(Vector2 a0, Vector2 a1, Vector2 b0, Vector2 b1)
-        {
-            // 线段相交测试（包含共线重叠）。由于输入为 float，使用一个较小 epsilon 做数值容错。
-            const float eps = 0.00001f;
-
-            float o1 = Cross(a1 - a0, b0 - a0);
-            float o2 = Cross(a1 - a0, b1 - a0);
-            float o3 = Cross(b1 - b0, a0 - b0);
-            float o4 = Cross(b1 - b0, a1 - b0);
-
-            // 一般情况：两端点分别位于对方线段两侧。
-            if (o1 * o2 < 0.0f && o3 * o4 < 0.0f)
-            {
-                return true;
-            }
-
-            // 共线/触碰：判断点是否在线段投影范围内。
-            if (Math.Abs(o1) <= eps && OnSegment(a0, a1, b0, eps))
-            {
-                return true;
-            }
-
-            if (Math.Abs(o2) <= eps && OnSegment(a0, a1, b1, eps))
-            {
-                return true;
-            }
-
-            if (Math.Abs(o3) <= eps && OnSegment(b0, b1, a0, eps))
-            {
-                return true;
-            }
-
-            if (Math.Abs(o4) <= eps && OnSegment(b0, b1, a1, eps))
-            {
-                return true;
-            }
-
-            return false;
-        }
-
-        private static bool OnSegment(Vector2 a, Vector2 b, Vector2 p, float eps)
-        {
-            return p.X >= Math.Min(a.X, b.X) - eps
-                && p.X <= Math.Max(a.X, b.X) + eps
-                && p.Y >= Math.Min(a.Y, b.Y) - eps
-                && p.Y <= Math.Max(a.Y, b.Y) + eps;
-        }
-
-        private static float Cross(Vector2 a, Vector2 b) => a.X * b.Y - a.Y * b.X;
     }
 }

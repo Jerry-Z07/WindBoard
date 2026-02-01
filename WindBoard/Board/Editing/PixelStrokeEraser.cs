@@ -17,6 +17,20 @@ namespace WindBoard.Board.Editing
     /// </summary>
     internal sealed class PixelStrokeEraser : IBoardEraser
     {
+        private readonly struct EraserCapsule
+        {
+            public Vector2 FromWorld { get; }
+            public Vector2 ToWorld { get; }
+            public Vector2 RadiusWorld { get; }
+
+            public EraserCapsule(Vector2 fromWorld, Vector2 toWorld, Vector2 radiusWorld)
+            {
+                FromWorld = fromWorld;
+                ToWorld = toWorld;
+                RadiusWorld = radiusWorld;
+            }
+        }
+
         // 采样步长：只在“靠近橡皮擦轨迹”的线段上启用，避免无谓放大点数。
         private const float NearSegmentSampleStepWorld = 0.6f;
 
@@ -74,10 +88,12 @@ namespace WindBoard.Board.Editing
                 return new List<Stroke> { stroke };
             }
 
+            var eraser = new EraserCapsule(eraserFromWorld, eraserToWorld, eraserRadiusWorld);
+
             // 单点笔迹：按点是否落入橡皮擦“胶囊体”阈值判断删除/保留。
             if (pointCount == 1)
             {
-                return IsPointErased(stroke, stroke.Points[0], eraserFromWorld, eraserToWorld, eraserRadiusWorld)
+                return IsPointErased(stroke, stroke.Points[0], eraser)
                     ? new List<Stroke>()
                     : new List<Stroke> { stroke };
             }
@@ -98,7 +114,7 @@ namespace WindBoard.Board.Editing
             bool removedAny = false;
 
             StrokePoint prevSample = stroke.Points[0];
-            bool prevKeep = !IsPointErased(stroke, prevSample, eraserFromWorld, eraserToWorld, eraserRadiusWorld);
+            bool prevKeep = !IsPointErased(stroke, prevSample, eraser);
             if (prevKeep)
             {
                 current = CreateDerivedStroke(stroke);
@@ -115,7 +131,7 @@ namespace WindBoard.Board.Editing
                 StrokePoint a = stroke.Points[i - 1];
                 StrokePoint b = stroke.Points[i];
 
-                float d2 = DistanceSquaredSegmentToSegment(
+                float d2 = SegmentMath2D.DistanceSquaredSegmentToSegment(
                     new Vector2(eraserFromWorld.X * maxInv.X, eraserFromWorld.Y * maxInv.Y),
                     new Vector2(eraserToWorld.X * maxInv.X, eraserToWorld.Y * maxInv.Y),
                     new Vector2(a.Position.X * maxInv.X, a.Position.Y * maxInv.Y),
@@ -138,7 +154,7 @@ namespace WindBoard.Board.Editing
                     float t = s / (float)samples;
                     StrokePoint sample = Lerp(a, b, t);
 
-                    bool keep = !IsPointErased(stroke, sample, eraserFromWorld, eraserToWorld, eraserRadiusWorld);
+                    bool keep = !IsPointErased(stroke, sample, eraser);
                     if (!keep)
                     {
                         removedAny = true;
@@ -159,9 +175,7 @@ namespace WindBoard.Board.Editing
                             prevSample,
                             sample,
                             keepAtStart: prevKeep,
-                            eraserFromWorld,
-                            eraserToWorld,
-                            eraserRadiusWorld);
+                            eraser);
 
                         if (prevKeep)
                         {
@@ -243,9 +257,7 @@ namespace WindBoard.Board.Editing
             StrokePoint start,
             StrokePoint end,
             bool keepAtStart,
-            Vector2 eraserFromWorld,
-            Vector2 eraserToWorld,
-            Vector2 eraserRadiusWorld)
+            in EraserCapsule eraser)
         {
             // 这里用“二分”在两采样点之间求一个更接近边界的点。
             // 目标：返回一个“仍然处于保留侧”的点，避免把边界点算进擦除区导致可见的断裂。
@@ -256,7 +268,7 @@ namespace WindBoard.Board.Editing
             {
                 float mid = (low + high) / 2.0f;
                 StrokePoint p = Lerp(start, end, mid);
-                bool keep = !IsPointErased(stroke, p, eraserFromWorld, eraserToWorld, eraserRadiusWorld);
+                bool keep = !IsPointErased(stroke, p, eraser);
 
                 if (keepAtStart)
                 {
@@ -295,21 +307,21 @@ namespace WindBoard.Board.Editing
                 a.Pressure + (b.Pressure - a.Pressure) * t);
         }
 
-        private static bool IsPointErased(Stroke stroke, StrokePoint point, Vector2 eraserFromWorld, Vector2 eraserToWorld, Vector2 eraserRadiusWorld)
+        private static bool IsPointErased(Stroke stroke, StrokePoint point, in EraserCapsule eraser)
         {
             float halfWidth = GetHalfStrokeWidthWorld(stroke, point.Pressure);
             Vector2 r = new(
-                Math.Max(0.0f, eraserRadiusWorld.X) + halfWidth,
-                Math.Max(0.0f, eraserRadiusWorld.Y) + halfWidth);
+                Math.Max(0.0f, eraser.RadiusWorld.X) + halfWidth,
+                Math.Max(0.0f, eraser.RadiusWorld.Y) + halfWidth);
 
             Vector2 inv = new(
                 1.0f / Math.Max(0.0000001f, r.X),
                 1.0f / Math.Max(0.0000001f, r.Y));
 
-            float d2 = DistanceSquaredPointToSegment(
+            float d2 = SegmentMath2D.DistanceSquaredPointToSegment(
                 new Vector2(point.Position.X * inv.X, point.Position.Y * inv.Y),
-                new Vector2(eraserFromWorld.X * inv.X, eraserFromWorld.Y * inv.Y),
-                new Vector2(eraserToWorld.X * inv.X, eraserToWorld.Y * inv.Y));
+                new Vector2(eraser.FromWorld.X * inv.X, eraser.FromWorld.Y * inv.Y),
+                new Vector2(eraser.ToWorld.X * inv.X, eraser.ToWorld.Y * inv.Y));
 
             return d2 <= 1.0f;
         }
@@ -330,88 +342,5 @@ namespace WindBoard.Board.Editing
             // 对于启用压力的笔迹，最大宽度出现在压力=1.0；禁用压力时恒定。
             return Math.Max(0.25f, stroke.BaseSize / 2.0f);
         }
-
-        private static float DistanceSquaredPointToSegment(Vector2 p, Vector2 a, Vector2 b)
-        {
-            Vector2 ab = b - a;
-            float abLenSq = ab.LengthSquared();
-            if (abLenSq <= 0.0000001f)
-            {
-                return Vector2.DistanceSquared(p, a);
-            }
-
-            float t = Vector2.Dot(p - a, ab) / abLenSq;
-            t = Math.Clamp(t, 0.0f, 1.0f);
-            Vector2 proj = a + ab * t;
-            return Vector2.DistanceSquared(p, proj);
-        }
-
-        private static float DistanceSquaredSegmentToSegment(Vector2 a0, Vector2 a1, Vector2 b0, Vector2 b1)
-        {
-            // 与 StrokeHitTest 保持一致的 2D 线段-线段最短距离实现：
-            // 1) 若相交（含共线重叠）则为 0；
-            // 2) 否则取四个“端点到对方线段”的最小值。
-            if (SegmentsIntersect(a0, a1, b0, b1))
-            {
-                return 0.0f;
-            }
-
-            float d0 = DistanceSquaredPointToSegment(a0, b0, b1);
-            float d1 = DistanceSquaredPointToSegment(a1, b0, b1);
-            float d2 = DistanceSquaredPointToSegment(b0, a0, a1);
-            float d3 = DistanceSquaredPointToSegment(b1, a0, a1);
-
-            return Math.Min(Math.Min(d0, d1), Math.Min(d2, d3));
-        }
-
-        private static bool SegmentsIntersect(Vector2 a0, Vector2 a1, Vector2 b0, Vector2 b1)
-        {
-            // 线段相交测试（包含共线重叠）。由于输入为 float，使用一个较小 epsilon 做数值容错。
-            const float eps = 0.00001f;
-
-            float o1 = Cross(a1 - a0, b0 - a0);
-            float o2 = Cross(a1 - a0, b1 - a0);
-            float o3 = Cross(b1 - b0, a0 - b0);
-            float o4 = Cross(b1 - b0, a1 - b0);
-
-            // 一般情况：两端点分别位于对方线段两侧。
-            if (o1 * o2 < 0.0f && o3 * o4 < 0.0f)
-            {
-                return true;
-            }
-
-            // 共线/触碰：判断点是否在线段投影范围内。
-            if (Math.Abs(o1) <= eps && OnSegment(a0, a1, b0, eps))
-            {
-                return true;
-            }
-
-            if (Math.Abs(o2) <= eps && OnSegment(a0, a1, b1, eps))
-            {
-                return true;
-            }
-
-            if (Math.Abs(o3) <= eps && OnSegment(b0, b1, a0, eps))
-            {
-                return true;
-            }
-
-            if (Math.Abs(o4) <= eps && OnSegment(b0, b1, a1, eps))
-            {
-                return true;
-            }
-
-            return false;
-        }
-
-        private static bool OnSegment(Vector2 a, Vector2 b, Vector2 p, float eps)
-        {
-            return p.X >= Math.Min(a.X, b.X) - eps
-                && p.X <= Math.Max(a.X, b.X) + eps
-                && p.Y >= Math.Min(a.Y, b.Y) - eps
-                && p.Y <= Math.Max(a.Y, b.Y) + eps;
-        }
-
-        private static float Cross(Vector2 a, Vector2 b) => a.X * b.Y - a.Y * b.X;
     }
 }

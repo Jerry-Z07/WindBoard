@@ -92,7 +92,10 @@ namespace WindBoard.Settings
             AppSettings snapshot;
             lock (_gate)
             {
-                snapshot = Clone(Current);
+                // 这里只做“快照”，不在这里做归一化：
+                // - 归一化由 Update/Load 保证；
+                // - 落盘前 Store.Save 会再次归一化兜底。
+                snapshot = AppSettingsCloner.Clone(Current);
             }
 
             return SaveInternalAsync(snapshot, cancellationToken);
@@ -144,25 +147,5 @@ namespace WindBoard.Settings
             }
         }
 
-        private static AppSettings Clone(AppSettings settings)
-        {
-            // 与 AppSettingsStore.CloneAndNormalize 保持一致：这里只做“快照”，不在这里做归一化。
-            // 归一化由 Update/Load 保证，落盘前 Store.Save 会再次归一化兜底。
-            return new AppSettings
-            {
-                Appearance = new AppearanceSettings
-                {
-                    CanvasBackgroundHex = settings.Appearance?.CanvasBackgroundHex ?? ColorHex.DefaultCanvasBackgroundHex,
-                },
-                Dock = new DockSettings
-                {
-                    LeftOrder = new List<string>(settings.Dock?.LeftOrder ?? DockSettingsDefaults.LeftOrder),
-                    ToolsOrder = new List<string>(settings.Dock?.ToolsOrder ?? DockSettingsDefaults.ToolsOrder),
-                    UndoRedoOrder = new List<string>(settings.Dock?.UndoRedoOrder ?? DockSettingsDefaults.UndoRedoOrder),
-                    PagesOrder = new List<string>(settings.Dock?.PagesOrder ?? DockSettingsDefaults.PagesOrder),
-                    IsUndoRedoVisible = settings.Dock?.IsUndoRedoVisible ?? true,
-                },
-            };
-        }
     }
 }
