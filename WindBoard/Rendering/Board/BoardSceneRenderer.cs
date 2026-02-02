@@ -324,69 +324,73 @@ namespace WindBoard.Rendering.Board
                 return false;
             }
 
+            int pointCount = stroke.Points.Count;
             Vector2 firstPos = stroke.Points[0].Position;
             Vector2 lastPos = stroke.Points[^1].Position;
 
             if (!_inkCache.TryGetValue(stroke, out StrokeInkCacheEntry? entry))
             {
-                entry = StrokeInkCacheEntry.Create(ctx2, stroke);
-                _inkCache[stroke] = entry;
-                return true;
+                _inkCache[stroke] = StrokeInkCacheEntry.Create(ctx2, stroke);
             }
-
-            int pointCount = stroke.Points.Count;
-            if (pointCount == entry.PointCount)
+            else if (pointCount == entry.PointCount)
             {
                 // 点数没变但坐标变了（例如选择工具拖动/缩放/旋转）时，Ink 缓存会过期，导致笔迹渲染停在旧位置，
                 // 从而出现“笔迹与选择框错位”。这里做一次轻量更新：
                 // - 若首尾点位移一致：认为是纯平移，复用 Ink，并记录 DrawOffsetWorld
                 // - 否则：重建 Ink（旋转/缩放会改变相对位置，无法用平移修正）
-                Vector2 expectedFirst = entry.FirstPosition + entry.DrawOffsetWorld;
-                Vector2 expectedLast = entry.LastPosition + entry.DrawOffsetWorld;
-
-                if (NearlyEqual(firstPos, expectedFirst) && NearlyEqual(lastPos, expectedLast))
+                if (!TryUpdateInkDrawOffset(entry, firstPos, lastPos))
                 {
-                    return true;
+                    RebuildInkCacheEntry(ctx2, stroke, entry);
                 }
-
-                Vector2 deltaFirst = firstPos - entry.FirstPosition;
-                Vector2 deltaLast = lastPos - entry.LastPosition;
-                if (NearlyEqual(deltaFirst, deltaLast))
-                {
-                    entry.DrawOffsetWorld = deltaFirst;
-                    return true;
-                }
-
-                entry.Dispose();
-                _inkCache.Remove(stroke);
-                entry = StrokeInkCacheEntry.Create(ctx2, stroke);
-                _inkCache[stroke] = entry;
-                return true;
             }
-
-            if (pointCount < entry.PointCount)
+            else if (pointCount < entry.PointCount)
             {
-                entry.Dispose();
-                _inkCache.Remove(stroke);
-                entry = StrokeInkCacheEntry.Create(ctx2, stroke);
-                _inkCache[stroke] = entry;
-                return true;
+                // 点数减少：通常来自撤销/重做或替换点集，直接重建更安全。
+                RebuildInkCacheEntry(ctx2, stroke, entry);
             }
-
-            // 如果缓存处于“偏移绘制”状态，为避免增量追加导致坐标空间混乱，直接重建。
-            if (entry.DrawOffsetWorld.LengthSquared() > 0.0000001f)
+            else if (entry.DrawOffsetWorld.LengthSquared() > 0.0000001f)
             {
-                entry.Dispose();
-                _inkCache.Remove(stroke);
-                entry = StrokeInkCacheEntry.Create(ctx2, stroke);
-                _inkCache[stroke] = entry;
-                return true;
+                // 如果缓存处于“偏移绘制”状态，为避免增量追加导致坐标空间混乱，直接重建。
+                RebuildInkCacheEntry(ctx2, stroke, entry);
+            }
+            else
+            {
+                // 点数增加且没有偏移：走增量追加，提高实时书写性能。
+                entry.AppendSegments(stroke, entry.PointCount);
+                entry.PointCount = pointCount;
+                entry.LastPosition = lastPos;
             }
 
-            entry.AppendSegments(stroke, entry.PointCount);
-            entry.PointCount = pointCount;
-            entry.LastPosition = lastPos;
             return true;
+        }
+
+        private static bool TryUpdateInkDrawOffset(StrokeInkCacheEntry entry, Vector2 firstPos, Vector2 lastPos)
+        {
+            Vector2 expectedFirst = entry.FirstPosition + entry.DrawOffsetWorld;
+            Vector2 expectedLast = entry.LastPosition + entry.DrawOffsetWorld;
+
+            if (NearlyEqual(firstPos, expectedFirst) && NearlyEqual(lastPos, expectedLast))
+            {
+                return true;
+            }
+
+            Vector2 deltaFirst = firstPos - entry.FirstPosition;
+            Vector2 deltaLast = lastPos - entry.LastPosition;
+            if (NearlyEqual(deltaFirst, deltaLast))
+            {
+                entry.DrawOffsetWorld = deltaFirst;
+                return true;
+            }
+
+            return false;
+        }
+
+        private void RebuildInkCacheEntry(ID2D1DeviceContext2 ctx2, Stroke stroke, StrokeInkCacheEntry entry)
+        {
+            // Ink 资源与对应的缓存条目需要成对更新，避免内存泄漏或引用旧对象导致的错位。
+            entry.Dispose();
+            _inkCache.Remove(stroke);
+            _inkCache[stroke] = StrokeInkCacheEntry.Create(ctx2, stroke);
         }
 
         private sealed class StrokeInkCacheEntry : IDisposable

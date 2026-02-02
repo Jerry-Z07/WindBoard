@@ -673,54 +673,74 @@ namespace WindBoard.Interaction
                 return;
             }
 
-            if (Tool == BoardTool.Select)
+            bool notifyStateChanged = false;
+            bool handled = Tool == BoardTool.Select
+                ? TryBeginSelectGesture(e, point)
+                : TryBeginNonSelectGesture(e, point, out notifyStateChanged);
+
+            if (!handled)
             {
-                // 选择模式（框选）：
-                // - 鼠标右键：平移视口
-                // - 其它：单指/鼠标左键/触控笔拖拽 → 框选；在已选中笔迹范围内拖拽 → 移动选中笔迹
-                if (ShouldStartPan(e.Pointer, point))
-                {
-                    BeginPanGesture(e.Pointer, point);
-                    e.Handled = true;
-                    return;
-                }
-
-                if (!ShouldStartStroke(e.Pointer, point))
-                {
-                    return;
-                }
-
-                Vector2 screen = new((float)point.Position.X, (float)point.Position.Y);
-                if (IsScreenPointInsideSelectedStrokeBounds(screen))
-                {
-                    BeginSelectionMoveGesture(e.Pointer, screen);
-                    e.Handled = true;
-                    return;
-                }
-
-                BeginMarqueeSelectionGesture(e.Pointer, screen);
-                e.Handled = true;
                 return;
             }
 
+            e.Handled = true;
+            if (notifyStateChanged)
+            {
+                StateChanged?.Invoke();
+            }
+        }
+
+        private bool HasActivePointerCapture => _activePointerId is not null || _panPointerId is not null || _selectionPointerId is not null || _marqueePointerId is not null;
+
+        private bool TryBeginSelectGesture(PointerRoutedEventArgs e, PointerPoint point)
+        {
+            // 选择模式（框选）：
+            // - 鼠标右键：平移视口
+            // - 其它：单指/鼠标左键/触控笔拖拽 → 框选；在已选中笔迹范围内拖拽 → 移动选中笔迹
             if (ShouldStartPan(e.Pointer, point))
             {
                 BeginPanGesture(e.Pointer, point);
-                e.Handled = true;
-                return;
+                return true;
             }
 
             if (!ShouldStartStroke(e.Pointer, point))
             {
-                return;
+                return false;
             }
 
-            BeginStrokeOrEraserGesture(e.Pointer, point);
-            e.Handled = true;
-            StateChanged?.Invoke();
+            Vector2 screen = new((float)point.Position.X, (float)point.Position.Y);
+            if (IsScreenPointInsideSelectedStrokeBounds(screen))
+            {
+                BeginSelectionMoveGesture(e.Pointer, screen);
+            }
+            else
+            {
+                BeginMarqueeSelectionGesture(e.Pointer, screen);
+            }
+
+            return true;
         }
 
-        private bool HasActivePointerCapture => _activePointerId is not null || _panPointerId is not null || _selectionPointerId is not null || _marqueePointerId is not null;
+        private bool TryBeginNonSelectGesture(PointerRoutedEventArgs e, PointerPoint point, out bool notifyStateChanged)
+        {
+            notifyStateChanged = false;
+
+            if (ShouldStartPan(e.Pointer, point))
+            {
+                BeginPanGesture(e.Pointer, point);
+                return true;
+            }
+
+            if (!ShouldStartStroke(e.Pointer, point))
+            {
+                return false;
+            }
+
+            // BeginStrokeOrEraserGesture 内部不会触发 StateChanged，这里保持与现有交互一致。
+            BeginStrokeOrEraserGesture(e.Pointer, point);
+            notifyStateChanged = true;
+            return true;
+        }
 
         private Stroke? HitTestStrokeAtScreenPoint(Vector2 screenDip)
         {
@@ -871,56 +891,70 @@ namespace WindBoard.Interaction
 
         private void OnCanvasPointerMoved(object sender, PointerRoutedEventArgs e)
         {
-            if (_panPointerId == e.Pointer.PointerId)
+            uint pointerId = e.Pointer.PointerId;
+
+            if (_panPointerId == pointerId)
             {
-                PointerPoint point = e.GetCurrentPoint(_panel);
-                Vector2 current = new((float)point.Position.X, (float)point.Position.Y);
-                Vector2 delta = current - _lastPanScreen;
-                _lastPanScreen = current;
-                _viewport.PanByScreenDelta(delta);
-                _pendingPanScreenDelta += delta;
-                e.Handled = true;
-                FrameInvalidated?.Invoke();
-                return;
+                HandlePanPointerMoved(e);
+            }
+            else if (_selectionPointerId == pointerId)
+            {
+                HandleSelectionPointerMoved(e);
+            }
+            else if (_marqueePointerId == pointerId)
+            {
+                HandleMarqueePointerMoved(e);
+            }
+            else if (_activePointerId == pointerId)
+            {
+                HandleActivePointerMoved(e);
+            }
+        }
+
+        private void HandlePanPointerMoved(PointerRoutedEventArgs e)
+        {
+            PointerPoint point = e.GetCurrentPoint(_panel);
+            Vector2 current = new((float)point.Position.X, (float)point.Position.Y);
+            Vector2 delta = current - _lastPanScreen;
+            _lastPanScreen = current;
+            _viewport.PanByScreenDelta(delta);
+            _pendingPanScreenDelta += delta;
+            e.Handled = true;
+            FrameInvalidated?.Invoke();
+        }
+
+        private void HandleSelectionPointerMoved(PointerRoutedEventArgs e)
+        {
+            PointerPoint point = e.GetCurrentPoint(_panel);
+            Vector2 current = new((float)point.Position.X, (float)point.Position.Y);
+            Vector2 deltaScreen = current - _lastSelectionScreen;
+            _lastSelectionScreen = current;
+
+            if (_selectionTransformStroke is not null)
+            {
+                Vector2 deltaWorld = deltaScreen / Math.Max(0.0001f, _viewport.Zoom);
+                _selectionTransformStroke.Translate(deltaWorld);
             }
 
-            if (_selectionPointerId == e.Pointer.PointerId)
+            if (deltaScreen.LengthSquared() > 0.0001f)
             {
-                PointerPoint point = e.GetCurrentPoint(_panel);
-                Vector2 current = new((float)point.Position.X, (float)point.Position.Y);
-                Vector2 deltaScreen = current - _lastSelectionScreen;
-                _lastSelectionScreen = current;
-
-                if (_selectionTransformStroke is not null)
-                {
-                    Vector2 deltaWorld = deltaScreen / Math.Max(0.0001f, _viewport.Zoom);
-                    _selectionTransformStroke.Translate(deltaWorld);
-                }
-
-                if (deltaScreen.LengthSquared() > 0.0001f)
-                {
-                    _selectionModified = true;
-                }
-
-                e.Handled = true;
-                FrameInvalidated?.Invoke();
-                return;
+                _selectionModified = true;
             }
 
-            if (_marqueePointerId == e.Pointer.PointerId)
-            {
-                PointerPoint point = e.GetCurrentPoint(_panel);
-                _marqueeCurrentScreen = new Vector2((float)point.Position.X, (float)point.Position.Y);
-                e.Handled = true;
-                FrameInvalidated?.Invoke();
-                return;
-            }
+            e.Handled = true;
+            FrameInvalidated?.Invoke();
+        }
 
-            if (_activePointerId != e.Pointer.PointerId)
-            {
-                return;
-            }
+        private void HandleMarqueePointerMoved(PointerRoutedEventArgs e)
+        {
+            PointerPoint point = e.GetCurrentPoint(_panel);
+            _marqueeCurrentScreen = new Vector2((float)point.Position.X, (float)point.Position.Y);
+            e.Handled = true;
+            FrameInvalidated?.Invoke();
+        }
 
+        private void HandleActivePointerMoved(PointerRoutedEventArgs e)
+        {
             if (_isErasing)
             {
                 PointerPoint erasePoint = e.GetCurrentPoint(_panel);
@@ -934,129 +968,112 @@ namespace WindBoard.Interaction
                 return;
             }
 
-            PointerPoint point2 = e.GetCurrentPoint(_panel);
-            if (AppendPoint(ActiveStroke, e.Pointer, point2))
+            PointerPoint point = e.GetCurrentPoint(_panel);
+            if (AppendPoint(ActiveStroke, e.Pointer, point))
             {
                 FrameInvalidated?.Invoke();
             }
+
             e.Handled = true;
         }
 
         private void OnCanvasPointerReleased(object sender, PointerRoutedEventArgs e)
         {
-            HandleTouchPointerEnded(e);
-
-            if (TryHandlePanPointerEnded(e, releasePointerCaptures: true))
-            {
-                return;
-            }
-
-            if (_marqueePointerId == e.Pointer.PointerId)
-            {
-                CommitMarqueeSelectionGesture(releasePointerCaptures: true);
-                e.Handled = true;
-                return;
-            }
-
-            if (_selectionPointerId == e.Pointer.PointerId)
-            {
-                CommitSelectionGesture(releasePointerCaptures: true);
-                e.Handled = true;
-                return;
-            }
-
-            if (_activePointerId != e.Pointer.PointerId)
-            {
-                return;
-            }
-
-            if (_isErasing)
-            {
-                CommitEraserGesture();
-                e.Handled = true;
-                return;
-            }
-
-            CommitActiveStroke();
-            e.Handled = true;
+            HandlePointerEnded(e, PointerEndMode.Commit, releasePointerCaptures: true);
         }
 
         private void OnCanvasPointerCanceled(object sender, PointerRoutedEventArgs e)
         {
-            HandleTouchPointerEnded(e);
-
-            if (TryHandlePanPointerEnded(e, releasePointerCaptures: true))
-            {
-                return;
-            }
-
-            if (_marqueePointerId == e.Pointer.PointerId)
-            {
-                CancelMarqueeSelectionGesture(releasePointerCaptures: true);
-                e.Handled = true;
-                return;
-            }
-
-            if (_selectionPointerId == e.Pointer.PointerId)
-            {
-                CancelSelectionGesture(releasePointerCaptures: true);
-                e.Handled = true;
-                return;
-            }
-
-            if (_activePointerId != e.Pointer.PointerId)
-            {
-                return;
-            }
-
-            if (_isErasing)
-            {
-                CancelEraserGesture();
-                e.Handled = true;
-                return;
-            }
-
-            DiscardActiveStroke();
-            e.Handled = true;
+            HandlePointerEnded(e, PointerEndMode.Cancel, releasePointerCaptures: true);
         }
 
         private void OnCanvasPointerCaptureLost(object sender, PointerRoutedEventArgs e)
         {
+            // 捕获丢失时尽量按“释放”处理并提交，避免出现“已经移动/擦除了，但撤销栈没有记录”的不一致。
+            HandlePointerEnded(e, PointerEndMode.Commit, releasePointerCaptures: false);
+        }
+
+        private enum PointerEndMode
+        {
+            Commit,
+            Cancel,
+        }
+
+        private void HandlePointerEnded(PointerRoutedEventArgs e, PointerEndMode mode, bool releasePointerCaptures)
+        {
+            // 指针结束（释放/取消/捕获丢失）在结构上高度相似：
+            // 1) 先处理触摸触点集合
+            // 2) 再处理平移/框选/移动选中
+            // 3) 最后处理画线/擦除
+            // 统一入口可以减少重复代码，也更容易保证三种结束路径的状态清理一致。
             HandleTouchPointerEnded(e);
 
-            if (TryHandlePanPointerEnded(e, releasePointerCaptures: false))
+            if (TryHandlePanPointerEnded(e, releasePointerCaptures))
             {
                 return;
             }
 
-            if (_marqueePointerId == e.Pointer.PointerId)
+            uint pointerId = e.Pointer.PointerId;
+
+            if (_marqueePointerId == pointerId)
             {
-                CommitMarqueeSelectionGesture(releasePointerCaptures: false);
+                if (mode == PointerEndMode.Commit)
+                {
+                    CommitMarqueeSelectionGesture(releasePointerCaptures);
+                }
+                else
+                {
+                    CancelMarqueeSelectionGesture(releasePointerCaptures);
+                }
+
                 e.Handled = true;
                 return;
             }
 
-            if (_selectionPointerId == e.Pointer.PointerId)
+            if (_selectionPointerId == pointerId)
             {
-                // 捕获丢失时尽量提交，避免用户看到“已经移动了但撤销栈没有记录”的不一致。
-                CommitSelectionGesture(releasePointerCaptures: false);
+                if (mode == PointerEndMode.Commit)
+                {
+                    CommitSelectionGesture(releasePointerCaptures);
+                }
+                else
+                {
+                    CancelSelectionGesture(releasePointerCaptures);
+                }
+
                 e.Handled = true;
                 return;
             }
 
-            if (_activePointerId != e.Pointer.PointerId)
+            if (_activePointerId != pointerId)
             {
                 return;
             }
 
             if (_isErasing)
             {
-                CommitEraserGesture();
+                if (mode == PointerEndMode.Commit)
+                {
+                    CommitEraserGesture();
+                }
+                else
+                {
+                    CancelEraserGesture();
+                }
+
                 e.Handled = true;
                 return;
             }
 
-            CommitActiveStroke();
+            if (mode == PointerEndMode.Commit)
+            {
+                CommitActiveStroke();
+            }
+            else
+            {
+                DiscardActiveStroke();
+            }
+
             e.Handled = true;
         }
 
@@ -1094,7 +1111,7 @@ namespace WindBoard.Interaction
 
         private void OnCanvasPointerWheelChanged(object sender, PointerRoutedEventArgs e)
         {
-            if (ActiveStroke is not null || _isErasing || _panPointerId is not null || _selectionPointerId is not null || _isManipulatingSelection || _marqueePointerId is not null)
+            if (HasBlockingInteractionForWheelZoom())
             {
                 return;
             }
@@ -1158,6 +1175,16 @@ namespace WindBoard.Interaction
             FrameInvalidated?.Invoke();
         }
 
+        private bool HasBlockingInteractionForWheelZoom()
+        {
+            // 滚轮缩放属于“瞬时交互”，当同时存在其它连续交互（例如画线/擦除/平移/选择变换）时直接忽略，
+            // 避免状态互相干扰或导致撤销快照不一致。
+            bool hasActiveTool = ActiveStroke is not null || _isErasing;
+            bool hasPointerGesture = _panPointerId is not null || _selectionPointerId is not null || _marqueePointerId is not null;
+            bool hasSelectionManipulation = _isManipulatingSelection;
+            return hasActiveTool || hasPointerGesture || hasSelectionManipulation;
+        }
+
         private void BeginWheelZoomInteraction()
         {
             _lastWheelZoomAt = DateTimeOffset.UtcNow;
@@ -1213,7 +1240,7 @@ namespace WindBoard.Interaction
         private void OnCanvasManipulationStarting(object sender, ManipulationStartingRoutedEventArgs e)
         {
             // 触摸手势以 CanvasPanel 为坐标系
-            if (ActiveStroke is not null || _isErasing || _panPointerId is not null || _selectionPointerId is not null || _marqueePointerId is not null)
+            if (HasBlockingInteractionForManipulation())
             {
                 e.Handled = true;
                 return;
@@ -1247,80 +1274,91 @@ namespace WindBoard.Interaction
         private void OnCanvasManipulationDelta(object sender, ManipulationDeltaRoutedEventArgs e)
         {
             // 触摸：多指拖动 + 捏合缩放（以手势中心为缩放锚点）
-            if (ActiveStroke is not null || _isErasing || _panPointerId is not null || _selectionPointerId is not null || _marqueePointerId is not null)
-            {
-                e.Handled = true;
-                return;
-            }
-
             const int minTouchCount = 2;
-            if (_activeTouchPointers.Count < minTouchCount)
+            bool canHandle = !HasBlockingInteractionForManipulation() && _activeTouchPointers.Count >= minTouchCount;
+            if (canHandle)
             {
-                e.Handled = true;
-                return;
-            }
-
-            if (Tool == BoardTool.Select
-                && _touchManipulationTarget == TouchManipulationTarget.Selection
-                && _selectedStroke is not null)
-            {
-                if (!_isManipulatingSelection)
+                if (!TryHandleSelectionManipulationDelta(e))
                 {
-                    _isManipulatingSelection = true;
-                    BeginSelectionTransformSnapshot(_selectedStroke);
-                    UpdateInteractionState();
+                    HandleViewportManipulationDelta(e);
                 }
 
-                Vector2 anchorScreen = new((float)e.Position.X, (float)e.Position.Y);
-                Vector2 anchorWorld = _viewport.ScreenToWorld(anchorScreen);
-
-                Vector2 translationScreen = new((float)e.Delta.Translation.X, (float)e.Delta.Translation.Y);
-                Vector2 translationWorld = translationScreen / Math.Max(0.0001f, _viewport.Zoom);
-
-                float scale = (float)e.Delta.Scale;
-                float rotationDeg = (float)e.Delta.Rotation;
-                float rotationRad = rotationDeg * (float)(Math.PI / 180.0);
-
-                bool hasScale = Math.Abs(scale - 1.0f) > 0.0001f;
-                bool hasRotation = Math.Abs(rotationRad) > 0.0001f;
-                bool hasTranslation = translationWorld.LengthSquared() > 0.0001f;
-
-                if (hasScale || hasRotation)
-                {
-                    // 注意：这里的增量（Delta）是“逐帧增量”，因此直接对当前点集做增量变换即可。
-                    Matrix3x2 transform = Matrix3x2.Identity;
-
-                    if (hasScale)
-                    {
-                        transform *= Matrix3x2.CreateTranslation(-anchorWorld)
-                            * Matrix3x2.CreateScale(scale)
-                            * Matrix3x2.CreateTranslation(anchorWorld);
-                    }
-
-                    if (hasRotation)
-                    {
-                        transform *= Matrix3x2.CreateRotation(rotationRad, anchorWorld);
-                    }
-
-                    if (hasTranslation)
-                    {
-                        transform *= Matrix3x2.CreateTranslation(translationWorld);
-                    }
-
-                    _selectedStroke.Transform(transform);
-                    _selectionModified = true;
-                }
-                else if (hasTranslation)
-                {
-                    _selectedStroke.Translate(translationWorld);
-                    _selectionModified = true;
-                }
-
-                e.Handled = true;
                 FrameInvalidated?.Invoke();
-                return;
             }
 
+            e.Handled = true;
+        }
+
+        private bool TryHandleSelectionManipulationDelta(ManipulationDeltaRoutedEventArgs e)
+        {
+            if (Tool != BoardTool.Select
+                || _touchManipulationTarget != TouchManipulationTarget.Selection
+                || _selectedStroke is null)
+            {
+                return false;
+            }
+
+            if (!_isManipulatingSelection)
+            {
+                _isManipulatingSelection = true;
+                BeginSelectionTransformSnapshot(_selectedStroke);
+                UpdateInteractionState();
+            }
+
+            Vector2 anchorScreen = new((float)e.Position.X, (float)e.Position.Y);
+            Vector2 anchorWorld = _viewport.ScreenToWorld(anchorScreen);
+
+            Vector2 translationScreen = new((float)e.Delta.Translation.X, (float)e.Delta.Translation.Y);
+            Vector2 translationWorld = translationScreen / Math.Max(0.0001f, _viewport.Zoom);
+
+            float scale = (float)e.Delta.Scale;
+            float rotationDeg = (float)e.Delta.Rotation;
+            float rotationRad = rotationDeg * (float)(Math.PI / 180.0);
+
+            bool hasScale = Math.Abs(scale - 1.0f) > 0.0001f;
+            bool hasRotation = Math.Abs(rotationRad) > 0.0001f;
+            bool hasTranslation = translationWorld.LengthSquared() > 0.0001f;
+
+            if (!hasScale && !hasRotation && !hasTranslation)
+            {
+                return true;
+            }
+
+            if (hasScale || hasRotation)
+            {
+                // 注意：这里的增量（Delta）是“逐帧增量”，因此直接对当前点集做增量变换即可。
+                Matrix3x2 transform = Matrix3x2.Identity;
+
+                if (hasScale)
+                {
+                    transform *= Matrix3x2.CreateTranslation(-anchorWorld)
+                        * Matrix3x2.CreateScale(scale)
+                        * Matrix3x2.CreateTranslation(anchorWorld);
+                }
+
+                if (hasRotation)
+                {
+                    transform *= Matrix3x2.CreateRotation(rotationRad, anchorWorld);
+                }
+
+                if (hasTranslation)
+                {
+                    transform *= Matrix3x2.CreateTranslation(translationWorld);
+                }
+
+                _selectedStroke.Transform(transform);
+                _selectionModified = true;
+                return true;
+            }
+
+            // 仅平移：走更轻量的 Translate，避免构造矩阵。
+            _selectedStroke.Translate(translationWorld);
+            _selectionModified = true;
+            return true;
+        }
+
+        private void HandleViewportManipulationDelta(ManipulationDeltaRoutedEventArgs e)
+        {
             if (!_isManipulating)
             {
                 _isManipulating = true;
@@ -1329,14 +1367,10 @@ namespace WindBoard.Interaction
 
             Vector2 anchor = new((float)e.Position.X, (float)e.Position.Y);
 
-            // 单指：只做平移；双指及以上：平移 + 捏合缩放。
-            if (_activeTouchPointers.Count >= 2)
+            float scale = (float)e.Delta.Scale;
+            if (Math.Abs(scale - 1.0f) > 0.0001f)
             {
-                float scale = (float)e.Delta.Scale;
-                if (Math.Abs(scale - 1.0f) > 0.0001f)
-                {
-                    _viewport.ZoomAboutScreenPoint(anchor, scale);
-                }
+                _viewport.ZoomAboutScreenPoint(anchor, scale);
             }
 
             Vector2 translation = new((float)e.Delta.Translation.X, (float)e.Delta.Translation.Y);
@@ -1345,9 +1379,16 @@ namespace WindBoard.Interaction
                 _viewport.PanByScreenDelta(translation);
                 _pendingPanScreenDelta += translation;
             }
+        }
 
-            e.Handled = true;
-            FrameInvalidated?.Invoke();
+        private bool HasBlockingInteractionForManipulation()
+        {
+            // Manipulation 属于触摸手势通道，与“指针捕获 + 工具动作”互斥：
+            // - 正在画线/擦除时不进入手势
+            // - 正在鼠标右键平移/框选/移动选中时不进入手势
+            bool hasActiveTool = ActiveStroke is not null || _isErasing;
+            bool hasPointerGesture = _panPointerId is not null || _selectionPointerId is not null || _marqueePointerId is not null;
+            return hasActiveTool || hasPointerGesture;
         }
 
         private void OnCanvasManipulationCompleted(object sender, ManipulationCompletedRoutedEventArgs e)

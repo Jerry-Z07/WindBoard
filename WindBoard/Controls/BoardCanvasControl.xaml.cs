@@ -600,37 +600,56 @@ namespace WindBoard.Controls
             }
 
             // 仅在“选择工具”下展示选择框与悬浮 Dock，避免干扰书写/擦除。
-            if (_tool != BoardTool.Select)
+            if (_tool == BoardTool.Select)
+            {
+                // 正在框选时：展示框选矩形，隐藏 Dock。
+                if (_input.TryGetSelectionMarqueeRectDip(out Rect marqueeRectDip))
+                {
+                    ShowMarqueeSelectionOverlay(marqueeRectDip);
+                }
+                else if (TryGetSelectedStrokeScreenRect(out Stroke stroke, out Rect strokeBoundsScreenDip))
+                {
+                    ShowSelectedStrokeOverlay(stroke, strokeBoundsScreenDip);
+                }
+                else
+                {
+                    HideSelectionOverlay();
+                }
+            }
+            else
             {
                 HideSelectionOverlay();
-                return;
             }
+        }
 
-            // 正在框选时：展示框选矩形，隐藏 Dock。
-            if (_input.TryGetSelectionMarqueeRectDip(out Rect marqueeRectDip))
+        private void ShowMarqueeSelectionOverlay(Rect marqueeRectDip)
+        {
+            if (SelectionBoundsBorder is not null)
             {
-                if (SelectionBoundsBorder is not null)
-                {
-                    SelectionBoundsBorder.Visibility = Visibility.Visible;
-                    SelectionBoundsBorder.Width = Math.Max(0.0, marqueeRectDip.Width);
-                    SelectionBoundsBorder.Height = Math.Max(0.0, marqueeRectDip.Height);
-                    Canvas.SetLeft(SelectionBoundsBorder, marqueeRectDip.Left);
-                    Canvas.SetTop(SelectionBoundsBorder, marqueeRectDip.Top);
-                }
-
-                if (SelectionDockBorder is not null)
-                {
-                    SelectionDockBorder.Visibility = Visibility.Collapsed;
-                }
-
-                return;
+                SelectionBoundsBorder.Visibility = Visibility.Visible;
+                SelectionBoundsBorder.Width = Math.Max(0.0, marqueeRectDip.Width);
+                SelectionBoundsBorder.Height = Math.Max(0.0, marqueeRectDip.Height);
+                Canvas.SetLeft(SelectionBoundsBorder, marqueeRectDip.Left);
+                Canvas.SetTop(SelectionBoundsBorder, marqueeRectDip.Top);
             }
 
-            if (_input.SelectedStroke is not Stroke stroke || stroke.Points.Count == 0)
+            if (SelectionDockBorder is not null)
             {
-                HideSelectionOverlay();
-                return;
+                SelectionDockBorder.Visibility = Visibility.Collapsed;
             }
+        }
+
+        private bool TryGetSelectedStrokeScreenRect(out Stroke stroke, out Rect strokeBoundsScreenDip)
+        {
+            stroke = null!;
+            strokeBoundsScreenDip = default;
+
+            if (_input?.SelectedStroke is not Stroke selected || selected.Points.Count == 0)
+            {
+                return false;
+            }
+
+            stroke = selected;
 
             // 某些情况下笔迹可能还未计算 Bounds（例如外部构造/导入），此时这里补算一次。
             if (!stroke.HasBounds)
@@ -640,8 +659,7 @@ namespace WindBoard.Controls
 
             if (!stroke.HasBounds)
             {
-                HideSelectionOverlay();
-                return;
+                return false;
             }
 
             Matrix3x2 worldToScreen = _viewport.GetWorldToScreenTransform();
@@ -653,18 +671,32 @@ namespace WindBoard.Controls
             float right = Math.Max(minScreen.X, maxScreen.X);
             float bottom = Math.Max(minScreen.Y, maxScreen.Y);
 
-            double width = Math.Max(0.0, right - left);
-            double height = Math.Max(0.0, bottom - top);
+            strokeBoundsScreenDip = Rect.FromLTRB(left, top, right, bottom);
+            return true;
+        }
 
-            if (SelectionBoundsBorder is not null)
+        private void ShowSelectedStrokeOverlay(Stroke stroke, Rect strokeBoundsScreenDip)
+        {
+            ShowSelectionBoundsOverlay(strokeBoundsScreenDip);
+            ShowSelectionDockOverlay(stroke, strokeBoundsScreenDip);
+        }
+
+        private void ShowSelectionBoundsOverlay(Rect boundsDip)
+        {
+            if (SelectionBoundsBorder is null)
             {
-                SelectionBoundsBorder.Visibility = Visibility.Visible;
-                SelectionBoundsBorder.Width = width;
-                SelectionBoundsBorder.Height = height;
-                Canvas.SetLeft(SelectionBoundsBorder, left);
-                Canvas.SetTop(SelectionBoundsBorder, top);
+                return;
             }
 
+            SelectionBoundsBorder.Visibility = Visibility.Visible;
+            SelectionBoundsBorder.Width = Math.Max(0.0, boundsDip.Width);
+            SelectionBoundsBorder.Height = Math.Max(0.0, boundsDip.Height);
+            Canvas.SetLeft(SelectionBoundsBorder, boundsDip.Left);
+            Canvas.SetTop(SelectionBoundsBorder, boundsDip.Top);
+        }
+
+        private void ShowSelectionDockOverlay(Stroke stroke, Rect boundsDip)
+        {
             if (SelectionDockBorder is null)
             {
                 return;
@@ -690,8 +722,12 @@ namespace WindBoard.Controls
                 dockH = SelectionDockBorder.DesiredSize.Height;
             }
 
-            double dockLeft = left + width / 2.0 - dockW / 2.0;
-            double dockTop = bottom + 8.0;
+            double boundsLeft = boundsDip.Left;
+            double boundsWidth = Math.Max(0.0, boundsDip.Width);
+            double boundsBottom = boundsDip.Bottom;
+
+            double dockLeft = boundsLeft + boundsWidth / 2.0 - dockW / 2.0;
+            double dockTop = boundsBottom + 8.0;
 
             double maxLeft = Math.Max(0.0, CanvasPanel.ActualWidth - dockW);
             double maxTop = Math.Max(0.0, CanvasPanel.ActualHeight - dockH);
