@@ -10,6 +10,19 @@ namespace WindBoard.Rendering.Board
 {
     internal sealed class BoardSceneRenderer : IDisposable
     {
+        private readonly struct VisibleWorldBounds
+        {
+            public VisibleWorldBounds(Vector2 min, Vector2 max)
+            {
+                Min = min;
+                Max = max;
+            }
+
+            public Vector2 Min { get; }
+
+            public Vector2 Max { get; }
+        }
+
         private ID2D1Factory1? _factory;
         private ID2D1SolidColorBrush? _strokeBrush;
         private ID2D1StrokeStyle? _strokeStyle;
@@ -27,7 +40,7 @@ namespace WindBoard.Rendering.Board
                 WithWorldTransform(ctx, viewport, () =>
                 {
                     viewport.GetVisibleWorldBounds(out Vector2 visibleMinWorld, out Vector2 visibleMaxWorld);
-                    DrawSceneInWorldBounds(ctx, ctx2, document, activeStroke, viewport, visibleMinWorld, visibleMaxWorld);
+                    DrawSceneInWorldBounds(ctx, ctx2, document, activeStroke, new VisibleWorldBounds(visibleMinWorld, visibleMaxWorld));
                 });
             });
         }
@@ -43,7 +56,7 @@ namespace WindBoard.Rendering.Board
                 WithWorldTransform(ctx, viewport, () =>
                 {
                     viewport.GetVisibleWorldBounds(out Vector2 visibleMinWorld, out Vector2 visibleMaxWorld);
-                    DrawSceneInWorldBounds(ctx, ctx2, document, null, viewport, visibleMinWorld, visibleMaxWorld);
+                    DrawSceneInWorldBounds(ctx, ctx2, document, null, new VisibleWorldBounds(visibleMinWorld, visibleMaxWorld));
                 });
             });
         }
@@ -60,7 +73,7 @@ namespace WindBoard.Rendering.Board
 
                 WithWorldTransform(ctx, viewport, () =>
                 {
-                    DrawSceneInWorldBounds(ctx, ctx2, document, null, viewport, visibleMinWorld, visibleMaxWorld);
+                    DrawSceneInWorldBounds(ctx, ctx2, document, null, new VisibleWorldBounds(visibleMinWorld, visibleMaxWorld));
                 });
             });
         }
@@ -126,15 +139,13 @@ namespace WindBoard.Rendering.Board
             ID2D1DeviceContext2? ctx2,
             BoardDocument document,
             Stroke? activeStroke,
-            BoardViewport viewport,
-            Vector2 visibleMinWorld,
-            Vector2 visibleMaxWorld)
+            VisibleWorldBounds visibleWorldBounds)
         {
             // 绘制顺序：文档笔迹 → 活动笔迹（可选）。
 
             foreach (var stroke in document.Strokes)
             {
-                if (!BoardSceneMath.IsStrokeVisible(stroke, visibleMinWorld, visibleMaxWorld))
+                if (!BoardSceneMath.IsStrokeVisible(stroke, visibleWorldBounds.Min, visibleWorldBounds.Max))
                 {
                     continue;
                 }
@@ -147,7 +158,7 @@ namespace WindBoard.Rendering.Board
                 return;
             }
 
-            DrawStrokeIfVisible(ctx, ctx2, activeStroke, visibleMinWorld, visibleMaxWorld);
+            DrawStrokeIfVisible(ctx, ctx2, activeStroke, visibleWorldBounds.Min, visibleWorldBounds.Max);
         }
 
         private void DrawStrokeIfVisible(ID2D1DeviceContext ctx, ID2D1DeviceContext2? ctx2, Stroke stroke, Vector2 visibleMinWorld, Vector2 visibleMaxWorld)
