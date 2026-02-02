@@ -183,7 +183,27 @@ namespace WindBoard.Rendering.Board
 
             if (ctx2 is not null && TryDrawInkStroke(ctx2, stroke))
             {
-                ctx2.DrawInk(_inkCache[stroke].Ink, _strokeBrush, _inkStyle);
+                StrokeInkCacheEntry entry = _inkCache[stroke];
+
+                // Ink 缓存只会在“点数变化”时做增量追加；对于选择工具造成的“点坐标整体变化”，
+                // 通过对 DeviceContext 临时叠加平移变换，避免每一帧都重建 Ink，提升拖动流畅度。
+                Vector2 offsetWorld = entry.DrawOffsetWorld;
+                if (offsetWorld.LengthSquared() <= 0.0000001f)
+                {
+                    ctx2.DrawInk(entry.Ink, _strokeBrush, _inkStyle);
+                    return;
+                }
+
+                Matrix3x2 oldTransform = ctx2.Transform;
+                ctx2.Transform = Matrix3x2.CreateTranslation(offsetWorld) * oldTransform;
+                try
+                {
+                    ctx2.DrawInk(entry.Ink, _strokeBrush, _inkStyle);
+                }
+                finally
+                {
+                    ctx2.Transform = oldTransform;
+                }
                 return;
             }
 
@@ -290,12 +310,22 @@ namespace WindBoard.Rendering.Board
             }
         }
 
+        private static bool NearlyEqual(Vector2 a, Vector2 b, float eps = 0.0001f)
+        {
+            // 这里的比较用于判断“是否为纯平移”：只需要一个很小的阈值即可。
+            // eps 取值对应世界坐标下的绝对误差（默认 1e-4），对拖动/旋转/缩放的判别足够稳定。
+            return Vector2.DistanceSquared(a, b) <= eps * eps;
+        }
+
         private bool TryDrawInkStroke(ID2D1DeviceContext2 ctx2, Stroke stroke)
         {
             if (stroke.Points.Count < 2)
             {
                 return false;
             }
+
+            Vector2 firstPos = stroke.Points[0].Position;
+            Vector2 lastPos = stroke.Points[^1].Position;
 
             if (!_inkCache.TryGetValue(stroke, out StrokeInkCacheEntry? entry))
             {
@@ -307,6 +337,30 @@ namespace WindBoard.Rendering.Board
             int pointCount = stroke.Points.Count;
             if (pointCount == entry.PointCount)
             {
+                // 点数没变但坐标变了（例如选择工具拖动/缩放/旋转）时，Ink 缓存会过期，导致笔迹渲染停在旧位置，
+                // 从而出现“笔迹与选择框错位”。这里做一次轻量更新：
+                // - 若首尾点位移一致：认为是纯平移，复用 Ink，并记录 DrawOffsetWorld
+                // - 否则：重建 Ink（旋转/缩放会改变相对位置，无法用平移修正）
+                Vector2 expectedFirst = entry.FirstPosition + entry.DrawOffsetWorld;
+                Vector2 expectedLast = entry.LastPosition + entry.DrawOffsetWorld;
+
+                if (NearlyEqual(firstPos, expectedFirst) && NearlyEqual(lastPos, expectedLast))
+                {
+                    return true;
+                }
+
+                Vector2 deltaFirst = firstPos - entry.FirstPosition;
+                Vector2 deltaLast = lastPos - entry.LastPosition;
+                if (NearlyEqual(deltaFirst, deltaLast))
+                {
+                    entry.DrawOffsetWorld = deltaFirst;
+                    return true;
+                }
+
+                entry.Dispose();
+                _inkCache.Remove(stroke);
+                entry = StrokeInkCacheEntry.Create(ctx2, stroke);
+                _inkCache[stroke] = entry;
                 return true;
             }
 
@@ -319,29 +373,53 @@ namespace WindBoard.Rendering.Board
                 return true;
             }
 
+            // 如果缓存处于“偏移绘制”状态，为避免增量追加导致坐标空间混乱，直接重建。
+            if (entry.DrawOffsetWorld.LengthSquared() > 0.0000001f)
+            {
+                entry.Dispose();
+                _inkCache.Remove(stroke);
+                entry = StrokeInkCacheEntry.Create(ctx2, stroke);
+                _inkCache[stroke] = entry;
+                return true;
+            }
+
             entry.AppendSegments(stroke, entry.PointCount);
             entry.PointCount = pointCount;
+            entry.LastPosition = lastPos;
             return true;
         }
 
         private sealed class StrokeInkCacheEntry : IDisposable
         {
-            public StrokeInkCacheEntry(ID2D1Ink ink, int pointCount)
+            public StrokeInkCacheEntry(ID2D1Ink ink, int pointCount, Vector2 firstPosition, Vector2 lastPosition)
             {
                 Ink = ink;
                 PointCount = pointCount;
+                FirstPosition = firstPosition;
+                LastPosition = lastPosition;
             }
 
             public ID2D1Ink Ink { get; }
 
             public int PointCount { get; set; }
 
+            public Vector2 FirstPosition { get; }
+
+            public Vector2 LastPosition { get; set; }
+
+            /// <summary>
+            /// 用于“纯平移”场景的绘制偏移（世界坐标）。
+            /// </summary>
+            public Vector2 DrawOffsetWorld { get; set; }
+
             public static StrokeInkCacheEntry Create(ID2D1DeviceContext2 ctx2, Stroke stroke)
             {
                 InkPoint start = CreateInkPoint(stroke, stroke.Points[0]);
                 ID2D1Ink ink = ctx2.CreateInk(start);
 
-                var entry = new StrokeInkCacheEntry(ink, stroke.Points.Count);
+                Vector2 firstPos = stroke.Points[0].Position;
+                Vector2 lastPos = stroke.Points[^1].Position;
+                var entry = new StrokeInkCacheEntry(ink, stroke.Points.Count, firstPos, lastPos);
 
                 if (stroke.Points.Count > 1)
                 {
