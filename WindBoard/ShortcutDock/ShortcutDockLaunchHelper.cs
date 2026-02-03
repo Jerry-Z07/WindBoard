@@ -9,6 +9,31 @@ namespace WindBoard.ShortcutDock
     /// </summary>
     internal static class ShortcutDockLaunchHelper
     {
+        internal static void NormalizeProgramLaunch(string? input, string? arguments, out string target, out string args)
+        {
+            target = NormalizeInput(input);
+            args = NormalizeArguments(arguments);
+
+            if (string.IsNullOrWhiteSpace(target))
+            {
+                return;
+            }
+
+            // 兼容用户把“启动参数”一起输入到路径中：尝试从命令行里拆出路径与参数。
+            if (TrySplitProgramCommandLine(target, out string splitTarget, out string splitArgs))
+            {
+                if (!string.IsNullOrWhiteSpace(splitTarget))
+                {
+                    target = splitTarget;
+                }
+
+                if (string.IsNullOrWhiteSpace(args) && !string.IsNullOrWhiteSpace(splitArgs))
+                {
+                    args = NormalizeArguments(splitArgs);
+                }
+            }
+        }
+
         internal static string NormalizeInput(string? input)
         {
             if (string.IsNullOrWhiteSpace(input))
@@ -127,6 +152,73 @@ namespace WindBoard.ShortcutDock
                 Arguments = args,
                 WorkingDirectory = Path.GetDirectoryName(target) ?? string.Empty,
             };
+        }
+
+        private static bool TrySplitProgramCommandLine(string input, out string target, out string arguments)
+        {
+            target = input;
+            arguments = string.Empty;
+
+            string value = input.Trim();
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return false;
+            }
+
+            // 情况 1：带引号的路径 + 参数，例如："C:\Program Files\App\app.exe" --foo
+            if (value[0] == '\"' || value[0] == '\'')
+            {
+                char quote = value[0];
+                int endQuote = value.IndexOf(quote, 1);
+                if (endQuote > 1)
+                {
+                    target = value.Substring(1, endQuote - 1).Trim();
+                    arguments = value.Substring(endQuote + 1).Trim();
+                    return true;
+                }
+            }
+
+            // 情况 2：未加引号的路径 + 参数，例如：C:\App\app.exe --foo
+            if (TrySplitByKnownExtension(value, out string splitTarget, out string splitArgs))
+            {
+                target = splitTarget;
+                arguments = splitArgs;
+                return true;
+            }
+
+            return false;
+        }
+
+        private static bool TrySplitByKnownExtension(string input, out string target, out string arguments)
+        {
+            target = input;
+            arguments = string.Empty;
+
+            string[] extensions = { ".exe", ".bat", ".cmd", ".lnk" };
+            foreach (string extension in extensions)
+            {
+                int index = 0;
+                while (index >= 0)
+                {
+                    index = input.IndexOf(extension, index, StringComparison.OrdinalIgnoreCase);
+                    if (index < 0)
+                    {
+                        break;
+                    }
+
+                    int end = index + extension.Length;
+                    if (end == input.Length || char.IsWhiteSpace(input[end]))
+                    {
+                        target = input[..end].TrimEnd();
+                        arguments = input[end..].Trim();
+                        return true;
+                    }
+
+                    index = end;
+                }
+            }
+
+            return false;
         }
     }
 }

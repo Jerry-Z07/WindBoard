@@ -41,10 +41,12 @@ namespace WindBoard.Settings
                             Id = i.Id,
                             Side = i.Side,
                             Type = i.Type,
+                            DisplayName = i.DisplayName,
                             Path = i.Path,
                             Arguments = i.Arguments,
                             IconSource = i.IconSource,
                             IconPath = i.IconPath,
+                            IconSymbol = i.IconSymbol,
                         }).ToList(),
                 },
                 Writing = new WritingSettings

@@ -160,16 +160,19 @@ namespace WindBoard.Settings
                     type = ShortcutDockItemTypes.File;
                 }
 
+                string? displayName = string.IsNullOrWhiteSpace(item.DisplayName) ? null : item.DisplayName.Trim();
                 string path = (item.Path ?? string.Empty).Trim();
 
                 string iconSource = (item.IconSource ?? string.Empty).Trim();
                 if (!string.Equals(iconSource, ShortcutDockIconSources.Default, StringComparison.Ordinal)
-                    && !string.Equals(iconSource, ShortcutDockIconSources.Icon, StringComparison.Ordinal))
+                    && !string.Equals(iconSource, ShortcutDockIconSources.Icon, StringComparison.Ordinal)
+                    && !string.Equals(iconSource, ShortcutDockIconSources.Font, StringComparison.Ordinal))
                 {
                     iconSource = ShortcutDockIconSources.Default;
                 }
 
                 string? iconPath = string.IsNullOrWhiteSpace(item.IconPath) ? null : item.IconPath.Trim();
+                string? iconSymbol = string.IsNullOrWhiteSpace(item.IconSymbol) ? null : item.IconSymbol.Trim();
                 string? arguments = string.IsNullOrWhiteSpace(item.Arguments) ? null : item.Arguments;
 
                 normalized.Add(new ShortcutDockItemSettings
@@ -177,10 +180,12 @@ namespace WindBoard.Settings
                     Id = id,
                     Side = side,
                     Type = type,
+                    DisplayName = displayName,
                     Path = path,
                     Arguments = arguments,
                     IconSource = iconSource,
                     IconPath = iconPath,
+                    IconSymbol = iconSymbol,
                 });
             }
 

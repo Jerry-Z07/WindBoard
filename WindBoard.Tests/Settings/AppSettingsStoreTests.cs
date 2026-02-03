@@ -96,9 +96,11 @@ public sealed class AppSettingsStoreTests
                         Id = " ",
                         Side = "unknown",
                         Type = "unknown",
+                        DisplayName = "  自定义  ",
                         Path = "  C:\\Temp\\a.txt  ",
                         IconSource = "unknown",
                         IconPath = "  C:\\Temp\\icon.png  ",
+                        IconSymbol = "  Add  ",
                         Arguments = "  --foo bar  ",
                     },
                     new ShortcutDockItemSettings
@@ -106,8 +108,10 @@ public sealed class AppSettingsStoreTests
                         Id = "",
                         Side = ShortcutDockSides.Right,
                         Type = ShortcutDockItemTypes.Link,
+                        DisplayName = "  我的链接  ",
                         Path = " https://example.com/path ",
-                        IconSource = ShortcutDockIconSources.Default,
+                        IconSource = ShortcutDockIconSources.Font,
+                        IconSymbol = "  Link  ",
                     },
                     new ShortcutDockItemSettings { Id = "", Path = "" },
                     new ShortcutDockItemSettings { Id = "", Path = "C:\\Temp\\b.txt" },
@@ -126,16 +130,20 @@ public sealed class AppSettingsStoreTests
         Assert.False(string.IsNullOrWhiteSpace(first.Id));
         Assert.Equal(ShortcutDockSides.Left, first.Side);
         Assert.Equal(ShortcutDockItemTypes.File, first.Type);
+        Assert.Equal("自定义", first.DisplayName);
         Assert.Equal("C:\\Temp\\a.txt", first.Path);
         Assert.Equal(ShortcutDockIconSources.Default, first.IconSource);
         Assert.Equal("C:\\Temp\\icon.png", first.IconPath);
+        Assert.Equal("Add", first.IconSymbol);
         Assert.Equal("  --foo bar  ", first.Arguments);
 
         ShortcutDockItemSettings link = settings.Dock.ShortcutItems[1];
         Assert.Equal(ShortcutDockSides.Right, link.Side);
         Assert.Equal(ShortcutDockItemTypes.Link, link.Type);
+        Assert.Equal("我的链接", link.DisplayName);
         Assert.Equal("https://example.com/path", link.Path);
-        Assert.Equal(ShortcutDockIconSources.Default, link.IconSource);
+        Assert.Equal(ShortcutDockIconSources.Font, link.IconSource);
+        Assert.Equal("Link", link.IconSymbol);
     }
 
     // 书写设置为空会补齐默认画笔设置

@@ -4,6 +4,8 @@ using System.Diagnostics;
 using System.IO;
 using System.Net.Http;
 using System.Runtime.InteropServices.WindowsRuntime;
+using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
@@ -30,6 +32,18 @@ namespace WindBoard
     public sealed partial class MainWindow
     {
         private static readonly HttpClient ShortcutDockHttpClient = new();
+        private static readonly Regex ShortcutDockIconLinkRegex = new(
+            "<link[^>]*rel\\s*=\\s*[\"']?[^\"'>]*icon[^\"'>]*[\"']?[^>]*>",
+            RegexOptions.IgnoreCase | RegexOptions.Compiled);
+        private static readonly Regex ShortcutDockHrefRegex = new(
+            "href\\s*=\\s*[\"'](?<href>[^\"']+)[\"']",
+            RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+        static MainWindow()
+        {
+            // 提供 UA，避免部分站点拒绝无 UA 请求。
+            ShortcutDockHttpClient.DefaultRequestHeaders.UserAgent.ParseAdd("WindBoard/1.0");
+        }
 
         private int _shortcutDockApplyVersion;
 
@@ -181,12 +195,28 @@ namespace WindBoard
                 Symbol = fallbackSymbol,
             };
 
+            var fontIcon = new SymbolIcon
+            {
+                Visibility = Visibility.Collapsed,
+            };
+
+            bool useFontIcon = false;
+            if (string.Equals(item.IconSource, ShortcutDockIconSources.Font, StringComparison.Ordinal)
+                && TryGetFontSymbol(item.IconSymbol, out Symbol symbol))
+            {
+                fontIcon.Symbol = symbol;
+                fontIcon.Visibility = Visibility.Visible;
+                fallbackIcon.Visibility = Visibility.Collapsed;
+                useFontIcon = true;
+            }
+
             var iconGrid = new Grid
             {
                 Width = 20,
                 Height = 20,
             };
             iconGrid.Children.Add(fallbackIcon);
+            iconGrid.Children.Add(fontIcon);
             iconGrid.Children.Add(iconImage);
 
             var contentPanel = new StackPanel
@@ -219,7 +249,10 @@ namespace WindBoard
             button.Click += OnShortcutDockItemClicked;
 
             // 异步加载图标：成功后会覆盖 fallback 图标。
-            _ = TryLoadShortcutIconIntoImageAsync(item, iconImage, applyVersion);
+            if (!useFontIcon)
+            {
+                _ = TryLoadShortcutIconIntoImageAsync(item, iconImage, fallbackIcon, applyVersion);
+            }
             return button;
         }
 
@@ -240,22 +273,41 @@ namespace WindBoard
 
         private static string GetShortcutTitle(ShortcutDockItemSettings item)
         {
-            string path = item.Path?.Trim() ?? string.Empty;
-
-            if (string.IsNullOrWhiteSpace(path))
+            if (!string.IsNullOrWhiteSpace(item.DisplayName))
             {
-                return "未配置";
+                return item.DisplayName.Trim();
             }
 
             if (string.Equals(item.Type, ShortcutDockItemTypes.Link, StringComparison.Ordinal))
             {
-                if (Uri.TryCreate(path, UriKind.Absolute, out Uri? uri) && !string.IsNullOrWhiteSpace(uri.Host))
+                string linkPath = item.Path?.Trim() ?? string.Empty;
+                if (string.IsNullOrWhiteSpace(linkPath))
+                {
+                    return "未配置";
+                }
+
+                if (Uri.TryCreate(linkPath, UriKind.Absolute, out Uri? uri) && !string.IsNullOrWhiteSpace(uri.Host))
                 {
                     // 展示 Host：避免过长 URL 挤压 Dock。
                     return uri.Host;
                 }
 
                 return "链接";
+            }
+
+            string path = item.Path?.Trim() ?? string.Empty;
+            if (string.Equals(item.Type, ShortcutDockItemTypes.Program, StringComparison.Ordinal))
+            {
+                ShortcutDockLaunchHelper.NormalizeProgramLaunch(item.Path, item.Arguments, out string programTarget, out _);
+                if (!string.IsNullOrWhiteSpace(programTarget))
+                {
+                    path = programTarget;
+                }
+            }
+
+            if (string.IsNullOrWhiteSpace(path))
+            {
+                return "未配置";
             }
 
             try
@@ -269,7 +321,33 @@ namespace WindBoard
             }
         }
 
-        private async Task TryLoadShortcutIconIntoImageAsync(ShortcutDockItemSettings item, Image target, int applyVersion)
+        private static bool TryGetFontSymbol(string? symbolName, out Symbol symbol)
+        {
+            symbol = default;
+            if (string.IsNullOrWhiteSpace(symbolName))
+            {
+                return false;
+            }
+
+            if (!Enum.TryParse(symbolName.Trim(), out Symbol parsed))
+            {
+                return false;
+            }
+
+            if (!Enum.IsDefined(typeof(Symbol), parsed))
+            {
+                return false;
+            }
+
+            symbol = parsed;
+            return true;
+        }
+
+        private async Task TryLoadShortcutIconIntoImageAsync(
+            ShortcutDockItemSettings item,
+            Image target,
+            UIElement fallbackIcon,
+            int applyVersion)
         {
             try
             {
@@ -284,6 +362,8 @@ namespace WindBoard
                 if (source is not null)
                 {
                     target.Source = source;
+                    // 成功加载图标后隐藏默认图标，避免叠在一起。
+                    fallbackIcon.Visibility = Visibility.Collapsed;
                 }
             }
             catch
@@ -311,7 +391,17 @@ namespace WindBoard
                 return await TryLoadFaviconAsync(item.Path).ConfigureAwait(true);
             }
 
-            return await TryLoadFileOrFolderIconAsync(item.Path).ConfigureAwait(true);
+            string iconTarget = item.Path;
+            if (string.Equals(type, ShortcutDockItemTypes.Program, StringComparison.Ordinal))
+            {
+                ShortcutDockLaunchHelper.NormalizeProgramLaunch(item.Path, item.Arguments, out string programTarget, out _);
+                if (!string.IsNullOrWhiteSpace(programTarget))
+                {
+                    iconTarget = programTarget;
+                }
+            }
+
+            return await TryLoadFileOrFolderIconAsync(iconTarget).ConfigureAwait(true);
         }
 
         private static async Task<ImageSource?> TryLoadBitmapFromFilePathAsync(string? filePath)
@@ -403,30 +493,130 @@ namespace WindBoard
                 return null;
             }
 
-            Uri faviconUri = new(uri.GetLeftPart(UriPartial.Authority) + "/favicon.ico");
+            Uri baseUri = new(uri.GetLeftPart(UriPartial.Authority));
+            List<Uri> candidates = new();
 
+            Uri? htmlIcon = await TryFindFaviconFromHtmlAsync(uri).ConfigureAwait(false);
+            if (htmlIcon is not null)
+            {
+                candidates.Add(htmlIcon);
+            }
+
+            candidates.Add(new Uri(baseUri, "/favicon.ico"));
+            candidates.Add(new Uri(baseUri, "/favicon.png"));
+            candidates.Add(new Uri(baseUri, "/apple-touch-icon.png"));
+            candidates.Add(new Uri(baseUri, "/apple-touch-icon-precomposed.png"));
+
+            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (Uri candidate in candidates)
+            {
+                if (!seen.Add(candidate.AbsoluteUri))
+                {
+                    continue;
+                }
+
+                try
+                {
+                    // favicon 一般很小，这里直接读取 byte[]，失败则回退。
+                    byte[] bytes = await ShortcutDockHttpClient.GetByteArrayAsync(candidate).ConfigureAwait(false);
+                    if (bytes is null || bytes.Length == 0)
+                    {
+                        continue;
+                    }
+
+                    // 简单防御：避免误下载到过大的文件。
+                    if (bytes.Length > 256 * 1024)
+                    {
+                        continue;
+                    }
+
+                    using var stream = new InMemoryRandomAccessStream();
+                    await stream.WriteAsync(bytes.AsBuffer());
+                    stream.Seek(0);
+
+                    var bitmap = new BitmapImage();
+                    await bitmap.SetSourceAsync(stream);
+                    return bitmap;
+                }
+                catch
+                {
+                    // 继续尝试下一个候选图标。
+                }
+            }
+
+            return null;
+        }
+
+        private static async Task<Uri?> TryFindFaviconFromHtmlAsync(Uri pageUri)
+        {
+            string? html = await TryDownloadHtmlAsync(pageUri).ConfigureAwait(false);
+            if (string.IsNullOrWhiteSpace(html))
+            {
+                return null;
+            }
+
+            foreach (Match match in ShortcutDockIconLinkRegex.Matches(html))
+            {
+                Match hrefMatch = ShortcutDockHrefRegex.Match(match.Value);
+                if (!hrefMatch.Success)
+                {
+                    continue;
+                }
+
+                string href = hrefMatch.Groups["href"].Value.Trim();
+                if (string.IsNullOrWhiteSpace(href))
+                {
+                    continue;
+                }
+
+                if (href.StartsWith("data:", StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                if (Uri.TryCreate(pageUri, href, out Uri? iconUri))
+                {
+                    return iconUri;
+                }
+            }
+
+            return null;
+        }
+
+        private static async Task<string?> TryDownloadHtmlAsync(Uri pageUri)
+        {
             try
             {
-                // favicon 一般很小，这里直接读取 byte[]，失败则回退。
-                byte[] bytes = await ShortcutDockHttpClient.GetByteArrayAsync(faviconUri).ConfigureAwait(false);
-                if (bytes is null || bytes.Length == 0)
+                using var request = new HttpRequestMessage(HttpMethod.Get, pageUri);
+                request.Headers.Accept.ParseAdd("text/html,application/xhtml+xml");
+
+                using HttpResponseMessage response = await ShortcutDockHttpClient
+                    .SendAsync(request, HttpCompletionOption.ResponseHeadersRead)
+                    .ConfigureAwait(false);
+
+                if (!response.IsSuccessStatusCode)
                 {
                     return null;
                 }
 
-                // 简单防御：避免误下载到过大的文件。
-                if (bytes.Length > 256 * 1024)
+                string? contentType = response.Content.Headers.ContentType?.MediaType;
+                if (contentType is not null
+                    && !contentType.Contains("html", StringComparison.OrdinalIgnoreCase))
                 {
                     return null;
                 }
 
-                using var stream = new InMemoryRandomAccessStream();
-                await stream.WriteAsync(bytes.AsBuffer());
-                stream.Seek(0);
+                using Stream stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
+                using var reader = new StreamReader(stream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true);
 
-                var bitmap = new BitmapImage();
-                await bitmap.SetSourceAsync(stream);
-                return bitmap;
+                char[] buffer = new char[256 * 1024];
+                int read = await reader.ReadAsync(buffer, 0, buffer.Length).ConfigureAwait(false);
+                if (read <= 0)
+                {
+                    return null;
+                }
+
+                return new string(buffer, 0, read);
             }
             catch
             {
@@ -441,9 +631,12 @@ namespace WindBoard
                 return;
             }
 
+            Debug.WriteLine($"[ShortcutDock] 点击：type={item.Type}, path='{item.Path}', args='{item.Arguments}'");
+
             string target = ShortcutDockLaunchHelper.NormalizeInput(item.Path);
             if (string.IsNullOrWhiteSpace(target))
             {
+                Debug.WriteLine("[ShortcutDock] 点击忽略：路径为空");
                 return;
             }
 
@@ -453,11 +646,13 @@ namespace WindBoard
                 {
                     if (!ShortcutDockLaunchHelper.TryNormalizeLinkUri(target, out Uri? uri))
                     {
+                        Debug.WriteLine($"[ShortcutDock] 链接解析失败：input='{target}'");
                         await ShowShortcutDockErrorDialogAsync("链接无效", "请输入有效的网址（例如 https://example.com）。");
                         return;
                     }
 
                     Uri safeUri = uri!;
+                    Debug.WriteLine($"[ShortcutDock] 打开链接：{safeUri}");
                     Process.Start(new ProcessStartInfo(safeUri.ToString()) { UseShellExecute = true });
 
                     return;
@@ -465,35 +660,61 @@ namespace WindBoard
 
                 if (string.Equals(item.Type, ShortcutDockItemTypes.Program, StringComparison.Ordinal))
                 {
-                    if (!File.Exists(target))
+                    ShortcutDockLaunchHelper.NormalizeProgramLaunch(item.Path, item.Arguments, out string programTarget, out string programArgs);
+                    if (string.IsNullOrWhiteSpace(programTarget))
                     {
-                        await ShowShortcutDockErrorDialogAsync("程序不存在", "请检查程序路径是否存在。");
+                        Debug.WriteLine("[ShortcutDock] 程序启动忽略：规范化后路径为空");
                         return;
                     }
 
+                    bool fileExists = File.Exists(programTarget);
+                    Debug.WriteLine($"[ShortcutDock] 程序启动：target='{programTarget}', args='{programArgs}', fileExists={fileExists}");
                     try
                     {
-                        ProcessStartInfo info = ShortcutDockLaunchHelper.CreateProgramProcessStartInfo(target, item.Arguments);
-                        Process.Start(info);
+                        if (fileExists)
+                        {
+                            ProcessStartInfo info = ShortcutDockLaunchHelper.CreateProgramProcessStartInfo(programTarget, programArgs);
+                            Debug.WriteLine($"[ShortcutDock] CreateProcess：useShell={info.UseShellExecute}, wd='{info.WorkingDirectory}', args='{info.Arguments}'");
+                            Process.Start(info);
+                        }
+                        else
+                        {
+                            // 允许“应用别名 / App Paths / shell:AppsFolder”等非文件路径：交给 Shell 解析。
+                            var shellInfo = new ProcessStartInfo(programTarget)
+                            {
+                                UseShellExecute = true,
+                                Arguments = programArgs,
+                            };
+                            Debug.WriteLine($"[ShortcutDock] ShellExecute：args='{shellInfo.Arguments}'");
+                            Process.Start(shellInfo);
+                        }
                     }
                     catch (Exception ex)
                     {
-                        // 兜底：某些程序（例如需要提权的 exe）在 UseShellExecute=false 时可能启动失败，
-                        // 这里回退到 ShellExecute 尝试触发系统默认行为（可能会弹出 UAC）。
-                        try
+                        Debug.WriteLine($"[ShortcutDock] 程序启动异常：{ex}");
+                        if (fileExists)
                         {
-                            string args = ShortcutDockLaunchHelper.NormalizeArguments(item.Arguments);
-                            var fallbackInfo = new ProcessStartInfo(target)
+                            // 兜底：某些程序（例如需要提权的 exe）在 UseShellExecute=false 时可能启动失败，
+                            // 这里回退到 ShellExecute 尝试触发系统默认行为（可能会弹出 UAC）。
+                            try
                             {
-                                UseShellExecute = true,
-                                Arguments = args,
-                                WorkingDirectory = Path.GetDirectoryName(target) ?? string.Empty,
-                            };
-                            Process.Start(fallbackInfo);
+                                var fallbackInfo = new ProcessStartInfo(programTarget)
+                                {
+                                    UseShellExecute = true,
+                                    Arguments = programArgs,
+                                    WorkingDirectory = Path.GetDirectoryName(programTarget) ?? string.Empty,
+                                };
+                                Debug.WriteLine($"[ShortcutDock] 程序启动兜底：useShell={fallbackInfo.UseShellExecute}, wd='{fallbackInfo.WorkingDirectory}', args='{fallbackInfo.Arguments}'");
+                                Process.Start(fallbackInfo);
+                            }
+                            catch
+                            {
+                                await ShowShortcutDockErrorDialogAsync("启动失败", ex.Message);
+                            }
                         }
-                        catch
+                        else
                         {
-                            await ShowShortcutDockErrorDialogAsync("启动失败", ex.Message);
+                            await ShowShortcutDockErrorDialogAsync("程序不存在", "请检查程序路径或可执行命令是否正确。");
                         }
                     }
                     return;
@@ -502,14 +723,17 @@ namespace WindBoard
                 // 默认按“文件”处理：交给系统默认程序打开。
                 if (!File.Exists(target) && !Directory.Exists(target))
                 {
+                    Debug.WriteLine($"[ShortcutDock] 文件/文件夹不存在：'{target}'");
                     await ShowShortcutDockErrorDialogAsync("路径不存在", "请检查路径是否存在。");
                     return;
                 }
 
+                Debug.WriteLine($"[ShortcutDock] 打开文件/文件夹：'{target}'");
                 Process.Start(new ProcessStartInfo(target) { UseShellExecute = true });
             }
             catch (Exception ex)
             {
+                Debug.WriteLine($"[ShortcutDock] 打开失败：{ex}");
                 await ShowShortcutDockErrorDialogAsync("打开失败", ex.Message);
             }
         }

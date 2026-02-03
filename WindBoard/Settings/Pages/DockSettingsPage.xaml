@@ -319,6 +319,13 @@
                                             </StackPanel>
 
                                             <StackPanel Spacing="6">
+                                                <TextBlock Text="显示名称" FontWeight="SemiBold" />
+                                                <TextBox
+                                                    Text="{x:Bind DisplayName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                    PlaceholderText="留空使用默认名称" />
+                                            </StackPanel>
+
+                                            <StackPanel Spacing="6">
                                                 <TextBlock Text="图标" FontWeight="SemiBold" />
                                                 <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
                                                     <ComboBox
@@ -326,6 +333,7 @@
                                                         SelectedValue="{x:Bind IconSource, Mode=TwoWay}">
                                                         <ComboBoxItem Content="默认" Tag="default" />
                                                         <ComboBoxItem Content="自定义图标" Tag="icon" />
+                                                        <ComboBoxItem Content="图标字体" Tag="font" />
                                                     </ComboBox>
                                                     <TextBox
                                                         Grid.Column="1"
@@ -339,6 +347,40 @@
                                                         Tag="{x:Bind}"
                                                         Click="OnBrowseShortcutDockIconClicked" />
                                                 </Grid>
+                                                <StackPanel Spacing="6" Visibility="{x:Bind IconFontPanelVisibility, Mode=OneWay}">
+                                                    <TextBox
+                                                        Text="{x:Bind FontIconSearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                        PlaceholderText="搜索图标（按名称匹配）" />
+                                                    <ListView
+                                                        ItemsSource="{x:Bind FilteredFontIcons, Mode=OneWay}"
+                                                        SelectedItem="{x:Bind SelectedFontIcon, Mode=TwoWay}"
+                                                        SelectionMode="Single"
+                                                        IsItemClickEnabled="False"
+                                                        ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                                        MaxHeight="160">
+                                                        <ListView.ItemsPanel>
+                                                            <ItemsPanelTemplate>
+                                                                <ItemsWrapGrid Orientation="Horizontal" MaximumRowsOrColumns="2" />
+                                                            </ItemsPanelTemplate>
+                                                        </ListView.ItemsPanel>
+                                                        <ListView.ItemTemplate>
+                                                            <DataTemplate x:DataType="local:ShortcutDockFontIcon">
+                                                                <StackPanel Width="96" Spacing="4" Padding="6">
+                                                                    <SymbolIcon Symbol="{x:Bind Symbol}" HorizontalAlignment="Center" />
+                                                                    <TextBlock
+                                                                        FontSize="11"
+                                                                        Text="{x:Bind Name}"
+                                                                        TextAlignment="Center"
+                                                                        TextWrapping="WrapWholeWords" />
+                                                                </StackPanel>
+                                                            </DataTemplate>
+                                                        </ListView.ItemTemplate>
+                                                    </ListView>
+                                                    <TextBlock
+                                                        Text="{x:Bind FontIconSelectionHint, Mode=OneWay}"
+                                                        Opacity="0.75"
+                                                        TextWrapping="WrapWholeWords" />
+                                                </StackPanel>
                                                 <TextBlock
                                                     Text="{x:Bind IconHint, Mode=OneWay}"
                                                     Opacity="0.75"

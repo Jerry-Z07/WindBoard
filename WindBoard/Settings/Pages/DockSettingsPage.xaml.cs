@@ -459,12 +459,18 @@ namespace WindBoard.Settings.Pages
     {
         private string _side = ShortcutDockSides.Left;
         private string _type = ShortcutDockItemTypes.File;
+        private string _displayName = string.Empty;
         private string _path = string.Empty;
         private string _iconSource = ShortcutDockIconSources.Default;
         private string _iconPath = string.Empty;
+        private string _iconSymbol = string.Empty;
         private string _arguments = string.Empty;
+        private string _fontIconSearchText = string.Empty;
+        private ShortcutDockFontIcon? _selectedFontIcon;
 
         public string Id { get; }
+
+        public ObservableCollection<ShortcutDockFontIcon> FilteredFontIcons { get; } = new();
 
         public string Side
         {
@@ -500,6 +506,21 @@ namespace WindBoard.Settings.Pages
             }
         }
 
+        public string DisplayName
+        {
+            get => _displayName;
+            set
+            {
+                if (string.Equals(_displayName, value, StringComparison.Ordinal))
+                {
+                    return;
+                }
+
+                _displayName = value ?? string.Empty;
+                OnPropertyChanged();
+            }
+        }
+
         public string Path
         {
             get => _path;
@@ -529,6 +550,8 @@ namespace WindBoard.Settings.Pages
                 OnPropertyChanged();
                 OnPropertyChanged(nameof(IconBrowseVisibility));
                 OnPropertyChanged(nameof(IconPathTextVisibility));
+                OnPropertyChanged(nameof(IconFontPanelVisibility));
+                OnPropertyChanged(nameof(FontIconSelectionHint));
                 OnPropertyChanged(nameof(IconHint));
             }
         }
@@ -548,6 +571,23 @@ namespace WindBoard.Settings.Pages
             }
         }
 
+        public string IconSymbol
+        {
+            get => _iconSymbol;
+            set
+            {
+                if (string.Equals(_iconSymbol, value, StringComparison.Ordinal))
+                {
+                    return;
+                }
+
+                _iconSymbol = value ?? string.Empty;
+                OnPropertyChanged();
+                SyncSelectedFontIconFromSymbol(raisePropertyChanged: true);
+                OnPropertyChanged(nameof(FontIconSelectionHint));
+            }
+        }
+
         public string Arguments
         {
             get => _arguments;
@@ -561,6 +601,28 @@ namespace WindBoard.Settings.Pages
                 _arguments = value ?? string.Empty;
                 OnPropertyChanged();
             }
+        }
+
+        public string FontIconSearchText
+        {
+            get => _fontIconSearchText;
+            set
+            {
+                if (string.Equals(_fontIconSearchText, value, StringComparison.Ordinal))
+                {
+                    return;
+                }
+
+                _fontIconSearchText = value ?? string.Empty;
+                OnPropertyChanged();
+                UpdateFontIconFilter();
+            }
+        }
+
+        public ShortcutDockFontIcon? SelectedFontIcon
+        {
+            get => _selectedFontIcon;
+            set => SetSelectedFontIcon(value);
         }
 
         public string PathHeader => string.Equals(Type, ShortcutDockItemTypes.Link, StringComparison.Ordinal) ? "网址" : "路径";
@@ -585,8 +647,16 @@ namespace WindBoard.Settings.Pages
             ? Visibility.Visible
             : Visibility.Collapsed;
 
+        public Visibility IconFontPanelVisibility => string.Equals(IconSource, ShortcutDockIconSources.Font, StringComparison.Ordinal)
+            ? Visibility.Visible
+            : Visibility.Collapsed;
+
+        public string FontIconSelectionHint => SelectedFontIcon is null ? "未选择图标" : $"已选择：{SelectedFontIcon.Name}";
+
         public string IconHint => string.Equals(IconSource, ShortcutDockIconSources.Icon, StringComparison.Ordinal)
             ? "自定义图标：使用所选文件；如果无法加载，将回退为默认图标。"
+            : string.Equals(IconSource, ShortcutDockIconSources.Font, StringComparison.Ordinal)
+                ? "字体图标：从内置图标字体选择。"
             : "默认图标：文件按扩展名图标，链接尝试网站图标，程序尝试提取程序图标；失败将回退默认。";
 
         public event PropertyChangedEventHandler? PropertyChanged;
@@ -598,15 +668,20 @@ namespace WindBoard.Settings.Pages
             // 注意：这里不要走属性 setter，避免初始化时触发 PropertyChanged，从而触发防抖保存。
             _side = string.IsNullOrWhiteSpace(settings.Side) ? ShortcutDockSides.Left : settings.Side;
             _type = string.IsNullOrWhiteSpace(settings.Type) ? ShortcutDockItemTypes.File : settings.Type;
+            _displayName = settings.DisplayName ?? string.Empty;
             _path = settings.Path ?? string.Empty;
             _iconSource = string.IsNullOrWhiteSpace(settings.IconSource) ? ShortcutDockIconSources.Default : settings.IconSource;
             _iconPath = settings.IconPath ?? string.Empty;
+            _iconSymbol = settings.IconSymbol ?? string.Empty;
             _arguments = settings.Arguments ?? string.Empty;
+            UpdateFontIconFilter();
+            SyncSelectedFontIconFromSymbol(raisePropertyChanged: false);
         }
 
         private ShortcutDockItemEditorViewModel(string id)
         {
             Id = id;
+            UpdateFontIconFilter();
         }
 
         public static ShortcutDockItemEditorViewModel CreateDefault()
@@ -623,9 +698,11 @@ namespace WindBoard.Settings.Pages
         {
             string side = Side?.Trim() ?? ShortcutDockSides.Left;
             string type = Type?.Trim() ?? ShortcutDockItemTypes.File;
+            string displayName = DisplayName ?? string.Empty;
             string path = Path?.Trim() ?? string.Empty;
             string iconSource = IconSource?.Trim() ?? ShortcutDockIconSources.Default;
             string iconPath = IconPath?.Trim() ?? string.Empty;
+            string iconSymbol = IconSymbol ?? string.Empty;
             string arguments = Arguments ?? string.Empty;
 
             return new ShortcutDockItemSettings
@@ -633,16 +710,128 @@ namespace WindBoard.Settings.Pages
                 Id = Id,
                 Side = side,
                 Type = type,
+                DisplayName = string.IsNullOrWhiteSpace(displayName) ? null : displayName.Trim(),
                 Path = path,
                 Arguments = string.IsNullOrWhiteSpace(arguments) ? null : arguments.Trim(),
                 IconSource = iconSource,
                 IconPath = string.IsNullOrWhiteSpace(iconPath) ? null : iconPath,
+                IconSymbol = string.IsNullOrWhiteSpace(iconSymbol) ? null : iconSymbol.Trim(),
             };
+        }
+
+        private void SetSelectedFontIcon(ShortcutDockFontIcon? value)
+        {
+            if (ReferenceEquals(_selectedFontIcon, value))
+            {
+                return;
+            }
+
+            _selectedFontIcon = value;
+            _iconSymbol = value?.Symbol.ToString() ?? string.Empty;
+            OnPropertyChanged(nameof(SelectedFontIcon));
+            OnPropertyChanged(nameof(IconSymbol));
+            OnPropertyChanged(nameof(FontIconSelectionHint));
+        }
+
+        private void SyncSelectedFontIconFromSymbol(bool raisePropertyChanged)
+        {
+            ShortcutDockFontIcon? match = ShortcutDockFontIconCatalog.FindBySymbolName(_iconSymbol);
+            if (ReferenceEquals(_selectedFontIcon, match))
+            {
+                return;
+            }
+
+            _selectedFontIcon = match;
+            if (raisePropertyChanged)
+            {
+                OnPropertyChanged(nameof(SelectedFontIcon));
+            }
+        }
+
+        private void UpdateFontIconFilter()
+        {
+            FilteredFontIcons.Clear();
+
+            string query = _fontIconSearchText.Trim();
+            IEnumerable<ShortcutDockFontIcon> source = ShortcutDockFontIconCatalog.Icons;
+            if (!string.IsNullOrWhiteSpace(query))
+            {
+                source = source.Where(item => item.Matches(query));
+            }
+
+            foreach (ShortcutDockFontIcon item in source)
+            {
+                FilteredFontIcons.Add(item);
+            }
+
+            if (_selectedFontIcon is not null && !FilteredFontIcons.Contains(_selectedFontIcon))
+            {
+                // 保持已选项可见，避免搜索后无法看到当前选择。
+                FilteredFontIcons.Insert(0, _selectedFontIcon);
+            }
         }
 
         private void OnPropertyChanged([CallerMemberName] string? propertyName = null)
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
+    }
+
+    public sealed class ShortcutDockFontIcon
+    {
+        public string Name { get; }
+
+        public Symbol Symbol { get; }
+
+        public ShortcutDockFontIcon(string name, Symbol symbol)
+        {
+            Name = name;
+            Symbol = symbol;
+        }
+
+        public bool Matches(string query)
+        {
+            if (string.IsNullOrWhiteSpace(query))
+            {
+                return true;
+            }
+
+            return Name.Contains(query, StringComparison.OrdinalIgnoreCase)
+                || Symbol.ToString().Contains(query, StringComparison.OrdinalIgnoreCase);
+        }
+    }
+
+    internal static class ShortcutDockFontIconCatalog
+    {
+        private static readonly IReadOnlyList<ShortcutDockFontIcon> AllIcons = BuildIcons();
+
+        internal static IReadOnlyList<ShortcutDockFontIcon> Icons => AllIcons;
+
+        internal static ShortcutDockFontIcon? FindBySymbolName(string? symbolName)
+        {
+            if (string.IsNullOrWhiteSpace(symbolName))
+            {
+                return null;
+            }
+
+            if (!Enum.TryParse(symbolName, out Symbol symbol))
+            {
+                return null;
+            }
+
+            return AllIcons.FirstOrDefault(icon => icon.Symbol == symbol);
+        }
+
+        private static IReadOnlyList<ShortcutDockFontIcon> BuildIcons()
+        {
+            var list = new List<ShortcutDockFontIcon>();
+            foreach (Symbol symbol in Enum.GetValues<Symbol>())
+            {
+                list.Add(new ShortcutDockFontIcon(symbol.ToString(), symbol));
+            }
+
+            list.Sort((left, right) => string.Compare(left.Name, right.Name, StringComparison.OrdinalIgnoreCase));
+            return list;
         }
     }
 }

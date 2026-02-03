@@ -12,18 +12,22 @@ public sealed class ShortcutDockItemEditorViewModelTests
         ShortcutDockItemEditorViewModel vm = ShortcutDockItemEditorViewModel.CreateDefault();
         vm.Side = " left ";
         vm.Type = " program ";
+        vm.DisplayName = "  我的应用  ";
         vm.Path = "  C:\\Temp\\app.exe  ";
-        vm.IconSource = " icon ";
+        vm.IconSource = " font ";
         vm.IconPath = "   ";
+        vm.IconSymbol = "  Add  ";
         vm.Arguments = "   ";
 
         ShortcutDockItemSettings settings = vm.ToSettings();
 
         Assert.Equal("left", settings.Side);
         Assert.Equal("program", settings.Type);
+        Assert.Equal("我的应用", settings.DisplayName);
         Assert.Equal("C:\\Temp\\app.exe", settings.Path);
-        Assert.Equal("icon", settings.IconSource);
+        Assert.Equal("font", settings.IconSource);
         Assert.Null(settings.IconPath);
+        Assert.Equal("Add", settings.IconSymbol);
         Assert.Null(settings.Arguments);
     }
 

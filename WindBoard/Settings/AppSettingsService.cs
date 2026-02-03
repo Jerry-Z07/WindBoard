@@ -70,10 +70,12 @@ namespace WindBoard.Settings
                             Id = item.Id,
                             Side = item.Side,
                             Type = item.Type,
+                            DisplayName = item.DisplayName,
                             Path = item.Path,
                             Arguments = item.Arguments,
                             IconSource = item.IconSource,
                             IconPath = item.IconPath,
+                            IconSymbol = item.IconSymbol,
                         });
                     }
                 }

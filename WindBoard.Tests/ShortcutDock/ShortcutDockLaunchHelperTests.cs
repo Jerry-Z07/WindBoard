@@ -37,5 +37,21 @@ public sealed class ShortcutDockLaunchHelperTests
         Assert.Equal(expectedScheme, uri!.Scheme);
         Assert.Equal(expectedHost, uri.Host);
     }
-}
 
+    [Theory]
+    [InlineData("\"C:\\Program Files\\MyApp\\app.exe\" --foo bar", "", @"C:\Program Files\MyApp\app.exe", "--foo bar")]
+    [InlineData("C:\\Program Files\\MyApp\\app.exe --foo", "", @"C:\Program Files\MyApp\app.exe", "--foo")]
+    [InlineData("C:\\Program Files\\MyApp\\app.exe", "--foo", @"C:\Program Files\MyApp\app.exe", "--foo")]
+    [InlineData("\"C:\\Program Files\\MyApp\\app.exe\" --foo", "--bar", @"C:\Program Files\MyApp\app.exe", "--bar")]
+    public void NormalizeProgramLaunch_SplitsInlineArguments(
+        string input,
+        string explicitArgs,
+        string expectedTarget,
+        string expectedArgs)
+    {
+        ShortcutDockLaunchHelper.NormalizeProgramLaunch(input, explicitArgs, out string target, out string args);
+
+        Assert.Equal(expectedTarget, target);
+        Assert.Equal(expectedArgs, args);
+    }
+}

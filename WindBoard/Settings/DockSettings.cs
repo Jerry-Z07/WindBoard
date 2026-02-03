@@ -32,6 +32,11 @@ namespace WindBoard.Settings
         /// 用户自定义图标（选择一个图片/图标文件）。
         /// </summary>
         public const string Icon = "icon";
+
+        /// <summary>
+        /// 图标字体（内置图标字体中的某个字形）。
+        /// </summary>
+        public const string Font = "font";
     }
 
     /// <summary>
@@ -55,6 +60,11 @@ namespace WindBoard.Settings
         public string Type { get; set; } = ShortcutDockItemTypes.File;
 
         /// <summary>
+        /// 显示名称：为空时使用默认名称。
+        /// </summary>
+        public string? DisplayName { get; set; }
+
+        /// <summary>
         /// 路径或网址：
         /// - 文件/程序：本地路径（例如 C:\a\b.txt 或 C:\a\app.exe）
         /// - 链接：http/https URL
@@ -75,6 +85,11 @@ namespace WindBoard.Settings
         /// 自定义图标路径：仅当 <see cref="IconSource"/> 为 <see cref="ShortcutDockIconSources.Icon"/> 时使用。
         /// </summary>
         public string? IconPath { get; set; }
+
+        /// <summary>
+        /// 字体图标名称（Symbol）：仅当 <see cref="IconSource"/> 为 <see cref="ShortcutDockIconSources.Font"/> 时使用。
+        /// </summary>
+        public string? IconSymbol { get; set; }
     }
 
     /// <summary>
