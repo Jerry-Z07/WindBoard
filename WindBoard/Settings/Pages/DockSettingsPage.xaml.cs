@@ -302,7 +302,6 @@ namespace WindBoard.Settings.Pages
             picker.FileTypeFilter.Add(".jpeg");
             picker.FileTypeFilter.Add(".bmp");
             picker.FileTypeFilter.Add(".gif");
-            picker.FileTypeFilter.Add(".ico");
 
             StorageFile? file = await picker.PickSingleFileAsync();
             if (file is null)

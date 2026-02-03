@@ -304,15 +304,15 @@
                                             </Grid>
 
                                             <StackPanel Spacing="6">
-                                                <TextBlock Text="{x:Bind PathHeader}" FontWeight="SemiBold" />
+                                                <TextBlock Text="{x:Bind PathHeader, Mode=OneWay}" FontWeight="SemiBold" />
                                                 <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
                                                     <TextBox
                                                         Text="{x:Bind Path, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                                        PlaceholderText="{x:Bind PathPlaceholder}" />
+                                                        PlaceholderText="{x:Bind PathPlaceholder, Mode=OneWay}" />
                                                     <Button
                                                         Grid.Column="1"
                                                         Content="选择..."
-                                                        Visibility="{x:Bind PathBrowseVisibility}"
+                                                        Visibility="{x:Bind PathBrowseVisibility, Mode=OneWay}"
                                                         Tag="{x:Bind}"
                                                         Click="OnBrowseShortcutDockPathClicked" />
                                                 </Grid>
@@ -331,21 +331,21 @@
                                                         Grid.Column="1"
                                                         Text="{x:Bind IconPath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                                         PlaceholderText="选择图标文件（可为空）"
-                                                        Visibility="{x:Bind IconPathTextVisibility}" />
+                                                        Visibility="{x:Bind IconPathTextVisibility, Mode=OneWay}" />
                                                     <Button
                                                         Grid.Column="2"
                                                         Content="选择..."
-                                                        Visibility="{x:Bind IconBrowseVisibility}"
+                                                        Visibility="{x:Bind IconBrowseVisibility, Mode=OneWay}"
                                                         Tag="{x:Bind}"
                                                         Click="OnBrowseShortcutDockIconClicked" />
                                                 </Grid>
                                                 <TextBlock
-                                                    Text="{x:Bind IconHint}"
+                                                    Text="{x:Bind IconHint, Mode=OneWay}"
                                                     Opacity="0.75"
                                                     TextWrapping="WrapWholeWords" />
                                             </StackPanel>
 
-                                            <StackPanel Spacing="6" Visibility="{x:Bind ArgumentsPanelVisibility}">
+                                            <StackPanel Spacing="6" Visibility="{x:Bind ArgumentsPanelVisibility, Mode=OneWay}">
                                                 <TextBlock Text="启动参数" FontWeight="SemiBold" />
                                                 <TextBox
                                                     Text="{x:Bind Arguments, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"

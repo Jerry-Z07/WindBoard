@@ -1,4 +1,6 @@
 using System;
+using System.Diagnostics;
+using System.IO;
 
 namespace WindBoard.ShortcutDock
 {
@@ -70,6 +72,61 @@ namespace WindBoard.ShortcutDock
 
             return false;
         }
+
+        internal static ProcessStartInfo CreateProgramProcessStartInfo(string targetPath, string? arguments)
+        {
+            string target = NormalizeInput(targetPath);
+            string args = NormalizeArguments(arguments);
+
+            string ext;
+            try
+            {
+                ext = Path.GetExtension(target).ToLowerInvariant();
+            }
+            catch
+            {
+                ext = string.Empty;
+            }
+
+            // 说明：
+            // - .exe：UseShellExecute=false 使用 CreateProcess，更稳定且参数行为更可控；
+            // - .bat/.cmd：通过 cmd.exe /c 执行，确保参数可用；
+            // - .lnk：交给 Shell 打开（参数不保证生效）。
+            if (string.Equals(ext, ".exe", StringComparison.Ordinal))
+            {
+                return new ProcessStartInfo(target)
+                {
+                    UseShellExecute = false,
+                    Arguments = args,
+                    WorkingDirectory = Path.GetDirectoryName(target) ?? string.Empty,
+                };
+            }
+
+            if (string.Equals(ext, ".bat", StringComparison.Ordinal) || string.Equals(ext, ".cmd", StringComparison.Ordinal))
+            {
+                // cmd.exe /c ""C:\a\b.cmd" arg1 arg2"
+                string command = $"\"{target}\"";
+                if (!string.IsNullOrWhiteSpace(args))
+                {
+                    command += " " + args;
+                }
+
+                return new ProcessStartInfo("cmd.exe")
+                {
+                    UseShellExecute = false,
+                    Arguments = "/c \"" + command + "\"",
+                    WorkingDirectory = Path.GetDirectoryName(target) ?? string.Empty,
+                };
+            }
+
+            return new ProcessStartInfo(target)
+            {
+                UseShellExecute = true,
+                // ShellExecute 对 .lnk 等文件的参数支持不可靠：这里仍保留赋值，
+                // 以便对支持的目标类型（例如某些可执行包装器）生效。
+                Arguments = args,
+                WorkingDirectory = Path.GetDirectoryName(target) ?? string.Empty,
+            };
+        }
     }
 }
-

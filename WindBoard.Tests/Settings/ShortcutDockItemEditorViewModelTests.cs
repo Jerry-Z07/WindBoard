@@ -26,5 +26,20 @@ public sealed class ShortcutDockItemEditorViewModelTests
         Assert.Null(settings.IconPath);
         Assert.Null(settings.Arguments);
     }
-}
 
+    [Fact]
+    public void TypeChanged_RaisesPropertyChanged_ForDerivedProperties()
+    {
+        ShortcutDockItemEditorViewModel vm = ShortcutDockItemEditorViewModel.CreateDefault();
+        var changed = new HashSet<string?>();
+        vm.PropertyChanged += (_, e) => changed.Add(e.PropertyName);
+
+        vm.Type = ShortcutDockItemTypes.Program;
+
+        Assert.Contains(nameof(ShortcutDockItemEditorViewModel.Type), changed);
+        Assert.Contains(nameof(ShortcutDockItemEditorViewModel.ArgumentsPanelVisibility), changed);
+        Assert.Contains(nameof(ShortcutDockItemEditorViewModel.PathBrowseVisibility), changed);
+        Assert.Contains(nameof(ShortcutDockItemEditorViewModel.PathHeader), changed);
+        Assert.Contains(nameof(ShortcutDockItemEditorViewModel.PathPlaceholder), changed);
+    }
+}

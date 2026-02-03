@@ -17,7 +17,6 @@ using Windows.UI;
 using Windows.Storage;
 using Windows.Storage.FileProperties;
 using Windows.Storage.Streams;
-using Windows.System;
 using WindBoard.Board.Editing;
 using WindBoard.Interaction;
 using WindBoard.ShortcutDock;
@@ -459,13 +458,7 @@ namespace WindBoard
                     }
 
                     Uri safeUri = uri!;
-
-                    // 优先使用 Launcher：兼容 packaged/unpackaged，并尽量走系统默认处理。
-                    bool launched = await Launcher.LaunchUriAsync(safeUri);
-                    if (!launched)
-                    {
-                        Process.Start(new ProcessStartInfo(safeUri.ToString()) { UseShellExecute = true });
-                    }
+                    Process.Start(new ProcessStartInfo(safeUri.ToString()) { UseShellExecute = true });
 
                     return;
                 }
@@ -478,13 +471,31 @@ namespace WindBoard
                         return;
                     }
 
-                    var info = new ProcessStartInfo(target)
+                    try
                     {
-                        UseShellExecute = true,
-                        Arguments = ShortcutDockLaunchHelper.NormalizeArguments(item.Arguments),
-                        WorkingDirectory = Path.GetDirectoryName(target) ?? string.Empty,
-                    };
-                    Process.Start(info);
+                        ProcessStartInfo info = ShortcutDockLaunchHelper.CreateProgramProcessStartInfo(target, item.Arguments);
+                        Process.Start(info);
+                    }
+                    catch (Exception ex)
+                    {
+                        // 兜底：某些程序（例如需要提权的 exe）在 UseShellExecute=false 时可能启动失败，
+                        // 这里回退到 ShellExecute 尝试触发系统默认行为（可能会弹出 UAC）。
+                        try
+                        {
+                            string args = ShortcutDockLaunchHelper.NormalizeArguments(item.Arguments);
+                            var fallbackInfo = new ProcessStartInfo(target)
+                            {
+                                UseShellExecute = true,
+                                Arguments = args,
+                                WorkingDirectory = Path.GetDirectoryName(target) ?? string.Empty,
+                            };
+                            Process.Start(fallbackInfo);
+                        }
+                        catch
+                        {
+                            await ShowShortcutDockErrorDialogAsync("启动失败", ex.Message);
+                        }
+                    }
                     return;
                 }
 
@@ -495,36 +506,7 @@ namespace WindBoard
                     return;
                 }
 
-                bool fallback = true;
-                if (Directory.Exists(target))
-                {
-                    try
-                    {
-                        StorageFolder folder = await StorageFolder.GetFolderFromPathAsync(target);
-                        fallback = !await Launcher.LaunchFolderAsync(folder);
-                    }
-                    catch
-                    {
-                        fallback = true;
-                    }
-                }
-                else if (File.Exists(target))
-                {
-                    try
-                    {
-                        StorageFile file = await StorageFile.GetFileFromPathAsync(target);
-                        fallback = !await Launcher.LaunchFileAsync(file);
-                    }
-                    catch
-                    {
-                        fallback = true;
-                    }
-                }
-
-                if (fallback)
-                {
-                    Process.Start(new ProcessStartInfo(target) { UseShellExecute = true });
-                }
+                Process.Start(new ProcessStartInfo(target) { UseShellExecute = true });
             }
             catch (Exception ex)
             {
