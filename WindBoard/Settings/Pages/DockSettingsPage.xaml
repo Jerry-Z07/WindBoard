@@ -237,6 +237,133 @@
                         OnContent="显示"
                         Toggled="OnUndoRedoVisibleToggled" />
 
+                    <ToggleSwitch
+                        x:Name="ShortcutDocksVisibleToggleSwitch"
+                        Header="显示快捷入口 Dock（主 Dock 左右侧）"
+                        OffContent="隐藏"
+                        OnContent="显示"
+                        Toggled="OnShortcutDocksVisibleToggled" />
+
+                    <StackPanel
+                        x:Name="ShortcutDockEditorPanel"
+                        Spacing="12"
+                        Visibility="Collapsed">
+                        <TextBlock
+                            Text="最多添加 5 个快捷入口，可选择放在主 Dock 的左侧或右侧。"
+                            Opacity="0.75"
+                            TextWrapping="WrapWholeWords" />
+
+                        <ListView
+                            x:Name="ShortcutDockItemsListView"
+                            ItemsSource="{x:Bind ShortcutDockItems, Mode=OneWay}"
+                            SelectionMode="None"
+                            ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                            ScrollViewer.VerticalScrollBarVisibility="Disabled">
+                            <ListView.ItemTemplate>
+                                <DataTemplate x:DataType="local:ShortcutDockItemEditorViewModel">
+                                    <Border
+                                        Background="{ThemeResource SystemControlBackgroundChromeMediumLowBrush}"
+                                        BorderBrush="{ThemeResource SystemControlForegroundBaseLowBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="12"
+                                        Padding="12">
+                                        <StackPanel Spacing="10">
+                                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                                                <StackPanel Spacing="8">
+                                                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+                                                        <TextBlock Text="位置" VerticalAlignment="Center" Opacity="0.75" />
+                                                        <ComboBox
+                                                            Grid.Column="1"
+                                                            SelectedValuePath="Tag"
+                                                            SelectedValue="{x:Bind Side, Mode=TwoWay}">
+                                                            <ComboBoxItem Content="左侧" Tag="left" />
+                                                            <ComboBoxItem Content="右侧" Tag="right" />
+                                                        </ComboBox>
+                                                    </Grid>
+
+                                                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+                                                        <TextBlock Text="类型" VerticalAlignment="Center" Opacity="0.75" />
+                                                        <ComboBox
+                                                            Grid.Column="1"
+                                                            SelectedValuePath="Tag"
+                                                            SelectedValue="{x:Bind Type, Mode=TwoWay}">
+                                                            <ComboBoxItem Content="文件" Tag="file" />
+                                                            <ComboBoxItem Content="链接" Tag="link" />
+                                                            <ComboBoxItem Content="程序" Tag="program" />
+                                                        </ComboBox>
+                                                    </Grid>
+                                                </StackPanel>
+
+                                                <Button
+                                                    Grid.Column="1"
+                                                    Content="删除"
+                                                    HorizontalAlignment="Right"
+                                                    VerticalAlignment="Top"
+                                                    Tag="{x:Bind}"
+                                                    Click="OnDeleteShortcutDockItemClicked" />
+                                            </Grid>
+
+                                            <StackPanel Spacing="6">
+                                                <TextBlock Text="{x:Bind PathHeader}" FontWeight="SemiBold" />
+                                                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                                    <TextBox
+                                                        Text="{x:Bind Path, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                        PlaceholderText="{x:Bind PathPlaceholder}" />
+                                                    <Button
+                                                        Grid.Column="1"
+                                                        Content="选择..."
+                                                        Visibility="{x:Bind PathBrowseVisibility}"
+                                                        Tag="{x:Bind}"
+                                                        Click="OnBrowseShortcutDockPathClicked" />
+                                                </Grid>
+                                            </StackPanel>
+
+                                            <StackPanel Spacing="6">
+                                                <TextBlock Text="图标" FontWeight="SemiBold" />
+                                                <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
+                                                    <ComboBox
+                                                        SelectedValuePath="Tag"
+                                                        SelectedValue="{x:Bind IconSource, Mode=TwoWay}">
+                                                        <ComboBoxItem Content="默认" Tag="default" />
+                                                        <ComboBoxItem Content="自定义图标" Tag="icon" />
+                                                    </ComboBox>
+                                                    <TextBox
+                                                        Grid.Column="1"
+                                                        Text="{x:Bind IconPath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                        PlaceholderText="选择图标文件（可为空）"
+                                                        Visibility="{x:Bind IconPathTextVisibility}" />
+                                                    <Button
+                                                        Grid.Column="2"
+                                                        Content="选择..."
+                                                        Visibility="{x:Bind IconBrowseVisibility}"
+                                                        Tag="{x:Bind}"
+                                                        Click="OnBrowseShortcutDockIconClicked" />
+                                                </Grid>
+                                                <TextBlock
+                                                    Text="{x:Bind IconHint}"
+                                                    Opacity="0.75"
+                                                    TextWrapping="WrapWholeWords" />
+                                            </StackPanel>
+
+                                            <StackPanel Spacing="6" Visibility="{x:Bind ArgumentsPanelVisibility}">
+                                                <TextBlock Text="启动参数" FontWeight="SemiBold" />
+                                                <TextBox
+                                                    Text="{x:Bind Arguments, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                    PlaceholderText="例如：--foo bar" />
+                                            </StackPanel>
+                                        </StackPanel>
+                                    </Border>
+                                </DataTemplate>
+                            </ListView.ItemTemplate>
+                        </ListView>
+
+                        <Button
+                            x:Name="AddShortcutDockItemButton"
+                            Content="添加快捷入口"
+                            HorizontalAlignment="Left"
+                            Click="OnAddShortcutDockItemClicked" />
+                    </StackPanel>
+
                     <Button
                         Content="恢复 Dock 默认布局"
                         HorizontalAlignment="Left"

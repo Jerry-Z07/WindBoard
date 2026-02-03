@@ -1,4 +1,5 @@
 using System;
+using System.Runtime.InteropServices;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using WindBoard.Settings.Pages;
@@ -7,9 +8,23 @@ namespace WindBoard.Settings
 {
     public sealed partial class SettingsWindow : Window
     {
+        internal static SettingsWindow? Active { get; private set; }
+
+        internal IntPtr Hwnd { get; }
+
         public SettingsWindow()
         {
             InitializeComponent();
+
+            Active = this;
+            Hwnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
+            Closed += (_, _) =>
+            {
+                if (ReferenceEquals(Active, this))
+                {
+                    Active = null;
+                }
+            };
 
             // 首次打开时默认进入“外观”。
             NavView.Loaded += (_, _) =>

@@ -59,6 +59,25 @@ namespace WindBoard.Settings
         {
             lock (_gate)
             {
+                // 注意：DockSettings 内包含引用类型列表，这里返回“深拷贝快照”，避免外部误改内部状态。
+                List<ShortcutDockItemSettings> shortcutItems = new();
+                if (Current.Dock?.ShortcutItems is not null)
+                {
+                    foreach (ShortcutDockItemSettings item in Current.Dock.ShortcutItems)
+                    {
+                        shortcutItems.Add(new ShortcutDockItemSettings
+                        {
+                            Id = item.Id,
+                            Side = item.Side,
+                            Type = item.Type,
+                            Path = item.Path,
+                            Arguments = item.Arguments,
+                            IconSource = item.IconSource,
+                            IconPath = item.IconPath,
+                        });
+                    }
+                }
+
                 return new DockSettings
                 {
                     LeftOrder = new List<string>(Current.Dock?.LeftOrder ?? DockSettingsDefaults.LeftOrder),
@@ -66,6 +85,8 @@ namespace WindBoard.Settings
                     UndoRedoOrder = new List<string>(Current.Dock?.UndoRedoOrder ?? DockSettingsDefaults.UndoRedoOrder),
                     PagesOrder = new List<string>(Current.Dock?.PagesOrder ?? DockSettingsDefaults.PagesOrder),
                     IsUndoRedoVisible = Current.Dock?.IsUndoRedoVisible ?? true,
+                    IsShortcutDocksVisible = Current.Dock?.IsShortcutDocksVisible ?? false,
+                    ShortcutItems = shortcutItems,
                 };
             }
         }

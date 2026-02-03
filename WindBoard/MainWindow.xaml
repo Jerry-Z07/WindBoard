@@ -113,15 +113,38 @@
                 </StackPanel>
             </Grid>
 
-            <!-- 中部 Dock -->
-            <Grid
-                HorizontalAlignment="Center"
+            <!-- 中部 Dock（主 Dock + 左右快捷入口 Dock） -->
+            <RelativePanel
+                HorizontalAlignment="Stretch"
                 VerticalAlignment="Bottom">
-                <Border
-                    Background="{ThemeResource SystemControlBackgroundChromeMediumLowBrush}"
-                    CornerRadius="14"
-                    Opacity="0.85" />
-                <StackPanel Orientation="Horizontal" Spacing="4" Margin="5">
+                <!-- 左侧快捷入口 Dock（贴近主 Dock 左侧） -->
+                <Grid
+                    x:Name="LeftShortcutDockContainer"
+                    Margin="0,0,8,0"
+                    Visibility="Collapsed"
+                    RelativePanel.LeftOf="MainDockContainer"
+                    RelativePanel.AlignBottomWith="MainDockContainer">
+                    <Border
+                        Background="{ThemeResource SystemControlBackgroundChromeMediumLowBrush}"
+                        CornerRadius="14"
+                        Opacity="0.85" />
+                    <StackPanel
+                        x:Name="LeftShortcutDockPanel"
+                        Orientation="Horizontal"
+                        Spacing="4"
+                        Margin="5" />
+                </Grid>
+
+                <!-- 主 Dock -->
+                <Grid
+                    x:Name="MainDockContainer"
+                    RelativePanel.AlignHorizontalCenterWithPanel="True"
+                    RelativePanel.AlignBottomWithPanel="True">
+                    <Border
+                        Background="{ThemeResource SystemControlBackgroundChromeMediumLowBrush}"
+                        CornerRadius="14"
+                        Opacity="0.85" />
+                    <StackPanel Orientation="Horizontal" Spacing="4" Margin="5">
                     <StackPanel x:Name="ToolsDockPanel" Orientation="Horizontal" Spacing="4">
                     <ToggleButton
                         x:Name="SelectToolToggleButton"
@@ -461,8 +484,27 @@
                             </StackPanel>
                         </Button>
                     </StackPanel>
-                </StackPanel>
-            </Grid>
+                    </StackPanel>
+                </Grid>
+
+                <!-- 右侧快捷入口 Dock（贴近主 Dock 右侧） -->
+                <Grid
+                    x:Name="RightShortcutDockContainer"
+                    Margin="8,0,0,0"
+                    Visibility="Collapsed"
+                    RelativePanel.RightOf="MainDockContainer"
+                    RelativePanel.AlignBottomWith="MainDockContainer">
+                    <Border
+                        Background="{ThemeResource SystemControlBackgroundChromeMediumLowBrush}"
+                        CornerRadius="14"
+                        Opacity="0.85" />
+                    <StackPanel
+                        x:Name="RightShortcutDockPanel"
+                        Orientation="Horizontal"
+                        Spacing="4"
+                        Margin="5" />
+                </Grid>
+            </RelativePanel>
 
             <!-- 右侧 Dock：页面切换与页面管理入口 -->
             <Grid

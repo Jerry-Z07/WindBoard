@@ -116,6 +116,75 @@ namespace WindBoard.Settings
             settings.ToolsOrder = NormalizeOrder(settings.ToolsOrder, DockSettingsDefaults.ToolsOrder);
             settings.UndoRedoOrder = NormalizeOrder(settings.UndoRedoOrder, DockSettingsDefaults.UndoRedoOrder);
             settings.PagesOrder = NormalizeOrder(settings.PagesOrder, DockSettingsDefaults.PagesOrder);
+
+            NormalizeShortcutDockSettingsInPlace(settings);
+        }
+
+        private static void NormalizeShortcutDockSettingsInPlace(DockSettings settings)
+        {
+            // 快捷入口 Dock：
+            // - 允许空 Path（便于设置页先“添加”，再补齐内容）
+            // - 统一修正 Side/Type/IconSource 到合法值
+            // - 保证 Id 稳定存在（用于编辑项定位）
+            // - 限制最多 5 个
+            settings.ShortcutItems ??= new List<ShortcutDockItemSettings>();
+
+            var normalized = new List<ShortcutDockItemSettings>(capacity: 5);
+            foreach (ShortcutDockItemSettings item in settings.ShortcutItems)
+            {
+                // 兼容 JSON 反序列化写入 null 元素的极端情况。
+                if (item is null)
+                {
+                    continue;
+                }
+
+                if (normalized.Count >= 5)
+                {
+                    break;
+                }
+
+                string id = string.IsNullOrWhiteSpace(item.Id) ? Guid.NewGuid().ToString("N") : item.Id.Trim();
+
+                string side = (item.Side ?? string.Empty).Trim();
+                if (!string.Equals(side, ShortcutDockSides.Left, StringComparison.Ordinal)
+                    && !string.Equals(side, ShortcutDockSides.Right, StringComparison.Ordinal))
+                {
+                    side = ShortcutDockSides.Left;
+                }
+
+                string type = (item.Type ?? string.Empty).Trim();
+                if (!string.Equals(type, ShortcutDockItemTypes.File, StringComparison.Ordinal)
+                    && !string.Equals(type, ShortcutDockItemTypes.Link, StringComparison.Ordinal)
+                    && !string.Equals(type, ShortcutDockItemTypes.Program, StringComparison.Ordinal))
+                {
+                    type = ShortcutDockItemTypes.File;
+                }
+
+                string path = (item.Path ?? string.Empty).Trim();
+
+                string iconSource = (item.IconSource ?? string.Empty).Trim();
+                if (!string.Equals(iconSource, ShortcutDockIconSources.Default, StringComparison.Ordinal)
+                    && !string.Equals(iconSource, ShortcutDockIconSources.Icon, StringComparison.Ordinal))
+                {
+                    iconSource = ShortcutDockIconSources.Default;
+                }
+
+                string? iconPath = string.IsNullOrWhiteSpace(item.IconPath) ? null : item.IconPath.Trim();
+                string? arguments = string.IsNullOrWhiteSpace(item.Arguments) ? null : item.Arguments;
+
+                normalized.Add(new ShortcutDockItemSettings
+                {
+                    Id = id,
+                    Side = side,
+                    Type = type,
+                    Path = path,
+                    Arguments = arguments,
+                    IconSource = iconSource,
+                    IconPath = iconPath,
+                });
+            }
+
+            settings.ShortcutItems = normalized;
         }
 
         private static void NormalizePenSettingsInPlace(PenSettings settings)

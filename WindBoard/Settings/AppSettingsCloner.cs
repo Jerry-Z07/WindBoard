@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace WindBoard.Settings
 {
@@ -32,6 +33,19 @@ namespace WindBoard.Settings
                     UndoRedoOrder = new List<string>(settings.Dock?.UndoRedoOrder ?? DockSettingsDefaults.UndoRedoOrder),
                     PagesOrder = new List<string>(settings.Dock?.PagesOrder ?? DockSettingsDefaults.PagesOrder),
                     IsUndoRedoVisible = settings.Dock?.IsUndoRedoVisible ?? true,
+                    IsShortcutDocksVisible = settings.Dock?.IsShortcutDocksVisible ?? false,
+                    ShortcutItems = settings.Dock?.ShortcutItems is null
+                        ? new List<ShortcutDockItemSettings>()
+                        : settings.Dock.ShortcutItems.Select(i => new ShortcutDockItemSettings
+                        {
+                            Id = i.Id,
+                            Side = i.Side,
+                            Type = i.Type,
+                            Path = i.Path,
+                            Arguments = i.Arguments,
+                            IconSource = i.IconSource,
+                            IconPath = i.IconPath,
+                        }).ToList(),
                 },
                 Writing = new WritingSettings
                 {

@@ -40,6 +40,9 @@ public sealed class AppSettingsStoreTests
         Assert.Equal(DockSettingsDefaults.UndoRedoOrder, settings.Dock.UndoRedoOrder);
         Assert.Equal(DockSettingsDefaults.PagesOrder, settings.Dock.PagesOrder);
         Assert.True(settings.Dock.IsUndoRedoVisible);
+        Assert.False(settings.Dock.IsShortcutDocksVisible);
+        Assert.NotNull(settings.Dock.ShortcutItems);
+        Assert.Empty(settings.Dock.ShortcutItems);
     }
 
     // Dock 顺序会过滤去重并补齐缺失项
@@ -73,6 +76,66 @@ public sealed class AppSettingsStoreTests
         Assert.Equal(new[] { DockItemIds.Redo, DockItemIds.Undo }, settings.Dock.UndoRedoOrder);
         Assert.Equal(DockSettingsDefaults.PagesOrder, settings.Dock.PagesOrder);
         Assert.False(settings.Dock.IsUndoRedoVisible);
+        Assert.False(settings.Dock.IsShortcutDocksVisible);
+        Assert.NotNull(settings.Dock.ShortcutItems);
+        Assert.Empty(settings.Dock.ShortcutItems);
+    }
+
+    [Fact]
+    public void NormalizeInPlace_NormalizesShortcutDockItems_FillsDefaultsAndLimitsCount()
+    {
+        var settings = new AppSettings
+        {
+            Dock = new DockSettings
+            {
+                IsShortcutDocksVisible = true,
+                ShortcutItems =
+                [
+                    new ShortcutDockItemSettings
+                    {
+                        Id = " ",
+                        Side = "unknown",
+                        Type = "unknown",
+                        Path = "  C:\\Temp\\a.txt  ",
+                        IconSource = "unknown",
+                        IconPath = "  C:\\Temp\\icon.png  ",
+                        Arguments = "  --foo bar  ",
+                    },
+                    new ShortcutDockItemSettings
+                    {
+                        Id = "",
+                        Side = ShortcutDockSides.Right,
+                        Type = ShortcutDockItemTypes.Link,
+                        Path = " https://example.com/path ",
+                        IconSource = ShortcutDockIconSources.Default,
+                    },
+                    new ShortcutDockItemSettings { Id = "", Path = "" },
+                    new ShortcutDockItemSettings { Id = "", Path = "C:\\Temp\\b.txt" },
+                    new ShortcutDockItemSettings { Id = "", Path = "C:\\Temp\\c.txt" },
+                    new ShortcutDockItemSettings { Id = "", Path = "C:\\Temp\\d.txt" }, // 超过 5：应被丢弃
+                ],
+            },
+        };
+
+        AppSettingsStore.NormalizeInPlace(settings);
+
+        Assert.NotNull(settings.Dock.ShortcutItems);
+        Assert.Equal(5, settings.Dock.ShortcutItems.Count);
+
+        ShortcutDockItemSettings first = settings.Dock.ShortcutItems[0];
+        Assert.False(string.IsNullOrWhiteSpace(first.Id));
+        Assert.Equal(ShortcutDockSides.Left, first.Side);
+        Assert.Equal(ShortcutDockItemTypes.File, first.Type);
+        Assert.Equal("C:\\Temp\\a.txt", first.Path);
+        Assert.Equal(ShortcutDockIconSources.Default, first.IconSource);
+        Assert.Equal("C:\\Temp\\icon.png", first.IconPath);
+        Assert.Equal("  --foo bar  ", first.Arguments);
+
+        ShortcutDockItemSettings link = settings.Dock.ShortcutItems[1];
+        Assert.Equal(ShortcutDockSides.Right, link.Side);
+        Assert.Equal(ShortcutDockItemTypes.Link, link.Type);
+        Assert.Equal("https://example.com/path", link.Path);
+        Assert.Equal(ShortcutDockIconSources.Default, link.IconSource);
     }
 
     // 书写设置为空会补齐默认画笔设置
