@@ -15,6 +15,7 @@ using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Animation;
 using Microsoft.UI.Xaml.Media.Imaging;
+using Windows.Graphics.Imaging;
 using Windows.UI;
 using Windows.Storage;
 using Windows.Storage.FileProperties;
@@ -496,7 +497,7 @@ namespace WindBoard
             Uri baseUri = new(uri.GetLeftPart(UriPartial.Authority));
             List<Uri> candidates = new();
 
-            Uri? htmlIcon = await TryFindFaviconFromHtmlAsync(uri).ConfigureAwait(false);
+            Uri? htmlIcon = await TryFindFaviconFromHtmlAsync(uri).ConfigureAwait(true);
             if (htmlIcon is not null)
             {
                 candidates.Add(htmlIcon);
@@ -518,7 +519,7 @@ namespace WindBoard
                 try
                 {
                     // favicon 一般很小，这里直接读取 byte[]，失败则回退。
-                    byte[] bytes = await ShortcutDockHttpClient.GetByteArrayAsync(candidate).ConfigureAwait(false);
+                    byte[] bytes = await ShortcutDockHttpClient.GetByteArrayAsync(candidate).ConfigureAwait(true);
                     if (bytes is null || bytes.Length == 0)
                     {
                         continue;
@@ -530,13 +531,16 @@ namespace WindBoard
                         continue;
                     }
 
-                    using var stream = new InMemoryRandomAccessStream();
-                    await stream.WriteAsync(bytes.AsBuffer());
-                    stream.Seek(0);
+                    if (!IsLikelyImageBytes(bytes))
+                    {
+                        continue;
+                    }
 
-                    var bitmap = new BitmapImage();
-                    await bitmap.SetSourceAsync(stream);
-                    return bitmap;
+                    ImageSource? source = await TryCreateImageSourceFromBytesAsync(bytes).ConfigureAwait(true);
+                    if (source is not null)
+                    {
+                        return source;
+                    }
                 }
                 catch
                 {
@@ -546,6 +550,85 @@ namespace WindBoard
 
             return null;
         }
+
+        private static bool IsLikelyImageBytes(byte[] bytes)
+        {
+            if (bytes.Length < 4)
+            {
+                return false;
+            }
+
+            // PNG: 89 50 4E 47
+            if (bytes[0] == 0x89 && bytes[1] == 0x50 && bytes[2] == 0x4E && bytes[3] == 0x47)
+            {
+                return true;
+            }
+
+            // JPEG: FF D8
+            if (bytes[0] == 0xFF && bytes[1] == 0xD8)
+            {
+                return true;
+            }
+
+            // GIF: 47 49 46
+            if (bytes[0] == 0x47 && bytes[1] == 0x49 && bytes[2] == 0x46)
+            {
+                return true;
+            }
+
+            // BMP: 42 4D
+            if (bytes[0] == 0x42 && bytes[1] == 0x4D)
+            {
+                return true;
+            }
+
+            // ICO/CUR: 00 00 01 00 或 00 00 02 00
+            if (bytes[0] == 0x00 && bytes[1] == 0x00 && (bytes[2] == 0x01 || bytes[2] == 0x02) && bytes[3] == 0x00)
+            {
+                return true;
+            }
+
+            return false;
+        }
+
+        private static async Task<ImageSource?> TryCreateImageSourceFromBytesAsync(byte[] bytes)
+        {
+            return await TryDecodeImageSourceAsync(bytes).ConfigureAwait(true);
+        }
+
+        private static async Task<ImageSource?> TryDecodeImageSourceAsync(byte[] bytes)
+        {
+            try
+            {
+                using var stream = new InMemoryRandomAccessStream();
+                await stream.WriteAsync(bytes.AsBuffer());
+                stream.Seek(0);
+
+                BitmapDecoder decoder = await BitmapDecoder.CreateAsync(stream);
+                SoftwareBitmap bitmap = await decoder.GetSoftwareBitmapAsync();
+                if (bitmap.BitmapPixelFormat != BitmapPixelFormat.Bgra8
+                    || bitmap.BitmapAlphaMode != BitmapAlphaMode.Premultiplied)
+                {
+                    SoftwareBitmap converted = SoftwareBitmap.Convert(
+                        bitmap,
+                        BitmapPixelFormat.Bgra8,
+                        BitmapAlphaMode.Premultiplied);
+                    bitmap.Dispose();
+                    bitmap = converted;
+                }
+
+                var source = new SoftwareBitmapSource();
+                await source.SetBitmapAsync(bitmap);
+                bitmap.Dispose();
+                return source;
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        
 
         private static async Task<Uri?> TryFindFaviconFromHtmlAsync(Uri pageUri)
         {
