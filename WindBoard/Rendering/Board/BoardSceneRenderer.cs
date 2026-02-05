@@ -29,7 +29,7 @@ namespace WindBoard.Rendering.Board
         private ID2D1InkStyle? _inkStyle;
         private readonly Dictionary<Stroke, StrokeInkCacheEntry> _inkCache = new();
 
-        public void Draw(ID2D1DeviceContext ctx, BoardDocument document, Stroke? activeStroke, BoardViewport viewport)
+        public void Draw(ID2D1RenderTarget ctx, BoardDocument document, Stroke? activeStroke, BoardViewport viewport)
         {
             EnsureStrokeBrush(ctx);
 
@@ -45,7 +45,7 @@ namespace WindBoard.Rendering.Board
             });
         }
 
-        public void DrawBackground(ID2D1DeviceContext ctx, BoardDocument document, BoardViewport viewport)
+        public void DrawBackground(ID2D1RenderTarget ctx, BoardDocument document, BoardViewport viewport)
         {
             EnsureStrokeBrush(ctx);
 
@@ -61,7 +61,7 @@ namespace WindBoard.Rendering.Board
             });
         }
 
-        public void DrawBackgroundInScreenRect(ID2D1DeviceContext ctx, BoardDocument document, BoardViewport viewport, Rect screenRectDip)
+        public void DrawBackgroundInScreenRect(ID2D1RenderTarget ctx, BoardDocument document, BoardViewport viewport, Rect screenRectDip)
         {
             EnsureStrokeBrush(ctx);
 
@@ -78,7 +78,7 @@ namespace WindBoard.Rendering.Board
             });
         }
 
-        public void DrawActiveStroke(ID2D1DeviceContext ctx, Stroke activeStroke, BoardViewport viewport)
+        public void DrawActiveStroke(ID2D1RenderTarget ctx, Stroke activeStroke, BoardViewport viewport)
         {
             EnsureStrokeBrush(ctx);
 
@@ -92,12 +92,12 @@ namespace WindBoard.Rendering.Board
             });
         }
 
-        private void EnsureStrokeBrush(ID2D1DeviceContext ctx)
+        private void EnsureStrokeBrush(ID2D1RenderTarget ctx)
         {
             _strokeBrush ??= ctx.CreateSolidColorBrush(new Color4(0, 0, 0, 1));
         }
 
-        private void WithOptionalDeviceContext2(ID2D1DeviceContext ctx, Action<ID2D1DeviceContext2?> action)
+        private void WithOptionalDeviceContext2(ID2D1RenderTarget ctx, Action<ID2D1DeviceContext2?> action)
         {
             // 某些系统/驱动环境可能不支持 DeviceContext2，这里做一次安全降级。
             using ID2D1DeviceContext2? ctx2 = TryGetDeviceContext2(ctx);
@@ -105,7 +105,7 @@ namespace WindBoard.Rendering.Board
             action(ctx2);
         }
 
-        private static void WithWorldTransform(ID2D1DeviceContext ctx, BoardViewport viewport, Action action)
+        private static void WithWorldTransform(ID2D1RenderTarget ctx, BoardViewport viewport, Action action)
         {
             Matrix3x2 oldTransform = ctx.Transform;
             ctx.Transform = viewport.GetWorldToScreenTransform();
@@ -135,7 +135,7 @@ namespace WindBoard.Rendering.Board
         }
 
         private void DrawSceneInWorldBounds(
-            ID2D1DeviceContext ctx,
+            ID2D1RenderTarget ctx,
             ID2D1DeviceContext2? ctx2,
             BoardDocument document,
             Stroke? activeStroke,
@@ -161,7 +161,7 @@ namespace WindBoard.Rendering.Board
             DrawStrokeIfVisible(ctx, ctx2, activeStroke, visibleWorldBounds.Min, visibleWorldBounds.Max);
         }
 
-        private void DrawStrokeIfVisible(ID2D1DeviceContext ctx, ID2D1DeviceContext2? ctx2, Stroke stroke, Vector2 visibleMinWorld, Vector2 visibleMaxWorld)
+        private void DrawStrokeIfVisible(ID2D1RenderTarget ctx, ID2D1DeviceContext2? ctx2, Stroke stroke, Vector2 visibleMinWorld, Vector2 visibleMaxWorld)
         {
             if (!BoardSceneMath.IsStrokeVisible(stroke, visibleMinWorld, visibleMaxWorld))
             {
@@ -171,7 +171,7 @@ namespace WindBoard.Rendering.Board
             DrawStroke(ctx, ctx2, stroke);
         }
 
-        private void DrawStroke(ID2D1DeviceContext ctx, ID2D1DeviceContext2? ctx2, Stroke stroke)
+        private void DrawStroke(ID2D1RenderTarget ctx, ID2D1DeviceContext2? ctx2, Stroke stroke)
         {
             if (_strokeBrush is null)
             {
@@ -234,7 +234,7 @@ namespace WindBoard.Rendering.Board
             }
         }
 
-        private static ID2D1DeviceContext2? TryGetDeviceContext2(ID2D1DeviceContext ctx)
+        private static ID2D1DeviceContext2? TryGetDeviceContext2(ID2D1RenderTarget ctx)
         {
             try
             {
@@ -261,7 +261,7 @@ namespace WindBoard.Rendering.Board
             _inkStyle = ctx2.CreateInkStyle(props);
         }
 
-        private void EnsureStrokeStyle(ID2D1DeviceContext ctx)
+        private void EnsureStrokeStyle(ID2D1RenderTarget ctx)
         {
             if (_strokeStyle is not null)
             {

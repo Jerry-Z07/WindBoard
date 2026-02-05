@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Numerics;
 
@@ -12,7 +13,15 @@ namespace WindBoard.Board.Persistence
     /// </summary>
     internal sealed record BoardWorkspaceSnapshot(IReadOnlyList<BoardPageSnapshot> Pages, int CurrentIndex);
 
-    internal sealed record BoardPageSnapshot(IReadOnlyList<StrokeSnapshot> Strokes);
+    /// <summary>
+    /// 页面快照。
+    /// </summary>
+    /// <param name="Id">
+    /// 页面 ID（与 <see cref="Editing.BoardPage.Id"/> 对齐）。
+    /// 该字段用于后续导入/导出时维持页面身份稳定（例如资源引用、跨集合定位等）。
+    /// </param>
+    /// <param name="Strokes">笔迹数据。</param>
+    internal sealed record BoardPageSnapshot(Guid Id, IReadOnlyList<StrokeSnapshot> Strokes);
 
     internal sealed record StrokeSnapshot(
         IReadOnlyList<StrokePointSnapshot> Points,
@@ -22,4 +31,3 @@ namespace WindBoard.Board.Persistence
 
     internal readonly record struct StrokePointSnapshot(Vector2 Position, float Pressure);
 }
-

@@ -515,7 +515,7 @@ namespace WindBoard
 
         private async void OnExportClicked(object sender, RoutedEventArgs e)
         {
-            await ShowNotImplementedDialogAsync("导出");
+            await StartExportAsync();
         }
 
         private void OnExitClicked(object sender, RoutedEventArgs e)
