@@ -1,9 +1,16 @@
 using System;
 using System.Collections.Generic;
+using System.Drawing;
+using System.IO;
 using System.Numerics;
+using System.Runtime.InteropServices;
+using Vortice.DCommon;
 using Vortice.Direct2D1;
+using Vortice.DirectWrite;
+using Vortice.DXGI;
 using Vortice.Mathematics;
 using WindBoard.Board;
+using WindBoard.Board.Elements;
 using WindBoard.Board.Viewport;
 
 namespace WindBoard.Rendering.Board
@@ -29,6 +36,21 @@ namespace WindBoard.Rendering.Board
         private ID2D1InkStyle? _inkStyle;
         private readonly Dictionary<Stroke, StrokeInkCacheEntry> _inkCache = new();
 
+        // 元素绘制资源
+        private ID2D1SolidColorBrush? _elementFillBrush;
+        private ID2D1SolidColorBrush? _elementBorderBrush;
+        private ID2D1SolidColorBrush? _elementTextBrush;
+        private ID2D1SolidColorBrush? _elementSecondaryTextBrush;
+        private ID2D1SolidColorBrush? _elementIconTextBrush;
+
+        private IDWriteFactory? _dwriteFactory;
+        private IDWriteTextFormat? _elementTitleTextFormat;
+        private IDWriteTextFormat? _elementBodyTextFormat;
+        private IDWriteTextFormat? _elementIconTextFormat;
+
+        private readonly Dictionary<BoardMediaElement, ID2D1Bitmap> _imageBitmapCache = new();
+        private nint _imageBitmapCacheRenderTargetPtr;
+
         public void Draw(ID2D1RenderTarget ctx, BoardDocument document, Stroke? activeStroke, BoardViewport viewport)
         {
             EnsureStrokeBrush(ctx);
@@ -36,6 +58,7 @@ namespace WindBoard.Rendering.Board
             WithOptionalDeviceContext2(ctx, ctx2 =>
             {
                 PruneInkCache(document, activeStroke);
+                PruneElementCache(document);
 
                 WithWorldTransform(ctx, viewport, () =>
                 {
@@ -52,11 +75,43 @@ namespace WindBoard.Rendering.Board
             WithOptionalDeviceContext2(ctx, ctx2 =>
             {
                 PruneInkCache(document, null);
+                PruneElementCache(document);
 
                 WithWorldTransform(ctx, viewport, () =>
                 {
                     viewport.GetVisibleWorldBounds(out Vector2 visibleMinWorld, out Vector2 visibleMaxWorld);
                     DrawSceneInWorldBounds(ctx, ctx2, document, null, new VisibleWorldBounds(visibleMinWorld, visibleMaxWorld));
+                });
+            });
+        }
+
+        /// <summary>
+        /// 绘制“笔迹层之下”的背景（用于活动笔迹叠加渲染）。
+        /// </summary>
+        /// <remarks>
+        /// 该方法会绘制：
+        /// - 元素（下层）
+        /// - 文档笔迹
+        /// 
+        /// 不会绘制：
+        /// - 元素（上层）
+        /// - 活动笔迹
+        /// 
+        /// 目的：保证“活动笔迹”与“上层元素”的遮挡关系正确（上层元素应覆盖活动笔迹）。
+        /// </remarks>
+        public void DrawBackgroundUnderInk(ID2D1RenderTarget ctx, BoardDocument document, BoardViewport viewport)
+        {
+            EnsureStrokeBrush(ctx);
+
+            WithOptionalDeviceContext2(ctx, ctx2 =>
+            {
+                PruneInkCache(document, null);
+                PruneElementCache(document);
+
+                WithWorldTransform(ctx, viewport, () =>
+                {
+                    viewport.GetVisibleWorldBounds(out Vector2 visibleMinWorld, out Vector2 visibleMaxWorld);
+                    DrawSceneUnderInkInWorldBounds(ctx, ctx2, document, new VisibleWorldBounds(visibleMinWorld, visibleMaxWorld));
                 });
             });
         }
@@ -70,6 +125,7 @@ namespace WindBoard.Rendering.Board
             WithOptionalDeviceContext2(ctx, ctx2 =>
             {
                 PruneInkCache(document, null);
+                PruneElementCache(document);
 
                 WithWorldTransform(ctx, viewport, () =>
                 {
@@ -88,6 +144,32 @@ namespace WindBoard.Rendering.Board
                 {
                     viewport.GetVisibleWorldBounds(out Vector2 visibleMinWorld, out Vector2 visibleMaxWorld);
                     DrawStrokeIfVisible(ctx, ctx2, activeStroke, visibleMinWorld, visibleMaxWorld);
+                });
+            });
+        }
+
+        /// <summary>
+        /// 绘制活动笔迹 + 上层元素（用于叠加渲染）。
+        /// </summary>
+        public void DrawOverlayAboveInk(ID2D1RenderTarget ctx, BoardDocument document, Stroke? activeStroke, BoardViewport viewport)
+        {
+            EnsureStrokeBrush(ctx);
+
+            WithOptionalDeviceContext2(ctx, ctx2 =>
+            {
+                PruneInkCache(document, activeStroke);
+                PruneElementCache(document);
+
+                WithWorldTransform(ctx, viewport, () =>
+                {
+                    viewport.GetVisibleWorldBounds(out Vector2 visibleMinWorld, out Vector2 visibleMaxWorld);
+
+                    if (activeStroke is not null)
+                    {
+                        DrawStrokeIfVisible(ctx, ctx2, activeStroke, visibleMinWorld, visibleMaxWorld);
+                    }
+
+                    DrawElementsIfVisible(ctx, document.ElementsAboveInk, visibleMinWorld, visibleMaxWorld);
                 });
             });
         }
@@ -141,7 +223,13 @@ namespace WindBoard.Rendering.Board
             Stroke? activeStroke,
             VisibleWorldBounds visibleWorldBounds)
         {
-            // 绘制顺序：文档笔迹 → 活动笔迹（可选）。
+            // 绘制顺序：
+            // 1) 元素（笔迹下层）
+            // 2) 笔迹
+            // 3) 元素（笔迹上层）
+            // 4) 活动笔迹（可选）
+
+            DrawElementsIfVisible(ctx, document.ElementsBelowInk, visibleWorldBounds.Min, visibleWorldBounds.Max);
 
             foreach (var stroke in document.Strokes)
             {
@@ -153,12 +241,34 @@ namespace WindBoard.Rendering.Board
                 DrawStroke(ctx, ctx2, stroke);
             }
 
+            DrawElementsIfVisible(ctx, document.ElementsAboveInk, visibleWorldBounds.Min, visibleWorldBounds.Max);
+
             if (activeStroke is null)
             {
                 return;
             }
 
             DrawStrokeIfVisible(ctx, ctx2, activeStroke, visibleWorldBounds.Min, visibleWorldBounds.Max);
+        }
+
+        private void DrawSceneUnderInkInWorldBounds(
+            ID2D1RenderTarget ctx,
+            ID2D1DeviceContext2? ctx2,
+            BoardDocument document,
+            VisibleWorldBounds visibleWorldBounds)
+        {
+            // 仅绘制“活动笔迹下方”的内容：下层元素 + 文档笔迹。
+            DrawElementsIfVisible(ctx, document.ElementsBelowInk, visibleWorldBounds.Min, visibleWorldBounds.Max);
+
+            foreach (var stroke in document.Strokes)
+            {
+                if (!BoardSceneMath.IsStrokeVisible(stroke, visibleWorldBounds.Min, visibleWorldBounds.Max))
+                {
+                    continue;
+                }
+
+                DrawStroke(ctx, ctx2, stroke);
+            }
         }
 
         private void DrawStrokeIfVisible(ID2D1RenderTarget ctx, ID2D1DeviceContext2? ctx2, Stroke stroke, Vector2 visibleMinWorld, Vector2 visibleMaxWorld)
@@ -234,6 +344,446 @@ namespace WindBoard.Rendering.Board
             }
         }
 
+        private void DrawElementsIfVisible(ID2D1RenderTarget ctx, IReadOnlyList<BoardElement> elements, Vector2 visibleMinWorld, Vector2 visibleMaxWorld)
+        {
+            if (elements is null || elements.Count == 0)
+            {
+                return;
+            }
+
+            EnsureElementBrushes(ctx);
+            EnsureElementTextFormats();
+
+            if (_elementFillBrush is null
+                || _elementBorderBrush is null
+                || _elementTextBrush is null
+                || _elementSecondaryTextBrush is null
+                || _elementIconTextBrush is null
+                || _elementTitleTextFormat is null
+                || _elementBodyTextFormat is null
+                || _elementIconTextFormat is null)
+            {
+                return;
+            }
+
+            for (int i = 0; i < elements.Count; i++)
+            {
+                BoardElement element = elements[i];
+                Rect bounds = element.GetBoundsWorld();
+
+                Vector2 minWorld = new(bounds.Left, bounds.Top);
+                Vector2 maxWorld = new(bounds.Right, bounds.Bottom);
+                if (!BoardSceneMath.IntersectsAabb(minWorld, maxWorld, visibleMinWorld, visibleMaxWorld))
+                {
+                    continue;
+                }
+
+                DrawElement(ctx, element, bounds);
+            }
+        }
+
+        private void DrawElement(ID2D1RenderTarget ctx, BoardElement element, Rect boundsWorld)
+        {
+            // 图片元素：优先绘制位图；解码失败则降级为占位卡片。
+            if (element is BoardMediaElement media
+                && media.Kind == BoardMediaKind.Image
+                && TryGetOrCreateImageBitmap(ctx, media, out ID2D1Bitmap? bitmap)
+                && bitmap is not null)
+            {
+                DrawImageElement(ctx, media, bitmap, boundsWorld);
+                return;
+            }
+
+            DrawCardElement(ctx, element, boundsWorld);
+        }
+
+        private void DrawCardElement(ID2D1RenderTarget ctx, BoardElement element, Rect boundsWorld)
+        {
+            if (_elementFillBrush is null
+                || _elementBorderBrush is null
+                || _elementTextBrush is null
+                || _elementSecondaryTextBrush is null
+                || _elementIconTextBrush is null
+                || _elementTitleTextFormat is null
+                || _elementBodyTextFormat is null
+                || _elementIconTextFormat is null)
+            {
+                return;
+            }
+
+            const float corner = 14.0f;
+            const float pad = 12.0f;
+            const float iconSize = 32.0f;
+            const float iconGap = 12.0f;
+            const float titleHeight = 22.0f;
+            const float titleGap = 4.0f;
+
+            _elementFillBrush.Color = new Color4(1, 1, 1, 0.92f);
+            _elementBorderBrush.Color = new Color4(0, 0, 0, 0.28f);
+            _elementTextBrush.Color = new Color4(0, 0, 0, 0.90f);
+            _elementSecondaryTextBrush.Color = new Color4(0, 0, 0, 0.60f);
+            _elementIconTextBrush.Color = new Color4(1, 1, 1, 0.95f);
+
+            var rr = new RoundedRectangle(
+                new RectangleF(boundsWorld.Left, boundsWorld.Top, boundsWorld.Width, boundsWorld.Height),
+                corner,
+                corner);
+            ctx.FillRoundedRectangle(rr, _elementFillBrush);
+            ctx.DrawRoundedRectangle(rr, _elementBorderBrush, strokeWidth: 1.5f);
+
+            ElementCardVisual visual = GetElementCardVisual(element);
+
+            // 图标区域：左上角圆形徽标（颜色区分类型）。
+            Rect iconRect = Rect.FromLTRB(
+                boundsWorld.Left + pad,
+                boundsWorld.Top + pad,
+                boundsWorld.Left + pad + iconSize,
+                boundsWorld.Top + pad + iconSize);
+
+            if (!string.IsNullOrWhiteSpace(visual.IconText))
+            {
+                _elementFillBrush.Color = visual.AccentColor;
+                ctx.FillEllipse(
+                    new Ellipse(new Vector2(iconRect.Left + iconSize / 2.0f, iconRect.Top + iconSize / 2.0f), iconSize / 2.0f, iconSize / 2.0f),
+                    _elementFillBrush);
+                ctx.DrawText(visual.IconText, _elementIconTextFormat, iconRect, _elementIconTextBrush, DrawTextOptions.None, MeasuringMode.Natural);
+            }
+
+            float textLeft = iconRect.Right + iconGap;
+            float textRight = boundsWorld.Right - pad;
+
+            // 标题：文件名/标题等；副标题：类型与“双击打开”提示。
+            Rect titleRect = Rect.FromLTRB(
+                textLeft,
+                boundsWorld.Top + pad,
+                textRight,
+                boundsWorld.Top + pad + titleHeight);
+
+            Rect bodyRect = Rect.FromLTRB(
+                textLeft,
+                titleRect.Bottom + titleGap,
+                textRight,
+                boundsWorld.Bottom - pad);
+
+            if (!string.IsNullOrWhiteSpace(visual.Title))
+            {
+                ctx.DrawText(visual.Title, _elementTitleTextFormat, titleRect, _elementTextBrush, DrawTextOptions.None, MeasuringMode.Natural);
+            }
+
+            if (!string.IsNullOrWhiteSpace(visual.Secondary))
+            {
+                ctx.DrawText(visual.Secondary, _elementBodyTextFormat, bodyRect, _elementSecondaryTextBrush, DrawTextOptions.None, MeasuringMode.Natural);
+            }
+        }
+
+        private void DrawImageElement(ID2D1RenderTarget ctx, BoardMediaElement element, ID2D1Bitmap bitmap, Rect boundsWorld)
+        {
+            if (_elementFillBrush is null || _elementBorderBrush is null)
+            {
+                return;
+            }
+
+            const float corner = 14.0f;
+            const float pad = 6.0f;
+
+            _elementFillBrush.Color = new Color4(1, 1, 1, 0.92f);
+            _elementBorderBrush.Color = new Color4(0, 0, 0, 0.35f);
+
+            var rr = new RoundedRectangle(
+                new RectangleF(boundsWorld.Left, boundsWorld.Top, boundsWorld.Width, boundsWorld.Height),
+                corner,
+                corner);
+            ctx.FillRoundedRectangle(rr, _elementFillBrush);
+
+            Rect inner = Rect.FromLTRB(
+                boundsWorld.Left + pad,
+                boundsWorld.Top + pad,
+                boundsWorld.Right - pad,
+                boundsWorld.Bottom - pad);
+
+            Rect dest = ComputeAspectFitRect(inner, element.PixelWidth, element.PixelHeight);
+            ctx.DrawBitmap(bitmap, 1.0f, BitmapInterpolationMode.Linear, dest);
+
+            ctx.DrawRoundedRectangle(rr, _elementBorderBrush, strokeWidth: 1.5f);
+        }
+
+        private static Rect ComputeAspectFitRect(Rect container, int pixelWidth, int pixelHeight)
+        {
+            float w = Math.Max(1.0f, container.Width);
+            float h = Math.Max(1.0f, container.Height);
+
+            if (pixelWidth <= 0 || pixelHeight <= 0)
+            {
+                return container;
+            }
+
+            float iw = pixelWidth;
+            float ih = pixelHeight;
+
+            float scale = Math.Min(w / iw, h / ih);
+            float drawW = iw * scale;
+            float drawH = ih * scale;
+
+            float left = container.Left + (w - drawW) / 2.0f;
+            float top = container.Top + (h - drawH) / 2.0f;
+
+            return Rect.FromLTRB(left, top, left + drawW, top + drawH);
+        }
+
+        private readonly record struct ElementCardVisual(Color4 AccentColor, string IconText, string Title, string Secondary);
+
+        private static ElementCardVisual GetElementCardVisual(BoardElement element)
+        {
+            // 颜色参考 iOS Accent 风格，保证在深色画布上可读。
+            static Color4 AccentBlue() => new(0.04f, 0.52f, 1.00f, 1.00f);
+            static Color4 AccentOrange() => new(1.00f, 0.58f, 0.00f, 1.00f);
+            static Color4 AccentPurple() => new(0.69f, 0.32f, 0.87f, 1.00f);
+            static Color4 AccentGreen() => new(0.20f, 0.78f, 0.35f, 1.00f);
+            static Color4 AccentGray() => new(0.55f, 0.55f, 0.58f, 1.00f);
+            static Color4 AccentCyan() => new(0.35f, 0.78f, 0.98f, 1.00f);
+
+            if (element is BoardLinkElement link)
+            {
+                string url = (link.Url ?? string.Empty).Trim();
+                string title = string.IsNullOrWhiteSpace(link.Title) ? url : link.Title!.Trim();
+
+                string secondary = string.IsNullOrWhiteSpace(link.Title) || string.IsNullOrWhiteSpace(url)
+                    ? "双击打开链接"
+                    : url + "\n双击打开链接";
+
+                return new ElementCardVisual(AccentBlue(), "链", title, secondary);
+            }
+
+            if (element is BoardMediaElement media)
+            {
+                string name = GetBestDisplayName(media.DisplayName, media.SourcePath);
+
+                return media.Kind switch
+                {
+                    BoardMediaKind.Audio => new ElementCardVisual(AccentOrange(), "音", name, "音频\n双击外部打开"),
+                    BoardMediaKind.Video => new ElementCardVisual(AccentPurple(), "视", name, "视频\n双击外部打开"),
+                    BoardMediaKind.Image => new ElementCardVisual(AccentCyan(), "图", name, "图片（无法预览）\n双击外部打开"),
+                    _ => new ElementCardVisual(AccentGray(), "媒", name, "多媒体\n双击外部打开"),
+                };
+            }
+
+            if (element is BoardFileElement file)
+            {
+                string name = GetBestDisplayName(file.DisplayName, file.SourcePath);
+                (string kindLabel, bool known) = GetFileKindLabel(name, file.SourcePath);
+                string secondary = known ? kindLabel + "\n双击外部打开" : "双击外部打开";
+                string icon = known ? "文" : "档";
+                return new ElementCardVisual(known ? AccentGreen() : AccentGray(), icon, name, secondary);
+            }
+
+            if (element is BoardTextElement text)
+            {
+                string preview = (text.Text ?? string.Empty).Trim();
+                if (preview.Length > 160)
+                {
+                    preview = preview.Substring(0, 160) + "…";
+                }
+
+                string secondary = string.IsNullOrWhiteSpace(preview) ? string.Empty : preview;
+                return new ElementCardVisual(AccentGray(), "字", "文字", secondary);
+            }
+
+            return new ElementCardVisual(AccentGray(), "?", string.Empty, string.Empty);
+        }
+
+        private static string GetBestDisplayName(string? displayName, string? sourcePath)
+        {
+            string name = displayName ?? string.Empty;
+            if (!string.IsNullOrWhiteSpace(name))
+            {
+                return name;
+            }
+
+            string path = sourcePath ?? string.Empty;
+            if (string.IsNullOrWhiteSpace(path))
+            {
+                return "（未命名）";
+            }
+
+            try
+            {
+                return Path.GetFileName(path);
+            }
+            catch
+            {
+                return path;
+            }
+        }
+
+        private static (string label, bool known) GetFileKindLabel(string? displayName, string? sourcePath)
+        {
+            string name = displayName ?? string.Empty;
+            string path = sourcePath ?? string.Empty;
+
+            string ext = string.Empty;
+            try
+            {
+                ext = Path.GetExtension(!string.IsNullOrWhiteSpace(name) ? name : path).ToLowerInvariant();
+            }
+            catch
+            {
+                ext = string.Empty;
+            }
+
+            return ext switch
+            {
+                ".pdf" => ("PDF 文档", true),
+                ".doc" or ".docx" or ".docm" => ("Word 文档", true),
+                ".ppt" or ".pptx" or ".pptm" => ("PowerPoint 文档", true),
+                ".xls" or ".xlsx" or ".xlsm" => ("Excel 表格", true),
+                ".csv" => ("CSV 表格", true),
+                ".rtf" => ("RTF 文档", true),
+                ".epub" => ("电子书", true),
+                ".zip" or ".7z" or ".rar" => ("压缩包", true),
+                _ => (string.IsNullOrWhiteSpace(ext) ? "文件" : $"文件（{ext}）", false),
+            };
+        }
+
+        private void EnsureElementBrushes(ID2D1RenderTarget ctx)
+        {
+            _elementFillBrush ??= ctx.CreateSolidColorBrush(new Color4(1, 1, 1, 0.92f));
+            _elementBorderBrush ??= ctx.CreateSolidColorBrush(new Color4(0, 0, 0, 0.35f));
+            _elementTextBrush ??= ctx.CreateSolidColorBrush(new Color4(0, 0, 0, 0.90f));
+            _elementSecondaryTextBrush ??= ctx.CreateSolidColorBrush(new Color4(0, 0, 0, 0.60f));
+            _elementIconTextBrush ??= ctx.CreateSolidColorBrush(new Color4(1, 1, 1, 0.95f));
+        }
+
+        private void EnsureElementTextFormats()
+        {
+            if (_elementTitleTextFormat is not null && _elementBodyTextFormat is not null && _elementIconTextFormat is not null)
+            {
+                return;
+            }
+
+            _dwriteFactory ??= DWrite.DWriteCreateFactory<IDWriteFactory>(Vortice.DirectWrite.FactoryType.Shared);
+
+            _elementTitleTextFormat = _dwriteFactory.CreateTextFormat(
+                "Segoe UI",
+                fontCollection: null,
+                FontWeight.SemiBold,
+                FontStyle.Normal,
+                FontStretch.Normal,
+                fontSize: 15.0f,
+                localeName: "zh-CN");
+
+            _elementTitleTextFormat.WordWrapping = WordWrapping.NoWrap;
+            _elementTitleTextFormat.TextAlignment = TextAlignment.Leading;
+            _elementTitleTextFormat.ParagraphAlignment = ParagraphAlignment.Near;
+
+            _elementBodyTextFormat = _dwriteFactory.CreateTextFormat(
+                "Segoe UI",
+                fontCollection: null,
+                FontWeight.Normal,
+                FontStyle.Normal,
+                FontStretch.Normal,
+                fontSize: 13.0f,
+                localeName: "zh-CN");
+
+            _elementBodyTextFormat.WordWrapping = WordWrapping.Wrap;
+            _elementBodyTextFormat.TextAlignment = TextAlignment.Leading;
+            _elementBodyTextFormat.ParagraphAlignment = ParagraphAlignment.Near;
+
+            _elementIconTextFormat = _dwriteFactory.CreateTextFormat(
+                "Segoe UI",
+                fontCollection: null,
+                FontWeight.SemiBold,
+                FontStyle.Normal,
+                FontStretch.Normal,
+                fontSize: 14.0f,
+                localeName: "zh-CN");
+
+            _elementIconTextFormat.WordWrapping = WordWrapping.NoWrap;
+            _elementIconTextFormat.TextAlignment = TextAlignment.Center;
+            _elementIconTextFormat.ParagraphAlignment = ParagraphAlignment.Center;
+        }
+
+        private bool TryGetOrCreateImageBitmap(ID2D1RenderTarget ctx, BoardMediaElement element, out ID2D1Bitmap? bitmap)
+        {
+            bitmap = null;
+
+            if (element.Bgra8PremulPixels is not byte[] bytes)
+            {
+                return false;
+            }
+
+            int w = element.PixelWidth;
+            int h = element.PixelHeight;
+            if (w <= 0 || h <= 0)
+            {
+                return false;
+            }
+
+            int stride;
+            int required;
+            try
+            {
+                stride = checked(w * 4);
+                required = checked(stride * h);
+            }
+            catch
+            {
+                return false;
+            }
+
+            if (bytes.Length < required)
+            {
+                return false;
+            }
+
+            EnsureImageBitmapCacheContext(ctx);
+
+            if (_imageBitmapCache.TryGetValue(element, out ID2D1Bitmap? cached))
+            {
+                bitmap = cached;
+                return true;
+            }
+
+            var props = new BitmapProperties(
+                new PixelFormat(Format.B8G8R8A8_UNorm, Vortice.DCommon.AlphaMode.Premultiplied),
+                dpiX: 96.0f,
+                dpiY: 96.0f);
+
+            GCHandle handle = GCHandle.Alloc(bytes, GCHandleType.Pinned);
+            try
+            {
+                IntPtr ptr = handle.AddrOfPinnedObject();
+                ID2D1Bitmap created = ctx.CreateBitmap(new SizeI(w, h), ptr, (uint)stride, props);
+                _imageBitmapCache[element] = created;
+                bitmap = created;
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+            finally
+            {
+                handle.Free();
+            }
+        }
+
+        private void EnsureImageBitmapCacheContext(ID2D1RenderTarget ctx)
+        {
+            nint ptr = ctx.NativePointer;
+            if (_imageBitmapCacheRenderTargetPtr == ptr)
+            {
+                return;
+            }
+
+            foreach (ID2D1Bitmap bmp in _imageBitmapCache.Values)
+            {
+                bmp.Dispose();
+            }
+
+            _imageBitmapCache.Clear();
+            _imageBitmapCacheRenderTargetPtr = ptr;
+        }
+
         private static ID2D1DeviceContext2? TryGetDeviceContext2(ID2D1RenderTarget ctx)
         {
             try
@@ -268,7 +818,7 @@ namespace WindBoard.Rendering.Board
                 return;
             }
 
-            _factory ??= D2D1.D2D1CreateFactory<ID2D1Factory1>(FactoryType.SingleThreaded, DebugLevel.None);
+            _factory ??= D2D1.D2D1CreateFactory<ID2D1Factory1>(Vortice.Direct2D1.FactoryType.SingleThreaded, DebugLevel.None);
 
             var props = new StrokeStyleProperties
             {
@@ -317,6 +867,53 @@ namespace WindBoard.Rendering.Board
                 if (_inkCache.Remove(stroke, out StrokeInkCacheEntry? entry))
                 {
                     entry.Dispose();
+                }
+            }
+        }
+
+        private void PruneElementCache(BoardDocument document)
+        {
+            if (_imageBitmapCache.Count == 0)
+            {
+                return;
+            }
+
+            var live = new HashSet<BoardMediaElement>();
+
+            CollectLiveImageElements(document.ElementsBelowInk, live);
+            CollectLiveImageElements(document.ElementsAboveInk, live);
+
+            List<BoardMediaElement>? toRemove = null;
+            foreach (var kv in _imageBitmapCache)
+            {
+                if (!live.Contains(kv.Key))
+                {
+                    toRemove ??= new List<BoardMediaElement>();
+                    toRemove.Add(kv.Key);
+                }
+            }
+
+            if (toRemove is null)
+            {
+                return;
+            }
+
+            foreach (BoardMediaElement key in toRemove)
+            {
+                if (_imageBitmapCache.Remove(key, out ID2D1Bitmap? bmp))
+                {
+                    bmp.Dispose();
+                }
+            }
+        }
+
+        private static void CollectLiveImageElements(IReadOnlyList<BoardElement> elements, HashSet<BoardMediaElement> live)
+        {
+            for (int i = 0; i < elements.Count; i++)
+            {
+                if (elements[i] is BoardMediaElement { Kind: BoardMediaKind.Image } img)
+                {
+                    live.Add(img);
                 }
             }
         }
@@ -512,11 +1109,45 @@ namespace WindBoard.Rendering.Board
             _strokeBrush?.Dispose();
             _strokeBrush = null;
 
+            _elementFillBrush?.Dispose();
+            _elementFillBrush = null;
+
+            _elementBorderBrush?.Dispose();
+            _elementBorderBrush = null;
+
+            _elementTextBrush?.Dispose();
+            _elementTextBrush = null;
+
+            _elementSecondaryTextBrush?.Dispose();
+            _elementSecondaryTextBrush = null;
+
+            _elementIconTextBrush?.Dispose();
+            _elementIconTextBrush = null;
+
             _strokeStyle?.Dispose();
             _strokeStyle = null;
 
             _inkStyle?.Dispose();
             _inkStyle = null;
+
+            foreach (ID2D1Bitmap bmp in _imageBitmapCache.Values)
+            {
+                bmp.Dispose();
+            }
+            _imageBitmapCache.Clear();
+            _imageBitmapCacheRenderTargetPtr = 0;
+
+            _elementTitleTextFormat?.Dispose();
+            _elementTitleTextFormat = null;
+
+            _elementBodyTextFormat?.Dispose();
+            _elementBodyTextFormat = null;
+
+            _elementIconTextFormat?.Dispose();
+            _elementIconTextFormat = null;
+
+            _dwriteFactory?.Dispose();
+            _dwriteFactory = null;
 
             foreach (var entry in _inkCache.Values)
             {

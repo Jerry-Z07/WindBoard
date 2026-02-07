@@ -8,6 +8,7 @@ using Microsoft.UI.Xaml.Input;
 using WindBoard.Board;
 using WindBoard.Board.Commands;
 using WindBoard.Board.Editing;
+using WindBoard.Board.Elements;
 using WindBoard.Board.Viewport;
 using Vortice.Mathematics;
 
@@ -58,8 +59,12 @@ namespace WindBoard.Interaction
         private List<Stroke>? _eraseBeforeSnapshot;
 
         private Stroke? _selectedStroke;
+        private BoardElement? _selectedElement;
         private Stroke? _selectionTransformStroke;
         private List<StrokePoint>? _selectionBeforeSnapshot;
+        private BoardElement? _selectionTransformElement;
+        private Vector2? _selectionElementBeforePositionWorld;
+        private Vector2? _selectionElementBeforeSizeWorld;
         private bool _selectionModified;
 
         private enum TouchManipulationTarget
@@ -109,6 +114,11 @@ namespace WindBoard.Interaction
         /// </summary>
         public Stroke? SelectedStroke => _selectedStroke;
 
+        /// <summary>
+        /// 当前选中的元素（选择工具）。
+        /// </summary>
+        public BoardElement? SelectedElement => _selectedElement;
+
         public bool IsErasing => _isErasing;
 
         public bool IsWheelZooming => _isWheelZooming;
@@ -154,29 +164,46 @@ namespace WindBoard.Interaction
         /// </summary>
         public void ValidateSelection()
         {
-            if (_selectedStroke is null)
+            if (_selectedStroke is Stroke stroke)
             {
+                if (_session.Document.Strokes.Contains(stroke))
+                {
+                    return;
+                }
+
+                _selectedStroke = null;
+                FrameInvalidated?.Invoke();
+                StateChanged?.Invoke();
                 return;
             }
 
-            if (_session.Document.Strokes.Contains(_selectedStroke))
+            if (_selectedElement is BoardElement element)
             {
-                return;
-            }
+                if (_session.Document.ElementsAboveInk.Contains(element) || _session.Document.ElementsBelowInk.Contains(element))
+                {
+                    return;
+                }
 
-            _selectedStroke = null;
-            FrameInvalidated?.Invoke();
-            StateChanged?.Invoke();
+                _selectedElement = null;
+                FrameInvalidated?.Invoke();
+                StateChanged?.Invoke();
+            }
         }
 
         public void ClearSelection()
         {
             SetSelectedStroke(null);
+            SetSelectedElement(null);
         }
 
         public void SetSelection(Stroke? stroke)
         {
             SetSelectedStroke(stroke);
+        }
+
+        public void SetSelection(BoardElement? element)
+        {
+            SetSelectedElement(element);
         }
 
         public event Action? StateChanged;

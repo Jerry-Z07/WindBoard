@@ -538,7 +538,7 @@ namespace WindBoard
 
         private async void OnImportClicked(object sender, RoutedEventArgs e)
         {
-            await ShowNotImplementedDialogAsync("导入");
+            await StartImportAsync();
         }
 
 

@@ -8,6 +8,7 @@ using Microsoft.UI.Xaml.Input;
 using WindBoard.Board;
 using WindBoard.Board.Commands;
 using WindBoard.Board.Editing;
+using WindBoard.Board.Elements;
 using WindBoard.Board.Viewport;
 using Vortice.Mathematics;
 
@@ -63,6 +64,11 @@ namespace WindBoard.Interaction
             {
                 Vector2 deltaWorld = deltaScreen / Math.Max(0.0001f, _viewport.Zoom);
                 _selectionTransformStroke.Translate(deltaWorld);
+            }
+            else if (_selectionTransformElement is not null)
+            {
+                Vector2 deltaWorld = deltaScreen / Math.Max(0.0001f, _viewport.Zoom);
+                _selectionTransformElement.PositionWorld += deltaWorld;
             }
 
             if (deltaScreen.LengthSquared() > 0.0001f)
@@ -163,7 +169,19 @@ namespace WindBoard.Interaction
             {
                 if (mode == PointerEndMode.Commit)
                 {
+                    PointerPoint point = e.GetCurrentPoint(_panel);
+                    Vector2 screenDip = new((float)point.Position.X, (float)point.Position.Y);
+
+                    // 选择拖拽未发生任何变换时，将其视为一次“点击”用于双击外部打开。
+                    bool shouldHandleElementClick = !_selectionModified && _selectedElement is not null;
+                    BoardElement? clickedElement = _selectedElement;
+
                     CommitSelectionGesture(releasePointerCaptures);
+
+                    if (shouldHandleElementClick && clickedElement is not null)
+                    {
+                        HandleElementClickForMaybeOpen(clickedElement, screenDip);
+                    }
                 }
                 else
                 {

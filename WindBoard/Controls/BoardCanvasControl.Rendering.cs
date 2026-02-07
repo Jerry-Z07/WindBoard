@@ -11,6 +11,7 @@ using UiColor = Windows.UI.Color;
 using WindBoard.Board;
 using WindBoard.Board.Commands;
 using WindBoard.Board.Editing;
+using WindBoard.Board.Elements;
 using WindBoard.Board.Viewport;
 using WindBoard.Interaction;
 using WindBoard.Rendering;
@@ -82,14 +83,14 @@ namespace WindBoard.Controls
                 {
                     _renderer.RenderWithCachedBackgroundDirtyRect(
                         dirtyRectDip,
-                        drawBackground: ctx => _sceneRenderer.DrawBackground(ctx, _session.Document, _viewport),
-                        drawOverlay: ctx => _sceneRenderer.DrawActiveStroke(ctx, activeStroke, _viewport));
+                        drawBackground: ctx => _sceneRenderer.DrawBackgroundUnderInk(ctx, _session.Document, _viewport),
+                        drawOverlay: ctx => _sceneRenderer.DrawOverlayAboveInk(ctx, _session.Document, activeStroke, _viewport));
                 }
                 else
                 {
                     _renderer.RenderWithCachedBackground(
-                        drawBackground: ctx => _sceneRenderer.DrawBackground(ctx, _session.Document, _viewport),
-                        drawOverlay: ctx => _sceneRenderer.DrawActiveStroke(ctx, activeStroke, _viewport));
+                        drawBackground: ctx => _sceneRenderer.DrawBackgroundUnderInk(ctx, _session.Document, _viewport),
+                        drawOverlay: ctx => _sceneRenderer.DrawOverlayAboveInk(ctx, _session.Document, activeStroke, _viewport));
                 }
 
                 _lastRenderedZoom = _viewport.Zoom;
@@ -142,6 +143,10 @@ namespace WindBoard.Controls
                 else if (TryGetSelectedStrokeScreenRect(out Stroke stroke, out Rect strokeBoundsScreenDip))
                 {
                     ShowSelectedStrokeOverlay(stroke, strokeBoundsScreenDip);
+                }
+                else if (TryGetSelectedElementScreenRect(out BoardElement element, out Rect elementBoundsScreenDip))
+                {
+                    ShowSelectedElementOverlay(element, elementBoundsScreenDip);
                 }
                 else
                 {
@@ -210,7 +215,13 @@ namespace WindBoard.Controls
         private void ShowSelectedStrokeOverlay(Stroke stroke, Rect strokeBoundsScreenDip)
         {
             ShowSelectionBoundsOverlay(strokeBoundsScreenDip);
-            ShowSelectionDockOverlay(stroke, strokeBoundsScreenDip);
+            ShowSelectionDockOverlay(strokeBoundsScreenDip);
+        }
+
+        private void ShowSelectedElementOverlay(BoardElement element, Rect elementBoundsScreenDip)
+        {
+            ShowSelectionBoundsOverlay(elementBoundsScreenDip);
+            ShowSelectionDockOverlay(elementBoundsScreenDip);
         }
 
         private void ShowSelectionBoundsOverlay(Rect boundsDip)
@@ -227,7 +238,7 @@ namespace WindBoard.Controls
             Canvas.SetTop(SelectionBoundsBorder, boundsDip.Top);
         }
 
-        private void ShowSelectionDockOverlay(Stroke stroke, Rect boundsDip)
+        private void ShowSelectionDockOverlay(Rect boundsDip)
         {
             if (SelectionDockBorder is null)
             {
@@ -236,11 +247,24 @@ namespace WindBoard.Controls
 
             SelectionDockBorder.Visibility = Visibility.Visible;
 
-            // 置顶：当选中笔迹已经是最后绘制（列表末尾）时禁用。
+            // 置顶：
+            // - 笔迹：当选中笔迹已在列表末尾（最后绘制）时禁用。
+            // - 元素：当选中元素已在“上层元素列表”末尾时禁用；下层元素永远可置顶（跨层）。
             if (SelectionBringToFrontButton is not null)
             {
-                bool isTopMost = _session.Document.Strokes.Count > 0
-                    && ReferenceEquals(_session.Document.Strokes[^1], stroke);
+                bool isTopMost = false;
+
+                if (_input?.SelectedStroke is Stroke selectedStroke)
+                {
+                    isTopMost = _session.Document.Strokes.Count > 0
+                        && ReferenceEquals(_session.Document.Strokes[^1], selectedStroke);
+                }
+                else if (_input?.SelectedElement is BoardElement selectedElement)
+                {
+                    isTopMost = _session.Document.ElementsAboveInk.Count > 0
+                        && ReferenceEquals(_session.Document.ElementsAboveInk[^1], selectedElement);
+                }
+
                 SelectionBringToFrontButton.IsEnabled = !isTopMost;
             }
 
@@ -286,49 +310,173 @@ namespace WindBoard.Controls
 
         private void OnSelectionBringToFrontClicked(object sender, RoutedEventArgs e)
         {
-            if (_input?.SelectedStroke is not Stroke stroke)
+            if (_input is null)
             {
                 return;
             }
 
             // 点击 Dock 时，主动结束输入控制器的连续动作，避免残留捕获/状态。
             _input.CancelActiveToolOperation();
-            _session.Execute(new BringStrokeToFrontCommand(stroke));
+
+            if (_input?.SelectedStroke is Stroke stroke)
+            {
+                _session.Execute(new BringStrokeToFrontCommand(stroke));
+            }
+            else if (_input?.SelectedElement is BoardElement element)
+            {
+                _session.Execute(new BringElementToFrontCommand(element));
+            }
+            else
+            {
+                return;
+            }
+
             _input.ValidateSelection();
             UpdateSelectionOverlay();
         }
 
         private void OnSelectionDuplicateClicked(object sender, RoutedEventArgs e)
         {
-            if (_input?.SelectedStroke is not Stroke stroke)
+            if (_input is null)
             {
                 return;
             }
 
             _input.CancelActiveToolOperation();
 
-            Stroke copy = CloneStroke(stroke);
+            if (_input?.SelectedStroke is Stroke stroke)
+            {
+                Stroke copy = CloneStroke(stroke);
 
-            // 复制后做一个轻微偏移，避免与原笔迹完全重叠导致“看不见”。
-            float zoom = Math.Max(0.0001f, _viewport.Zoom);
-            copy.Translate(new Vector2(12.0f, 12.0f) / zoom);
+                // 复制后做一个轻微偏移，避免与原笔迹完全重叠导致“看不见”。
+                float zoom = Math.Max(0.0001f, _viewport.Zoom);
+                copy.Translate(new Vector2(12.0f, 12.0f) / zoom);
 
-            _session.Execute(new AddStrokeCommand(copy));
-            _input.SetSelection(copy);
-            UpdateSelectionOverlay();
+                _session.Execute(new AddStrokeCommand(copy));
+                _input.SetSelection(copy);
+                UpdateSelectionOverlay();
+                return;
+            }
+
+            if (_input?.SelectedElement is BoardElement element)
+            {
+                if (!TryCloneElement(element, out BoardElement? copy, out bool aboveInk))
+                {
+                    return;
+                }
+
+                float zoom = Math.Max(0.0001f, _viewport.Zoom);
+                copy!.PositionWorld = element.PositionWorld + new Vector2(12.0f, 12.0f) / zoom;
+
+                _session.Execute(new AddElementCommand(copy, aboveInk));
+                _input.SetSelection(copy);
+                UpdateSelectionOverlay();
+            }
         }
 
         private void OnSelectionDeleteClicked(object sender, RoutedEventArgs e)
         {
-            if (_input?.SelectedStroke is not Stroke stroke)
+            if (_input is null)
             {
                 return;
             }
 
             _input.CancelActiveToolOperation();
-            _session.Execute(new RemoveStrokeCommand(stroke));
-            _input.ClearSelection();
-            UpdateSelectionOverlay();
+
+            if (_input?.SelectedStroke is Stroke stroke)
+            {
+                _session.Execute(new RemoveStrokeCommand(stroke));
+                _input.ClearSelection();
+                UpdateSelectionOverlay();
+                return;
+            }
+
+            if (_input?.SelectedElement is BoardElement element)
+            {
+                _session.Execute(new RemoveElementCommand(element));
+                _input.ClearSelection();
+                UpdateSelectionOverlay();
+            }
+        }
+
+        private bool TryCloneElement(BoardElement source, out BoardElement? clone, out bool aboveInk)
+        {
+            clone = null;
+            aboveInk = false;
+
+            if (_session.Document.ElementsAboveInk.Contains(source))
+            {
+                aboveInk = true;
+            }
+            else if (_session.Document.ElementsBelowInk.Contains(source))
+            {
+                aboveInk = false;
+            }
+            else
+            {
+                return false;
+            }
+
+            clone = source switch
+            {
+                BoardTextElement t => new BoardTextElement { Text = t.Text },
+                BoardLinkElement l => new BoardLinkElement { Url = l.Url, Title = l.Title },
+                BoardMediaElement m => new BoardMediaElement
+                {
+                    Kind = m.Kind,
+                    SourcePath = m.SourcePath,
+                    DisplayName = m.DisplayName,
+                    PixelWidth = m.PixelWidth,
+                    PixelHeight = m.PixelHeight,
+                    Bgra8PremulPixels = m.Bgra8PremulPixels,
+                },
+                BoardFileElement f => new BoardFileElement
+                {
+                    SourcePath = f.SourcePath,
+                    DisplayName = f.DisplayName,
+                },
+                _ => null,
+            };
+
+            if (clone is null)
+            {
+                return false;
+            }
+
+            clone.PositionWorld = source.PositionWorld;
+            clone.SizeWorld = source.SizeWorld;
+            return true;
+        }
+
+        private bool TryGetSelectedElementScreenRect(out BoardElement element, out Rect elementBoundsScreenDip)
+        {
+            element = null!;
+            elementBoundsScreenDip = default;
+
+            if (_input?.SelectedElement is not BoardElement selected)
+            {
+                return false;
+            }
+
+            Rect boundsWorld = selected.GetBoundsWorld();
+            if (boundsWorld.Width <= 0.0001f || boundsWorld.Height <= 0.0001f)
+            {
+                return false;
+            }
+
+            element = selected;
+
+            Matrix3x2 worldToScreen = _viewport.GetWorldToScreenTransform();
+            Vector2 minScreen = Vector2.Transform(new Vector2(boundsWorld.Left, boundsWorld.Top), worldToScreen);
+            Vector2 maxScreen = Vector2.Transform(new Vector2(boundsWorld.Right, boundsWorld.Bottom), worldToScreen);
+
+            float left = Math.Min(minScreen.X, maxScreen.X);
+            float top = Math.Min(minScreen.Y, maxScreen.Y);
+            float right = Math.Max(minScreen.X, maxScreen.X);
+            float bottom = Math.Max(minScreen.Y, maxScreen.Y);
+
+            elementBoundsScreenDip = Rect.FromLTRB(left, top, right, bottom);
+            return true;
         }
 
         private static Stroke CloneStroke(Stroke source)

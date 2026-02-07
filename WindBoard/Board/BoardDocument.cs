@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Numerics;
+using WindBoard.Board.Elements;
 using Vortice.Mathematics;
 
 namespace WindBoard.Board
@@ -8,6 +9,16 @@ namespace WindBoard.Board
     internal sealed class BoardDocument
     {
         public List<Stroke> Strokes { get; } = new();
+
+        /// <summary>
+        /// 页面元素（默认层）：位于笔迹下方绘制。
+        /// </summary>
+        public List<BoardElement> ElementsBelowInk { get; } = new();
+
+        /// <summary>
+        /// 页面元素（置顶层）：位于笔迹上方绘制。
+        /// </summary>
+        public List<BoardElement> ElementsAboveInk { get; } = new();
     }
 
     internal sealed class Stroke

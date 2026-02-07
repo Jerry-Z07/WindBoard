@@ -8,6 +8,7 @@ using Microsoft.UI.Xaml.Input;
 using WindBoard.Board;
 using WindBoard.Board.Commands;
 using WindBoard.Board.Editing;
+using WindBoard.Board.Elements;
 using WindBoard.Board.Viewport;
 using Vortice.Mathematics;
 
@@ -106,12 +107,14 @@ namespace WindBoard.Interaction
                 _panel.ReleasePointerCaptures();
             }
 
-            Stroke? selected = null;
+            Stroke? selectedStroke = null;
+            BoardElement? selectedElement = null;
+            bool isClick = rectDip.Width <= MarqueeClickThresholdDip && rectDip.Height <= MarqueeClickThresholdDip;
 
             // 小于阈值时按“点击”处理，避免用户轻微抖动导致无法点选。
-            if (rectDip.Width <= MarqueeClickThresholdDip && rectDip.Height <= MarqueeClickThresholdDip)
+            if (isClick)
             {
-                selected = HitTestStrokeAtScreenPoint(start);
+                HitTestSelectableAtScreenPoint(start, out selectedStroke, out selectedElement);
             }
             else
             {
@@ -126,14 +129,61 @@ namespace WindBoard.Interaction
                     Math.Max(worldTopLeft.X, worldBottomRight.X),
                     Math.Max(worldTopLeft.Y, worldBottomRight.Y));
 
-                selected = StrokeRectSelectTest.HitTestTopMostStrokeInWorldRect(_session.Document.Strokes, minWorld, maxWorld);
+                HitTestSelectableInWorldRect(minWorld, maxWorld, out selectedStroke, out selectedElement);
             }
 
-            SetSelectedStroke(selected);
+            if (selectedStroke is not null || selectedElement is null)
+            {
+                SetSelectedStroke(selectedStroke);
+            }
+            else
+            {
+                SetSelectedElement(selectedElement);
+            }
+
+            // 元素双击：外部打开（仅在“点击”路径触发，框选不会触发）。
+            if (isClick && selectedElement is not null)
+            {
+                HandleElementClickForMaybeOpen(selectedElement, start);
+            }
 
             UpdateInteractionState();
             FrameInvalidated?.Invoke();
             StateChanged?.Invoke();
+        }
+
+        private void HitTestSelectableAtScreenPoint(Vector2 screenDip, out Stroke? stroke, out BoardElement? element)
+        {
+            stroke = null;
+            element = null;
+
+            Vector2 pointWorld = _viewport.ScreenToWorld(screenDip);
+            float toleranceWorld = SelectHitToleranceDip / Math.Max(0.0001f, _viewport.Zoom);
+
+            // 选择优先级（视觉顺序）：上层元素 → 笔迹 → 下层元素
+            element = ElementPickTest.HitTestTopMostElement(_session.Document.ElementsAboveInk, pointWorld, toleranceWorld);
+            if (element is not null)
+            {
+                return;
+            }
+
+            stroke = StrokePickTest.HitTestTopMostStroke(_session.Document.Strokes, pointWorld, toleranceWorld);
+            if (stroke is not null)
+            {
+                return;
+            }
+
+            element = ElementPickTest.HitTestTopMostElement(_session.Document.ElementsBelowInk, pointWorld, toleranceWorld);
+        }
+
+        private void HitTestSelectableInWorldRect(Vector2 minWorld, Vector2 maxWorld, out Stroke? stroke, out BoardElement? element)
+        {
+            stroke = null;
+            element = null;
+
+            // 交互约定：元素只能通过“单击”选中，不支持框选。
+            // 框选仅用于笔迹，避免导入的图片/文本/链接等元素被误选。
+            stroke = StrokeRectSelectTest.HitTestTopMostStrokeInWorldRect(_session.Document.Strokes, minWorld, maxWorld);
         }
 
         private void CancelMarqueeSelectionGesture(bool releasePointerCaptures)
@@ -159,6 +209,20 @@ namespace WindBoard.Interaction
         {
             _selectionTransformStroke = stroke;
             _selectionBeforeSnapshot = new List<StrokePoint>(stroke.Points);
+            _selectionTransformElement = null;
+            _selectionElementBeforePositionWorld = null;
+            _selectionElementBeforeSizeWorld = null;
+            _selectionModified = false;
+        }
+
+        private void BeginSelectionTransformSnapshot(BoardElement element)
+        {
+            _selectionTransformStroke = null;
+            _selectionBeforeSnapshot = null;
+
+            _selectionTransformElement = element;
+            _selectionElementBeforePositionWorld = element.PositionWorld;
+            _selectionElementBeforeSizeWorld = element.SizeWorld;
             _selectionModified = false;
         }
 
@@ -166,6 +230,9 @@ namespace WindBoard.Interaction
         {
             Stroke? stroke = _selectionTransformStroke;
             List<StrokePoint>? before = _selectionBeforeSnapshot;
+            BoardElement? element = _selectionTransformElement;
+            Vector2? elementBeforePos = _selectionElementBeforePositionWorld;
+            Vector2? elementBeforeSize = _selectionElementBeforeSizeWorld;
 
             _selectionPointerId = null;
             _isManipulatingSelection = false;
@@ -177,6 +244,9 @@ namespace WindBoard.Interaction
 
             _selectionTransformStroke = null;
             _selectionBeforeSnapshot = null;
+            _selectionTransformElement = null;
+            _selectionElementBeforePositionWorld = null;
+            _selectionElementBeforeSizeWorld = null;
 
             if (stroke is not null && before is not null && _selectionModified)
             {
@@ -184,6 +254,27 @@ namespace WindBoard.Interaction
                 if (!IsSameStrokePointList(before, after))
                 {
                     _session.Execute(new UpdateStrokePointsCommand(stroke, before, after));
+                }
+            }
+
+            if (element is not null
+                && elementBeforePos is Vector2 beforePos
+                && elementBeforeSize is Vector2 beforeSize
+                && _selectionModified)
+            {
+                Vector2 afterPos = element.PositionWorld;
+                Vector2 afterSize = element.SizeWorld;
+
+                bool moved = Vector2.DistanceSquared(beforePos, afterPos) > 0.000001f;
+                bool resized = Vector2.DistanceSquared(beforeSize, afterSize) > 0.000001f;
+                if (moved || resized)
+                {
+                    _session.Execute(new UpdateElementTransformCommand(
+                        element,
+                        beforePos,
+                        afterPos,
+                        beforeSizeWorld: beforeSize,
+                        afterSizeWorld: afterSize));
                 }
             }
 
@@ -200,10 +291,23 @@ namespace WindBoard.Interaction
                 RestoreStrokePoints(_selectionTransformStroke, _selectionBeforeSnapshot);
             }
 
+            if (_selectionTransformElement is not null && _selectionElementBeforePositionWorld is Vector2 beforePos)
+            {
+                _selectionTransformElement.PositionWorld = beforePos;
+            }
+
+            if (_selectionTransformElement is not null && _selectionElementBeforeSizeWorld is Vector2 beforeSize)
+            {
+                _selectionTransformElement.SizeWorld = beforeSize;
+            }
+
             _selectionPointerId = null;
             _isManipulatingSelection = false;
             _selectionTransformStroke = null;
             _selectionBeforeSnapshot = null;
+            _selectionTransformElement = null;
+            _selectionElementBeforePositionWorld = null;
+            _selectionElementBeforeSizeWorld = null;
             _selectionModified = false;
             _touchManipulationTarget = TouchManipulationTarget.Viewport;
 

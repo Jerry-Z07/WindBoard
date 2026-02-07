@@ -255,6 +255,15 @@ namespace WindBoard.Controls
             UpdateEraserCursorVisibility();
         }
 
+        /// <summary>
+        /// 获取当前视口状态（用于导入元素的默认放置位置与尺寸计算）。
+        /// </summary>
+        internal void GetViewportState(out Vector2 cameraWorld, out float zoom)
+        {
+            cameraWorld = _viewport.CameraWorld;
+            zoom = _viewport.Zoom;
+        }
+
         private void EnsureInitialized()
         {
             if (_isInitialized)

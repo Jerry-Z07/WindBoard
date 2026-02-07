@@ -8,6 +8,7 @@ using Microsoft.UI.Xaml.Input;
 using WindBoard.Board;
 using WindBoard.Board.Commands;
 using WindBoard.Board.Editing;
+using WindBoard.Board.Elements;
 using WindBoard.Board.Viewport;
 using Vortice.Mathematics;
 
@@ -78,6 +79,38 @@ namespace WindBoard.Interaction
             BeginWheelZoomInteraction();
 
             // 以鼠标所在位置为锚点缩放，避免缩放时“跳动”
+            // 选中元素：Ctrl + 滚轮缩放（与笔迹一致的交互方式）。
+            if (Tool == BoardTool.Select
+                && _selectedElement is BoardElement element
+                && mods.HasFlag(Windows.System.VirtualKeyModifiers.Control))
+            {
+                if (_selectionElementBeforePositionWorld is null || !ReferenceEquals(_selectionTransformElement, element))
+                {
+                    BeginSelectionTransformSnapshot(element);
+                }
+
+                // 以鼠标所在位置为锚点缩放，避免缩放时“跳动”。
+                float factor = (float)Math.Pow(1.1, delta / 120.0);
+                Vector2 anchorScreen = new((float)point.Position.X, (float)point.Position.Y);
+                Vector2 anchorWorld = _viewport.ScreenToWorld(anchorScreen);
+
+                Vector2 beforePos = element.PositionWorld;
+                Vector2 beforeSize = element.SizeWorld;
+
+                Vector2 afterSize = beforeSize * factor;
+                afterSize = new Vector2(Math.Max(0.01f, afterSize.X), Math.Max(0.01f, afterSize.Y));
+
+                Vector2 afterPos = anchorWorld + (beforePos - anchorWorld) * factor;
+
+                element.PositionWorld = afterPos;
+                element.SizeWorld = afterSize;
+                _selectionModified = true;
+
+                e.Handled = true;
+                FrameInvalidated?.Invoke();
+                return;
+            }
+
             float factor2 = (float)Math.Pow(1.1, delta / 120.0);
             _viewport.ZoomAboutScreenPoint(new Vector2((float)point.Position.X, (float)point.Position.Y), factor2);
             e.Handled = true;
@@ -137,7 +170,11 @@ namespace WindBoard.Interaction
             sender.Stop();
 
             // Wheel 交互结束时，如果期间对选中笔迹做了变换，则在此一次性写入撤销记录。
-            if (_selectionBeforeSnapshot is not null && _selectionTransformStroke is not null && _selectionModified)
+            if (_selectionModified
+                && ((_selectionBeforeSnapshot is not null && _selectionTransformStroke is not null)
+                    || (_selectionTransformElement is not null
+                        && _selectionElementBeforePositionWorld is not null
+                        && _selectionElementBeforeSizeWorld is not null)))
             {
                 CommitSelectionGesture(releasePointerCaptures: false);
                 return;
@@ -159,13 +196,20 @@ namespace WindBoard.Interaction
             const int minTouchCount = 2;
             if (Tool == BoardTool.Select
                 && _touchManipulationTarget == TouchManipulationTarget.Selection
-                && _selectedStroke is not null)
+                && (_selectedStroke is not null || _selectedElement is not null))
             {
                 _isManipulating = false;
                 _isManipulatingSelection = _activeTouchPointers.Count >= minTouchCount;
                 if (_isManipulatingSelection)
                 {
-                    BeginSelectionTransformSnapshot(_selectedStroke);
+                    if (_selectedStroke is Stroke stroke)
+                    {
+                        BeginSelectionTransformSnapshot(stroke);
+                    }
+                    else if (_selectedElement is BoardElement element)
+                    {
+                        BeginSelectionTransformSnapshot(element);
+                    }
                 }
             }
             else
@@ -202,7 +246,7 @@ namespace WindBoard.Interaction
         {
             if (Tool != BoardTool.Select
                 || _touchManipulationTarget != TouchManipulationTarget.Selection
-                || _selectedStroke is null)
+                || (_selectedStroke is null && _selectedElement is null))
             {
                 return false;
             }
@@ -210,7 +254,16 @@ namespace WindBoard.Interaction
             if (!_isManipulatingSelection)
             {
                 _isManipulatingSelection = true;
-                BeginSelectionTransformSnapshot(_selectedStroke);
+
+                if (_selectedStroke is Stroke stroke)
+                {
+                    BeginSelectionTransformSnapshot(stroke);
+                }
+                else if (_selectedElement is BoardElement element)
+                {
+                    BeginSelectionTransformSnapshot(element);
+                }
+
                 UpdateInteractionState();
             }
 
@@ -227,6 +280,45 @@ namespace WindBoard.Interaction
             bool hasScale = Math.Abs(scale - 1.0f) > 0.0001f;
             bool hasRotation = Math.Abs(rotationRad) > 0.0001f;
             bool hasTranslation = translationWorld.LengthSquared() > 0.0001f;
+
+            if (_selectedElement is BoardElement selectedElement)
+            {
+                // 元素：支持平移 + 缩放（暂不支持旋转）。
+                if (!hasScale && !hasTranslation)
+                {
+                    // 仍然吞掉事件，避免把旋转手势误判为视口操作。
+                    return true;
+                }
+
+                if (hasScale)
+                {
+                    Vector2 beforePos = selectedElement.PositionWorld;
+                    Vector2 beforeSize = selectedElement.SizeWorld;
+
+                    Vector2 afterSize = beforeSize * scale;
+                    afterSize = new Vector2(Math.Max(0.01f, afterSize.X), Math.Max(0.01f, afterSize.Y));
+
+                    Vector2 afterPos = anchorWorld + (beforePos - anchorWorld) * scale;
+
+                    selectedElement.PositionWorld = afterPos;
+                    selectedElement.SizeWorld = afterSize;
+                    _selectionModified = true;
+                }
+
+                if (hasTranslation)
+                {
+                    selectedElement.PositionWorld += translationWorld;
+                    _selectionModified = true;
+                }
+
+                return true;
+            }
+
+            Stroke? selectedStroke = _selectedStroke;
+            if (selectedStroke is null)
+            {
+                return false;
+            }
 
             if (!hasScale && !hasRotation && !hasTranslation)
             {
@@ -255,13 +347,13 @@ namespace WindBoard.Interaction
                     transform *= Matrix3x2.CreateTranslation(translationWorld);
                 }
 
-                _selectedStroke.Transform(transform);
+                selectedStroke.Transform(transform);
                 _selectionModified = true;
                 return true;
             }
 
             // 仅平移：走更轻量的 Translate，避免构造矩阵。
-            _selectedStroke.Translate(translationWorld);
+            selectedStroke.Translate(translationWorld);
             _selectionModified = true;
             return true;
         }

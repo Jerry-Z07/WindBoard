@@ -8,6 +8,7 @@ using Microsoft.UI.Xaml.Input;
 using WindBoard.Board;
 using WindBoard.Board.Commands;
 using WindBoard.Board.Editing;
+using WindBoard.Board.Elements;
 using WindBoard.Board.Viewport;
 using Vortice.Mathematics;
 
@@ -49,7 +50,7 @@ namespace WindBoard.Interaction
             {
                 // 选择模式：单指用于“框选”；双指/多指用于视口手势或对已选中笔迹做变换。
                 Vector2 screen = new((float)point.Position.X, (float)point.Position.Y);
-                _touchManipulationTarget = IsScreenPointInsideSelectedStrokeBounds(screen)
+                _touchManipulationTarget = IsScreenPointInsideSelectedBounds(screen)
                     ? TouchManipulationTarget.Selection
                     : TouchManipulationTarget.Viewport;
                 BeginMarqueeSelectionGesture(e.Pointer, screen);
@@ -140,7 +141,7 @@ namespace WindBoard.Interaction
             }
 
             Vector2 screen = new((float)point.Position.X, (float)point.Position.Y);
-            if (IsScreenPointInsideSelectedStrokeBounds(screen))
+            if (IsScreenPointInsideSelectedBounds(screen))
             {
                 BeginSelectionMoveGesture(e.Pointer, screen);
             }
@@ -173,16 +174,24 @@ namespace WindBoard.Interaction
             return true;
         }
 
-        private Stroke? HitTestStrokeAtScreenPoint(Vector2 screenDip)
+        private bool IsScreenPointInsideSelectedBounds(Vector2 screenDip)
         {
-            Vector2 pointWorld = _viewport.ScreenToWorld(screenDip);
-            float toleranceWorld = SelectHitToleranceDip / Math.Max(0.0001f, _viewport.Zoom);
-            return StrokePickTest.HitTestTopMostStroke(_session.Document.Strokes, pointWorld, toleranceWorld);
+            if (_selectedStroke is Stroke stroke)
+            {
+                return IsScreenPointInsideSelectedStrokeBounds(stroke, screenDip);
+            }
+
+            if (_selectedElement is BoardElement element)
+            {
+                return IsScreenPointInsideSelectedElementBounds(element, screenDip);
+            }
+
+            return false;
         }
 
-        private bool IsScreenPointInsideSelectedStrokeBounds(Vector2 screenDip)
+        private bool IsScreenPointInsideSelectedStrokeBounds(Stroke stroke, Vector2 screenDip)
         {
-            if (_selectedStroke is not Stroke stroke || stroke.Points.Count == 0)
+            if (stroke.Points.Count == 0)
             {
                 return false;
             }
@@ -201,6 +210,26 @@ namespace WindBoard.Interaction
             Matrix3x2 worldToScreen = _viewport.GetWorldToScreenTransform();
             Vector2 minScreen = Vector2.Transform(stroke.BoundsMin, worldToScreen);
             Vector2 maxScreen = Vector2.Transform(stroke.BoundsMax, worldToScreen);
+
+            float left = Math.Min(minScreen.X, maxScreen.X) - SelectHitToleranceDip;
+            float top = Math.Min(minScreen.Y, maxScreen.Y) - SelectHitToleranceDip;
+            float right = Math.Max(minScreen.X, maxScreen.X) + SelectHitToleranceDip;
+            float bottom = Math.Max(minScreen.Y, maxScreen.Y) + SelectHitToleranceDip;
+
+            return screenDip.X >= left && screenDip.X <= right && screenDip.Y >= top && screenDip.Y <= bottom;
+        }
+
+        private bool IsScreenPointInsideSelectedElementBounds(BoardElement element, Vector2 screenDip)
+        {
+            Rect boundsWorld = element.GetBoundsWorld();
+            if (boundsWorld.Width <= 0.0001f || boundsWorld.Height <= 0.0001f)
+            {
+                return false;
+            }
+
+            Matrix3x2 worldToScreen = _viewport.GetWorldToScreenTransform();
+            Vector2 minScreen = Vector2.Transform(new Vector2(boundsWorld.Left, boundsWorld.Top), worldToScreen);
+            Vector2 maxScreen = Vector2.Transform(new Vector2(boundsWorld.Right, boundsWorld.Bottom), worldToScreen);
 
             float left = Math.Min(minScreen.X, maxScreen.X) - SelectHitToleranceDip;
             float top = Math.Min(minScreen.Y, maxScreen.Y) - SelectHitToleranceDip;
@@ -244,12 +273,26 @@ namespace WindBoard.Interaction
 
         private void SetSelectedStroke(Stroke? stroke)
         {
-            if (ReferenceEquals(_selectedStroke, stroke))
+            if (ReferenceEquals(_selectedStroke, stroke) && _selectedElement is null)
             {
                 return;
             }
 
             _selectedStroke = stroke;
+            _selectedElement = null;
+            FrameInvalidated?.Invoke();
+            StateChanged?.Invoke();
+        }
+
+        private void SetSelectedElement(BoardElement? element)
+        {
+            if (ReferenceEquals(_selectedElement, element) && _selectedStroke is null)
+            {
+                return;
+            }
+
+            _selectedElement = element;
+            _selectedStroke = null;
             FrameInvalidated?.Invoke();
             StateChanged?.Invoke();
         }
@@ -304,7 +347,8 @@ namespace WindBoard.Interaction
 
         private void BeginSelectionMoveGesture(Pointer pointer, Vector2 screenDip)
         {
-            if (_selectedStroke is null)
+            bool hasSelection = _selectedStroke is not null || _selectedElement is not null;
+            if (!hasSelection)
             {
                 return;
             }
@@ -313,7 +357,14 @@ namespace WindBoard.Interaction
             _selectionPointerId = pointer.PointerId;
             _lastSelectionScreen = screenDip;
 
-            BeginSelectionTransformSnapshot(_selectedStroke);
+            if (_selectedStroke is Stroke stroke)
+            {
+                BeginSelectionTransformSnapshot(stroke);
+            }
+            else if (_selectedElement is BoardElement element)
+            {
+                BeginSelectionTransformSnapshot(element);
+            }
 
             UpdateInteractionState();
             FrameInvalidated?.Invoke();

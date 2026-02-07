@@ -450,7 +450,7 @@ namespace WindBoard
             return (Math.Max(1, w169), h);
         }
 
-        private async Task RunBusyDialogAsync(XamlRoot xamlRoot, string title, Func<Task> action)
+        private async Task RunBusyDialogAsync(XamlRoot xamlRoot, string title, Func<Task> action, string message = "正在导出，请稍候…")
         {
             var ring = new ProgressRing
             {
@@ -462,7 +462,7 @@ namespace WindBoard
 
             var text = new TextBlock
             {
-                Text = "正在导出，请稍候…",
+                Text = message,
                 TextWrapping = TextWrapping.Wrap,
                 HorizontalAlignment = HorizontalAlignment.Center,
             };

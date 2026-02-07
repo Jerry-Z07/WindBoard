@@ -19,6 +19,12 @@ namespace WindBoard.Board.Editing
             Session = new BoardSession();
         }
 
+        public BoardPage(Guid id, BoardSession session)
+        {
+            Id = id == Guid.Empty ? Guid.NewGuid() : id;
+            Session = session ?? throw new ArgumentNullException(nameof(session));
+        }
+
         /// <summary>
         /// 页面唯一标识（用于后续导入/导出、跨集合定位等）。
         /// </summary>
@@ -30,4 +36,3 @@ namespace WindBoard.Board.Editing
         public BoardSession Session { get; }
     }
 }
-
