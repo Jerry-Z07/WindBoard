@@ -19,6 +19,22 @@ namespace WindBoard.Board.Editing
 
         public bool HasStrokes => Document.Strokes.Count > 0;
 
+        /// <summary>
+        /// 判断指定命令是否位于撤销栈栈顶。
+        /// </summary>
+        /// <remarks>
+        /// 用途示例：在 UI 层将“置顶”按钮做成可再次点击撤销的“切换式”交互，但仅允许撤销最近一次操作，避免误撤销其它命令。
+        /// </remarks>
+        internal bool IsUndoStackTop(IBoardCommand command)
+        {
+            if (command is null || _undoStack.Count == 0)
+            {
+                return false;
+            }
+
+            return ReferenceEquals(_undoStack.Peek(), command);
+        }
+
         public void Execute(IBoardCommand command)
         {
             command.Do(Document);
@@ -62,4 +78,3 @@ namespace WindBoard.Board.Editing
         }
     }
 }
-

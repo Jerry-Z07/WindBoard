@@ -11,6 +11,7 @@ using UiColor = Windows.UI.Color;
 using WindBoard.Board;
 using WindBoard.Board.Commands;
 using WindBoard.Board.Editing;
+using WindBoard.Board.Elements;
 using WindBoard.Board.Viewport;
 using WindBoard.Interaction;
 using WindBoard.Rendering;
@@ -39,6 +40,13 @@ namespace WindBoard.Controls
         private long _lastRenderingLoopTick;
         private bool _wasWriting;
         private float _lastRenderedZoom = float.NaN;
+
+        // “选中项 Dock - 置顶”支持再次点击撤销：
+        // - 仅当“最近一次 Undo 栈栈顶命令”就是该置顶命令时才允许撤销，避免误撤销其它操作。
+        // - 同时记录目标对象，避免切换选中后仍然显示“取消置顶”导致误操作。
+        private IBoardCommand? _lastSelectionDockBringToFrontCommand;
+        private Stroke[]? _lastSelectionDockBringToFrontStrokes;
+        private BoardElement? _lastSelectionDockBringToFrontElement;
 
         // 擦除光标（SVG）显示状态：擦除工具下显示；鼠标/触控笔悬停显示，触摸按下/拖动（接触）时显示。
         private bool _isPointerOverCanvas;

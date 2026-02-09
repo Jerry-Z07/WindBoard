@@ -278,24 +278,38 @@ namespace WindBoard.Controls
 
             SelectionDockBorder.Visibility = Visibility.Visible;
 
-             // 置顶：
-              // - 笔迹：当选中笔迹已在列表末尾（最后绘制）时禁用。
-              // - 元素：当选中元素已在“上层元素列表”末尾时禁用；下层元素永远可置顶（跨层）。
-             if (SelectionBringToFrontButton is not null)
-             {
-                 bool isTopMost = false;
+            // 置顶/取消置顶：
+            // - 未置顶：按钮执行置顶；
+            // - 已置顶：若“最近一次命令”正好是该次置顶，则按钮可再次点击撤销（取消置顶）。
+            //   说明：置顶本质是一次“改变绘制顺序”的命令，撤销只能对 Undo 栈顶生效，避免误撤销其它操作。
+            if (SelectionBringToFrontButton is not null)
+            {
+                bool isTopMost = false;
+                bool canCancelBringToFront = false;
 
-                 if (_input?.SelectedStrokes is IReadOnlyList<Stroke> selectedStrokes && selectedStrokes.Count > 0)
-                 {
-                     isTopMost = AreSelectedStrokesTopMost(selectedStrokes);
-                 }
-                 else if (_input?.SelectedElement is BoardElement selectedElement)
-                 {
-                     isTopMost = _session.Document.ElementsAboveInk.Count > 0
-                         && ReferenceEquals(_session.Document.ElementsAboveInk[^1], selectedElement);
+                if (_input?.SelectedStrokes is IReadOnlyList<Stroke> selectedStrokes && selectedStrokes.Count > 0)
+                {
+                    isTopMost = AreSelectedStrokesTopMost(selectedStrokes);
+                    canCancelBringToFront = isTopMost && CanCancelSelectionDockBringToFront(selectedStrokes);
+                }
+                else if (_input?.SelectedElement is BoardElement selectedElement)
+                {
+                    isTopMost = _session.Document.ElementsAboveInk.Count > 0
+                        && ReferenceEquals(_session.Document.ElementsAboveInk[^1], selectedElement);
+                    canCancelBringToFront = isTopMost && CanCancelSelectionDockBringToFront(selectedElement);
                 }
 
-                SelectionBringToFrontButton.IsEnabled = !isTopMost;
+                SelectionBringToFrontButton.IsEnabled = !isTopMost || canCancelBringToFront;
+
+                if (SelectionBringToFrontText is not null)
+                {
+                    SelectionBringToFrontText.Text = canCancelBringToFront ? "取消置顶" : "置顶";
+                }
+
+                if (SelectionBringToFrontIcon is not null)
+                {
+                    SelectionBringToFrontIcon.Symbol = canCancelBringToFront ? Symbol.Undo : Symbol.Up;
+                }
             }
 
             // 将 Dock 放在选择框下方居中，并做边界钳制，避免跑出画布。
@@ -379,6 +393,13 @@ namespace WindBoard.Controls
              {
                  if (AreSelectedStrokesTopMost(selectedStrokes))
                  {
+                     if (!TryCancelSelectionDockBringToFront(selectedStrokes))
+                     {
+                         Debug.WriteLine("[SelectionDock] 取消置顶忽略：Undo 栈顶不是当前置顶命令或选中已变化。");
+                     }
+
+                     _input.ValidateSelection();
+                     UpdateSelectionOverlay();
                      return;
                  }
 
@@ -388,11 +409,36 @@ namespace WindBoard.Controls
                      commands.Add(new BringStrokeToFrontCommand(selectedStrokes[i]));
                  }
 
-                 _session.Execute(commands.Count == 1 ? commands[0] : new CompositeCommand(commands));
+                 IBoardCommand command = commands.Count == 1 ? commands[0] : new CompositeCommand(commands);
+                 _session.Execute(command);
+
+                 // 记录这次“置顶”对应的命令与目标，供后续再次点击“置顶”时撤销。
+                 _lastSelectionDockBringToFrontCommand = command;
+                 _lastSelectionDockBringToFrontElement = null;
+                 _lastSelectionDockBringToFrontStrokes = CopySelectedStrokesSnapshot(selectedStrokes);
              }
              else if (_input?.SelectedElement is BoardElement element)
              {
-                 _session.Execute(new BringElementToFrontCommand(element));
+                 bool isTopMostElement = _session.Document.ElementsAboveInk.Count > 0
+                     && ReferenceEquals(_session.Document.ElementsAboveInk[^1], element);
+                 if (isTopMostElement)
+                 {
+                     if (!TryCancelSelectionDockBringToFront(element))
+                     {
+                         Debug.WriteLine("[SelectionDock] 取消置顶忽略：Undo 栈顶不是当前置顶命令或选中已变化。");
+                     }
+
+                     _input.ValidateSelection();
+                     UpdateSelectionOverlay();
+                     return;
+                 }
+
+                 IBoardCommand command = new BringElementToFrontCommand(element);
+                 _session.Execute(command);
+
+                 _lastSelectionDockBringToFrontCommand = command;
+                 _lastSelectionDockBringToFrontElement = element;
+                 _lastSelectionDockBringToFrontStrokes = null;
              }
             else
             {
@@ -401,6 +447,102 @@ namespace WindBoard.Controls
 
             _input.ValidateSelection();
             UpdateSelectionOverlay();
+        }
+
+        private bool TryCancelSelectionDockBringToFront(IReadOnlyList<Stroke> selectedStrokes)
+        {
+            if (!CanCancelSelectionDockBringToFront(selectedStrokes))
+            {
+                return false;
+            }
+
+            _session.Undo();
+            return true;
+        }
+
+        private bool TryCancelSelectionDockBringToFront(BoardElement selectedElement)
+        {
+            if (!CanCancelSelectionDockBringToFront(selectedElement))
+            {
+                return false;
+            }
+
+            _session.Undo();
+            return true;
+        }
+
+        private bool CanCancelSelectionDockBringToFront(IReadOnlyList<Stroke> selectedStrokes)
+        {
+            if (_lastSelectionDockBringToFrontCommand is null
+                || _lastSelectionDockBringToFrontStrokes is null
+                || selectedStrokes is null
+                || selectedStrokes.Count == 0)
+            {
+                return false;
+            }
+
+            if (!_session.IsUndoStackTop(_lastSelectionDockBringToFrontCommand))
+            {
+                return false;
+            }
+
+            return AreSameStrokeSet(selectedStrokes, _lastSelectionDockBringToFrontStrokes);
+        }
+
+        private bool CanCancelSelectionDockBringToFront(BoardElement selectedElement)
+        {
+            if (_lastSelectionDockBringToFrontCommand is null || _lastSelectionDockBringToFrontElement is null || selectedElement is null)
+            {
+                return false;
+            }
+
+            if (!_session.IsUndoStackTop(_lastSelectionDockBringToFrontCommand))
+            {
+                return false;
+            }
+
+            return ReferenceEquals(selectedElement, _lastSelectionDockBringToFrontElement);
+        }
+
+        private static bool AreSameStrokeSet(IReadOnlyList<Stroke> selectedStrokes, Stroke[] recordedStrokes)
+        {
+            if (selectedStrokes.Count != recordedStrokes.Length)
+            {
+                return false;
+            }
+
+            // 选中集合的顺序可能因实现细节变化而不同，这里仅比较集合内容是否一致。
+            for (int i = 0; i < recordedStrokes.Length; i++)
+            {
+                Stroke stroke = recordedStrokes[i];
+                bool found = false;
+                for (int j = 0; j < selectedStrokes.Count; j++)
+                {
+                    if (ReferenceEquals(selectedStrokes[j], stroke))
+                    {
+                        found = true;
+                        break;
+                    }
+                }
+
+                if (!found)
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        private static Stroke[] CopySelectedStrokesSnapshot(IReadOnlyList<Stroke> selectedStrokes)
+        {
+            var snapshot = new Stroke[selectedStrokes.Count];
+            for (int i = 0; i < selectedStrokes.Count; i++)
+            {
+                snapshot[i] = selectedStrokes[i];
+            }
+
+            return snapshot;
         }
 
         private void OnSelectionDuplicateClicked(object sender, RoutedEventArgs e)

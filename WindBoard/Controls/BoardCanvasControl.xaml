@@ -47,8 +47,8 @@
                         HorizontalContentAlignment="Center"
                         VerticalContentAlignment="Center">
                         <StackPanel Orientation="Vertical">
-                            <SymbolIcon Symbol="Up" />
-                            <TextBlock FontSize="11" Margin="0,3,0,0" HorizontalAlignment="Center" Text="置顶" />
+                            <SymbolIcon x:Name="SelectionBringToFrontIcon" Symbol="Up" />
+                            <TextBlock x:Name="SelectionBringToFrontText" FontSize="11" Margin="0,3,0,0" HorizontalAlignment="Center" Text="置顶" />
                         </StackPanel>
                     </Button>
 
