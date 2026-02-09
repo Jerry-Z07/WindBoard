@@ -21,6 +21,24 @@ public sealed class StrokeRectSelectTestTests
         Assert.Same(b, hit);
     }
 
+    // 框选多个笔迹时应返回所有相交笔迹，并保持原列表顺序（便于作为整体操作时保持相对层级）
+    [Fact]
+    public void HitTestStrokesInWorldRect_ReturnsAllHitsInOriginalOrder()
+    {
+        Stroke a = StrokeTestFactory.CreateStroke(new Vector2(-10, 0), new Vector2(10, 0));
+        Stroke b = StrokeTestFactory.CreateStroke(new Vector2(-10, 10), new Vector2(10, 10));
+        Stroke c = StrokeTestFactory.CreateStroke(new Vector2(-10, 20), new Vector2(10, 20));
+
+        var strokes = new List<Stroke> { a, b, c };
+
+        // 框选覆盖 b 与 c（不包含 a）
+        var hits = StrokeRectSelectTest.HitTestStrokesInWorldRect(strokes, minWorld: new Vector2(-5, 5), maxWorld: new Vector2(5, 25));
+
+        Assert.Equal(2, hits.Count);
+        Assert.Same(b, hits[0]);
+        Assert.Same(c, hits[1]);
+    }
+
     // 与矩形无交集时不应命中
     [Fact]
     public void IsStrokeIntersectWorldRect_ReturnsFalse_WhenDisjoint()
@@ -32,4 +50,3 @@ public sealed class StrokeRectSelectTestTests
         Assert.False(hit);
     }
 }
-

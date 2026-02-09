@@ -176,9 +176,9 @@ namespace WindBoard.Interaction
 
         private bool IsScreenPointInsideSelectedBounds(Vector2 screenDip)
         {
-            if (_selectedStroke is Stroke stroke)
+            if (_selectedStrokes.Count > 0)
             {
-                return IsScreenPointInsideSelectedStrokeBounds(stroke, screenDip);
+                return IsScreenPointInsideSelectedStrokesBounds(_selectedStrokes, screenDip);
             }
 
             if (_selectedElement is BoardElement element)
@@ -189,32 +189,64 @@ namespace WindBoard.Interaction
             return false;
         }
 
-        private bool IsScreenPointInsideSelectedStrokeBounds(Stroke stroke, Vector2 screenDip)
+        private bool IsScreenPointInsideSelectedStrokesBounds(IReadOnlyList<Stroke> strokes, Vector2 screenDip)
         {
-            if (stroke.Points.Count == 0)
-            {
-                return false;
-            }
-
-            // 某些情况下笔迹可能还未计算 Bounds（例如外部构造/导入），这里兜底重建。
-            if (!stroke.HasBounds)
-            {
-                stroke.RecalculateBoundsFromPoints();
-            }
-
-            if (!stroke.HasBounds)
+            if (strokes is null || strokes.Count == 0)
             {
                 return false;
             }
 
             Matrix3x2 worldToScreen = _viewport.GetWorldToScreenTransform();
-            Vector2 minScreen = Vector2.Transform(stroke.BoundsMin, worldToScreen);
-            Vector2 maxScreen = Vector2.Transform(stroke.BoundsMax, worldToScreen);
 
-            float left = Math.Min(minScreen.X, maxScreen.X) - SelectHitToleranceDip;
-            float top = Math.Min(minScreen.Y, maxScreen.Y) - SelectHitToleranceDip;
-            float right = Math.Max(minScreen.X, maxScreen.X) + SelectHitToleranceDip;
-            float bottom = Math.Max(minScreen.Y, maxScreen.Y) + SelectHitToleranceDip;
+            float left = float.PositiveInfinity;
+            float top = float.PositiveInfinity;
+            float right = float.NegativeInfinity;
+            float bottom = float.NegativeInfinity;
+
+            bool hasAny = false;
+            for (int i = 0; i < strokes.Count; i++)
+            {
+                Stroke stroke = strokes[i];
+                if (stroke.Points.Count == 0)
+                {
+                    continue;
+                }
+
+                // 某些情况下笔迹可能还未计算 Bounds（例如外部构造/导入），这里兜底重建。
+                if (!stroke.HasBounds)
+                {
+                    stroke.RecalculateBoundsFromPoints();
+                }
+
+                if (!stroke.HasBounds)
+                {
+                    continue;
+                }
+
+                Vector2 minScreen = Vector2.Transform(stroke.BoundsMin, worldToScreen);
+                Vector2 maxScreen = Vector2.Transform(stroke.BoundsMax, worldToScreen);
+
+                float l = Math.Min(minScreen.X, maxScreen.X);
+                float t = Math.Min(minScreen.Y, maxScreen.Y);
+                float r = Math.Max(minScreen.X, maxScreen.X);
+                float b = Math.Max(minScreen.Y, maxScreen.Y);
+
+                left = Math.Min(left, l);
+                top = Math.Min(top, t);
+                right = Math.Max(right, r);
+                bottom = Math.Max(bottom, b);
+                hasAny = true;
+            }
+
+            if (!hasAny)
+            {
+                return false;
+            }
+
+            left -= SelectHitToleranceDip;
+            top -= SelectHitToleranceDip;
+            right += SelectHitToleranceDip;
+            bottom += SelectHitToleranceDip;
 
             return screenDip.X >= left && screenDip.X <= right && screenDip.Y >= top && screenDip.Y <= bottom;
         }
@@ -273,12 +305,63 @@ namespace WindBoard.Interaction
 
         private void SetSelectedStroke(Stroke? stroke)
         {
-            if (ReferenceEquals(_selectedStroke, stroke) && _selectedElement is null)
+            if (stroke is null)
+            {
+                SetSelectedStrokes(null);
+                return;
+            }
+
+            SetSelectedStrokes(new[] { stroke });
+        }
+
+        private void SetSelectedStrokes(IReadOnlyList<Stroke>? strokes)
+        {
+            int count = strokes?.Count ?? 0;
+            if (count <= 0)
+            {
+                if (_selectedStrokes.Count == 0 && _selectedElement is null)
+                {
+                    return;
+                }
+
+                _selectedStrokes.Clear();
+                _selectedElement = null;
+                FrameInvalidated?.Invoke();
+                StateChanged?.Invoke();
+                return;
+            }
+
+            // 选择集合按文档顺序归一化：
+            // - 框选命中应保持相对层级顺序；
+            // - 过滤掉不在文档中的对象，避免撤销/重做后出现“幽灵选择”。
+            var set = new HashSet<Stroke>();
+            for (int i = 0; i < count; i++)
+            {
+                Stroke s = strokes![i];
+                if (s is not null)
+                {
+                    set.Add(s);
+                }
+            }
+
+            var ordered = new List<Stroke>(set.Count);
+            for (int i = 0; i < _session.Document.Strokes.Count; i++)
+            {
+                Stroke s = _session.Document.Strokes[i];
+                if (set.Contains(s))
+                {
+                    ordered.Add(s);
+                }
+            }
+
+            bool unchanged = _selectedElement is null && IsSameStrokeList(_selectedStrokes, ordered);
+            if (unchanged)
             {
                 return;
             }
 
-            _selectedStroke = stroke;
+            _selectedStrokes.Clear();
+            _selectedStrokes.AddRange(ordered);
             _selectedElement = null;
             FrameInvalidated?.Invoke();
             StateChanged?.Invoke();
@@ -286,13 +369,13 @@ namespace WindBoard.Interaction
 
         private void SetSelectedElement(BoardElement? element)
         {
-            if (ReferenceEquals(_selectedElement, element) && _selectedStroke is null)
+            if (ReferenceEquals(_selectedElement, element) && _selectedStrokes.Count == 0)
             {
                 return;
             }
 
             _selectedElement = element;
-            _selectedStroke = null;
+            _selectedStrokes.Clear();
             FrameInvalidated?.Invoke();
             StateChanged?.Invoke();
         }
@@ -347,7 +430,7 @@ namespace WindBoard.Interaction
 
         private void BeginSelectionMoveGesture(Pointer pointer, Vector2 screenDip)
         {
-            bool hasSelection = _selectedStroke is not null || _selectedElement is not null;
+            bool hasSelection = _selectedStrokes.Count > 0 || _selectedElement is not null;
             if (!hasSelection)
             {
                 return;
@@ -357,9 +440,9 @@ namespace WindBoard.Interaction
             _selectionPointerId = pointer.PointerId;
             _lastSelectionScreen = screenDip;
 
-            if (_selectedStroke is Stroke stroke)
+            if (_selectedStrokes.Count > 0)
             {
-                BeginSelectionTransformSnapshot(stroke);
+                BeginSelectionTransformSnapshot(_selectedStrokes);
             }
             else if (_selectedElement is BoardElement element)
             {

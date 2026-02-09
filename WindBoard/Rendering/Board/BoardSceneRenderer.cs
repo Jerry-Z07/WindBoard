@@ -4,6 +4,7 @@ using System.Drawing;
 using System.IO;
 using System.Numerics;
 using System.Runtime.InteropServices;
+using Microsoft.UI.Xaml.Controls;
 using Vortice.DCommon;
 using Vortice.Direct2D1;
 using Vortice.DirectWrite;
@@ -440,13 +441,13 @@ namespace WindBoard.Rendering.Board
                 boundsWorld.Left + pad + iconSize,
                 boundsWorld.Top + pad + iconSize);
 
-            if (!string.IsNullOrWhiteSpace(visual.IconText))
+            if (!string.IsNullOrWhiteSpace(visual.IconGlyph))
             {
                 _elementFillBrush.Color = visual.AccentColor;
                 ctx.FillEllipse(
                     new Ellipse(new Vector2(iconRect.Left + iconSize / 2.0f, iconRect.Top + iconSize / 2.0f), iconSize / 2.0f, iconSize / 2.0f),
                     _elementFillBrush);
-                ctx.DrawText(visual.IconText, _elementIconTextFormat, iconRect, _elementIconTextBrush, DrawTextOptions.None, MeasuringMode.Natural);
+                ctx.DrawText(visual.IconGlyph, _elementIconTextFormat, iconRect, _elementIconTextBrush, DrawTextOptions.None, MeasuringMode.Natural);
             }
 
             float textLeft = iconRect.Right + iconGap;
@@ -501,14 +502,30 @@ namespace WindBoard.Rendering.Board
                 boundsWorld.Right - pad,
                 boundsWorld.Bottom - pad);
 
-            Rect dest = ComputeAspectFitRect(inner, element.PixelWidth, element.PixelHeight);
-            ctx.DrawBitmap(bitmap, 1.0f, BitmapInterpolationMode.Linear, dest);
+            // 为避免个别图片/异常尺寸下出现“图片溢出容器”的视觉问题，这里额外做一次裁剪兜底。
+            ctx.PushAxisAlignedClip(new RectangleF(boundsWorld.Left, boundsWorld.Top, boundsWorld.Width, boundsWorld.Height), AntialiasMode.PerPrimitive);
+            try
+            {
+                Rect dest = ComputeAspectFitRect(inner, element.PixelWidth, element.PixelHeight);
+                ctx.DrawBitmap(bitmap, 1.0f, BitmapInterpolationMode.Linear, dest);
+            }
+            finally
+            {
+                ctx.PopAxisAlignedClip();
+            }
 
             ctx.DrawRoundedRectangle(rr, _elementBorderBrush, strokeWidth: 1.5f);
         }
 
         private static Rect ComputeAspectFitRect(Rect container, int pixelWidth, int pixelHeight)
         {
+            // 兜底：保证容器为有效矩形，避免极端缩放/异常尺寸导致 L>R / T>B。
+            float cl = Math.Min(container.Left, container.Right);
+            float ct = Math.Min(container.Top, container.Bottom);
+            float cr = Math.Max(container.Left, container.Right);
+            float cb = Math.Max(container.Top, container.Bottom);
+            container = Rect.FromLTRB(cl, ct, cr, cb);
+
             float w = Math.Max(1.0f, container.Width);
             float h = Math.Max(1.0f, container.Height);
 
@@ -530,7 +547,35 @@ namespace WindBoard.Rendering.Board
             return Rect.FromLTRB(left, top, left + drawW, top + drawH);
         }
 
-        private readonly record struct ElementCardVisual(Color4 AccentColor, string IconText, string Title, string Secondary);
+        private readonly record struct ElementCardVisual(Color4 AccentColor, string IconGlyph, string Title, string Secondary);
+
+        private static string GetSymbolGlyph(Symbol symbol)
+        {
+            int code = (int)symbol;
+            if (code <= 0)
+            {
+                return string.Empty;
+            }
+
+            try
+            {
+                return char.ConvertFromUtf32(code);
+            }
+            catch
+            {
+                return string.Empty;
+            }
+        }
+
+        private static string TryGetSymbolGlyph(string symbolName, Symbol fallback)
+        {
+            if (Enum.TryParse(symbolName, ignoreCase: true, out Symbol symbol))
+            {
+                return GetSymbolGlyph(symbol);
+            }
+
+            return GetSymbolGlyph(fallback);
+        }
 
         private static ElementCardVisual GetElementCardVisual(BoardElement element)
         {
@@ -551,7 +596,7 @@ namespace WindBoard.Rendering.Board
                     ? "双击打开链接"
                     : url + "\n双击打开链接";
 
-                return new ElementCardVisual(AccentBlue(), "链", title, secondary);
+                return new ElementCardVisual(AccentBlue(), TryGetSymbolGlyph("Link", Symbol.OpenFile), title, secondary);
             }
 
             if (element is BoardMediaElement media)
@@ -560,10 +605,10 @@ namespace WindBoard.Rendering.Board
 
                 return media.Kind switch
                 {
-                    BoardMediaKind.Audio => new ElementCardVisual(AccentOrange(), "音", name, "音频\n双击外部打开"),
-                    BoardMediaKind.Video => new ElementCardVisual(AccentPurple(), "视", name, "视频\n双击外部打开"),
-                    BoardMediaKind.Image => new ElementCardVisual(AccentCyan(), "图", name, "图片（无法预览）\n双击外部打开"),
-                    _ => new ElementCardVisual(AccentGray(), "媒", name, "多媒体\n双击外部打开"),
+                    BoardMediaKind.Audio => new ElementCardVisual(AccentOrange(), TryGetSymbolGlyph("MusicInfo", Symbol.OpenFile), name, "音频\n双击外部打开"),
+                    BoardMediaKind.Video => new ElementCardVisual(AccentPurple(), TryGetSymbolGlyph("Video", Symbol.OpenFile), name, "视频\n双击外部打开"),
+                    BoardMediaKind.Image => new ElementCardVisual(AccentCyan(), TryGetSymbolGlyph("Pictures", Symbol.OpenFile), name, "图片（无法预览）\n双击外部打开"),
+                    _ => new ElementCardVisual(AccentGray(), GetSymbolGlyph(Symbol.OpenFile), name, "多媒体\n双击外部打开"),
                 };
             }
 
@@ -572,7 +617,9 @@ namespace WindBoard.Rendering.Board
                 string name = GetBestDisplayName(file.DisplayName, file.SourcePath);
                 (string kindLabel, bool known) = GetFileKindLabel(name, file.SourcePath);
                 string secondary = known ? kindLabel + "\n双击外部打开" : "双击外部打开";
-                string icon = known ? "文" : "档";
+                string icon = known
+                    ? TryGetSymbolGlyph("Document", Symbol.OpenFile)
+                    : TryGetSymbolGlyph("Page", Symbol.OpenFile);
                 return new ElementCardVisual(known ? AccentGreen() : AccentGray(), icon, name, secondary);
             }
 
@@ -585,10 +632,10 @@ namespace WindBoard.Rendering.Board
                 }
 
                 string secondary = string.IsNullOrWhiteSpace(preview) ? string.Empty : preview;
-                return new ElementCardVisual(AccentGray(), "字", "文字", secondary);
+                return new ElementCardVisual(AccentGray(), GetSymbolGlyph(Symbol.Edit), "文字", secondary);
             }
 
-            return new ElementCardVisual(AccentGray(), "?", string.Empty, string.Empty);
+            return new ElementCardVisual(AccentGray(), TryGetSymbolGlyph("Help", Symbol.More), string.Empty, string.Empty);
         }
 
         private static string GetBestDisplayName(string? displayName, string? sourcePath)
@@ -689,12 +736,13 @@ namespace WindBoard.Rendering.Board
             _elementBodyTextFormat.ParagraphAlignment = ParagraphAlignment.Near;
 
             _elementIconTextFormat = _dwriteFactory.CreateTextFormat(
-                "Segoe UI",
+                // 使用图标字体绘制类型徽标，避免用“链/音/图”等文字充当图标。
+                "Segoe MDL2 Assets",
                 fontCollection: null,
-                FontWeight.SemiBold,
+                FontWeight.Normal,
                 FontStyle.Normal,
                 FontStretch.Normal,
-                fontSize: 14.0f,
+                fontSize: 16.0f,
                 localeName: "zh-CN");
 
             _elementIconTextFormat.WordWrapping = WordWrapping.NoWrap;

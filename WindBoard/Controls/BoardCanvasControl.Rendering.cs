@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Numerics;
 using Microsoft.UI.Input;
@@ -136,18 +137,18 @@ namespace WindBoard.Controls
             if (_tool == BoardTool.Select)
             {
                 // 正在框选时：展示框选矩形，隐藏 Dock。
-                if (_input.TryGetSelectionMarqueeRectDip(out Rect marqueeRectDip))
-                {
-                    ShowMarqueeSelectionOverlay(marqueeRectDip);
-                }
-                else if (TryGetSelectedStrokeScreenRect(out Stroke stroke, out Rect strokeBoundsScreenDip))
-                {
-                    ShowSelectedStrokeOverlay(stroke, strokeBoundsScreenDip);
-                }
-                else if (TryGetSelectedElementScreenRect(out BoardElement element, out Rect elementBoundsScreenDip))
-                {
-                    ShowSelectedElementOverlay(element, elementBoundsScreenDip);
-                }
+                 if (_input.TryGetSelectionMarqueeRectDip(out Rect marqueeRectDip))
+                 {
+                     ShowMarqueeSelectionOverlay(marqueeRectDip);
+                 }
+                 else if (TryGetSelectedStrokesScreenRect(out Rect strokeBoundsScreenDip))
+                 {
+                     ShowSelectedStrokesOverlay(strokeBoundsScreenDip);
+                 }
+                 else if (TryGetSelectedElementScreenRect(out BoardElement element, out Rect elementBoundsScreenDip))
+                 {
+                     ShowSelectedElementOverlay(element, elementBoundsScreenDip);
+                 }
                 else
                 {
                     HideSelectionOverlay();
@@ -171,52 +172,82 @@ namespace WindBoard.Controls
             }
 
             if (SelectionDockBorder is not null)
-            {
-                SelectionDockBorder.Visibility = Visibility.Collapsed;
-            }
-        }
+             {
+                 SelectionDockBorder.Visibility = Visibility.Collapsed;
+             }
+         }
 
-        private bool TryGetSelectedStrokeScreenRect(out Stroke stroke, out Rect strokeBoundsScreenDip)
-        {
-            stroke = null!;
-            strokeBoundsScreenDip = default;
+         private bool TryGetSelectedStrokesScreenRect(out Rect strokeBoundsScreenDip)
+         {
+             strokeBoundsScreenDip = default;
 
-            if (_input?.SelectedStroke is not Stroke selected || selected.Points.Count == 0)
-            {
-                return false;
-            }
+             if (_input is null)
+             {
+                 return false;
+             }
 
-            stroke = selected;
+             IReadOnlyList<Stroke> selectedStrokes = _input.SelectedStrokes;
+             if (selectedStrokes.Count == 0)
+             {
+                 return false;
+             }
 
-            // 某些情况下笔迹可能还未计算 Bounds（例如外部构造/导入），此时这里补算一次。
-            if (!stroke.HasBounds)
-            {
-                stroke.RecalculateBoundsFromPoints();
-            }
+             Matrix3x2 worldToScreen = _viewport.GetWorldToScreenTransform();
 
-            if (!stroke.HasBounds)
-            {
-                return false;
-            }
+             float left = float.PositiveInfinity;
+             float top = float.PositiveInfinity;
+             float right = float.NegativeInfinity;
+             float bottom = float.NegativeInfinity;
 
-            Matrix3x2 worldToScreen = _viewport.GetWorldToScreenTransform();
-            Vector2 minScreen = Vector2.Transform(stroke.BoundsMin, worldToScreen);
-            Vector2 maxScreen = Vector2.Transform(stroke.BoundsMax, worldToScreen);
+             bool hasAny = false;
+             for (int i = 0; i < selectedStrokes.Count; i++)
+             {
+                 Stroke stroke = selectedStrokes[i];
+                 if (stroke.Points.Count == 0)
+                 {
+                     continue;
+                 }
 
-            float left = Math.Min(minScreen.X, maxScreen.X);
-            float top = Math.Min(minScreen.Y, maxScreen.Y);
-            float right = Math.Max(minScreen.X, maxScreen.X);
-            float bottom = Math.Max(minScreen.Y, maxScreen.Y);
+                 // 某些情况下笔迹可能还未计算 Bounds（例如外部构造/导入），此时这里补算一次。
+                 if (!stroke.HasBounds)
+                 {
+                     stroke.RecalculateBoundsFromPoints();
+                 }
 
-            strokeBoundsScreenDip = Rect.FromLTRB(left, top, right, bottom);
-            return true;
-        }
+                 if (!stroke.HasBounds)
+                 {
+                     continue;
+                 }
 
-        private void ShowSelectedStrokeOverlay(Stroke stroke, Rect strokeBoundsScreenDip)
-        {
-            ShowSelectionBoundsOverlay(strokeBoundsScreenDip);
-            ShowSelectionDockOverlay(strokeBoundsScreenDip);
-        }
+                 Vector2 minScreen = Vector2.Transform(stroke.BoundsMin, worldToScreen);
+                 Vector2 maxScreen = Vector2.Transform(stroke.BoundsMax, worldToScreen);
+
+                 float l = Math.Min(minScreen.X, maxScreen.X);
+                 float t = Math.Min(minScreen.Y, maxScreen.Y);
+                 float r = Math.Max(minScreen.X, maxScreen.X);
+                 float b = Math.Max(minScreen.Y, maxScreen.Y);
+
+                 left = Math.Min(left, l);
+                 top = Math.Min(top, t);
+                 right = Math.Max(right, r);
+                 bottom = Math.Max(bottom, b);
+                 hasAny = true;
+             }
+
+             if (!hasAny)
+             {
+                 return false;
+             }
+
+             strokeBoundsScreenDip = Rect.FromLTRB(left, top, right, bottom);
+             return true;
+         }
+
+         private void ShowSelectedStrokesOverlay(Rect strokeBoundsScreenDip)
+         {
+             ShowSelectionBoundsOverlay(strokeBoundsScreenDip);
+             ShowSelectionDockOverlay(strokeBoundsScreenDip);
+         }
 
         private void ShowSelectedElementOverlay(BoardElement element, Rect elementBoundsScreenDip)
         {
@@ -247,22 +278,21 @@ namespace WindBoard.Controls
 
             SelectionDockBorder.Visibility = Visibility.Visible;
 
-            // 置顶：
-            // - 笔迹：当选中笔迹已在列表末尾（最后绘制）时禁用。
-            // - 元素：当选中元素已在“上层元素列表”末尾时禁用；下层元素永远可置顶（跨层）。
-            if (SelectionBringToFrontButton is not null)
-            {
-                bool isTopMost = false;
+             // 置顶：
+              // - 笔迹：当选中笔迹已在列表末尾（最后绘制）时禁用。
+              // - 元素：当选中元素已在“上层元素列表”末尾时禁用；下层元素永远可置顶（跨层）。
+             if (SelectionBringToFrontButton is not null)
+             {
+                 bool isTopMost = false;
 
-                if (_input?.SelectedStroke is Stroke selectedStroke)
-                {
-                    isTopMost = _session.Document.Strokes.Count > 0
-                        && ReferenceEquals(_session.Document.Strokes[^1], selectedStroke);
-                }
-                else if (_input?.SelectedElement is BoardElement selectedElement)
-                {
-                    isTopMost = _session.Document.ElementsAboveInk.Count > 0
-                        && ReferenceEquals(_session.Document.ElementsAboveInk[^1], selectedElement);
+                 if (_input?.SelectedStrokes is IReadOnlyList<Stroke> selectedStrokes && selectedStrokes.Count > 0)
+                 {
+                     isTopMost = AreSelectedStrokesTopMost(selectedStrokes);
+                 }
+                 else if (_input?.SelectedElement is BoardElement selectedElement)
+                 {
+                     isTopMost = _session.Document.ElementsAboveInk.Count > 0
+                         && ReferenceEquals(_session.Document.ElementsAboveInk[^1], selectedElement);
                 }
 
                 SelectionBringToFrontButton.IsEnabled = !isTopMost;
@@ -291,14 +321,40 @@ namespace WindBoard.Controls
             dockLeft = Math.Clamp(dockLeft, 0.0, maxLeft);
             dockTop = Math.Clamp(dockTop, 0.0, maxTop);
 
-            Canvas.SetLeft(SelectionDockBorder, dockLeft);
-            Canvas.SetTop(SelectionDockBorder, dockTop);
-        }
+             Canvas.SetLeft(SelectionDockBorder, dockLeft);
+             Canvas.SetTop(SelectionDockBorder, dockTop);
+         }
 
-        private void HideSelectionOverlay()
-        {
-            if (SelectionBoundsBorder is not null)
-            {
+         private bool AreSelectedStrokesTopMost(IReadOnlyList<Stroke> selectedStrokes)
+         {
+             if (selectedStrokes is null || selectedStrokes.Count == 0)
+             {
+                 return false;
+             }
+
+             int total = _session.Document.Strokes.Count;
+             if (total <= 0 || selectedStrokes.Count > total)
+             {
+                 return false;
+             }
+
+             // 当且仅当“选中集合”恰好是笔迹列表的末尾一段（suffix）时，才认为已经置顶到位。
+             int start = total - selectedStrokes.Count;
+             for (int i = 0; i < selectedStrokes.Count; i++)
+             {
+                 if (!ReferenceEquals(_session.Document.Strokes[start + i], selectedStrokes[i]))
+                 {
+                     return false;
+                 }
+             }
+
+             return true;
+         }
+
+         private void HideSelectionOverlay()
+         {
+             if (SelectionBoundsBorder is not null)
+             {
                 SelectionBoundsBorder.Visibility = Visibility.Collapsed;
             }
 
@@ -315,17 +371,29 @@ namespace WindBoard.Controls
                 return;
             }
 
-            // 点击 Dock 时，主动结束输入控制器的连续动作，避免残留捕获/状态。
-            _input.CancelActiveToolOperation();
+             // 点击 Dock 时，主动结束输入控制器的连续动作，避免残留捕获/状态。
+             _input.CancelActiveToolOperation();
 
-            if (_input?.SelectedStroke is Stroke stroke)
-            {
-                _session.Execute(new BringStrokeToFrontCommand(stroke));
-            }
-            else if (_input?.SelectedElement is BoardElement element)
-            {
-                _session.Execute(new BringElementToFrontCommand(element));
-            }
+             IReadOnlyList<Stroke>? selectedStrokes = _input.SelectedStrokes;
+             if (selectedStrokes is { Count: > 0 })
+             {
+                 if (AreSelectedStrokesTopMost(selectedStrokes))
+                 {
+                     return;
+                 }
+
+                 var commands = new List<IBoardCommand>(selectedStrokes.Count);
+                 for (int i = 0; i < selectedStrokes.Count; i++)
+                 {
+                     commands.Add(new BringStrokeToFrontCommand(selectedStrokes[i]));
+                 }
+
+                 _session.Execute(commands.Count == 1 ? commands[0] : new CompositeCommand(commands));
+             }
+             else if (_input?.SelectedElement is BoardElement element)
+             {
+                 _session.Execute(new BringElementToFrontCommand(element));
+             }
             else
             {
                 return;
@@ -342,23 +410,36 @@ namespace WindBoard.Controls
                 return;
             }
 
-            _input.CancelActiveToolOperation();
+             _input.CancelActiveToolOperation();
 
-            if (_input?.SelectedStroke is Stroke stroke)
-            {
-                Stroke copy = CloneStroke(stroke);
+             IReadOnlyList<Stroke>? selectedStrokes = _input.SelectedStrokes;
+             if (selectedStrokes is { Count: > 0 })
+             {
+                 float zoom = Math.Max(0.0001f, _viewport.Zoom);
+                 Vector2 deltaWorld = new Vector2(12.0f, 12.0f) / zoom;
 
-                // 复制后做一个轻微偏移，避免与原笔迹完全重叠导致“看不见”。
-                float zoom = Math.Max(0.0001f, _viewport.Zoom);
-                copy.Translate(new Vector2(12.0f, 12.0f) / zoom);
+                 var copies = new List<Stroke>(selectedStrokes.Count);
+                 for (int i = 0; i < selectedStrokes.Count; i++)
+                 {
+                     Stroke copy = CloneStroke(selectedStrokes[i]);
+                     // 复制后整体做一个轻微偏移，避免与原笔迹完全重叠导致“看不见”。
+                     copy.Translate(deltaWorld);
+                     copies.Add(copy);
+                 }
 
-                _session.Execute(new AddStrokeCommand(copy));
-                _input.SetSelection(copy);
-                UpdateSelectionOverlay();
-                return;
-            }
+                 var commands = new List<IBoardCommand>(copies.Count);
+                 for (int i = 0; i < copies.Count; i++)
+                 {
+                     commands.Add(new AddStrokeCommand(copies[i]));
+                 }
 
-            if (_input?.SelectedElement is BoardElement element)
+                 _session.Execute(commands.Count == 1 ? commands[0] : new CompositeCommand(commands));
+                 _input.SetSelectionStrokes(copies);
+                 UpdateSelectionOverlay();
+                 return;
+             }
+
+             if (_input?.SelectedElement is BoardElement element)
             {
                 if (!TryCloneElement(element, out BoardElement? copy, out bool aboveInk))
                 {
@@ -381,15 +462,23 @@ namespace WindBoard.Controls
                 return;
             }
 
-            _input.CancelActiveToolOperation();
+             _input.CancelActiveToolOperation();
 
-            if (_input?.SelectedStroke is Stroke stroke)
-            {
-                _session.Execute(new RemoveStrokeCommand(stroke));
-                _input.ClearSelection();
-                UpdateSelectionOverlay();
-                return;
-            }
+             IReadOnlyList<Stroke>? selectedStrokes = _input.SelectedStrokes;
+             if (selectedStrokes is { Count: > 0 })
+             {
+                 // 删除多个笔迹：从后往前删除，可减少索引移动对记录的影响。
+                 var commands = new List<IBoardCommand>(selectedStrokes.Count);
+                 for (int i = selectedStrokes.Count - 1; i >= 0; i--)
+                 {
+                     commands.Add(new RemoveStrokeCommand(selectedStrokes[i]));
+                 }
+
+                 _session.Execute(commands.Count == 1 ? commands[0] : new CompositeCommand(commands));
+                 _input.ClearSelection();
+                 UpdateSelectionOverlay();
+                 return;
+             }
 
             if (_input?.SelectedElement is BoardElement element)
             {

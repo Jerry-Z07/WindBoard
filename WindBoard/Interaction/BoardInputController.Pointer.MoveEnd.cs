@@ -60,10 +60,13 @@ namespace WindBoard.Interaction
             Vector2 deltaScreen = current - _lastSelectionScreen;
             _lastSelectionScreen = current;
 
-            if (_selectionTransformStroke is not null)
+            if (_selectionStrokeBeforeSnapshots is not null && _selectedStrokes.Count > 0)
             {
                 Vector2 deltaWorld = deltaScreen / Math.Max(0.0001f, _viewport.Zoom);
-                _selectionTransformStroke.Translate(deltaWorld);
+                for (int i = 0; i < _selectedStrokes.Count; i++)
+                {
+                    _selectedStrokes[i].Translate(deltaWorld);
+                }
             }
             else if (_selectionTransformElement is not null)
             {

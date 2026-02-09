@@ -16,6 +16,32 @@ namespace WindBoard.Board.Editing
     internal static class StrokeRectSelectTest
     {
         /// <summary>
+        /// 在给定世界坐标矩形范围内命中“所有相交”的笔迹（按列表顺序：越靠后越靠上）。
+        /// </summary>
+        /// <remarks>
+        /// 用途：框选多个笔迹并作为整体进行移动/缩放/旋转等操作。
+        /// </remarks>
+        internal static List<Stroke> HitTestStrokesInWorldRect(IReadOnlyList<Stroke> strokes, Vector2 minWorld, Vector2 maxWorld)
+        {
+            if (strokes is null)
+            {
+                throw new ArgumentNullException(nameof(strokes));
+            }
+
+            var hits = new List<Stroke>();
+            for (int i = 0; i < strokes.Count; i++)
+            {
+                Stroke stroke = strokes[i];
+                if (IsStrokeIntersectWorldRect(stroke, minWorld, maxWorld))
+                {
+                    hits.Add(stroke);
+                }
+            }
+
+            return hits;
+        }
+
+        /// <summary>
         /// 在给定世界坐标矩形范围内命中“最上层”笔迹（按列表顺序：越靠后越靠上）。
         /// </summary>
         internal static Stroke? HitTestTopMostStrokeInWorldRect(IReadOnlyList<Stroke> strokes, Vector2 minWorld, Vector2 maxWorld)
@@ -93,4 +119,3 @@ namespace WindBoard.Board.Editing
         }
     }
 }
-

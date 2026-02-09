@@ -155,6 +155,50 @@ namespace WindBoard
             UpdateClearCanvasSlideState();
         }
 
+        private void OnUndoKeyboardAcceleratorInvoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
+        {
+            // 文本输入控件内优先由控件自身处理 Ctrl+Z（例如导入文字对话框），避免误触撤销画布操作。
+            if (IsTextInputFocused())
+            {
+                return;
+            }
+
+            if (!BoardCanvas.CanUndo)
+            {
+                return;
+            }
+
+            BoardCanvas.Undo();
+            args.Handled = true;
+        }
+
+        private void OnRedoKeyboardAcceleratorInvoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
+        {
+            if (IsTextInputFocused())
+            {
+                return;
+            }
+
+            if (!BoardCanvas.CanRedo)
+            {
+                return;
+            }
+
+            BoardCanvas.Redo();
+            args.Handled = true;
+        }
+
+        private bool IsTextInputFocused()
+        {
+            if (Content is not FrameworkElement root || root.XamlRoot is null)
+            {
+                return false;
+            }
+
+            object? focused = FocusManager.GetFocusedElement(root.XamlRoot);
+            return focused is TextBox or PasswordBox or RichEditBox;
+        }
+
         private void OnPenToolClicked(object sender, RoutedEventArgs e)
         {
             // 逻辑约定：首次点击进入书写；已在书写模式下再次点击则弹出“颜色/粗细”面板。

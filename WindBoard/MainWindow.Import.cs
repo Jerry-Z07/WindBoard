@@ -90,9 +90,26 @@ namespace WindBoard
 
         private static async Task<ImportEntry?> ShowImportEntryDialogAsync(XamlRoot xamlRoot)
         {
-            var rbFiles = new RadioButton { Content = "导入文件", IsChecked = true };
-            var rbText = new RadioButton { Content = "导入文字" };
-            var rbLink = new RadioButton { Content = "导入链接" };
+            static RadioButton CreateRadio(string text, Symbol symbol, bool isChecked = false)
+            {
+                var content = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
+                content.Children.Add(new SymbolIcon { Symbol = symbol });
+                content.Children.Add(new TextBlock
+                {
+                    Text = text,
+                    VerticalAlignment = VerticalAlignment.Center,
+                });
+
+                return new RadioButton
+                {
+                    Content = content,
+                    IsChecked = isChecked,
+                };
+            }
+
+            var rbFiles = CreateRadio("导入文件", Symbol.OpenFile, isChecked: true);
+            var rbText = CreateRadio("导入文字", Symbol.Edit);
+            var rbLink = CreateRadio("导入链接", Symbol.Link);
 
             var panel = new StackPanel { Spacing = 8 };
             panel.Children.Add(new TextBlock

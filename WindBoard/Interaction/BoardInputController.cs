@@ -58,14 +58,30 @@ namespace WindBoard.Interaction
         private Vector2? _lastEraserWorld;
         private List<Stroke>? _eraseBeforeSnapshot;
 
-        private Stroke? _selectedStroke;
+        // 选择工具：支持“单笔迹”与“多笔迹框选”两种形态。
+        // 约定：框选命中多个笔迹时，把它们视为一个整体进行移动/缩放/旋转等操作。
+        private readonly List<Stroke> _selectedStrokes = new();
         private BoardElement? _selectedElement;
-        private Stroke? _selectionTransformStroke;
-        private List<StrokePoint>? _selectionBeforeSnapshot;
+
+        // 选择变换：对“选中的笔迹集合”做快照，提交时写入撤销记录。
+        private List<StrokeTransformSnapshot>? _selectionStrokeBeforeSnapshots;
         private BoardElement? _selectionTransformElement;
         private Vector2? _selectionElementBeforePositionWorld;
         private Vector2? _selectionElementBeforeSizeWorld;
         private bool _selectionModified;
+
+        private sealed class StrokeTransformSnapshot
+        {
+            public StrokeTransformSnapshot(Stroke stroke)
+            {
+                Stroke = stroke ?? throw new ArgumentNullException(nameof(stroke));
+                BeforePoints = new List<StrokePoint>(stroke.Points);
+            }
+
+            public Stroke Stroke { get; }
+
+            public List<StrokePoint> BeforePoints { get; }
+        }
 
         private enum TouchManipulationTarget
         {
@@ -112,7 +128,16 @@ namespace WindBoard.Interaction
         /// <summary>
         /// 当前选中的笔迹（选择工具）。
         /// </summary>
-        public Stroke? SelectedStroke => _selectedStroke;
+        /// <remarks>
+        /// 兼容单选场景：当且仅当选中一条笔迹时返回该笔迹；多选时返回 null。
+        /// 多选请使用 <see cref="SelectedStrokes"/>。
+        /// </remarks>
+        public Stroke? SelectedStroke => _selectedStrokes.Count == 1 ? _selectedStrokes[0] : null;
+
+        /// <summary>
+        /// 当前选中的笔迹集合（选择工具）。
+        /// </summary>
+        public IReadOnlyList<Stroke> SelectedStrokes => _selectedStrokes;
 
         /// <summary>
         /// 当前选中的元素（选择工具）。
@@ -164,14 +189,27 @@ namespace WindBoard.Interaction
         /// </summary>
         public void ValidateSelection()
         {
-            if (_selectedStroke is Stroke stroke)
+            if (_selectedStrokes.Count > 0)
             {
-                if (_session.Document.Strokes.Contains(stroke))
+                // 选择笔迹集合：按文档当前顺序重新归一化，避免撤销/重做或重排后出现“顺序错乱/包含失效对象”。
+                var set = new HashSet<Stroke>(_selectedStrokes);
+                var normalized = new List<Stroke>(_selectedStrokes.Count);
+                for (int i = 0; i < _session.Document.Strokes.Count; i++)
+                {
+                    Stroke s = _session.Document.Strokes[i];
+                    if (set.Contains(s))
+                    {
+                        normalized.Add(s);
+                    }
+                }
+
+                if (IsSameStrokeList(_selectedStrokes, normalized))
                 {
                     return;
                 }
 
-                _selectedStroke = null;
+                _selectedStrokes.Clear();
+                _selectedStrokes.AddRange(normalized);
                 FrameInvalidated?.Invoke();
                 StateChanged?.Invoke();
                 return;
@@ -199,6 +237,11 @@ namespace WindBoard.Interaction
         public void SetSelection(Stroke? stroke)
         {
             SetSelectedStroke(stroke);
+        }
+
+        public void SetSelectionStrokes(IReadOnlyList<Stroke>? strokes)
+        {
+            SetSelectedStrokes(strokes);
         }
 
         public void SetSelection(BoardElement? element)

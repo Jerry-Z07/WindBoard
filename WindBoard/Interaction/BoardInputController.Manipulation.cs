@@ -35,18 +35,16 @@ namespace WindBoard.Interaction
 
             Windows.System.VirtualKeyModifiers mods = e.KeyModifiers;
 
-            // 选择模式下，按住修饰键对“选中笔迹”做变换：
-            // - Ctrl + 滚轮：缩放
-            // - Shift + 滚轮：旋转
-            if (Tool == BoardTool.Select && _selectedStroke is not null
+            // 选择模式下，按住修饰键对“选中笔迹集合”做变换（将多笔迹视为整体）：
+            // - Ctrl + 滚轮：缩放（以鼠标位置为锚点）
+            // - Shift + 滚轮：旋转（以选中集合中心为锚点）
+            if (Tool == BoardTool.Select
+                && _selectedStrokes.Count > 0
                 && (mods.HasFlag(Windows.System.VirtualKeyModifiers.Control) || mods.HasFlag(Windows.System.VirtualKeyModifiers.Shift)))
             {
                 BeginWheelZoomInteraction();
 
-                if (_selectionBeforeSnapshot is null || !ReferenceEquals(_selectionTransformStroke, _selectedStroke))
-                {
-                    BeginSelectionTransformSnapshot(_selectedStroke);
-                }
+                BeginSelectionTransformSnapshot(_selectedStrokes);
 
                 if (mods.HasFlag(Windows.System.VirtualKeyModifiers.Control))
                 {
@@ -57,17 +55,17 @@ namespace WindBoard.Interaction
                     Matrix3x2 transform = Matrix3x2.CreateTranslation(-anchorWorld)
                         * Matrix3x2.CreateScale(factor)
                         * Matrix3x2.CreateTranslation(anchorWorld);
-                    _selectedStroke.Transform(transform);
+                    ApplyTransformToSelectedStrokes(transform);
                     _selectionModified = true;
                 }
 
                 if (mods.HasFlag(Windows.System.VirtualKeyModifiers.Shift))
                 {
-                    // 以笔迹中心为锚点旋转（避免滚轮旋转时锚点漂移）。
+                    // 以选中集合中心为锚点旋转（避免滚轮旋转时锚点漂移）。
                     float stepDeg = 5.0f;
                     float rotationRad = stepDeg * (delta / 120.0f) * (float)(Math.PI / 180.0);
-                    Vector2 centerWorld = GetStrokeCenterWorld(_selectedStroke);
-                    _selectedStroke.Transform(Matrix3x2.CreateRotation(rotationRad, centerWorld));
+                    Vector2 centerWorld = GetSelectedStrokesCenterWorld();
+                    ApplyTransformToSelectedStrokes(Matrix3x2.CreateRotation(rotationRad, centerWorld));
                     _selectionModified = true;
                 }
 
@@ -171,7 +169,7 @@ namespace WindBoard.Interaction
 
             // Wheel 交互结束时，如果期间对选中笔迹做了变换，则在此一次性写入撤销记录。
             if (_selectionModified
-                && ((_selectionBeforeSnapshot is not null && _selectionTransformStroke is not null)
+                && ((_selectionStrokeBeforeSnapshots is { Count: > 0 })
                     || (_selectionTransformElement is not null
                         && _selectionElementBeforePositionWorld is not null
                         && _selectionElementBeforeSizeWorld is not null)))
@@ -181,6 +179,57 @@ namespace WindBoard.Interaction
             }
 
             UpdateInteractionState();
+        }
+
+        private Vector2 GetSelectedStrokesCenterWorld()
+        {
+            // 单笔迹：沿用既有中心逻辑（Bounds 优先，否则点集平均）。
+            if (_selectedStrokes.Count == 1)
+            {
+                return GetStrokeCenterWorld(_selectedStrokes[0]);
+            }
+
+            // 多笔迹：以“包围盒中心”为整体中心，更符合用户对“作为整体旋转”的直觉。
+            Vector2 min = new(float.PositiveInfinity, float.PositiveInfinity);
+            Vector2 max = new(float.NegativeInfinity, float.NegativeInfinity);
+            bool hasAny = false;
+
+            for (int i = 0; i < _selectedStrokes.Count; i++)
+            {
+                Stroke stroke = _selectedStrokes[i];
+                if (stroke.Points.Count == 0)
+                {
+                    continue;
+                }
+
+                if (!stroke.HasBounds)
+                {
+                    stroke.RecalculateBoundsFromPoints();
+                }
+
+                if (!stroke.HasBounds)
+                {
+                    continue;
+                }
+
+                min = new Vector2(
+                    Math.Min(min.X, stroke.BoundsMin.X),
+                    Math.Min(min.Y, stroke.BoundsMin.Y));
+                max = new Vector2(
+                    Math.Max(max.X, stroke.BoundsMax.X),
+                    Math.Max(max.Y, stroke.BoundsMax.Y));
+                hasAny = true;
+            }
+
+            return hasAny ? (min + max) / 2.0f : Vector2.Zero;
+        }
+
+        private void ApplyTransformToSelectedStrokes(Matrix3x2 transform)
+        {
+            for (int i = 0; i < _selectedStrokes.Count; i++)
+            {
+                _selectedStrokes[i].Transform(transform);
+            }
         }
 
         private void OnCanvasManipulationStarting(object sender, ManipulationStartingRoutedEventArgs e)
@@ -196,15 +245,15 @@ namespace WindBoard.Interaction
             const int minTouchCount = 2;
             if (Tool == BoardTool.Select
                 && _touchManipulationTarget == TouchManipulationTarget.Selection
-                && (_selectedStroke is not null || _selectedElement is not null))
+                && (_selectedStrokes.Count > 0 || _selectedElement is not null))
             {
                 _isManipulating = false;
                 _isManipulatingSelection = _activeTouchPointers.Count >= minTouchCount;
                 if (_isManipulatingSelection)
                 {
-                    if (_selectedStroke is Stroke stroke)
+                    if (_selectedStrokes.Count > 0)
                     {
-                        BeginSelectionTransformSnapshot(stroke);
+                        BeginSelectionTransformSnapshot(_selectedStrokes);
                     }
                     else if (_selectedElement is BoardElement element)
                     {
@@ -246,7 +295,7 @@ namespace WindBoard.Interaction
         {
             if (Tool != BoardTool.Select
                 || _touchManipulationTarget != TouchManipulationTarget.Selection
-                || (_selectedStroke is null && _selectedElement is null))
+                || (_selectedStrokes.Count == 0 && _selectedElement is null))
             {
                 return false;
             }
@@ -255,9 +304,9 @@ namespace WindBoard.Interaction
             {
                 _isManipulatingSelection = true;
 
-                if (_selectedStroke is Stroke stroke)
+                if (_selectedStrokes.Count > 0)
                 {
-                    BeginSelectionTransformSnapshot(stroke);
+                    BeginSelectionTransformSnapshot(_selectedStrokes);
                 }
                 else if (_selectedElement is BoardElement element)
                 {
@@ -314,8 +363,7 @@ namespace WindBoard.Interaction
                 return true;
             }
 
-            Stroke? selectedStroke = _selectedStroke;
-            if (selectedStroke is null)
+            if (_selectedStrokes.Count == 0)
             {
                 return false;
             }
@@ -347,13 +395,16 @@ namespace WindBoard.Interaction
                     transform *= Matrix3x2.CreateTranslation(translationWorld);
                 }
 
-                selectedStroke.Transform(transform);
+                ApplyTransformToSelectedStrokes(transform);
                 _selectionModified = true;
                 return true;
             }
 
             // 仅平移：走更轻量的 Translate，避免构造矩阵。
-            selectedStroke.Translate(translationWorld);
+            for (int i = 0; i < _selectedStrokes.Count; i++)
+            {
+                _selectedStrokes[i].Translate(translationWorld);
+            }
             _selectionModified = true;
             return true;
         }
