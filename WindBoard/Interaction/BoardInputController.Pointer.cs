@@ -197,58 +197,20 @@ namespace WindBoard.Interaction
             }
 
             Matrix3x2 worldToScreen = _viewport.GetWorldToScreenTransform();
-
-            float left = float.PositiveInfinity;
-            float top = float.PositiveInfinity;
-            float right = float.NegativeInfinity;
-            float bottom = float.NegativeInfinity;
-
-            bool hasAny = false;
-            for (int i = 0; i < strokes.Count; i++)
-            {
-                Stroke stroke = strokes[i];
-                if (stroke.Points.Count == 0)
-                {
-                    continue;
-                }
-
-                // 某些情况下笔迹可能还未计算 Bounds（例如外部构造/导入），这里兜底重建。
-                if (!stroke.HasBounds)
-                {
-                    stroke.RecalculateBoundsFromPoints();
-                }
-
-                if (!stroke.HasBounds)
-                {
-                    continue;
-                }
-
-                Vector2 minScreen = Vector2.Transform(stroke.BoundsMin, worldToScreen);
-                Vector2 maxScreen = Vector2.Transform(stroke.BoundsMax, worldToScreen);
-
-                float l = Math.Min(minScreen.X, maxScreen.X);
-                float t = Math.Min(minScreen.Y, maxScreen.Y);
-                float r = Math.Max(minScreen.X, maxScreen.X);
-                float b = Math.Max(minScreen.Y, maxScreen.Y);
-
-                left = Math.Min(left, l);
-                top = Math.Min(top, t);
-                right = Math.Max(right, r);
-                bottom = Math.Max(bottom, b);
-                hasAny = true;
-            }
-
-            if (!hasAny)
+            if (!StrokeScreenBounds.TryGetStrokesBoundsScreenDip(strokes, worldToScreen, out Rect bounds))
             {
                 return false;
             }
 
-            left -= SelectHitToleranceDip;
-            top -= SelectHitToleranceDip;
-            right += SelectHitToleranceDip;
-            bottom += SelectHitToleranceDip;
+            float left = bounds.Left - SelectHitToleranceDip;
+            float top = bounds.Top - SelectHitToleranceDip;
+            float right = bounds.Right + SelectHitToleranceDip;
+            float bottom = bounds.Bottom + SelectHitToleranceDip;
 
-            return screenDip.X >= left && screenDip.X <= right && screenDip.Y >= top && screenDip.Y <= bottom;
+            return screenDip.X >= left
+                && screenDip.X <= right
+                && screenDip.Y >= top
+                && screenDip.Y <= bottom;
         }
 
         private bool IsScreenPointInsideSelectedElementBounds(BoardElement element, Vector2 screenDip)

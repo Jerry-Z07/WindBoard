@@ -193,54 +193,10 @@ namespace WindBoard.Controls
              }
 
              Matrix3x2 worldToScreen = _viewport.GetWorldToScreenTransform();
-
-             float left = float.PositiveInfinity;
-             float top = float.PositiveInfinity;
-             float right = float.NegativeInfinity;
-             float bottom = float.NegativeInfinity;
-
-             bool hasAny = false;
-             for (int i = 0; i < selectedStrokes.Count; i++)
-             {
-                 Stroke stroke = selectedStrokes[i];
-                 if (stroke.Points.Count == 0)
-                 {
-                     continue;
-                 }
-
-                 // 某些情况下笔迹可能还未计算 Bounds（例如外部构造/导入），此时这里补算一次。
-                 if (!stroke.HasBounds)
-                 {
-                     stroke.RecalculateBoundsFromPoints();
-                 }
-
-                 if (!stroke.HasBounds)
-                 {
-                     continue;
-                 }
-
-                 Vector2 minScreen = Vector2.Transform(stroke.BoundsMin, worldToScreen);
-                 Vector2 maxScreen = Vector2.Transform(stroke.BoundsMax, worldToScreen);
-
-                 float l = Math.Min(minScreen.X, maxScreen.X);
-                 float t = Math.Min(minScreen.Y, maxScreen.Y);
-                 float r = Math.Max(minScreen.X, maxScreen.X);
-                 float b = Math.Max(minScreen.Y, maxScreen.Y);
-
-                 left = Math.Min(left, l);
-                 top = Math.Min(top, t);
-                 right = Math.Max(right, r);
-                 bottom = Math.Max(bottom, b);
-                 hasAny = true;
-             }
-
-             if (!hasAny)
-             {
-                 return false;
-             }
-
-             strokeBoundsScreenDip = Rect.FromLTRB(left, top, right, bottom);
-             return true;
+             return StrokeScreenBounds.TryGetStrokesBoundsScreenDip(
+                 selectedStrokes,
+                 worldToScreen,
+                 out strokeBoundsScreenDip);
          }
 
          private void ShowSelectedStrokesOverlay(Rect strokeBoundsScreenDip)
