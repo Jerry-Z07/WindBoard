@@ -2,17 +2,13 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
-using System.IO.Compression;
 using System.Numerics;
 using System.Runtime.InteropServices.WindowsRuntime;
-using System.Text;
-using System.Text.Json;
 using System.Threading.Tasks;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Imaging;
-using Windows.Graphics.Imaging;
 using Windows.Storage;
 using Windows.Storage.Pickers;
 using Windows.Storage.Streams;
@@ -21,6 +17,8 @@ using WindBoard.Board.Elements;
 using WindBoard.Board.Editing;
 using WindBoard.Board.Persistence;
 using WindBoard.Board.Persistence.Wbix;
+using WindBoard.Importing;
+using WbixPreview = WindBoard.Board.Persistence.Wbix.WbixPreviewReader.WbixPreview;
 
 namespace WindBoard
 {
@@ -41,10 +39,6 @@ namespace WindBoard
             ReplaceCurrentPage,
             AppendAfterLastPage,
         }
-
-        private sealed record WbixPreview(
-            WbixManifest Manifest,
-            byte[]? CoverPngBytes);
 
         private async Task StartImportAsync()
         {
@@ -298,7 +292,7 @@ namespace WindBoard
 
             if (string.Equals(ext, ".url", StringComparison.OrdinalIgnoreCase))
             {
-                string content = await ReadTextFileWithLimitAsync(file.Path, maxChars: 16_384);
+                string content = await TextImportReader.ReadTextFileWithLimitAsync(file.Path, maxChars: 16_384);
                 if (TryParseInternetShortcutUrl(content, out string url))
                 {
                     var link = new BoardLinkElement { Url = url };
@@ -316,7 +310,7 @@ namespace WindBoard
 
             if (IsTextExtension(ext))
             {
-                string content = await ReadTextFileWithLimitAsync(file.Path, maxChars: 64_000);
+                string content = await TextImportReader.ReadTextFileWithLimitAsync(file.Path, maxChars: 64_000);
                 var text = new BoardTextElement { Text = content };
                 PlaceElementAtViewportCenter(text, sizeDip: new Vector2(420.0f, 260.0f), offsetIndex: offsetIndex);
                 _workspace.CurrentPage.Session.Execute(new AddElementCommand(text, aboveInk: false));
@@ -331,7 +325,7 @@ namespace WindBoard
 
         private async Task ImportImageFileAsync(StorageFile file, int offsetIndex)
         {
-            (byte[] pixels, int w, int h)? decoded = await TryDecodeImageToBgra8PremulAsync(file, maxPixelEdge: 2048);
+            (byte[] pixels, int w, int h)? decoded = await ImageImportDecoder.TryDecodeToBgra8PremulAsync(file, maxPixelEdge: 2048);
 
             var element = new BoardMediaElement
             {
@@ -413,7 +407,7 @@ namespace WindBoard
 
         private async Task ImportWbixAsync(XamlRoot xamlRoot, StorageFile file)
         {
-            WbixPreview? preview = await TryReadWbixPreviewAsync(file.Path);
+            WbixPreview? preview = await WbixPreviewReader.TryReadAsync(file.Path);
             if (preview is null)
             {
                 await ShowMessageDialogAsync(xamlRoot, "导入失败", "WBIX 文件解析失败。");
@@ -603,155 +597,6 @@ namespace WindBoard
             }
         }
 
-        private static async Task<WbixPreview?> TryReadWbixPreviewAsync(string filePath)
-        {
-            if (string.IsNullOrWhiteSpace(filePath) || !File.Exists(filePath))
-            {
-                return null;
-            }
-
-            try
-            {
-                await using var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read);
-                using var archive = new ZipArchive(stream, ZipArchiveMode.Read, leaveOpen: true);
-
-                ZipArchiveEntry? manifestEntry = archive.GetEntry("manifest.json");
-                if (manifestEntry is null)
-                {
-                    return null;
-                }
-
-                WbixManifest manifest;
-                await using (Stream ms = manifestEntry.Open())
-                using (var reader = new StreamReader(ms, Encoding.UTF8, detectEncodingFromByteOrderMarks: true, bufferSize: 4096, leaveOpen: false))
-                {
-                    string json = await reader.ReadToEndAsync();
-                    var options = new JsonSerializerOptions
-                    {
-                        PropertyNameCaseInsensitive = true,
-                        AllowTrailingCommas = true,
-                        ReadCommentHandling = JsonCommentHandling.Skip,
-                    };
-
-                    manifest = JsonSerializer.Deserialize<WbixManifest>(json, options)
-                        ?? throw new InvalidDataException("manifest.json 解析失败。");
-                }
-
-                string? coverPath = TryResolveCoverPathFromManifest(manifest);
-                byte[]? coverBytes = null;
-
-                // 封面属于可选资源：缺失时允许降级。
-                if (!string.IsNullOrWhiteSpace(coverPath))
-                {
-                    coverBytes = TryReadZipEntryBytes(archive, coverPath!, maxBytes: 8 * 1024 * 1024);
-                }
-
-                coverBytes ??= TryReadZipEntryBytes(archive, "assets/cover.png", maxBytes: 8 * 1024 * 1024);
-
-                return new WbixPreview(manifest, coverBytes);
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"[Import/WBIX] 预读失败：'{filePath}', ex={ex}");
-                return null;
-            }
-        }
-
-        private static string? TryResolveCoverPathFromManifest(WbixManifest manifest)
-        {
-            if (manifest.Resources is null)
-            {
-                return null;
-            }
-
-            foreach (WbixResourceEntry r in manifest.Resources)
-            {
-                if (string.Equals(r.Id, "cover", StringComparison.OrdinalIgnoreCase))
-                {
-                    return r.Path;
-                }
-
-                if (r.Meta is not null
-                    && r.Meta.TryGetValue("role", out string? role)
-                    && string.Equals(role, "cover", StringComparison.OrdinalIgnoreCase))
-                {
-                    return r.Path;
-                }
-            }
-
-            return null;
-        }
-
-        private static byte[]? TryReadZipEntryBytes(ZipArchive archive, string entryName, int maxBytes)
-        {
-            try
-            {
-                ZipArchiveEntry? entry = archive.GetEntry(entryName);
-                if (entry is null)
-                {
-                    return null;
-                }
-
-                if (entry.Length <= 0 || entry.Length > maxBytes)
-                {
-                    return null;
-                }
-
-                using Stream s = entry.Open();
-                using var ms = new MemoryStream((int)Math.Min(int.MaxValue, entry.Length));
-                s.CopyTo(ms);
-                return ms.ToArray();
-            }
-            catch
-            {
-                return null;
-            }
-        }
-
-        private static async Task<(byte[] pixels, int w, int h)?> TryDecodeImageToBgra8PremulAsync(StorageFile file, int maxPixelEdge)
-        {
-            try
-            {
-                using IRandomAccessStream stream = await file.OpenReadAsync();
-                BitmapDecoder decoder = await BitmapDecoder.CreateAsync(stream);
-
-                uint w = decoder.PixelWidth;
-                uint h = decoder.PixelHeight;
-                uint maxEdge = Math.Max(w, h);
-
-                double scale = 1.0;
-                if (maxEdge > (uint)Math.Max(1, maxPixelEdge))
-                {
-                    scale = (double)maxPixelEdge / maxEdge;
-                }
-
-                uint sw = (uint)Math.Max(1.0, Math.Round(w * scale));
-                uint sh = (uint)Math.Max(1.0, Math.Round(h * scale));
-
-                var transform = new BitmapTransform
-                {
-                    ScaledWidth = sw,
-                    ScaledHeight = sh,
-                    InterpolationMode = BitmapInterpolationMode.Fant,
-                };
-
-                PixelDataProvider provider = await decoder.GetPixelDataAsync(
-                    BitmapPixelFormat.Bgra8,
-                    BitmapAlphaMode.Premultiplied,
-                    transform,
-                    ExifOrientationMode.RespectExifOrientation,
-                    ColorManagementMode.DoNotColorManage);
-
-                byte[] pixels = provider.DetachPixelData();
-                return (pixels, (int)sw, (int)sh);
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"[Import] 图片解码失败：'{file.Path}', ex={ex}");
-                return null;
-            }
-        }
-
         private static Vector2 ComputeImageCardSizeDip(int pixelWidth, int pixelHeight, float maxWidthDip, float maxHeightDip)
         {
             float iw = Math.Max(1.0f, pixelWidth);
@@ -761,43 +606,6 @@ namespace WindBoard
             float w = Math.Clamp(iw * scale, 160.0f, maxWidthDip);
             float h = Math.Clamp(ih * scale, 120.0f, maxHeightDip);
             return new Vector2(w, h);
-        }
-
-        private static async Task<string> ReadTextFileWithLimitAsync(string path, int maxChars)
-        {
-            try
-            {
-                using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
-                using var reader = new StreamReader(stream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true);
-
-                var sb = new StringBuilder(Math.Min(maxChars, 4096));
-                char[] buffer = new char[2048];
-
-                int remaining = Math.Max(0, maxChars);
-                while (remaining > 0)
-                {
-                    int read = await reader.ReadAsync(buffer, 0, Math.Min(buffer.Length, remaining));
-                    if (read <= 0)
-                    {
-                        break;
-                    }
-
-                    sb.Append(buffer, 0, read);
-                    remaining -= read;
-                }
-
-                if (!reader.EndOfStream)
-                {
-                    sb.Append("\n\n（内容过长，已截断）");
-                }
-
-                return sb.ToString();
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"[Import] 读取文本失败：'{path}', ex={ex}");
-                return "（读取失败）";
-            }
         }
 
         private static bool TryParseInternetShortcutUrl(string content, out string url)

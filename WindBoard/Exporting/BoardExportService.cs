@@ -6,7 +6,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using WindBoard.Board.Persistence;
 using WindBoard.Board.Persistence.Wbix;
-using WindBoard.Persistence;
 using Windows.UI;
 
 namespace WindBoard.Exporting

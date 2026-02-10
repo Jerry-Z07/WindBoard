@@ -18,7 +18,7 @@ namespace WindBoard
     /// </summary>
     public sealed partial class MainWindow
     {
-        private readonly BoardExportService _exportService = new();
+        private readonly IBoardExportService _exportService = new BoardExportService();
 
         private enum ExportFormat
         {
