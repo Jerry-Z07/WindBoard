@@ -39,6 +39,7 @@
 - `WindBoard/Rendering/`：DirectX 渲染层（SwapChain、场景渲染、脏矩形计算等）。
 - `WindBoard/Exporting/`：导出能力（PNG/PDF/WBIX 等），尽量不包含 UI 类型。
 - `WindBoard/Importing/`：导入相关的“非 UI 重逻辑”（例如图片解码、WBIX 预读等）。
+- `WindBoard/Localization/`：本地化资源与取值入口（`.resx` + `L10n` + XAML `Loc` 扩展），详见 `docs/LOCALIZATION.md`。
 - `WindBoard/ShortcutDock/`：快捷入口（启动程序/打开链接/图标解析等）。
 - `WindBoard/Settings/`：设置页与设置存储、颜色处理等。
 - `WindBoard/Persistence/`：应用层的持久化服务接口/实现（如需要），避免与 `Board/Persistence/` 混淆。
@@ -60,4 +61,3 @@
 - `WindBoard.Tests/Interaction/*`：交互计算（例如脏矩形/命中测试等）。
 - `WindBoard.Tests/Rendering/*`：场景数学、脏矩形计算等不依赖设备的部分。
 - **避免**：直接单测 WinUI 窗口/线程/DirectX 上下文（后续可考虑更高层的 smoke/e2e）。
-

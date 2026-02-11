@@ -7,6 +7,7 @@ using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Shapes;
 using Windows.UI;
+using WindBoard.Localization;
 
 namespace WindBoard.Settings.Pages
 {
@@ -207,7 +208,7 @@ namespace WindBoard.Settings.Pages
 
             SelectColorHintPanel.Visibility = Visibility.Collapsed;
             ColorEditorPanel.Visibility = Visibility.Visible;
-            SelectedColorTitleTextBlock.Text = $"默认颜色更改（第 {index + 1} 个色块）";
+            SelectedColorTitleTextBlock.Text = L10n.Format("Settings_Pen_DefaultColorEdit_IndexedTitle_Fmt", index + 1);
 
             Color color = Color.FromArgb(0xFF, 0, 0, 0);
             if (ColorHex.TryParse(paletteHexes[index], out Color parsed))

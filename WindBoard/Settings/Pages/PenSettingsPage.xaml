@@ -3,6 +3,7 @@
     x:Class="WindBoard.Settings.Pages.PenSettingsPage"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:l10n="using:WindBoard.Localization"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d">
@@ -46,10 +47,10 @@
     <Grid>
         <ScrollViewer>
             <StackPanel Spacing="16" Padding="24">
-                <TextBlock Text="画笔设置" Style="{ThemeResource TitleTextBlockStyle}" />
+                <TextBlock Text="{l10n:Loc Key=Settings_Pen_Title}" Style="{ThemeResource TitleTextBlockStyle}" />
 
                 <StackPanel Spacing="10">
-                    <TextBlock Text="预览" Style="{ThemeResource SubtitleTextBlockStyle}" />
+                    <TextBlock Text="{l10n:Loc Key=Common_Preview}" Style="{ThemeResource SubtitleTextBlockStyle}" />
 
                     <!-- 预览区域固定为浅色主题，保持与主界面“画笔设置 Flyout”一致 -->
                     <Border
@@ -67,7 +68,7 @@
                             </Grid.RowDefinitions>
 
                             <TextBlock
-                                Text="画笔设置"
+                                Text="{l10n:Loc Key=Settings_Pen_Title}"
                                 Foreground="{ThemeResource SystemControlForegroundBaseHighBrush}"
                                 FontSize="14"
                                 FontWeight="SemiBold"
@@ -147,7 +148,7 @@
 
                                 <!-- 粗细预览：滑条 -->
                                 <StackPanel x:Name="ThicknessSliderPreviewPanel" Spacing="6" Visibility="Collapsed">
-                                    <TextBlock Text="粗细" Opacity="0.75" />
+                                    <TextBlock Text="{l10n:Loc Key=Common_Thickness}" Opacity="0.75" />
                                     <Slider
                                         x:Name="ThicknessPreviewSlider"
                                         Minimum="0.5"
@@ -163,11 +164,11 @@
                 </StackPanel>
 
                 <StackPanel Spacing="10">
-                    <TextBlock Text="颜色" Style="{ThemeResource SubtitleTextBlockStyle}" />
+                    <TextBlock Text="{l10n:Loc Key=Common_Color}" Style="{ThemeResource SubtitleTextBlockStyle}" />
 
                     <NumberBox
                         x:Name="PaletteCountNumberBox"
-                        Header="颜色数量"
+                        Header="{l10n:Loc Key=Settings_Pen_PaletteCount_Header}"
                         Minimum="3"
                         Maximum="24"
                         SmallChange="1"
@@ -175,22 +176,22 @@
                         ValueChanged="OnPaletteCountValueChanged" />
 
                     <TextBlock
-                        Text="提示：可保留空色块（未设置颜色），后续再选择色块并设置颜色。"
+                        Text="{l10n:Loc Key=Settings_Pen_PaletteHint}"
                         Opacity="0.75"
                         TextWrapping="WrapWholeWords" />
 
                     <StackPanel x:Name="SelectColorHintPanel" Spacing="6">
                         <TextBlock
-                            Text="默认颜色更改"
+                            Text="{l10n:Loc Key=Settings_Pen_DefaultColorEdit_Title}"
                             FontWeight="SemiBold" />
                         <TextBlock
-                            Text="请先在上方预览区选择一个颜色块，然后再使用颜色选择器修改。"
+                            Text="{l10n:Loc Key=Settings_Pen_SelectColorHint}"
                             Opacity="0.75"
                             TextWrapping="WrapWholeWords" />
                     </StackPanel>
 
                     <StackPanel x:Name="ColorEditorPanel" Spacing="12" Visibility="Collapsed">
-                        <TextBlock x:Name="SelectedColorTitleTextBlock" Text="默认颜色更改" FontWeight="SemiBold" />
+                        <TextBlock x:Name="SelectedColorTitleTextBlock" Text="{l10n:Loc Key=Settings_Pen_DefaultColorEdit_Title}" FontWeight="SemiBold" />
 
                         <ColorPicker
                             x:Name="SelectedColorPicker"
@@ -201,24 +202,24 @@
                             ColorChanged="OnSelectedColorChanged" />
 
                         <Button
-                            Content="清空该色块"
+                            Content="{l10n:Loc Key=Settings_Pen_ClearSwatch_Button}"
                             HorizontalAlignment="Left"
                             Click="OnClearSelectedColorClicked" />
                     </StackPanel>
                 </StackPanel>
 
                 <StackPanel Spacing="10">
-                    <TextBlock Text="粗细" Style="{ThemeResource SubtitleTextBlockStyle}" />
+                    <TextBlock Text="{l10n:Loc Key=Common_Thickness}" Style="{ThemeResource SubtitleTextBlockStyle}" />
 
                     <ToggleSwitch
                         x:Name="UseThicknessSliderToggleSwitch"
-                        Header="通过滑条调整粗细"
-                        OffContent="三档"
-                        OnContent="滑条"
+                        Header="{l10n:Loc Key=Settings_Pen_UseThicknessSlider_Header}"
+                        OffContent="{l10n:Loc Key=Settings_Pen_ThicknessMode_Presets}"
+                        OnContent="{l10n:Loc Key=Settings_Pen_ThicknessMode_Slider}"
                         Toggled="OnUseThicknessSliderToggled" />
 
                     <StackPanel x:Name="ThicknessPresetsEditorPanel" Spacing="12">
-                        <TextBlock Text="三档粗细默认值（细 / 中 / 粗）" Opacity="0.75" TextWrapping="WrapWholeWords" />
+                        <TextBlock Text="{l10n:Loc Key=Settings_Pen_ThicknessPresets_Hint}" Opacity="0.75" TextWrapping="WrapWholeWords" />
 
                         <Grid ColumnSpacing="12">
                             <Grid.ColumnDefinitions>
@@ -229,7 +230,7 @@
 
                             <NumberBox
                                 x:Name="ThicknessPreset1NumberBox"
-                                Header="档位 1（细）"
+                                Header="{l10n:Loc Key=Settings_Pen_ThicknessPreset1_Header}"
                                 Minimum="0.5"
                                 Maximum="64"
                                 SmallChange="0.5"
@@ -240,7 +241,7 @@
                             <NumberBox
                                 x:Name="ThicknessPreset2NumberBox"
                                 Grid.Column="1"
-                                Header="档位 2（中）"
+                                Header="{l10n:Loc Key=Settings_Pen_ThicknessPreset2_Header}"
                                 Minimum="0.5"
                                 Maximum="64"
                                 SmallChange="0.5"
@@ -251,7 +252,7 @@
                             <NumberBox
                                 x:Name="ThicknessPreset3NumberBox"
                                 Grid.Column="2"
-                                Header="档位 3（粗）"
+                                Header="{l10n:Loc Key=Settings_Pen_ThicknessPreset3_Header}"
                                 Minimum="0.5"
                                 Maximum="64"
                                 SmallChange="0.5"

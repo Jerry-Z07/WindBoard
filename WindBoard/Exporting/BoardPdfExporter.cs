@@ -6,6 +6,7 @@ using System.IO.Compression;
 using System.Text;
 using System.Threading;
 using WindBoard.Board.Persistence;
+using WindBoard.Localization;
 
 namespace WindBoard.Exporting
 {
@@ -28,12 +29,12 @@ namespace WindBoard.Exporting
 
             if (string.IsNullOrWhiteSpace(filePath))
             {
-                throw new ArgumentException("导出路径不能为空。", nameof(filePath));
+                throw new ArgumentException(L10n.Get("Export_PathEmpty_Message"), nameof(filePath));
             }
 
             if (pages.Count == 0)
             {
-                throw new ArgumentException("PDF 导出至少需要 1 页。", nameof(pages));
+                throw new ArgumentException(L10n.Get("Export_Pdf_AtLeastOnePage_Message"), nameof(pages));
             }
 
             cancellationToken.ThrowIfCancellationRequested();

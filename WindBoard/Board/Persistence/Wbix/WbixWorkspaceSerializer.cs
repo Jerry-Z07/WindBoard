@@ -7,6 +7,7 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using WindBoard.Board.Persistence;
+using WindBoard.Localization;
 
 namespace WindBoard.Board.Persistence.Wbix
 {
@@ -89,22 +90,22 @@ namespace WindBoard.Board.Persistence.Wbix
 
                     if (string.IsNullOrWhiteSpace(file.Id))
                     {
-                        throw new ArgumentException("WBIX 资源 Id 不能为空。", nameof(resourceFiles));
+                        throw new ArgumentException(L10n.Get("Wbix_ResourceIdEmpty_Message"), nameof(resourceFiles));
                     }
 
                     if (string.IsNullOrWhiteSpace(file.Type))
                     {
-                        throw new ArgumentException("WBIX 资源 Type 不能为空。", nameof(resourceFiles));
+                        throw new ArgumentException(L10n.Get("Wbix_ResourceTypeEmpty_Message"), nameof(resourceFiles));
                     }
 
                     if (string.IsNullOrWhiteSpace(file.Path))
                     {
-                        throw new ArgumentException("WBIX 资源 Path 不能为空。", nameof(resourceFiles));
+                        throw new ArgumentException(L10n.Get("Wbix_ResourcePathEmpty_Message"), nameof(resourceFiles));
                     }
 
                     if (file.Bytes is null || file.Bytes.Length == 0)
                     {
-                        throw new ArgumentException($"WBIX 资源 Bytes 不能为空：{file.Path}", nameof(resourceFiles));
+                        throw new ArgumentException(L10n.Format("Wbix_ResourceBytesEmpty_Fmt", file.Path), nameof(resourceFiles));
                     }
 
                     // 写入二进制资源（例如：assets/cover.png）。
@@ -152,24 +153,24 @@ namespace WindBoard.Board.Persistence.Wbix
             ZipArchiveEntry? manifestEntry = archive.GetEntry(ManifestEntryName);
             if (manifestEntry is null)
             {
-                throw new InvalidDataException("WBIX 缺少 manifest.json。");
+                throw new InvalidDataException(L10n.Get("Wbix_MissingManifest_Message"));
             }
 
             WbixManifest manifest;
             await using (Stream manifestStream = manifestEntry.Open())
             {
                 manifest = await JsonSerializer.DeserializeAsync<WbixManifest>(manifestStream, JsonOptions, cancellationToken).ConfigureAwait(false)
-                    ?? throw new InvalidDataException("WBIX manifest.json 解析失败。");
+                    ?? throw new InvalidDataException(L10n.Get("Wbix_ManifestParseFailed_Message"));
             }
 
             if (!string.Equals(manifest.Format, FormatName, StringComparison.OrdinalIgnoreCase))
             {
-                throw new InvalidDataException($"WBIX 格式不匹配：{manifest.Format}。");
+                throw new InvalidDataException(L10n.Format("Wbix_FormatMismatch_Fmt", manifest.Format));
             }
 
             if (manifest.Version <= 0 || manifest.Version > CurrentVersion)
             {
-                throw new InvalidDataException($"WBIX 版本不受支持：{manifest.Version}。");
+                throw new InvalidDataException(L10n.Format("Wbix_VersionNotSupported_Fmt", manifest.Version));
             }
 
             // 按 manifest.Index 排序，保证页序稳定。
@@ -185,14 +186,14 @@ namespace WindBoard.Board.Persistence.Wbix
                 ZipArchiveEntry? pageZipEntry = archive.GetEntry(pageEntry.Path);
                 if (pageZipEntry is null)
                 {
-                    throw new InvalidDataException($"WBIX 缺少页面文件：{pageEntry.Path}。");
+                    throw new InvalidDataException(L10n.Format("Wbix_MissingPageFile_Fmt", pageEntry.Path));
                 }
 
                 WbixPagePayload payload;
                 await using (Stream pageStream = pageZipEntry.Open())
                 {
                     payload = await JsonSerializer.DeserializeAsync<WbixPagePayload>(pageStream, JsonOptions, cancellationToken).ConfigureAwait(false)
-                        ?? throw new InvalidDataException($"WBIX 页面解析失败：{pageEntry.Path}。");
+                        ?? throw new InvalidDataException(L10n.Format("Wbix_PageParseFailed_Fmt", pageEntry.Path));
                 }
 
                 pages.Add(new BoardPageSnapshot(payload.Id, payload.Strokes));

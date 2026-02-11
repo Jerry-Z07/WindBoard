@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using WindBoard.Localization;
 
 namespace WindBoard.Exporting
 {
@@ -29,13 +30,13 @@ namespace WindBoard.Exporting
 
             if (pageCount <= 0)
             {
-                errorMessage = "页面数量非法。";
+                errorMessage = L10n.Get("Export_PageRange_PageCountInvalid_Message");
                 ok = false;
             }
 
             if (ok && string.IsNullOrWhiteSpace(text))
             {
-                errorMessage = "请输入页码范围，例如：1,3-5。";
+                errorMessage = L10n.Get("Export_PageRange_EmptyInput_Message");
                 ok = false;
             }
 
@@ -44,7 +45,7 @@ namespace WindBoard.Exporting
                 parts = text!.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
                 if (parts.Length == 0)
                 {
-                    errorMessage = "请输入页码范围，例如：1,3-5。";
+                    errorMessage = L10n.Get("Export_PageRange_EmptyInput_Message");
                     ok = false;
                 }
             }
@@ -63,7 +64,7 @@ namespace WindBoard.Exporting
 
             if (ok && indices.Count == 0)
             {
-                errorMessage = "未解析到任何有效页码。";
+                errorMessage = L10n.Get("Export_PageRange_NoValidPages_Message");
                 ok = false;
             }
 
@@ -137,7 +138,7 @@ namespace WindBoard.Exporting
             // 范围：a-b。只允许一个 '-'，避免类似 '1-2-3' 的歧义输入。
             if (token.LastIndexOf('-') != dashIndex)
             {
-                errorMessage = $"非法页码范围：{token}。";
+                errorMessage = L10n.Format("Export_PageRange_InvalidRange_Fmt", token);
                 ok = false;
             }
 
@@ -147,7 +148,7 @@ namespace WindBoard.Exporting
                 endText = token[(dashIndex + 1)..].Trim();
                 if (startText.Length == 0 || endText.Length == 0)
                 {
-                    errorMessage = $"非法页码范围：{token}。";
+                    errorMessage = L10n.Format("Export_PageRange_InvalidRange_Fmt", token);
                     ok = false;
                 }
             }
@@ -160,7 +161,7 @@ namespace WindBoard.Exporting
 
             if (ok && startOneBased > endOneBased)
             {
-                errorMessage = $"页码范围起止顺序错误：{token}。";
+                errorMessage = L10n.Format("Export_PageRange_OrderError_Fmt", token);
                 ok = false;
             }
 
@@ -187,13 +188,13 @@ namespace WindBoard.Exporting
 
             if (!int.TryParse(token, out oneBased))
             {
-                errorMessage = $"非法页码：{token}。";
+                errorMessage = L10n.Format("Export_PageRange_InvalidPage_Fmt", token);
                 return false;
             }
 
             if (oneBased <= 0)
             {
-                errorMessage = $"页码必须从 1 开始：{token}。";
+                errorMessage = L10n.Format("Export_PageRange_PageMustStartFrom1_Fmt", token);
                 return false;
             }
 
@@ -206,13 +207,13 @@ namespace WindBoard.Exporting
 
             if (startOneBased <= 0 || endOneBased <= 0)
             {
-                errorMessage = "页码必须从 1 开始。";
+                errorMessage = L10n.Get("Export_PageRange_PageMustStartFrom1_Message");
                 return false;
             }
 
             if (startOneBased > pageCount || endOneBased > pageCount)
             {
-                errorMessage = $"页码超出范围：当前共 {pageCount} 页。";
+                errorMessage = L10n.Format("Export_PageRange_OutOfRange_Fmt", pageCount);
                 return false;
             }
 

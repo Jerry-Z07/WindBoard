@@ -11,6 +11,7 @@ using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.UI.Xaml.Media;
 using Windows.Storage;
 using Windows.Storage.Pickers;
+using WindBoard.Localization;
 using WindBoard.Settings;
 
 namespace WindBoard.Settings.Pages
@@ -418,23 +419,23 @@ namespace WindBoard.Settings.Pages
             // 这里不做“兜底 UI”的映射：设置在 Normalize 时已保证只保留合法项并补齐缺失项。
             return id switch
             {
-                DockItemIds.More => new DockItemViewModel(id, "更多", new SymbolIconSource { Symbol = Symbol.More }),
-                DockItemIds.Minimize => new DockItemViewModel(id, "最小化", new SymbolIconSource { Symbol = Symbol.BackToWindow }),
-                DockItemIds.Import => new DockItemViewModel(id, "导入", new SymbolIconSource { Symbol = Symbol.Download }),
+                DockItemIds.More => new DockItemViewModel(id, L10n.Get("Common_More"), new SymbolIconSource { Symbol = Symbol.More }),
+                DockItemIds.Minimize => new DockItemViewModel(id, L10n.Get("Common_Minimize"), new SymbolIconSource { Symbol = Symbol.BackToWindow }),
+                DockItemIds.Import => new DockItemViewModel(id, L10n.Get("Common_Import"), new SymbolIconSource { Symbol = Symbol.Download }),
 
-                DockItemIds.ToolSelect => new DockItemViewModel(id, "选择", new SymbolIconSource { Symbol = Symbol.TouchPointer }),
-                DockItemIds.ToolPen => new DockItemViewModel(id, "书写", new SymbolIconSource { Symbol = Symbol.Edit }),
-                DockItemIds.ToolEraser => new DockItemViewModel(id, "擦除", new FontIconSource { FontFamily = new FontFamily("Segoe MDL2 Assets"), Glyph = "\uE75C" }),
+                DockItemIds.ToolSelect => new DockItemViewModel(id, L10n.Get("Tool_Select"), new SymbolIconSource { Symbol = Symbol.TouchPointer }),
+                DockItemIds.ToolPen => new DockItemViewModel(id, L10n.Get("Tool_Pen"), new SymbolIconSource { Symbol = Symbol.Edit }),
+                DockItemIds.ToolEraser => new DockItemViewModel(id, L10n.Get("Tool_Eraser"), new FontIconSource { FontFamily = new FontFamily("Segoe MDL2 Assets"), Glyph = "\uE75C" }),
 
-                DockItemIds.Undo => new DockItemViewModel(id, "撤销", new SymbolIconSource { Symbol = Symbol.Undo }),
-                DockItemIds.Redo => new DockItemViewModel(id, "重做", new SymbolIconSource { Symbol = Symbol.Redo }),
+                DockItemIds.Undo => new DockItemViewModel(id, L10n.Get("Common_Undo"), new SymbolIconSource { Symbol = Symbol.Undo }),
+                DockItemIds.Redo => new DockItemViewModel(id, L10n.Get("Common_Redo"), new SymbolIconSource { Symbol = Symbol.Redo }),
 
-                DockItemIds.PagePrev => new DockItemViewModel(id, "上一页", new SymbolIconSource { Symbol = Symbol.Back }),
-                DockItemIds.PageIndicator => new DockItemViewModel(id, "页码", new FontIconSource { FontFamily = new FontFamily("Segoe MDL2 Assets"), Glyph = "\uE8A7" }),
-                DockItemIds.PageNext => new DockItemViewModel(id, "下一页", new SymbolIconSource { Symbol = Symbol.Forward }),
-                DockItemIds.PageAdd => new DockItemViewModel(id, "新增", new SymbolIconSource { Symbol = Symbol.Add }),
+                DockItemIds.PagePrev => new DockItemViewModel(id, L10n.Get("Common_PreviousPage"), new SymbolIconSource { Symbol = Symbol.Back }),
+                DockItemIds.PageIndicator => new DockItemViewModel(id, L10n.Get("Common_PageNumber"), new FontIconSource { FontFamily = new FontFamily("Segoe MDL2 Assets"), Glyph = "\uE8A7" }),
+                DockItemIds.PageNext => new DockItemViewModel(id, L10n.Get("Common_NextPage"), new SymbolIconSource { Symbol = Symbol.Forward }),
+                DockItemIds.PageAdd => new DockItemViewModel(id, L10n.Get("Common_Add"), new SymbolIconSource { Symbol = Symbol.Add }),
 
-                _ => throw new ArgumentOutOfRangeException(nameof(id), id, "未知的 Dock 项标识符。"),
+                _ => throw new ArgumentOutOfRangeException(nameof(id), id, L10n.Get("Settings_Dock_UnknownItemId_Message")),
             };
         }
     }
@@ -625,11 +626,13 @@ namespace WindBoard.Settings.Pages
             set => SetSelectedFontIcon(value);
         }
 
-        public string PathHeader => string.Equals(Type, ShortcutDockItemTypes.Link, StringComparison.Ordinal) ? "网址" : "路径";
+        public string PathHeader => string.Equals(Type, ShortcutDockItemTypes.Link, StringComparison.Ordinal)
+            ? L10n.Get("Common_Url")
+            : L10n.Get("Common_Path");
 
         public string PathPlaceholder => string.Equals(Type, ShortcutDockItemTypes.Link, StringComparison.Ordinal)
-            ? "https://example.com"
-            : "选择或输入路径";
+            ? L10n.Get("Common_UrlPlaceholder")
+            : L10n.Get("Settings_Dock_Path_Placeholder");
 
         public Visibility ArgumentsPanelVisibility => string.Equals(Type, ShortcutDockItemTypes.Program, StringComparison.Ordinal)
             ? Visibility.Visible
@@ -651,13 +654,15 @@ namespace WindBoard.Settings.Pages
             ? Visibility.Visible
             : Visibility.Collapsed;
 
-        public string FontIconSelectionHint => SelectedFontIcon is null ? "未选择图标" : $"已选择：{SelectedFontIcon.Name}";
+        public string FontIconSelectionHint => SelectedFontIcon is null
+            ? L10n.Get("Settings_Dock_FontIcon_NotSelected")
+            : L10n.Format("Settings_Dock_FontIcon_Selected_Fmt", SelectedFontIcon.Name);
 
         public string IconHint => string.Equals(IconSource, ShortcutDockIconSources.Icon, StringComparison.Ordinal)
-            ? "自定义图标：使用所选文件；如果无法加载，将回退为默认图标。"
+            ? L10n.Get("Settings_Dock_IconHint_CustomFile")
             : string.Equals(IconSource, ShortcutDockIconSources.Font, StringComparison.Ordinal)
-                ? "字体图标：从内置图标字体选择。"
-            : "默认图标：文件按扩展名图标，链接尝试网站图标，程序尝试提取程序图标；失败将回退默认。";
+                ? L10n.Get("Settings_Dock_IconHint_FontIcon")
+            : L10n.Get("Settings_Dock_IconHint_Default");
 
         public event PropertyChangedEventHandler? PropertyChanged;
 

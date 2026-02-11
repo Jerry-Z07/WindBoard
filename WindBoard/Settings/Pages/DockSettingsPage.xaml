@@ -3,6 +3,7 @@
     x:Class="WindBoard.Settings.Pages.DockSettingsPage"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:l10n="using:WindBoard.Localization"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:local="using:WindBoard.Settings.Pages"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
@@ -29,14 +30,14 @@
     <Grid>
         <ScrollViewer>
             <StackPanel Spacing="16" Padding="24">
-                <TextBlock Text="Dock 设置" Style="{ThemeResource TitleTextBlockStyle}" />
+                <TextBlock Text="{l10n:Loc Key=Settings_Dock_Title}" Style="{ThemeResource TitleTextBlockStyle}" />
                 <TextBlock
-                    Text="长按并拖动下方按钮，可调整它们在 Dock 中的显示顺序（支持触摸拖动）。"
+                    Text="{l10n:Loc Key=Settings_Dock_DragHint}"
                     Opacity="0.75"
                     TextWrapping="WrapWholeWords" />
 
                 <StackPanel Spacing="10">
-                    <TextBlock Text="预览" Style="{ThemeResource SubtitleTextBlockStyle}" />
+                    <TextBlock Text="{l10n:Loc Key=Common_Preview}" Style="{ThemeResource SubtitleTextBlockStyle}" />
 
                     <!-- Dock 预览固定为浅色主题，保持与主界面 Dock 视觉一致 -->
                     <Grid RequestedTheme="Light">
@@ -228,20 +229,20 @@
                 </StackPanel>
 
                 <StackPanel Spacing="10">
-                    <TextBlock Text="选项" Style="{ThemeResource SubtitleTextBlockStyle}" />
+                    <TextBlock Text="{l10n:Loc Key=Common_Options}" Style="{ThemeResource SubtitleTextBlockStyle}" />
 
                     <ToggleSwitch
                         x:Name="UndoRedoVisibleToggleSwitch"
-                        Header="显示撤销/重做区域"
-                        OffContent="隐藏"
-                        OnContent="显示"
+                        Header="{l10n:Loc Key=Settings_Dock_ShowUndoRedo_Header}"
+                        OffContent="{l10n:Loc Key=Common_Hide}"
+                        OnContent="{l10n:Loc Key=Common_Show}"
                         Toggled="OnUndoRedoVisibleToggled" />
 
                     <ToggleSwitch
                         x:Name="ShortcutDocksVisibleToggleSwitch"
-                        Header="显示快捷入口 Dock（主 Dock 左右侧）"
-                        OffContent="隐藏"
-                        OnContent="显示"
+                        Header="{l10n:Loc Key=Settings_Dock_ShowShortcutDocks_Header}"
+                        OffContent="{l10n:Loc Key=Common_Hide}"
+                        OnContent="{l10n:Loc Key=Common_Show}"
                         Toggled="OnShortcutDocksVisibleToggled" />
 
                     <StackPanel
@@ -249,7 +250,7 @@
                         Spacing="12"
                         Visibility="Collapsed">
                         <TextBlock
-                            Text="最多添加 5 个快捷入口，可选择放在主 Dock 的左侧或右侧。"
+                            Text="{l10n:Loc Key=Settings_Dock_ShortcutItems_Hint}"
                             Opacity="0.75"
                             TextWrapping="WrapWholeWords" />
 
@@ -271,32 +272,32 @@
                                             <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
                                                 <StackPanel Spacing="8">
                                                     <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
-                                                        <TextBlock Text="位置" VerticalAlignment="Center" Opacity="0.75" />
+                                                        <TextBlock Text="{l10n:Loc Key=Common_Position}" VerticalAlignment="Center" Opacity="0.75" />
                                                         <ComboBox
                                                             Grid.Column="1"
                                                             SelectedValuePath="Tag"
                                                             SelectedValue="{x:Bind Side, Mode=TwoWay}">
-                                                            <ComboBoxItem Content="左侧" Tag="left" />
-                                                            <ComboBoxItem Content="右侧" Tag="right" />
+                                                            <ComboBoxItem Content="{l10n:Loc Key=Common_Left}" Tag="left" />
+                                                            <ComboBoxItem Content="{l10n:Loc Key=Common_Right}" Tag="right" />
                                                         </ComboBox>
                                                     </Grid>
 
                                                     <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
-                                                        <TextBlock Text="类型" VerticalAlignment="Center" Opacity="0.75" />
+                                                        <TextBlock Text="{l10n:Loc Key=Common_Type}" VerticalAlignment="Center" Opacity="0.75" />
                                                         <ComboBox
                                                             Grid.Column="1"
                                                             SelectedValuePath="Tag"
                                                             SelectedValue="{x:Bind Type, Mode=TwoWay}">
-                                                            <ComboBoxItem Content="文件" Tag="file" />
-                                                            <ComboBoxItem Content="链接" Tag="link" />
-                                                            <ComboBoxItem Content="程序" Tag="program" />
+                                                            <ComboBoxItem Content="{l10n:Loc Key=Common_File}" Tag="file" />
+                                                            <ComboBoxItem Content="{l10n:Loc Key=Common_Link}" Tag="link" />
+                                                            <ComboBoxItem Content="{l10n:Loc Key=Common_Program}" Tag="program" />
                                                         </ComboBox>
                                                     </Grid>
                                                 </StackPanel>
 
                                                 <Button
                                                     Grid.Column="1"
-                                                    Content="删除"
+                                                    Content="{l10n:Loc Key=Common_Delete}"
                                                     HorizontalAlignment="Right"
                                                     VerticalAlignment="Top"
                                                     Tag="{x:Bind}"
@@ -311,7 +312,7 @@
                                                         PlaceholderText="{x:Bind PathPlaceholder, Mode=OneWay}" />
                                                     <Button
                                                         Grid.Column="1"
-                                                        Content="选择..."
+                                                        Content="{l10n:Loc Key=Common_SelectEllipsis}"
                                                         Visibility="{x:Bind PathBrowseVisibility, Mode=OneWay}"
                                                         Tag="{x:Bind}"
                                                         Click="OnBrowseShortcutDockPathClicked" />
@@ -319,30 +320,30 @@
                                             </StackPanel>
 
                                             <StackPanel Spacing="6">
-                                                <TextBlock Text="显示名称" FontWeight="SemiBold" />
+                                                <TextBlock Text="{l10n:Loc Key=Common_DisplayName}" FontWeight="SemiBold" />
                                                 <TextBox
                                                     Text="{x:Bind DisplayName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                                    PlaceholderText="留空使用默认名称" />
+                                                    PlaceholderText="{l10n:Loc Key=Settings_Dock_DisplayName_Placeholder}" />
                                             </StackPanel>
 
                                             <StackPanel Spacing="6">
-                                                <TextBlock Text="图标" FontWeight="SemiBold" />
+                                                <TextBlock Text="{l10n:Loc Key=Common_Icon}" FontWeight="SemiBold" />
                                                 <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
                                                     <ComboBox
                                                         SelectedValuePath="Tag"
                                                         SelectedValue="{x:Bind IconSource, Mode=TwoWay}">
-                                                        <ComboBoxItem Content="默认" Tag="default" />
-                                                        <ComboBoxItem Content="自定义图标" Tag="icon" />
-                                                        <ComboBoxItem Content="图标字体" Tag="font" />
+                                                        <ComboBoxItem Content="{l10n:Loc Key=Common_Default}" Tag="default" />
+                                                        <ComboBoxItem Content="{l10n:Loc Key=Settings_Dock_IconSource_Custom}" Tag="icon" />
+                                                        <ComboBoxItem Content="{l10n:Loc Key=Settings_Dock_IconSource_Font}" Tag="font" />
                                                     </ComboBox>
                                                     <TextBox
                                                         Grid.Column="1"
                                                         Text="{x:Bind IconPath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                                        PlaceholderText="选择图标文件（可为空）"
+                                                        PlaceholderText="{l10n:Loc Key=Settings_Dock_IconPath_Placeholder}"
                                                         Visibility="{x:Bind IconPathTextVisibility, Mode=OneWay}" />
                                                     <Button
                                                         Grid.Column="2"
-                                                        Content="选择..."
+                                                        Content="{l10n:Loc Key=Common_SelectEllipsis}"
                                                         Visibility="{x:Bind IconBrowseVisibility, Mode=OneWay}"
                                                         Tag="{x:Bind}"
                                                         Click="OnBrowseShortcutDockIconClicked" />
@@ -350,7 +351,7 @@
                                                 <StackPanel Spacing="6" Visibility="{x:Bind IconFontPanelVisibility, Mode=OneWay}">
                                                     <TextBox
                                                         Text="{x:Bind FontIconSearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                                        PlaceholderText="搜索图标（按名称匹配）" />
+                                                        PlaceholderText="{l10n:Loc Key=Settings_Dock_FontIconSearch_Placeholder}" />
                                                     <ListView
                                                         ItemsSource="{x:Bind FilteredFontIcons, Mode=OneWay}"
                                                         SelectedItem="{x:Bind SelectedFontIcon, Mode=TwoWay}"
@@ -388,10 +389,10 @@
                                             </StackPanel>
 
                                             <StackPanel Spacing="6" Visibility="{x:Bind ArgumentsPanelVisibility, Mode=OneWay}">
-                                                <TextBlock Text="启动参数" FontWeight="SemiBold" />
+                                                <TextBlock Text="{l10n:Loc Key=Common_Arguments}" FontWeight="SemiBold" />
                                                 <TextBox
                                                     Text="{x:Bind Arguments, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                                    PlaceholderText="例如：--foo bar" />
+                                                    PlaceholderText="{l10n:Loc Key=Settings_Dock_Arguments_Placeholder}" />
                                             </StackPanel>
                                         </StackPanel>
                                     </Border>
@@ -401,13 +402,13 @@
 
                         <Button
                             x:Name="AddShortcutDockItemButton"
-                            Content="添加快捷入口"
+                            Content="{l10n:Loc Key=Settings_Dock_AddShortcutItem_Button}"
                             HorizontalAlignment="Left"
                             Click="OnAddShortcutDockItemClicked" />
                     </StackPanel>
 
                     <Button
-                        Content="恢复 Dock 默认布局"
+                        Content="{l10n:Loc Key=Settings_Dock_ResetLayout_Button}"
                         HorizontalAlignment="Left"
                         Click="OnResetToDefaultClicked" />
                 </StackPanel>

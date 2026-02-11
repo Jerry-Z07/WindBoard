@@ -4,6 +4,7 @@ using System.IO;
 using System.IO.Compression;
 using System.Text.Json;
 using System.Threading.Tasks;
+using WindBoard.Localization;
 
 namespace WindBoard.Board.Persistence.Wbix
 {
@@ -53,7 +54,7 @@ namespace WindBoard.Board.Persistence.Wbix
                 await using (Stream ms = manifestEntry.Open())
                 {
                     manifest = await JsonSerializer.DeserializeAsync<WbixManifest>(ms, JsonOptions).ConfigureAwait(false)
-                        ?? throw new InvalidDataException("manifest.json 解析失败。");
+                        ?? throw new InvalidDataException(L10n.Get("Wbix_ManifestParseFailed_Message"));
                 }
 
                 string? coverPath = TryResolveCoverPathFromManifest(manifest);
@@ -128,4 +129,3 @@ namespace WindBoard.Board.Persistence.Wbix
         }
     }
 }
-

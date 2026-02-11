@@ -15,6 +15,7 @@ using Windows.ApplicationModel;
 using Windows.ApplicationModel.Activation;
 using Windows.Foundation;
 using Windows.Foundation.Collections;
+using WindBoard.Localization;
 using WindBoard.Settings;
 
 // To learn more about WinUI, the WinUI project structure,
@@ -44,6 +45,7 @@ namespace WindBoard
         /// <param name="args">Details about the launch request and process.</param>
         protected override void OnLaunched(Microsoft.UI.Xaml.LaunchActivatedEventArgs args)
         {
+            L10n.Initialize();
             AppSettingsService.Instance.Load();
 
             _window = new MainWindow();

@@ -5,6 +5,7 @@ using System.Numerics;
 using System.Threading.Tasks;
 using Microsoft.UI.Xaml.Controls;
 using WindBoard.Board.Elements;
+using WindBoard.Localization;
 using Windows.Storage;
 using Windows.System;
 
@@ -76,7 +77,7 @@ namespace WindBoard.Interaction
             catch (Exception ex)
             {
                 Debug.WriteLine($"[Open] 外部打开异常：{ex}");
-                await ShowOpenFailedDialogAsync("打开失败", ex.Message);
+                await ShowOpenFailedDialogAsync(L10n.Get("Common_OpenFailed_Title"), ex.Message);
             }
         }
 
@@ -85,20 +86,20 @@ namespace WindBoard.Interaction
             string raw = (link.Url ?? string.Empty).Trim();
             if (string.IsNullOrWhiteSpace(raw))
             {
-                await ShowOpenFailedDialogAsync("无法打开链接", "链接为空。");
+                await ShowOpenFailedDialogAsync(L10n.Get("Open_CannotOpenLink_Title"), L10n.Get("Open_LinkEmpty_Message"));
                 return;
             }
 
             if (!TryCreateUri(raw, out Uri? uri))
             {
-                await ShowOpenFailedDialogAsync("无法打开链接", $"链接格式无效：{raw}");
+                await ShowOpenFailedDialogAsync(L10n.Get("Open_CannotOpenLink_Title"), L10n.Format("Open_InvalidLinkFormat_Fmt", raw));
                 return;
             }
 
             bool launched = await Launcher.LaunchUriAsync(uri);
             if (!launched)
             {
-                await ShowOpenFailedDialogAsync("无法打开链接", "系统未能打开该链接。");
+                await ShowOpenFailedDialogAsync(L10n.Get("Open_CannotOpenLink_Title"), L10n.Get("Open_LaunchLinkFailed_Message"));
             }
         }
 
@@ -128,7 +129,7 @@ namespace WindBoard.Interaction
             string p = (path ?? string.Empty).Trim();
             if (string.IsNullOrWhiteSpace(p))
             {
-                await ShowOpenFailedDialogAsync("无法打开文件", "文件路径为空。");
+                await ShowOpenFailedDialogAsync(L10n.Get("Open_CannotOpenFile_Title"), L10n.Get("Open_FilePathEmpty_Message"));
                 return;
             }
 
@@ -138,16 +139,16 @@ namespace WindBoard.Interaction
                 bool launched = await Launcher.LaunchFileAsync(file);
                 if (!launched)
                 {
-                    await ShowOpenFailedDialogAsync("无法打开文件", $"系统未能打开：{displayName}");
+                    await ShowOpenFailedDialogAsync(L10n.Get("Open_CannotOpenFile_Title"), L10n.Format("Open_LaunchFileFailed_Fmt", displayName));
                 }
             }
             catch (FileNotFoundException)
             {
-                await ShowOpenFailedDialogAsync("文件不存在", $"找不到文件：{displayName}");
+                await ShowOpenFailedDialogAsync(L10n.Get("Open_FileNotFound_Title"), L10n.Format("Open_FileNotFound_Fmt", displayName));
             }
             catch (UnauthorizedAccessException)
             {
-                await ShowOpenFailedDialogAsync("无法打开文件", $"无权限访问：{displayName}");
+                await ShowOpenFailedDialogAsync(L10n.Get("Open_CannotOpenFile_Title"), L10n.Format("Open_Unauthorized_Fmt", displayName));
             }
         }
 
@@ -165,7 +166,7 @@ namespace WindBoard.Interaction
                 {
                     Title = title,
                     Content = message,
-                    CloseButtonText = "关闭",
+                    CloseButtonText = L10n.Get("Common_Close"),
                     XamlRoot = _panel.XamlRoot,
                 };
 
@@ -178,4 +179,3 @@ namespace WindBoard.Interaction
         }
     }
 }
-

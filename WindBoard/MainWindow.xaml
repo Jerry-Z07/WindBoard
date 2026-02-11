@@ -4,10 +4,11 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:controls="using:WindBoard.Controls"
+    xmlns:l10n="using:WindBoard.Localization"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d"
-    Title="WindBoard">
+    Title="{l10n:Loc Key=MainWindow_Title}">
 
     <Window.SystemBackdrop>
         <MicaBackdrop />
@@ -65,19 +66,19 @@
                         VerticalContentAlignment="Center">
                         <Button.Flyout>
                             <MenuFlyout>
-                                <MenuFlyoutItem Text="设置" Click="OnSettingsClicked">
+                                <MenuFlyoutItem Text="{l10n:Loc Key=Common_Settings}" Click="OnSettingsClicked">
                                     <MenuFlyoutItem.Icon>
                                         <SymbolIcon Symbol="Setting" />
                                     </MenuFlyoutItem.Icon>
                                 </MenuFlyoutItem>
                                 <MenuFlyoutSeparator />
-                                <MenuFlyoutItem Text="导出" Click="OnExportClicked">
+                                <MenuFlyoutItem Text="{l10n:Loc Key=Common_Export}" Click="OnExportClicked">
                                     <MenuFlyoutItem.Icon>
                                         <SymbolIcon Symbol="OpenFile" />
                                     </MenuFlyoutItem.Icon>
                                 </MenuFlyoutItem>
                                 <MenuFlyoutSeparator />
-                                <MenuFlyoutItem Text="退出" Click="OnExitClicked">
+                                <MenuFlyoutItem Text="{l10n:Loc Key=Common_Exit}" Click="OnExitClicked">
                                     <MenuFlyoutItem.Icon>
                                         <SymbolIcon Symbol="Cancel" />
                                     </MenuFlyoutItem.Icon>
@@ -87,7 +88,7 @@
 
                         <StackPanel Orientation="Vertical">
                             <SymbolIcon Symbol="More" />
-                            <TextBlock FontSize="11" Margin="0,3,0,0" HorizontalAlignment="Center" Text="更多" />
+                            <TextBlock FontSize="11" Margin="0,3,0,0" HorizontalAlignment="Center" Text="{l10n:Loc Key=Common_More}" />
                         </StackPanel>
                     </Button>
 
@@ -101,7 +102,7 @@
                         VerticalContentAlignment="Center">
                         <StackPanel Orientation="Vertical">
                             <SymbolIcon Symbol="BackToWindow" />
-                            <TextBlock FontSize="11" Margin="0,3,0,0" HorizontalAlignment="Center" Text="最小化" />
+                            <TextBlock FontSize="11" Margin="0,3,0,0" HorizontalAlignment="Center" Text="{l10n:Loc Key=Common_Minimize}" />
                         </StackPanel>
                     </Button>
 
@@ -115,7 +116,7 @@
                         VerticalContentAlignment="Center">
                         <StackPanel Orientation="Vertical">
                             <SymbolIcon Symbol="Download" />
-                            <TextBlock FontSize="11" Margin="0,3,0,0" HorizontalAlignment="Center" Text="导入" />
+                            <TextBlock FontSize="11" Margin="0,3,0,0" HorizontalAlignment="Center" Text="{l10n:Loc Key=Common_Import}" />
                         </StackPanel>
                     </Button>
                 </StackPanel>
@@ -164,7 +165,7 @@
                         VerticalContentAlignment="Center">
                         <StackPanel Orientation="Vertical">
                             <SymbolIcon Symbol="TouchPointer" />
-                            <TextBlock FontSize="11" Margin="0,3,0,0" HorizontalAlignment="Center" Text="选择" />
+                            <TextBlock FontSize="11" Margin="0,3,0,0" HorizontalAlignment="Center" Text="{l10n:Loc Key=Tool_Select}" />
                         </StackPanel>
                     </ToggleButton>
 
@@ -246,7 +247,7 @@
                                         </Grid.RowDefinitions>
 
                                         <TextBlock
-                                            Text="画笔设置"
+                                            Text="{l10n:Loc Key=Settings_Pen_Title}"
                                             Foreground="{ThemeResource SystemControlForegroundBaseHighBrush}"
                                             FontSize="14"
                                             FontWeight="SemiBold"
@@ -286,7 +287,7 @@
  
                                              <!-- 粗细：三档预设 -->
                                              <StackPanel x:Name="PenThicknessPresetsPanel" Spacing="6">
-                                                 <TextBlock Text="粗细" Opacity="0.75" />
+                                                 <TextBlock Text="{l10n:Loc Key=Common_Thickness}" Opacity="0.75" />
                                                  <Grid>
                                                      <Grid.Resources>
                                                          <SolidColorBrush x:Key="ToggleButtonBackground" Color="#00000000" />
@@ -305,7 +306,7 @@
  
                                              <!-- 粗细：滑条 -->
                                              <StackPanel x:Name="PenThicknessSliderPanel" Spacing="6" Visibility="Collapsed">
-                                                 <TextBlock Text="粗细" Opacity="0.75" />
+                                                 <TextBlock Text="{l10n:Loc Key=Common_Thickness}" Opacity="0.75" />
                                                  <Slider
                                                      x:Name="PenThicknessSlider"
                                                      Minimum="0.5"
@@ -322,7 +323,7 @@
 
                         <StackPanel Orientation="Vertical">
                             <SymbolIcon Symbol="Edit" />
-                            <TextBlock FontSize="11" Margin="0,3,0,0" HorizontalAlignment="Center" Text="书写" />
+                            <TextBlock FontSize="11" Margin="0,3,0,0" HorizontalAlignment="Center" Text="{l10n:Loc Key=Tool_Pen}" />
                         </StackPanel>
                     </ToggleButton>
 
@@ -377,21 +378,21 @@
  
                                          <StackPanel Spacing="8">
                                              <TextBlock
-                                                 Text="擦除模式"
+                                                 Text="{l10n:Loc Key=MainWindow_EraserMode_Title}"
                                                  Foreground="{ThemeResource SystemControlForegroundBaseHighBrush}"
                                                  FontSize="12"
                                                  Opacity="0.85" />
                                              <StackPanel Orientation="Horizontal" Spacing="16">
                                                  <RadioButton
                                                      x:Name="PixelEraserRadioButton"
-                                                     Content="点擦"
+                                                     Content="{l10n:Loc Key=MainWindow_EraserMode_Point}"
                                                      GroupName="EraserMode"
                                                      IsChecked="True"
                                                      Foreground="{ThemeResource SystemControlForegroundBaseHighBrush}"
                                                      Checked="OnEraserModeChecked" />
                                                  <RadioButton
                                                      x:Name="StrokeEraserRadioButton"
-                                                     Content="笔划擦"
+                                                     Content="{l10n:Loc Key=MainWindow_EraserMode_Stroke}"
                                                      GroupName="EraserMode"
                                                      Foreground="{ThemeResource SystemControlForegroundBaseHighBrush}"
                                                      Checked="OnEraserModeChecked" />
@@ -408,7 +409,7 @@
                                              BorderThickness="1" />
                                          <TextBlock
                                              x:Name="ClearCanvasSlideText"
-                                             Text="滑动清屏"
+                                             Text="{l10n:Loc Key=MainWindow_ClearCanvas_Slide}"
                                              Foreground="{ThemeResource SystemControlForegroundBaseHighBrush}"
                                              FontSize="15"
                                              FontWeight="SemiBold"
@@ -451,7 +452,7 @@
                         <StackPanel Orientation="Vertical">
                             <!-- Segoe MDL2 Assets：E75C = EraseTool（橡皮擦） -->
                             <FontIcon FontFamily="Segoe MDL2 Assets" FontSize="20" Glyph="&#xE75C;" />
-                            <TextBlock FontSize="11" Margin="0,3,0,0" HorizontalAlignment="Center" Text="擦除" />
+                            <TextBlock FontSize="11" Margin="0,3,0,0" HorizontalAlignment="Center" Text="{l10n:Loc Key=Tool_Eraser}" />
                         </StackPanel>
                     </ToggleButton>
                     </StackPanel>
@@ -474,7 +475,7 @@
                             VerticalContentAlignment="Center">
                             <StackPanel Orientation="Vertical">
                                 <SymbolIcon Symbol="Undo" />
-                                <TextBlock FontSize="11" Margin="0,3,0,0" HorizontalAlignment="Center" Text="撤销" />
+                                <TextBlock FontSize="11" Margin="0,3,0,0" HorizontalAlignment="Center" Text="{l10n:Loc Key=Common_Undo}" />
                             </StackPanel>
                         </Button>
 
@@ -488,7 +489,7 @@
                             VerticalContentAlignment="Center">
                             <StackPanel Orientation="Vertical">
                                 <SymbolIcon Symbol="Redo" />
-                                <TextBlock FontSize="11" Margin="0,3,0,0" HorizontalAlignment="Center" Text="重做" />
+                                <TextBlock FontSize="11" Margin="0,3,0,0" HorizontalAlignment="Center" Text="{l10n:Loc Key=Common_Redo}" />
                             </StackPanel>
                         </Button>
                     </StackPanel>
@@ -544,7 +545,7 @@
                             Padding="12">
                             <Grid RowDefinitions="Auto,*" RowSpacing="10">
                                 <TextBlock
-                                    Text="页面管理"
+                                    Text="{l10n:Loc Key=MainWindow_PageManager_Title}"
                                     FontSize="16"
                                     FontWeight="SemiBold" />
 
@@ -642,7 +643,7 @@
                             x:Name="PageIndicatorText"
                             FontSize="12"
                             FontWeight="SemiBold"
-                            Text="1 / 1" />
+                            Text="{l10n:Loc Key=MainWindow_PageIndicator_Default}" />
                     </Button>
 
                     <Button

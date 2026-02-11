@@ -1,0 +1,815 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!--
+    说明：
+    - 此资源文件作为默认（invariant）语言：当前以中文填充，后续可新增 Strings.en-US.resx 等进行多语言扩展。
+    - Key 命名约定：Common_* / MainWindow_* / Import_* / Export_* / Settings_* / Open_* / SelectionDock_* / ElementCard_* 等。
+  -->
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+
+  <data name="SettingsWindow_Nav_Appearance" xml:space="preserve">
+    <value>外观</value>
+  </data>
+  <data name="SettingsWindow_Nav_Writing" xml:space="preserve">
+    <value>书写</value>
+  </data>
+
+  <data name="PageThumbnail_Empty" xml:space="preserve">
+    <value>空白</value>
+  </data>
+
+  <data name="Common_OK" xml:space="preserve">
+    <value>确定</value>
+  </data>
+  <data name="Common_Cancel" xml:space="preserve">
+    <value>取消</value>
+  </data>
+  <data name="Common_Settings" xml:space="preserve">
+    <value>设置</value>
+  </data>
+  <data name="Common_Import" xml:space="preserve">
+    <value>导入</value>
+  </data>
+  <data name="Common_Export" xml:space="preserve">
+    <value>导出</value>
+  </data>
+  <data name="Common_Exit" xml:space="preserve">
+    <value>退出</value>
+  </data>
+  <data name="Common_More" xml:space="preserve">
+    <value>更多</value>
+  </data>
+  <data name="Common_Minimize" xml:space="preserve">
+    <value>最小化</value>
+  </data>
+  <data name="Common_Close" xml:space="preserve">
+    <value>关闭</value>
+  </data>
+  <data name="Common_Show" xml:space="preserve">
+    <value>显示</value>
+  </data>
+  <data name="Common_Hide" xml:space="preserve">
+    <value>隐藏</value>
+  </data>
+  <data name="Common_ResetToDefault" xml:space="preserve">
+    <value>恢复默认</value>
+  </data>
+  <data name="Common_Delete" xml:space="preserve">
+    <value>删除</value>
+  </data>
+  <data name="Common_NotConfigured" xml:space="preserve">
+    <value>未配置</value>
+  </data>
+  <data name="Common_Copy" xml:space="preserve">
+    <value>复制</value>
+  </data>
+  <data name="Common_BringToFront" xml:space="preserve">
+    <value>置顶</value>
+  </data>
+  <data name="Common_CancelBringToFront" xml:space="preserve">
+    <value>取消置顶</value>
+  </data>
+  <data name="Common_Undo" xml:space="preserve">
+    <value>撤销</value>
+  </data>
+  <data name="Common_Redo" xml:space="preserve">
+    <value>重做</value>
+  </data>
+
+  <data name="Tool_Select" xml:space="preserve">
+    <value>选择</value>
+  </data>
+  <data name="Tool_Pen" xml:space="preserve">
+    <value>书写</value>
+  </data>
+  <data name="Tool_Eraser" xml:space="preserve">
+    <value>擦除</value>
+  </data>
+
+  <data name="Common_OpenFailed_Title" xml:space="preserve">
+    <value>打开失败</value>
+  </data>
+
+  <data name="Settings_Background_Title" xml:space="preserve">
+    <value>背景</value>
+  </data>
+  <data name="Settings_Background_Canvas_SectionTitle" xml:space="preserve">
+    <value>画布</value>
+  </data>
+  <data name="Settings_Background_CanvasBackgroundColor_Title" xml:space="preserve">
+    <value>画布背景颜色</value>
+  </data>
+  <data name="Settings_Background_CanvasBackgroundColor_Description" xml:space="preserve">
+    <value>设置画布的背景颜色</value>
+  </data>
+  <data name="Settings_Background_HexHeader" xml:space="preserve">
+    <value>HEX</value>
+  </data>
+  <data name="Settings_Background_HexPlaceholder" xml:space="preserve">
+    <value>#2E2F33</value>
+  </data>
+  <data name="Settings_Background_HexError" xml:space="preserve">
+    <value>HEX 颜色格式无效，请使用 #RRGGBB（例如 #2E2F33）</value>
+  </data>
+
+  <data name="Settings_Appearance_Title" xml:space="preserve">
+    <value>外观</value>
+  </data>
+  <data name="Settings_Dock_Title" xml:space="preserve">
+    <value>Dock 设置</value>
+  </data>
+  <data name="Settings_Dock_Description" xml:space="preserve">
+    <value>调整 Dock 内组件的位置与显隐</value>
+  </data>
+
+  <data name="Settings_Dock_DragHint" xml:space="preserve">
+    <value>长按并拖动下方按钮，可调整它们在 Dock 中的显示顺序（支持触摸拖动）。</value>
+  </data>
+  <data name="Common_Preview" xml:space="preserve">
+    <value>预览</value>
+  </data>
+  <data name="Common_Options" xml:space="preserve">
+    <value>选项</value>
+  </data>
+  <data name="Settings_Dock_ShowUndoRedo_Header" xml:space="preserve">
+    <value>显示撤销/重做区域</value>
+  </data>
+  <data name="Settings_Dock_ShowShortcutDocks_Header" xml:space="preserve">
+    <value>显示快捷入口 Dock（主 Dock 左右侧）</value>
+  </data>
+  <data name="Settings_Dock_ShortcutItems_Hint" xml:space="preserve">
+    <value>最多添加 5 个快捷入口，可选择放在主 Dock 的左侧或右侧。</value>
+  </data>
+  <data name="Settings_Dock_UnknownItemId_Message" xml:space="preserve">
+    <value>未知的 Dock 项标识符。</value>
+  </data>
+
+  <data name="Common_Position" xml:space="preserve">
+    <value>位置</value>
+  </data>
+  <data name="Common_Left" xml:space="preserve">
+    <value>左侧</value>
+  </data>
+  <data name="Common_Right" xml:space="preserve">
+    <value>右侧</value>
+  </data>
+  <data name="Common_Type" xml:space="preserve">
+    <value>类型</value>
+  </data>
+  <data name="Common_File" xml:space="preserve">
+    <value>文件</value>
+  </data>
+  <data name="Common_Link" xml:space="preserve">
+    <value>链接</value>
+  </data>
+  <data name="Common_Program" xml:space="preserve">
+    <value>程序</value>
+  </data>
+  <data name="Common_Url" xml:space="preserve">
+    <value>网址</value>
+  </data>
+  <data name="Common_Path" xml:space="preserve">
+    <value>路径</value>
+  </data>
+
+  <data name="Common_SelectEllipsis" xml:space="preserve">
+    <value>选择...</value>
+  </data>
+  <data name="Common_DisplayName" xml:space="preserve">
+    <value>显示名称</value>
+  </data>
+  <data name="Settings_Dock_DisplayName_Placeholder" xml:space="preserve">
+    <value>留空使用默认名称</value>
+  </data>
+  <data name="Settings_Dock_Path_Placeholder" xml:space="preserve">
+    <value>选择或输入路径</value>
+  </data>
+  <data name="Common_Icon" xml:space="preserve">
+    <value>图标</value>
+  </data>
+  <data name="Common_Default" xml:space="preserve">
+    <value>默认</value>
+  </data>
+  <data name="Settings_Dock_IconSource_Custom" xml:space="preserve">
+    <value>自定义图标</value>
+  </data>
+  <data name="Settings_Dock_IconSource_Font" xml:space="preserve">
+    <value>图标字体</value>
+  </data>
+  <data name="Settings_Dock_IconPath_Placeholder" xml:space="preserve">
+    <value>选择图标文件（可为空）</value>
+  </data>
+  <data name="Settings_Dock_FontIconSearch_Placeholder" xml:space="preserve">
+    <value>搜索图标（按名称匹配）</value>
+  </data>
+  <data name="Settings_Dock_FontIcon_NotSelected" xml:space="preserve">
+    <value>未选择图标</value>
+  </data>
+  <data name="Settings_Dock_FontIcon_Selected_Fmt" xml:space="preserve">
+    <value>已选择：{0}</value>
+  </data>
+  <data name="Settings_Dock_IconHint_CustomFile" xml:space="preserve">
+    <value>自定义图标：使用所选文件；如果无法加载，将回退为默认图标。</value>
+  </data>
+  <data name="Settings_Dock_IconHint_FontIcon" xml:space="preserve">
+    <value>字体图标：从内置图标字体选择。</value>
+  </data>
+  <data name="Settings_Dock_IconHint_Default" xml:space="preserve">
+    <value>默认图标：文件按扩展名图标，链接尝试网站图标，程序尝试提取程序图标；失败将回退默认。</value>
+  </data>
+
+  <data name="Common_Arguments" xml:space="preserve">
+    <value>启动参数</value>
+  </data>
+  <data name="Common_Add" xml:space="preserve">
+    <value>新增</value>
+  </data>
+  <data name="Common_PreviousPage" xml:space="preserve">
+    <value>上一页</value>
+  </data>
+  <data name="Common_NextPage" xml:space="preserve">
+    <value>下一页</value>
+  </data>
+  <data name="Common_PageNumber" xml:space="preserve">
+    <value>页码</value>
+  </data>
+  <data name="Settings_Dock_Arguments_Placeholder" xml:space="preserve">
+    <value>例如：--foo bar</value>
+  </data>
+  <data name="Settings_Dock_AddShortcutItem_Button" xml:space="preserve">
+    <value>添加快捷入口</value>
+  </data>
+  <data name="Settings_Dock_ResetLayout_Button" xml:space="preserve">
+    <value>恢复 Dock 默认布局</value>
+  </data>
+
+  <data name="Common_Color" xml:space="preserve">
+    <value>颜色</value>
+  </data>
+  <data name="Common_Thickness" xml:space="preserve">
+    <value>粗细</value>
+  </data>
+
+  <data name="Settings_Pen_Title" xml:space="preserve">
+    <value>画笔设置</value>
+  </data>
+  <data name="Settings_Pen_PaletteCount_Header" xml:space="preserve">
+    <value>颜色数量</value>
+  </data>
+  <data name="Settings_Pen_PaletteHint" xml:space="preserve">
+    <value>提示：可保留空色块（未设置颜色），后续再选择色块并设置颜色。</value>
+  </data>
+  <data name="Settings_Pen_DefaultColorEdit_Title" xml:space="preserve">
+    <value>默认颜色更改</value>
+  </data>
+  <data name="Settings_Pen_DefaultColorEdit_IndexedTitle_Fmt" xml:space="preserve">
+    <value>默认颜色更改（第 {0} 个色块）</value>
+  </data>
+  <data name="Settings_Pen_SelectColorHint" xml:space="preserve">
+    <value>请先在上方预览区选择一个颜色块，然后再使用颜色选择器修改。</value>
+  </data>
+  <data name="Settings_Pen_ClearSwatch_Button" xml:space="preserve">
+    <value>清空该色块</value>
+  </data>
+
+  <data name="Settings_Pen_UseThicknessSlider_Header" xml:space="preserve">
+    <value>通过滑条调整粗细</value>
+  </data>
+  <data name="Settings_Pen_ThicknessMode_Presets" xml:space="preserve">
+    <value>三档</value>
+  </data>
+  <data name="Settings_Pen_ThicknessMode_Slider" xml:space="preserve">
+    <value>滑条</value>
+  </data>
+  <data name="Settings_Pen_ThicknessPresets_Hint" xml:space="preserve">
+    <value>三档粗细默认值（细 / 中 / 粗）</value>
+  </data>
+  <data name="Settings_Pen_ThicknessPreset1_Header" xml:space="preserve">
+    <value>档位 1（细）</value>
+  </data>
+  <data name="Settings_Pen_ThicknessPreset2_Header" xml:space="preserve">
+    <value>档位 2（中）</value>
+  </data>
+  <data name="Settings_Pen_ThicknessPreset3_Header" xml:space="preserve">
+    <value>档位 3（粗）</value>
+  </data>
+
+  <data name="Settings_Writing_Title" xml:space="preserve">
+    <value>书写</value>
+  </data>
+  <data name="Settings_Writing_Pen_Description" xml:space="preserve">
+    <value>调整固定色板与粗细调节方式</value>
+  </data>
+
+  <data name="MainWindow_Title" xml:space="preserve">
+    <value>WindBoard</value>
+  </data>
+  <data name="MainWindow_EraserMode_Title" xml:space="preserve">
+    <value>擦除模式</value>
+  </data>
+  <data name="MainWindow_EraserMode_Point" xml:space="preserve">
+    <value>点擦</value>
+  </data>
+  <data name="MainWindow_EraserMode_Stroke" xml:space="preserve">
+    <value>笔划擦</value>
+  </data>
+  <data name="MainWindow_ClearCanvas_Slide" xml:space="preserve">
+    <value>滑动清屏</value>
+  </data>
+  <data name="MainWindow_PageManager_Title" xml:space="preserve">
+    <value>页面管理</value>
+  </data>
+  <data name="MainWindow_PageIndicator_Default" xml:space="preserve">
+    <value>1 / 1</value>
+  </data>
+  <data name="MainWindow_FeatureWip_Title" xml:space="preserve">
+    <value>功能开发中</value>
+  </data>
+  <data name="MainWindow_FeatureWip_Content_Fmt" xml:space="preserve">
+    <value>{0} 功能暂未实现，已预留入口，后续会逐步补齐。</value>
+  </data>
+
+  <data name="Common_Continue" xml:space="preserve">
+    <value>继续</value>
+  </data>
+
+  <data name="Import_Failed_Title" xml:space="preserve">
+    <value>导入失败</value>
+  </data>
+  <data name="Import_Tip_Title" xml:space="preserve">
+    <value>导入提示</value>
+  </data>
+  <data name="Import_UnknownType_Message" xml:space="preserve">
+    <value>未知导入类型。</value>
+  </data>
+
+  <data name="Import_EntryDialog_Title" xml:space="preserve">
+    <value>导入</value>
+  </data>
+  <data name="Import_EntryDialog_Prompt" xml:space="preserve">
+    <value>请选择导入内容类型：</value>
+  </data>
+  <data name="Import_Entry_Files" xml:space="preserve">
+    <value>导入文件</value>
+  </data>
+  <data name="Import_Entry_Text" xml:space="preserve">
+    <value>导入文字</value>
+  </data>
+  <data name="Import_Entry_Link" xml:space="preserve">
+    <value>导入链接</value>
+  </data>
+
+  <data name="Import_TextDialog_Title" xml:space="preserve">
+    <value>导入文字</value>
+  </data>
+  <data name="Import_Text_Placeholder" xml:space="preserve">
+    <value>在此输入要导入的文字…</value>
+  </data>
+  <data name="Import_Text_Empty_Message" xml:space="preserve">
+    <value>文字内容为空。</value>
+  </data>
+
+  <data name="Import_LinkDialog_Title" xml:space="preserve">
+    <value>导入链接</value>
+  </data>
+  <data name="Import_Link_UrlLabel" xml:space="preserve">
+    <value>链接：</value>
+  </data>
+  <data name="Import_Link_TitleLabel" xml:space="preserve">
+    <value>标题（可选）：</value>
+  </data>
+  <data name="Common_UrlPlaceholder" xml:space="preserve">
+    <value>https://example.com</value>
+  </data>
+  <data name="Import_Link_TitlePlaceholder" xml:space="preserve">
+    <value>标题（可选）</value>
+  </data>
+  <data name="Import_Link_Empty_Message" xml:space="preserve">
+    <value>链接不能为空。</value>
+  </data>
+
+  <data name="Common_WindowHandleFailed_Message" xml:space="preserve">
+    <value>无法获取窗口句柄。</value>
+  </data>
+
+  <data name="Import_Wbix_MultipleFiles_Message" xml:space="preserve">
+    <value>检测到 WBIX 文件，请单独导入 .wbix。</value>
+  </data>
+  <data name="Import_Wbix_ParseFailed_Message" xml:space="preserve">
+    <value>WBIX 文件解析失败。</value>
+  </data>
+  <data name="Import_Wbix_Busy_Title" xml:space="preserve">
+    <value>正在导入 WBIX…</value>
+  </data>
+  <data name="Import_Wbix_Busy_Message" xml:space="preserve">
+    <value>正在导入，请稍候…</value>
+  </data>
+
+  <data name="Import_Risk_Title" xml:space="preserve">
+    <value>风险提示</value>
+  </data>
+  <data name="Import_Risk_ReplaceWorkspace_Content" xml:space="preserve">
+    <value>选择“覆盖整个工作区”将替换当前所有页面内容。
+
+建议在覆盖前先导出备份（WBIX）。
+
+是否继续？</value>
+  </data>
+  <data name="Import_Risk_ReplaceCurrentPage_Content" xml:space="preserve">
+    <value>选择“覆盖当前页”将替换当前页内容，并在其后插入导入文件的其余页面。
+
+当前页内容将丢失，且该操作无法撤销。
+
+建议覆盖前先导出备份（WBIX）。
+
+是否继续？</value>
+  </data>
+  <data name="Import_Risk_ContinueOverwrite" xml:space="preserve">
+    <value>继续覆盖</value>
+  </data>
+
+  <data name="Import_Wbix_Dialog_Title" xml:space="preserve">
+    <value>导入 WBIX</value>
+  </data>
+  <data name="Import_Wbix_NoCover" xml:space="preserve">
+    <value>（无封面）</value>
+  </data>
+  <data name="Import_Wbix_Info_Fmt" xml:space="preserve">
+    <value>文件：{0}
+页数：{1}
+版本：{2}
+创建：{3}</value>
+  </data>
+  <data name="Import_Wbix_Mode_Append" xml:space="preserve">
+    <value>新增在最后一页之后</value>
+  </data>
+  <data name="Import_Wbix_Mode_ReplaceCurrentPage" xml:space="preserve">
+    <value>覆盖当前页（有风险）</value>
+  </data>
+  <data name="Import_Wbix_InsertMethod_Label" xml:space="preserve">
+    <value>插入方式：</value>
+  </data>
+
+  <data name="Common_Next" xml:space="preserve">
+    <value>下一步</value>
+  </data>
+  <data name="Common_ConfirmOverwrite_Title" xml:space="preserve">
+    <value>确认覆盖</value>
+  </data>
+  <data name="Common_Overwrite" xml:space="preserve">
+    <value>覆盖</value>
+  </data>
+
+  <data name="Export_Dialog_Title" xml:space="preserve">
+    <value>导出</value>
+  </data>
+  <data name="Export_Failed_Title" xml:space="preserve">
+    <value>导出失败</value>
+  </data>
+  <data name="Export_Completed_Title" xml:space="preserve">
+    <value>导出完成</value>
+  </data>
+  <data name="Export_PageRangeError_Title" xml:space="preserve">
+    <value>页码范围错误</value>
+  </data>
+  <data name="Export_UnknownFormat_Message" xml:space="preserve">
+    <value>未知导出格式。</value>
+  </data>
+  <data name="Export_NoPages_Message" xml:space="preserve">
+    <value>当前工作区没有可导出的页面。</value>
+  </data>
+  <data name="Export_UnknownPageScope_Message" xml:space="preserve">
+    <value>未知页范围。</value>
+  </data>
+
+  <data name="Export_Busy_Default_Message" xml:space="preserve">
+    <value>正在导出，请稍候…</value>
+  </data>
+  <data name="Export_Busy_Wbix_Title" xml:space="preserve">
+    <value>正在导出 WBIX…</value>
+  </data>
+  <data name="Export_Busy_Pdf_Title" xml:space="preserve">
+    <value>正在导出 PDF…</value>
+  </data>
+  <data name="Export_Busy_Png_Title" xml:space="preserve">
+    <value>正在导出 PNG…</value>
+  </data>
+
+  <data name="Export_Completed_File_Fmt" xml:space="preserve">
+    <value>已导出：{0}</value>
+  </data>
+  <data name="Export_Completed_Folder_Fmt" xml:space="preserve">
+    <value>已导出到目录：{0}</value>
+  </data>
+
+  <data name="Export_FileType_Png" xml:space="preserve">
+    <value>PNG 图片</value>
+  </data>
+  <data name="Export_FileType_Pdf" xml:space="preserve">
+    <value>PDF 文档</value>
+  </data>
+  <data name="Export_FileType_Wbix" xml:space="preserve">
+    <value>WBIX 源文件</value>
+  </data>
+  <data name="Export_Format_Wbix_WithExt" xml:space="preserve">
+    <value>WBIX 源文件 (.wbix)</value>
+  </data>
+
+  <data name="Export_Format_Label" xml:space="preserve">
+    <value>导出格式</value>
+  </data>
+  <data name="Export_PageScope_Label" xml:space="preserve">
+    <value>导出页面</value>
+  </data>
+  <data name="Export_PageScope_Current" xml:space="preserve">
+    <value>当前页</value>
+  </data>
+  <data name="Export_PageScope_All" xml:space="preserve">
+    <value>全部页</value>
+  </data>
+  <data name="Export_PageScope_Range" xml:space="preserve">
+    <value>指定范围（例如：1,3-5）</value>
+  </data>
+  <data name="Export_PageRange_Placeholder" xml:space="preserve">
+    <value>例如：1,3-5</value>
+  </data>
+
+  <data name="Export_PngAspect_Label" xml:space="preserve">
+    <value>画面比例（PNG）</value>
+  </data>
+  <data name="Export_PngSize_Label" xml:space="preserve">
+    <value>输出分辨率（PNG）</value>
+  </data>
+  <data name="Export_PdfDpi_Label" xml:space="preserve">
+    <value>清晰度（PDF）</value>
+  </data>
+  <data name="Export_Padding_Label" xml:space="preserve">
+    <value>内容留白（DIP）</value>
+  </data>
+  <data name="Export_Padding_Placeholder" xml:space="preserve">
+    <value>边距（DIP）</value>
+  </data>
+
+  <data name="Export_PngAspect_Square" xml:space="preserve">
+    <value>1:1（方形）</value>
+  </data>
+  <data name="Export_PngAspect_4_3" xml:space="preserve">
+    <value>4:3</value>
+  </data>
+  <data name="Export_PngAspect_16_9" xml:space="preserve">
+    <value>16:9</value>
+  </data>
+
+  <data name="Export_PngSizeItem_Fmt" xml:space="preserve">
+    <value>{0}P（{1}×{2}）</value>
+  </data>
+  <data name="Export_PngSize4kItem_Fmt" xml:space="preserve">
+    <value>4K（{0}×{1}）</value>
+  </data>
+
+  <data name="Export_PdfDpi_Standard" xml:space="preserve">
+    <value>标准（96 DPI）</value>
+  </data>
+  <data name="Export_PdfDpi_High" xml:space="preserve">
+    <value>高清（192 DPI）</value>
+  </data>
+  <data name="Export_PdfDpi_Ultra" xml:space="preserve">
+    <value>超清（288 DPI）</value>
+  </data>
+
+  <data name="Export_Hint_Text" xml:space="preserve">
+    <value>提示：PNG 会按固定比例/分辨率导出（内容等比缩放并居中）；PNG 多页会导出到文件夹；PDF 会生成多页文档；WBIX 会包含全部页面与后续资源扩展位。</value>
+  </data>
+
+  <data name="Export_OverwriteFile_Content_Fmt" xml:space="preserve">
+    <value>文件已存在：{0}
+是否覆盖？</value>
+  </data>
+  <data name="Export_OverwritePreview_More_Fmt" xml:space="preserve">
+    <value>……（共 {0} 个）</value>
+  </data>
+  <data name="Export_OverwriteFiles_Content_Fmt" xml:space="preserve">
+    <value>目标目录中存在同名文件：{0}
+
+将覆盖以下文件：
+{1}
+
+是否继续？</value>
+  </data>
+
+  <data name="ShortcutDock_InvalidLink_Title" xml:space="preserve">
+    <value>链接无效</value>
+  </data>
+  <data name="ShortcutDock_InvalidLink_Message" xml:space="preserve">
+    <value>请输入有效的网址（例如 https://example.com）。</value>
+  </data>
+  <data name="ShortcutDock_LaunchFailed_Title" xml:space="preserve">
+    <value>启动失败</value>
+  </data>
+  <data name="ShortcutDock_ProgramNotFound_Title" xml:space="preserve">
+    <value>程序不存在</value>
+  </data>
+  <data name="ShortcutDock_ProgramNotFound_Message" xml:space="preserve">
+    <value>请检查程序路径或可执行命令是否正确。</value>
+  </data>
+  <data name="ShortcutDock_PathNotFound_Title" xml:space="preserve">
+    <value>路径不存在</value>
+  </data>
+  <data name="ShortcutDock_PathNotFound_Message" xml:space="preserve">
+    <value>请检查路径是否存在。</value>
+  </data>
+
+  <data name="Open_CannotOpenLink_Title" xml:space="preserve">
+    <value>无法打开链接</value>
+  </data>
+  <data name="Open_LinkEmpty_Message" xml:space="preserve">
+    <value>链接为空。</value>
+  </data>
+  <data name="Open_InvalidLinkFormat_Fmt" xml:space="preserve">
+    <value>链接格式无效：{0}</value>
+  </data>
+  <data name="Open_LaunchLinkFailed_Message" xml:space="preserve">
+    <value>系统未能打开该链接。</value>
+  </data>
+
+  <data name="Open_CannotOpenFile_Title" xml:space="preserve">
+    <value>无法打开文件</value>
+  </data>
+  <data name="Open_FilePathEmpty_Message" xml:space="preserve">
+    <value>文件路径为空。</value>
+  </data>
+  <data name="Open_LaunchFileFailed_Fmt" xml:space="preserve">
+    <value>系统未能打开：{0}</value>
+  </data>
+  <data name="Open_FileNotFound_Title" xml:space="preserve">
+    <value>文件不存在</value>
+  </data>
+  <data name="Open_FileNotFound_Fmt" xml:space="preserve">
+    <value>找不到文件：{0}</value>
+  </data>
+  <data name="Open_Unauthorized_Fmt" xml:space="preserve">
+    <value>无权限访问：{0}</value>
+  </data>
+
+  <data name="Export_PathEmpty_Message" xml:space="preserve">
+    <value>导出路径不能为空。</value>
+  </data>
+  <data name="Export_FolderEmpty_Message" xml:space="preserve">
+    <value>导出目录不能为空。</value>
+  </data>
+  <data name="Export_FilePrefixEmpty_Message" xml:space="preserve">
+    <value>文件名前缀不能为空。</value>
+  </data>
+  <data name="Export_NoPagesSelected_Message" xml:space="preserve">
+    <value>未选择任何页面。</value>
+  </data>
+  <data name="Export_Pdf_AtLeastOnePage_Message" xml:space="preserve">
+    <value>PDF 导出至少需要 1 页。</value>
+  </data>
+  <data name="Export_Raster_OffscreenNotInitialized_Message" xml:space="preserve">
+    <value>离屏导出器未初始化。</value>
+  </data>
+  <data name="Export_Raster_WicFactoryNotInitialized_Message" xml:space="preserve">
+    <value>WIC 工厂未初始化。</value>
+  </data>
+  <data name="Export_Raster_InvalidStride_Message" xml:space="preserve">
+    <value>位图 stride 非法。</value>
+  </data>
+
+  <data name="Export_PageRange_PageCountInvalid_Message" xml:space="preserve">
+    <value>页面数量非法。</value>
+  </data>
+  <data name="Export_PageRange_EmptyInput_Message" xml:space="preserve">
+    <value>请输入页码范围，例如：1,3-5。</value>
+  </data>
+  <data name="Export_PageRange_NoValidPages_Message" xml:space="preserve">
+    <value>未解析到任何有效页码。</value>
+  </data>
+  <data name="Export_PageRange_InvalidRange_Fmt" xml:space="preserve">
+    <value>非法页码范围：{0}。</value>
+  </data>
+  <data name="Export_PageRange_OrderError_Fmt" xml:space="preserve">
+    <value>页码范围起止顺序错误：{0}。</value>
+  </data>
+  <data name="Export_PageRange_InvalidPage_Fmt" xml:space="preserve">
+    <value>非法页码：{0}。</value>
+  </data>
+  <data name="Export_PageRange_PageMustStartFrom1_Fmt" xml:space="preserve">
+    <value>页码必须从 1 开始：{0}。</value>
+  </data>
+  <data name="Export_PageRange_PageMustStartFrom1_Message" xml:space="preserve">
+    <value>页码必须从 1 开始。</value>
+  </data>
+  <data name="Export_PageRange_OutOfRange_Fmt" xml:space="preserve">
+    <value>页码超出范围：当前共 {0} 页。</value>
+  </data>
+
+  <data name="Wbix_ResourceIdEmpty_Message" xml:space="preserve">
+    <value>WBIX 资源 Id 不能为空。</value>
+  </data>
+  <data name="Wbix_ResourceTypeEmpty_Message" xml:space="preserve">
+    <value>WBIX 资源 Type 不能为空。</value>
+  </data>
+  <data name="Wbix_ResourcePathEmpty_Message" xml:space="preserve">
+    <value>WBIX 资源 Path 不能为空。</value>
+  </data>
+  <data name="Wbix_ResourceBytesEmpty_Fmt" xml:space="preserve">
+    <value>WBIX 资源 Bytes 不能为空：{0}</value>
+  </data>
+  <data name="Wbix_MissingManifest_Message" xml:space="preserve">
+    <value>WBIX 缺少 manifest.json。</value>
+  </data>
+  <data name="Wbix_ManifestParseFailed_Message" xml:space="preserve">
+    <value>WBIX manifest.json 解析失败。</value>
+  </data>
+  <data name="Wbix_FormatMismatch_Fmt" xml:space="preserve">
+    <value>WBIX 格式不匹配：{0}。</value>
+  </data>
+  <data name="Wbix_VersionNotSupported_Fmt" xml:space="preserve">
+    <value>WBIX 版本不受支持：{0}。</value>
+  </data>
+  <data name="Wbix_MissingPageFile_Fmt" xml:space="preserve">
+    <value>WBIX 缺少页面文件：{0}。</value>
+  </data>
+  <data name="Wbix_PageParseFailed_Fmt" xml:space="preserve">
+    <value>WBIX 页面解析失败：{0}。</value>
+  </data>
+
+  <data name="Import_TextTruncated_Notice" xml:space="preserve">
+    <value>（内容过长，已截断）</value>
+  </data>
+  <data name="Import_TextReadFailed_Placeholder" xml:space="preserve">
+    <value>（读取失败）</value>
+  </data>
+
+  <data name="Render_CreateD3D11DeviceFailed_Message" xml:space="preserve">
+    <value>创建 D3D11 设备失败。</value>
+  </data>
+
+  <data name="ElementCard_DoubleClickToOpenLink" xml:space="preserve">
+    <value>双击打开链接</value>
+  </data>
+  <data name="ElementCard_DoubleClickToOpenExternal" xml:space="preserve">
+    <value>双击外部打开</value>
+  </data>
+  <data name="ElementCard_Kind_OpenExternal_Fmt" xml:space="preserve">
+    <value>{0}
+{1}</value>
+  </data>
+  <data name="ElementCard_MediaKind_Audio" xml:space="preserve">
+    <value>音频</value>
+  </data>
+  <data name="ElementCard_MediaKind_Video" xml:space="preserve">
+    <value>视频</value>
+  </data>
+  <data name="ElementCard_MediaKind_ImageNoPreview" xml:space="preserve">
+    <value>图片（无法预览）</value>
+  </data>
+  <data name="ElementCard_MediaKind_Generic" xml:space="preserve">
+    <value>多媒体</value>
+  </data>
+  <data name="ElementCard_Text_Title" xml:space="preserve">
+    <value>文字</value>
+  </data>
+  <data name="ElementCard_Unnamed" xml:space="preserve">
+    <value>（未命名）</value>
+  </data>
+  <data name="ElementCard_FileKind_Pdf" xml:space="preserve">
+    <value>PDF 文档</value>
+  </data>
+  <data name="ElementCard_FileKind_Word" xml:space="preserve">
+    <value>Word 文档</value>
+  </data>
+  <data name="ElementCard_FileKind_PowerPoint" xml:space="preserve">
+    <value>PowerPoint 文档</value>
+  </data>
+  <data name="ElementCard_FileKind_Excel" xml:space="preserve">
+    <value>Excel 表格</value>
+  </data>
+  <data name="ElementCard_FileKind_Csv" xml:space="preserve">
+    <value>CSV 表格</value>
+  </data>
+  <data name="ElementCard_FileKind_Rtf" xml:space="preserve">
+    <value>RTF 文档</value>
+  </data>
+  <data name="ElementCard_FileKind_Epub" xml:space="preserve">
+    <value>电子书</value>
+  </data>
+  <data name="ElementCard_FileKind_Archive" xml:space="preserve">
+    <value>压缩包</value>
+  </data>
+  <data name="ElementCard_File_Ext_Fmt" xml:space="preserve">
+    <value>文件（{0}）</value>
+  </data>
+</root>

@@ -13,6 +13,7 @@ using Vortice.Mathematics;
 using WindBoard.Board;
 using WindBoard.Board.Elements;
 using WindBoard.Board.Viewport;
+using WindBoard.Localization;
 
 namespace WindBoard.Rendering.Board
 {
@@ -592,9 +593,10 @@ namespace WindBoard.Rendering.Board
                 string url = (link.Url ?? string.Empty).Trim();
                 string title = string.IsNullOrWhiteSpace(link.Title) ? url : link.Title!.Trim();
 
+                string openHint = L10n.Get("ElementCard_DoubleClickToOpenLink");
                 string secondary = string.IsNullOrWhiteSpace(link.Title) || string.IsNullOrWhiteSpace(url)
-                    ? "双击打开链接"
-                    : url + "\n双击打开链接";
+                    ? openHint
+                    : url + "\n" + openHint;
 
                 return new ElementCardVisual(AccentBlue(), TryGetSymbolGlyph("Link", Symbol.OpenFile), title, secondary);
             }
@@ -602,13 +604,14 @@ namespace WindBoard.Rendering.Board
             if (element is BoardMediaElement media)
             {
                 string name = GetBestDisplayName(media.DisplayName, media.SourcePath);
+                string openHint = L10n.Get("ElementCard_DoubleClickToOpenExternal");
 
                 return media.Kind switch
                 {
-                    BoardMediaKind.Audio => new ElementCardVisual(AccentOrange(), TryGetSymbolGlyph("MusicInfo", Symbol.OpenFile), name, "音频\n双击外部打开"),
-                    BoardMediaKind.Video => new ElementCardVisual(AccentPurple(), TryGetSymbolGlyph("Video", Symbol.OpenFile), name, "视频\n双击外部打开"),
-                    BoardMediaKind.Image => new ElementCardVisual(AccentCyan(), TryGetSymbolGlyph("Pictures", Symbol.OpenFile), name, "图片（无法预览）\n双击外部打开"),
-                    _ => new ElementCardVisual(AccentGray(), GetSymbolGlyph(Symbol.OpenFile), name, "多媒体\n双击外部打开"),
+                    BoardMediaKind.Audio => new ElementCardVisual(AccentOrange(), TryGetSymbolGlyph("MusicInfo", Symbol.OpenFile), name, L10n.Format("ElementCard_Kind_OpenExternal_Fmt", L10n.Get("ElementCard_MediaKind_Audio"), openHint)),
+                    BoardMediaKind.Video => new ElementCardVisual(AccentPurple(), TryGetSymbolGlyph("Video", Symbol.OpenFile), name, L10n.Format("ElementCard_Kind_OpenExternal_Fmt", L10n.Get("ElementCard_MediaKind_Video"), openHint)),
+                    BoardMediaKind.Image => new ElementCardVisual(AccentCyan(), TryGetSymbolGlyph("Pictures", Symbol.OpenFile), name, L10n.Format("ElementCard_Kind_OpenExternal_Fmt", L10n.Get("ElementCard_MediaKind_ImageNoPreview"), openHint)),
+                    _ => new ElementCardVisual(AccentGray(), GetSymbolGlyph(Symbol.OpenFile), name, L10n.Format("ElementCard_Kind_OpenExternal_Fmt", L10n.Get("ElementCard_MediaKind_Generic"), openHint)),
                 };
             }
 
@@ -616,7 +619,8 @@ namespace WindBoard.Rendering.Board
             {
                 string name = GetBestDisplayName(file.DisplayName, file.SourcePath);
                 (string kindLabel, bool known) = GetFileKindLabel(name, file.SourcePath);
-                string secondary = known ? kindLabel + "\n双击外部打开" : "双击外部打开";
+                string openHint = L10n.Get("ElementCard_DoubleClickToOpenExternal");
+                string secondary = known ? kindLabel + "\n" + openHint : openHint;
                 string icon = known
                     ? TryGetSymbolGlyph("Document", Symbol.OpenFile)
                     : TryGetSymbolGlyph("Page", Symbol.OpenFile);
@@ -632,7 +636,7 @@ namespace WindBoard.Rendering.Board
                 }
 
                 string secondary = string.IsNullOrWhiteSpace(preview) ? string.Empty : preview;
-                return new ElementCardVisual(AccentGray(), GetSymbolGlyph(Symbol.Edit), "文字", secondary);
+                return new ElementCardVisual(AccentGray(), GetSymbolGlyph(Symbol.Edit), L10n.Get("ElementCard_Text_Title"), secondary);
             }
 
             return new ElementCardVisual(AccentGray(), TryGetSymbolGlyph("Help", Symbol.More), string.Empty, string.Empty);
@@ -649,7 +653,7 @@ namespace WindBoard.Rendering.Board
             string path = sourcePath ?? string.Empty;
             if (string.IsNullOrWhiteSpace(path))
             {
-                return "（未命名）";
+                return L10n.Get("ElementCard_Unnamed");
             }
 
             try
@@ -679,15 +683,15 @@ namespace WindBoard.Rendering.Board
 
             return ext switch
             {
-                ".pdf" => ("PDF 文档", true),
-                ".doc" or ".docx" or ".docm" => ("Word 文档", true),
-                ".ppt" or ".pptx" or ".pptm" => ("PowerPoint 文档", true),
-                ".xls" or ".xlsx" or ".xlsm" => ("Excel 表格", true),
-                ".csv" => ("CSV 表格", true),
-                ".rtf" => ("RTF 文档", true),
-                ".epub" => ("电子书", true),
-                ".zip" or ".7z" or ".rar" => ("压缩包", true),
-                _ => (string.IsNullOrWhiteSpace(ext) ? "文件" : $"文件（{ext}）", false),
+                ".pdf" => (L10n.Get("ElementCard_FileKind_Pdf"), true),
+                ".doc" or ".docx" or ".docm" => (L10n.Get("ElementCard_FileKind_Word"), true),
+                ".ppt" or ".pptx" or ".pptm" => (L10n.Get("ElementCard_FileKind_PowerPoint"), true),
+                ".xls" or ".xlsx" or ".xlsm" => (L10n.Get("ElementCard_FileKind_Excel"), true),
+                ".csv" => (L10n.Get("ElementCard_FileKind_Csv"), true),
+                ".rtf" => (L10n.Get("ElementCard_FileKind_Rtf"), true),
+                ".epub" => (L10n.Get("ElementCard_FileKind_Epub"), true),
+                ".zip" or ".7z" or ".rar" => (L10n.Get("ElementCard_FileKind_Archive"), true),
+                _ => (string.IsNullOrWhiteSpace(ext) ? L10n.Get("Common_File") : L10n.Format("ElementCard_File_Ext_Fmt", ext), false),
             };
         }
 

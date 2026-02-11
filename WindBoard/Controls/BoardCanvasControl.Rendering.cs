@@ -15,6 +15,7 @@ using WindBoard.Board.Editing;
 using WindBoard.Board.Elements;
 using WindBoard.Board.Viewport;
 using WindBoard.Interaction;
+using WindBoard.Localization;
 using WindBoard.Rendering;
 using WindBoard.Rendering.Board;
 
@@ -259,7 +260,9 @@ namespace WindBoard.Controls
 
                 if (SelectionBringToFrontText is not null)
                 {
-                    SelectionBringToFrontText.Text = canCancelBringToFront ? "取消置顶" : "置顶";
+                    SelectionBringToFrontText.Text = canCancelBringToFront
+                        ? L10n.Get("Common_CancelBringToFront")
+                        : L10n.Get("Common_BringToFront");
                 }
 
                 if (SelectionBringToFrontIcon is not null)

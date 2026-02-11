@@ -10,6 +10,7 @@ using Vortice.WIC;
 using WindBoard.Board;
 using WindBoard.Board.Persistence;
 using WindBoard.Board.Viewport;
+using WindBoard.Localization;
 using WindBoard.Rendering.Board;
 using UiColor = Windows.UI.Color;
 
@@ -44,7 +45,7 @@ namespace WindBoard.Exporting
 
             if (string.IsNullOrWhiteSpace(filePath))
             {
-                throw new ArgumentException("导出路径不能为空。", nameof(filePath));
+                throw new ArgumentException(L10n.Get("Export_PathEmpty_Message"), nameof(filePath));
             }
 
             cancellationToken.ThrowIfCancellationRequested();
@@ -91,7 +92,7 @@ namespace WindBoard.Exporting
         {
             if (_d2dFactory is null || _wicFactory is null)
             {
-                throw new InvalidOperationException("离屏导出器未初始化。");
+                throw new InvalidOperationException(L10n.Get("Export_Raster_OffscreenNotInitialized_Message"));
             }
 
             // 1) 将快照还原为可渲染的文档对象（仅包含笔迹）
@@ -279,7 +280,7 @@ namespace WindBoard.Exporting
         {
             if (_wicFactory is null)
             {
-                throw new InvalidOperationException("WIC 工厂未初始化。");
+                throw new InvalidOperationException(L10n.Get("Export_Raster_WicFactoryNotInitialized_Message"));
             }
 
             using IWICStream stream = _wicFactory.CreateStream(filePath, System.IO.FileAccess.Write);
@@ -312,7 +313,7 @@ namespace WindBoard.Exporting
             int rowBytes = pixelWidth * 4;
             if (stride < rowBytes)
             {
-                throw new InvalidOperationException("位图 stride 非法。");
+                throw new InvalidOperationException(L10n.Get("Export_Raster_InvalidStride_Message"));
             }
 
             var rgb = new byte[pixelWidth * pixelHeight * 3];

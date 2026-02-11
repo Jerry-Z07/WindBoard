@@ -13,6 +13,7 @@ using Microsoft.UI.Xaml.Shapes;
 using Windows.UI;
 using WindBoard.Board.Editing;
 using WindBoard.Interaction;
+using WindBoard.Localization;
 using WindBoard.Settings;
 
 namespace WindBoard
@@ -596,9 +597,9 @@ namespace WindBoard
 
             var dialog = new ContentDialog
             {
-                Title = "功能开发中",
-                Content = $"{featureName} 功能暂未实现，已预留入口，后续会逐步补齐。",
-                CloseButtonText = "关闭",
+                Title = L10n.Get("MainWindow_FeatureWip_Title"),
+                Content = L10n.Format("MainWindow_FeatureWip_Content_Fmt", featureName),
+                CloseButtonText = L10n.Get("Common_Close"),
                 XamlRoot = xamlRoot,
             };
 

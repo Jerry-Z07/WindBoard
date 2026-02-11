@@ -10,6 +10,7 @@ using Windows.Storage;
 using Windows.Storage.Pickers;
 using WindBoard.Board.Persistence;
 using WindBoard.Exporting;
+using WindBoard.Localization;
 
 namespace WindBoard
 {
@@ -80,7 +81,7 @@ namespace WindBoard
                 List<int> pageIndices;
                 if (!TryResolvePageIndices(selection, out pageIndices, out string pageError))
                 {
-                    await ShowMessageDialogAsync(xamlRoot, "页码范围错误", pageError);
+                    await ShowMessageDialogAsync(xamlRoot, L10n.Get("Export_PageRangeError_Title"), pageError);
                     return;
                 }
 
@@ -99,13 +100,13 @@ namespace WindBoard
                         return;
 
                     default:
-                        await ShowMessageDialogAsync(xamlRoot, "导出失败", "未知导出格式。");
+                        await ShowMessageDialogAsync(xamlRoot, L10n.Get("Export_Failed_Title"), L10n.Get("Export_UnknownFormat_Message"));
                         return;
                 }
             }
             catch (Exception ex)
             {
-                await ShowMessageDialogAsync(xamlRoot, "导出失败", ex.Message);
+                await ShowMessageDialogAsync(xamlRoot, L10n.Get("Export_Failed_Title"), ex.Message);
             }
         }
 
@@ -126,7 +127,7 @@ namespace WindBoard
             int pageCount = _workspace.Pages.Count;
             if (pageCount <= 0)
             {
-                errorMessage = "当前工作区没有可导出的页面。";
+                errorMessage = L10n.Get("Export_NoPages_Message");
                 return false;
             }
 
@@ -147,7 +148,7 @@ namespace WindBoard
                     return PageRangeParser.TryParse(selection.PageRangeText, pageCount, out pageIndices, out errorMessage);
 
                 default:
-                    errorMessage = "未知页范围。";
+                    errorMessage = L10n.Get("Export_UnknownPageScope_Message");
                     return false;
             }
         }
@@ -160,12 +161,12 @@ namespace WindBoard
                 return;
             }
 
-            await RunBusyDialogAsync(xamlRoot, "正在导出 WBIX…", async () =>
+            await RunBusyDialogAsync(xamlRoot, L10n.Get("Export_Busy_Wbix_Title"), async () =>
             {
                 await _exportService.ExportWbixAsync(snapshot, file.Path);
             });
 
-            await ShowMessageDialogAsync(xamlRoot, "导出完成", $"已导出：{file.Path}");
+            await ShowMessageDialogAsync(xamlRoot, L10n.Get("Export_Completed_Title"), L10n.Format("Export_Completed_File_Fmt", file.Path));
         }
 
         private async Task ExportPdfAsync(XamlRoot xamlRoot, BoardWorkspaceSnapshot snapshot, List<int> pageIndices, BoardRasterExportOptions rasterOptions)
@@ -178,12 +179,12 @@ namespace WindBoard
 
             var options = new BoardPdfExportOptions(rasterOptions);
 
-            await RunBusyDialogAsync(xamlRoot, "正在导出 PDF…", async () =>
+            await RunBusyDialogAsync(xamlRoot, L10n.Get("Export_Busy_Pdf_Title"), async () =>
             {
                 await _exportService.ExportPdfAsync(snapshot, pageIndices, file.Path, options);
             });
 
-            await ShowMessageDialogAsync(xamlRoot, "导出完成", $"已导出：{file.Path}");
+            await ShowMessageDialogAsync(xamlRoot, L10n.Get("Export_Completed_Title"), L10n.Format("Export_Completed_File_Fmt", file.Path));
         }
 
         private async Task ExportPngAsync(XamlRoot xamlRoot, BoardWorkspaceSnapshot snapshot, List<int> pageIndices, BoardRasterExportOptions rasterOptions)
@@ -196,12 +197,12 @@ namespace WindBoard
                     return;
                 }
 
-                await RunBusyDialogAsync(xamlRoot, "正在导出 PNG…", async () =>
+                await RunBusyDialogAsync(xamlRoot, L10n.Get("Export_Busy_Png_Title"), async () =>
                 {
                     await _exportService.ExportPngAsync(snapshot, pageIndices[0], file.Path, rasterOptions);
                 });
 
-                await ShowMessageDialogAsync(xamlRoot, "导出完成", $"已导出：{file.Path}");
+                await ShowMessageDialogAsync(xamlRoot, L10n.Get("Export_Completed_Title"), L10n.Format("Export_Completed_File_Fmt", file.Path));
                 return;
             }
 
@@ -226,12 +227,12 @@ namespace WindBoard
                 }
             }
 
-            await RunBusyDialogAsync(xamlRoot, "正在导出 PNG…", async () =>
+            await RunBusyDialogAsync(xamlRoot, L10n.Get("Export_Busy_Png_Title"), async () =>
             {
                 await _exportService.ExportPngPagesToFolderAsync(snapshot, pageIndices, exportFolderPath, date, rasterOptions);
             });
 
-            await ShowMessageDialogAsync(xamlRoot, "导出完成", $"已导出到目录：{exportFolderPath}");
+            await ShowMessageDialogAsync(xamlRoot, L10n.Get("Export_Completed_Title"), L10n.Format("Export_Completed_Folder_Fmt", exportFolderPath));
         }
 
         private async Task<ExportDialogSelection?> ShowExportDialogAsync(XamlRoot xamlRoot)
@@ -241,9 +242,9 @@ namespace WindBoard
                 SelectedIndex = 0,
                 Items =
                 {
-                    "PNG 图片",
-                    "PDF 文档",
-                    "WBIX 源文件 (.wbix)",
+                    L10n.Get("Export_FileType_Png"),
+                    L10n.Get("Export_FileType_Pdf"),
+                    L10n.Get("Export_Format_Wbix_WithExt"),
                 }
             };
 
@@ -252,15 +253,15 @@ namespace WindBoard
                 SelectedIndex = 0,
                 Items =
                 {
-                    "当前页",
-                    "全部页",
-                    "指定范围（例如：1,3-5）",
+                    L10n.Get("Export_PageScope_Current"),
+                    L10n.Get("Export_PageScope_All"),
+                    L10n.Get("Export_PageScope_Range"),
                 }
             };
 
             var rangeBox = new TextBox
             {
-                PlaceholderText = "例如：1,3-5",
+                PlaceholderText = L10n.Get("Export_PageRange_Placeholder"),
                 IsEnabled = false,
             };
 
@@ -269,9 +270,9 @@ namespace WindBoard
                 SelectedIndex = 0,
                 Items =
                 {
-                    "1:1（方形）",
-                    "4:3",
-                    "16:9",
+                    L10n.Get("Export_PngAspect_Square"),
+                    L10n.Get("Export_PngAspect_4_3"),
+                    L10n.Get("Export_PngAspect_16_9"),
                 }
             };
 
@@ -285,26 +286,26 @@ namespace WindBoard
                 SelectedIndex = 1,
                 Items =
                 {
-                    "标准（96 DPI）",
-                    "高清（192 DPI）",
-                    "超清（288 DPI）",
+                    L10n.Get("Export_PdfDpi_Standard"),
+                    L10n.Get("Export_PdfDpi_High"),
+                    L10n.Get("Export_PdfDpi_Ultra"),
                 }
             };
 
             var paddingBox = new TextBox
             {
                 Text = "24",
-                PlaceholderText = "边距（DIP）",
+                PlaceholderText = L10n.Get("Export_Padding_Placeholder"),
             };
 
-            var pngAspectLabel = new TextBlock { Text = "画面比例（PNG）" };
-            var pngSizeLabel = new TextBlock { Text = "输出分辨率（PNG）" };
-            var dpiLabel = new TextBlock { Text = "清晰度（PDF）" };
-            var paddingLabel = new TextBlock { Text = "内容留白（DIP）" };
+            var pngAspectLabel = new TextBlock { Text = L10n.Get("Export_PngAspect_Label") };
+            var pngSizeLabel = new TextBlock { Text = L10n.Get("Export_PngSize_Label") };
+            var dpiLabel = new TextBlock { Text = L10n.Get("Export_PdfDpi_Label") };
+            var paddingLabel = new TextBlock { Text = L10n.Get("Export_Padding_Label") };
 
             var hintText = new TextBlock
             {
-                Text = "提示：PNG 会按固定比例/分辨率导出（内容等比缩放并居中）；PNG 多页会导出到文件夹；PDF 会生成多页文档；WBIX 会包含全部页面与后续资源扩展位。",
+                Text = L10n.Get("Export_Hint_Text"),
                 TextWrapping = TextWrapping.Wrap,
                 Opacity = 0.85,
             };
@@ -326,9 +327,9 @@ namespace WindBoard
                 (int w, int h) size1080 = ComputePngSize(square, fourThree, baseHeight: 1080);
                 (int w, int h) size4k = ComputePngSize(square, fourThree, baseHeight: 2160);
 
-                pngSizeCombo.Items.Add($"720P（{size720.w}×{size720.h}）");
-                pngSizeCombo.Items.Add($"1080P（{size1080.w}×{size1080.h}）");
-                pngSizeCombo.Items.Add($"4K（{size4k.w}×{size4k.h}）");
+                pngSizeCombo.Items.Add(L10n.Format("Export_PngSizeItem_Fmt", 720, size720.w, size720.h));
+                pngSizeCombo.Items.Add(L10n.Format("Export_PngSizeItem_Fmt", 1080, size1080.w, size1080.h));
+                pngSizeCombo.Items.Add(L10n.Format("Export_PngSize4kItem_Fmt", size4k.w, size4k.h));
 
                 pngSizeCombo.SelectedIndex = oldIndex;
             }
@@ -361,9 +362,9 @@ namespace WindBoard
 
             var panel = new StackPanel { Spacing = 10 };
 
-            panel.Children.Add(new TextBlock { Text = "导出格式" });
+            panel.Children.Add(new TextBlock { Text = L10n.Get("Export_Format_Label") });
             panel.Children.Add(formatCombo);
-            panel.Children.Add(new TextBlock { Text = "导出页面" });
+            panel.Children.Add(new TextBlock { Text = L10n.Get("Export_PageScope_Label") });
             panel.Children.Add(scopeCombo);
             panel.Children.Add(rangeBox);
             panel.Children.Add(pngAspectLabel);
@@ -378,10 +379,10 @@ namespace WindBoard
 
             var dialog = new ContentDialog
             {
-                Title = "导出",
+                Title = L10n.Get("Export_Dialog_Title"),
                 Content = panel,
-                PrimaryButtonText = "下一步",
-                CloseButtonText = "取消",
+                PrimaryButtonText = L10n.Get("Common_Next"),
+                CloseButtonText = L10n.Get("Common_Cancel"),
                 DefaultButton = ContentDialogButton.Primary,
                 XamlRoot = xamlRoot,
             };
@@ -450,8 +451,10 @@ namespace WindBoard
             return (Math.Max(1, w169), h);
         }
 
-        private async Task RunBusyDialogAsync(XamlRoot xamlRoot, string title, Func<Task> action, string message = "正在导出，请稍候…")
+        private async Task RunBusyDialogAsync(XamlRoot xamlRoot, string title, Func<Task> action, string? message = null)
         {
+            string messageText = message ?? L10n.Get("Export_Busy_Default_Message");
+
             var ring = new ProgressRing
             {
                 IsActive = true,
@@ -462,7 +465,7 @@ namespace WindBoard
 
             var text = new TextBlock
             {
-                Text = message,
+                Text = messageText,
                 TextWrapping = TextWrapping.Wrap,
                 HorizontalAlignment = HorizontalAlignment.Center,
             };
@@ -502,7 +505,7 @@ namespace WindBoard
             {
                 Title = title,
                 Content = message,
-                CloseButtonText = "关闭",
+                CloseButtonText = L10n.Get("Common_Close"),
                 XamlRoot = xamlRoot,
             };
 
@@ -514,7 +517,7 @@ namespace WindBoard
             IntPtr hwnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
             if (hwnd == IntPtr.Zero)
             {
-                await ShowMessageDialogAsync(xamlRoot, "导出失败", "无法获取窗口句柄。");
+                await ShowMessageDialogAsync(xamlRoot, L10n.Get("Export_Failed_Title"), L10n.Get("Common_WindowHandleFailed_Message"));
                 return null;
             }
 
@@ -530,22 +533,22 @@ namespace WindBoard
             switch (format)
             {
                 case ExportFormat.Png:
-                    picker.FileTypeChoices.Add("PNG 图片", new List<string> { ".png" });
+                    picker.FileTypeChoices.Add(L10n.Get("Export_FileType_Png"), new List<string> { ".png" });
                     picker.SuggestedFileName = $"WindBoard-{date}-{time}";
                     break;
 
                 case ExportFormat.Pdf:
-                    picker.FileTypeChoices.Add("PDF 文档", new List<string> { ".pdf" });
+                    picker.FileTypeChoices.Add(L10n.Get("Export_FileType_Pdf"), new List<string> { ".pdf" });
                     picker.SuggestedFileName = $"WindBoard-{date}-{time}";
                     break;
 
                 case ExportFormat.Wbix:
-                    picker.FileTypeChoices.Add("WBIX 源文件", new List<string> { ".wbix" });
+                    picker.FileTypeChoices.Add(L10n.Get("Export_FileType_Wbix"), new List<string> { ".wbix" });
                     picker.SuggestedFileName = $"{date}-{time}";
                     break;
 
                 default:
-                    picker.FileTypeChoices.Add("文件", new List<string> { "*" });
+                    picker.FileTypeChoices.Add(L10n.Get("Common_File"), new List<string> { "*" });
                     picker.SuggestedFileName = "windboard";
                     break;
             }
@@ -647,10 +650,10 @@ namespace WindBoard
         {
             var dialog = new ContentDialog
             {
-                Title = "确认覆盖",
-                Content = $"文件已存在：{filePath}\n是否覆盖？",
-                PrimaryButtonText = "覆盖",
-                CloseButtonText = "取消",
+                Title = L10n.Get("Common_ConfirmOverwrite_Title"),
+                Content = L10n.Format("Export_OverwriteFile_Content_Fmt", filePath),
+                PrimaryButtonText = L10n.Get("Common_Overwrite"),
+                CloseButtonText = L10n.Get("Common_Cancel"),
                 DefaultButton = ContentDialogButton.Close,
                 XamlRoot = xamlRoot,
             };
@@ -669,14 +672,14 @@ namespace WindBoard
             int count = conflictPaths.Count;
             string preview = count <= 3
                 ? string.Join("\n", conflictPaths)
-                : string.Join("\n", conflictPaths.GetRange(0, 3)) + $"\n……（共 {count} 个）";
+                : string.Join("\n", conflictPaths.GetRange(0, 3)) + "\n" + L10n.Format("Export_OverwritePreview_More_Fmt", count);
 
             var dialog = new ContentDialog
             {
-                Title = "确认覆盖",
-                Content = $"目标目录中存在同名文件：{folderPath}\n\n将覆盖以下文件：\n{preview}\n\n是否继续？",
-                PrimaryButtonText = "覆盖",
-                CloseButtonText = "取消",
+                Title = L10n.Get("Common_ConfirmOverwrite_Title"),
+                Content = L10n.Format("Export_OverwriteFiles_Content_Fmt", folderPath, preview),
+                PrimaryButtonText = L10n.Get("Common_Overwrite"),
+                CloseButtonText = L10n.Get("Common_Cancel"),
                 DefaultButton = ContentDialogButton.Close,
                 XamlRoot = xamlRoot,
             };
@@ -690,7 +693,7 @@ namespace WindBoard
             IntPtr hwnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
             if (hwnd == IntPtr.Zero)
             {
-                await ShowMessageDialogAsync(xamlRoot, "导出失败", "无法获取窗口句柄。");
+                await ShowMessageDialogAsync(xamlRoot, L10n.Get("Export_Failed_Title"), L10n.Get("Common_WindowHandleFailed_Message"));
                 return null;
             }
 

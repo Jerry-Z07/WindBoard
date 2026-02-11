@@ -3,6 +3,7 @@
     x:Class="WindBoard.Settings.Pages.BackgroundSettingsPage"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:l10n="using:WindBoard.Localization"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d">
@@ -13,10 +14,10 @@
     <Grid>
         <ScrollViewer>
             <StackPanel Spacing="16" Padding="24">
-                <TextBlock Text="背景" Style="{ThemeResource TitleTextBlockStyle}" />
+                <TextBlock Text="{l10n:Loc Key=Settings_Background_Title}" Style="{ThemeResource TitleTextBlockStyle}" />
 
                 <StackPanel Spacing="10">
-                    <TextBlock Text="画布" Style="{ThemeResource SubtitleTextBlockStyle}" />
+                    <TextBlock Text="{l10n:Loc Key=Settings_Background_Canvas_SectionTitle}" Style="{ThemeResource SubtitleTextBlockStyle}" />
 
                     <!-- 入口卡片：点击打开二级弹窗（颜色选择器 + HEX 输入） -->
                     <Button Style="{StaticResource SettingsCardButtonStyle}" Click="OnCanvasBackgroundClicked">
@@ -36,8 +37,8 @@
                                 VerticalAlignment="Center" />
 
                             <StackPanel Grid.Column="1" Spacing="2">
-                                <TextBlock Text="画布背景颜色" FontWeight="SemiBold" />
-                                <TextBlock Text="设置画布的背景颜色" Opacity="0.75" TextWrapping="WrapWholeWords" />
+                                <TextBlock Text="{l10n:Loc Key=Settings_Background_CanvasBackgroundColor_Title}" FontWeight="SemiBold" />
+                                <TextBlock Text="{l10n:Loc Key=Settings_Background_CanvasBackgroundColor_Description}" Opacity="0.75" TextWrapping="WrapWholeWords" />
                             </StackPanel>
 
                             <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
@@ -48,7 +49,7 @@
                                     Background="{x:Bind CanvasBackgroundPreviewBrush}"
                                     BorderThickness="1"
                                     BorderBrush="{ThemeResource SystemControlForegroundBaseLowBrush}" />
-                                <TextBlock x:Name="CurrentHexTextBlock" Text="#2E2F33" Opacity="0.75" />
+                                <TextBlock x:Name="CurrentHexTextBlock" Text="{l10n:Loc Key=Settings_Background_HexPlaceholder}" Opacity="0.75" />
                             </StackPanel>
 
                             <FontIcon
@@ -61,7 +62,7 @@
                     </Button>
 
                     <Button
-                        Content="恢复默认"
+                        Content="{l10n:Loc Key=Common_ResetToDefault}"
                         HorizontalAlignment="Left"
                         Click="OnResetToDefaultClicked" />
                 </StackPanel>
@@ -70,9 +71,9 @@
 
         <ContentDialog
             x:Name="CanvasBackgroundDialog"
-            Title="画布背景颜色"
-            PrimaryButtonText="确定"
-            CloseButtonText="取消">
+            Title="{l10n:Loc Key=Settings_Background_CanvasBackgroundColor_Title}"
+            PrimaryButtonText="{l10n:Loc Key=Common_OK}"
+            CloseButtonText="{l10n:Loc Key=Common_Cancel}">
             <StackPanel Spacing="12">
                 <ColorPicker
                     x:Name="DialogColorPicker"
@@ -90,13 +91,13 @@
 
                     <TextBox
                         x:Name="DialogHexTextBox"
-                        Header="HEX"
-                        PlaceholderText="#2E2F33"
+                        Header="{l10n:Loc Key=Settings_Background_HexHeader}"
+                        PlaceholderText="{l10n:Loc Key=Settings_Background_HexPlaceholder}"
                         TextChanged="OnDialogHexTextChanged" />
 
                     <Button
                         Grid.Column="1"
-                        Content="恢复默认"
+                        Content="{l10n:Loc Key=Common_ResetToDefault}"
                         VerticalAlignment="Bottom"
                         Click="OnDialogResetToDefaultClicked" />
                 </Grid>
@@ -105,7 +106,7 @@
                     x:Name="DialogHexErrorBar"
                     IsOpen="False"
                     Severity="Error"
-                    Message="HEX 颜色格式无效，请使用 #RRGGBB（例如 #2E2F33）"
+                    Message="{l10n:Loc Key=Settings_Background_HexError}"
                     IsIconVisible="True" />
             </StackPanel>
         </ContentDialog>

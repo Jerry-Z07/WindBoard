@@ -6,6 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using WindBoard.Board.Persistence;
 using WindBoard.Board.Persistence.Wbix;
+using WindBoard.Localization;
 using Windows.UI;
 
 namespace WindBoard.Exporting
@@ -30,7 +31,7 @@ namespace WindBoard.Exporting
 
             if (string.IsNullOrWhiteSpace(filePath))
             {
-                throw new ArgumentException("导出路径不能为空。", nameof(filePath));
+                throw new ArgumentException(L10n.Get("Export_PathEmpty_Message"), nameof(filePath));
             }
 
             return Task.Run(async () =>
@@ -72,7 +73,7 @@ namespace WindBoard.Exporting
 
             if (string.IsNullOrWhiteSpace(filePath))
             {
-                throw new ArgumentException("导出路径不能为空。", nameof(filePath));
+                throw new ArgumentException(L10n.Get("Export_PathEmpty_Message"), nameof(filePath));
             }
 
             BoardPageSnapshot page = snapshot.Pages[pageIndex];
@@ -105,12 +106,12 @@ namespace WindBoard.Exporting
 
             if (string.IsNullOrWhiteSpace(folderPath))
             {
-                throw new ArgumentException("导出目录不能为空。", nameof(folderPath));
+                throw new ArgumentException(L10n.Get("Export_FolderEmpty_Message"), nameof(folderPath));
             }
 
             if (string.IsNullOrWhiteSpace(datePrefix))
             {
-                throw new ArgumentException("文件名前缀不能为空。", nameof(datePrefix));
+                throw new ArgumentException(L10n.Get("Export_FilePrefixEmpty_Message"), nameof(datePrefix));
             }
 
             return Task.Run(() =>
@@ -158,7 +159,7 @@ namespace WindBoard.Exporting
 
             if (string.IsNullOrWhiteSpace(filePath))
             {
-                throw new ArgumentException("导出路径不能为空。", nameof(filePath));
+                throw new ArgumentException(L10n.Get("Export_PathEmpty_Message"), nameof(filePath));
             }
 
             return Task.Run(() =>
@@ -178,7 +179,7 @@ namespace WindBoard.Exporting
 
                 if (pages.Count == 0)
                 {
-                    throw new InvalidOperationException("未选择任何页面。");
+                    throw new InvalidOperationException(L10n.Get("Export_NoPagesSelected_Message"));
                 }
 
                 BoardPdfExporter.Export(pages, filePath, options, cancellationToken);

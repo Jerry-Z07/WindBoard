@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Text;
 using System.Threading.Tasks;
+using WindBoard.Localization;
 
 namespace WindBoard.Importing
 {
@@ -40,7 +41,8 @@ namespace WindBoard.Importing
                 // 如果已读满上限，再尝试读取 1 个字符判断是否还有内容（避免在 async 方法中使用 EndOfStream）。
                 if (remaining == 0 && await reader.ReadAsync(buffer, 0, 1) > 0)
                 {
-                    sb.Append("\n\n（内容过长，已截断）");
+                    sb.Append("\n\n");
+                    sb.Append(L10n.Get("Import_TextTruncated_Notice"));
                 }
 
                 return sb.ToString();
@@ -48,7 +50,7 @@ namespace WindBoard.Importing
             catch (Exception ex)
             {
                 Debug.WriteLine($"[Import] 读取文本失败：'{path}', ex={ex}");
-                return "（读取失败）";
+                return L10n.Get("Import_TextReadFailed_Placeholder");
             }
         }
     }

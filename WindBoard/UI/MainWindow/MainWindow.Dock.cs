@@ -13,6 +13,7 @@ using Microsoft.UI.Xaml.Media.Animation;
 using Windows.UI;
 using WindBoard.Board.Editing;
 using WindBoard.Interaction;
+using WindBoard.Localization;
 using WindBoard.ShortcutDock;
 using WindBoard.Settings;
 
@@ -261,7 +262,7 @@ namespace WindBoard
                 string linkPath = item.Path?.Trim() ?? string.Empty;
                 if (string.IsNullOrWhiteSpace(linkPath))
                 {
-                    return "未配置";
+                    return L10n.Get("Common_NotConfigured");
                 }
 
                 if (Uri.TryCreate(linkPath, UriKind.Absolute, out Uri? uri) && !string.IsNullOrWhiteSpace(uri.Host))
@@ -270,7 +271,7 @@ namespace WindBoard
                     return uri.Host;
                 }
 
-                return "链接";
+                return L10n.Get("Common_Link");
             }
 
             string path = item.Path?.Trim() ?? string.Empty;
@@ -285,17 +286,17 @@ namespace WindBoard
 
             if (string.IsNullOrWhiteSpace(path))
             {
-                return "未配置";
+                return L10n.Get("Common_NotConfigured");
             }
 
             try
             {
                 string name = Path.GetFileNameWithoutExtension(path);
-                return string.IsNullOrWhiteSpace(name) ? "文件" : name;
+                return string.IsNullOrWhiteSpace(name) ? L10n.Get("Common_File") : name;
             }
             catch
             {
-                return "文件";
+                return L10n.Get("Common_File");
             }
         }
 
@@ -373,7 +374,7 @@ namespace WindBoard
                     if (!ShortcutDockLaunchHelper.TryNormalizeLinkUri(target, out Uri? uri))
                     {
                         Debug.WriteLine($"[ShortcutDock] 链接解析失败：input='{target}'");
-                        await ShowShortcutDockErrorDialogAsync("链接无效", "请输入有效的网址（例如 https://example.com）。");
+                        await ShowShortcutDockErrorDialogAsync(L10n.Get("ShortcutDock_InvalidLink_Title"), L10n.Get("ShortcutDock_InvalidLink_Message"));
                         return;
                     }
 
@@ -435,12 +436,12 @@ namespace WindBoard
                             }
                             catch
                             {
-                                await ShowShortcutDockErrorDialogAsync("启动失败", ex.Message);
+                                await ShowShortcutDockErrorDialogAsync(L10n.Get("ShortcutDock_LaunchFailed_Title"), ex.Message);
                             }
                         }
                         else
                         {
-                            await ShowShortcutDockErrorDialogAsync("程序不存在", "请检查程序路径或可执行命令是否正确。");
+                            await ShowShortcutDockErrorDialogAsync(L10n.Get("ShortcutDock_ProgramNotFound_Title"), L10n.Get("ShortcutDock_ProgramNotFound_Message"));
                         }
                     }
                     return;
@@ -450,7 +451,7 @@ namespace WindBoard
                 if (!File.Exists(target) && !Directory.Exists(target))
                 {
                     Debug.WriteLine($"[ShortcutDock] 文件/文件夹不存在：'{target}'");
-                    await ShowShortcutDockErrorDialogAsync("路径不存在", "请检查路径是否存在。");
+                    await ShowShortcutDockErrorDialogAsync(L10n.Get("ShortcutDock_PathNotFound_Title"), L10n.Get("ShortcutDock_PathNotFound_Message"));
                     return;
                 }
 
@@ -460,7 +461,7 @@ namespace WindBoard
             catch (Exception ex)
             {
                 Debug.WriteLine($"[ShortcutDock] 打开失败：{ex}");
-                await ShowShortcutDockErrorDialogAsync("打开失败", ex.Message);
+                await ShowShortcutDockErrorDialogAsync(L10n.Get("Common_OpenFailed_Title"), ex.Message);
             }
         }
 
@@ -476,7 +477,7 @@ namespace WindBoard
             {
                 Title = title,
                 Content = message,
-                CloseButtonText = "关闭",
+                CloseButtonText = L10n.Get("Common_Close"),
                 XamlRoot = xamlRoot,
             };
 

@@ -8,6 +8,7 @@ using Vortice.Direct2D1;
 using Vortice.Direct3D11;
 using Vortice.DXGI;
 using Vortice.Mathematics;
+using WindBoard.Localization;
 using WinRT;
 
 namespace WindBoard.Rendering
@@ -326,7 +327,7 @@ namespace WindBoard.Rendering
                 && !TryCreateD3DDevice(Vortice.Direct3D.DriverType.Hardware, baseFlags, featureLevels11_0, out _d3dDevice, out _d3dContext)
                 && !TryCreateD3DDevice(Vortice.Direct3D.DriverType.Warp, baseFlags, featureLevels11_0, out _d3dDevice, out _d3dContext))
             {
-                throw new InvalidOperationException("创建 D3D11 设备失败。");
+                throw new InvalidOperationException(L10n.Get("Render_CreateD3D11DeviceFailed_Message"));
             }
 
             _d2dFactory = D2D1.D2D1CreateFactory<ID2D1Factory1>(FactoryType.SingleThreaded, DebugLevel.None);

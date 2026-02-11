@@ -17,6 +17,7 @@ using WindBoard.Board.Elements;
 using WindBoard.Board.Editing;
 using WindBoard.Board.Persistence;
 using WindBoard.Board.Persistence.Wbix;
+using WindBoard.Localization;
 using WindBoard.Importing;
 using WbixPreview = WindBoard.Board.Persistence.Wbix.WbixPreviewReader.WbixPreview;
 
@@ -71,14 +72,14 @@ namespace WindBoard
                         return;
 
                     default:
-                        await ShowMessageDialogAsync(xamlRoot, "导入失败", "未知导入类型。");
+                        await ShowMessageDialogAsync(xamlRoot, L10n.Get("Import_Failed_Title"), L10n.Get("Import_UnknownType_Message"));
                         return;
                 }
             }
             catch (Exception ex)
             {
                 Debug.WriteLine($"[Import] 导入异常：{ex}");
-                await ShowMessageDialogAsync(xamlRoot, "导入失败", ex.Message);
+                await ShowMessageDialogAsync(xamlRoot, L10n.Get("Import_Failed_Title"), ex.Message);
             }
         }
 
@@ -101,14 +102,14 @@ namespace WindBoard
                 };
             }
 
-            var rbFiles = CreateRadio("导入文件", Symbol.OpenFile, isChecked: true);
-            var rbText = CreateRadio("导入文字", Symbol.Edit);
-            var rbLink = CreateRadio("导入链接", Symbol.Link);
+            var rbFiles = CreateRadio(L10n.Get("Import_Entry_Files"), Symbol.OpenFile, isChecked: true);
+            var rbText = CreateRadio(L10n.Get("Import_Entry_Text"), Symbol.Edit);
+            var rbLink = CreateRadio(L10n.Get("Import_Entry_Link"), Symbol.Link);
 
             var panel = new StackPanel { Spacing = 8 };
             panel.Children.Add(new TextBlock
             {
-                Text = "请选择导入内容类型：",
+                Text = L10n.Get("Import_EntryDialog_Prompt"),
                 TextWrapping = TextWrapping.Wrap,
             });
             panel.Children.Add(rbFiles);
@@ -117,10 +118,10 @@ namespace WindBoard
 
             var dialog = new ContentDialog
             {
-                Title = "导入",
+                Title = L10n.Get("Import_EntryDialog_Title"),
                 Content = panel,
-                PrimaryButtonText = "继续",
-                CloseButtonText = "取消",
+                PrimaryButtonText = L10n.Get("Common_Continue"),
+                CloseButtonText = L10n.Get("Common_Cancel"),
                 DefaultButton = ContentDialogButton.Primary,
                 XamlRoot = xamlRoot,
             };
@@ -151,15 +152,15 @@ namespace WindBoard
                 AcceptsReturn = true,
                 TextWrapping = TextWrapping.Wrap,
                 MinHeight = 160,
-                PlaceholderText = "在此输入要导入的文字…",
+                PlaceholderText = L10n.Get("Import_Text_Placeholder"),
             };
 
             var dialog = new ContentDialog
             {
-                Title = "导入文字",
+                Title = L10n.Get("Import_TextDialog_Title"),
                 Content = input,
-                PrimaryButtonText = "导入",
-                CloseButtonText = "取消",
+                PrimaryButtonText = L10n.Get("Common_Import"),
+                CloseButtonText = L10n.Get("Common_Cancel"),
                 DefaultButton = ContentDialogButton.Primary,
                 XamlRoot = xamlRoot,
             };
@@ -172,7 +173,7 @@ namespace WindBoard
             string text = input.Text ?? string.Empty;
             if (string.IsNullOrWhiteSpace(text))
             {
-                await ShowMessageDialogAsync(xamlRoot, "导入提示", "文字内容为空。");
+                await ShowMessageDialogAsync(xamlRoot, L10n.Get("Import_Tip_Title"), L10n.Get("Import_Text_Empty_Message"));
                 return;
             }
 
@@ -185,26 +186,26 @@ namespace WindBoard
         {
             var urlBox = new TextBox
             {
-                PlaceholderText = "https://example.com",
+                PlaceholderText = L10n.Get("Common_UrlPlaceholder"),
             };
 
             var titleBox = new TextBox
             {
-                PlaceholderText = "标题（可选）",
+                PlaceholderText = L10n.Get("Import_Link_TitlePlaceholder"),
             };
 
             var panel = new StackPanel { Spacing = 8 };
-            panel.Children.Add(new TextBlock { Text = "链接：" });
+            panel.Children.Add(new TextBlock { Text = L10n.Get("Import_Link_UrlLabel") });
             panel.Children.Add(urlBox);
-            panel.Children.Add(new TextBlock { Text = "标题（可选）：" });
+            panel.Children.Add(new TextBlock { Text = L10n.Get("Import_Link_TitleLabel") });
             panel.Children.Add(titleBox);
 
             var dialog = new ContentDialog
             {
-                Title = "导入链接",
+                Title = L10n.Get("Import_LinkDialog_Title"),
                 Content = panel,
-                PrimaryButtonText = "导入",
-                CloseButtonText = "取消",
+                PrimaryButtonText = L10n.Get("Common_Import"),
+                CloseButtonText = L10n.Get("Common_Cancel"),
                 DefaultButton = ContentDialogButton.Primary,
                 XamlRoot = xamlRoot,
             };
@@ -217,7 +218,7 @@ namespace WindBoard
             string url = (urlBox.Text ?? string.Empty).Trim();
             if (string.IsNullOrWhiteSpace(url))
             {
-                await ShowMessageDialogAsync(xamlRoot, "导入提示", "链接不能为空。");
+                await ShowMessageDialogAsync(xamlRoot, L10n.Get("Import_Tip_Title"), L10n.Get("Import_Link_Empty_Message"));
                 return;
             }
 
@@ -253,7 +254,7 @@ namespace WindBoard
             {
                 if (files.Count > 1)
                 {
-                    await ShowMessageDialogAsync(xamlRoot, "导入提示", "检测到 WBIX 文件，请单独导入 .wbix。");
+                    await ShowMessageDialogAsync(xamlRoot, L10n.Get("Import_Tip_Title"), L10n.Get("Import_Wbix_MultipleFiles_Message"));
                     return;
                 }
 
@@ -391,7 +392,7 @@ namespace WindBoard
             IntPtr hwnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
             if (hwnd == IntPtr.Zero)
             {
-                await ShowMessageDialogAsync(xamlRoot, "导入失败", "无法获取窗口句柄。");
+                await ShowMessageDialogAsync(xamlRoot, L10n.Get("Import_Failed_Title"), L10n.Get("Common_WindowHandleFailed_Message"));
                 return null;
             }
 
@@ -410,7 +411,7 @@ namespace WindBoard
             WbixPreview? preview = await WbixPreviewReader.TryReadAsync(file.Path);
             if (preview is null)
             {
-                await ShowMessageDialogAsync(xamlRoot, "导入失败", "WBIX 文件解析失败。");
+                await ShowMessageDialogAsync(xamlRoot, L10n.Get("Import_Failed_Title"), L10n.Get("Import_Wbix_ParseFailed_Message"));
                 return;
             }
 
@@ -431,7 +432,7 @@ namespace WindBoard
 
             var serializer = new WbixWorkspaceSerializer();
 
-            await RunBusyDialogAsync(xamlRoot, "正在导入 WBIX…", async () =>
+            await RunBusyDialogAsync(xamlRoot, L10n.Get("Import_Wbix_Busy_Title"), async () =>
             {
                 BoardWorkspaceSnapshot snapshot = await Task.Run(async () =>
                 {
@@ -474,17 +475,17 @@ namespace WindBoard
                 int targetIndex = Math.Clamp(startIndex + importCurrent, 0, Math.Max(0, _workspace.Pages.Count - 1));
                 Debug.WriteLine($"[Import/WBIX] 追加页面：startIndex={startIndex}, pages={pages.Count}, switchTo={targetIndex}");
                 _workspace.SetCurrentIndex(targetIndex);
-            }, message: "正在导入，请稍候…");
+            }, message: L10n.Get("Import_Wbix_Busy_Message"));
         }
 
         private static async Task<bool> ConfirmWbixReplaceRiskAsync(XamlRoot xamlRoot)
         {
             var dialog = new ContentDialog
             {
-                Title = "风险提示",
-                Content = "选择“覆盖整个工作区”将替换当前所有页面内容。\n\n建议在覆盖前先导出备份（WBIX）。\n\n是否继续？",
-                PrimaryButtonText = "继续覆盖",
-                CloseButtonText = "取消",
+                Title = L10n.Get("Import_Risk_Title"),
+                Content = L10n.Get("Import_Risk_ReplaceWorkspace_Content"),
+                PrimaryButtonText = L10n.Get("Import_Risk_ContinueOverwrite"),
+                CloseButtonText = L10n.Get("Common_Cancel"),
                 DefaultButton = ContentDialogButton.Close,
                 XamlRoot = xamlRoot,
             };
@@ -496,10 +497,10 @@ namespace WindBoard
         {
             var dialog = new ContentDialog
             {
-                Title = "风险提示",
-                Content = "选择“覆盖当前页”将替换当前页内容，并在其后插入导入文件的其余页面。\n\n当前页内容将丢失，且该操作无法撤销。\n\n建议覆盖前先导出备份（WBIX）。\n\n是否继续？",
-                PrimaryButtonText = "继续覆盖",
-                CloseButtonText = "取消",
+                Title = L10n.Get("Import_Risk_Title"),
+                Content = L10n.Get("Import_Risk_ReplaceCurrentPage_Content"),
+                PrimaryButtonText = L10n.Get("Import_Risk_ContinueOverwrite"),
+                CloseButtonText = L10n.Get("Common_Cancel"),
                 DefaultButton = ContentDialogButton.Close,
                 XamlRoot = xamlRoot,
             };
@@ -540,7 +541,7 @@ namespace WindBoard
                     Background = new SolidColorBrush(Microsoft.UI.Colors.LightGray),
                     Child = new TextBlock
                     {
-                        Text = "（无封面）",
+                        Text = L10n.Get("Import_Wbix_NoCover"),
                         HorizontalAlignment = HorizontalAlignment.Center,
                         VerticalAlignment = VerticalAlignment.Center,
                     },
@@ -549,24 +550,24 @@ namespace WindBoard
 
             int pageCount = preview.Manifest.Pages?.Count ?? 0;
             string created = preview.Manifest.CreatedUtc.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss");
-            string info = $"文件：{fileName}\n页数：{pageCount}\n版本：{preview.Manifest.Version}\n创建：{created}";
+            string info = L10n.Format("Import_Wbix_Info_Fmt", fileName, pageCount, preview.Manifest.Version, created);
 
-            var rbAppend = new RadioButton { Content = "新增在最后一页之后", IsChecked = true };
-            var rbReplace = new RadioButton { Content = "覆盖当前页（有风险）" };
+            var rbAppend = new RadioButton { Content = L10n.Get("Import_Wbix_Mode_Append"), IsChecked = true };
+            var rbReplace = new RadioButton { Content = L10n.Get("Import_Wbix_Mode_ReplaceCurrentPage") };
 
             var panel = new StackPanel { Spacing = 12 };
             panel.Children.Add(cover);
             panel.Children.Add(new TextBlock { Text = info, TextWrapping = TextWrapping.Wrap });
-            panel.Children.Add(new TextBlock { Text = "插入方式：", FontWeight = Microsoft.UI.Text.FontWeights.SemiBold });
+            panel.Children.Add(new TextBlock { Text = L10n.Get("Import_Wbix_InsertMethod_Label"), FontWeight = Microsoft.UI.Text.FontWeights.SemiBold });
             panel.Children.Add(rbAppend);
             panel.Children.Add(rbReplace);
 
             var dialog = new ContentDialog
             {
-                Title = "导入 WBIX",
+                Title = L10n.Get("Import_Wbix_Dialog_Title"),
                 Content = panel,
-                PrimaryButtonText = "导入",
-                CloseButtonText = "取消",
+                PrimaryButtonText = L10n.Get("Common_Import"),
+                CloseButtonText = L10n.Get("Common_Cancel"),
                 DefaultButton = ContentDialogButton.Primary,
                 XamlRoot = xamlRoot,
             };
