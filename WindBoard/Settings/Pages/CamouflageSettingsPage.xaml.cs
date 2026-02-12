@@ -1,5 +1,4 @@
 using System;
-using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices.WindowsRuntime;
 using System.Threading.Tasks;
@@ -12,6 +11,7 @@ using Windows.Graphics.Imaging;
 using Windows.Storage;
 using Windows.Storage.Pickers;
 using Windows.Storage.Streams;
+using WindBoard.Logging;
 using WindBoard.Localization;
 
 namespace WindBoard.Settings.Pages
@@ -57,9 +57,10 @@ namespace WindBoard.Settings.Pages
             {
                 AppSettingsService.Instance.SaveAsync().GetAwaiter().GetResult();
             }
-            catch
+            catch (Exception ex)
             {
                 // 忽略保存失败：不阻断设置窗口关闭流程
+                AppLog.Warn("Settings", "CamouflageSettingsPage 关闭时保存设置失败", ex);
             }
         }
 
@@ -153,7 +154,7 @@ namespace WindBoard.Settings.Pages
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"[Settings/Camouflage] 同步图标预览失败：{ex}");
+                AppLog.Warn("Settings/Camouflage", "同步图标预览失败", ex);
             }
         }
 
@@ -228,12 +229,12 @@ namespace WindBoard.Settings.Pages
         {
             try
             {
-                Debug.WriteLine("[Settings/Camouflage] 打开图标/程序选择对话框…");
+                AppLog.Debug("Settings/Camouflage", "打开图标/程序选择对话框…");
                 IntPtr hwnd = TryGetHostWindowHandle();
 
                 if (hwnd == IntPtr.Zero)
                 {
-                    Debug.WriteLine("[Settings/Camouflage] 无法获取宿主窗口句柄，已取消打开文件选择器。");
+                    AppLog.Warn("Settings/Camouflage", "无法获取宿主窗口句柄，已取消打开文件选择器。");
                     SetIconPreview(
                         null,
                         displayName: null,
@@ -264,7 +265,7 @@ namespace WindBoard.Settings.Pages
                 path = (path ?? string.Empty).Trim();
                 if (string.IsNullOrWhiteSpace(path))
                 {
-                    Debug.WriteLine("[Settings/Camouflage] 文件对话框返回的路径为空。");
+                    AppLog.Warn("Settings/Camouflage", "文件对话框返回的路径为空。");
                     SetIconPreview(
                         null,
                         displayName: null,
@@ -273,7 +274,7 @@ namespace WindBoard.Settings.Pages
                     return;
                 }
 
-                Debug.WriteLine($"[Settings/Camouflage] 已选择图标来源：'{path}', exists={File.Exists(path)}");
+                AppLog.Debug("Settings/Camouflage", $"已选择图标来源：'{path}', exists={File.Exists(path)}");
 
                 // 关键：不要只依赖 TextChanged 事件来落盘。
                 // 在某些 WinUI 运行时组合下，代码里设置 Text 可能不会触发 TextChanged，
@@ -300,7 +301,7 @@ namespace WindBoard.Settings.Pages
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"[Settings/Camouflage] 打开文件选择器失败：{ex}");
+                AppLog.Error("Settings/Camouflage", "打开文件选择器失败", ex);
                 SetIconPreview(
                     null,
                     displayName: null,
@@ -363,7 +364,7 @@ namespace WindBoard.Settings.Pages
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"[Settings/Camouflage] 生成桌面快捷方式异常：{ex}");
+                AppLog.Error("Settings/Camouflage", "生成桌面快捷方式异常", ex);
                 await ShowMessageDialogAsync(
                     L10n.Get("Settings_Camouflage_Dialog_Title"),
                     L10n.Format("Settings_Camouflage_CreateShortcut_Failed_Fmt", ex.Message),
@@ -502,7 +503,7 @@ namespace WindBoard.Settings.Pages
         {
             if (XamlRoot is null)
             {
-                Debug.WriteLine($"[Settings/Camouflage] 无法显示对话框（XamlRoot 为空）：{title} - {message}");
+                AppLog.Warn("Settings/Camouflage", $"无法显示对话框（XamlRoot 为空）：{title} - {message}");
                 return;
             }
 

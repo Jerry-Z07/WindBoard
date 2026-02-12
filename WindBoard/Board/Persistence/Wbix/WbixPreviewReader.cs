@@ -1,9 +1,9 @@
 using System;
-using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
 using System.Text.Json;
 using System.Threading.Tasks;
+using WindBoard.Logging;
 using WindBoard.Localization;
 
 namespace WindBoard.Board.Persistence.Wbix
@@ -72,7 +72,7 @@ namespace WindBoard.Board.Persistence.Wbix
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"[Import/WBIX] 预读失败：'{filePath}', ex={ex}");
+                AppLog.Warn("WBIX", $"预读失败：'{filePath}'", ex);
                 return null;
             }
         }

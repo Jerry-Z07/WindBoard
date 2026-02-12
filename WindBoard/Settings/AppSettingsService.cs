@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Windows.UI;
+using WindBoard.Logging;
 
 namespace WindBoard.Settings
 {
@@ -144,6 +145,26 @@ namespace WindBoard.Settings
             }
         }
 
+        internal LoggingSettingsSnapshot GetLoggingSettingsSnapshot()
+        {
+            lock (_gate)
+            {
+                LoggingSettings? logging = Current.Diagnostics?.Logging;
+
+                if (!AppLogLevelParser.TryParse(logging?.MinimumLevel, out AppLogLevel level))
+                {
+                    level = AppLogLevel.Information;
+                }
+
+                return new LoggingSettingsSnapshot
+                {
+                    FileEnabled = logging?.FileEnabled ?? true,
+                    MinimumLevel = level,
+                    RetentionDays = logging?.RetentionDays ?? 14,
+                };
+            }
+        }
+
         internal void Update(Action<AppSettings> update)
         {
             if (update is null)
@@ -201,9 +222,10 @@ namespace WindBoard.Settings
                 {
                     await SaveAsync().ConfigureAwait(false);
                 }
-                catch
+                catch (Exception ex)
                 {
-                    // 设置保存失败不应影响应用主流程，这里吞掉异常。
+                    // 设置保存失败不应影响应用主流程，但必须记录日志，便于排查用户环境问题（权限/磁盘/JSON 等）。
+                    AppLog.Error("Settings", $"设置保存失败：path='{_store.FilePath}'", ex);
                 }
             });
         }

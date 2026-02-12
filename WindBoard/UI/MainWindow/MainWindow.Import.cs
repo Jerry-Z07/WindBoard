@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Numerics;
 using System.Runtime.InteropServices.WindowsRuntime;
@@ -17,6 +16,7 @@ using WindBoard.Board.Elements;
 using WindBoard.Board.Editing;
 using WindBoard.Board.Persistence;
 using WindBoard.Board.Persistence.Wbix;
+using WindBoard.Logging;
 using WindBoard.Localization;
 using WindBoard.Importing;
 using WbixPreview = WindBoard.Board.Persistence.Wbix.WbixPreviewReader.WbixPreview;
@@ -55,6 +55,8 @@ namespace WindBoard
                 return;
             }
 
+            AppLog.Info("Import", $"开始导入：entry={entry.Value}");
+
             try
             {
                 switch (entry.Value)
@@ -78,7 +80,7 @@ namespace WindBoard
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"[Import] 导入异常：{ex}");
+                AppLog.Error("Import", $"导入异常：entry={entry.Value}", ex);
                 await ShowMessageDialogAsync(xamlRoot, L10n.Get("Import_Failed_Title"), ex.Message);
             }
         }
@@ -240,6 +242,8 @@ namespace WindBoard
                 return;
             }
 
+            AppLog.Info("Import", $"导入文件：count={files.Count}");
+
             StorageFile? wbix = null;
             foreach (StorageFile f in files)
             {
@@ -252,6 +256,8 @@ namespace WindBoard
 
             if (wbix is not null)
             {
+                AppLog.Info("Import", $"识别为 WBIX：'{wbix.Path}'");
+
                 if (files.Count > 1)
                 {
                     await ShowMessageDialogAsync(xamlRoot, L10n.Get("Import_Tip_Title"), L10n.Get("Import_Wbix_MultipleFiles_Message"));
@@ -320,7 +326,7 @@ namespace WindBoard
 
             // 其它文件：统一以“文件占位卡片”导入，并支持双击外部打开。
             // 说明：常见文档（PDF/Office 等）与未知格式都走这一分支，避免“导入后什么都没发生”。
-            Debug.WriteLine($"[Import] 文件占位卡片导入：'{file.Path}'");
+            AppLog.Debug("Import", $"文件占位卡片导入：'{file.Path}'");
             ImportFilePlaceholder(file, offsetIndex);
         }
 
@@ -444,17 +450,17 @@ namespace WindBoard
 
                 if (mode == WbixImportMode.ReplaceCurrentPage)
                 {
-                    Debug.WriteLine($"[Import/WBIX] 替换工作区：pages={pages.Count}, currentIndex={snapshot.CurrentIndex}");
+                    AppLog.Info("WBIX", $"替换工作区：pages={pages.Count}, currentIndex={snapshot.CurrentIndex}");
                     if (pages.Count == 0)
                     {
-                        Debug.WriteLine("[Import/WBIX] pages=0，忽略导入。");
+                        AppLog.Warn("WBIX", "pages=0，忽略导入。");
                         return;
                     }
 
                     int insertIndex = _workspace.CurrentIndex;
                     int replaceImportCurrent = Math.Clamp(snapshot.CurrentIndex, 0, Math.Max(0, pages.Count - 1));
 
-                    Debug.WriteLine($"[Import/WBIX] 覆盖当前页并插入：workspaceCurrent={insertIndex}, importPages={pages.Count}, importCurrent={replaceImportCurrent}");
+                    AppLog.Info("WBIX", $"覆盖当前页并插入：workspaceCurrent={insertIndex}, importPages={pages.Count}, importCurrent={replaceImportCurrent}");
 
                     // 覆盖当前页：用导入文件的第 1 页替换当前页，然后把剩余页插入到其后。
                     _workspace.ReplacePageAt(insertIndex, pages[0]);
@@ -465,7 +471,7 @@ namespace WindBoard
                     }
 
                     int replaceTargetIndex = Math.Clamp(insertIndex + replaceImportCurrent, 0, Math.Max(0, _workspace.Pages.Count - 1));
-                    Debug.WriteLine($"[Import/WBIX] 覆盖导入完成：switchTo={replaceTargetIndex}, pagesAfter={_workspace.Pages.Count}");
+                    AppLog.Info("WBIX", $"覆盖导入完成：switchTo={replaceTargetIndex}, pagesAfter={_workspace.Pages.Count}");
                     _workspace.SetCurrentIndex(replaceTargetIndex);
                     return;
                 }
@@ -473,7 +479,7 @@ namespace WindBoard
                 int startIndex = _workspace.AppendPages(pages, switchToFirstAppendedPage: false);
                 int importCurrent = Math.Clamp(snapshot.CurrentIndex, 0, Math.Max(0, pages.Count - 1));
                 int targetIndex = Math.Clamp(startIndex + importCurrent, 0, Math.Max(0, _workspace.Pages.Count - 1));
-                Debug.WriteLine($"[Import/WBIX] 追加页面：startIndex={startIndex}, pages={pages.Count}, switchTo={targetIndex}");
+                AppLog.Info("WBIX", $"追加页面：startIndex={startIndex}, pages={pages.Count}, switchTo={targetIndex}");
                 _workspace.SetCurrentIndex(targetIndex);
             }, message: L10n.Get("Import_Wbix_Busy_Message"));
         }

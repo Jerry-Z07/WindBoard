@@ -72,6 +72,15 @@ namespace WindBoard.Settings
                         UseThicknessSlider = settings.Writing?.Pen?.UseThicknessSlider ?? false,
                     },
                 },
+                Diagnostics = new DiagnosticsSettings
+                {
+                    Logging = new LoggingSettings
+                    {
+                        FileEnabled = settings.Diagnostics?.Logging?.FileEnabled ?? true,
+                        MinimumLevel = settings.Diagnostics?.Logging?.MinimumLevel ?? "Information",
+                        RetentionDays = settings.Diagnostics?.Logging?.RetentionDays ?? 14,
+                    },
+                },
             };
         }
     }

@@ -14,6 +14,8 @@ namespace WindBoard.Settings
         public DockSettings Dock { get; set; } = new();
 
         public WritingSettings Writing { get; set; } = new();
+
+        public DiagnosticsSettings Diagnostics { get; set; } = new();
     }
 
     internal sealed class GeneralSettings
@@ -87,5 +89,34 @@ namespace WindBoard.Settings
         /// 是否使用滑条替代“三档粗细”。
         /// </summary>
         public bool UseThicknessSlider { get; set; }
+    }
+
+    /// <summary>
+    /// 诊断设置：日志、故障排查等。
+    /// </summary>
+    internal sealed class DiagnosticsSettings
+    {
+        public LoggingSettings Logging { get; set; } = new();
+    }
+
+    /// <summary>
+    /// 日志设置（落盘到 settings.json，便于用户在无 UI 的情况下也能调整）。
+    /// </summary>
+    internal sealed class LoggingSettings
+    {
+        /// <summary>
+        /// 是否启用写入到文件。
+        /// </summary>
+        public bool FileEnabled { get; set; } = true;
+
+        /// <summary>
+        /// 最低输出级别：Trace/Debug/Information/Warning/Error/Critical（大小写不敏感）。
+        /// </summary>
+        public string MinimumLevel { get; set; } = "Information";
+
+        /// <summary>
+        /// 日志文件保留天数（<=0 表示不清理）。
+        /// </summary>
+        public int RetentionDays { get; set; } = 14;
     }
 }

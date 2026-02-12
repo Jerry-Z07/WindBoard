@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text.Json;
+using WindBoard.Logging;
 
 namespace WindBoard.Settings
 {
@@ -52,9 +53,10 @@ namespace WindBoard.Settings
                 AppSettings? settings = JsonSerializer.Deserialize<AppSettings>(json, JsonOptions);
                 return NormalizeInPlace(settings ?? new AppSettings());
             }
-            catch
+            catch (Exception ex)
             {
                 // 读取/解析失败时回退到默认值，避免启动崩溃。
+                AppLog.Warn("Settings", $"读取/解析设置失败，已回退默认值：path='{FilePath}'", ex);
                 return NormalizeInPlace(new AppSettings());
             }
         }
@@ -105,6 +107,10 @@ namespace WindBoard.Settings
             settings.Writing ??= new WritingSettings();
             settings.Writing.Pen ??= new PenSettings();
             NormalizePenSettingsInPlace(settings.Writing.Pen);
+
+            settings.Diagnostics ??= new DiagnosticsSettings();
+            settings.Diagnostics.Logging ??= new LoggingSettings();
+            NormalizeLoggingSettingsInPlace(settings.Diagnostics.Logging);
             return settings;
         }
 
@@ -213,6 +219,25 @@ namespace WindBoard.Settings
 
             // 粗细：必须三档，且归一化为递增。
             settings.ThicknessPresets = PenSettingsDefaults.NormalizeThicknessPresets(settings.ThicknessPresets);
+        }
+
+        private static void NormalizeLoggingSettingsInPlace(LoggingSettings settings)
+        {
+            // 说明：日志设置大多会被用户手工编辑，因此这里做“宽松解析 + 强归一化”。
+            settings.MinimumLevel = (settings.MinimumLevel ?? string.Empty).Trim();
+            if (!AppLogLevelParser.TryParse(settings.MinimumLevel, out AppLogLevel level))
+            {
+                level = AppLogLevel.Information;
+            }
+
+            // 统一落盘为枚举名称（Information/Warning/...），便于支持更多别名而不污染文件。
+            settings.MinimumLevel = level.ToString();
+
+            // RetentionDays：<=0 表示不清理；正数则做上限保护，避免误填极大值导致清理逻辑变慢。
+            if (settings.RetentionDays > 365)
+            {
+                settings.RetentionDays = 365;
+            }
         }
 
         private static List<string> NormalizeOrder(IEnumerable<string>? order, IReadOnlyList<string> defaults)

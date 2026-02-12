@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Concurrent;
-using System.Diagnostics;
 using System.Globalization;
 using System.Resources;
+using WindBoard.Logging;
 
 namespace WindBoard.Localization
 {
@@ -33,7 +33,7 @@ namespace WindBoard.Localization
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"[L10n] 初始化失败：{ex}");
+                AppLog.Error("L10n", "初始化失败", ex);
             }
         }
 
@@ -62,12 +62,12 @@ namespace WindBoard.Localization
             }
             catch (MissingManifestResourceException ex)
             {
-                Debug.WriteLine($"[L10n] 资源缺失：key={key}, ex={ex}");
+                AppLog.Error("L10n", $"资源缺失：key={key}", ex);
                 return fallback ?? key;
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"[L10n] 读取失败：key={key}, ex={ex}");
+                AppLog.Error("L10n", $"读取失败：key={key}", ex);
                 return fallback ?? key;
             }
         }
@@ -84,7 +84,7 @@ namespace WindBoard.Localization
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"[L10n] 格式化失败：key={key}, template='{template}', ex={ex}");
+                AppLog.Error("L10n", $"格式化失败：key={key}, template='{template}'", ex);
                 return template;
             }
         }
@@ -93,9 +93,8 @@ namespace WindBoard.Localization
         {
             if (MissingKeyLogged.TryAdd(key, 0))
             {
-                Debug.WriteLine($"[L10n] 缺少资源 key：{key}");
+                AppLog.Warn("L10n", $"缺少资源 key：{key}");
             }
         }
     }
 }
-

@@ -240,4 +240,43 @@ public sealed class AppSettingsStoreTests
 
         Assert.Equal(PenSettingsDefaults.DefaultThicknessPresets, settings.Writing.Pen.ThicknessPresets);
     }
+
+    [Fact]
+    public void NormalizeInPlace_CreatesLoggingDefaults_WhenDiagnosticsIsNull()
+    {
+        var settings = new AppSettings
+        {
+            Diagnostics = null!,
+        };
+
+        AppSettingsStore.NormalizeInPlace(settings);
+
+        Assert.NotNull(settings.Diagnostics);
+        Assert.NotNull(settings.Diagnostics.Logging);
+        Assert.True(settings.Diagnostics.Logging.FileEnabled);
+        Assert.Equal("Information", settings.Diagnostics.Logging.MinimumLevel);
+        Assert.Equal(14, settings.Diagnostics.Logging.RetentionDays);
+    }
+
+    [Fact]
+    public void NormalizeInPlace_NormalizesLoggingSettings_LevelAndRetention()
+    {
+        var settings = new AppSettings
+        {
+            Diagnostics = new DiagnosticsSettings
+            {
+                Logging = new LoggingSettings
+                {
+                    FileEnabled = true,
+                    MinimumLevel = "warn",
+                    RetentionDays = 999,
+                },
+            },
+        };
+
+        AppSettingsStore.NormalizeInPlace(settings);
+
+        Assert.Equal("Warning", settings.Diagnostics.Logging.MinimumLevel);
+        Assert.Equal(365, settings.Diagnostics.Logging.RetentionDays);
+    }
 }

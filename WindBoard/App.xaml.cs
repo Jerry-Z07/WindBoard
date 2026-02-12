@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices.WindowsRuntime;
+using System.Threading.Tasks;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
@@ -15,6 +16,7 @@ using Windows.ApplicationModel;
 using Windows.ApplicationModel.Activation;
 using Windows.Foundation;
 using Windows.Foundation.Collections;
+using WindBoard.Logging;
 using WindBoard.Localization;
 using WindBoard.Settings;
 
@@ -36,7 +38,15 @@ namespace WindBoard
         /// </summary>
         public App()
         {
+            // 日志尽可能早初始化：这样启动阶段（资源加载/设置加载）的问题也能落盘，方便用户排查。
+            AppLog.Initialize();
+
             InitializeComponent();
+
+            // 全局异常捕获：避免“静默失败”，并把关键堆栈落盘到日志文件。
+            UnhandledException += OnAppUnhandledException;
+            AppDomain.CurrentDomain.UnhandledException += OnAppDomainUnhandledException;
+            TaskScheduler.UnobservedTaskException += OnUnobservedTaskException;
         }
 
         /// <summary>
@@ -48,8 +58,71 @@ namespace WindBoard
             L10n.Initialize();
             AppSettingsService.Instance.Load();
 
+            // 应用设置加载完成后，按 settings.json 的配置重新应用日志级别/保留天数等。
+            LoggingSettingsSnapshot logging = AppSettingsService.Instance.GetLoggingSettingsSnapshot();
+            AppLogOptions defaults = AppLogOptions.CreateDefault();
+            AppLog.Initialize(
+                new AppLogOptions
+                {
+                    MinimumLevel = logging.MinimumLevel,
+                    FileEnabled = logging.FileEnabled,
+                    DebugOutputEnabled = defaults.DebugOutputEnabled,
+                    LogDirectory = defaults.LogDirectory,
+                    RetentionDays = logging.RetentionDays,
+                },
+                writeInitLog: false);
+
+            string version = typeof(App).Assembly.GetName().Version?.ToString() ?? "unknown";
+            AppLog.Info("App", $"应用启动：version={version}, args='{args.Arguments ?? string.Empty}', logFile='{AppLog.CurrentLogFilePath ?? "(null)"}'");
+
             _window = new MainWindow();
             _window.Activate();
+        }
+
+        private static void OnAppUnhandledException(object sender, Microsoft.UI.Xaml.UnhandledExceptionEventArgs e)
+        {
+            try
+            {
+                AppLog.Critical("App", "WinUI UnhandledException", e.Exception);
+            }
+            catch
+            {
+                // 兜底：全局异常处理本身不能再抛异常
+            }
+        }
+
+        private static void OnAppDomainUnhandledException(object sender, System.UnhandledExceptionEventArgs e)
+        {
+            try
+            {
+                if (e.ExceptionObject is Exception ex)
+                {
+                    AppLog.Critical("App", $"AppDomain UnhandledException：isTerminating={e.IsTerminating}", ex);
+                }
+                else
+                {
+                    AppLog.Critical("App", $"AppDomain UnhandledException：isTerminating={e.IsTerminating}, exceptionObjectType={e.ExceptionObject?.GetType().FullName ?? "(null)"}");
+                }
+            }
+            catch
+            {
+                // 兜底：全局异常处理本身不能再抛异常
+            }
+        }
+
+        private static void OnUnobservedTaskException(object? sender, UnobservedTaskExceptionEventArgs e)
+        {
+            try
+            {
+                AppLog.Error("App", "TaskScheduler.UnobservedTaskException", e.Exception);
+
+                // 标记已观察：避免宿主将其升级为进程级异常（不同运行时/配置下行为可能不同）。
+                e.SetObserved();
+            }
+            catch
+            {
+                // 兜底：全局异常处理本身不能再抛异常
+            }
         }
     }
 }

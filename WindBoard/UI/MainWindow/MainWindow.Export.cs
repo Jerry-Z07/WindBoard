@@ -10,6 +10,7 @@ using Windows.Storage;
 using Windows.Storage.Pickers;
 using WindBoard.Board.Persistence;
 using WindBoard.Exporting;
+using WindBoard.Logging;
 using WindBoard.Localization;
 
 namespace WindBoard
@@ -56,6 +57,8 @@ namespace WindBoard
             {
                 return;
             }
+
+            AppLog.Info("Export", $"开始导出：format={selection.Format}, scope={selection.PageScope}, range='{selection.PageRangeText}', dpi={selection.Dpi}, paddingDip={selection.PaddingDip}");
 
             // 导出建议基于快照进行：避免导出耗时期间用户继续编辑导致数据竞争或导出内容不一致。
             BoardWorkspaceSnapshot snapshot = BoardWorkspaceSnapshotConverter.CreateSnapshot(_workspace);
@@ -106,6 +109,7 @@ namespace WindBoard
             }
             catch (Exception ex)
             {
+                AppLog.Error("Export", $"导出异常：format={selection.Format}, scope={selection.PageScope}, range='{selection.PageRangeText}'", ex);
                 await ShowMessageDialogAsync(xamlRoot, L10n.Get("Export_Failed_Title"), ex.Message);
             }
         }
@@ -163,9 +167,11 @@ namespace WindBoard
 
             await RunBusyDialogAsync(xamlRoot, L10n.Get("Export_Busy_Wbix_Title"), async () =>
             {
+                AppLog.Info("Export", $"导出 WBIX：path='{file.Path}'");
                 await _exportService.ExportWbixAsync(snapshot, file.Path);
             });
 
+            AppLog.Info("Export", $"导出 WBIX 完成：path='{file.Path}'");
             await ShowMessageDialogAsync(xamlRoot, L10n.Get("Export_Completed_Title"), L10n.Format("Export_Completed_File_Fmt", file.Path));
         }
 
@@ -181,9 +187,11 @@ namespace WindBoard
 
             await RunBusyDialogAsync(xamlRoot, L10n.Get("Export_Busy_Pdf_Title"), async () =>
             {
+                AppLog.Info("Export", $"导出 PDF：path='{file.Path}', pages={pageIndices.Count}");
                 await _exportService.ExportPdfAsync(snapshot, pageIndices, file.Path, options);
             });
 
+            AppLog.Info("Export", $"导出 PDF 完成：path='{file.Path}'");
             await ShowMessageDialogAsync(xamlRoot, L10n.Get("Export_Completed_Title"), L10n.Format("Export_Completed_File_Fmt", file.Path));
         }
 
@@ -199,9 +207,11 @@ namespace WindBoard
 
                 await RunBusyDialogAsync(xamlRoot, L10n.Get("Export_Busy_Png_Title"), async () =>
                 {
+                    AppLog.Info("Export", $"导出 PNG：path='{file.Path}', page={pageIndices[0]}");
                     await _exportService.ExportPngAsync(snapshot, pageIndices[0], file.Path, rasterOptions);
                 });
 
+                AppLog.Info("Export", $"导出 PNG 完成：path='{file.Path}'");
                 await ShowMessageDialogAsync(xamlRoot, L10n.Get("Export_Completed_Title"), L10n.Format("Export_Completed_File_Fmt", file.Path));
                 return;
             }
@@ -229,9 +239,11 @@ namespace WindBoard
 
             await RunBusyDialogAsync(xamlRoot, L10n.Get("Export_Busy_Png_Title"), async () =>
             {
+                AppLog.Info("Export", $"批量导出 PNG：folder='{exportFolderPath}', pages={pageIndices.Count}");
                 await _exportService.ExportPngPagesToFolderAsync(snapshot, pageIndices, exportFolderPath, date, rasterOptions);
             });
 
+            AppLog.Info("Export", $"批量导出 PNG 完成：folder='{exportFolderPath}'");
             await ShowMessageDialogAsync(xamlRoot, L10n.Get("Export_Completed_Title"), L10n.Format("Export_Completed_Folder_Fmt", exportFolderPath));
         }
 
@@ -492,9 +504,10 @@ namespace WindBoard
                 {
                     dialog.Hide();
                 }
-                catch
+                catch (Exception ex)
                 {
                     // 忽略关闭失败：导出流程不应因弹窗状态异常而中断
+                    AppLog.Debug("Export", $"BusyDialog 关闭失败：title='{title}'", ex);
                 }
             }
         }

@@ -15,6 +15,7 @@ using WindBoard.Board.Editing;
 using WindBoard.Board.Elements;
 using WindBoard.Board.Viewport;
 using WindBoard.Interaction;
+using WindBoard.Logging;
 using WindBoard.Localization;
 using WindBoard.Rendering;
 using WindBoard.Rendering.Board;
@@ -354,7 +355,7 @@ namespace WindBoard.Controls
                  {
                      if (!TryCancelSelectionDockBringToFront(selectedStrokes))
                      {
-                         Debug.WriteLine("[SelectionDock] 取消置顶忽略：Undo 栈顶不是当前置顶命令或选中已变化。");
+                         AppLog.Debug("SelectionDock", "取消置顶忽略：Undo 栈顶不是当前置顶命令或选中已变化。");
                      }
 
                      _input.ValidateSelection();
@@ -384,7 +385,7 @@ namespace WindBoard.Controls
                  {
                      if (!TryCancelSelectionDockBringToFront(element))
                      {
-                         Debug.WriteLine("[SelectionDock] 取消置顶忽略：Undo 栈顶不是当前置顶命令或选中已变化。");
+                         AppLog.Debug("SelectionDock", "取消置顶忽略：Undo 栈顶不是当前置顶命令或选中已变化。");
                      }
 
                      _input.ValidateSelection();

@@ -1,6 +1,6 @@
 using System;
-using System.Diagnostics;
 using System.Threading.Tasks;
+using WindBoard.Logging;
 using Windows.Graphics.Imaging;
 using Windows.Storage;
 using Windows.Storage.Streams;
@@ -67,10 +67,9 @@ namespace WindBoard.Importing
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"[Import] 图片解码失败：'{file.Path}', ex={ex}");
+                AppLog.Error("Import", $"图片解码失败：'{file.Path}'", ex);
                 return null;
             }
         }
     }
 }
-

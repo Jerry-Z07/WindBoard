@@ -13,6 +13,7 @@ using Microsoft.UI.Xaml.Shapes;
 using Windows.UI;
 using WindBoard.Board.Editing;
 using WindBoard.Interaction;
+using WindBoard.Logging;
 using WindBoard.Localization;
 using WindBoard.Settings;
 
@@ -83,6 +84,8 @@ namespace WindBoard
 
             Closed += (_, _) =>
             {
+                AppLog.Info("App", "主窗口关闭：开始清理资源");
+
                 AppSettingsService.Instance.Changed -= OnAppSettingsChanged;
 
                 // 以主窗口为“应用主生命周期”窗口：主窗口退出时同步关闭设置窗口，
@@ -91,9 +94,10 @@ namespace WindBoard
                 {
                     _settingsWindow?.Close();
                 }
-                catch
+                catch (Exception ex)
                 {
                     // 忽略关闭失败：不阻断主窗口退出流程
+                    AppLog.Warn("App", "关闭设置窗口失败", ex);
                 }
 
                 // 关闭前尽量落盘一次，避免防抖未触发导致设置丢失。
@@ -101,12 +105,20 @@ namespace WindBoard
                 {
                     AppSettingsService.Instance.SaveAsync().GetAwaiter().GetResult();
                 }
-                catch
+                catch (Exception ex)
                 {
                     // 忽略保存失败：不阻断关闭流程
+                    AppLog.Warn("Settings", "主窗口关闭时保存设置失败", ex);
                 }
 
-                BoardCanvas.Dispose();
+                try
+                {
+                    BoardCanvas.Dispose();
+                }
+                catch (Exception ex)
+                {
+                    AppLog.Warn("App", "释放 BoardCanvas 失败", ex);
+                }
             };
         }
 

@@ -1,5 +1,4 @@
 using System;
-using System.Diagnostics;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
@@ -7,6 +6,7 @@ using System.IO;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text;
+using WindBoard.Logging;
 
 namespace WindBoard.Settings
 {
@@ -101,7 +101,7 @@ namespace WindBoard.Settings
                     }
                     catch (Exception ex)
                     {
-                        Debug.WriteLine($"[Camouflage] 持久化图标缓存路径失败：{ex}");
+                        AppLog.Warn("Camouflage", "持久化图标缓存路径失败", ex);
                     }
                 }
             }
@@ -143,7 +143,7 @@ namespace WindBoard.Settings
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"[Camouflage] 生成默认图标缓存失败：{ex}");
+                AppLog.Warn("Camouflage", "生成默认图标缓存失败", ex);
                 cachePath = string.Empty;
                 return false;
             }
@@ -209,7 +209,7 @@ namespace WindBoard.Settings
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"[Camouflage] 更新桌面快捷方式失败：{ex}");
+                AppLog.Error("Camouflage", "更新桌面快捷方式失败", ex);
                 errorMessage = ex.Message;
                 return false;
             }
@@ -453,7 +453,7 @@ namespace WindBoard.Settings
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"[Camouflage] 构建图标缓存失败：source='{sourcePath}', ex={ex}");
+                AppLog.Warn("Camouflage", $"构建图标缓存失败：source='{sourcePath}'", ex);
                 cachePath = string.Empty;
                 previewBytes = null;
                 errorMessage = ex.Message;
@@ -527,7 +527,7 @@ namespace WindBoard.Settings
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"[Camouflage] 从 EXE 提取图标失败：'{exePath}', ex={ex}");
+                AppLog.Warn("Camouflage", $"从 EXE 提取图标失败：'{exePath}'", ex);
             }
 
             try
@@ -694,7 +694,7 @@ namespace WindBoard.Settings
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"[Camouflage] 释放 COM 对象失败：{name}, ex={ex}");
+                AppLog.Debug("Camouflage", $"释放 COM 对象失败：{name}, ex={ex}");
             }
         }
     }

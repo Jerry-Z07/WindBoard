@@ -13,6 +13,7 @@ using Microsoft.UI.Xaml.Media.Animation;
 using Windows.UI;
 using WindBoard.Board.Editing;
 using WindBoard.Interaction;
+using WindBoard.Logging;
 using WindBoard.Localization;
 using WindBoard.ShortcutDock;
 using WindBoard.Settings;
@@ -345,9 +346,10 @@ namespace WindBoard
                     fallbackIcon.Visibility = Visibility.Collapsed;
                 }
             }
-            catch
+            catch (Exception ex)
             {
                 // 图标加载失败：保持 fallback，不影响主流程。
+                AppLog.Debug("ShortcutDock", $"图标加载失败：id={item.Id}, path='{item.Path}'", ex);
             }
         }
 
@@ -358,12 +360,12 @@ namespace WindBoard
                 return;
             }
 
-            Debug.WriteLine($"[ShortcutDock] 点击：type={item.Type}, path='{item.Path}', args='{item.Arguments}'");
+            AppLog.Debug("ShortcutDock", $"点击：type={item.Type}, path='{item.Path}', args='{item.Arguments}'");
 
             string target = ShortcutDockLaunchHelper.NormalizeInput(item.Path);
             if (string.IsNullOrWhiteSpace(target))
             {
-                Debug.WriteLine("[ShortcutDock] 点击忽略：路径为空");
+                AppLog.Warn("ShortcutDock", "点击忽略：路径为空");
                 return;
             }
 
@@ -373,13 +375,13 @@ namespace WindBoard
                 {
                     if (!ShortcutDockLaunchHelper.TryNormalizeLinkUri(target, out Uri? uri))
                     {
-                        Debug.WriteLine($"[ShortcutDock] 链接解析失败：input='{target}'");
+                        AppLog.Warn("ShortcutDock", $"链接解析失败：input='{target}'");
                         await ShowShortcutDockErrorDialogAsync(L10n.Get("ShortcutDock_InvalidLink_Title"), L10n.Get("ShortcutDock_InvalidLink_Message"));
                         return;
                     }
 
                     Uri safeUri = uri!;
-                    Debug.WriteLine($"[ShortcutDock] 打开链接：{safeUri}");
+                    AppLog.Info("ShortcutDock", $"打开链接：{safeUri}");
                     Process.Start(new ProcessStartInfo(safeUri.ToString()) { UseShellExecute = true });
 
                     return;
@@ -390,18 +392,18 @@ namespace WindBoard
                     ShortcutDockLaunchHelper.NormalizeProgramLaunch(item.Path, item.Arguments, out string programTarget, out string programArgs);
                     if (string.IsNullOrWhiteSpace(programTarget))
                     {
-                        Debug.WriteLine("[ShortcutDock] 程序启动忽略：规范化后路径为空");
+                        AppLog.Warn("ShortcutDock", "程序启动忽略：规范化后路径为空");
                         return;
                     }
 
                     bool fileExists = File.Exists(programTarget);
-                    Debug.WriteLine($"[ShortcutDock] 程序启动：target='{programTarget}', args='{programArgs}', fileExists={fileExists}");
+                    AppLog.Info("ShortcutDock", $"程序启动：target='{programTarget}', args='{programArgs}', fileExists={fileExists}");
                     try
                     {
                         if (fileExists)
                         {
                             ProcessStartInfo info = ShortcutDockLaunchHelper.CreateProgramProcessStartInfo(programTarget, programArgs);
-                            Debug.WriteLine($"[ShortcutDock] CreateProcess：useShell={info.UseShellExecute}, wd='{info.WorkingDirectory}', args='{info.Arguments}'");
+                            AppLog.Debug("ShortcutDock", $"CreateProcess：useShell={info.UseShellExecute}, wd='{info.WorkingDirectory}', args='{info.Arguments}'");
                             Process.Start(info);
                         }
                         else
@@ -412,13 +414,13 @@ namespace WindBoard
                                 UseShellExecute = true,
                                 Arguments = programArgs,
                             };
-                            Debug.WriteLine($"[ShortcutDock] ShellExecute：args='{shellInfo.Arguments}'");
+                            AppLog.Debug("ShortcutDock", $"ShellExecute：args='{shellInfo.Arguments}'");
                             Process.Start(shellInfo);
                         }
                     }
                     catch (Exception ex)
                     {
-                        Debug.WriteLine($"[ShortcutDock] 程序启动异常：{ex}");
+                        AppLog.Error("ShortcutDock", "程序启动异常", ex);
                         if (fileExists)
                         {
                             // 兜底：某些程序（例如需要提权的 exe）在 UseShellExecute=false 时可能启动失败，
@@ -431,11 +433,12 @@ namespace WindBoard
                                     Arguments = programArgs,
                                     WorkingDirectory = Path.GetDirectoryName(programTarget) ?? string.Empty,
                                 };
-                                Debug.WriteLine($"[ShortcutDock] 程序启动兜底：useShell={fallbackInfo.UseShellExecute}, wd='{fallbackInfo.WorkingDirectory}', args='{fallbackInfo.Arguments}'");
+                                AppLog.Warn("ShortcutDock", $"程序启动兜底：useShell={fallbackInfo.UseShellExecute}, wd='{fallbackInfo.WorkingDirectory}', args='{fallbackInfo.Arguments}'");
                                 Process.Start(fallbackInfo);
                             }
-                            catch
+                            catch (Exception fallbackEx)
                             {
+                                AppLog.Error("ShortcutDock", "程序启动兜底失败", fallbackEx);
                                 await ShowShortcutDockErrorDialogAsync(L10n.Get("ShortcutDock_LaunchFailed_Title"), ex.Message);
                             }
                         }
@@ -450,17 +453,17 @@ namespace WindBoard
                 // 默认按“文件”处理：交给系统默认程序打开。
                 if (!File.Exists(target) && !Directory.Exists(target))
                 {
-                    Debug.WriteLine($"[ShortcutDock] 文件/文件夹不存在：'{target}'");
+                    AppLog.Warn("ShortcutDock", $"文件/文件夹不存在：'{target}'");
                     await ShowShortcutDockErrorDialogAsync(L10n.Get("ShortcutDock_PathNotFound_Title"), L10n.Get("ShortcutDock_PathNotFound_Message"));
                     return;
                 }
 
-                Debug.WriteLine($"[ShortcutDock] 打开文件/文件夹：'{target}'");
+                AppLog.Info("ShortcutDock", $"打开文件/文件夹：'{target}'");
                 Process.Start(new ProcessStartInfo(target) { UseShellExecute = true });
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"[ShortcutDock] 打开失败：{ex}");
+                AppLog.Error("ShortcutDock", "打开失败", ex);
                 await ShowShortcutDockErrorDialogAsync(L10n.Get("Common_OpenFailed_Title"), ex.Message);
             }
         }

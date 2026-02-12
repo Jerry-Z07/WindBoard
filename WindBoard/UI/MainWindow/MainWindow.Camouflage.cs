@@ -1,9 +1,9 @@
 using System;
-using System.Diagnostics;
 using System.IO;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
+using WindBoard.Logging;
 using WindBoard.Localization;
 using WindBoard.Settings;
 
@@ -74,9 +74,10 @@ namespace WindBoard
             {
                 Title = title;
             }
-            catch
+            catch (Exception ex)
             {
                 // 忽略设置标题失败：不影响主流程
+                AppLog.Warn("Camouflage", "设置窗口标题失败（Window.Title）", ex);
             }
 
             try
@@ -87,9 +88,10 @@ namespace WindBoard
                     appWindow.Title = title;
                 }
             }
-            catch
+            catch (Exception ex)
             {
                 // 忽略设置失败：不影响主流程
+                AppLog.Warn("Camouflage", "设置窗口标题失败（AppWindow.Title）", ex);
             }
         }
 
@@ -132,7 +134,7 @@ namespace WindBoard
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"[Camouflage] 设置窗口图标失败：path='{iconPathToSet}', ex={ex}");
+                AppLog.Warn("Camouflage", $"设置窗口图标失败：path='{iconPathToSet}'", ex);
             }
         }
 
@@ -269,7 +271,7 @@ namespace WindBoard
 
             if (!ok)
             {
-                Debug.WriteLine($"[Camouflage] 自动更新桌面快捷方式失败：{errorMessage}");
+                AppLog.Warn("Camouflage", $"自动更新桌面快捷方式失败：{errorMessage}");
                 return;
             }
 

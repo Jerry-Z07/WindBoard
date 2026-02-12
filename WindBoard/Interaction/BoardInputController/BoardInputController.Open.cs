@@ -1,10 +1,10 @@
 using System;
-using System.Diagnostics;
 using System.IO;
 using System.Numerics;
 using System.Threading.Tasks;
 using Microsoft.UI.Xaml.Controls;
 using WindBoard.Board.Elements;
+using WindBoard.Logging;
 using WindBoard.Localization;
 using Windows.Storage;
 using Windows.System;
@@ -76,7 +76,7 @@ namespace WindBoard.Interaction
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"[Open] 外部打开异常：{ex}");
+                AppLog.Error("Open", "外部打开异常", ex);
                 await ShowOpenFailedDialogAsync(L10n.Get("Common_OpenFailed_Title"), ex.Message);
             }
         }
@@ -158,7 +158,7 @@ namespace WindBoard.Interaction
             {
                 if (_panel.XamlRoot is null)
                 {
-                    Debug.WriteLine($"[Open] 无法显示对话框（XamlRoot 为空）：{title} - {message}");
+                    AppLog.Warn("Open", $"无法显示对话框（XamlRoot 为空）：{title} - {message}");
                     return;
                 }
 
@@ -174,7 +174,7 @@ namespace WindBoard.Interaction
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"[Open] 显示失败提示对话框异常：{ex}");
+                AppLog.Error("Open", "显示失败提示对话框异常", ex);
             }
         }
     }

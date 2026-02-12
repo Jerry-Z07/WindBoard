@@ -1,8 +1,8 @@
 using System;
-using System.Diagnostics;
 using System.IO;
 using System.Text;
 using System.Threading.Tasks;
+using WindBoard.Logging;
 using WindBoard.Localization;
 
 namespace WindBoard.Importing
@@ -49,7 +49,7 @@ namespace WindBoard.Importing
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"[Import] 读取文本失败：'{path}', ex={ex}");
+                AppLog.Error("Import", $"读取文本失败：'{path}'", ex);
                 return L10n.Get("Import_TextReadFailed_Placeholder");
             }
         }
