@@ -90,6 +90,10 @@ namespace WindBoard.Settings
                 throw new ArgumentNullException(nameof(settings));
             }
 
+            settings.General ??= new GeneralSettings();
+            settings.General.Camouflage ??= new CamouflageSettings();
+            NormalizeCamouflageSettingsInPlace(settings.General.Camouflage);
+
             settings.Appearance ??= new AppearanceSettings();
             settings.Appearance.CanvasBackgroundHex = ColorHex.NormalizeToHexRgbOrDefault(
                 settings.Appearance.CanvasBackgroundHex,
@@ -190,6 +194,16 @@ namespace WindBoard.Settings
             }
 
             settings.ShortcutItems = normalized;
+        }
+
+        private static void NormalizeCamouflageSettingsInPlace(CamouflageSettings settings)
+        {
+            // 伪装设置以“字符串清理”为主：空/null 一律归一化为 string.Empty，避免后续逻辑判空时 NRE。
+            settings.Title = (settings.Title ?? string.Empty).Trim();
+            settings.SourcePath = (settings.SourcePath ?? string.Empty).Trim();
+            settings.IconCachePath = (settings.IconCachePath ?? string.Empty).Trim();
+            settings.ShortcutLastGeneratedSignature = (settings.ShortcutLastGeneratedSignature ?? string.Empty).Trim();
+            settings.ShortcutLastGeneratedPath = (settings.ShortcutLastGeneratedPath ?? string.Empty).Trim();
         }
 
         private static void NormalizePenSettingsInPlace(PenSettings settings)

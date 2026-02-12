@@ -55,6 +55,23 @@ namespace WindBoard.Settings
             return ColorHex.ParseOrDefault(hex, ColorHex.DefaultCanvasBackgroundColor);
         }
 
+        internal CamouflageSettingsSnapshot GetCamouflageSettingsSnapshot()
+        {
+            lock (_gate)
+            {
+                CamouflageSettings? camo = Current.General?.Camouflage;
+                return new CamouflageSettingsSnapshot
+                {
+                    Enabled = camo?.Enabled ?? false,
+                    Title = camo?.Title ?? string.Empty,
+                    SourcePath = camo?.SourcePath ?? string.Empty,
+                    IconCachePath = camo?.IconCachePath ?? string.Empty,
+                    ShortcutLastGeneratedSignature = camo?.ShortcutLastGeneratedSignature ?? string.Empty,
+                    ShortcutLastGeneratedPath = camo?.ShortcutLastGeneratedPath ?? string.Empty,
+                };
+            }
+        }
+
         internal DockSettings GetDockSettingsSnapshot()
         {
             lock (_gate)

@@ -717,7 +717,7 @@ namespace WindBoard.Rendering.Board
                 "Segoe UI",
                 fontCollection: null,
                 FontWeight.SemiBold,
-                FontStyle.Normal,
+                Vortice.DirectWrite.FontStyle.Normal,
                 FontStretch.Normal,
                 fontSize: 15.0f,
                 localeName: "zh-CN");
@@ -730,7 +730,7 @@ namespace WindBoard.Rendering.Board
                 "Segoe UI",
                 fontCollection: null,
                 FontWeight.Normal,
-                FontStyle.Normal,
+                Vortice.DirectWrite.FontStyle.Normal,
                 FontStretch.Normal,
                 fontSize: 13.0f,
                 localeName: "zh-CN");
@@ -744,7 +744,7 @@ namespace WindBoard.Rendering.Board
                 "Segoe MDL2 Assets",
                 fontCollection: null,
                 FontWeight.Normal,
-                FontStyle.Normal,
+                Vortice.DirectWrite.FontStyle.Normal,
                 FontStretch.Normal,
                 fontSize: 16.0f,
                 localeName: "zh-CN");

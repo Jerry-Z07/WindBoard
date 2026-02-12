@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="WindBoard.Settings.Pages.CamouflageSettingsPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:l10n="using:WindBoard.Localization"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <Grid>
+        <ScrollViewer>
+            <StackPanel Spacing="16" Padding="24">
+                <TextBlock Text="{l10n:Loc Key=Settings_Camouflage_Title}" Style="{ThemeResource TitleTextBlockStyle}" />
+                <TextBlock Text="{l10n:Loc Key=Settings_Camouflage_Description}" Opacity="0.75" TextWrapping="WrapWholeWords" />
+
+                <ToggleSwitch
+                    x:Name="EnabledToggleSwitch"
+                    Header="{l10n:Loc Key=Settings_Camouflage_Enabled_Header}"
+                    Toggled="OnEnabledToggled" />
+
+                <!-- 伪装未启用时，隐藏下方选项，避免误解为“已生效”。 -->
+                <StackPanel x:Name="OptionsPanel" Spacing="16" Visibility="Collapsed">
+                    <TextBox
+                        x:Name="TitleTextBox"
+                        Header="{l10n:Loc Key=Settings_Camouflage_WindowTitle_Header}"
+                        PlaceholderText="{l10n:Loc Key=Settings_Camouflage_WindowTitle_Placeholder}"
+                        TextChanged="OnTitleTextChanged" />
+
+                    <StackPanel Spacing="8">
+                        <TextBlock Text="{l10n:Loc Key=Settings_Camouflage_Icon_Header}" FontWeight="SemiBold" />
+
+                        <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
+                            <TextBox
+                                x:Name="IconSourcePathTextBox"
+                                PlaceholderText="{l10n:Loc Key=Settings_Camouflage_Icon_Placeholder}"
+                                TextChanged="OnIconSourcePathTextChanged" />
+
+                            <Button
+                                Grid.Column="1"
+                                Content="{l10n:Loc Key=Common_SelectEllipsis}"
+                                Click="OnBrowseIconClicked" />
+
+                            <Button
+                                Grid.Column="2"
+                                Content="{l10n:Loc Key=Common_Clear}"
+                                Click="OnClearIconClicked" />
+                        </Grid>
+
+                        <StackPanel Orientation="Horizontal" Spacing="12">
+                            <Border
+                                Width="40"
+                                Height="40"
+                                CornerRadius="6"
+                                BorderThickness="1"
+                                BorderBrush="{ThemeResource SystemControlForegroundBaseLowBrush}"
+                                Background="{ThemeResource SystemControlBackgroundChromeMediumLowBrush}"
+                                VerticalAlignment="Center">
+                                <Image
+                                    x:Name="IconPreviewImage"
+                                    Width="24"
+                                    Height="24"
+                                    VerticalAlignment="Center"
+                                    HorizontalAlignment="Center"
+                                    Stretch="Uniform" />
+                            </Border>
+
+                            <StackPanel VerticalAlignment="Center" Spacing="2">
+                                <TextBlock x:Name="IconSourceDisplayNameTextBlock" Text="{l10n:Loc Key=Settings_Camouflage_NoFileSelected}" />
+                                <TextBlock Text="{l10n:Loc Key=Settings_Camouflage_Icon_SupportHint}" Opacity="0.75" TextWrapping="WrapWholeWords" />
+                            </StackPanel>
+                        </StackPanel>
+
+                        <InfoBar
+                            x:Name="IconStatusInfoBar"
+                            IsOpen="False"
+                            Severity="Error"
+                            IsIconVisible="True" />
+                    </StackPanel>
+
+                    <StackPanel Spacing="8">
+                        <TextBlock
+                            Text="{l10n:Loc Key=Settings_Camouflage_Shortcut_Description}"
+                            Opacity="0.75"
+                            TextWrapping="WrapWholeWords" />
+
+                        <Button
+                            x:Name="CreateShortcutButton"
+                            Content="{l10n:Loc Key=Settings_Camouflage_CreateShortcut_Button}"
+                            HorizontalAlignment="Left"
+                            Click="OnCreateShortcutClicked" />
+                    </StackPanel>
+                </StackPanel>
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</Page>

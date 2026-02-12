@@ -78,6 +78,7 @@ namespace WindBoard
             UpdateCommandStates();
 
             ApplyAppSettingsToUi();
+            Activated += (_, _) => ApplyCamouflageSettingsToWindow();
             AppSettingsService.Instance.Changed += OnAppSettingsChanged;
 
             Closed += (_, _) =>
@@ -124,6 +125,7 @@ namespace WindBoard
             BoardCanvas.CanvasBackgroundColor = canvasBackgroundColor;
             UpdateCanvasBackgroundBrush(canvasBackgroundColor);
             ApplyDockSettingsToUi();
+            ApplyCamouflageSettingsToWindow();
         }
 
 

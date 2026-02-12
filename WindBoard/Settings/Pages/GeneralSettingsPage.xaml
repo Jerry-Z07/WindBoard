@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="WindBoard.Settings.Pages.GeneralSettingsPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:l10n="using:WindBoard.Localization"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <Grid>
+        <ScrollViewer>
+            <StackPanel Spacing="16" Padding="24">
+                <TextBlock Text="{l10n:Loc Key=Settings_General_Title}" Style="{ThemeResource TitleTextBlockStyle}" />
+
+                <Button
+                    x:Name="CamouflageSettingsCard"
+                    Style="{StaticResource SettingsCardButtonStyle}"
+                    Click="OnCamouflageSettingsClicked">
+                    <Grid ColumnSpacing="12">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <!-- 伪装：使用“眼镜/隐身”语义图标（MDL2 兼容，避免引入额外图标库） -->
+                        <FontIcon
+                            FontFamily="Segoe MDL2 Assets"
+                            FontSize="16"
+                            Glyph="&#xE7EE;"
+                            VerticalAlignment="Center" />
+
+                        <StackPanel Grid.Column="1" Spacing="2">
+                            <TextBlock Text="{l10n:Loc Key=Settings_Camouflage_Title}" FontWeight="SemiBold" />
+                            <TextBlock Text="{l10n:Loc Key=Settings_Camouflage_Description}" Opacity="0.75" TextWrapping="WrapWholeWords" />
+                        </StackPanel>
+
+                        <FontIcon
+                            Grid.Column="2"
+                            Glyph="&#xE76C;"
+                            FontFamily="Segoe MDL2 Assets"
+                            Opacity="0.65"
+                            VerticalAlignment="Center" />
+                    </Grid>
+                </Button>
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</Page>
+

@@ -6,6 +6,54 @@ namespace WindBoard.Tests.Settings;
 
 public sealed class AppSettingsStoreTests
 {
+    [Fact]
+    public void NormalizeInPlace_CreatesCamouflageDefaults_WhenGeneralIsNull()
+    {
+        var settings = new AppSettings
+        {
+            General = null!,
+        };
+
+        AppSettingsStore.NormalizeInPlace(settings);
+
+        Assert.NotNull(settings.General);
+        Assert.NotNull(settings.General.Camouflage);
+        Assert.False(settings.General.Camouflage.Enabled);
+        Assert.Equal(string.Empty, settings.General.Camouflage.Title);
+        Assert.Equal(string.Empty, settings.General.Camouflage.SourcePath);
+        Assert.Equal(string.Empty, settings.General.Camouflage.IconCachePath);
+        Assert.Equal(string.Empty, settings.General.Camouflage.ShortcutLastGeneratedSignature);
+        Assert.Equal(string.Empty, settings.General.Camouflage.ShortcutLastGeneratedPath);
+    }
+
+    [Fact]
+    public void NormalizeInPlace_NormalizesCamouflageStrings_TrimAndNullToEmpty()
+    {
+        var settings = new AppSettings
+        {
+            General = new GeneralSettings
+            {
+                Camouflage = new CamouflageSettings
+                {
+                    Enabled = true,
+                    Title = "  我的标题  ",
+                    SourcePath = null!,
+                    IconCachePath = "  C:\\Temp\\camouflage.ico  ",
+                    ShortcutLastGeneratedSignature = "  sig  ",
+                },
+            },
+        };
+
+        AppSettingsStore.NormalizeInPlace(settings);
+
+        Assert.True(settings.General.Camouflage.Enabled);
+        Assert.Equal("我的标题", settings.General.Camouflage.Title);
+        Assert.Equal(string.Empty, settings.General.Camouflage.SourcePath);
+        Assert.Equal("C:\\Temp\\camouflage.ico", settings.General.Camouflage.IconCachePath);
+        Assert.Equal("sig", settings.General.Camouflage.ShortcutLastGeneratedSignature);
+        Assert.Equal(string.Empty, settings.General.Camouflage.ShortcutLastGeneratedPath);
+    }
+
     // 非法背景色会被修正为默认值
     [Fact]
     public void NormalizeInPlace_ResetsInvalidCanvasBackgroundHexToDefault()

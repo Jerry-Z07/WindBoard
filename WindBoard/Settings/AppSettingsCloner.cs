@@ -22,6 +22,18 @@ namespace WindBoard.Settings
 
             return new AppSettings
             {
+                General = new GeneralSettings
+                {
+                    Camouflage = new CamouflageSettings
+                    {
+                        Enabled = settings.General?.Camouflage?.Enabled ?? false,
+                        Title = settings.General?.Camouflage?.Title ?? string.Empty,
+                        SourcePath = settings.General?.Camouflage?.SourcePath ?? string.Empty,
+                        IconCachePath = settings.General?.Camouflage?.IconCachePath ?? string.Empty,
+                        ShortcutLastGeneratedSignature = settings.General?.Camouflage?.ShortcutLastGeneratedSignature ?? string.Empty,
+                        ShortcutLastGeneratedPath = settings.General?.Camouflage?.ShortcutLastGeneratedPath ?? string.Empty,
+                    },
+                },
                 Appearance = new AppearanceSettings
                 {
                     CanvasBackgroundHex = settings.Appearance?.CanvasBackgroundHex ?? ColorHex.DefaultCanvasBackgroundHex,

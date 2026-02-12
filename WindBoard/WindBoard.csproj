@@ -12,6 +12,8 @@
     <WinUISDKReferences>false</WinUISDKReferences>
     <EnableMsixTooling>false</EnableMsixTooling>
     <Nullable>enable</Nullable>
+    <!-- 伪装功能需要生成/处理 .ico：使用 System.Drawing（Windows-only）。 -->
+    <UseSystemDrawing>true</UseSystemDrawing>
   </PropertyGroup>
 
   <ItemGroup>
@@ -32,6 +34,7 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.26100.7463" />
     <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.8.260101001" />
+    <PackageReference Include="System.Drawing.Common" Version="10.0.0" />
     <PackageReference Include="System.Text.Json" Version="10.0.2" />
     <PackageReference Include="Vortice.Direct2D1" Version="3.8.2" />
     <PackageReference Include="Vortice.Direct3D11" Version="3.8.2" />

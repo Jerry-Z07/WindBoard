@@ -7,11 +7,51 @@ namespace WindBoard.Settings
     /// </summary>
     internal sealed class AppSettings
     {
+        public GeneralSettings General { get; set; } = new();
+
         public AppearanceSettings Appearance { get; set; } = new();
 
         public DockSettings Dock { get; set; } = new();
 
         public WritingSettings Writing { get; set; } = new();
+    }
+
+    internal sealed class GeneralSettings
+    {
+        public CamouflageSettings Camouflage { get; set; } = new();
+    }
+
+    internal sealed class CamouflageSettings
+    {
+        /// <summary>
+        /// 伪装：是否启用。
+        /// </summary>
+        public bool Enabled { get; set; }
+
+        /// <summary>
+        /// 伪装：自定义窗口标题。
+        /// </summary>
+        public string Title { get; set; } = string.Empty;
+
+        /// <summary>
+        /// 伪装：图标来源路径（.exe/.ico/.png/.jpg 等）。
+        /// </summary>
+        public string SourcePath { get; set; } = string.Empty;
+
+        /// <summary>
+        /// 伪装：缓存生成的 .ico 路径（供窗口/快捷方式复用）。
+        /// </summary>
+        public string IconCachePath { get; set; } = string.Empty;
+
+        /// <summary>
+        /// 伪装：桌面快捷方式“最后生成时”的签名（用于避免每次启动都自动刷新快捷方式）。
+        /// </summary>
+        public string ShortcutLastGeneratedSignature { get; set; } = string.Empty;
+
+        /// <summary>
+        /// 伪装：桌面快捷方式“最后生成时”的完整路径（用于标题变化时删除/重命名旧快捷方式）。
+        /// </summary>
+        public string ShortcutLastGeneratedPath { get; set; } = string.Empty;
     }
 
     internal sealed class AppearanceSettings

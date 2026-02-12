@@ -18,6 +18,9 @@
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
 
+  <data name="SettingsWindow_Nav_General" xml:space="preserve">
+    <value>常规</value>
+  </data>
   <data name="SettingsWindow_Nav_Appearance" xml:space="preserve">
     <value>外观</value>
   </data>
@@ -68,6 +71,9 @@
   <data name="Common_Delete" xml:space="preserve">
     <value>删除</value>
   </data>
+  <data name="Common_Clear" xml:space="preserve">
+    <value>清空</value>
+  </data>
   <data name="Common_NotConfigured" xml:space="preserve">
     <value>未配置</value>
   </data>
@@ -97,6 +103,10 @@
     <value>擦除</value>
   </data>
 
+  <data name="Common_UnknownError" xml:space="preserve">
+    <value>未知错误</value>
+  </data>
+
   <data name="Common_OpenFailed_Title" xml:space="preserve">
     <value>打开失败</value>
   </data>
@@ -121,6 +131,67 @@
   </data>
   <data name="Settings_Background_HexError" xml:space="preserve">
     <value>HEX 颜色格式无效，请使用 #RRGGBB（例如 #2E2F33）</value>
+  </data>
+
+  <data name="Settings_General_Title" xml:space="preserve">
+    <value>常规</value>
+  </data>
+  <data name="Settings_Camouflage_Title" xml:space="preserve">
+    <value>伪装</value>
+  </data>
+  <data name="Settings_Camouflage_Description" xml:space="preserve">
+    <value>替换软件图标和标题</value>
+  </data>
+  <data name="Settings_Camouflage_Enabled_Header" xml:space="preserve">
+    <value>启用伪装</value>
+  </data>
+  <data name="Settings_Camouflage_WindowTitle_Header" xml:space="preserve">
+    <value>窗口标题</value>
+  </data>
+  <data name="Settings_Camouflage_WindowTitle_Placeholder" xml:space="preserve">
+    <value>留空则使用默认标题</value>
+  </data>
+  <data name="Settings_Camouflage_Icon_Header" xml:space="preserve">
+    <value>图标</value>
+  </data>
+  <data name="Settings_Camouflage_Icon_Placeholder" xml:space="preserve">
+    <value>选择或输入图标文件路径</value>
+  </data>
+  <data name="Settings_Camouflage_Icon_SupportHint" xml:space="preserve">
+    <value>支持 .exe/.ico/.png/.jpg/.jpeg</value>
+  </data>
+  <data name="Settings_Camouflage_NoFileSelected" xml:space="preserve">
+    <value>未选择文件</value>
+  </data>
+  <data name="Settings_Camouflage_IconReadFailed" xml:space="preserve">
+    <value>图标读取失败</value>
+  </data>
+  <data name="Settings_Camouflage_IconReadFailed_Fmt" xml:space="preserve">
+    <value>图标读取失败：{0}</value>
+  </data>
+  <data name="Settings_Camouflage_FilePicker_NoWindowHandle" xml:space="preserve">
+    <value>无法打开文件选择器（窗口句柄不可用）。</value>
+  </data>
+  <data name="Settings_Camouflage_FilePicker_PathEmpty" xml:space="preserve">
+    <value>无法读取所选文件路径。</value>
+  </data>
+  <data name="Settings_Camouflage_FilePicker_Failed_Fmt" xml:space="preserve">
+    <value>打开文件选择器失败：{0}</value>
+  </data>
+  <data name="Settings_Camouflage_Shortcut_Description" xml:space="preserve">
+    <value>桌面快捷方式不会在每次启动时自动更新。如需重新生成，请点击按钮（修改伪装设置时会自动更新一次）。</value>
+  </data>
+  <data name="Settings_Camouflage_CreateShortcut_Button" xml:space="preserve">
+    <value>生成桌面快捷方式</value>
+  </data>
+  <data name="Settings_Camouflage_Dialog_Title" xml:space="preserve">
+    <value>伪装</value>
+  </data>
+  <data name="Settings_Camouflage_CreateShortcut_Success_Fmt" xml:space="preserve">
+    <value>已生成桌面快捷方式：{0}</value>
+  </data>
+  <data name="Settings_Camouflage_CreateShortcut_Failed_Fmt" xml:space="preserve">
+    <value>生成失败：{0}</value>
   </data>
 
   <data name="Settings_Appearance_Title" xml:space="preserve">

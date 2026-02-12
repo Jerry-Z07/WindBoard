@@ -1,5 +1,4 @@
 using System;
-using System.Runtime.InteropServices;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using WindBoard.Settings.Pages;
@@ -10,14 +9,26 @@ namespace WindBoard.Settings
     {
         internal static SettingsWindow? Active { get; private set; }
 
-        internal IntPtr Hwnd { get; }
+        internal IntPtr Hwnd
+        {
+            get
+            {
+                try
+                {
+                    return WinRT.Interop.WindowNative.GetWindowHandle(this);
+                }
+                catch
+                {
+                    return IntPtr.Zero;
+                }
+            }
+        }
 
         public SettingsWindow()
         {
             InitializeComponent();
 
             Active = this;
-            Hwnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
             Closed += (_, _) =>
             {
                 if (ReferenceEquals(Active, this))
@@ -26,7 +37,7 @@ namespace WindBoard.Settings
                 }
             };
 
-            // 首次打开时默认进入“外观”。
+            // 首次打开时默认进入“常规”。
             NavView.Loaded += (_, _) =>
             {
                 if (NavView.SelectedItem is null && NavView.MenuItems.Count > 0)
@@ -71,9 +82,10 @@ namespace WindBoard.Settings
             // 顶层分类切换：根据 Tag 导航，并清空二级页面的返回栈。
             Type pageType = tag switch
             {
+                "general" => typeof(GeneralSettingsPage),
                 "appearance" => typeof(AppearanceSettingsPage),
                 "writing" => typeof(WritingSettingsPage),
-                _ => typeof(AppearanceSettingsPage),
+                _ => typeof(GeneralSettingsPage),
             };
 
             if (ContentFrame.CurrentSourcePageType != pageType)
