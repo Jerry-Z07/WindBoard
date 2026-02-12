@@ -6,7 +6,7 @@
   - 支持平台：x86、x64、ARM64（默认 AnyCPU 映射到 x64）。
 - `docs/`：文档。
 - `WindBoard/`：WinUI 3 桌面应用（C# / XAML，Windows App SDK）。
-  - `UI/`：窗口/页面的 UI 编排代码（`MainWindow` 的 partial 拆分等）。
+  - `UI/`：窗口/页面的 UI 编排代码（含 `UI/MainWindow/`：`MainWindow` 的 partial 拆分）。
   - `Controls/`：自定义控件。
   - `Board/`：画板核心模型（文档/会话/命令/编辑/视口等）。
     - `Commands/`：命令模式实现（添加笔画/清空/替换笔画等）。
@@ -20,8 +20,9 @@
     - `DxDirtyRectCalculator.cs`：脏矩形计算。
     - `DxSwapChainPanelRenderer.cs`：交换链面板渲染器（含滚动相关 `DxSwapChainPanelRenderer.Scroll.cs`）。
   - `Exporting/`：导出能力（PNG/PDF 等）。
-  - `Importing/`：导入相关的非 UI 重逻辑（例如图片解码/文本读取等）。
+  - `Importing/`：导入相关的非 UI 核心逻辑（例如图片解码/文本读取等）。
   - `Localization/`：本地化资源与取值入口（`.resx` + `L10n` + XAML `Loc` 扩展）。
+  - `Logging/`：应用日志（文件 + Debug 输出，入口：`WindBoard.Logging.AppLog`）。
   - `ShortcutDock/`：快捷入口（启动程序/打开链接/图标解析等）。
   - `Settings/`：设置相关。
   - `Persistence/`：应用层持久化服务接口/实现（避免与 `Board/Persistence/` 混淆）。
@@ -42,14 +43,21 @@
 
 - 缩进 4 空格；保持现有 `namespace {}` 与大括号风格一致。
 - 命名：类型/方法用 `PascalCase`；私有字段用 `_camelCase`。
+- 关键路径需要有必要的日志输出与错误处理；统一使用 `WindBoard.Logging.AppLog`（`Info/Warn/Error` 等）。
 
 ## 测试与验证（Testing）
 
 - 测试工程：`WindBoard.Tests`（xUnit）。为了避免把实现细节暴露为 `public`，主工程通过 `WindBoard/InternalsVisibleTo.cs` 允许测试访问 `internal` 类型。
 - 运行测试：`dotnet test WindBoard.slnx`（默认平台已映射到 x64；如需显式指定可用 `dotnet test WindBoard.slnx -p:Platform=x64`）。
+- 本地化 Key 审计：`WindBoard.Tests/Localization/LocalizationKeyAuditTests.cs`（要求 C# 中 `L10n.Get/Format` 的 key 为字符串字面量；XAML 使用 `{l10n:Loc Key=...}`）。
 - 目录边界与代码放置建议：参考 `docs/CODEMAP.md`。
 - 测试分层建议：
   - 优先为 `Board/`、以及 `Interaction/`/`Rendering/` 中“纯计算逻辑”写单元测试（无 UI、无 DirectX 上下文依赖）。
   - UI/渲染集成验证放到更高层（后续可考虑 UI 自动化/端到端 smoke），避免单测依赖 WinUI 线程与设备环境。
 
 
+## 相关文档（Docs）
+
+- `docs/CODEMAP.md`：分层与目录边界、放置规则。
+- `docs/LOCALIZATION.md`：本地化约定（`Strings.resx` / `L10n` / `LocExtension`）。
+- `docs/WBIX.md`：WBIX（`.wbix`）格式说明。
