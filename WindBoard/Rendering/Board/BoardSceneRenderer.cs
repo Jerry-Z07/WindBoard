@@ -545,7 +545,12 @@ namespace WindBoard.Rendering.Board
             try
             {
                 Rect dest = ComputeAspectFitRect(inner, element.PixelWidth, element.PixelHeight);
-                ctx.DrawBitmap(bitmap, 1.0f, BitmapInterpolationMode.Linear, dest);
+
+                // 注意：Vortice 的 ID2D1RenderTarget.DrawBitmap(bitmap, opacity, mode, rect) 这个重载的 rect 是“源矩形”，
+                // 会导致把元素世界坐标误当成位图裁剪区域，从而出现“图片不在框内 / 移动框体能看到更多图片”的错位现象。
+                // 这里显式使用 destination + source 的重载，source 传整张位图，destination 才是要绘制到的目标区域。
+                Rect src = Rect.FromLTRB(0.0f, 0.0f, element.PixelWidth, element.PixelHeight);
+                ctx.DrawBitmap(bitmap, dest, 1.0f, BitmapInterpolationMode.Linear, src);
             }
             finally
             {
