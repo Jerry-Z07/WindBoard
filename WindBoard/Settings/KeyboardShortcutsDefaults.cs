@@ -7,7 +7,5 @@ namespace WindBoard.Settings
     {
         internal const string Undo = "Ctrl+Z";
         internal const string Redo = "Ctrl+Y";
-        internal const string RedoAlternative = "Ctrl+Shift+Z";
     }
 }
-

@@ -225,7 +225,6 @@ public sealed class AppSettingsStoreTests
         Assert.NotNull(settings.KeyboardShortcuts);
         Assert.Equal(KeyboardShortcutsDefaults.Undo, settings.KeyboardShortcuts.Undo);
         Assert.Equal(KeyboardShortcutsDefaults.Redo, settings.KeyboardShortcuts.Redo);
-        Assert.Equal(KeyboardShortcutsDefaults.RedoAlternative, settings.KeyboardShortcuts.RedoAlternative);
     }
 
     [Fact]
@@ -237,7 +236,6 @@ public sealed class AppSettingsStoreTests
             {
                 Undo = " ",
                 Redo = KeyboardShortcutsDefaults.Redo,
-                RedoAlternative = KeyboardShortcutsDefaults.RedoAlternative,
             },
         };
 
@@ -245,7 +243,6 @@ public sealed class AppSettingsStoreTests
 
         Assert.Equal(string.Empty, settings.KeyboardShortcuts.Undo);
         Assert.Equal(KeyboardShortcutsDefaults.Redo, settings.KeyboardShortcuts.Redo);
-        Assert.Equal(KeyboardShortcutsDefaults.RedoAlternative, settings.KeyboardShortcuts.RedoAlternative);
     }
 
     [Fact]
@@ -274,7 +271,6 @@ public sealed class AppSettingsStoreTests
             {
                 Undo = "Ctrl+Z",
                 Redo = "Ctrl+Z",
-                RedoAlternative = "Ctrl+Z",
             },
         };
 
@@ -282,7 +278,58 @@ public sealed class AppSettingsStoreTests
 
         Assert.Equal("Ctrl+Z", settings.KeyboardShortcuts.Undo);
         Assert.Equal(string.Empty, settings.KeyboardShortcuts.Redo);
-        Assert.Equal(string.Empty, settings.KeyboardShortcuts.RedoAlternative);
+    }
+
+    [Fact]
+    public void NormalizeInPlace_WithReport_InvalidShortcut_ReportsInvalidRevertedToDefault()
+    {
+        var settings = new AppSettings
+        {
+            KeyboardShortcuts = new KeyboardShortcutsSettings
+            {
+                // 缺少 Ctrl/Alt：应视为非法并回退默认值
+                Undo = "Z",
+            },
+        };
+
+        var report = new SettingsNormalizationReport();
+        AppSettingsStore.NormalizeInPlace(settings, report);
+
+        KeyboardShortcutNormalizationIssue issue = Assert.Single(report.KeyboardShortcutIssues);
+        Assert.Equal("Undo", issue.Slot);
+        Assert.Equal("Z", issue.OldValue);
+        Assert.Equal(KeyboardShortcutsDefaults.Undo, issue.NewValue);
+        Assert.Equal(KeyboardShortcutNormalizationIssueKind.InvalidRevertedToDefault, issue.Kind);
+    }
+
+    [Fact]
+    public void NormalizeInPlace_WithReport_ConflictShortcuts_ReportsConflictDisabled()
+    {
+        var settings = new AppSettings
+        {
+            KeyboardShortcuts = new KeyboardShortcutsSettings
+            {
+                Undo = "Ctrl+Z",
+                Redo = "Ctrl+Z",
+            },
+        };
+
+        var report = new SettingsNormalizationReport();
+        AppSettingsStore.NormalizeInPlace(settings, report);
+
+        KeyboardShortcutNormalizationIssue issue = Assert.Single(report.KeyboardShortcutIssues);
+        Assert.Equal("Redo", issue.Slot);
+        Assert.Equal("Ctrl+Z", issue.OldValue);
+        Assert.Equal(string.Empty, issue.NewValue);
+        Assert.Equal(KeyboardShortcutNormalizationIssueKind.ConflictDisabled, issue.Kind);
+        Assert.Equal("Undo", issue.ConflictWithSlot);
+    }
+
+    [Fact]
+    public void KeyboardShortcutsSettings_DefaultConflictReminderEnabled_IsTrue()
+    {
+        var settings = new KeyboardShortcutsSettings();
+        Assert.True(settings.ConflictReminderEnabled);
     }
 
     // 画笔色板会归一化数量与颜色格式

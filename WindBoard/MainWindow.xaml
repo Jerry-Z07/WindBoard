@@ -19,6 +19,15 @@
     <Grid KeyboardAcceleratorPlacementMode="Hidden">
         <controls:BoardCanvasControl x:Name="BoardCanvas" />
 
+        <!-- 统一提醒：右上角弹条（Toast 失败兜底 / 未来全屏模式通道预留） -->
+        <StackPanel
+            x:Name="ReminderBannerStackPanel"
+            HorizontalAlignment="Right"
+            VerticalAlignment="Top"
+            Margin="14,14,14,0"
+            Spacing="10"
+            MaxWidth="420" />
+
         <!-- 底部 Dock：左侧“更多/最小化/导入”，中部“工具/撤销重做”，右侧“+”入口 -->
         <!-- 使用三块浮层分别对齐 Left/Center/Right，保证中部 Dock 始终以窗口居中对齐。 -->
         <!-- 底部 Dock 固定为浅色主题：不随系统深色/浅色切换 -->

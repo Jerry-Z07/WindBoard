@@ -15,12 +15,12 @@ namespace WindBoard.Settings.Pages
         {
             Undo,
             Redo,
-            RedoAlternative,
         }
 
         private ShortcutSlot? _editingSlot;
         private string _originalGestureText = string.Empty;
         private bool _clearedByUser;
+        private bool _isRefreshingUi;
 
         public ShortcutsSettingsPage()
         {
@@ -51,10 +51,19 @@ namespace WindBoard.Settings.Pages
 
         private void RefreshUiFromSettings()
         {
-            KeyboardShortcutsSnapshot snapshot = AppSettingsService.Instance.GetKeyboardShortcutsSnapshot();
-            SetShortcutText(UndoShortcutTextBlock, snapshot.Undo);
-            SetShortcutText(RedoShortcutTextBlock, snapshot.Redo);
-            SetShortcutText(RedoAlternativeShortcutTextBlock, snapshot.RedoAlternative);
+            _isRefreshingUi = true;
+            try
+            {
+                ConflictReminderToggleSwitch.IsOn = AppSettingsService.Instance.GetShortcutConflictReminderEnabled();
+
+                KeyboardShortcutsSnapshot snapshot = AppSettingsService.Instance.GetKeyboardShortcutsSnapshot();
+                SetShortcutText(UndoShortcutTextBlock, snapshot.Undo);
+                SetShortcutText(RedoShortcutTextBlock, snapshot.Redo);
+            }
+            finally
+            {
+                _isRefreshingUi = false;
+            }
         }
 
         private static void SetShortcutText(TextBlock target, string value)
@@ -80,9 +89,25 @@ namespace WindBoard.Settings.Pages
             await ShowEditDialogAsync(ShortcutSlot.Redo);
         }
 
-        private async void OnRedoAlternativeShortcutClicked(object sender, RoutedEventArgs e)
+        private void OnConflictReminderToggleSwitchToggled(object sender, RoutedEventArgs e)
         {
-            await ShowEditDialogAsync(ShortcutSlot.RedoAlternative);
+            if (_isRefreshingUi)
+            {
+                return;
+            }
+
+            bool enabled = ConflictReminderToggleSwitch.IsOn;
+
+            try
+            {
+                AppSettingsService.Instance.SetShortcutConflictReminderEnabled(enabled);
+                AppLog.Info("Shortcuts", $"快捷键冲突提醒开关已更新：enabled={enabled}");
+            }
+            catch (Exception ex)
+            {
+                // 更新失败不应影响设置页；记录日志便于排查。
+                AppLog.Error("Shortcuts", $"快捷键冲突提醒开关更新失败：enabled={enabled}", ex);
+            }
         }
 
         private async System.Threading.Tasks.Task ShowEditDialogAsync(ShortcutSlot slot)
@@ -95,7 +120,6 @@ namespace WindBoard.Settings.Pages
             {
                 ShortcutSlot.Undo => snapshot.Undo,
                 ShortcutSlot.Redo => snapshot.Redo,
-                ShortcutSlot.RedoAlternative => snapshot.RedoAlternative,
                 _ => string.Empty,
             };
 
@@ -118,7 +142,6 @@ namespace WindBoard.Settings.Pages
             {
                 ShortcutSlot.Undo => L10n.Get("Settings_Shortcuts_Undo_Title"),
                 ShortcutSlot.Redo => L10n.Get("Settings_Shortcuts_Redo_Title"),
-                ShortcutSlot.RedoAlternative => L10n.Get("Settings_Shortcuts_RedoAlternative_Title"),
                 _ => string.Empty,
             };
         }
@@ -233,12 +256,6 @@ namespace WindBoard.Settings.Pages
                 return true;
             }
 
-            if (IsConflict(ShortcutSlot.RedoAlternative, snapshot.RedoAlternative))
-            {
-                conflictSlot = ShortcutSlot.RedoAlternative;
-                return true;
-            }
-
             return false;
         }
 
@@ -269,9 +286,6 @@ namespace WindBoard.Settings.Pages
                         case ShortcutSlot.Redo:
                             s.KeyboardShortcuts.Redo = value;
                             break;
-                        case ShortcutSlot.RedoAlternative:
-                            s.KeyboardShortcuts.RedoAlternative = value;
-                            break;
                     }
                 });
 
@@ -293,7 +307,6 @@ namespace WindBoard.Settings.Pages
                     s.KeyboardShortcuts ??= new KeyboardShortcutsSettings();
                     s.KeyboardShortcuts.Undo = KeyboardShortcutsDefaults.Undo;
                     s.KeyboardShortcuts.Redo = KeyboardShortcutsDefaults.Redo;
-                    s.KeyboardShortcuts.RedoAlternative = KeyboardShortcutsDefaults.RedoAlternative;
                 });
 
                 AppLog.Info("Shortcuts", "快捷键已恢复默认值");
@@ -337,4 +350,3 @@ namespace WindBoard.Settings.Pages
         }
     }
 }
-

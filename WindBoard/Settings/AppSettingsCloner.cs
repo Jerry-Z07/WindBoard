@@ -75,9 +75,9 @@ namespace WindBoard.Settings
                 },
                 KeyboardShortcuts = new KeyboardShortcutsSettings
                 {
+                    ConflictReminderEnabled = settings.KeyboardShortcuts?.ConflictReminderEnabled ?? true,
                     Undo = settings.KeyboardShortcuts?.Undo ?? KeyboardShortcutsDefaults.Undo,
                     Redo = settings.KeyboardShortcuts?.Redo ?? KeyboardShortcutsDefaults.Redo,
-                    RedoAlternative = settings.KeyboardShortcuts?.RedoAlternative ?? KeyboardShortcutsDefaults.RedoAlternative,
                 },
                 Diagnostics = new DiagnosticsSettings
                 {

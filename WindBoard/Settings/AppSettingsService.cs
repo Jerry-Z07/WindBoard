@@ -25,6 +25,7 @@ namespace WindBoard.Settings
         private readonly AppSettingsStore _store;
         private readonly SemaphoreSlim _ioGate = new(1, 1);
         private Timer? _saveDebounceTimer;
+        private readonly List<KeyboardShortcutNormalizationIssue> _pendingKeyboardShortcutIssues = new();
 
         internal AppSettings Current { get; private set; } = new();
 
@@ -37,9 +38,17 @@ namespace WindBoard.Settings
 
         internal void Load()
         {
+            var report = new SettingsNormalizationReport();
             lock (_gate)
             {
-                Current = _store.LoadOrDefault();
+                Current = _store.LoadOrDefault(report);
+
+                // 启动加载阶段的归一化问题先缓存起来：由主窗口在首次应用设置时统一提示一次。
+                _pendingKeyboardShortcutIssues.Clear();
+                if (report.KeyboardShortcutIssues.Count > 0)
+                {
+                    _pendingKeyboardShortcutIssues.AddRange(report.KeyboardShortcutIssues);
+                }
             }
 
             Changed?.Invoke(this, EventArgs.Empty);
@@ -167,8 +176,31 @@ namespace WindBoard.Settings
                 {
                     Undo = shortcuts?.Undo ?? KeyboardShortcutsDefaults.Undo,
                     Redo = shortcuts?.Redo ?? KeyboardShortcutsDefaults.Redo,
-                    RedoAlternative = shortcuts?.RedoAlternative ?? KeyboardShortcutsDefaults.RedoAlternative,
                 };
+            }
+        }
+
+        internal bool GetShortcutConflictReminderEnabled()
+        {
+            lock (_gate)
+            {
+                return Current.KeyboardShortcuts?.ConflictReminderEnabled ?? true;
+            }
+        }
+
+        internal IReadOnlyList<KeyboardShortcutNormalizationIssue> ConsumeKeyboardShortcutIssues()
+        {
+            lock (_gate)
+            {
+                if (_pendingKeyboardShortcutIssues.Count == 0)
+                {
+                    return Array.Empty<KeyboardShortcutNormalizationIssue>();
+                }
+
+                // 返回快照并清空：确保“提醒一次”。
+                var snapshot = new List<KeyboardShortcutNormalizationIssue>(_pendingKeyboardShortcutIssues);
+                _pendingKeyboardShortcutIssues.Clear();
+                return snapshot;
             }
         }
 
@@ -199,14 +231,30 @@ namespace WindBoard.Settings
                 throw new ArgumentNullException(nameof(update));
             }
 
+            var report = new SettingsNormalizationReport();
             lock (_gate)
             {
                 update(Current);
-                AppSettingsStore.NormalizeInPlace(Current);
+                AppSettingsStore.NormalizeInPlace(Current, report);
+
+                // 记录归一化产生的问题：由 UI 统一提示（可在设置中关闭）。
+                if (report.KeyboardShortcutIssues.Count > 0)
+                {
+                    _pendingKeyboardShortcutIssues.AddRange(report.KeyboardShortcutIssues);
+                }
             }
 
             Changed?.Invoke(this, EventArgs.Empty);
             RequestSaveDebounced();
+        }
+
+        internal void SetShortcutConflictReminderEnabled(bool enabled)
+        {
+            Update(s =>
+            {
+                s.KeyboardShortcuts ??= new KeyboardShortcutsSettings();
+                s.KeyboardShortcuts.ConflictReminderEnabled = enabled;
+            });
         }
 
         internal Task SaveAsync(CancellationToken cancellationToken = default)

@@ -19,6 +19,7 @@ using Windows.Foundation.Collections;
 using WindBoard.Logging;
 using WindBoard.Localization;
 using WindBoard.Settings;
+using Microsoft.Windows.AppNotifications;
 
 // To learn more about WinUI, the WinUI project structure,
 // and more about our project templates, see: http://aka.ms/winui-project-info.
@@ -57,6 +58,18 @@ namespace WindBoard
         {
             L10n.Initialize();
             AppSettingsService.Instance.Load();
+
+            // 统一提醒系统：注册 Windows Toast 通知通道。
+            // 说明：在某些环境（未注册/系统限制）下可能失败，这里不阻断启动，后续会自动降级为应用内弹条。
+            try
+            {
+                AppNotificationManager.Default.Register();
+                AppLog.Info("Reminders", "Windows 通知通道注册成功");
+            }
+            catch (Exception ex)
+            {
+                AppLog.Warn("Reminders", "Windows 通知通道注册失败，将自动降级为应用内弹条", ex);
+            }
 
             // 应用设置加载完成后，按 settings.json 的配置重新应用日志级别/保留天数等。
             LoggingSettingsSnapshot logging = AppSettingsService.Instance.GetLoggingSettingsSnapshot();

@@ -17,132 +17,229 @@
                     Opacity="0.75"
                     TextWrapping="WrapWholeWords" />
 
-                <StackPanel Spacing="12">
+                <StackPanel Spacing="10">
+                    <TextBlock Text="{l10n:Loc Key=Settings_Shortcuts_Keyboard_SectionTitle}" Style="{ThemeResource SubtitleTextBlockStyle}" />
+
+                    <StackPanel Spacing="12">
+                        <ToggleSwitch
+                            x:Name="ConflictReminderToggleSwitch"
+                            Header="{l10n:Loc Key=Settings_Shortcuts_ConflictReminder_Header}"
+                            OffContent="{l10n:Loc Key=Settings_Shortcuts_ConflictReminder_Off}"
+                            OnContent="{l10n:Loc Key=Settings_Shortcuts_ConflictReminder_On}"
+                            Toggled="OnConflictReminderToggleSwitchToggled" />
+
+                        <Button
+                            x:Name="UndoShortcutCard"
+                            Style="{StaticResource SettingsCardButtonStyle}"
+                            Click="OnUndoShortcutClicked">
+                            <Grid ColumnSpacing="12">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+
+                                <!-- 撤销：Undo 图标（MDL2） -->
+                                <FontIcon
+                                    FontFamily="Segoe MDL2 Assets"
+                                    FontSize="16"
+                                    Glyph="&#xE10E;"
+                                    VerticalAlignment="Center" />
+
+                                <TextBlock
+                                    Grid.Column="1"
+                                    Text="{l10n:Loc Key=Settings_Shortcuts_Undo_Title}"
+                                    FontWeight="SemiBold"
+                                    VerticalAlignment="Center" />
+
+                                <TextBlock
+                                    x:Name="UndoShortcutTextBlock"
+                                    Grid.Column="2"
+                                    Opacity="0.75"
+                                    VerticalAlignment="Center" />
+
+                                <FontIcon
+                                    Grid.Column="3"
+                                    Glyph="&#xE76C;"
+                                    FontFamily="Segoe MDL2 Assets"
+                                    Opacity="0.65"
+                                    VerticalAlignment="Center" />
+                            </Grid>
+                        </Button>
+
+                        <Button
+                            x:Name="RedoShortcutCard"
+                            Style="{StaticResource SettingsCardButtonStyle}"
+                            Click="OnRedoShortcutClicked">
+                            <Grid ColumnSpacing="12">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+
+                                <!-- 重做：Redo 图标（MDL2） -->
+                                <FontIcon
+                                    FontFamily="Segoe MDL2 Assets"
+                                    FontSize="16"
+                                    Glyph="&#xE10D;"
+                                    VerticalAlignment="Center" />
+
+                                <TextBlock
+                                    Grid.Column="1"
+                                    Text="{l10n:Loc Key=Settings_Shortcuts_Redo_Title}"
+                                    FontWeight="SemiBold"
+                                    VerticalAlignment="Center" />
+
+                                <TextBlock
+                                    x:Name="RedoShortcutTextBlock"
+                                    Grid.Column="2"
+                                    Opacity="0.75"
+                                    VerticalAlignment="Center" />
+
+                                <FontIcon
+                                    Grid.Column="3"
+                                    Glyph="&#xE76C;"
+                                    FontFamily="Segoe MDL2 Assets"
+                                    Opacity="0.65"
+                                    VerticalAlignment="Center" />
+                            </Grid>
+                        </Button>
+                    </StackPanel>
+
                     <Button
-                        x:Name="UndoShortcutCard"
-                        Style="{StaticResource SettingsCardButtonStyle}"
-                        Click="OnUndoShortcutClicked">
-                        <Grid ColumnSpacing="12">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto" />
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="Auto" />
-                                <ColumnDefinition Width="Auto" />
-                            </Grid.ColumnDefinitions>
-
-                            <!-- 撤销：Undo 图标（MDL2） -->
-                            <FontIcon
-                                FontFamily="Segoe MDL2 Assets"
-                                FontSize="16"
-                                Glyph="&#xE10E;"
-                                VerticalAlignment="Center" />
-
-                            <TextBlock
-                                Grid.Column="1"
-                                Text="{l10n:Loc Key=Settings_Shortcuts_Undo_Title}"
-                                FontWeight="SemiBold"
-                                VerticalAlignment="Center" />
-
-                            <TextBlock
-                                x:Name="UndoShortcutTextBlock"
-                                Grid.Column="2"
-                                Opacity="0.75"
-                                VerticalAlignment="Center" />
-
-                            <FontIcon
-                                Grid.Column="3"
-                                Glyph="&#xE76C;"
-                                FontFamily="Segoe MDL2 Assets"
-                                Opacity="0.65"
-                                VerticalAlignment="Center" />
-                        </Grid>
-                    </Button>
-
-                    <Button
-                        x:Name="RedoShortcutCard"
-                        Style="{StaticResource SettingsCardButtonStyle}"
-                        Click="OnRedoShortcutClicked">
-                        <Grid ColumnSpacing="12">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto" />
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="Auto" />
-                                <ColumnDefinition Width="Auto" />
-                            </Grid.ColumnDefinitions>
-
-                            <!-- 重做：Redo 图标（MDL2） -->
-                            <FontIcon
-                                FontFamily="Segoe MDL2 Assets"
-                                FontSize="16"
-                                Glyph="&#xE10D;"
-                                VerticalAlignment="Center" />
-
-                            <TextBlock
-                                Grid.Column="1"
-                                Text="{l10n:Loc Key=Settings_Shortcuts_Redo_Title}"
-                                FontWeight="SemiBold"
-                                VerticalAlignment="Center" />
-
-                            <TextBlock
-                                x:Name="RedoShortcutTextBlock"
-                                Grid.Column="2"
-                                Opacity="0.75"
-                                VerticalAlignment="Center" />
-
-                            <FontIcon
-                                Grid.Column="3"
-                                Glyph="&#xE76C;"
-                                FontFamily="Segoe MDL2 Assets"
-                                Opacity="0.65"
-                                VerticalAlignment="Center" />
-                        </Grid>
-                    </Button>
-
-                    <Button
-                        x:Name="RedoAlternativeShortcutCard"
-                        Style="{StaticResource SettingsCardButtonStyle}"
-                        Click="OnRedoAlternativeShortcutClicked">
-                        <Grid ColumnSpacing="12">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto" />
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="Auto" />
-                                <ColumnDefinition Width="Auto" />
-                            </Grid.ColumnDefinitions>
-
-                            <!-- 重做（备用）：复用 Redo 图标（MDL2） -->
-                            <FontIcon
-                                FontFamily="Segoe MDL2 Assets"
-                                FontSize="16"
-                                Glyph="&#xE10D;"
-                                VerticalAlignment="Center" />
-
-                            <TextBlock
-                                Grid.Column="1"
-                                Text="{l10n:Loc Key=Settings_Shortcuts_RedoAlternative_Title}"
-                                FontWeight="SemiBold"
-                                VerticalAlignment="Center" />
-
-                            <TextBlock
-                                x:Name="RedoAlternativeShortcutTextBlock"
-                                Grid.Column="2"
-                                Opacity="0.75"
-                                VerticalAlignment="Center" />
-
-                            <FontIcon
-                                Grid.Column="3"
-                                Glyph="&#xE76C;"
-                                FontFamily="Segoe MDL2 Assets"
-                                Opacity="0.65"
-                                VerticalAlignment="Center" />
-                        </Grid>
-                    </Button>
+                        Content="{l10n:Loc Key=Common_ResetToDefault}"
+                        HorizontalAlignment="Left"
+                        Click="OnResetToDefaultClicked" />
                 </StackPanel>
 
-                <Button
-                    Content="{l10n:Loc Key=Common_ResetToDefault}"
-                    HorizontalAlignment="Left"
-                    Click="OnResetToDefaultClicked" />
+                <StackPanel Spacing="10">
+                    <TextBlock Text="{l10n:Loc Key=Settings_Shortcuts_Mouse_SectionTitle}" Style="{ThemeResource SubtitleTextBlockStyle}" />
+                    <TextBlock
+                        Text="{l10n:Loc Key=Settings_Shortcuts_Mouse_SectionDescription}"
+                        Opacity="0.75"
+                        TextWrapping="WrapWholeWords" />
+
+                    <StackPanel Spacing="12">
+                        <Border
+                            Background="{ThemeResource SystemControlBackgroundChromeMediumLowBrush}"
+                            BorderBrush="{ThemeResource SystemControlForegroundBaseLowBrush}"
+                            BorderThickness="1"
+                            CornerRadius="12"
+                            Padding="16,14">
+                            <Grid ColumnSpacing="12">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+
+                                <SymbolIcon Symbol="TouchPointer" VerticalAlignment="Center" />
+
+                                <TextBlock
+                                    Grid.Column="1"
+                                    Text="{l10n:Loc Key=Settings_Shortcuts_Mouse_PanViewport_Title}"
+                                    FontWeight="SemiBold"
+                                    VerticalAlignment="Center" />
+
+                                <TextBlock
+                                    Grid.Column="2"
+                                    Text="{l10n:Loc Key=Settings_Shortcuts_Mouse_PanViewport_Gesture}"
+                                    Opacity="0.75"
+                                    VerticalAlignment="Center" />
+                            </Grid>
+                        </Border>
+
+                        <Border
+                            Background="{ThemeResource SystemControlBackgroundChromeMediumLowBrush}"
+                            BorderBrush="{ThemeResource SystemControlForegroundBaseLowBrush}"
+                            BorderThickness="1"
+                            CornerRadius="12"
+                            Padding="16,14">
+                            <Grid ColumnSpacing="12">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+
+                                <SymbolIcon Symbol="TouchPointer" VerticalAlignment="Center" />
+
+                                <TextBlock
+                                    Grid.Column="1"
+                                    Text="{l10n:Loc Key=Settings_Shortcuts_Mouse_ZoomViewport_Title}"
+                                    FontWeight="SemiBold"
+                                    VerticalAlignment="Center" />
+
+                                <TextBlock
+                                    Grid.Column="2"
+                                    Text="{l10n:Loc Key=Settings_Shortcuts_Mouse_ZoomViewport_Gesture}"
+                                    Opacity="0.75"
+                                    VerticalAlignment="Center" />
+                            </Grid>
+                        </Border>
+
+                        <Border
+                            Background="{ThemeResource SystemControlBackgroundChromeMediumLowBrush}"
+                            BorderBrush="{ThemeResource SystemControlForegroundBaseLowBrush}"
+                            BorderThickness="1"
+                            CornerRadius="12"
+                            Padding="16,14">
+                            <Grid ColumnSpacing="12">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+
+                                <SymbolIcon Symbol="TouchPointer" VerticalAlignment="Center" />
+
+                                <TextBlock
+                                    Grid.Column="1"
+                                    Text="{l10n:Loc Key=Settings_Shortcuts_Mouse_ZoomSelection_Title}"
+                                    FontWeight="SemiBold"
+                                    VerticalAlignment="Center" />
+
+                                <TextBlock
+                                    Grid.Column="2"
+                                    Text="{l10n:Loc Key=Settings_Shortcuts_Mouse_ZoomSelection_Gesture}"
+                                    Opacity="0.75"
+                                    VerticalAlignment="Center" />
+                            </Grid>
+                        </Border>
+
+                        <Border
+                            Background="{ThemeResource SystemControlBackgroundChromeMediumLowBrush}"
+                            BorderBrush="{ThemeResource SystemControlForegroundBaseLowBrush}"
+                            BorderThickness="1"
+                            CornerRadius="12"
+                            Padding="16,14">
+                            <Grid ColumnSpacing="12">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+
+                                <SymbolIcon Symbol="TouchPointer" VerticalAlignment="Center" />
+
+                                <TextBlock
+                                    Grid.Column="1"
+                                    Text="{l10n:Loc Key=Settings_Shortcuts_Mouse_RotateSelection_Title}"
+                                    FontWeight="SemiBold"
+                                    VerticalAlignment="Center" />
+
+                                <TextBlock
+                                    Grid.Column="2"
+                                    Text="{l10n:Loc Key=Settings_Shortcuts_Mouse_RotateSelection_Gesture}"
+                                    Opacity="0.75"
+                                    VerticalAlignment="Center" />
+                            </Grid>
+                        </Border>
+                    </StackPanel>
+                </StackPanel>
             </StackPanel>
         </ScrollViewer>
 
@@ -177,4 +274,3 @@
         </ContentDialog>
     </Grid>
 </Page>
-

@@ -8,8 +8,5 @@ namespace WindBoard.Settings
         public string Undo { get; init; } = string.Empty;
 
         public string Redo { get; init; } = string.Empty;
-
-        public string RedoAlternative { get; init; } = string.Empty;
     }
 }
-

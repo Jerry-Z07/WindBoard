@@ -40,24 +40,24 @@ namespace WindBoard.Settings
             return new AppSettingsStore(path);
         }
 
-        internal AppSettings LoadOrDefault()
+        internal AppSettings LoadOrDefault(SettingsNormalizationReport? report = null)
         {
             try
             {
                 if (!File.Exists(FilePath))
                 {
-                    return NormalizeInPlace(new AppSettings());
+                    return NormalizeInPlace(new AppSettings(), report);
                 }
 
                 string json = File.ReadAllText(FilePath);
                 AppSettings? settings = JsonSerializer.Deserialize<AppSettings>(json, JsonOptions);
-                return NormalizeInPlace(settings ?? new AppSettings());
+                return NormalizeInPlace(settings ?? new AppSettings(), report);
             }
             catch (Exception ex)
             {
                 // 读取/解析失败时回退到默认值，避免启动崩溃。
                 AppLog.Warn("Settings", $"读取/解析设置失败，已回退默认值：path='{FilePath}'", ex);
-                return NormalizeInPlace(new AppSettings());
+                return NormalizeInPlace(new AppSettings(), report);
             }
         }
 
@@ -87,6 +87,14 @@ namespace WindBoard.Settings
         /// </summary>
         internal static AppSettings NormalizeInPlace(AppSettings settings)
         {
+            return NormalizeInPlace(settings, report: null);
+        }
+
+        /// <summary>
+        /// 把设置对象归一化到“可用”的状态（补齐 null、修正非法值等），并可选输出报告。
+        /// </summary>
+        internal static AppSettings NormalizeInPlace(AppSettings settings, SettingsNormalizationReport? report)
+        {
             if (settings is null)
             {
                 throw new ArgumentNullException(nameof(settings));
@@ -114,7 +122,7 @@ namespace WindBoard.Settings
             NormalizePenSettingsInPlace(settings.Writing.Pen);
 
             settings.KeyboardShortcuts ??= new KeyboardShortcutsSettings();
-            NormalizeKeyboardShortcutsInPlace(settings.KeyboardShortcuts);
+            NormalizeKeyboardShortcutsInPlace(settings.KeyboardShortcuts, report);
 
             settings.Diagnostics ??= new DiagnosticsSettings();
             settings.Diagnostics.Logging ??= new LoggingSettings();
@@ -229,39 +237,40 @@ namespace WindBoard.Settings
             settings.ThicknessPresets = PenSettingsDefaults.NormalizeThicknessPresets(settings.ThicknessPresets);
         }
 
-        private static void NormalizeKeyboardShortcutsInPlace(KeyboardShortcutsSettings settings)
+        private static void NormalizeKeyboardShortcutsInPlace(KeyboardShortcutsSettings settings, SettingsNormalizationReport? report)
         {
             // 快捷键归一化：
             // - null -> string.Empty
             // - 允许空字符串表示禁用（不会自动回填）
             // - 非空则必须是“合法组合键”（并写回为规范格式）
-            settings.Undo = NormalizeKeyboardShortcutOrDisable(settings.Undo, KeyboardShortcutsDefaults.Undo);
-            settings.Redo = NormalizeKeyboardShortcutOrDisable(settings.Redo, KeyboardShortcutsDefaults.Redo);
-            settings.RedoAlternative = NormalizeKeyboardShortcutOrDisable(settings.RedoAlternative, KeyboardShortcutsDefaults.RedoAlternative);
+            settings.Undo = NormalizeKeyboardShortcutOrDisable(slot: "Undo", settings.Undo, KeyboardShortcutsDefaults.Undo, report);
+            settings.Redo = NormalizeKeyboardShortcutOrDisable(slot: "Redo", settings.Redo, KeyboardShortcutsDefaults.Redo, report);
 
-            // 去重冲突：按 Undo -> Redo -> RedoAlternative 的顺序处理。
+            // 去重冲突：按 Undo -> Redo 的顺序处理。
             // 约定：同一组合键不允许绑定多个动作；后出现者自动清空（禁用）。
             if (!string.IsNullOrEmpty(settings.Undo))
             {
                 if (string.Equals(settings.Redo, settings.Undo, StringComparison.Ordinal))
                 {
+                    report?.KeyboardShortcutIssues.Add(
+                        new KeyboardShortcutNormalizationIssue
+                        {
+                            Slot = "Redo",
+                            OldValue = settings.Redo,
+                            NewValue = string.Empty,
+                            Kind = KeyboardShortcutNormalizationIssueKind.ConflictDisabled,
+                            ConflictWithSlot = "Undo",
+                        });
                     settings.Redo = string.Empty;
                 }
-
-                if (string.Equals(settings.RedoAlternative, settings.Undo, StringComparison.Ordinal))
-                {
-                    settings.RedoAlternative = string.Empty;
-                }
-            }
-
-            if (!string.IsNullOrEmpty(settings.Redo)
-                && string.Equals(settings.RedoAlternative, settings.Redo, StringComparison.Ordinal))
-            {
-                settings.RedoAlternative = string.Empty;
             }
         }
 
-        private static string NormalizeKeyboardShortcutOrDisable(string? value, string defaultValue)
+        private static string NormalizeKeyboardShortcutOrDisable(
+            string slot,
+            string? value,
+            string defaultValue,
+            SettingsNormalizationReport? report)
         {
             string text = (value ?? string.Empty).Trim();
             if (string.IsNullOrEmpty(text))
@@ -274,9 +283,26 @@ namespace WindBoard.Settings
                 // 非法值回退默认值，并写回规范格式，避免落盘脏数据影响后续 UI 展示与解析。
                 if (KeyboardShortcutGesture.TryParse(defaultValue, out KeyboardShortcutGesture defaultGesture))
                 {
-                    return defaultGesture.ToSettingString();
+                    string normalized = defaultGesture.ToSettingString();
+                    report?.KeyboardShortcutIssues.Add(
+                        new KeyboardShortcutNormalizationIssue
+                        {
+                            Slot = slot,
+                            OldValue = text,
+                            NewValue = normalized,
+                            Kind = KeyboardShortcutNormalizationIssueKind.InvalidRevertedToDefault,
+                        });
+                    return normalized;
                 }
 
+                report?.KeyboardShortcutIssues.Add(
+                    new KeyboardShortcutNormalizationIssue
+                    {
+                        Slot = slot,
+                        OldValue = text,
+                        NewValue = defaultValue,
+                        Kind = KeyboardShortcutNormalizationIssueKind.InvalidRevertedToDefault,
+                    });
                 return defaultValue;
             }
 

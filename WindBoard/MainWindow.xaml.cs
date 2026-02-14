@@ -159,7 +159,10 @@ namespace WindBoard
 
             TryAddKeyboardAccelerator(root, used, slot: "Undo", shortcuts.Undo, OnUndoKeyboardAcceleratorInvoked);
             TryAddKeyboardAccelerator(root, used, slot: "Redo", shortcuts.Redo, OnRedoKeyboardAcceleratorInvoked);
-            TryAddKeyboardAccelerator(root, used, slot: "RedoAlternative", shortcuts.RedoAlternative, OnRedoKeyboardAcceleratorInvoked);
+
+            // 快捷键冲突/非法值在加载/更新时会被自动归一化（例如回退默认或禁用冲突项）。
+            // 这里统一做一次提醒（可在“设置-快捷键”中关闭提醒）。
+            TryRemindKeyboardShortcutIssuesIfNeeded();
         }
 
         private void TryAddKeyboardAccelerator(

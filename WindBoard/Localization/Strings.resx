@@ -35,13 +35,55 @@
     <value>快捷键</value>
   </data>
   <data name="Settings_Shortcuts_Description" xml:space="preserve">
-    <value>配置软件内置的撤销/重做快捷键。</value>
+    <value>配置撤销/重做键盘快捷键，并查看鼠标组合快捷键（暂不支持修改）。</value>
+  </data>
+  <data name="Settings_Shortcuts_Keyboard_SectionTitle" xml:space="preserve">
+    <value>键盘快捷键</value>
+  </data>
+  <data name="Settings_Shortcuts_ConflictReminder_Header" xml:space="preserve">
+    <value>快捷键冲突提醒</value>
+  </data>
+  <data name="Settings_Shortcuts_ConflictReminder_On" xml:space="preserve">
+    <value>提醒</value>
+  </data>
+  <data name="Settings_Shortcuts_ConflictReminder_Off" xml:space="preserve">
+    <value>不提醒</value>
+  </data>
+  <data name="Settings_Shortcuts_Mouse_SectionTitle" xml:space="preserve">
+    <value>鼠标组合快捷键</value>
+  </data>
+  <data name="Settings_Shortcuts_Mouse_SectionDescription" xml:space="preserve">
+    <value>鼠标组合快捷键暂不支持修改。</value>
   </data>
   <data name="Settings_Shortcuts_Undo_Title" xml:space="preserve">
     <value>撤销</value>
   </data>
   <data name="Settings_Shortcuts_Redo_Title" xml:space="preserve">
     <value>重做</value>
+  </data>
+  <data name="Settings_Shortcuts_Mouse_PanViewport_Title" xml:space="preserve">
+    <value>平移视口</value>
+  </data>
+  <data name="Settings_Shortcuts_Mouse_PanViewport_Gesture" xml:space="preserve">
+    <value>鼠标右键拖动</value>
+  </data>
+  <data name="Settings_Shortcuts_Mouse_ZoomViewport_Title" xml:space="preserve">
+    <value>缩放视口</value>
+  </data>
+  <data name="Settings_Shortcuts_Mouse_ZoomViewport_Gesture" xml:space="preserve">
+    <value>鼠标滚轮</value>
+  </data>
+  <data name="Settings_Shortcuts_Mouse_ZoomSelection_Title" xml:space="preserve">
+    <value>选择：缩放选中</value>
+  </data>
+  <data name="Settings_Shortcuts_Mouse_ZoomSelection_Gesture" xml:space="preserve">
+    <value>Ctrl+滚轮</value>
+  </data>
+  <data name="Settings_Shortcuts_Mouse_RotateSelection_Title" xml:space="preserve">
+    <value>选择：旋转选中笔迹</value>
+  </data>
+  <data name="Settings_Shortcuts_Mouse_RotateSelection_Gesture" xml:space="preserve">
+    <value>Shift+滚轮</value>
   </data>
   <data name="Settings_Shortcuts_RedoAlternative_Title" xml:space="preserve">
     <value>重做（备用）</value>
@@ -63,6 +105,22 @@
   </data>
   <data name="Settings_Shortcuts_Error_Conflict_Fmt" xml:space="preserve">
     <value>该快捷键已分配给“{0}”，请先修改或清除冲突项。</value>
+  </data>
+
+  <data name="Reminder_Shortcuts_AutoFix_Title" xml:space="preserve">
+    <value>快捷键设置已自动修复</value>
+  </data>
+  <data name="Reminder_Shortcuts_AutoFix_Line_Conflict_Fmt" xml:space="preserve">
+    <value>{0}：与“{1}”冲突，已禁用</value>
+  </data>
+  <data name="Reminder_Shortcuts_AutoFix_Line_Invalid_Fmt" xml:space="preserve">
+    <value>{0}：快捷键无效，已恢复为默认（{1}）</value>
+  </data>
+  <data name="Reminder_Shortcuts_AutoFix_Line_Generic" xml:space="preserve">
+    <value>检测到快捷键设置问题，已自动修复。</value>
+  </data>
+  <data name="Reminder_Shortcuts_AutoFix_Footer" xml:space="preserve">
+    <value>可在“设置-快捷键”中关闭此提醒。</value>
   </data>
 
   <data name="PageThumbnail_Empty" xml:space="preserve">
