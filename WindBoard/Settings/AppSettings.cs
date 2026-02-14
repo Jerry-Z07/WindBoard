@@ -62,6 +62,16 @@ namespace WindBoard.Settings
         /// 画布背景色（#RRGGBB 或 #AARRGGBB）。
         /// </summary>
         public string CanvasBackgroundHex { get; set; } = ColorHex.DefaultCanvasBackgroundHex;
+
+        /// <summary>
+        /// 元素卡片主题（深/浅）：用于导入的图片/文件/文本/链接等“卡片”外观。
+        /// </summary>
+        /// <remarks>
+        /// 约定：持久化为字符串，便于用户手动编辑 settings.json。
+        /// - dark：深色卡片（默认）
+        /// - light：浅色卡片
+        /// </remarks>
+        public string ElementCardTheme { get; set; } = ElementCardThemeParser.DarkValue;
     }
 
     internal sealed class WritingSettings

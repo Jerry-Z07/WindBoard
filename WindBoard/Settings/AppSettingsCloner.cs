@@ -37,6 +37,7 @@ namespace WindBoard.Settings
                 Appearance = new AppearanceSettings
                 {
                     CanvasBackgroundHex = settings.Appearance?.CanvasBackgroundHex ?? ColorHex.DefaultCanvasBackgroundHex,
+                    ElementCardTheme = settings.Appearance?.ElementCardTheme ?? ElementCardThemeParser.DarkValue,
                 },
                 Dock = new DockSettings
                 {

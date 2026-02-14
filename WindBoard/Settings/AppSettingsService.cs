@@ -56,6 +56,19 @@ namespace WindBoard.Settings
             return ColorHex.ParseOrDefault(hex, ColorHex.DefaultCanvasBackgroundColor);
         }
 
+        internal ElementCardTheme GetElementCardTheme()
+        {
+            string? value;
+            lock (_gate)
+            {
+                value = Current.Appearance?.ElementCardTheme;
+            }
+
+            return ElementCardThemeParser.TryParse(value, out ElementCardTheme theme)
+                ? theme
+                : ElementCardTheme.Dark;
+        }
+
         internal CamouflageSettingsSnapshot GetCamouflageSettingsSnapshot()
         {
             lock (_gate)

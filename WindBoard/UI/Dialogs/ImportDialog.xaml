@@ -1,0 +1,250 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ContentDialog
+    x:Class="WindBoard.UI.Dialogs.ImportDialog"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:l10n="using:WindBoard.Localization"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d"
+    Title="{l10n:Loc Key=ImportDialog_Title}"
+    PrimaryButtonText="{l10n:Loc Key=Common_Import}"
+    CloseButtonText="{l10n:Loc Key=Common_Cancel}"
+    DefaultButton="Primary">
+
+    <ContentDialog.Resources>
+        <DataTemplate x:Key="StorageFileItemTemplate">
+            <StackPanel>
+                <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
+                <TextBlock Text="{Binding Path}" Opacity="0.65" FontSize="11" TextTrimming="CharacterEllipsis" />
+            </StackPanel>
+        </DataTemplate>
+
+        <Style x:Key="ImportPivotHeaderTextStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
+
+        <!--
+            统一“卡片容器”观感：与设置页中的卡片样式保持一致，避免导入弹窗显得突兀。
+        -->
+        <Style x:Key="ImportCardBorderStyle" TargetType="Border">
+            <Setter Property="Background" Value="{ThemeResource SystemControlBackgroundChromeMediumLowBrush}" />
+            <Setter Property="BorderBrush" Value="{ThemeResource SystemControlForegroundBaseLowBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="12" />
+        </Style>
+    </ContentDialog.Resources>
+
+    <Grid MinWidth="560" MaxWidth="760" RowSpacing="12">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <InfoBar
+            x:Name="DialogInfoBar"
+            IsOpen="False"
+            Severity="Warning"
+            IsIconVisible="True" />
+
+        <Pivot Grid.Row="1">
+            <PivotItem>
+                <PivotItem.Header>
+                    <TextBlock
+                        Style="{StaticResource ImportPivotHeaderTextStyle}"
+                        Text="{l10n:Loc Key=ImportDialog_Tab_Image}" />
+                </PivotItem.Header>
+                <Grid RowSpacing="12" Padding="0,8,0,0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Button Content="{l10n:Loc Key=ImportDialog_PickImages}" Click="OnPickImagesClicked" />
+                        <Button Content="{l10n:Loc Key=Common_Clear}" Click="OnClearImagesClicked" />
+                    </StackPanel>
+
+                    <Border
+                        Grid.Row="1"
+                        Style="{StaticResource ImportCardBorderStyle}">
+                        <ListView
+                            ItemsSource="{x:Bind ImageFiles}"
+                            ItemTemplate="{StaticResource StorageFileItemTemplate}"
+                            MinHeight="160"
+                            Margin="4"
+                            SelectionMode="None"
+                            ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                            ScrollViewer.VerticalScrollBarVisibility="Auto" />
+                    </Border>
+                </Grid>
+            </PivotItem>
+
+            <PivotItem>
+                <PivotItem.Header>
+                    <TextBlock
+                        Style="{StaticResource ImportPivotHeaderTextStyle}"
+                        Text="{l10n:Loc Key=ImportDialog_Tab_Media}" />
+                </PivotItem.Header>
+                <Grid RowSpacing="12" Padding="0,8,0,0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Button Content="{l10n:Loc Key=ImportDialog_PickMedia}" Click="OnPickMediaClicked" />
+                        <Button Content="{l10n:Loc Key=Common_Clear}" Click="OnClearMediaClicked" />
+                    </StackPanel>
+
+                    <Border
+                        Grid.Row="1"
+                        Style="{StaticResource ImportCardBorderStyle}">
+                        <ListView
+                            ItemsSource="{x:Bind MediaFiles}"
+                            ItemTemplate="{StaticResource StorageFileItemTemplate}"
+                            MinHeight="160"
+                            Margin="4"
+                            SelectionMode="None"
+                            ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                            ScrollViewer.VerticalScrollBarVisibility="Auto" />
+                    </Border>
+                </Grid>
+            </PivotItem>
+
+            <PivotItem>
+                <PivotItem.Header>
+                    <TextBlock
+                        Style="{StaticResource ImportPivotHeaderTextStyle}"
+                        Text="{l10n:Loc Key=ImportDialog_Tab_Text}" />
+                </PivotItem.Header>
+                <Grid RowSpacing="12" Padding="0,8,0,0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+
+                    <TextBox
+                        x:Name="TextContentTextBox"
+                        AcceptsReturn="True"
+                        TextWrapping="Wrap"
+                        ScrollViewer.VerticalScrollBarVisibility="Auto"
+                        MinHeight="120"
+                        PlaceholderText="{l10n:Loc Key=Import_Text_Placeholder}"
+                        TextChanged="OnTextContentChanged" />
+
+                    <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="8">
+                        <Button Content="{l10n:Loc Key=ImportDialog_PickTextFiles}" Click="OnPickTextFilesClicked" />
+                        <Button Content="{l10n:Loc Key=ImportDialog_PasteFromClipboard}" Click="OnPasteTextClicked" />
+                        <Button Content="{l10n:Loc Key=Common_Clear}" Click="OnClearTextClicked" />
+                    </StackPanel>
+
+                    <Border
+                        Grid.Row="2"
+                        Style="{StaticResource ImportCardBorderStyle}">
+                        <ListView
+                            ItemsSource="{x:Bind TextFiles}"
+                            ItemTemplate="{StaticResource StorageFileItemTemplate}"
+                            MinHeight="160"
+                            Margin="4"
+                            SelectionMode="None"
+                            ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                            ScrollViewer.VerticalScrollBarVisibility="Auto" />
+                    </Border>
+                </Grid>
+            </PivotItem>
+
+            <PivotItem>
+                <PivotItem.Header>
+                    <TextBlock
+                        Style="{StaticResource ImportPivotHeaderTextStyle}"
+                        Text="{l10n:Loc Key=ImportDialog_Tab_Link}" />
+                </PivotItem.Header>
+                <Grid RowSpacing="12" Padding="0,8,0,0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+
+                    <TextBox
+                        x:Name="LinkLinesTextBox"
+                        Grid.Row="0"
+                        AcceptsReturn="True"
+                        TextWrapping="Wrap"
+                        ScrollViewer.VerticalScrollBarVisibility="Auto"
+                        MinHeight="160"
+                        PlaceholderText="{l10n:Loc Key=ImportDialog_LinkLines_Placeholder}"
+                        TextChanged="OnLinkLinesChanged" />
+
+                    <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="8">
+                        <Button Content="{l10n:Loc Key=ImportDialog_PasteFromClipboard}" Click="OnPasteLinksClicked" />
+                        <Button Content="{l10n:Loc Key=Common_Clear}" Click="OnClearLinksClicked" />
+                    </StackPanel>
+                </Grid>
+            </PivotItem>
+
+            <PivotItem>
+                <PivotItem.Header>
+                    <TextBlock
+                        Style="{StaticResource ImportPivotHeaderTextStyle}"
+                        Text="{l10n:Loc Key=ImportDialog_Tab_Wbix}" />
+                </PivotItem.Header>
+                <Grid RowSpacing="12" Padding="0,8,0,0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Button Content="{l10n:Loc Key=ImportDialog_PickWbix}" Click="OnPickWbixClicked" />
+                        <Button x:Name="ClearWbixButton" Content="{l10n:Loc Key=Common_Clear}" Click="OnClearWbixClicked" Visibility="Collapsed" />
+                    </StackPanel>
+
+                    <Border
+                        x:Name="WbixPreviewBorder"
+                        Grid.Row="1"
+                        Style="{StaticResource ImportCardBorderStyle}"
+                        Padding="12"
+                        Visibility="Collapsed">
+                        <Grid ColumnSpacing="12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+
+                            <Grid>
+                                <Border
+                                    x:Name="WbixCoverFallbackBorder"
+                                    Width="240"
+                                    Height="180"
+                                    CornerRadius="12"
+                                    Background="{ThemeResource SystemControlBackgroundChromeMediumLowBrush}">
+                                    <TextBlock
+                                        HorizontalAlignment="Center"
+                                        VerticalAlignment="Center"
+                                        Text="{l10n:Loc Key=Import_Wbix_NoCover}" />
+                                </Border>
+                                <Image
+                                    x:Name="WbixCoverImage"
+                                    Width="240"
+                                    Height="180"
+                                    Stretch="UniformToFill"
+                                    Visibility="Collapsed" />
+                            </Grid>
+
+                            <StackPanel Grid.Column="1" Spacing="6">
+                                <TextBlock x:Name="WbixInfoTextBlock" TextWrapping="WrapWholeWords" />
+
+                                <TextBlock Text="{l10n:Loc Key=Import_Wbix_InsertMethod_Label}" FontWeight="SemiBold" Margin="0,6,0,0" />
+                                <RadioButton x:Name="WbixAppendRadioButton" Content="{l10n:Loc Key=Import_Wbix_Mode_Append}" IsChecked="True" />
+                                <RadioButton x:Name="WbixReplaceCurrentPageRadioButton" Content="{l10n:Loc Key=Import_Wbix_Mode_ReplaceCurrentPage}" />
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+                </Grid>
+            </PivotItem>
+        </Pivot>
+    </Grid>
+</ContentDialog>

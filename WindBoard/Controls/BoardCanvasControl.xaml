@@ -8,6 +8,28 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d">
 
+    <UserControl.Resources>
+        <!-- 选择框缩放手柄：用于导入元素（卡片）缩放。 -->
+        <Style x:Key="SelectionHandleThumbStyle" TargetType="Thumb">
+            <Setter Property="Width" Value="14" />
+            <Setter Property="Height" Value="14" />
+            <Setter Property="Background" Value="White" />
+            <Setter Property="BorderBrush" Value="{ThemeResource SystemAccentColor}" />
+            <Setter Property="BorderThickness" Value="2" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Thumb">
+                        <Border
+                            Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="3" />
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </UserControl.Resources>
+
     <Grid>
         <SwapChainPanel x:Name="CanvasPanel" />
 
@@ -27,6 +49,26 @@
                     <SvgImageSource UriSource="ms-appx:///Assets/Eraser.svg" />
                 </Image.Source>
             </Image>
+        </Canvas>
+
+        <!-- 选择框缩放手柄：仅在“选中元素”时显示（交互由 Thumb 拖拽事件处理）。 -->
+        <Canvas x:Name="SelectionHandlesCanvas" IsHitTestVisible="True">
+            <Thumb x:Name="SelectionHandleTL" Style="{StaticResource SelectionHandleThumbStyle}" Tag="TL" Visibility="Collapsed"
+                   DragStarted="OnSelectionHandleDragStarted" DragDelta="OnSelectionHandleDragDelta" DragCompleted="OnSelectionHandleDragCompleted" />
+            <Thumb x:Name="SelectionHandleT" Style="{StaticResource SelectionHandleThumbStyle}" Tag="T" Visibility="Collapsed"
+                   DragStarted="OnSelectionHandleDragStarted" DragDelta="OnSelectionHandleDragDelta" DragCompleted="OnSelectionHandleDragCompleted" />
+            <Thumb x:Name="SelectionHandleTR" Style="{StaticResource SelectionHandleThumbStyle}" Tag="TR" Visibility="Collapsed"
+                   DragStarted="OnSelectionHandleDragStarted" DragDelta="OnSelectionHandleDragDelta" DragCompleted="OnSelectionHandleDragCompleted" />
+            <Thumb x:Name="SelectionHandleL" Style="{StaticResource SelectionHandleThumbStyle}" Tag="L" Visibility="Collapsed"
+                   DragStarted="OnSelectionHandleDragStarted" DragDelta="OnSelectionHandleDragDelta" DragCompleted="OnSelectionHandleDragCompleted" />
+            <Thumb x:Name="SelectionHandleR" Style="{StaticResource SelectionHandleThumbStyle}" Tag="R" Visibility="Collapsed"
+                   DragStarted="OnSelectionHandleDragStarted" DragDelta="OnSelectionHandleDragDelta" DragCompleted="OnSelectionHandleDragCompleted" />
+            <Thumb x:Name="SelectionHandleBL" Style="{StaticResource SelectionHandleThumbStyle}" Tag="BL" Visibility="Collapsed"
+                   DragStarted="OnSelectionHandleDragStarted" DragDelta="OnSelectionHandleDragDelta" DragCompleted="OnSelectionHandleDragCompleted" />
+            <Thumb x:Name="SelectionHandleB" Style="{StaticResource SelectionHandleThumbStyle}" Tag="B" Visibility="Collapsed"
+                   DragStarted="OnSelectionHandleDragStarted" DragDelta="OnSelectionHandleDragDelta" DragCompleted="OnSelectionHandleDragCompleted" />
+            <Thumb x:Name="SelectionHandleBR" Style="{StaticResource SelectionHandleThumbStyle}" Tag="BR" Visibility="Collapsed"
+                   DragStarted="OnSelectionHandleDragStarted" DragDelta="OnSelectionHandleDragDelta" DragCompleted="OnSelectionHandleDragCompleted" />
         </Canvas>
 
         <!-- 选中项 Dock：悬浮于选择框下方，仅 Dock 本体可点击（Canvas 背景为空，避免遮挡画布交互）。 -->

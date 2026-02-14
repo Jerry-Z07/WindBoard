@@ -14,6 +14,7 @@ using WindBoard.Board;
 using WindBoard.Board.Elements;
 using WindBoard.Board.Viewport;
 using WindBoard.Localization;
+using WindBoard.Settings;
 
 namespace WindBoard.Rendering.Board
 {
@@ -52,6 +53,40 @@ namespace WindBoard.Rendering.Board
 
         private readonly Dictionary<BoardMediaElement, ID2D1Bitmap> _imageBitmapCache = new();
         private nint _imageBitmapCacheRenderTargetPtr;
+
+        /// <summary>
+        /// 元素卡片主题（深/浅）：影响导入的图片/文件/文本/链接等卡片外观。
+        /// </summary>
+        internal ElementCardTheme ElementCardTheme { get; set; } = ElementCardTheme.Dark;
+
+        private readonly record struct ElementCardPalette(
+            Color4 Background,
+            Color4 Border,
+            Color4 ImageBorder,
+            Color4 Text,
+            Color4 SecondaryText,
+            Color4 IconText);
+
+        private static readonly ElementCardPalette DarkPalette = new(
+            Background: new Color4(0x20 / 255.0f, 0x21 / 255.0f, 0x26 / 255.0f, 1.0f), // #202126
+            Border: new Color4(0x3A / 255.0f, 0x3B / 255.0f, 0x40 / 255.0f, 1.0f), // #3A3B40
+            ImageBorder: new Color4(0x3A / 255.0f, 0x3B / 255.0f, 0x40 / 255.0f, 1.0f), // #3A3B40
+            Text: new Color4(0xED / 255.0f, 0xED / 255.0f, 0xED / 255.0f, 1.0f), // #EDEDED
+            SecondaryText: new Color4(0xBD / 255.0f, 0xBD / 255.0f, 0xBD / 255.0f, 1.0f), // #BDBDBD
+            IconText: new Color4(0xED / 255.0f, 0xED / 255.0f, 0xED / 255.0f, 1.0f)); // #EDEDED
+
+        private static readonly ElementCardPalette LightPalette = new(
+            Background: new Color4(1, 1, 1, 0.92f),
+            Border: new Color4(0, 0, 0, 0.28f),
+            ImageBorder: new Color4(0, 0, 0, 0.35f),
+            Text: new Color4(0, 0, 0, 0.90f),
+            SecondaryText: new Color4(0, 0, 0, 0.60f),
+            IconText: new Color4(1, 1, 1, 0.95f));
+
+        private ElementCardPalette GetCardPalette()
+        {
+            return ElementCardTheme == ElementCardTheme.Light ? LightPalette : DarkPalette;
+        }
 
         public void Draw(ID2D1RenderTarget ctx, BoardDocument document, Stroke? activeStroke, BoardViewport viewport)
         {
@@ -420,11 +455,12 @@ namespace WindBoard.Rendering.Board
             const float titleHeight = 22.0f;
             const float titleGap = 4.0f;
 
-            _elementFillBrush.Color = new Color4(1, 1, 1, 0.92f);
-            _elementBorderBrush.Color = new Color4(0, 0, 0, 0.28f);
-            _elementTextBrush.Color = new Color4(0, 0, 0, 0.90f);
-            _elementSecondaryTextBrush.Color = new Color4(0, 0, 0, 0.60f);
-            _elementIconTextBrush.Color = new Color4(1, 1, 1, 0.95f);
+            ElementCardPalette palette = GetCardPalette();
+            _elementFillBrush.Color = palette.Background;
+            _elementBorderBrush.Color = palette.Border;
+            _elementTextBrush.Color = palette.Text;
+            _elementSecondaryTextBrush.Color = palette.SecondaryText;
+            _elementIconTextBrush.Color = palette.IconText;
 
             var rr = new RoundedRectangle(
                 new RectangleF(boundsWorld.Left, boundsWorld.Top, boundsWorld.Width, boundsWorld.Height),
@@ -488,8 +524,9 @@ namespace WindBoard.Rendering.Board
             const float corner = 14.0f;
             const float pad = 6.0f;
 
-            _elementFillBrush.Color = new Color4(1, 1, 1, 0.92f);
-            _elementBorderBrush.Color = new Color4(0, 0, 0, 0.35f);
+            ElementCardPalette palette = GetCardPalette();
+            _elementFillBrush.Color = palette.Background;
+            _elementBorderBrush.Color = palette.ImageBorder;
 
             var rr = new RoundedRectangle(
                 new RectangleF(boundsWorld.Left, boundsWorld.Top, boundsWorld.Width, boundsWorld.Height),

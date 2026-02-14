@@ -135,6 +135,7 @@ namespace WindBoard
         {
             Color canvasBackgroundColor = AppSettingsService.Instance.GetCanvasBackgroundColor();
             BoardCanvas.CanvasBackgroundColor = canvasBackgroundColor;
+            BoardCanvas.ElementCardTheme = AppSettingsService.Instance.GetElementCardTheme();
             UpdateCanvasBackgroundBrush(canvasBackgroundColor);
             ApplyDockSettingsToUi();
             ApplyCamouflageSettingsToWindow();

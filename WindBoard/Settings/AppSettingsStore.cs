@@ -100,6 +100,11 @@ namespace WindBoard.Settings
             settings.Appearance.CanvasBackgroundHex = ColorHex.NormalizeToHexRgbOrDefault(
                 settings.Appearance.CanvasBackgroundHex,
                 ColorHex.DefaultCanvasBackgroundHex);
+            if (!ElementCardThemeParser.TryParse(settings.Appearance.ElementCardTheme, out ElementCardTheme cardTheme))
+            {
+                cardTheme = ElementCardTheme.Dark;
+            }
+            settings.Appearance.ElementCardTheme = ElementCardThemeParser.ToSettingValue(cardTheme);
 
             settings.Dock ??= new DockSettings();
             NormalizeDockSettingsInPlace(settings.Dock);

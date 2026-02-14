@@ -177,6 +177,9 @@ namespace WindBoard.Controls
              {
                  SelectionDockBorder.Visibility = Visibility.Collapsed;
              }
+
+            // 框选仅用于笔迹：不显示元素缩放手柄，避免误触。
+            HideSelectionHandlesOverlay();
          }
 
          private bool TryGetSelectedStrokesScreenRect(out Rect strokeBoundsScreenDip)
@@ -205,12 +208,14 @@ namespace WindBoard.Controls
          {
              ShowSelectionBoundsOverlay(strokeBoundsScreenDip);
              ShowSelectionDockOverlay(strokeBoundsScreenDip);
+             HideSelectionHandlesOverlay();
          }
 
         private void ShowSelectedElementOverlay(BoardElement element, Rect elementBoundsScreenDip)
         {
             ShowSelectionBoundsOverlay(elementBoundsScreenDip);
             ShowSelectionDockOverlay(elementBoundsScreenDip);
+            ShowSelectionHandlesOverlay(elementBoundsScreenDip);
         }
 
         private void ShowSelectionBoundsOverlay(Rect boundsDip)
@@ -336,6 +341,8 @@ namespace WindBoard.Controls
             {
                 SelectionDockBorder.Visibility = Visibility.Collapsed;
             }
+
+            HideSelectionHandlesOverlay();
         }
 
         private void OnSelectionBringToFrontClicked(object sender, RoutedEventArgs e)

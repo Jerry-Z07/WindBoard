@@ -24,6 +24,7 @@
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
                     </Grid.RowDefinitions>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*" />
@@ -37,6 +38,8 @@
                                     <Setter Target="SecondColumn.Width" Value="0" />
                                     <Setter Target="DockSettingsCard.(Grid.Row)" Value="1" />
                                     <Setter Target="DockSettingsCard.(Grid.Column)" Value="0" />
+                                    <Setter Target="ElementCardThemeCard.(Grid.Row)" Value="2" />
+                                    <Setter Target="ElementCardThemeCard.(Grid.Column)" Value="0" />
                                 </VisualState.Setters>
                             </VisualState>
                             <VisualState x:Name="Wide">
@@ -47,6 +50,8 @@
                                     <Setter Target="SecondColumn.Width" Value="*" />
                                     <Setter Target="DockSettingsCard.(Grid.Row)" Value="0" />
                                     <Setter Target="DockSettingsCard.(Grid.Column)" Value="1" />
+                                    <Setter Target="ElementCardThemeCard.(Grid.Row)" Value="1" />
+                                    <Setter Target="ElementCardThemeCard.(Grid.Column)" Value="0" />
                                 </VisualState.Setters>
                             </VisualState>
                         </VisualStateGroup>
@@ -126,6 +131,47 @@
                                 VerticalAlignment="Center" />
                         </Grid>
                     </Button>
+
+                    <Button
+                        x:Name="ElementCardThemeCard"
+                        Grid.Row="2"
+                        Style="{StaticResource SettingsCardButtonStyle}"
+                        Click="OnElementCardThemeClicked">
+                        <Grid ColumnSpacing="12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+
+                            <!-- Segoe MDL2 Assets：Color -->
+                            <FontIcon
+                                FontFamily="Segoe MDL2 Assets"
+                                FontSize="16"
+                                Glyph="&#xE790;"
+                                VerticalAlignment="Center" />
+
+                            <StackPanel Grid.Column="1" Spacing="2">
+                                <TextBlock Text="{l10n:Loc Key=Settings_Appearance_ElementCardTheme_Title}" FontWeight="SemiBold" />
+                                <TextBlock Text="{l10n:Loc Key=Settings_Appearance_ElementCardTheme_Description}" Opacity="0.75" TextWrapping="WrapWholeWords" />
+                            </StackPanel>
+
+                            <TextBlock
+                                x:Name="CurrentElementCardThemeTextBlock"
+                                Grid.Column="2"
+                                Opacity="0.75"
+                                VerticalAlignment="Center"
+                                Text="{l10n:Loc Key=Settings_Appearance_ElementCardTheme_Dark}" />
+
+                            <FontIcon
+                                Grid.Column="3"
+                                Glyph="&#xE76C;"
+                                FontFamily="Segoe MDL2 Assets"
+                                Opacity="0.65"
+                                VerticalAlignment="Center" />
+                        </Grid>
+                    </Button>
                 </Grid>
             </StackPanel>
         </ScrollViewer>
@@ -169,6 +215,22 @@
                     Severity="Error"
                     Message="{l10n:Loc Key=Settings_Background_HexError}"
                     IsIconVisible="True" />
+            </StackPanel>
+        </ContentDialog>
+
+        <ContentDialog
+            x:Name="ElementCardThemeDialog"
+            Title="{l10n:Loc Key=Settings_Appearance_ElementCardTheme_DialogTitle}"
+            PrimaryButtonText="{l10n:Loc Key=Common_OK}"
+            CloseButtonText="{l10n:Loc Key=Common_Cancel}">
+            <StackPanel Spacing="12">
+                <RadioButton
+                    x:Name="ElementCardThemeDarkRadioButton"
+                    Content="{l10n:Loc Key=Settings_Appearance_ElementCardTheme_Dark}"
+                    IsChecked="True" />
+                <RadioButton
+                    x:Name="ElementCardThemeLightRadioButton"
+                    Content="{l10n:Loc Key=Settings_Appearance_ElementCardTheme_Light}" />
             </StackPanel>
         </ContentDialog>
     </Grid>

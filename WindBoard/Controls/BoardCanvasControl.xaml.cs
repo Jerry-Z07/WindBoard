@@ -14,6 +14,7 @@ using WindBoard.Board.Editing;
 using WindBoard.Board.Elements;
 using WindBoard.Board.Viewport;
 using WindBoard.Interaction;
+using WindBoard.Settings;
 using WindBoard.Rendering;
 using WindBoard.Rendering.Board;
 
@@ -34,6 +35,7 @@ namespace WindBoard.Controls
         private UiColor _canvasBackgroundColor = UiColor.FromArgb(0xFF, 0x2E, 0x2F, 0x33);
         private UiColor _penColor = UiColor.FromArgb(0xFF, 0x00, 0x00, 0x00);
         private float _penBaseSize = 3.0f;
+        private ElementCardTheme _elementCardTheme = ElementCardTheme.Dark;
         private bool _isInitialized;
         private bool _isRenderingLoopActive;
         private bool _isRenderQueued;
@@ -86,6 +88,25 @@ namespace WindBoard.Controls
 
                 _canvasBackgroundColor = value;
                 ApplyCanvasBackgroundToRenderer();
+                RequestRender();
+            }
+        }
+
+        /// <summary>
+        /// 元素卡片主题（深/浅）：用于导入元素的卡片外观。
+        /// </summary>
+        internal ElementCardTheme ElementCardTheme
+        {
+            get => _elementCardTheme;
+            set
+            {
+                if (_elementCardTheme == value)
+                {
+                    return;
+                }
+
+                _elementCardTheme = value;
+                _sceneRenderer.ElementCardTheme = value;
                 RequestRender();
             }
         }
@@ -272,6 +293,23 @@ namespace WindBoard.Controls
             zoom = _viewport.Zoom;
         }
 
+        /// <summary>
+        /// 选中指定元素（用于导入后自动进入选择并聚焦新对象）。
+        /// </summary>
+        internal void SetSelectedElement(BoardElement? element)
+        {
+            if (_input is null)
+            {
+                return;
+            }
+
+            // 外部强制选中前，先结束输入控制器可能存在的连续动作，避免残留捕获/状态。
+            _input.CancelActiveToolOperation();
+
+            _input.SetSelection(element);
+            RequestRender();
+        }
+
         private void EnsureInitialized()
         {
             if (_isInitialized)
@@ -282,6 +320,7 @@ namespace WindBoard.Controls
             _renderer = new DxSwapChainPanelRenderer(CanvasPanel);
             _renderer.Initialize();
             ApplyCanvasBackgroundToRenderer();
+            _sceneRenderer.ElementCardTheme = _elementCardTheme;
 
             _input = new BoardInputController(CanvasPanel, _session, _viewport, _eraser);
             _input.Tool = _tool;
