@@ -46,6 +46,9 @@ namespace WindBoard.UI.Dialogs
             ImageFiles.CollectionChanged += (_, _) => UpdatePrimaryButtonState();
             MediaFiles.CollectionChanged += (_, _) => UpdatePrimaryButtonState();
             TextFiles.CollectionChanged += (_, _) => UpdatePrimaryButtonState();
+
+            // 默认选中第一项（图片）。这里放到代码中设置，避免在 XAML 里直接写 IsSelected 触发异常情况。
+            ImportNavView.SelectedItem = ImportNavView.MenuItems.OfType<NavigationViewItem>().FirstOrDefault();
         }
 
         private void OnPrimaryButtonClick(ContentDialog sender, ContentDialogButtonClickEventArgs args)
@@ -117,6 +120,23 @@ namespace WindBoard.UI.Dialogs
                 || hasLinks;
 
             IsPrimaryButtonEnabled = hasWbix || hasAny;
+        }
+
+        private void OnImportNavigationSelectionChanged(NavigationView sender, NavigationViewSelectionChangedEventArgs args)
+        {
+            if (args.SelectedItem is not NavigationViewItem item || item.Tag is not string tag)
+            {
+                return;
+            }
+
+            // 切换导入类型时收起提示，避免用户看到“上一页”的警告信息。
+            DialogInfoBar.IsOpen = false;
+
+            ImageImportPanel.Visibility = tag == "image" ? Visibility.Visible : Visibility.Collapsed;
+            MediaImportPanel.Visibility = tag == "media" ? Visibility.Visible : Visibility.Collapsed;
+            TextImportPanel.Visibility = tag == "text" ? Visibility.Visible : Visibility.Collapsed;
+            LinkImportPanel.Visibility = tag == "link" ? Visibility.Visible : Visibility.Collapsed;
+            WbixImportPanel.Visibility = tag == "wbix" ? Visibility.Visible : Visibility.Collapsed;
         }
 
         private async void OnPickImagesClicked(object sender, RoutedEventArgs e)
@@ -212,7 +232,7 @@ namespace WindBoard.UI.Dialogs
             ClearWbixButton.Visibility = Visibility.Collapsed;
             WbixPreviewBorder.Visibility = Visibility.Collapsed;
             WbixCoverImage.Source = null;
-            WbixCoverImage.Visibility = Visibility.Collapsed;
+            WbixCoverImageBorder.Visibility = Visibility.Collapsed;
             WbixCoverFallbackBorder.Visibility = Visibility.Visible;
             WbixInfoTextBlock.Text = string.Empty;
             UpdatePrimaryButtonState();
@@ -263,7 +283,7 @@ namespace WindBoard.UI.Dialogs
             if (pngBytes is not { Length: > 0 })
             {
                 WbixCoverImage.Source = null;
-                WbixCoverImage.Visibility = Visibility.Collapsed;
+                WbixCoverImageBorder.Visibility = Visibility.Collapsed;
                 WbixCoverFallbackBorder.Visibility = Visibility.Visible;
                 return;
             }
@@ -272,13 +292,13 @@ namespace WindBoard.UI.Dialogs
             if (bitmap is null)
             {
                 WbixCoverImage.Source = null;
-                WbixCoverImage.Visibility = Visibility.Collapsed;
+                WbixCoverImageBorder.Visibility = Visibility.Collapsed;
                 WbixCoverFallbackBorder.Visibility = Visibility.Visible;
                 return;
             }
 
             WbixCoverImage.Source = bitmap;
-            WbixCoverImage.Visibility = Visibility.Visible;
+            WbixCoverImageBorder.Visibility = Visibility.Visible;
             WbixCoverFallbackBorder.Visibility = Visibility.Collapsed;
         }
 
