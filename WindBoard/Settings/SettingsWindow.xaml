@@ -38,6 +38,12 @@
                     <SymbolIcon Symbol="Edit" />
                 </NavigationViewItem.Icon>
             </NavigationViewItem>
+            <NavigationViewItem Content="{l10n:Loc Key=SettingsWindow_Nav_Shortcuts}" Tag="shortcuts">
+                <NavigationViewItem.Icon>
+                    <!-- 快捷键：键盘语义图标（MDL2 兼容，避免依赖 Symbol 枚举版本差异） -->
+                    <FontIcon FontFamily="Segoe MDL2 Assets" Glyph="&#xE765;" />
+                </NavigationViewItem.Icon>
+            </NavigationViewItem>
         </NavigationView.MenuItems>
 
         <Frame x:Name="ContentFrame" Navigated="OnContentFrameNavigated" />

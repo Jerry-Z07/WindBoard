@@ -73,6 +73,12 @@ namespace WindBoard.Settings
                         UseThicknessSlider = settings.Writing?.Pen?.UseThicknessSlider ?? false,
                     },
                 },
+                KeyboardShortcuts = new KeyboardShortcutsSettings
+                {
+                    Undo = settings.KeyboardShortcuts?.Undo ?? KeyboardShortcutsDefaults.Undo,
+                    Redo = settings.KeyboardShortcuts?.Redo ?? KeyboardShortcutsDefaults.Redo,
+                    RedoAlternative = settings.KeyboardShortcuts?.RedoAlternative ?? KeyboardShortcutsDefaults.RedoAlternative,
+                },
                 Diagnostics = new DiagnosticsSettings
                 {
                     Logging = new LoggingSettings

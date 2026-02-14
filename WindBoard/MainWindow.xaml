@@ -14,15 +14,9 @@
         <MicaBackdrop />
     </Window.SystemBackdrop>
 
-    <!-- 常用快捷键：保证“置顶/复制/删除”等操作也能通过 Ctrl+Z / Ctrl+Y 统一撤销重做 -->
-    <!-- KeyboardAcceleratorPlacementMode=Hidden：避免在悬停控件时反复弹出“Ctrl+Z/Ctrl+Y”提示 -->
+    <!-- 常用快捷键：撤销/重做（可在“设置-快捷键”中自定义） -->
+    <!-- KeyboardAcceleratorPlacementMode=Hidden：避免在悬停控件时反复弹出快捷键提示 -->
     <Grid KeyboardAcceleratorPlacementMode="Hidden">
-        <Grid.KeyboardAccelerators>
-            <KeyboardAccelerator Key="Z" Modifiers="Control" Invoked="OnUndoKeyboardAcceleratorInvoked" />
-            <KeyboardAccelerator Key="Y" Modifiers="Control" Invoked="OnRedoKeyboardAcceleratorInvoked" />
-            <KeyboardAccelerator Key="Z" Modifiers="Control,Shift" Invoked="OnRedoKeyboardAcceleratorInvoked" />
-        </Grid.KeyboardAccelerators>
-
         <controls:BoardCanvasControl x:Name="BoardCanvas" />
 
         <!-- 底部 Dock：左侧“更多/最小化/导入”，中部“工具/撤销重做”，右侧“+”入口 -->

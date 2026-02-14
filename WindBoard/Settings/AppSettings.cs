@@ -15,6 +15,8 @@ namespace WindBoard.Settings
 
         public WritingSettings Writing { get; set; } = new();
 
+        public KeyboardShortcutsSettings KeyboardShortcuts { get; set; } = new();
+
         public DiagnosticsSettings Diagnostics { get; set; } = new();
     }
 

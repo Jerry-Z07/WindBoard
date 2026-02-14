@@ -139,6 +139,61 @@ namespace WindBoard
             UpdateCanvasBackgroundBrush(canvasBackgroundColor);
             ApplyDockSettingsToUi();
             ApplyCamouflageSettingsToWindow();
+            ApplyKeyboardShortcutsToUi();
+        }
+
+        private void ApplyKeyboardShortcutsToUi()
+        {
+            // KeyboardAccelerator 绑定到根 Grid，确保在不同控件聚焦时仍可响应（但文本输入控件内会被显式拦截）。
+            if (Content is not Grid root)
+            {
+                return;
+            }
+
+            root.KeyboardAccelerators.Clear();
+
+            KeyboardShortcutsSnapshot shortcuts = AppSettingsService.Instance.GetKeyboardShortcutsSnapshot();
+
+            // 防御：再次做去重，避免异常设置导致同一组合键绑定多个动作。
+            var used = new HashSet<string>(StringComparer.Ordinal);
+
+            TryAddKeyboardAccelerator(root, used, slot: "Undo", shortcuts.Undo, OnUndoKeyboardAcceleratorInvoked);
+            TryAddKeyboardAccelerator(root, used, slot: "Redo", shortcuts.Redo, OnRedoKeyboardAcceleratorInvoked);
+            TryAddKeyboardAccelerator(root, used, slot: "RedoAlternative", shortcuts.RedoAlternative, OnRedoKeyboardAcceleratorInvoked);
+        }
+
+        private void TryAddKeyboardAccelerator(
+            Grid root,
+            HashSet<string> used,
+            string slot,
+            string value,
+            Action<KeyboardAccelerator, KeyboardAcceleratorInvokedEventArgs> invoked)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return;
+            }
+
+            if (!KeyboardShortcutGesture.TryParse(value, out KeyboardShortcutGesture gesture) || !gesture.IsValidForApp())
+            {
+                AppLog.Warn("Shortcuts", $"快捷键无效，已忽略：slot={slot}, value='{value}'");
+                return;
+            }
+
+            string canonical = gesture.ToSettingString();
+            if (!used.Add(canonical))
+            {
+                AppLog.Warn("Shortcuts", $"快捷键重复，已忽略：slot={slot}, value='{canonical}'");
+                return;
+            }
+
+            var accelerator = new KeyboardAccelerator
+            {
+                Key = gesture.Key,
+                Modifiers = gesture.Modifiers,
+            };
+            accelerator.Invoked += (_, args) => invoked(_, args);
+            root.KeyboardAccelerators.Add(accelerator);
         }
 
 

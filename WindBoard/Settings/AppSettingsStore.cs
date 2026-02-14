@@ -113,6 +113,9 @@ namespace WindBoard.Settings
             settings.Writing.Pen ??= new PenSettings();
             NormalizePenSettingsInPlace(settings.Writing.Pen);
 
+            settings.KeyboardShortcuts ??= new KeyboardShortcutsSettings();
+            NormalizeKeyboardShortcutsInPlace(settings.KeyboardShortcuts);
+
             settings.Diagnostics ??= new DiagnosticsSettings();
             settings.Diagnostics.Logging ??= new LoggingSettings();
             NormalizeLoggingSettingsInPlace(settings.Diagnostics.Logging);
@@ -224,6 +227,60 @@ namespace WindBoard.Settings
 
             // 粗细：必须三档，且归一化为递增。
             settings.ThicknessPresets = PenSettingsDefaults.NormalizeThicknessPresets(settings.ThicknessPresets);
+        }
+
+        private static void NormalizeKeyboardShortcutsInPlace(KeyboardShortcutsSettings settings)
+        {
+            // 快捷键归一化：
+            // - null -> string.Empty
+            // - 允许空字符串表示禁用（不会自动回填）
+            // - 非空则必须是“合法组合键”（并写回为规范格式）
+            settings.Undo = NormalizeKeyboardShortcutOrDisable(settings.Undo, KeyboardShortcutsDefaults.Undo);
+            settings.Redo = NormalizeKeyboardShortcutOrDisable(settings.Redo, KeyboardShortcutsDefaults.Redo);
+            settings.RedoAlternative = NormalizeKeyboardShortcutOrDisable(settings.RedoAlternative, KeyboardShortcutsDefaults.RedoAlternative);
+
+            // 去重冲突：按 Undo -> Redo -> RedoAlternative 的顺序处理。
+            // 约定：同一组合键不允许绑定多个动作；后出现者自动清空（禁用）。
+            if (!string.IsNullOrEmpty(settings.Undo))
+            {
+                if (string.Equals(settings.Redo, settings.Undo, StringComparison.Ordinal))
+                {
+                    settings.Redo = string.Empty;
+                }
+
+                if (string.Equals(settings.RedoAlternative, settings.Undo, StringComparison.Ordinal))
+                {
+                    settings.RedoAlternative = string.Empty;
+                }
+            }
+
+            if (!string.IsNullOrEmpty(settings.Redo)
+                && string.Equals(settings.RedoAlternative, settings.Redo, StringComparison.Ordinal))
+            {
+                settings.RedoAlternative = string.Empty;
+            }
+        }
+
+        private static string NormalizeKeyboardShortcutOrDisable(string? value, string defaultValue)
+        {
+            string text = (value ?? string.Empty).Trim();
+            if (string.IsNullOrEmpty(text))
+            {
+                return string.Empty;
+            }
+
+            if (!KeyboardShortcutGesture.TryParse(text, out KeyboardShortcutGesture gesture) || !gesture.IsValidForApp())
+            {
+                // 非法值回退默认值，并写回规范格式，避免落盘脏数据影响后续 UI 展示与解析。
+                if (KeyboardShortcutGesture.TryParse(defaultValue, out KeyboardShortcutGesture defaultGesture))
+                {
+                    return defaultGesture.ToSettingString();
+                }
+
+                return defaultValue;
+            }
+
+            return gesture.ToSettingString();
         }
 
         private static void NormalizeLoggingSettingsInPlace(LoggingSettings settings)

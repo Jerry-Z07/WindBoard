@@ -27,6 +27,43 @@
   <data name="SettingsWindow_Nav_Writing" xml:space="preserve">
     <value>书写</value>
   </data>
+  <data name="SettingsWindow_Nav_Shortcuts" xml:space="preserve">
+    <value>快捷键</value>
+  </data>
+
+  <data name="Settings_Shortcuts_Title" xml:space="preserve">
+    <value>快捷键</value>
+  </data>
+  <data name="Settings_Shortcuts_Description" xml:space="preserve">
+    <value>配置软件内置的撤销/重做快捷键。</value>
+  </data>
+  <data name="Settings_Shortcuts_Undo_Title" xml:space="preserve">
+    <value>撤销</value>
+  </data>
+  <data name="Settings_Shortcuts_Redo_Title" xml:space="preserve">
+    <value>重做</value>
+  </data>
+  <data name="Settings_Shortcuts_RedoAlternative_Title" xml:space="preserve">
+    <value>重做（备用）</value>
+  </data>
+  <data name="Settings_Shortcuts_NotSet" xml:space="preserve">
+    <value>未设置</value>
+  </data>
+  <data name="Settings_Shortcuts_EditDialog_Hint" xml:space="preserve">
+    <value>请按下新的快捷键（必须包含 Ctrl 或 Alt；按 Backspace 清除）。</value>
+  </data>
+  <data name="Settings_Shortcuts_EditDialog_Title_Fmt" xml:space="preserve">
+    <value>设置快捷键：{0}</value>
+  </data>
+  <data name="Settings_Shortcuts_Error_NotSet" xml:space="preserve">
+    <value>请按下新的快捷键，或按 Backspace 清除。</value>
+  </data>
+  <data name="Settings_Shortcuts_Error_Invalid" xml:space="preserve">
+    <value>快捷键无效，请使用包含 Ctrl 或 Alt 的组合键。</value>
+  </data>
+  <data name="Settings_Shortcuts_Error_Conflict_Fmt" xml:space="preserve">
+    <value>该快捷键已分配给“{0}”，请先修改或清除冲突项。</value>
+  </data>
 
   <data name="PageThumbnail_Empty" xml:space="preserve">
     <value>空白</value>

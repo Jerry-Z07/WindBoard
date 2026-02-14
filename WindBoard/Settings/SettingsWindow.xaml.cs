@@ -85,6 +85,7 @@ namespace WindBoard.Settings
                 "general" => typeof(GeneralSettingsPage),
                 "appearance" => typeof(AppearanceSettingsPage),
                 "writing" => typeof(WritingSettingsPage),
+                "shortcuts" => typeof(ShortcutsSettingsPage),
                 _ => typeof(GeneralSettingsPage),
             };
 

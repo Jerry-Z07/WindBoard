@@ -158,6 +158,20 @@ namespace WindBoard.Settings
             }
         }
 
+        internal KeyboardShortcutsSnapshot GetKeyboardShortcutsSnapshot()
+        {
+            lock (_gate)
+            {
+                KeyboardShortcutsSettings? shortcuts = Current.KeyboardShortcuts;
+                return new KeyboardShortcutsSnapshot
+                {
+                    Undo = shortcuts?.Undo ?? KeyboardShortcutsDefaults.Undo,
+                    Redo = shortcuts?.Redo ?? KeyboardShortcutsDefaults.Redo,
+                    RedoAlternative = shortcuts?.RedoAlternative ?? KeyboardShortcutsDefaults.RedoAlternative,
+                };
+            }
+        }
+
         internal LoggingSettingsSnapshot GetLoggingSettingsSnapshot()
         {
             lock (_gate)
