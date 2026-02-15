@@ -33,6 +33,10 @@ namespace WindBoard.Settings
                         ShortcutLastGeneratedSignature = settings.General?.Camouflage?.ShortcutLastGeneratedSignature ?? string.Empty,
                         ShortcutLastGeneratedPath = settings.General?.Camouflage?.ShortcutLastGeneratedPath ?? string.Empty,
                     },
+                    Updates = new UpdateSettings
+                    {
+                        AutoCheckInterval = settings.General?.Updates?.AutoCheckInterval ?? UpdateCheckIntervalParser.WeeklyValue,
+                    },
                 },
                 Appearance = new AppearanceSettings
                 {

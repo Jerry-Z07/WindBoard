@@ -95,6 +95,29 @@ namespace WindBoard.Settings
             }
         }
 
+        internal UpdateCheckInterval GetUpdateCheckInterval()
+        {
+            string? value;
+            lock (_gate)
+            {
+                value = Current.General?.Updates?.AutoCheckInterval;
+            }
+
+            return UpdateCheckIntervalParser.TryParse(value, out UpdateCheckInterval interval)
+                ? interval
+                : UpdateCheckInterval.Weekly;
+        }
+
+        internal void SetUpdateCheckInterval(UpdateCheckInterval interval)
+        {
+            Update(s =>
+            {
+                s.General ??= new GeneralSettings();
+                s.General.Updates ??= new UpdateSettings();
+                s.General.Updates.AutoCheckInterval = UpdateCheckIntervalParser.ToSettingValue(interval);
+            });
+        }
+
         internal DockSettings GetDockSettingsSnapshot()
         {
             lock (_gate)

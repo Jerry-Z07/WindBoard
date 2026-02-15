@@ -104,6 +104,9 @@ namespace WindBoard.Settings
             settings.General.Camouflage ??= new CamouflageSettings();
             NormalizeCamouflageSettingsInPlace(settings.General.Camouflage);
 
+            settings.General.Updates ??= new UpdateSettings();
+            settings.General.Updates.AutoCheckInterval = NormalizeUpdateCheckIntervalOrDefault(settings.General.Updates.AutoCheckInterval);
+
             settings.Appearance ??= new AppearanceSettings();
             settings.Appearance.CanvasBackgroundHex = ColorHex.NormalizeToHexRgbOrDefault(
                 settings.Appearance.CanvasBackgroundHex,
@@ -226,6 +229,19 @@ namespace WindBoard.Settings
             settings.IconCachePath = (settings.IconCachePath ?? string.Empty).Trim();
             settings.ShortcutLastGeneratedSignature = (settings.ShortcutLastGeneratedSignature ?? string.Empty).Trim();
             settings.ShortcutLastGeneratedPath = (settings.ShortcutLastGeneratedPath ?? string.Empty).Trim();
+        }
+
+        private static string NormalizeUpdateCheckIntervalOrDefault(string? value)
+        {
+            // 说明：
+            // - 允许用户手动编辑 settings.json
+            // - 非法/空值回退为默认（每周）
+            if (UpdateCheckIntervalParser.TryParse(value, out UpdateCheckInterval interval))
+            {
+                return UpdateCheckIntervalParser.ToSettingValue(interval);
+            }
+
+            return UpdateCheckIntervalParser.WeeklyValue;
         }
 
         private static void NormalizePenSettingsInPlace(PenSettings settings)

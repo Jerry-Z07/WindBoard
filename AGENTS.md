@@ -23,6 +23,7 @@
   - `Importing/`：导入相关的非 UI 核心逻辑（例如图片解码/文本读取等）。
   - `Localization/`：本地化资源与取值入口（`.resx` + `L10n` + XAML `Loc` 扩展）。
   - `Logging/`：应用日志（文件 + Debug 输出，入口：`WindBoard.Logging.AppLog`）。
+  - `Reminders/`：应用级提醒/通知（应用内 Banner、Windows Toast 等通道）。
   - `ShortcutDock/`：快捷入口（启动程序/打开链接/图标解析等）。
   - `Settings/`：设置相关。
   - `Persistence/`：应用层持久化服务接口/实现（避免与 `Board/Persistence/` 混淆）。
@@ -30,6 +31,7 @@
   - `Properties/PublishProfiles/`：发布配置。
 - `WindBoard.Tests/`：xUnit 单元测试工程（尽量覆盖纯计算逻辑，避免 UI/设备依赖）。
   - `Board/`：核心模型测试（命令/编辑/视口/笔画等）。
+  - `Importing/`：导入模块测试（尽量覆盖纯逻辑、避免 UI/设备依赖）。
   - `Interaction/`：交互层测试（脏矩形计算等）。
   - `Rendering/`：渲染层测试（场景数学/脏矩形计算）。
   - `Exporting/`：导出模块测试（导出器/页范围解析等）。

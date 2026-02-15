@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="WindBoard.Settings.Pages.AboutSettingsPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:l10n="using:WindBoard.Localization"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <Grid>
+        <ScrollViewer>
+            <StackPanel Spacing="16" Padding="24">
+                <TextBlock Text="{l10n:Loc Key=Settings_About_Title}" Style="{ThemeResource TitleTextBlockStyle}" />
+
+                <Border
+                    Background="{ThemeResource SystemControlBackgroundChromeMediumLowBrush}"
+                    BorderBrush="{ThemeResource SystemControlForegroundBaseLowBrush}"
+                    BorderThickness="1"
+                    CornerRadius="12"
+                    Padding="16,14">
+                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="14">
+                        <Image
+                            Width="56"
+                            Height="56"
+                            Stretch="Uniform"
+                            Source="ms-appx:///Assets/icon.png" />
+
+                        <TextBlock
+                            Grid.Column="1"
+                            Text="WindBoard"
+                            FontSize="26"
+                            FontWeight="SemiBold"
+                            VerticalAlignment="Center" />
+                    </Grid>
+                </Border>
+
+                <Border
+                    Background="{ThemeResource SystemControlBackgroundChromeMediumLowBrush}"
+                    BorderBrush="{ThemeResource SystemControlForegroundBaseLowBrush}"
+                    BorderThickness="1"
+                    CornerRadius="12"
+                    Padding="16,14">
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                        <TextBlock
+                            Text="{l10n:Loc Key=Settings_About_Version}"
+                            FontWeight="SemiBold"
+                            VerticalAlignment="Center" />
+                        <TextBlock
+                            x:Name="VersionTextBlock"
+                            Grid.Column="1"
+                            Opacity="0.75"
+                            VerticalAlignment="Center" />
+                    </Grid>
+                </Border>
+
+                <Border
+                    Background="{ThemeResource SystemControlBackgroundChromeMediumLowBrush}"
+                    BorderBrush="{ThemeResource SystemControlForegroundBaseLowBrush}"
+                    BorderThickness="1"
+                    CornerRadius="12"
+                    Padding="16,14">
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                        <TextBlock
+                            Text="{l10n:Loc Key=Settings_About_AutoCheckUpdates}"
+                            FontWeight="SemiBold"
+                            VerticalAlignment="Center" />
+                        <ComboBox
+                            x:Name="AutoCheckUpdatesComboBox"
+                            Grid.Column="1"
+                            MinWidth="160"
+                            SelectedValuePath="Tag"
+                            SelectionChanged="OnAutoCheckUpdatesSelectionChanged">
+                            <ComboBoxItem Content="{l10n:Loc Key=Settings_About_Interval_Weekly}" Tag="weekly" />
+                            <ComboBoxItem Content="{l10n:Loc Key=Settings_About_Interval_Biweekly}" Tag="biweekly" />
+                            <ComboBoxItem Content="{l10n:Loc Key=Settings_About_Interval_Monthly}" Tag="monthly" />
+                            <ComboBoxItem Content="{l10n:Loc Key=Settings_About_Interval_Never}" Tag="never" />
+                        </ComboBox>
+                    </Grid>
+                </Border>
+
+                <Button
+                    Style="{StaticResource SettingsCardButtonStyle}"
+                    Click="OnCheckUpdatesClicked">
+                    <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+                        <FontIcon
+                            FontFamily="Segoe MDL2 Assets"
+                            FontSize="16"
+                            Glyph="&#xE895;"
+                            VerticalAlignment="Center" />
+
+                        <TextBlock
+                            Grid.Column="1"
+                            Text="{l10n:Loc Key=Settings_About_CheckUpdates}"
+                            FontWeight="SemiBold"
+                            VerticalAlignment="Center" />
+
+                        <FontIcon
+                            Grid.Column="2"
+                            Glyph="&#xE76C;"
+                            FontFamily="Segoe MDL2 Assets"
+                            Opacity="0.65"
+                            VerticalAlignment="Center" />
+                    </Grid>
+                </Button>
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</Page>

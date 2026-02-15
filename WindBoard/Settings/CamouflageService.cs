@@ -123,12 +123,36 @@ namespace WindBoard.Settings
             try
             {
                 Directory.CreateDirectory(_cacheDir);
-                string path = Path.Combine(_cacheDir, DefaultIconFileName);
+
+                // 说明：默认图标缓存文件名携带版本号，避免“升级后仍沿用旧缓存”导致图标不更新。
+                string version = global::WindBoard.AppInfo.Version;
+                string fileName = string.IsNullOrWhiteSpace(version) || string.Equals(version, "unknown", StringComparison.OrdinalIgnoreCase)
+                    ? DefaultIconFileName
+                    : $"default_{SanitizeFileNameToken(version)}.ico";
+
+                string path = Path.Combine(_cacheDir, fileName);
 
                 if (File.Exists(path))
                 {
                     cachePath = path;
                     return true;
+                }
+
+                // 优先从应用资源目录读取 icon.png 生成默认图标：这样即便 EXE 图标提取失败，窗口/任务栏图标也更稳定。
+                string assetIconPath = Path.Combine(AppContext.BaseDirectory, "Assets", "icon.png");
+                if (File.Exists(assetIconPath))
+                {
+                    bool okFromAsset = TryBuildIconCacheCore(assetIconPath, fileName, out path, out _, out string? assetError);
+                    if (okFromAsset)
+                    {
+                        cachePath = path;
+                        return true;
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(assetError))
+                    {
+                        AppLog.Warn("Camouflage", $"生成默认图标缓存失败，将回退到 EXE 图标：asset='{assetIconPath}', error='{assetError}'");
+                    }
                 }
 
                 string? exePath = Environment.ProcessPath;
@@ -137,7 +161,7 @@ namespace WindBoard.Settings
                     return false;
                 }
 
-                bool ok = TryBuildIconCacheCore(exePath, DefaultIconFileName, out path, out _, out _);
+                bool ok = TryBuildIconCacheCore(exePath, fileName, out path, out _, out _);
                 cachePath = ok ? path : string.Empty;
                 return ok;
             }
@@ -147,6 +171,23 @@ namespace WindBoard.Settings
                 cachePath = string.Empty;
                 return false;
             }
+        }
+
+        private static string SanitizeFileNameToken(string token)
+        {
+            // 文件名中不允许出现特殊字符：把它们统一替换为 '_'，避免写入失败。
+            char[] invalidChars = Path.GetInvalidFileNameChars();
+            char[] buffer = token.ToCharArray();
+            for (int i = 0; i < buffer.Length; i++)
+            {
+                char c = buffer[i];
+                if (Array.IndexOf(invalidChars, c) >= 0)
+                {
+                    buffer[i] = '_';
+                }
+            }
+
+            return new string(buffer);
         }
 
         internal bool TryUpdateDesktopShortcut(string title, string? iconPath, bool enabled, out string shortcutPath, out string? errorMessage)

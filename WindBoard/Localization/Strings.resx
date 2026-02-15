@@ -30,6 +30,9 @@
   <data name="SettingsWindow_Nav_Shortcuts" xml:space="preserve">
     <value>快捷键</value>
   </data>
+  <data name="SettingsWindow_Nav_About" xml:space="preserve">
+    <value>关于</value>
+  </data>
 
   <data name="Settings_Shortcuts_Title" xml:space="preserve">
     <value>快捷键</value>
@@ -230,6 +233,31 @@
 
   <data name="Settings_General_Title" xml:space="preserve">
     <value>常规</value>
+  </data>
+
+  <data name="Settings_About_Title" xml:space="preserve">
+    <value>关于</value>
+  </data>
+  <data name="Settings_About_Version" xml:space="preserve">
+    <value>版本</value>
+  </data>
+  <data name="Settings_About_AutoCheckUpdates" xml:space="preserve">
+    <value>自动检查更新</value>
+  </data>
+  <data name="Settings_About_CheckUpdates" xml:space="preserve">
+    <value>检查更新</value>
+  </data>
+  <data name="Settings_About_Interval_Weekly" xml:space="preserve">
+    <value>每周</value>
+  </data>
+  <data name="Settings_About_Interval_Biweekly" xml:space="preserve">
+    <value>每两周</value>
+  </data>
+  <data name="Settings_About_Interval_Monthly" xml:space="preserve">
+    <value>每月</value>
+  </data>
+  <data name="Settings_About_Interval_Never" xml:space="preserve">
+    <value>从不</value>
   </data>
   <data name="Settings_Camouflage_Title" xml:space="preserve">
     <value>伪装</value>

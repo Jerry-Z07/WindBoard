@@ -18,12 +18,14 @@ public sealed class AppSettingsStoreTests
 
         Assert.NotNull(settings.General);
         Assert.NotNull(settings.General.Camouflage);
+        Assert.NotNull(settings.General.Updates);
         Assert.False(settings.General.Camouflage.Enabled);
         Assert.Equal(string.Empty, settings.General.Camouflage.Title);
         Assert.Equal(string.Empty, settings.General.Camouflage.SourcePath);
         Assert.Equal(string.Empty, settings.General.Camouflage.IconCachePath);
         Assert.Equal(string.Empty, settings.General.Camouflage.ShortcutLastGeneratedSignature);
         Assert.Equal(string.Empty, settings.General.Camouflage.ShortcutLastGeneratedPath);
+        Assert.Equal(UpdateCheckIntervalParser.WeeklyValue, settings.General.Updates.AutoCheckInterval);
     }
 
     [Fact]
@@ -52,6 +54,49 @@ public sealed class AppSettingsStoreTests
         Assert.Equal("C:\\Temp\\camouflage.ico", settings.General.Camouflage.IconCachePath);
         Assert.Equal("sig", settings.General.Camouflage.ShortcutLastGeneratedSignature);
         Assert.Equal(string.Empty, settings.General.Camouflage.ShortcutLastGeneratedPath);
+    }
+
+    [Fact]
+    public void NormalizeInPlace_CreatesUpdateDefaults_WhenUpdatesIsNull()
+    {
+        var settings = new AppSettings
+        {
+            General = new GeneralSettings
+            {
+                Updates = null!,
+            },
+        };
+
+        AppSettingsStore.NormalizeInPlace(settings);
+
+        Assert.NotNull(settings.General);
+        Assert.NotNull(settings.General.Updates);
+        Assert.Equal(UpdateCheckIntervalParser.WeeklyValue, settings.General.Updates.AutoCheckInterval);
+    }
+
+    [Theory]
+    [InlineData("  weekly  ", UpdateCheckIntervalParser.WeeklyValue)]
+    [InlineData("  biweekly  ", UpdateCheckIntervalParser.BiweeklyValue)]
+    [InlineData("  monthly  ", UpdateCheckIntervalParser.MonthlyValue)]
+    [InlineData("  never  ", UpdateCheckIntervalParser.NeverValue)]
+    [InlineData("invalid", UpdateCheckIntervalParser.WeeklyValue)]
+    [InlineData(null, UpdateCheckIntervalParser.WeeklyValue)]
+    public void NormalizeInPlace_NormalizesUpdateInterval_ToKnownValues(string? input, string expected)
+    {
+        var settings = new AppSettings
+        {
+            General = new GeneralSettings
+            {
+                Updates = new UpdateSettings
+                {
+                    AutoCheckInterval = input!,
+                },
+            },
+        };
+
+        AppSettingsStore.NormalizeInPlace(settings);
+
+        Assert.Equal(expected, settings.General.Updates.AutoCheckInterval);
     }
 
     // 非法背景色会被修正为默认值

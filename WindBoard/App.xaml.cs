@@ -85,7 +85,7 @@ namespace WindBoard
                 },
                 writeInitLog: false);
 
-            string version = typeof(App).Assembly.GetName().Version?.ToString() ?? "unknown";
+            string version = AppInfo.Version;
             AppLog.Info("App", $"应用启动：version={version}, args='{args.Arguments ?? string.Empty}', logFile='{AppLog.CurrentLogFilePath ?? "(null)"}'");
 
             _window = new MainWindow();

@@ -46,6 +46,15 @@
             </NavigationViewItem>
         </NavigationView.MenuItems>
 
+        <NavigationView.FooterMenuItems>
+            <NavigationViewItem Content="{l10n:Loc Key=SettingsWindow_Nav_About}" Tag="about">
+                <NavigationViewItem.Icon>
+                    <!-- 关于：信息语义图标（MDL2 兼容） -->
+                    <FontIcon FontFamily="Segoe MDL2 Assets" Glyph="&#xE946;" />
+                </NavigationViewItem.Icon>
+            </NavigationViewItem>
+        </NavigationView.FooterMenuItems>
+
         <Frame x:Name="ContentFrame" Navigated="OnContentFrameNavigated" />
     </NavigationView>
 </Window>

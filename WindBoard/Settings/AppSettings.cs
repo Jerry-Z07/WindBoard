@@ -23,6 +23,8 @@ namespace WindBoard.Settings
     internal sealed class GeneralSettings
     {
         public CamouflageSettings Camouflage { get; set; } = new();
+
+        public UpdateSettings Updates { get; set; } = new();
     }
 
     internal sealed class CamouflageSettings
@@ -56,6 +58,17 @@ namespace WindBoard.Settings
         /// 伪装：桌面快捷方式“最后生成时”的完整路径（用于标题变化时删除/重命名旧快捷方式）。
         /// </summary>
         public string ShortcutLastGeneratedPath { get; set; } = string.Empty;
+    }
+
+    /// <summary>
+    /// 更新相关设置（仅存储偏好，更新逻辑后续接入）。
+    /// </summary>
+    internal sealed class UpdateSettings
+    {
+        /// <summary>
+        /// 自动检查更新频率（weekly/biweekly/monthly/never）。
+        /// </summary>
+        public string AutoCheckInterval { get; set; } = UpdateCheckIntervalParser.WeeklyValue;
     }
 
     internal sealed class AppearanceSettings

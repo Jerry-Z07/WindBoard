@@ -1,0 +1,15 @@
+<Project>
+  <PropertyGroup>
+    <!--
+      版本号系统：
+      - VersionPrefix/Version 用于 NuGet/构建版本语义
+      - AssemblyVersion/FileVersion 用于 Windows 文件属性与程序集版本
+      - InformationalVersion 用于 UI 展示（可在 CI 中追加 metadata）
+    -->
+    <VersionPrefix>2.0.0</VersionPrefix>
+    <Version>$(VersionPrefix)</Version>
+    <AssemblyVersion>$(VersionPrefix).0</AssemblyVersion>
+    <FileVersion>$(VersionPrefix).0</FileVersion>
+    <InformationalVersion>$(VersionPrefix)</InformationalVersion>
+  </PropertyGroup>
+</Project>
