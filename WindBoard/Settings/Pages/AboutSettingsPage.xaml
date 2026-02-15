@@ -13,6 +13,14 @@
             <StackPanel Spacing="16" Padding="24">
                 <TextBlock Text="{l10n:Loc Key=Settings_About_Title}" Style="{ThemeResource TitleTextBlockStyle}" />
 
+                <InfoBar
+                    x:Name="DebugUnlockInfoBar"
+                    IsOpen="False"
+                    IsClosable="True"
+                    IsIconVisible="True"
+                    Severity="Informational"
+                    Message="{l10n:Loc Key=Settings_About_DebugUnlocked_Message}" />
+
                 <Border
                     Background="{ThemeResource SystemControlBackgroundChromeMediumLowBrush}"
                     BorderBrush="{ThemeResource SystemControlForegroundBaseLowBrush}"
@@ -21,10 +29,12 @@
                     Padding="16,14">
                     <Grid ColumnDefinitions="Auto,*" ColumnSpacing="14">
                         <Image
+                            x:Name="AppIconImage"
                             Width="56"
                             Height="56"
                             Stretch="Uniform"
-                            Source="ms-appx:///Assets/icon.png" />
+                            Source="ms-appx:///Assets/icon.png"
+                            Tapped="OnAppIconTapped" />
 
                         <TextBlock
                             Grid.Column="1"

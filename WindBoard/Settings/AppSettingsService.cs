@@ -29,6 +29,11 @@ namespace WindBoard.Settings
 
         internal AppSettings Current { get; private set; } = new();
 
+        /// <summary>
+        /// settings.json 的完整路径（只读），供调试工具/故障排查使用。
+        /// </summary>
+        internal string SettingsFilePath => _store.FilePath;
+
         internal event EventHandler? Changed;
 
         private AppSettingsService(AppSettingsStore store)

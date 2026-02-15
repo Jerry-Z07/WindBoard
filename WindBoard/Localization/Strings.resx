@@ -30,6 +30,9 @@
   <data name="SettingsWindow_Nav_Shortcuts" xml:space="preserve">
     <value>快捷键</value>
   </data>
+  <data name="SettingsWindow_Nav_Debug" xml:space="preserve">
+    <value>调试</value>
+  </data>
   <data name="SettingsWindow_Nav_About" xml:space="preserve">
     <value>关于</value>
   </data>
@@ -258,6 +261,125 @@
   </data>
   <data name="Settings_About_Interval_Never" xml:space="preserve">
     <value>从不</value>
+  </data>
+  <data name="Settings_About_DebugUnlocked_Message" xml:space="preserve">
+    <value>已开启调试入口（仅本次会话）</value>
+  </data>
+
+  <data name="Settings_Debug_Title" xml:space="preserve">
+    <value>调试</value>
+  </data>
+  <data name="Settings_Debug_Logs_SectionTitle" xml:space="preserve">
+    <value>日志</value>
+  </data>
+  <data name="Settings_Debug_OpenLogDir_Title" xml:space="preserve">
+    <value>打开日志目录</value>
+  </data>
+  <data name="Settings_Debug_OpenLogDir_Description" xml:space="preserve">
+    <value>快速定位本机日志文件</value>
+  </data>
+  <data name="Settings_Debug_OpenCurrentLogFile_Title" xml:space="preserve">
+    <value>打开当前日志文件</value>
+  </data>
+  <data name="Settings_Debug_OpenCurrentLogFile_Description" xml:space="preserve">
+    <value>打开本次会话正在写入的日志文件</value>
+  </data>
+  <data name="Settings_Debug_CopyLogDir_Title" xml:space="preserve">
+    <value>复制日志目录路径</value>
+  </data>
+  <data name="Settings_Debug_CopyLogDir_Description" xml:space="preserve">
+    <value>复制到剪贴板，便于粘贴到反馈/工单</value>
+  </data>
+
+  <data name="Settings_Debug_SettingsFile_SectionTitle" xml:space="preserve">
+    <value>设置文件</value>
+  </data>
+  <data name="Settings_Debug_OpenSettingsDir_Title" xml:space="preserve">
+    <value>打开设置目录</value>
+  </data>
+  <data name="Settings_Debug_OpenSettingsDir_Description" xml:space="preserve">
+    <value>快速定位 settings.json 所在目录</value>
+  </data>
+  <data name="Settings_Debug_OpenSettingsFile_Title" xml:space="preserve">
+    <value>打开 settings.json</value>
+  </data>
+  <data name="Settings_Debug_OpenSettingsFile_Description" xml:space="preserve">
+    <value>用默认编辑器打开设置文件</value>
+  </data>
+  <data name="Settings_Debug_CopySettingsPath_Title" xml:space="preserve">
+    <value>复制 settings.json 路径</value>
+  </data>
+  <data name="Settings_Debug_CopySettingsPath_Description" xml:space="preserve">
+    <value>复制到剪贴板，便于排查或备份</value>
+  </data>
+
+  <data name="Settings_Debug_Tests_SectionTitle" xml:space="preserve">
+    <value>关键区域测试</value>
+  </data>
+  <data name="Settings_Debug_SendTestToast_Title" xml:space="preserve">
+    <value>消息推送测试（Windows 通知）</value>
+  </data>
+  <data name="Settings_Debug_SendTestToast_Description" xml:space="preserve">
+    <value>发送一条测试 Windows Toast 通知</value>
+  </data>
+  <data name="Settings_Debug_TestToast_Title" xml:space="preserve">
+    <value>WindBoard 测试通知</value>
+  </data>
+  <data name="Settings_Debug_TestToast_Body" xml:space="preserve">
+    <value>这是一条用于调试的测试通知。</value>
+  </data>
+
+  <data name="Settings_Debug_Session_SectionTitle" xml:space="preserve">
+    <value>会话</value>
+  </data>
+  <data name="Settings_Debug_HideEntry_Title" xml:space="preserve">
+    <value>隐藏调试入口（本次会话）</value>
+  </data>
+  <data name="Settings_Debug_HideEntry_Description" xml:space="preserve">
+    <value>立即从设置导航中隐藏调试入口</value>
+  </data>
+
+  <data name="Settings_Debug_Feedback_OpenedLogDir" xml:space="preserve">
+    <value>已打开日志目录</value>
+  </data>
+  <data name="Settings_Debug_Feedback_OpenedCurrentLogFile" xml:space="preserve">
+    <value>已打开当前日志文件</value>
+  </data>
+  <data name="Settings_Debug_Feedback_CopiedLogDir" xml:space="preserve">
+    <value>已复制日志目录路径</value>
+  </data>
+  <data name="Settings_Debug_Feedback_OpenedSettingsDir" xml:space="preserve">
+    <value>已打开设置目录</value>
+  </data>
+  <data name="Settings_Debug_Feedback_OpenedSettingsFile" xml:space="preserve">
+    <value>已打开 settings.json</value>
+  </data>
+  <data name="Settings_Debug_Feedback_CopiedSettingsPath" xml:space="preserve">
+    <value>已复制 settings.json 路径</value>
+  </data>
+  <data name="Settings_Debug_Feedback_SentToast" xml:space="preserve">
+    <value>已发送测试 Windows 通知</value>
+  </data>
+  <data name="Settings_Debug_ActionFailed_Fmt" xml:space="preserve">
+    <value>操作失败：{0}</value>
+  </data>
+  <data name="Settings_Debug_PathEmpty_Message" xml:space="preserve">
+    <value>路径为空，无法执行该操作。</value>
+  </data>
+  <data name="Settings_Debug_LaunchFailed_Message" xml:space="preserve">
+    <value>系统未能打开目标（可能没有可用的关联程序）。</value>
+  </data>
+  <data name="Settings_Debug_FolderNotFound_Fmt" xml:space="preserve">
+    <value>文件夹不存在：{0}</value>
+  </data>
+  <data name="Settings_Debug_FileNotFound_Fmt" xml:space="preserve">
+    <value>文件不存在：{0}</value>
+  </data>
+  <data name="Settings_Debug_SettingsFileMissing_Message" xml:space="preserve">
+    <value>settings.json 尚未生成（修改任意设置后会自动创建）。</value>
+  </data>
+  <data name="Settings_Debug_CurrentLogFileMissing_Message" xml:space="preserve">
+    <value>当前会话未生成日志文件（可能已关闭文件日志）。</value>
   </data>
   <data name="Settings_Camouflage_Title" xml:space="preserve">
     <value>伪装</value>

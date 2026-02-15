@@ -47,6 +47,12 @@
         </NavigationView.MenuItems>
 
         <NavigationView.FooterMenuItems>
+            <NavigationViewItem x:Name="DebugNavItem" Content="{l10n:Loc Key=SettingsWindow_Nav_Debug}" Tag="debug" Visibility="Collapsed">
+                <NavigationViewItem.Icon>
+                    <!-- 调试：工具语义图标（MDL2 兼容） -->
+                    <FontIcon FontFamily="Segoe MDL2 Assets" Glyph="&#xE9D9;" />
+                </NavigationViewItem.Icon>
+            </NavigationViewItem>
             <NavigationViewItem Content="{l10n:Loc Key=SettingsWindow_Nav_About}" Tag="about">
                 <NavigationViewItem.Icon>
                     <!-- 关于：信息语义图标（MDL2 兼容） -->

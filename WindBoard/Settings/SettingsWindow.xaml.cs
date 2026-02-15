@@ -35,7 +35,12 @@ namespace WindBoard.Settings
                 {
                     Active = null;
                 }
+
+                DebugToolsGate.Changed -= OnDebugToolsGateChanged;
             };
+
+            DebugToolsGate.Changed += OnDebugToolsGateChanged;
+            UpdateDebugNavItemVisibility();
 
             // 首次打开时默认进入“常规”。
             NavView.Loaded += (_, _) =>
@@ -86,6 +91,7 @@ namespace WindBoard.Settings
                 "appearance" => typeof(AppearanceSettingsPage),
                 "writing" => typeof(WritingSettingsPage),
                 "shortcuts" => typeof(ShortcutsSettingsPage),
+                "debug" => typeof(DebugSettingsPage),
                 "about" => typeof(AboutSettingsPage),
                 _ => typeof(GeneralSettingsPage),
             };
@@ -102,6 +108,44 @@ namespace WindBoard.Settings
             }
 
             UpdateBackButtonState();
+        }
+
+        private void OnDebugToolsGateChanged(object? sender, EventArgs e)
+        {
+            // Gate 事件可能来自非 UI 线程，这里统一切回 UI 线程更新。
+            if (!DispatcherQueue.TryEnqueue(UpdateDebugNavItemVisibility))
+            {
+                UpdateDebugNavItemVisibility();
+            }
+        }
+
+        private void UpdateDebugNavItemVisibility()
+        {
+            if (DebugNavItem is null)
+            {
+                return;
+            }
+
+            bool visible = DebugToolsGate.IsVisible;
+            DebugNavItem.Visibility = visible ? Visibility.Visible : Visibility.Collapsed;
+
+            // 防御：入口被隐藏时，如果用户仍停留在调试页，自动回到“常规”。
+            if (!visible && ContentFrame.CurrentSourcePageType == typeof(DebugSettingsPage))
+            {
+                try
+                {
+                    if (NavView.MenuItems.Count > 0)
+                    {
+                        NavView.SelectedItem = NavView.MenuItems[0];
+                    }
+
+                    NavigateFromTag("general");
+                }
+                catch
+                {
+                    // 忽略导航失败：不阻断设置窗口使用。
+                }
+            }
         }
 
         private void UpdateBackButtonState()
