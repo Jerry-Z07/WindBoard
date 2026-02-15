@@ -19,6 +19,7 @@ using WindBoard.Board.Persistence.Wbix;
 using WindBoard.Logging;
 using WindBoard.Localization;
 using WindBoard.Importing;
+using WindBoard.Importing.Wbi;
 using WbixPreview = WindBoard.Board.Persistence.Wbix.WbixPreviewReader.WbixPreview;
 
 namespace WindBoard
@@ -72,6 +73,13 @@ namespace WindBoard
                 {
                     AppLog.Info("Import", $"开始导入 WBIX：path='{wbix.File.Path}', mode={wbix.Mode}");
                     await ImportWbixAsync(xamlRoot, wbix.File, wbix.Mode);
+                    return;
+                }
+
+                if (dialog.WbiRequest is ImportWbiRequest wbi)
+                {
+                    AppLog.Info("Import", $"开始导入 WBI：path='{wbi.File.Path}', mode={wbi.Mode}");
+                    await ImportWbiAsync(xamlRoot, wbi.File, wbi.Mode);
                     return;
                 }
 
@@ -256,19 +264,21 @@ namespace WindBoard
 
             AppLog.Info("Import", $"导入文件：count={files.Count}");
 
-            StorageFile? wbix = null;
+            StorageFile? workspaceFile = null;
             foreach (StorageFile f in files)
             {
-                if (string.Equals(Path.GetExtension(f.Name), ".wbix", StringComparison.OrdinalIgnoreCase))
+                string ext = Path.GetExtension(f.Name);
+                if (string.Equals(ext, ".wbix", StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(ext, ".wbi", StringComparison.OrdinalIgnoreCase))
                 {
-                    wbix = f;
+                    workspaceFile = f;
                     break;
                 }
             }
 
-            if (wbix is not null)
+            if (workspaceFile is not null)
             {
-                AppLog.Info("Import", $"识别为 WBIX：'{wbix.Path}'");
+                AppLog.Info("Import", $"识别为工作区文件：'{workspaceFile.Path}'");
 
                 if (files.Count > 1)
                 {
@@ -276,7 +286,20 @@ namespace WindBoard
                     return;
                 }
 
-                await ImportWbixAsync(xamlRoot, wbix);
+                string ext = Path.GetExtension(workspaceFile.Name);
+                if (string.Equals(ext, ".wbix", StringComparison.OrdinalIgnoreCase))
+                {
+                    await ImportWbixAsync(xamlRoot, workspaceFile);
+                    return;
+                }
+
+                if (string.Equals(ext, ".wbi", StringComparison.OrdinalIgnoreCase))
+                {
+                    await ImportWbiAsync(xamlRoot, workspaceFile);
+                    return;
+                }
+
+                await ShowMessageDialogAsync(xamlRoot, L10n.Get("Import_Failed_Title"), L10n.Get("Import_Wbix_ParseFailed_Message"));
                 return;
             }
 
@@ -446,6 +469,28 @@ namespace WindBoard
             await ImportWbixAsync(xamlRoot, file, normalizedMode);
         }
 
+        private async Task ImportWbiAsync(XamlRoot xamlRoot, StorageFile file)
+        {
+            WbiPreviewReader.WbiPreview? preview = await WbiPreviewReader.TryReadAsync(file.Path);
+            if (preview is null)
+            {
+                await ShowMessageDialogAsync(xamlRoot, L10n.Get("Import_Failed_Title"), L10n.Get("Import_Wbix_ParseFailed_Message"));
+                return;
+            }
+
+            WbixImportMode? mode = await ShowWbiImportConfirmDialogAsync(xamlRoot, file.Name, preview);
+            if (mode is null)
+            {
+                return;
+            }
+
+            ImportWbixMode normalizedMode = mode == WbixImportMode.ReplaceCurrentPage
+                ? ImportWbixMode.ReplaceCurrentPage
+                : ImportWbixMode.AppendAfterLastPage;
+
+            await ImportWbiAsync(xamlRoot, file, normalizedMode);
+        }
+
         private async Task ImportWbixAsync(XamlRoot xamlRoot, StorageFile file, ImportWbixMode mode)
         {
             if (mode == ImportWbixMode.ReplaceCurrentPage)
@@ -510,6 +555,90 @@ namespace WindBoard
             {
                 AppLog.Error("WBIX", $"导入失败：'{file.Path}'", ex);
                 await ShowMessageDialogAsync(xamlRoot, L10n.Get("Import_Failed_Title"), L10n.Get("Import_Wbix_ParseFailed_Message"));
+            }
+        }
+
+        private async Task ImportWbiAsync(XamlRoot xamlRoot, StorageFile file, ImportWbixMode mode)
+        {
+            if (mode == ImportWbixMode.ReplaceCurrentPage)
+            {
+                bool confirmed = await ConfirmWbixReplaceCurrentPageRiskAsync(xamlRoot);
+                if (!confirmed)
+                {
+                    return;
+                }
+            }
+
+            var importer = new WbiWorkspaceImporter();
+            List<string>? missingResources = null;
+
+            try
+            {
+                await RunBusyDialogAsync(xamlRoot, L10n.Get("Import_Wbix_Busy_Title"), async () =>
+                {
+                    WbiWorkspaceImportResult importResult = await Task.Run(() => importer.ImportAsync(file.Path));
+                    if (!importResult.Success)
+                    {
+                        throw new InvalidDataException(importResult.ErrorMessage ?? L10n.Get("Import_Wbix_ParseFailed_Message"));
+                    }
+
+                    missingResources = importResult.MissingResources;
+                    List<BoardPage> pages = importResult.Pages;
+
+                    // WBI 不记录 currentIndex：按旧版行为默认视为 0。
+                    const int importCurrent = 0;
+
+                    if (mode == ImportWbixMode.ReplaceCurrentPage)
+                    {
+                        AppLog.Info("WBI", $"替换工作区：pages={pages.Count}");
+                        if (pages.Count == 0)
+                        {
+                            AppLog.Warn("WBI", "pages=0，忽略导入。");
+                            return;
+                        }
+
+                        int insertIndex = _workspace.CurrentIndex;
+                        AppLog.Info("WBI", $"覆盖当前页并插入：workspaceCurrent={insertIndex}, importPages={pages.Count}");
+
+                        // 覆盖当前页：用导入文件的第 1 页替换当前页，然后把剩余页插入到其后。
+                        _workspace.ReplacePageAt(insertIndex, pages[0]);
+
+                        if (pages.Count > 1)
+                        {
+                            _workspace.InsertPages(insertIndex + 1, pages.GetRange(1, pages.Count - 1), switchToFirstInsertedPage: false);
+                        }
+
+                        int replaceTargetIndex = Math.Clamp(insertIndex + importCurrent, 0, Math.Max(0, _workspace.Pages.Count - 1));
+                        AppLog.Info("WBI", $"覆盖导入完成：switchTo={replaceTargetIndex}, pagesAfter={_workspace.Pages.Count}");
+                        _workspace.SetCurrentIndex(replaceTargetIndex);
+                        return;
+                    }
+
+                    int startIndex = _workspace.AppendPages(pages, switchToFirstAppendedPage: false);
+                    int targetIndex = Math.Clamp(startIndex + importCurrent, 0, Math.Max(0, _workspace.Pages.Count - 1));
+                    AppLog.Info("WBI", $"追加页面：startIndex={startIndex}, pages={pages.Count}, switchTo={targetIndex}");
+                    _workspace.SetCurrentIndex(targetIndex);
+                }, message: L10n.Get("Import_Wbix_Busy_Message"));
+            }
+            catch (Exception ex)
+            {
+                AppLog.Error("WBI", $"导入失败：'{file.Path}'", ex);
+                await ShowMessageDialogAsync(xamlRoot, L10n.Get("Import_Failed_Title"), L10n.Get("Import_Wbix_ParseFailed_Message"));
+                return;
+            }
+
+            if (missingResources is { Count: > 0 })
+            {
+                AppLog.Warn("WBI", $"导入存在缺失资源：count={missingResources.Count}");
+
+                int take = Math.Min(8, missingResources.Count);
+                string detail = string.Join(Environment.NewLine, missingResources.GetRange(0, take));
+                string more = missingResources.Count > take ? $"{Environment.NewLine}…（还有 {missingResources.Count - take} 项，详见日志）" : string.Empty;
+
+                await ShowMessageDialogAsync(
+                    xamlRoot,
+                    L10n.Get("Import_Tip_Title"),
+                    $"导入完成，但有部分资源未找到或无法读取：{Environment.NewLine}{detail}{more}");
             }
         }
 
@@ -586,6 +715,60 @@ namespace WindBoard
             int pageCount = preview.Manifest.Pages?.Count ?? 0;
             string created = preview.Manifest.CreatedUtc.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss");
             string info = L10n.Format("Import_Wbix_Info_Fmt", fileName, pageCount, preview.Manifest.Version, created);
+
+            var rbAppend = new RadioButton { Content = L10n.Get("Import_Wbix_Mode_Append"), IsChecked = true };
+            var rbReplace = new RadioButton { Content = L10n.Get("Import_Wbix_Mode_ReplaceCurrentPage") };
+
+            var panel = new StackPanel { Spacing = 12 };
+            panel.Children.Add(cover);
+            panel.Children.Add(new TextBlock { Text = info, TextWrapping = TextWrapping.Wrap });
+            panel.Children.Add(new TextBlock { Text = L10n.Get("Import_Wbix_InsertMethod_Label"), FontWeight = Microsoft.UI.Text.FontWeights.SemiBold });
+            panel.Children.Add(rbAppend);
+            panel.Children.Add(rbReplace);
+
+            var dialog = new ContentDialog
+            {
+                Title = L10n.Get("Import_Wbix_Dialog_Title"),
+                Content = panel,
+                PrimaryButtonText = L10n.Get("Common_Import"),
+                CloseButtonText = L10n.Get("Common_Cancel"),
+                DefaultButton = ContentDialogButton.Primary,
+                XamlRoot = xamlRoot,
+            };
+
+            if (await dialog.ShowAsync() != ContentDialogResult.Primary)
+            {
+                return null;
+            }
+
+            return rbReplace.IsChecked == true ? WbixImportMode.ReplaceCurrentPage : WbixImportMode.AppendAfterLastPage;
+        }
+
+        private static async Task<WbixImportMode?> ShowWbiImportConfirmDialogAsync(XamlRoot xamlRoot, string fileName, WbiPreviewReader.WbiPreview preview)
+        {
+            // WBI 没有封面：直接使用占位卡片，保持与 WBIX 对话框一致的布局。
+            var cover = new Border
+            {
+                Width = 240,
+                Height = 180,
+                CornerRadius = new CornerRadius(8),
+                Background = new SolidColorBrush(Microsoft.UI.Colors.LightGray),
+                Child = new TextBlock
+                {
+                    Text = L10n.Get("Import_Wbix_NoCover"),
+                    HorizontalAlignment = HorizontalAlignment.Center,
+                    VerticalAlignment = VerticalAlignment.Center,
+                },
+            };
+
+            int pageCount = preview.Manifest.Pages?.Count ?? preview.Manifest.PageCount;
+            DateTime createdUtc = preview.Manifest.CreatedAt.Kind == DateTimeKind.Unspecified
+                ? DateTime.SpecifyKind(preview.Manifest.CreatedAt, DateTimeKind.Utc)
+                : preview.Manifest.CreatedAt;
+
+            string created = createdUtc.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss");
+            string version = preview.Manifest.Version ?? "1.0";
+            string info = L10n.Format("Import_Wbix_Info_Fmt", fileName, pageCount, version, created);
 
             var rbAppend = new RadioButton { Content = L10n.Get("Import_Wbix_Mode_Append"), IsChecked = true };
             var rbReplace = new RadioButton { Content = L10n.Get("Import_Wbix_Mode_ReplaceCurrentPage") };

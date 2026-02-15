@@ -567,7 +567,7 @@
     <value>链接</value>
   </data>
   <data name="ImportDialog_Tab_Wbix" xml:space="preserve">
-    <value>WBIX</value>
+    <value>WBIX / WBI</value>
   </data>
 
   <data name="ImportDialog_PickImages" xml:space="preserve">
@@ -580,7 +580,7 @@
     <value>选择文本文件…</value>
   </data>
   <data name="ImportDialog_PickWbix" xml:space="preserve">
-    <value>选择 WBIX 文件…</value>
+    <value>选择 WBIX/WBI 文件…</value>
   </data>
   <data name="ImportDialog_PasteFromClipboard" xml:space="preserve">
     <value>从剪贴板粘贴</value>
@@ -594,7 +594,7 @@ example.org</value>
     <value>请至少选择一个文件或输入内容。</value>
   </data>
   <data name="ImportDialog_Wbix_Invalid_Message" xml:space="preserve">
-    <value>WBIX 文件无效或预览失败。</value>
+    <value>WBIX/WBI 文件无效或预览失败。</value>
   </data>
   <data name="ImportDialog_FilePicker_Failed_Fmt" xml:space="preserve">
     <value>打开文件选择器失败：{0}</value>
@@ -634,13 +634,13 @@ example.org</value>
   </data>
 
   <data name="Import_Wbix_MultipleFiles_Message" xml:space="preserve">
-    <value>检测到 WBIX 文件，请单独导入 .wbix。</value>
+    <value>检测到 WBIX/WBI 文件，请单独导入 .wbix/.wbi。</value>
   </data>
   <data name="Import_Wbix_ParseFailed_Message" xml:space="preserve">
-    <value>WBIX 文件解析失败。</value>
+    <value>WBIX/WBI 文件解析失败。</value>
   </data>
   <data name="Import_Wbix_Busy_Title" xml:space="preserve">
-    <value>正在导入 WBIX…</value>
+    <value>正在导入 WBIX/WBI…</value>
   </data>
   <data name="Import_Wbix_Busy_Message" xml:space="preserve">
     <value>正在导入，请稍候…</value>
@@ -670,7 +670,7 @@ example.org</value>
   </data>
 
   <data name="Import_Wbix_Dialog_Title" xml:space="preserve">
-    <value>导入 WBIX</value>
+    <value>导入 WBIX/WBI</value>
   </data>
   <data name="Import_Wbix_NoCover" xml:space="preserve">
     <value>（无封面）</value>

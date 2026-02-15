@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices.WindowsRuntime;
 using System.Threading.Tasks;
@@ -13,6 +14,7 @@ using Windows.Storage.Pickers;
 using Windows.Storage.Streams;
 using WindBoard.Board.Persistence.Wbix;
 using WindBoard.Importing;
+using WindBoard.Importing.Wbi;
 using WindBoard.Localization;
 using WindBoard.Logging;
 
@@ -22,8 +24,9 @@ namespace WindBoard.UI.Dialogs
     {
         private readonly IntPtr _hwnd;
 
-        private StorageFile? _selectedWbixFile;
+        private StorageFile? _selectedWorkspaceFile;
         private WbixPreviewReader.WbixPreview? _selectedWbixPreview;
+        private WbiPreviewReader.WbiPreview? _selectedWbiPreview;
 
         public ObservableCollection<StorageFile> ImageFiles { get; } = new();
 
@@ -34,6 +37,8 @@ namespace WindBoard.UI.Dialogs
         internal ImportElementsRequest? ElementsRequest { get; private set; }
 
         internal ImportWbixRequest? WbixRequest { get; private set; }
+
+        internal ImportWbiRequest? WbiRequest { get; private set; }
 
         public ImportDialog(IntPtr hwnd)
         {
@@ -55,23 +60,51 @@ namespace WindBoard.UI.Dialogs
         {
             ElementsRequest = null;
             WbixRequest = null;
+            WbiRequest = null;
             DialogInfoBar.IsOpen = false;
 
             // WBIX 导入：与其它导入互斥（旧版体验也是“选了 WBIX 就只导入 WBIX”）。
-            if (_selectedWbixFile is StorageFile wbix)
+            if (_selectedWorkspaceFile is StorageFile workspaceFile)
             {
-                if (_selectedWbixPreview is null)
+                string ext = Path.GetExtension(workspaceFile.Name);
+
+                if (string.Equals(ext, ".wbix", StringComparison.OrdinalIgnoreCase))
                 {
-                    args.Cancel = true;
-                    ShowDialogWarning(L10n.Get("ImportDialog_Wbix_Invalid_Message"));
+                    if (_selectedWbixPreview is null)
+                    {
+                        args.Cancel = true;
+                        ShowDialogWarning(L10n.Get("ImportDialog_Wbix_Invalid_Message"));
+                        return;
+                    }
+
+                    ImportWbixMode mode = WbixReplaceCurrentPageRadioButton.IsChecked == true
+                        ? ImportWbixMode.ReplaceCurrentPage
+                        : ImportWbixMode.AppendAfterLastPage;
+
+                    WbixRequest = new ImportWbixRequest(workspaceFile, mode);
                     return;
                 }
 
-                ImportWbixMode mode = WbixReplaceCurrentPageRadioButton.IsChecked == true
-                    ? ImportWbixMode.ReplaceCurrentPage
-                    : ImportWbixMode.AppendAfterLastPage;
+                if (string.Equals(ext, ".wbi", StringComparison.OrdinalIgnoreCase))
+                {
+                    if (_selectedWbiPreview is null)
+                    {
+                        args.Cancel = true;
+                        ShowDialogWarning(L10n.Get("ImportDialog_Wbix_Invalid_Message"));
+                        return;
+                    }
 
-                WbixRequest = new ImportWbixRequest(wbix, mode);
+                    ImportWbixMode mode = WbixReplaceCurrentPageRadioButton.IsChecked == true
+                        ? ImportWbixMode.ReplaceCurrentPage
+                        : ImportWbixMode.AppendAfterLastPage;
+
+                    WbiRequest = new ImportWbiRequest(workspaceFile, mode);
+                    return;
+                }
+
+                // 理论上不会到这里：文件选择器只允许选择 .wbix/.wbi。
+                args.Cancel = true;
+                ShowDialogWarning(L10n.Get("ImportDialog_Wbix_Invalid_Message"));
                 return;
             }
 
@@ -107,7 +140,8 @@ namespace WindBoard.UI.Dialogs
         {
             DialogInfoBar.IsOpen = false;
 
-            bool hasWbix = _selectedWbixFile is not null && _selectedWbixPreview is not null;
+            bool hasWorkspace = _selectedWorkspaceFile is not null
+                && (_selectedWbixPreview is not null || _selectedWbiPreview is not null);
 
             string? textContent = TextContentTextBox?.Text;
             string? linkLines = LinkLinesTextBox?.Text;
@@ -119,7 +153,7 @@ namespace WindBoard.UI.Dialogs
                 || !string.IsNullOrWhiteSpace(textContent)
                 || hasLinks;
 
-            IsPrimaryButtonEnabled = hasWbix || hasAny;
+            IsPrimaryButtonEnabled = hasWorkspace || hasAny;
         }
 
         private void OnImportNavigationSelectionChanged(NavigationView sender, NavigationViewSelectionChangedEventArgs args)
@@ -216,19 +250,20 @@ namespace WindBoard.UI.Dialogs
 
         private async void OnPickWbixClicked(object sender, RoutedEventArgs e)
         {
-            StorageFile? file = await PickSingleFileAsync(".wbix");
+            StorageFile? file = await PickSingleFileAsync(".wbix", ".wbi");
             if (file is null)
             {
                 return;
             }
 
-            await LoadWbixPreviewAsync(file);
+            await LoadWorkspacePreviewAsync(file);
         }
 
         private void OnClearWbixClicked(object sender, RoutedEventArgs e)
         {
-            _selectedWbixFile = null;
+            _selectedWorkspaceFile = null;
             _selectedWbixPreview = null;
+            _selectedWbiPreview = null;
             ClearWbixButton.Visibility = Visibility.Collapsed;
             WbixPreviewBorder.Visibility = Visibility.Collapsed;
             WbixCoverImage.Source = null;
@@ -238,42 +273,85 @@ namespace WindBoard.UI.Dialogs
             UpdatePrimaryButtonState();
         }
 
-        private async Task LoadWbixPreviewAsync(StorageFile file)
+        private async Task LoadWorkspacePreviewAsync(StorageFile file)
         {
-            _selectedWbixFile = file;
+            _selectedWorkspaceFile = file;
             _selectedWbixPreview = null;
+            _selectedWbiPreview = null;
 
             ClearWbixButton.Visibility = Visibility.Visible;
 
             try
             {
-                WbixPreviewReader.WbixPreview? preview = await WbixPreviewReader.TryReadAsync(file.Path);
-                if (preview is null)
+                string ext = Path.GetExtension(file.Name);
+
+                if (string.Equals(ext, ".wbix", StringComparison.OrdinalIgnoreCase))
                 {
-                    ShowDialogWarning(L10n.Get("ImportDialog_Wbix_Invalid_Message"));
-                    WbixPreviewBorder.Visibility = Visibility.Collapsed;
+                    WbixPreviewReader.WbixPreview? preview = await WbixPreviewReader.TryReadAsync(file.Path);
+                    if (preview is null)
+                    {
+                        ShowDialogWarning(L10n.Get("ImportDialog_Wbix_Invalid_Message"));
+                        WbixPreviewBorder.Visibility = Visibility.Collapsed;
+                        UpdatePrimaryButtonState();
+                        return;
+                    }
+
+                    _selectedWbixPreview = preview;
+
+                    int pageCount = preview.Manifest.Pages?.Count ?? 0;
+                    string created = preview.Manifest.CreatedUtc.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss");
+                    string info = L10n.Format("Import_Wbix_Info_Fmt", file.Name, pageCount, preview.Manifest.Version, created);
+                    WbixInfoTextBlock.Text = info;
+
+                    await ApplyWbixCoverAsync(preview.CoverPngBytes);
+
+                    WbixPreviewBorder.Visibility = Visibility.Visible;
                     UpdatePrimaryButtonState();
                     return;
                 }
 
-                _selectedWbixPreview = preview;
+                if (string.Equals(ext, ".wbi", StringComparison.OrdinalIgnoreCase))
+                {
+                    WbiPreviewReader.WbiPreview? preview = await WbiPreviewReader.TryReadAsync(file.Path);
+                    if (preview is null)
+                    {
+                        ShowDialogWarning(L10n.Get("ImportDialog_Wbix_Invalid_Message"));
+                        WbixPreviewBorder.Visibility = Visibility.Collapsed;
+                        UpdatePrimaryButtonState();
+                        return;
+                    }
 
-                int pageCount = preview.Manifest.Pages?.Count ?? 0;
-                string created = preview.Manifest.CreatedUtc.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss");
-                string info = L10n.Format("Import_Wbix_Info_Fmt", file.Name, pageCount, preview.Manifest.Version, created);
-                WbixInfoTextBlock.Text = info;
+                    _selectedWbiPreview = preview;
 
-                await ApplyWbixCoverAsync(preview.CoverPngBytes);
+                    int pageCount = preview.Manifest.Pages?.Count ?? preview.Manifest.PageCount;
+                    DateTime createdUtc = preview.Manifest.CreatedAt.Kind == DateTimeKind.Unspecified
+                        ? DateTime.SpecifyKind(preview.Manifest.CreatedAt, DateTimeKind.Utc)
+                        : preview.Manifest.CreatedAt;
 
-                WbixPreviewBorder.Visibility = Visibility.Visible;
+                    string created = createdUtc.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss");
+                    string version = preview.Manifest.Version ?? "1.0";
+                    string info = L10n.Format("Import_Wbix_Info_Fmt", file.Name, pageCount, version, created);
+                    WbixInfoTextBlock.Text = info;
+
+                    // WBI 没有封面：强制回退到占位卡片，避免遗留上一张预览的封面。
+                    await ApplyWbixCoverAsync(null);
+
+                    WbixPreviewBorder.Visibility = Visibility.Visible;
+                    UpdatePrimaryButtonState();
+                    return;
+                }
+
+                ShowDialogWarning(L10n.Get("ImportDialog_Wbix_Invalid_Message"));
+                WbixPreviewBorder.Visibility = Visibility.Collapsed;
                 UpdatePrimaryButtonState();
             }
             catch (Exception ex)
             {
-                AppLog.Warn("WBIX", $"预览失败：'{file.Path}'", ex);
+                AppLog.Warn("Import", $"预览失败：'{file.Path}'", ex);
                 ShowDialogWarning(L10n.Get("ImportDialog_Wbix_Invalid_Message"));
                 WbixPreviewBorder.Visibility = Visibility.Collapsed;
                 _selectedWbixPreview = null;
+                _selectedWbiPreview = null;
                 UpdatePrimaryButtonState();
             }
         }
@@ -333,7 +411,7 @@ namespace WindBoard.UI.Dialogs
             }
         }
 
-        private async Task<StorageFile?> PickSingleFileAsync(string extension)
+        private async Task<StorageFile?> PickSingleFileAsync(params string[] extensions)
         {
             if (_hwnd == IntPtr.Zero)
             {
@@ -349,13 +427,16 @@ namespace WindBoard.UI.Dialogs
 
                 picker.SuggestedStartLocation = PickerLocationId.DocumentsLibrary;
                 picker.FileTypeFilter.Clear();
-                picker.FileTypeFilter.Add(extension);
+                foreach (string ext in extensions)
+                {
+                    picker.FileTypeFilter.Add(ext);
+                }
 
                 return await picker.PickSingleFileAsync();
             }
             catch (Exception ex)
             {
-                AppLog.Warn("Import", $"打开文件选择器失败：extension='{extension}'", ex);
+                AppLog.Warn("Import", $"打开文件选择器失败：extensions='{string.Join(",", extensions)}'", ex);
                 ShowDialogWarning(L10n.Format("ImportDialog_FilePicker_Failed_Fmt", ex.Message));
                 return null;
             }
