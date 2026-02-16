@@ -1,0 +1,261 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Restore
+        run: dotnet restore
+
+      - name: Install Inno Setup
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          choco install innosetup -y --no-progress
+
+      - name: Publish + Package + latest.json
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          $tag = '${{ github.ref_name }}'
+          if ([string]::IsNullOrWhiteSpace($tag)) { throw 'Missing tag name.' }
+          $version = $tag.TrimStart('v', 'V')
+          if ([string]::IsNullOrWhiteSpace($version)) { throw 'Invalid tag version.' }
+
+          $repo = '${{ github.repository }}'
+          $project = Join-Path $PWD 'WindBoard/WindBoard.csproj'
+          if (!(Test-Path $project)) { throw "Project file not found: $project" }
+
+          # 版本号写入到程序集/文件属性中，便于 About 页与日志展示一致，并方便定位构建来源。
+          $sha = '${{ github.sha }}'
+          $shortSha = $sha
+          if ($shortSha.Length -gt 8) { $shortSha = $shortSha.Substring(0, 8) }
+
+          $versionPrefixMatch = [regex]::Match($version, '^(?<prefix>\\d+\\.\\d+\\.\\d+)')
+          if (!$versionPrefixMatch.Success) { throw "Invalid tag version format (expected x.y.z...): $version" }
+          $versionPrefix = $versionPrefixMatch.Groups['prefix'].Value
+          $informationalVersion = "$version+$shortSha"
+
+          $msbuildProps = @(
+            '-p:PublishProfile='
+            "-p:Version=$version"
+            "-p:VersionPrefix=$versionPrefix"
+            "-p:AssemblyVersion=$versionPrefix.0"
+            "-p:FileVersion=$versionPrefix.0"
+            "-p:InformationalVersion=$informationalVersion"
+          )
+
+          $dist = Join-Path $PWD 'dist'
+          New-Item -ItemType Directory -Force -Path $dist | Out-Null
+
+          $variants = @(
+            @{ Rid = 'win-x86';   Arch = 'x86'  }
+            @{ Rid = 'win-x64';   Arch = 'x64'  }
+            @{ Rid = 'win-arm64'; Arch = 'arm64' }
+          )
+
+          $assets = @()
+
+          foreach ($v in $variants) {
+            $rid = $v.Rid
+            $arch = $v.Arch
+
+            # --- 便携版（带运行库，自包含）---
+            $publishDirSc = Join-Path $PWD ("publish/{0}/sc" -f $rid)
+            dotnet publish $project `
+              -c Release `
+              -r $rid `
+              --self-contained true `
+              -o $publishDirSc `
+              $msbuildProps
+
+            $portableFileName = "WindBoard-$version-$rid.zip"
+            $portableZipPath = Join-Path $dist $portableFileName
+            if (Test-Path $portableZipPath) { Remove-Item -Force $portableZipPath }
+            Compress-Archive -Path (Join-Path $publishDirSc '*') -DestinationPath $portableZipPath -Force
+
+            $portableSha256 = (Get-FileHash -Path $portableZipPath -Algorithm SHA256).Hash.ToLowerInvariant()
+            $portableSize = (Get-Item $portableZipPath).Length
+            $portableDownloadUrl = "https://github.com/$repo/releases/download/$tag/$portableFileName"
+
+            $assets += [pscustomobject]@{
+              arch = $arch
+              runtime = 'self-contained'
+              fileName = $portableFileName
+              downloadUrl = $portableDownloadUrl
+              size = $portableSize
+              sha256 = $portableSha256
+            }
+
+            # --- 安装包（不带运行库，依赖运行时）---
+            $publishDirFd = Join-Path $PWD ("publish/{0}/fd" -f $rid)
+            dotnet publish $project `
+              -c Release `
+              -r $rid `
+              --self-contained false `
+              -o $publishDirFd `
+              $msbuildProps
+
+            # --- 生成安装包（带/不带运行库）---
+            $publishDirSc = Join-Path $PWD ("publish/{0}/sc" -f $rid)
+            $issPath = Join-Path $PWD 'installer/WindBoard.iss'
+            $publishDirScForIss = Join-Path '..' ("publish\\{0}\\sc" -f $rid)
+            $publishDirFdForIss = Join-Path '..' ("publish\\{0}\\fd" -f $rid)
+            $distForIss = Join-Path '..' 'dist'
+
+            $iscc = (Get-Command iscc -ErrorAction SilentlyContinue)?.Source
+            if ([string]::IsNullOrWhiteSpace($iscc)) {
+              $fallback = Join-Path ${env:ProgramFiles(x86)} 'Inno Setup 6\ISCC.exe'
+              if (Test-Path $fallback) { $iscc = $fallback }
+            }
+            if ([string]::IsNullOrWhiteSpace($iscc) -or !(Test-Path $iscc)) {
+              throw 'ISCC.exe not found in PATH or default install location.'
+            }
+
+            # 安装包：带运行库（自包含）
+            $setupFileNameSc = "WindBoardSetup-$version-$rid.exe"
+            $setupPathSc = Join-Path $dist $setupFileNameSc
+            if (Test-Path $setupPathSc) { Remove-Item -Force $setupPathSc }
+
+            & $iscc `
+              "/DMyAppVersion=$version" `
+              "/DMySourceDir=$publishDirScForIss" `
+              "/DMyOutputDir=$distForIss" `
+              "/DMyArch=$arch" `
+              "/DMyRid=$rid" `
+              $issPath
+
+            if (!(Test-Path $setupPathSc)) { throw "Installer not produced: $setupPathSc" }
+
+            $setupSha256Sc = (Get-FileHash -Path $setupPathSc -Algorithm SHA256).Hash.ToLowerInvariant()
+            $setupSizeSc = (Get-Item $setupPathSc).Length
+            $setupDownloadUrlSc = "https://github.com/$repo/releases/download/$tag/$setupFileNameSc"
+
+            $assets += [pscustomobject]@{
+              arch = $arch
+              runtime = 'installer'
+              fileName = $setupFileNameSc
+              downloadUrl = $setupDownloadUrlSc
+              size = $setupSizeSc
+              sha256 = $setupSha256Sc
+            }
+
+            # 安装包：不带运行库（framework-dependent）
+            $setupFileNameFd = "WindBoardSetup-$version-$rid-fd.exe"
+            $setupPathFd = Join-Path $dist $setupFileNameFd
+            if (Test-Path $setupPathFd) { Remove-Item -Force $setupPathFd }
+
+            & $iscc `
+              "/DMyAppVersion=$version" `
+              "/DMySourceDir=$publishDirFdForIss" `
+              "/DMyOutputDir=$distForIss" `
+              "/DMyArch=$arch" `
+              "/DMyRid=$rid" `
+              "/DMyVariantSuffix=-fd" `
+              $issPath
+
+            if (!(Test-Path $setupPathFd)) { throw "Installer not produced: $setupPathFd" }
+
+            $setupSha256Fd = (Get-FileHash -Path $setupPathFd -Algorithm SHA256).Hash.ToLowerInvariant()
+            $setupSizeFd = (Get-Item $setupPathFd).Length
+            $setupDownloadUrlFd = "https://github.com/$repo/releases/download/$tag/$setupFileNameFd"
+
+            $assets += [pscustomobject]@{
+              arch = $arch
+              runtime = 'installer'
+              fileName = $setupFileNameFd
+              downloadUrl = $setupDownloadUrlFd
+              size = $setupSizeFd
+              sha256 = $setupSha256Fd
+            }
+          }
+
+          $prevTag = $null
+          try { $prevTag = (git describe --tags --abbrev=0 --match "v*" "$tag^" 2>$null).Trim() } catch { }
+
+          if (![string]::IsNullOrWhiteSpace($prevTag)) {
+            $commitLines = (git log "$prevTag..$tag" --no-merges --pretty=format:"- %s") -join "`n"
+            $rangeLabelEn = "$prevTag..$tag"
+            $rangeLabelZh = "$prevTag..$tag"
+          } else {
+            $commitLines = (git log -n 30 --no-merges --pretty=format:"- %s") -join "`n"
+            $rangeLabelEn = "latest 30 commits"
+            $rangeLabelZh = "最近 30 条提交"
+          }
+
+          $changelogEn = "## Changes ($rangeLabelEn)`n$commitLines"
+          $changelogZh = "## 更新内容（$rangeLabelZh）`n$commitLines"
+
+          $customNotesDir = Join-Path $PWD 'docs/release-notes'
+          $customZhPath = Join-Path $customNotesDir "$tag.zh-CN.md"
+          $customEnPath = Join-Path $customNotesDir "$tag.en-US.md"
+
+          if (Test-Path $customZhPath) {
+            $changelogZh = (Get-Content -Path $customZhPath -Raw -Encoding UTF8).Trim()
+          }
+
+          if (Test-Path $customEnPath) {
+            $changelogEn = (Get-Content -Path $customEnPath -Raw -Encoding UTF8).Trim()
+          } else {
+            $changelogEn = @(
+              "## Changes"
+              "(English changelog not provided for $tag. Please refer to the Chinese section.)"
+            ) -join "`n"
+          }
+
+          $releaseDate = (Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ')
+
+          $latest = [ordered]@{
+            version = $version
+            versionName = $tag
+            releaseDate = $releaseDate
+            changelog = @{
+              'zh-CN' = $changelogZh
+              'en-US' = $changelogEn
+            }
+            assets = $assets
+          }
+
+          $latestJsonPath = Join-Path $dist 'latest.json'
+          ($latest | ConvertTo-Json -Depth 10) | Set-Content -Path $latestJsonPath -Encoding UTF8
+
+          $releaseNotes = @(
+            $changelogZh
+            ''
+            '---'
+            ''
+            $changelogEn
+          ) -join "`n"
+          $releaseNotesPath = Join-Path $dist 'release-notes.md'
+          $releaseNotes.Trim() | Set-Content -Path $releaseNotesPath -Encoding UTF8
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/*.zip
+            dist/*.exe
+            dist/latest.json
+          body_path: dist/release-notes.md
+          generate_release_notes: false
