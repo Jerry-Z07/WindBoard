@@ -113,6 +113,26 @@ namespace WindBoard.Settings
                 : UpdateCheckInterval.Weekly;
         }
 
+        internal UpdatePreferencesSnapshot GetUpdatePreferencesSnapshot()
+        {
+            lock (_gate)
+            {
+                UpdateSettings? updates = Current.General?.Updates;
+
+                string? intervalValue = updates?.AutoCheckInterval;
+                UpdateCheckInterval interval = UpdateCheckIntervalParser.TryParse(intervalValue, out UpdateCheckInterval parsed)
+                    ? parsed
+                    : UpdateCheckInterval.Weekly;
+
+                return new UpdatePreferencesSnapshot
+                {
+                    AutoCheckInterval = interval,
+                    LastCheckUtc = updates?.LastCheckUtc,
+                    LastNotifiedVersion = (updates?.LastNotifiedVersion ?? string.Empty).Trim(),
+                };
+            }
+        }
+
         internal void SetUpdateCheckInterval(UpdateCheckInterval interval)
         {
             Update(s =>
@@ -120,6 +140,27 @@ namespace WindBoard.Settings
                 s.General ??= new GeneralSettings();
                 s.General.Updates ??= new UpdateSettings();
                 s.General.Updates.AutoCheckInterval = UpdateCheckIntervalParser.ToSettingValue(interval);
+            });
+        }
+
+        internal void SetUpdateLastCheckUtc(DateTimeOffset utc)
+        {
+            Update(s =>
+            {
+                s.General ??= new GeneralSettings();
+                s.General.Updates ??= new UpdateSettings();
+                s.General.Updates.LastCheckUtc = utc;
+            });
+        }
+
+        internal void SetUpdateLastNotifiedVersion(string version)
+        {
+            string v = (version ?? string.Empty).Trim();
+            Update(s =>
+            {
+                s.General ??= new GeneralSettings();
+                s.General.Updates ??= new UpdateSettings();
+                s.General.Updates.LastNotifiedVersion = v;
             });
         }
 

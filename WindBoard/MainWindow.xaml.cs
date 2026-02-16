@@ -79,7 +79,11 @@ namespace WindBoard
             UpdateCommandStates();
 
             ApplyAppSettingsToUi();
-            Activated += (_, _) => ApplyCamouflageSettingsToWindow();
+            Activated += (_, _) =>
+            {
+                ApplyCamouflageSettingsToWindow();
+                TryStartAutoUpdateCheckOnce();
+            };
             AppSettingsService.Instance.Changed += OnAppSettingsChanged;
 
             Closed += (_, _) =>

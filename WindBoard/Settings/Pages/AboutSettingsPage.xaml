@@ -90,6 +90,7 @@
                 </Border>
 
                 <Button
+                    x:Name="CheckUpdatesButton"
                     Style="{StaticResource SettingsCardButtonStyle}"
                     Click="OnCheckUpdatesClicked">
                     <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
@@ -106,10 +107,20 @@
                             VerticalAlignment="Center" />
 
                         <FontIcon
+                            x:Name="CheckUpdatesChevronIcon"
                             Grid.Column="2"
                             Glyph="&#xE76C;"
                             FontFamily="Segoe MDL2 Assets"
                             Opacity="0.65"
+                            VerticalAlignment="Center" />
+
+                        <ProgressRing
+                            x:Name="CheckUpdatesProgressRing"
+                            Grid.Column="2"
+                            Width="18"
+                            Height="18"
+                            IsActive="False"
+                            Visibility="Collapsed"
                             VerticalAlignment="Center" />
                     </Grid>
                 </Button>

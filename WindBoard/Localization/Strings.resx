@@ -266,6 +266,73 @@
     <value>已开启调试入口（仅本次会话）</value>
   </data>
 
+  <data name="Updates_CurrentVersion" xml:space="preserve">
+    <value>当前版本</value>
+  </data>
+  <data name="Updates_LatestVersion" xml:space="preserve">
+    <value>最新版本</value>
+  </data>
+  <data name="Updates_ReleaseDate" xml:space="preserve">
+    <value>发布日期</value>
+  </data>
+  <data name="Updates_Changelog_Title" xml:space="preserve">
+    <value>更新内容</value>
+  </data>
+  <data name="Updates_Download_Title" xml:space="preserve">
+    <value>下载</value>
+  </data>
+  <data name="Updates_Download_SelfContainedInstaller" xml:space="preserve">
+    <value>安装包（自包含）</value>
+  </data>
+  <data name="Updates_Download_FrameworkDependentInstaller" xml:space="preserve">
+    <value>安装包（依赖运行时，-fd）</value>
+  </data>
+  <data name="Updates_Download_PortableZip" xml:space="preserve">
+    <value>便携版（zip）</value>
+  </data>
+  <data name="Updates_Download_Unknown" xml:space="preserve">
+    <value>未知类型</value>
+  </data>
+  <data name="Updates_Download_Item_Recommended_Fmt" xml:space="preserve">
+    <value>{0}（推荐）</value>
+  </data>
+  <data name="Updates_OpenReleasePage" xml:space="preserve">
+    <value>打开发布页</value>
+  </data>
+
+  <data name="Updates_CheckResult_UpToDate_Title" xml:space="preserve">
+    <value>已是最新版本</value>
+  </data>
+  <data name="Updates_CheckResult_UpdateAvailable_Title" xml:space="preserve">
+    <value>发现新版本</value>
+  </data>
+  <data name="Updates_CheckResult_Indeterminate_Title" xml:space="preserve">
+    <value>已获取更新信息</value>
+  </data>
+  <data name="Updates_CheckResult_Error_Title" xml:space="preserve">
+    <value>检查更新失败</value>
+  </data>
+
+  <data name="Updates_CheckFailed_Timeout" xml:space="preserve">
+    <value>检查更新超时，请稍后重试。</value>
+  </data>
+  <data name="Updates_CheckFailed_Network" xml:space="preserve">
+    <value>网络请求失败，请检查网络后重试。</value>
+  </data>
+  <data name="Updates_CheckFailed_Parse" xml:space="preserve">
+    <value>更新信息解析失败，请稍后重试。</value>
+  </data>
+  <data name="Updates_CheckFailed_Generic" xml:space="preserve">
+    <value>检查更新失败，请稍后重试。</value>
+  </data>
+
+  <data name="Reminder_Update_Available_Title_Fmt" xml:space="preserve">
+    <value>发现新版本：{1}（当前 {0}）</value>
+  </data>
+  <data name="Reminder_Update_Available_Body" xml:space="preserve">
+    <value>打开“设置-关于-检查更新”获取下载链接。</value>
+  </data>
+
   <data name="Settings_Debug_Title" xml:space="preserve">
     <value>调试</value>
   </data>

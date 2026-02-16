@@ -54,7 +54,6 @@
 - 本地化 Key 审计：`WindBoard.Tests/Localization/LocalizationKeyAuditTests.cs`（要求 C# 中 `L10n.Get/Format` 的 key 为字符串字面量；XAML 使用 `{l10n:Loc Key=...}`）。
 - 目录边界与代码放置建议：参考 `docs/CODEMAP.md`。
 - 测试分层建议：
-  - 优先为 `Board/`、以及 `Interaction/`/`Rendering/` 中“纯计算逻辑”写单元测试（无 UI、无 DirectX 上下文依赖）。
   - UI/渲染集成验证放到更高层（后续可考虑 UI 自动化/端到端 smoke），避免单测依赖 WinUI 线程与设备环境。
 
 

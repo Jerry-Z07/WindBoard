@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 
 namespace WindBoard.Settings
@@ -69,6 +70,16 @@ namespace WindBoard.Settings
         /// 自动检查更新频率（weekly/biweekly/monthly/never）。
         /// </summary>
         public string AutoCheckInterval { get; set; } = UpdateCheckIntervalParser.WeeklyValue;
+
+        /// <summary>
+        /// 上次成功检查更新的时间（UTC）。
+        /// </summary>
+        public DateTimeOffset? LastCheckUtc { get; set; }
+
+        /// <summary>
+        /// 上次已提醒过的“最新版本号”（用于跨会话去重，避免重复提示）。
+        /// </summary>
+        public string LastNotifiedVersion { get; set; } = string.Empty;
     }
 
     internal sealed class AppearanceSettings

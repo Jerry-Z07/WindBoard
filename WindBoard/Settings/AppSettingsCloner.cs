@@ -36,6 +36,8 @@ namespace WindBoard.Settings
                     Updates = new UpdateSettings
                     {
                         AutoCheckInterval = settings.General?.Updates?.AutoCheckInterval ?? UpdateCheckIntervalParser.WeeklyValue,
+                        LastCheckUtc = settings.General?.Updates?.LastCheckUtc,
+                        LastNotifiedVersion = settings.General?.Updates?.LastNotifiedVersion ?? string.Empty,
                     },
                 },
                 Appearance = new AppearanceSettings

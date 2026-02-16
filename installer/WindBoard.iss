@@ -30,6 +30,15 @@
   #define MyVariantSuffix ""
 #endif
 
+; 安装变体标记：
+; - 便于应用运行时区分“安装包自包含”与“安装包 -fd（依赖运行时）”
+; - 与 CI 的 MyVariantSuffix 约定保持一致（"" / "-fd"）
+#if MyVariantSuffix == "-fd"
+  #define MyInstallVariant "framework-dependent"
+#else
+  #define MyInstallVariant "self-contained"
+#endif
+
 #if MyArch == "x64"
   ; Inno Setup 6.7+：x64 已弃用，建议显式使用 x64os / x64compatible。
   ; 这里保持与旧逻辑一致：x64 安装包仅允许在 x64 系统上安装。
@@ -93,6 +102,18 @@ Name: "{autodesktop}\{cm:AppShortcutName}"; Filename: "{app}\{#MyAppExeName}"; T
 
 [Tasks]
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
+
+[Registry]
+; 运行时更新检查需要识别当前安装形态（含 -fd 变体），这里写入最小标记到注册表：
+; - InstallKind=installer
+; - InstallVariant=self-contained/framework-dependent
+; - InstallDir={app}
+; - InstallRid / InstallArch：便于未来定位用户安装包类型（日志/排查）
+Root: HKLM; Subkey: "Software\\WindBoard"; ValueType: string; ValueName: "InstallKind"; ValueData: "installer"; Flags: uninsdeletekey
+Root: HKLM; Subkey: "Software\\WindBoard"; ValueType: string; ValueName: "InstallVariant"; ValueData: "{#MyInstallVariant}";
+Root: HKLM; Subkey: "Software\\WindBoard"; ValueType: string; ValueName: "InstallDir"; ValueData: "{app}";
+Root: HKLM; Subkey: "Software\\WindBoard"; ValueType: string; ValueName: "InstallRid"; ValueData: "{#MyRid}";
+Root: HKLM; Subkey: "Software\\WindBoard"; ValueType: string; ValueName: "InstallArch"; ValueData: "{#MyArch}";
 
 [Run]
 Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#MyAppName}}"; Flags: nowait postinstall skipifsilent

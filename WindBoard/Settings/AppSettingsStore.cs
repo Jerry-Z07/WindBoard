@@ -107,6 +107,17 @@ namespace WindBoard.Settings
             settings.General.Updates ??= new UpdateSettings();
             settings.General.Updates.AutoCheckInterval = NormalizeUpdateCheckIntervalOrDefault(settings.General.Updates.AutoCheckInterval);
 
+            // 更新检查元数据：允许为空；但需要做基本归一化，避免手工编辑导致异常值影响自动检查逻辑。
+            settings.General.Updates.LastNotifiedVersion = (settings.General.Updates.LastNotifiedVersion ?? string.Empty).Trim();
+            if (settings.General.Updates.LastCheckUtc is not null)
+            {
+                DateTimeOffset nowUtc = DateTimeOffset.UtcNow;
+                if (settings.General.Updates.LastCheckUtc.Value > nowUtc)
+                {
+                    settings.General.Updates.LastCheckUtc = nowUtc;
+                }
+            }
+
             settings.Appearance ??= new AppearanceSettings();
             settings.Appearance.CanvasBackgroundHex = ColorHex.NormalizeToHexRgbOrDefault(
                 settings.Appearance.CanvasBackgroundHex,
