@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
 using System.Net.Http;
@@ -39,6 +40,55 @@ namespace WindBoard.Updates
         {
         }
 
+        internal async Task TryEnsureInstallerDownloadSourceSelectedAsync(CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                AppInstallProbeResult install = AppInstallProbe.Probe();
+                if (install.Kind != AppInstallKind.Installer)
+                {
+                    return;
+                }
+
+                DownloadSourcePreferencesSnapshot prefs = AppSettingsService.Instance.GetUpdateDownloadSourcePreferencesSnapshot();
+                if (prefs.Policy != DownloadSourcePolicy.Auto)
+                {
+                    return;
+                }
+
+                if (prefs.LastTestUtc is not null)
+                {
+                    return;
+                }
+
+                _ = await ResolvePreferredDownloadSourceIdAsync(UpdateCheckMode.Auto, install, cancellationToken).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                // 选源失败不应影响主流程：后续仍可使用默认 Github 源或下载失败轮询兜底。
+                AppLog.Warn("Updates", "安装版初始化下载源失败", ex);
+            }
+        }
+
+        internal async Task<DownloadSourceId> SpeedTestAndPersistBestDownloadSourceAsync(CancellationToken cancellationToken = default)
+        {
+            DownloadSourceSpeedTestResult[] results = await DownloadSourceSpeedTester
+                .TestAsync(UpdateConstants.LatestJsonUrl, cancellationToken)
+                .ConfigureAwait(false);
+
+            if (!DownloadSourceSpeedTester.TryPickFastest(results, out DownloadSourceId fastest))
+            {
+                fastest = DownloadSourceId.Github;
+            }
+
+            DateTimeOffset nowUtc = DateTimeOffset.UtcNow;
+            AppSettingsService.Instance.SetUpdateDownloadSourceId(fastest);
+            AppSettingsService.Instance.SetUpdateDownloadSourceLastTestUtc(nowUtc);
+
+            AppLog.Info("Updates", $"下载源测速完成：fastest={fastest}, testedAtUtc={nowUtc:O}");
+            return fastest;
+        }
+
         internal async Task<AppUpdateCheckResult> CheckForUpdatesAsync(
             UpdateCheckMode mode,
             CancellationToken cancellationToken = default)
@@ -49,10 +99,16 @@ namespace WindBoard.Updates
             await _checkGate.WaitAsync(cancellationToken).ConfigureAwait(false);
             try
             {
-                LatestReleaseInfo? latest;
+                AppInstallProbeResult install = AppInstallProbe.Probe();
+                string arch = GetCurrentArch();
+
+                DownloadSourceId preferredSource = await ResolvePreferredDownloadSourceIdAsync(mode, install, cancellationToken)
+                    .ConfigureAwait(false);
+
+                (LatestReleaseInfo latest, DownloadSourceId usedSource) latestResult;
                 try
                 {
-                    latest = await FetchLatestAsync(cancellationToken).ConfigureAwait(false);
+                    latestResult = await FetchLatestWithFailoverAsync(preferredSource, cancellationToken).ConfigureAwait(false);
                 }
                 catch (Exception ex)
                 {
@@ -64,15 +120,15 @@ namespace WindBoard.Updates
                         Message = BuildUserFriendlyErrorMessage(ex),
                         Duration = sw.Elapsed,
                         Error = ex,
+                        EffectiveDownloadSourceId = preferredSource,
                     };
                 }
 
                 DateTimeOffset nowUtc = DateTimeOffset.UtcNow;
                 AppSettingsService.Instance.SetUpdateLastCheckUtc(nowUtc);
 
-                AppInstallProbeResult install = AppInstallProbe.Probe();
-                string arch = GetCurrentArch();
-
+                LatestReleaseInfo latest = latestResult.latest;
+                DownloadSourceId usedSource = latestResult.usedSource;
                 UpdateAssetRecommendation assets = UpdateAssetSelector.Select(latest.Assets, arch, install);
 
                 AppUpdateCheckState state = CompareVersions(currentVersion, latest.Version);
@@ -84,7 +140,7 @@ namespace WindBoard.Updates
 
                 AppLog.Info(
                     "Updates",
-                    $"更新检查完成：mode={mode}, state={state}, current='{currentVersion}', latest='{latest.Version}', install={install.Kind}/{install.Variant}({install.Evidence}), arch={arch}, durationMs={(int)sw.Elapsed.TotalMilliseconds}");
+                    $"更新检查完成：mode={mode}, state={state}, current='{currentVersion}', latest='{latest.Version}', install={install.Kind}/{install.Variant}({install.Evidence}), arch={arch}, sourcePreferred={preferredSource}, sourceUsed={usedSource}, durationMs={(int)sw.Elapsed.TotalMilliseconds}");
 
                 return new AppUpdateCheckResult
                 {
@@ -93,6 +149,7 @@ namespace WindBoard.Updates
                     Latest = latest,
                     Assets = assets,
                     Duration = sw.Elapsed,
+                    EffectiveDownloadSourceId = usedSource,
                 };
             }
             finally
@@ -153,35 +210,95 @@ namespace WindBoard.Updates
             AppSettingsService.Instance.SetUpdateLastNotifiedVersion(latestVersion);
         }
 
-        private static async Task<LatestReleaseInfo> FetchLatestAsync(CancellationToken cancellationToken)
+        private static async Task<DownloadSourceId> ResolvePreferredDownloadSourceIdAsync(
+            UpdateCheckMode mode,
+            AppInstallProbeResult install,
+            CancellationToken cancellationToken)
         {
-            string url = UpdateConstants.LatestJsonUrl;
-            AppLog.Info("Updates", $"开始获取最新版本信息：url='{url}'");
+            DownloadSourcePreferencesSnapshot prefs = AppSettingsService.Instance.GetUpdateDownloadSourcePreferencesSnapshot();
+            DownloadSourceId id = prefs.SourceId;
+            DateTimeOffset nowUtc = DateTimeOffset.UtcNow;
 
-            using HttpRequestMessage req = new(HttpMethod.Get, url);
-            using HttpResponseMessage resp = await UpdateHttpClient.SendAsync(req, HttpCompletionOption.ResponseHeadersRead, cancellationToken)
-                .ConfigureAwait(false);
+            bool shouldTest = DownloadSourceSpeedTestPolicy.ShouldSpeedTest(
+                installKind: install.Kind,
+                policy: prefs.Policy,
+                lastTestUtc: prefs.LastTestUtc,
+                mode: mode,
+                nowUtc: nowUtc);
 
-            if (!resp.IsSuccessStatusCode)
+            if (!shouldTest)
             {
-                string status = $"{(int)resp.StatusCode} {resp.ReasonPhrase}";
-                throw new HttpRequestException($"HTTP 请求失败：{status}");
+                return id;
             }
 
-            await using var stream = await resp.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
-            LatestReleaseInfo? latest = await JsonSerializer.DeserializeAsync<LatestReleaseInfo>(stream, JsonOptions, cancellationToken)
+            AppLog.Info("Updates", $"开始下载源测速：installKind={install.Kind}, mode={mode}, lastTestUtc={prefs.LastTestUtc:O}");
+
+            DownloadSourceSpeedTestResult[] results = await DownloadSourceSpeedTester
+                .TestAsync(UpdateConstants.LatestJsonUrl, cancellationToken)
                 .ConfigureAwait(false);
 
-            if (latest is null)
+            if (!DownloadSourceSpeedTester.TryPickFastest(results, out DownloadSourceId fastest))
             {
-                throw new InvalidOperationException("latest.json 解析结果为空");
+                fastest = DownloadSourceId.Github;
             }
 
-            latest.Version = (latest.Version ?? string.Empty).Trim();
-            latest.VersionName = (latest.VersionName ?? string.Empty).Trim();
-            latest.ReleaseDate = (latest.ReleaseDate ?? string.Empty).Trim();
+            // 约定：auto 模式测速后写入最快源；fixed 模式不应进入测速分支（由策略保证）。
+            AppSettingsService.Instance.SetUpdateDownloadSourceId(fastest);
+            AppSettingsService.Instance.SetUpdateDownloadSourceLastTestUtc(nowUtc);
 
-            return latest;
+            AppLog.Info("Updates", $"下载源测速完成：fastest={fastest}, testedAtUtc={nowUtc:O}");
+            return fastest;
+        }
+
+        private static async Task<(LatestReleaseInfo latest, DownloadSourceId usedSource)> FetchLatestWithFailoverAsync(
+            DownloadSourceId preferredSource,
+            CancellationToken cancellationToken)
+        {
+            IReadOnlyList<DownloadSourceId> order = DownloadSourceUrlRewriter.BuildFailoverOrder(preferredSource);
+            Exception? lastError = null;
+
+            foreach (DownloadSourceId source in order)
+            {
+                string url = DownloadSourceUrlRewriter.Rewrite(UpdateConstants.LatestJsonUrl, source);
+                try
+                {
+                    AppLog.Info("Updates", $"开始获取最新版本信息：source={source}, url='{url}'");
+
+                    using HttpRequestMessage req = new(HttpMethod.Get, url);
+                    using HttpResponseMessage resp = await UpdateHttpClient
+                        .SendAsync(req, HttpCompletionOption.ResponseHeadersRead, cancellationToken)
+                        .ConfigureAwait(false);
+
+                    if (!resp.IsSuccessStatusCode)
+                    {
+                        string status = $"{(int)resp.StatusCode} {resp.ReasonPhrase}";
+                        throw new HttpRequestException($"HTTP 请求失败：{status}");
+                    }
+
+                    await using var stream = await resp.Content.ReadAsStreamAsync(cancellationToken).ConfigureAwait(false);
+                    LatestReleaseInfo? latest = await JsonSerializer
+                        .DeserializeAsync<LatestReleaseInfo>(stream, JsonOptions, cancellationToken)
+                        .ConfigureAwait(false);
+
+                    if (latest is null)
+                    {
+                        throw new InvalidOperationException("latest.json 解析结果为空");
+                    }
+
+                    latest.Version = (latest.Version ?? string.Empty).Trim();
+                    latest.VersionName = (latest.VersionName ?? string.Empty).Trim();
+                    latest.ReleaseDate = (latest.ReleaseDate ?? string.Empty).Trim();
+
+                    return (latest, source);
+                }
+                catch (Exception ex)
+                {
+                    lastError = ex;
+                    AppLog.Warn("Updates", $"获取 latest.json 失败，将切换下载源：source={source}", ex);
+                }
+            }
+
+            throw lastError ?? new InvalidOperationException("获取 latest.json 失败（未知错误）");
         }
 
         private static string GetCurrentArch()
@@ -274,6 +391,11 @@ namespace WindBoard.Updates
 
         internal UpdateAssetRecommendation? Assets { get; init; }
 
+        /// <summary>
+        /// 本次检查/下载建议使用的下载源（用于把 GitHub 原链接改写为镜像链接）。
+        /// </summary>
+        internal DownloadSourceId EffectiveDownloadSourceId { get; init; } = DownloadSourceId.Github;
+
         internal string Message { get; init; } = string.Empty;
 
         internal TimeSpan Duration { get; init; }
@@ -340,4 +462,3 @@ namespace WindBoard.Updates
         }
     }
 }
-

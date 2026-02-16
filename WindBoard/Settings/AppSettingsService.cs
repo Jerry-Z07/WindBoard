@@ -133,6 +133,31 @@ namespace WindBoard.Settings
             }
         }
 
+        internal DownloadSourcePreferencesSnapshot GetUpdateDownloadSourcePreferencesSnapshot()
+        {
+            lock (_gate)
+            {
+                UpdateSettings? updates = Current.General?.Updates;
+
+                string? policyValue = updates?.DownloadSourcePolicy;
+                DownloadSourcePolicy policy = DownloadSourcePolicyParser.TryParse(policyValue, out DownloadSourcePolicy parsedPolicy)
+                    ? parsedPolicy
+                    : DownloadSourcePolicy.Auto;
+
+                string? idValue = updates?.DownloadSourceId;
+                DownloadSourceId id = DownloadSourceIdParser.TryParse(idValue, out DownloadSourceId parsedId)
+                    ? parsedId
+                    : DownloadSourceId.Github;
+
+                return new DownloadSourcePreferencesSnapshot
+                {
+                    Policy = policy,
+                    SourceId = id,
+                    LastTestUtc = updates?.DownloadSourceLastTestUtc,
+                };
+            }
+        }
+
         internal void SetUpdateCheckInterval(UpdateCheckInterval interval)
         {
             Update(s =>
@@ -161,6 +186,36 @@ namespace WindBoard.Settings
                 s.General ??= new GeneralSettings();
                 s.General.Updates ??= new UpdateSettings();
                 s.General.Updates.LastNotifiedVersion = v;
+            });
+        }
+
+        internal void SetUpdateDownloadSourcePolicy(DownloadSourcePolicy policy)
+        {
+            Update(s =>
+            {
+                s.General ??= new GeneralSettings();
+                s.General.Updates ??= new UpdateSettings();
+                s.General.Updates.DownloadSourcePolicy = DownloadSourcePolicyParser.ToSettingValue(policy);
+            });
+        }
+
+        internal void SetUpdateDownloadSourceId(DownloadSourceId id)
+        {
+            Update(s =>
+            {
+                s.General ??= new GeneralSettings();
+                s.General.Updates ??= new UpdateSettings();
+                s.General.Updates.DownloadSourceId = DownloadSourceIdParser.ToSettingValue(id);
+            });
+        }
+
+        internal void SetUpdateDownloadSourceLastTestUtc(DateTimeOffset? utc)
+        {
+            Update(s =>
+            {
+                s.General ??= new GeneralSettings();
+                s.General.Updates ??= new UpdateSettings();
+                s.General.Updates.DownloadSourceLastTestUtc = utc;
             });
         }
 

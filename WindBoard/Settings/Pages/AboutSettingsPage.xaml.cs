@@ -1,5 +1,8 @@
 using System;
+using System.Diagnostics;
 using System.Globalization;
+using System.IO;
+using System.Runtime.InteropServices.WindowsRuntime;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.UI.Xaml;
@@ -19,6 +22,8 @@ namespace WindBoard.Settings.Pages
         private int _debugUnlockInfoNonce;
         private bool _isCheckingUpdates;
         private CancellationTokenSource? _checkUpdatesCts;
+        private bool _isTestingDownloadSource;
+        private CancellationTokenSource? _downloadSourceTestCts;
 
         public AboutSettingsPage()
         {
@@ -50,6 +55,20 @@ namespace WindBoard.Settings.Pages
                 _checkUpdatesCts?.Dispose();
                 _checkUpdatesCts = null;
             }
+
+            try
+            {
+                _downloadSourceTestCts?.Cancel();
+            }
+            catch
+            {
+                // 忽略取消异常：不影响页面卸载
+            }
+            finally
+            {
+                _downloadSourceTestCts?.Dispose();
+                _downloadSourceTestCts = null;
+            }
         }
 
         private void OnAppSettingsChanged(object? sender, EventArgs e)
@@ -70,12 +89,69 @@ namespace WindBoard.Settings.Pages
                 UpdateCheckInterval interval = AppSettingsService.Instance.GetUpdateCheckInterval();
                 string settingValue = UpdateCheckIntervalParser.ToSettingValue(interval);
 
+                DownloadSourcePreferencesSnapshot downloadSource = AppSettingsService.Instance.GetUpdateDownloadSourcePreferencesSnapshot();
+
                 _isSyncingUiFromSettings = true;
                 AutoCheckUpdatesComboBox.SelectedValue = settingValue;
+
+                SyncDownloadSourceUi(downloadSource);
             }
             finally
             {
                 _isSyncingUiFromSettings = false;
+            }
+        }
+
+        private void SyncDownloadSourceUi(DownloadSourcePreferencesSnapshot snapshot)
+        {
+            try
+            {
+                if (DownloadSourceComboBox is null)
+                {
+                    return;
+                }
+
+                string selected = snapshot.Policy == DownloadSourcePolicy.Auto
+                    ? "auto"
+                    : DownloadSourceIdParser.ToSettingValue(snapshot.SourceId);
+
+                bool restoreSyncing = _isSyncingUiFromSettings;
+                _isSyncingUiFromSettings = true;
+                try
+                {
+                    DownloadSourceComboBox.SelectedValue = selected;
+                }
+                finally
+                {
+                    _isSyncingUiFromSettings = restoreSyncing;
+                }
+
+                if (DownloadSourceStatusTextBlock is null)
+                {
+                    return;
+                }
+
+                if (_isTestingDownloadSource)
+                {
+                    DownloadSourceStatusTextBlock.Text = L10n.Get("Updates_DownloadSource_Status_Testing");
+                    return;
+                }
+
+                string currentName = GetDownloadSourceDisplayName(snapshot.SourceId);
+                string status = L10n.Format("Updates_DownloadSource_Status_Current_Fmt", currentName);
+
+                if (snapshot.LastTestUtc is not null)
+                {
+                    string time = snapshot.LastTestUtc.Value.ToLocalTime().ToString("yyyy-MM-dd HH:mm", CultureInfo.CurrentCulture);
+                    status += " · " + L10n.Format("Updates_DownloadSource_Status_LastTest_Fmt", time);
+                }
+
+                DownloadSourceStatusTextBlock.Text = status;
+            }
+            catch (Exception ex)
+            {
+                // 更新失败不应影响设置页；记录日志便于排查。
+                AppLog.Warn("Updates", "同步下载源 UI 失败", ex);
             }
         }
 
@@ -99,6 +175,74 @@ namespace WindBoard.Settings.Pages
 
             AppLog.Info("Updates", $"自动检查更新频率变更：interval='{UpdateCheckIntervalParser.ToSettingValue(interval)}'");
             AppSettingsService.Instance.SetUpdateCheckInterval(interval);
+        }
+
+        private async void OnDownloadSourceSelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (_isSyncingUiFromSettings)
+            {
+                return;
+            }
+
+            string? value = DownloadSourceComboBox.SelectedValue as string;
+            if (string.IsNullOrWhiteSpace(value) && DownloadSourceComboBox.SelectedItem is ComboBoxItem item)
+            {
+                value = item.Tag as string;
+            }
+
+            string v = (value ?? string.Empty).Trim();
+            if (v.Equals("auto", StringComparison.OrdinalIgnoreCase))
+            {
+                AppLog.Info("Updates", "用户选择下载源：auto");
+                AppSettingsService.Instance.SetUpdateDownloadSourcePolicy(DownloadSourcePolicy.Auto);
+
+                // 自动模式：后台测速并写入最快源。
+                await StartDownloadSourceSpeedTestAsync().ConfigureAwait(true);
+                return;
+            }
+
+            if (!DownloadSourceIdParser.TryParse(v, out DownloadSourceId id))
+            {
+                id = DownloadSourceId.Github;
+            }
+
+            AppLog.Info("Updates", $"用户选择下载源：fixed/{id}");
+            AppSettingsService.Instance.SetUpdateDownloadSourcePolicy(DownloadSourcePolicy.Fixed);
+            AppSettingsService.Instance.SetUpdateDownloadSourceId(id);
+        }
+
+        private async Task StartDownloadSourceSpeedTestAsync()
+        {
+            if (_isTestingDownloadSource)
+            {
+                return;
+            }
+
+            _isTestingDownloadSource = true;
+            SyncDownloadSourceUi(AppSettingsService.Instance.GetUpdateDownloadSourcePreferencesSnapshot());
+
+            _downloadSourceTestCts?.Dispose();
+            _downloadSourceTestCts = new CancellationTokenSource();
+
+            try
+            {
+                _ = await AppUpdateService.Instance
+                    .SpeedTestAndPersistBestDownloadSourceAsync(_downloadSourceTestCts.Token)
+                    .ConfigureAwait(true);
+            }
+            catch (TaskCanceledException)
+            {
+                AppLog.Debug("Updates", "下载源测速已取消");
+            }
+            catch (Exception ex)
+            {
+                AppLog.Warn("Updates", "下载源测速失败", ex);
+            }
+            finally
+            {
+                _isTestingDownloadSource = false;
+                SyncDownloadSourceUi(AppSettingsService.Instance.GetUpdateDownloadSourcePreferencesSnapshot());
+            }
         }
 
         private async void OnCheckUpdatesClicked(object sender, RoutedEventArgs e)
@@ -193,6 +337,9 @@ namespace WindBoard.Settings.Pages
                 return;
             }
 
+            DownloadSourceId sourceForUrls = result.EffectiveDownloadSourceId;
+            string releasePageUrl = result.GetReleasePageUrl();
+
             var panel = new StackPanel
             {
                 Spacing = 10,
@@ -283,13 +430,38 @@ namespace WindBoard.Settings.Pages
                         Padding = new Thickness(0),
                     };
 
-                    string url = pick.Asset.DownloadUrl ?? string.Empty;
-                    link.Click += (_, _) => _ = TryLaunchUrlAsync(url);
+                    string originalUrl = pick.Asset.DownloadUrl ?? string.Empty;
+                    string rewrittenUrl = DownloadSourceUrlRewriter.Rewrite(originalUrl, sourceForUrls);
+                    link.Click += (_, _) => _ = TryLaunchUrlAsync(rewrittenUrl);
                     panel.Children.Add(link);
+                }
+
+                if (result.State == AppUpdateCheckState.UpdateAvailable && result.Assets.Recommended is not null)
+                {
+                    var downloadButton = new Button
+                    {
+                        Content = L10n.Get("Updates_DownloadButton"),
+                        HorizontalAlignment = HorizontalAlignment.Left,
+                        Margin = new Thickness(0, 6, 0, 0),
+                    };
+
+                    UpdateAssetPick recommended = result.Assets.Recommended;
+                    downloadButton.Click += async (_, _) =>
+                    {
+                        try
+                        {
+                            await DownloadAssetWithProgressAsync(recommended, sourceForUrls, releasePageUrl).ConfigureAwait(true);
+                        }
+                        catch (Exception ex)
+                        {
+                            AppLog.Warn("Updates", "启动下载失败", ex);
+                        }
+                    };
+
+                    panel.Children.Add(downloadButton);
                 }
             }
 
-            string releasePageUrl = result.GetReleasePageUrl();
             var releaseLink = new HyperlinkButton
             {
                 Content = L10n.Get("Updates_OpenReleasePage"),
@@ -349,6 +521,303 @@ namespace WindBoard.Settings.Pages
             {
                 AppLog.Warn("Updates", $"打开链接失败：url='{url}'", ex);
             }
+        }
+
+        private async Task DownloadAssetWithProgressAsync(UpdateAssetPick pick, DownloadSourceId preferredSource, string releasePageUrl)
+        {
+            if (XamlRoot is null)
+            {
+                return;
+            }
+
+            string fileName = (pick.Asset.FileName ?? string.Empty).Trim();
+            if (string.IsNullOrWhiteSpace(fileName))
+            {
+                return;
+            }
+
+            string originalUrl = (pick.Asset.DownloadUrl ?? string.Empty).Trim();
+            if (string.IsNullOrWhiteSpace(originalUrl))
+            {
+                return;
+            }
+
+            string downloadsDir = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "WindBoard",
+                "downloads");
+            string destinationPath = Path.Combine(downloadsDir, fileName);
+
+            var cts = new CancellationTokenSource();
+
+            var progressBar = new ProgressBar
+            {
+                Minimum = 0,
+                Maximum = 100,
+                IsIndeterminate = true,
+            };
+
+            var progressText = new TextBlock
+            {
+                Opacity = 0.8,
+                TextWrapping = TextWrapping.WrapWholeWords,
+            };
+
+            var sourceText = new TextBlock
+            {
+                Opacity = 0.8,
+                TextWrapping = TextWrapping.WrapWholeWords,
+            };
+
+            var dialogPanel = new StackPanel
+            {
+                Spacing = 10,
+            };
+            dialogPanel.Children.Add(new TextBlock { Text = fileName, TextWrapping = TextWrapping.WrapWholeWords });
+            dialogPanel.Children.Add(progressBar);
+            dialogPanel.Children.Add(sourceText);
+            dialogPanel.Children.Add(progressText);
+
+            var dialog = new ContentDialog
+            {
+                Title = L10n.Get("Updates_DownloadDialog_Title"),
+                Content = dialogPanel,
+                CloseButtonText = L10n.Get("Common_Cancel"),
+                XamlRoot = XamlRoot,
+            };
+
+            dialog.Closed += (_, _) =>
+            {
+                try
+                {
+                    cts.Cancel();
+                }
+                catch
+                {
+                    // 忽略取消异常
+                }
+            };
+
+            var progress = new Progress<DownloadProgress>(p =>
+            {
+                try
+                {
+                    string sourceName = GetDownloadSourceDisplayName(p.SourceId);
+                    sourceText.Text = L10n.Format("Updates_DownloadDialog_Source_Fmt", sourceName);
+
+                    if (p.TotalBytes is not null && p.TotalBytes.Value > 0)
+                    {
+                        progressBar.IsIndeterminate = false;
+                        double percent = Math.Clamp(p.DownloadedBytes * 100.0 / p.TotalBytes.Value, 0, 100);
+                        progressBar.Value = percent;
+                        progressText.Text = L10n.Format("Updates_DownloadDialog_Progress_Fmt", FormatBytes(p.DownloadedBytes), FormatBytes(p.TotalBytes.Value));
+                    }
+                    else
+                    {
+                        progressBar.IsIndeterminate = true;
+                        progressText.Text = L10n.Format("Updates_DownloadDialog_ProgressUnknown_Fmt", FormatBytes(p.DownloadedBytes));
+                    }
+                }
+                catch (Exception ex)
+                {
+                    AppLog.Warn("Downloads", "更新下载进度 UI 失败", ex);
+                }
+            });
+
+            DownloadRequest request = new()
+            {
+                OriginalUrl = originalUrl,
+                DestinationPath = destinationPath,
+                PreferredSourceId = preferredSource,
+                FailoverOrder = DownloadSourceUrlRewriter.BuildFailoverOrder(preferredSource),
+                MaxCycles = 3,
+            };
+
+            Task<DownloadResult> downloadTask = BackgroundDownloadService.DownloadWithFailoverAsync(request, progress, cts.Token);
+            Task showTask = dialog.ShowAsync().AsTask();
+
+            Task finished = await Task.WhenAny(downloadTask, showTask).ConfigureAwait(true);
+            if (finished == showTask)
+            {
+                // 用户主动关闭：取消下载并返回。
+                try
+                {
+                    cts.Cancel();
+                }
+                catch
+                {
+                    // 忽略
+                }
+
+                try
+                {
+                    await downloadTask.ConfigureAwait(true);
+                }
+                catch
+                {
+                    // 忽略下载异常：已取消
+                }
+
+                return;
+            }
+
+            DownloadResult result = await downloadTask.ConfigureAwait(true);
+
+            try
+            {
+                dialog.Hide();
+                await showTask.ConfigureAwait(true);
+            }
+            catch
+            {
+                // 忽略：对话框关闭失败不影响后续提示
+            }
+
+            if (result.Success)
+            {
+                await ShowDownloadCompletedDialogAsync(result.FilePath, pick.Kind).ConfigureAwait(true);
+                return;
+            }
+
+            string message = L10n.Get("Updates_DownloadDialog_Failed_Message");
+            await ShowDownloadFailedDialogAsync(message, releasePageUrl).ConfigureAwait(true);
+        }
+
+        private async Task ShowDownloadCompletedDialogAsync(string filePath, UpdateAssetKind kind)
+        {
+            if (XamlRoot is null)
+            {
+                return;
+            }
+
+            string title = L10n.Get("Updates_DownloadDialog_Completed_Title");
+            string content = L10n.Format("Updates_DownloadDialog_Completed_Path_Fmt", filePath);
+
+            string primaryText = kind == UpdateAssetKind.PortableZip
+                ? L10n.Get("Updates_DownloadDialog_OpenFolder")
+                : L10n.Get("Updates_DownloadDialog_RunInstaller");
+
+            var dialog = new ContentDialog
+            {
+                Title = title,
+                Content = content,
+                PrimaryButtonText = primaryText,
+                SecondaryButtonText = L10n.Get("Updates_DownloadDialog_OpenFolder"),
+                CloseButtonText = L10n.Get("Common_Close"),
+                XamlRoot = XamlRoot,
+            };
+
+            ContentDialogResult result = await dialog.ShowAsync();
+
+            if (result == ContentDialogResult.Primary)
+            {
+                if (kind == UpdateAssetKind.PortableZip)
+                {
+                    TryOpenInExplorer(filePath, selectFile: true);
+                }
+                else
+                {
+                    TryRunInstaller(filePath);
+                }
+
+                return;
+            }
+
+            if (result == ContentDialogResult.Secondary)
+            {
+                TryOpenInExplorer(filePath, selectFile: true);
+            }
+        }
+
+        private async Task ShowDownloadFailedDialogAsync(string message, string releasePageUrl)
+        {
+            if (XamlRoot is null)
+            {
+                return;
+            }
+
+            var dialog = new ContentDialog
+            {
+                Title = L10n.Get("Updates_DownloadDialog_Failed_Title"),
+                Content = message,
+                PrimaryButtonText = L10n.Get("Updates_OpenReleasePage"),
+                CloseButtonText = L10n.Get("Common_Close"),
+                XamlRoot = XamlRoot,
+            };
+
+            ContentDialogResult result = await dialog.ShowAsync();
+            if (result == ContentDialogResult.Primary)
+            {
+                await TryLaunchUrlAsync(releasePageUrl).ConfigureAwait(true);
+            }
+        }
+
+        private static void TryRunInstaller(string filePath)
+        {
+            try
+            {
+                Process.Start(new ProcessStartInfo(filePath) { UseShellExecute = true });
+            }
+            catch (Exception ex)
+            {
+                AppLog.Warn("Downloads", $"运行安装程序失败：path='{filePath}'", ex);
+            }
+        }
+
+        private static void TryOpenInExplorer(string path, bool selectFile)
+        {
+            try
+            {
+                string argument = selectFile
+                    ? $"/select,\"{path}\""
+                    : $"\"{path}\"";
+
+                Process.Start(new ProcessStartInfo("explorer.exe", argument) { UseShellExecute = true });
+            }
+            catch (Exception ex)
+            {
+                AppLog.Warn("Downloads", $"打开资源管理器失败：path='{path}'", ex);
+            }
+        }
+
+        private static string FormatBytes(long bytes)
+        {
+            if (bytes < 0)
+            {
+                return "0 B";
+            }
+
+            const double KB = 1024;
+            const double MB = 1024 * 1024;
+            const double GB = 1024 * 1024 * 1024;
+
+            if (bytes >= GB)
+            {
+                return (bytes / GB).ToString("0.00", CultureInfo.InvariantCulture) + " GB";
+            }
+
+            if (bytes >= MB)
+            {
+                return (bytes / MB).ToString("0.00", CultureInfo.InvariantCulture) + " MB";
+            }
+
+            if (bytes >= KB)
+            {
+                return (bytes / KB).ToString("0.00", CultureInfo.InvariantCulture) + " KB";
+            }
+
+            return bytes.ToString(CultureInfo.InvariantCulture) + " B";
+        }
+
+        private static string GetDownloadSourceDisplayName(DownloadSourceId id)
+        {
+            return id switch
+            {
+                DownloadSourceId.GhProxy => L10n.Get("Updates_DownloadSource_GhProxy"),
+                DownloadSourceId.Felicity => L10n.Get("Updates_DownloadSource_Felicity"),
+                DownloadSourceId.ZeroSeven => L10n.Get("Updates_DownloadSource_07"),
+                _ => L10n.Get("Updates_DownloadSource_Github"),
+            };
         }
 
         private void OnAppIconTapped(object sender, TappedRoutedEventArgs e)

@@ -38,6 +38,9 @@ namespace WindBoard.Settings
                         AutoCheckInterval = settings.General?.Updates?.AutoCheckInterval ?? UpdateCheckIntervalParser.WeeklyValue,
                         LastCheckUtc = settings.General?.Updates?.LastCheckUtc,
                         LastNotifiedVersion = settings.General?.Updates?.LastNotifiedVersion ?? string.Empty,
+                        DownloadSourcePolicy = settings.General?.Updates?.DownloadSourcePolicy ?? DownloadSourcePolicyParser.AutoValue,
+                        DownloadSourceId = settings.General?.Updates?.DownloadSourceId ?? DownloadSourceIdParser.GithubValue,
+                        DownloadSourceLastTestUtc = settings.General?.Updates?.DownloadSourceLastTestUtc,
                     },
                 },
                 Appearance = new AppearanceSettings

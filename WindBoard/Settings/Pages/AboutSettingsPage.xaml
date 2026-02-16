@@ -89,6 +89,39 @@
                     </Grid>
                 </Border>
 
+                <Border
+                    Background="{ThemeResource SystemControlBackgroundChromeMediumLowBrush}"
+                    BorderBrush="{ThemeResource SystemControlForegroundBaseLowBrush}"
+                    BorderThickness="1"
+                    CornerRadius="12"
+                    Padding="16,14">
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                        <StackPanel Spacing="2" VerticalAlignment="Center">
+                            <TextBlock
+                                Text="{l10n:Loc Key=Updates_DownloadSource_Title}"
+                                FontWeight="SemiBold"
+                                VerticalAlignment="Center" />
+                            <TextBlock
+                                x:Name="DownloadSourceStatusTextBlock"
+                                Opacity="0.75"
+                                TextWrapping="WrapWholeWords" />
+                        </StackPanel>
+
+                        <ComboBox
+                            x:Name="DownloadSourceComboBox"
+                            Grid.Column="1"
+                            MinWidth="160"
+                            SelectedValuePath="Tag"
+                            SelectionChanged="OnDownloadSourceSelectionChanged">
+                            <ComboBoxItem Content="{l10n:Loc Key=Updates_DownloadSource_Auto}" Tag="auto" />
+                            <ComboBoxItem Content="{l10n:Loc Key=Updates_DownloadSource_Github}" Tag="github" />
+                            <ComboBoxItem Content="{l10n:Loc Key=Updates_DownloadSource_GhProxy}" Tag="gh-proxy" />
+                            <ComboBoxItem Content="{l10n:Loc Key=Updates_DownloadSource_Felicity}" Tag="felicity" />
+                            <ComboBoxItem Content="{l10n:Loc Key=Updates_DownloadSource_07}" Tag="07" />
+                        </ComboBox>
+                    </Grid>
+                </Border>
+
                 <Button
                     x:Name="CheckUpdatesButton"
                     Style="{StaticResource SettingsCardButtonStyle}"

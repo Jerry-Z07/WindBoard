@@ -118,6 +118,18 @@ namespace WindBoard.Settings
                 }
             }
 
+            // 下载源选择：允许用户手工编辑 settings.json，这里做强归一化并兜底默认值。
+            settings.General.Updates.DownloadSourcePolicy = NormalizeDownloadSourcePolicyOrDefault(settings.General.Updates.DownloadSourcePolicy);
+            settings.General.Updates.DownloadSourceId = NormalizeDownloadSourceIdOrDefault(settings.General.Updates.DownloadSourceId);
+            if (settings.General.Updates.DownloadSourceLastTestUtc is not null)
+            {
+                DateTimeOffset nowUtc = DateTimeOffset.UtcNow;
+                if (settings.General.Updates.DownloadSourceLastTestUtc.Value > nowUtc)
+                {
+                    settings.General.Updates.DownloadSourceLastTestUtc = nowUtc;
+                }
+            }
+
             settings.Appearance ??= new AppearanceSettings();
             settings.Appearance.CanvasBackgroundHex = ColorHex.NormalizeToHexRgbOrDefault(
                 settings.Appearance.CanvasBackgroundHex,
@@ -253,6 +265,32 @@ namespace WindBoard.Settings
             }
 
             return UpdateCheckIntervalParser.WeeklyValue;
+        }
+
+        private static string NormalizeDownloadSourcePolicyOrDefault(string? value)
+        {
+            // 说明：
+            // - 允许用户手动编辑 settings.json
+            // - 非法/空值回退为默认（auto）
+            if (DownloadSourcePolicyParser.TryParse(value, out DownloadSourcePolicy policy))
+            {
+                return DownloadSourcePolicyParser.ToSettingValue(policy);
+            }
+
+            return DownloadSourcePolicyParser.AutoValue;
+        }
+
+        private static string NormalizeDownloadSourceIdOrDefault(string? value)
+        {
+            // 说明：
+            // - 允许用户手动编辑 settings.json
+            // - 非法/空值回退为默认（github）
+            if (DownloadSourceIdParser.TryParse(value, out DownloadSourceId id))
+            {
+                return DownloadSourceIdParser.ToSettingValue(id);
+            }
+
+            return DownloadSourceIdParser.GithubValue;
         }
 
         private static void NormalizePenSettingsInPlace(PenSettings settings)

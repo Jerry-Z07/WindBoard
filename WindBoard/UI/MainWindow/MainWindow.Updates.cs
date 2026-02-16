@@ -27,6 +27,7 @@ namespace WindBoard
             try
             {
                 await Task.Delay(TimeSpan.FromSeconds(4)).ConfigureAwait(false);
+                await AppUpdateService.Instance.TryEnsureInstallerDownloadSourceSelectedAsync().ConfigureAwait(false);
                 await AppUpdateService.Instance.TryAutoCheckAndRemindAsync(this).ConfigureAwait(false);
             }
             catch (TaskCanceledException)
@@ -41,4 +42,3 @@ namespace WindBoard
         }
     }
 }
-

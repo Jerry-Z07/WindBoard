@@ -80,6 +80,24 @@ namespace WindBoard.Settings
         /// 上次已提醒过的“最新版本号”（用于跨会话去重，避免重复提示）。
         /// </summary>
         public string LastNotifiedVersion { get; set; } = string.Empty;
+
+        /// <summary>
+        /// 下载源策略：
+        /// - auto：自动测速选择最快源（会写入 DownloadSourceId）
+        /// - fixed：固定使用 DownloadSourceId（失败时仍会自动尝试其它源兜底）
+        /// </summary>
+        public string DownloadSourcePolicy { get; set; } = DownloadSourcePolicyParser.AutoValue;
+
+        /// <summary>
+        /// 当前选择的下载源（github/gh-proxy/felicity/07）。
+        /// 说明：当 DownloadSourcePolicy=auto 时，该值表示“最近一次测速选出的最快源”。
+        /// </summary>
+        public string DownloadSourceId { get; set; } = DownloadSourceIdParser.GithubValue;
+
+        /// <summary>
+        /// 上次下载源测速时间（UTC）。
+        /// </summary>
+        public DateTimeOffset? DownloadSourceLastTestUtc { get; set; }
     }
 
     internal sealed class AppearanceSettings
