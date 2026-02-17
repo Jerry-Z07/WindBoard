@@ -1,0 +1,47 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!--
+    说明：
+    - 本文件为 zh-CN 语言资源（按功能拆分）。
+    - Key 前缀：MainWindow_*
+  -->
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="MainWindow_Title" xml:space="preserve">
+    <value>WindBoard</value>
+  </data>
+  <data name="MainWindow_EraserMode_Title" xml:space="preserve">
+    <value>擦除模式</value>
+  </data>
+  <data name="MainWindow_EraserMode_Point" xml:space="preserve">
+    <value>点擦</value>
+  </data>
+  <data name="MainWindow_EraserMode_Stroke" xml:space="preserve">
+    <value>笔划擦</value>
+  </data>
+  <data name="MainWindow_ClearCanvas_Slide" xml:space="preserve">
+    <value>滑动清屏</value>
+  </data>
+  <data name="MainWindow_PageManager_Title" xml:space="preserve">
+    <value>页面管理</value>
+  </data>
+  <data name="MainWindow_PageIndicator_Default" xml:space="preserve">
+    <value>1 / 1</value>
+  </data>
+  <data name="MainWindow_FeatureWip_Title" xml:space="preserve">
+    <value>功能开发中</value>
+  </data>
+  <data name="MainWindow_FeatureWip_Content_Fmt" xml:space="preserve">
+    <value>{0} 功能暂未实现，已预留入口，后续会逐步补齐。</value>
+  </data>
+</root>

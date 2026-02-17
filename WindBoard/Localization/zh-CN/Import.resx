@@ -1,0 +1,129 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!--
+    说明：
+    - 本文件为 zh-CN 语言资源（按功能拆分）。
+    - Key 前缀：Import_*
+  -->
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Import_Failed_Title" xml:space="preserve">
+    <value>导入失败</value>
+  </data>
+  <data name="Import_Tip_Title" xml:space="preserve">
+    <value>导入提示</value>
+  </data>
+  <data name="Import_UnknownType_Message" xml:space="preserve">
+    <value>未知导入类型。</value>
+  </data>
+  <data name="Import_EntryDialog_Title" xml:space="preserve">
+    <value>导入</value>
+  </data>
+  <data name="Import_EntryDialog_Prompt" xml:space="preserve">
+    <value>请选择导入内容类型：</value>
+  </data>
+  <data name="Import_Entry_Files" xml:space="preserve">
+    <value>导入文件</value>
+  </data>
+  <data name="Import_Entry_Text" xml:space="preserve">
+    <value>导入文字</value>
+  </data>
+  <data name="Import_Entry_Link" xml:space="preserve">
+    <value>导入链接</value>
+  </data>
+  <data name="Import_TextDialog_Title" xml:space="preserve">
+    <value>导入文字</value>
+  </data>
+  <data name="Import_Text_Placeholder" xml:space="preserve">
+    <value>在此输入要导入的文字…</value>
+  </data>
+  <data name="Import_Text_Empty_Message" xml:space="preserve">
+    <value>文字内容为空。</value>
+  </data>
+  <data name="Import_LinkDialog_Title" xml:space="preserve">
+    <value>导入链接</value>
+  </data>
+  <data name="Import_Link_UrlLabel" xml:space="preserve">
+    <value>链接：</value>
+  </data>
+  <data name="Import_Link_TitleLabel" xml:space="preserve">
+    <value>标题（可选）：</value>
+  </data>
+  <data name="Import_Link_TitlePlaceholder" xml:space="preserve">
+    <value>标题（可选）</value>
+  </data>
+  <data name="Import_Link_Empty_Message" xml:space="preserve">
+    <value>链接不能为空。</value>
+  </data>
+  <data name="Import_Wbix_MultipleFiles_Message" xml:space="preserve">
+    <value>检测到 WBIX/WBI 文件，请单独导入 .wbix/.wbi。</value>
+  </data>
+  <data name="Import_Wbix_ParseFailed_Message" xml:space="preserve">
+    <value>WBIX/WBI 文件解析失败。</value>
+  </data>
+  <data name="Import_Wbix_Busy_Title" xml:space="preserve">
+    <value>正在导入 WBIX/WBI…</value>
+  </data>
+  <data name="Import_Wbix_Busy_Message" xml:space="preserve">
+    <value>正在导入，请稍候…</value>
+  </data>
+  <data name="Import_Risk_Title" xml:space="preserve">
+    <value>风险提示</value>
+  </data>
+  <data name="Import_Risk_ReplaceWorkspace_Content" xml:space="preserve">
+    <value>选择“覆盖整个工作区”将替换当前所有页面内容。
+
+建议在覆盖前先导出备份（WBIX）。
+
+是否继续？</value>
+  </data>
+  <data name="Import_Risk_ReplaceCurrentPage_Content" xml:space="preserve">
+    <value>选择“覆盖当前页”将替换当前页内容，并在其后插入导入文件的其余页面。
+
+当前页内容将丢失，且该操作无法撤销。
+
+建议覆盖前先导出备份（WBIX）。
+
+是否继续？</value>
+  </data>
+  <data name="Import_Risk_ContinueOverwrite" xml:space="preserve">
+    <value>继续覆盖</value>
+  </data>
+  <data name="Import_Wbix_Dialog_Title" xml:space="preserve">
+    <value>导入 WBIX/WBI</value>
+  </data>
+  <data name="Import_Wbix_NoCover" xml:space="preserve">
+    <value>（无封面）</value>
+  </data>
+  <data name="Import_Wbix_Info_Fmt" xml:space="preserve">
+    <value>文件：{0}
+页数：{1}
+版本：{2}
+创建：{3}</value>
+  </data>
+  <data name="Import_Wbix_Mode_Append" xml:space="preserve">
+    <value>新增在最后一页之后</value>
+  </data>
+  <data name="Import_Wbix_Mode_ReplaceCurrentPage" xml:space="preserve">
+    <value>覆盖当前页（有风险）</value>
+  </data>
+  <data name="Import_Wbix_InsertMethod_Label" xml:space="preserve">
+    <value>插入方式：</value>
+  </data>
+  <data name="Import_TextTruncated_Notice" xml:space="preserve">
+    <value>（内容过长，已截断）</value>
+  </data>
+  <data name="Import_TextReadFailed_Placeholder" xml:space="preserve">
+    <value>（读取失败）</value>
+  </data>
+</root>

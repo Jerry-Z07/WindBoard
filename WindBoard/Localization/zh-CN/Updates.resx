@@ -1,0 +1,137 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!--
+    说明：
+    - 本文件为 zh-CN 语言资源（按功能拆分）。
+    - Key 前缀：Updates_*
+  -->
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Updates_CurrentVersion" xml:space="preserve">
+    <value>当前版本</value>
+  </data>
+  <data name="Updates_LatestVersion" xml:space="preserve">
+    <value>最新版本</value>
+  </data>
+  <data name="Updates_ReleaseDate" xml:space="preserve">
+    <value>发布日期</value>
+  </data>
+  <data name="Updates_Changelog_Title" xml:space="preserve">
+    <value>更新内容</value>
+  </data>
+  <data name="Updates_Download_Title" xml:space="preserve">
+    <value>下载</value>
+  </data>
+  <data name="Updates_Download_SelfContainedInstaller" xml:space="preserve">
+    <value>安装包（自包含）</value>
+  </data>
+  <data name="Updates_Download_FrameworkDependentInstaller" xml:space="preserve">
+    <value>安装包（依赖运行时，-fd）</value>
+  </data>
+  <data name="Updates_Download_PortableZip" xml:space="preserve">
+    <value>便携版（zip）</value>
+  </data>
+  <data name="Updates_Download_Unknown" xml:space="preserve">
+    <value>未知类型</value>
+  </data>
+  <data name="Updates_Download_Item_Recommended_Fmt" xml:space="preserve">
+    <value>{0}（推荐）</value>
+  </data>
+  <data name="Updates_OpenReleasePage" xml:space="preserve">
+    <value>打开发布页</value>
+  </data>
+  <data name="Updates_DownloadButton" xml:space="preserve">
+    <value>下载推荐包</value>
+  </data>
+  <data name="Updates_DownloadSource_Title" xml:space="preserve">
+    <value>下载源</value>
+  </data>
+  <data name="Updates_DownloadSource_Auto" xml:space="preserve">
+    <value>自动（测速）</value>
+  </data>
+  <data name="Updates_DownloadSource_Github" xml:space="preserve">
+    <value>Github</value>
+  </data>
+  <data name="Updates_DownloadSource_GhProxy" xml:space="preserve">
+    <value>gh-proxy</value>
+  </data>
+  <data name="Updates_DownloadSource_Felicity" xml:space="preserve">
+    <value>felicity</value>
+  </data>
+  <data name="Updates_DownloadSource_07" xml:space="preserve">
+    <value>07</value>
+  </data>
+  <data name="Updates_DownloadSource_Status_Testing" xml:space="preserve">
+    <value>正在测速…</value>
+  </data>
+  <data name="Updates_DownloadSource_Status_Current_Fmt" xml:space="preserve">
+    <value>当前：{0}</value>
+  </data>
+  <data name="Updates_DownloadSource_Status_LastTest_Fmt" xml:space="preserve">
+    <value>上次测速：{0}</value>
+  </data>
+  <data name="Updates_DownloadDialog_Title" xml:space="preserve">
+    <value>正在下载更新</value>
+  </data>
+  <data name="Updates_DownloadDialog_Source_Fmt" xml:space="preserve">
+    <value>下载源：{0}</value>
+  </data>
+  <data name="Updates_DownloadDialog_Progress_Fmt" xml:space="preserve">
+    <value>进度：{0} / {1}</value>
+  </data>
+  <data name="Updates_DownloadDialog_ProgressUnknown_Fmt" xml:space="preserve">
+    <value>已下载：{0}</value>
+  </data>
+  <data name="Updates_DownloadDialog_Completed_Title" xml:space="preserve">
+    <value>下载完成</value>
+  </data>
+  <data name="Updates_DownloadDialog_Completed_Path_Fmt" xml:space="preserve">
+    <value>文件已保存到：{0}</value>
+  </data>
+  <data name="Updates_DownloadDialog_RunInstaller" xml:space="preserve">
+    <value>运行安装程序</value>
+  </data>
+  <data name="Updates_DownloadDialog_OpenFolder" xml:space="preserve">
+    <value>打开文件夹</value>
+  </data>
+  <data name="Updates_DownloadDialog_Failed_Title" xml:space="preserve">
+    <value>下载失败</value>
+  </data>
+  <data name="Updates_DownloadDialog_Failed_Message" xml:space="preserve">
+    <value>下载失败（已轮询切换下载源）。可稍后重试，或打开发布页手动下载。</value>
+  </data>
+  <data name="Updates_CheckResult_UpToDate_Title" xml:space="preserve">
+    <value>已是最新版本</value>
+  </data>
+  <data name="Updates_CheckResult_UpdateAvailable_Title" xml:space="preserve">
+    <value>发现新版本</value>
+  </data>
+  <data name="Updates_CheckResult_Indeterminate_Title" xml:space="preserve">
+    <value>已获取更新信息</value>
+  </data>
+  <data name="Updates_CheckResult_Error_Title" xml:space="preserve">
+    <value>检查更新失败</value>
+  </data>
+  <data name="Updates_CheckFailed_Timeout" xml:space="preserve">
+    <value>检查更新超时，请稍后重试。</value>
+  </data>
+  <data name="Updates_CheckFailed_Network" xml:space="preserve">
+    <value>网络请求失败，请检查网络后重试。</value>
+  </data>
+  <data name="Updates_CheckFailed_Parse" xml:space="preserve">
+    <value>更新信息解析失败，请稍后重试。</value>
+  </data>
+  <data name="Updates_CheckFailed_Generic" xml:space="preserve">
+    <value>检查更新失败，请稍后重试。</value>
+  </data>
+</root>

@@ -1,0 +1,41 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!--
+    说明：
+    - 本文件为 zh-CN 语言资源（按功能拆分）。
+    - Key 前缀：ShortcutDock_*
+  -->
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="ShortcutDock_InvalidLink_Title" xml:space="preserve">
+    <value>链接无效</value>
+  </data>
+  <data name="ShortcutDock_InvalidLink_Message" xml:space="preserve">
+    <value>请输入有效的网址（例如 https://example.com）。</value>
+  </data>
+  <data name="ShortcutDock_LaunchFailed_Title" xml:space="preserve">
+    <value>启动失败</value>
+  </data>
+  <data name="ShortcutDock_ProgramNotFound_Title" xml:space="preserve">
+    <value>程序不存在</value>
+  </data>
+  <data name="ShortcutDock_ProgramNotFound_Message" xml:space="preserve">
+    <value>请检查程序路径或可执行命令是否正确。</value>
+  </data>
+  <data name="ShortcutDock_PathNotFound_Title" xml:space="preserve">
+    <value>路径不存在</value>
+  </data>
+  <data name="ShortcutDock_PathNotFound_Message" xml:space="preserve">
+    <value>请检查路径是否存在。</value>
+  </data>
+</root>

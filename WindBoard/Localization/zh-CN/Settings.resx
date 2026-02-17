@@ -1,0 +1,443 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!--
+    说明：
+    - 本文件为 zh-CN 语言资源（按功能拆分）。
+    - Key 前缀：Settings_*
+  -->
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Settings_Shortcuts_Title" xml:space="preserve">
+    <value>快捷键</value>
+  </data>
+  <data name="Settings_Shortcuts_Description" xml:space="preserve">
+    <value>配置撤销/重做键盘快捷键，并查看鼠标组合快捷键（暂不支持修改）。</value>
+  </data>
+  <data name="Settings_Shortcuts_Keyboard_SectionTitle" xml:space="preserve">
+    <value>键盘快捷键</value>
+  </data>
+  <data name="Settings_Shortcuts_ConflictReminder_Header" xml:space="preserve">
+    <value>快捷键冲突提醒</value>
+  </data>
+  <data name="Settings_Shortcuts_ConflictReminder_On" xml:space="preserve">
+    <value>提醒</value>
+  </data>
+  <data name="Settings_Shortcuts_ConflictReminder_Off" xml:space="preserve">
+    <value>不提醒</value>
+  </data>
+  <data name="Settings_Shortcuts_Mouse_SectionTitle" xml:space="preserve">
+    <value>鼠标组合快捷键</value>
+  </data>
+  <data name="Settings_Shortcuts_Mouse_SectionDescription" xml:space="preserve">
+    <value>鼠标组合快捷键暂不支持修改。</value>
+  </data>
+  <data name="Settings_Shortcuts_Undo_Title" xml:space="preserve">
+    <value>撤销</value>
+  </data>
+  <data name="Settings_Shortcuts_Redo_Title" xml:space="preserve">
+    <value>重做</value>
+  </data>
+  <data name="Settings_Shortcuts_Mouse_PanViewport_Title" xml:space="preserve">
+    <value>平移视口</value>
+  </data>
+  <data name="Settings_Shortcuts_Mouse_PanViewport_Gesture" xml:space="preserve">
+    <value>鼠标右键拖动</value>
+  </data>
+  <data name="Settings_Shortcuts_Mouse_ZoomViewport_Title" xml:space="preserve">
+    <value>缩放视口</value>
+  </data>
+  <data name="Settings_Shortcuts_Mouse_ZoomViewport_Gesture" xml:space="preserve">
+    <value>鼠标滚轮</value>
+  </data>
+  <data name="Settings_Shortcuts_Mouse_ZoomSelection_Title" xml:space="preserve">
+    <value>选择：缩放选中</value>
+  </data>
+  <data name="Settings_Shortcuts_Mouse_ZoomSelection_Gesture" xml:space="preserve">
+    <value>Ctrl+滚轮</value>
+  </data>
+  <data name="Settings_Shortcuts_Mouse_RotateSelection_Title" xml:space="preserve">
+    <value>选择：旋转选中笔迹</value>
+  </data>
+  <data name="Settings_Shortcuts_Mouse_RotateSelection_Gesture" xml:space="preserve">
+    <value>Shift+滚轮</value>
+  </data>
+  <data name="Settings_Shortcuts_RedoAlternative_Title" xml:space="preserve">
+    <value>重做（备用）</value>
+  </data>
+  <data name="Settings_Shortcuts_NotSet" xml:space="preserve">
+    <value>未设置</value>
+  </data>
+  <data name="Settings_Shortcuts_EditDialog_Hint" xml:space="preserve">
+    <value>请按下新的快捷键（必须包含 Ctrl 或 Alt；按 Backspace 清除）。</value>
+  </data>
+  <data name="Settings_Shortcuts_EditDialog_Title_Fmt" xml:space="preserve">
+    <value>设置快捷键：{0}</value>
+  </data>
+  <data name="Settings_Shortcuts_Error_NotSet" xml:space="preserve">
+    <value>请按下新的快捷键，或按 Backspace 清除。</value>
+  </data>
+  <data name="Settings_Shortcuts_Error_Invalid" xml:space="preserve">
+    <value>快捷键无效，请使用包含 Ctrl 或 Alt 的组合键。</value>
+  </data>
+  <data name="Settings_Shortcuts_Error_Conflict_Fmt" xml:space="preserve">
+    <value>该快捷键已分配给“{0}”，请先修改或清除冲突项。</value>
+  </data>
+  <data name="Settings_Background_Title" xml:space="preserve">
+    <value>背景</value>
+  </data>
+  <data name="Settings_Background_Canvas_SectionTitle" xml:space="preserve">
+    <value>画布</value>
+  </data>
+  <data name="Settings_Background_CanvasBackgroundColor_Title" xml:space="preserve">
+    <value>画布背景颜色</value>
+  </data>
+  <data name="Settings_Background_CanvasBackgroundColor_Description" xml:space="preserve">
+    <value>设置画布的背景颜色</value>
+  </data>
+  <data name="Settings_Background_HexHeader" xml:space="preserve">
+    <value>HEX</value>
+  </data>
+  <data name="Settings_Background_HexPlaceholder" xml:space="preserve">
+    <value>#2E2F33</value>
+  </data>
+  <data name="Settings_Background_HexError" xml:space="preserve">
+    <value>HEX 颜色格式无效，请使用 #RRGGBB（例如 #2E2F33）</value>
+  </data>
+  <data name="Settings_General_Title" xml:space="preserve">
+    <value>常规</value>
+  </data>
+  <data name="Settings_About_Title" xml:space="preserve">
+    <value>关于</value>
+  </data>
+  <data name="Settings_About_Version" xml:space="preserve">
+    <value>版本</value>
+  </data>
+  <data name="Settings_About_AutoCheckUpdates" xml:space="preserve">
+    <value>自动检查更新</value>
+  </data>
+  <data name="Settings_About_CheckUpdates" xml:space="preserve">
+    <value>检查更新</value>
+  </data>
+  <data name="Settings_About_Interval_Weekly" xml:space="preserve">
+    <value>每周</value>
+  </data>
+  <data name="Settings_About_Interval_Biweekly" xml:space="preserve">
+    <value>每两周</value>
+  </data>
+  <data name="Settings_About_Interval_Monthly" xml:space="preserve">
+    <value>每月</value>
+  </data>
+  <data name="Settings_About_Interval_Never" xml:space="preserve">
+    <value>从不</value>
+  </data>
+  <data name="Settings_About_DebugUnlocked_Message" xml:space="preserve">
+    <value>已开启调试入口（仅本次会话）</value>
+  </data>
+  <data name="Settings_Debug_Title" xml:space="preserve">
+    <value>调试</value>
+  </data>
+  <data name="Settings_Debug_Logs_SectionTitle" xml:space="preserve">
+    <value>日志</value>
+  </data>
+  <data name="Settings_Debug_OpenLogDir_Title" xml:space="preserve">
+    <value>打开日志目录</value>
+  </data>
+  <data name="Settings_Debug_OpenLogDir_Description" xml:space="preserve">
+    <value>快速定位本机日志文件</value>
+  </data>
+  <data name="Settings_Debug_OpenCurrentLogFile_Title" xml:space="preserve">
+    <value>打开当前日志文件</value>
+  </data>
+  <data name="Settings_Debug_OpenCurrentLogFile_Description" xml:space="preserve">
+    <value>打开本次会话正在写入的日志文件</value>
+  </data>
+  <data name="Settings_Debug_CopyLogDir_Title" xml:space="preserve">
+    <value>复制日志目录路径</value>
+  </data>
+  <data name="Settings_Debug_CopyLogDir_Description" xml:space="preserve">
+    <value>复制到剪贴板，便于粘贴到反馈/工单</value>
+  </data>
+  <data name="Settings_Debug_SettingsFile_SectionTitle" xml:space="preserve">
+    <value>设置文件</value>
+  </data>
+  <data name="Settings_Debug_OpenSettingsDir_Title" xml:space="preserve">
+    <value>打开设置目录</value>
+  </data>
+  <data name="Settings_Debug_OpenSettingsDir_Description" xml:space="preserve">
+    <value>快速定位 settings.json 所在目录</value>
+  </data>
+  <data name="Settings_Debug_OpenSettingsFile_Title" xml:space="preserve">
+    <value>打开 settings.json</value>
+  </data>
+  <data name="Settings_Debug_OpenSettingsFile_Description" xml:space="preserve">
+    <value>用默认编辑器打开设置文件</value>
+  </data>
+  <data name="Settings_Debug_CopySettingsPath_Title" xml:space="preserve">
+    <value>复制 settings.json 路径</value>
+  </data>
+  <data name="Settings_Debug_CopySettingsPath_Description" xml:space="preserve">
+    <value>复制到剪贴板，便于排查或备份</value>
+  </data>
+  <data name="Settings_Debug_Tests_SectionTitle" xml:space="preserve">
+    <value>关键区域测试</value>
+  </data>
+  <data name="Settings_Debug_SendTestToast_Title" xml:space="preserve">
+    <value>消息推送测试（Windows 通知）</value>
+  </data>
+  <data name="Settings_Debug_SendTestToast_Description" xml:space="preserve">
+    <value>发送一条测试 Windows Toast 通知</value>
+  </data>
+  <data name="Settings_Debug_TestToast_Title" xml:space="preserve">
+    <value>WindBoard 测试通知</value>
+  </data>
+  <data name="Settings_Debug_TestToast_Body" xml:space="preserve">
+    <value>这是一条用于调试的测试通知。</value>
+  </data>
+  <data name="Settings_Debug_Session_SectionTitle" xml:space="preserve">
+    <value>会话</value>
+  </data>
+  <data name="Settings_Debug_HideEntry_Title" xml:space="preserve">
+    <value>隐藏调试入口（本次会话）</value>
+  </data>
+  <data name="Settings_Debug_HideEntry_Description" xml:space="preserve">
+    <value>立即从设置导航中隐藏调试入口</value>
+  </data>
+  <data name="Settings_Debug_Feedback_OpenedLogDir" xml:space="preserve">
+    <value>已打开日志目录</value>
+  </data>
+  <data name="Settings_Debug_Feedback_OpenedCurrentLogFile" xml:space="preserve">
+    <value>已打开当前日志文件</value>
+  </data>
+  <data name="Settings_Debug_Feedback_CopiedLogDir" xml:space="preserve">
+    <value>已复制日志目录路径</value>
+  </data>
+  <data name="Settings_Debug_Feedback_OpenedSettingsDir" xml:space="preserve">
+    <value>已打开设置目录</value>
+  </data>
+  <data name="Settings_Debug_Feedback_OpenedSettingsFile" xml:space="preserve">
+    <value>已打开 settings.json</value>
+  </data>
+  <data name="Settings_Debug_Feedback_CopiedSettingsPath" xml:space="preserve">
+    <value>已复制 settings.json 路径</value>
+  </data>
+  <data name="Settings_Debug_Feedback_SentToast" xml:space="preserve">
+    <value>已发送测试 Windows 通知</value>
+  </data>
+  <data name="Settings_Debug_ActionFailed_Fmt" xml:space="preserve">
+    <value>操作失败：{0}</value>
+  </data>
+  <data name="Settings_Debug_PathEmpty_Message" xml:space="preserve">
+    <value>路径为空，无法执行该操作。</value>
+  </data>
+  <data name="Settings_Debug_LaunchFailed_Message" xml:space="preserve">
+    <value>系统未能打开目标（可能没有可用的关联程序）。</value>
+  </data>
+  <data name="Settings_Debug_FolderNotFound_Fmt" xml:space="preserve">
+    <value>文件夹不存在：{0}</value>
+  </data>
+  <data name="Settings_Debug_FileNotFound_Fmt" xml:space="preserve">
+    <value>文件不存在：{0}</value>
+  </data>
+  <data name="Settings_Debug_SettingsFileMissing_Message" xml:space="preserve">
+    <value>settings.json 尚未生成（修改任意设置后会自动创建）。</value>
+  </data>
+  <data name="Settings_Debug_CurrentLogFileMissing_Message" xml:space="preserve">
+    <value>当前会话未生成日志文件（可能已关闭文件日志）。</value>
+  </data>
+  <data name="Settings_Camouflage_Title" xml:space="preserve">
+    <value>伪装</value>
+  </data>
+  <data name="Settings_Camouflage_Description" xml:space="preserve">
+    <value>替换软件图标和标题</value>
+  </data>
+  <data name="Settings_Camouflage_Enabled_Header" xml:space="preserve">
+    <value>启用伪装</value>
+  </data>
+  <data name="Settings_Camouflage_WindowTitle_Header" xml:space="preserve">
+    <value>窗口标题</value>
+  </data>
+  <data name="Settings_Camouflage_WindowTitle_Placeholder" xml:space="preserve">
+    <value>留空则使用默认标题</value>
+  </data>
+  <data name="Settings_Camouflage_Icon_Header" xml:space="preserve">
+    <value>图标</value>
+  </data>
+  <data name="Settings_Camouflage_Icon_Placeholder" xml:space="preserve">
+    <value>选择或输入图标文件路径</value>
+  </data>
+  <data name="Settings_Camouflage_Icon_SupportHint" xml:space="preserve">
+    <value>支持 .exe/.ico/.png/.jpg/.jpeg</value>
+  </data>
+  <data name="Settings_Camouflage_NoFileSelected" xml:space="preserve">
+    <value>未选择文件</value>
+  </data>
+  <data name="Settings_Camouflage_IconReadFailed" xml:space="preserve">
+    <value>图标读取失败</value>
+  </data>
+  <data name="Settings_Camouflage_IconReadFailed_Fmt" xml:space="preserve">
+    <value>图标读取失败：{0}</value>
+  </data>
+  <data name="Settings_Camouflage_FilePicker_NoWindowHandle" xml:space="preserve">
+    <value>无法打开文件选择器（窗口句柄不可用）。</value>
+  </data>
+  <data name="Settings_Camouflage_FilePicker_PathEmpty" xml:space="preserve">
+    <value>无法读取所选文件路径。</value>
+  </data>
+  <data name="Settings_Camouflage_FilePicker_Failed_Fmt" xml:space="preserve">
+    <value>打开文件选择器失败：{0}</value>
+  </data>
+  <data name="Settings_Camouflage_Shortcut_Description" xml:space="preserve">
+    <value>桌面快捷方式不会在每次启动时自动更新。如需重新生成，请点击按钮（修改伪装设置时会自动更新一次）。</value>
+  </data>
+  <data name="Settings_Camouflage_CreateShortcut_Button" xml:space="preserve">
+    <value>生成桌面快捷方式</value>
+  </data>
+  <data name="Settings_Camouflage_Dialog_Title" xml:space="preserve">
+    <value>伪装</value>
+  </data>
+  <data name="Settings_Camouflage_CreateShortcut_Success_Fmt" xml:space="preserve">
+    <value>已生成桌面快捷方式：{0}</value>
+  </data>
+  <data name="Settings_Camouflage_CreateShortcut_Failed_Fmt" xml:space="preserve">
+    <value>生成失败：{0}</value>
+  </data>
+  <data name="Settings_Appearance_Title" xml:space="preserve">
+    <value>外观</value>
+  </data>
+  <data name="Settings_Appearance_ElementCardTheme_Title" xml:space="preserve">
+    <value>元素卡片主题</value>
+  </data>
+  <data name="Settings_Appearance_ElementCardTheme_Description" xml:space="preserve">
+    <value>切换白板上导入元素（图片/文件/文本/链接等）的卡片外观</value>
+  </data>
+  <data name="Settings_Appearance_ElementCardTheme_DialogTitle" xml:space="preserve">
+    <value>元素卡片主题</value>
+  </data>
+  <data name="Settings_Appearance_ElementCardTheme_Dark" xml:space="preserve">
+    <value>深色</value>
+  </data>
+  <data name="Settings_Appearance_ElementCardTheme_Light" xml:space="preserve">
+    <value>浅色</value>
+  </data>
+  <data name="Settings_Dock_Title" xml:space="preserve">
+    <value>Dock 设置</value>
+  </data>
+  <data name="Settings_Dock_Description" xml:space="preserve">
+    <value>调整 Dock 内组件的位置与显隐</value>
+  </data>
+  <data name="Settings_Dock_DragHint" xml:space="preserve">
+    <value>长按并拖动下方按钮，可调整它们在 Dock 中的显示顺序（支持触摸拖动）。</value>
+  </data>
+  <data name="Settings_Dock_ShowUndoRedo_Header" xml:space="preserve">
+    <value>显示撤销/重做区域</value>
+  </data>
+  <data name="Settings_Dock_ShowShortcutDocks_Header" xml:space="preserve">
+    <value>显示快捷入口 Dock（主 Dock 左右侧）</value>
+  </data>
+  <data name="Settings_Dock_ShortcutItems_Hint" xml:space="preserve">
+    <value>最多添加 5 个快捷入口，可选择放在主 Dock 的左侧或右侧。</value>
+  </data>
+  <data name="Settings_Dock_UnknownItemId_Message" xml:space="preserve">
+    <value>未知的 Dock 项标识符。</value>
+  </data>
+  <data name="Settings_Dock_DisplayName_Placeholder" xml:space="preserve">
+    <value>留空使用默认名称</value>
+  </data>
+  <data name="Settings_Dock_Path_Placeholder" xml:space="preserve">
+    <value>选择或输入路径</value>
+  </data>
+  <data name="Settings_Dock_IconSource_Custom" xml:space="preserve">
+    <value>自定义图标</value>
+  </data>
+  <data name="Settings_Dock_IconSource_Font" xml:space="preserve">
+    <value>图标字体</value>
+  </data>
+  <data name="Settings_Dock_IconPath_Placeholder" xml:space="preserve">
+    <value>选择图标文件（可为空）</value>
+  </data>
+  <data name="Settings_Dock_FontIconSearch_Placeholder" xml:space="preserve">
+    <value>搜索图标（按名称匹配）</value>
+  </data>
+  <data name="Settings_Dock_FontIcon_NotSelected" xml:space="preserve">
+    <value>未选择图标</value>
+  </data>
+  <data name="Settings_Dock_FontIcon_Selected_Fmt" xml:space="preserve">
+    <value>已选择：{0}</value>
+  </data>
+  <data name="Settings_Dock_IconHint_CustomFile" xml:space="preserve">
+    <value>自定义图标：使用所选文件；如果无法加载，将回退为默认图标。</value>
+  </data>
+  <data name="Settings_Dock_IconHint_FontIcon" xml:space="preserve">
+    <value>字体图标：从内置图标字体选择。</value>
+  </data>
+  <data name="Settings_Dock_IconHint_Default" xml:space="preserve">
+    <value>默认图标：文件按扩展名图标，链接尝试网站图标，程序尝试提取程序图标；失败将回退默认。</value>
+  </data>
+  <data name="Settings_Dock_Arguments_Placeholder" xml:space="preserve">
+    <value>例如：--foo bar</value>
+  </data>
+  <data name="Settings_Dock_AddShortcutItem_Button" xml:space="preserve">
+    <value>添加快捷入口</value>
+  </data>
+  <data name="Settings_Dock_ResetLayout_Button" xml:space="preserve">
+    <value>恢复 Dock 默认布局</value>
+  </data>
+  <data name="Settings_Pen_Title" xml:space="preserve">
+    <value>画笔设置</value>
+  </data>
+  <data name="Settings_Pen_PaletteCount_Header" xml:space="preserve">
+    <value>颜色数量</value>
+  </data>
+  <data name="Settings_Pen_PaletteHint" xml:space="preserve">
+    <value>提示：可保留空色块（未设置颜色），后续再选择色块并设置颜色。</value>
+  </data>
+  <data name="Settings_Pen_DefaultColorEdit_Title" xml:space="preserve">
+    <value>默认颜色更改</value>
+  </data>
+  <data name="Settings_Pen_DefaultColorEdit_IndexedTitle_Fmt" xml:space="preserve">
+    <value>默认颜色更改（第 {0} 个色块）</value>
+  </data>
+  <data name="Settings_Pen_SelectColorHint" xml:space="preserve">
+    <value>请先在上方预览区选择一个颜色块，然后再使用颜色选择器修改。</value>
+  </data>
+  <data name="Settings_Pen_ClearSwatch_Button" xml:space="preserve">
+    <value>清空该色块</value>
+  </data>
+  <data name="Settings_Pen_UseThicknessSlider_Header" xml:space="preserve">
+    <value>通过滑条调整粗细</value>
+  </data>
+  <data name="Settings_Pen_ThicknessMode_Presets" xml:space="preserve">
+    <value>三档</value>
+  </data>
+  <data name="Settings_Pen_ThicknessMode_Slider" xml:space="preserve">
+    <value>滑条</value>
+  </data>
+  <data name="Settings_Pen_ThicknessPresets_Hint" xml:space="preserve">
+    <value>三档粗细默认值（细 / 中 / 粗）</value>
+  </data>
+  <data name="Settings_Pen_ThicknessPreset1_Header" xml:space="preserve">
+    <value>档位 1（细）</value>
+  </data>
+  <data name="Settings_Pen_ThicknessPreset2_Header" xml:space="preserve">
+    <value>档位 2（中）</value>
+  </data>
+  <data name="Settings_Pen_ThicknessPreset3_Header" xml:space="preserve">
+    <value>档位 3（粗）</value>
+  </data>
+  <data name="Settings_Writing_Title" xml:space="preserve">
+    <value>书写</value>
+  </data>
+  <data name="Settings_Writing_Pen_Description" xml:space="preserve">
+    <value>调整固定色板与粗细调节方式</value>
+  </data>
+</root>

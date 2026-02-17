@@ -1,0 +1,50 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!--
+    说明：
+    - 本文件为 zh-CN 语言资源（按功能拆分）。
+    - Key 前缀：Wbix_*
+  -->
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Wbix_ResourceIdEmpty_Message" xml:space="preserve">
+    <value>WBIX 资源 Id 不能为空。</value>
+  </data>
+  <data name="Wbix_ResourceTypeEmpty_Message" xml:space="preserve">
+    <value>WBIX 资源 Type 不能为空。</value>
+  </data>
+  <data name="Wbix_ResourcePathEmpty_Message" xml:space="preserve">
+    <value>WBIX 资源 Path 不能为空。</value>
+  </data>
+  <data name="Wbix_ResourceBytesEmpty_Fmt" xml:space="preserve">
+    <value>WBIX 资源 Bytes 不能为空：{0}</value>
+  </data>
+  <data name="Wbix_MissingManifest_Message" xml:space="preserve">
+    <value>WBIX 缺少 manifest.json。</value>
+  </data>
+  <data name="Wbix_ManifestParseFailed_Message" xml:space="preserve">
+    <value>WBIX manifest.json 解析失败。</value>
+  </data>
+  <data name="Wbix_FormatMismatch_Fmt" xml:space="preserve">
+    <value>WBIX 格式不匹配：{0}。</value>
+  </data>
+  <data name="Wbix_VersionNotSupported_Fmt" xml:space="preserve">
+    <value>WBIX 版本不受支持：{0}。</value>
+  </data>
+  <data name="Wbix_MissingPageFile_Fmt" xml:space="preserve">
+    <value>WBIX 缺少页面文件：{0}。</value>
+  </data>
+  <data name="Wbix_PageParseFailed_Fmt" xml:space="preserve">
+    <value>WBIX 页面解析失败：{0}。</value>
+  </data>
+</root>

@@ -1,0 +1,197 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!--
+    说明：
+    - 本文件为 zh-CN 语言资源（按功能拆分）。
+    - Key 前缀：Export_*
+  -->
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Export_Dialog_Title" xml:space="preserve">
+    <value>导出</value>
+  </data>
+  <data name="Export_Failed_Title" xml:space="preserve">
+    <value>导出失败</value>
+  </data>
+  <data name="Export_Completed_Title" xml:space="preserve">
+    <value>导出完成</value>
+  </data>
+  <data name="Export_PageRangeError_Title" xml:space="preserve">
+    <value>页码范围错误</value>
+  </data>
+  <data name="Export_UnknownFormat_Message" xml:space="preserve">
+    <value>未知导出格式。</value>
+  </data>
+  <data name="Export_NoPages_Message" xml:space="preserve">
+    <value>当前工作区没有可导出的页面。</value>
+  </data>
+  <data name="Export_UnknownPageScope_Message" xml:space="preserve">
+    <value>未知页范围。</value>
+  </data>
+  <data name="Export_Busy_Default_Message" xml:space="preserve">
+    <value>正在导出，请稍候…</value>
+  </data>
+  <data name="Export_Busy_Wbix_Title" xml:space="preserve">
+    <value>正在导出 WBIX…</value>
+  </data>
+  <data name="Export_Busy_Pdf_Title" xml:space="preserve">
+    <value>正在导出 PDF…</value>
+  </data>
+  <data name="Export_Busy_Png_Title" xml:space="preserve">
+    <value>正在导出 PNG…</value>
+  </data>
+  <data name="Export_Completed_File_Fmt" xml:space="preserve">
+    <value>已导出：{0}</value>
+  </data>
+  <data name="Export_Completed_Folder_Fmt" xml:space="preserve">
+    <value>已导出到目录：{0}</value>
+  </data>
+  <data name="Export_FileType_Png" xml:space="preserve">
+    <value>PNG 图片</value>
+  </data>
+  <data name="Export_FileType_Pdf" xml:space="preserve">
+    <value>PDF 文档</value>
+  </data>
+  <data name="Export_FileType_Wbix" xml:space="preserve">
+    <value>WBIX 源文件</value>
+  </data>
+  <data name="Export_Format_Wbix_WithExt" xml:space="preserve">
+    <value>WBIX 源文件 (.wbix)</value>
+  </data>
+  <data name="Export_Format_Label" xml:space="preserve">
+    <value>导出格式</value>
+  </data>
+  <data name="Export_PageScope_Label" xml:space="preserve">
+    <value>导出页面</value>
+  </data>
+  <data name="Export_PageScope_Current" xml:space="preserve">
+    <value>当前页</value>
+  </data>
+  <data name="Export_PageScope_All" xml:space="preserve">
+    <value>全部页</value>
+  </data>
+  <data name="Export_PageScope_Range" xml:space="preserve">
+    <value>指定范围（例如：1,3-5）</value>
+  </data>
+  <data name="Export_PageRange_Placeholder" xml:space="preserve">
+    <value>例如：1,3-5</value>
+  </data>
+  <data name="Export_PngAspect_Label" xml:space="preserve">
+    <value>画面比例（PNG）</value>
+  </data>
+  <data name="Export_PngSize_Label" xml:space="preserve">
+    <value>输出分辨率（PNG）</value>
+  </data>
+  <data name="Export_PdfDpi_Label" xml:space="preserve">
+    <value>清晰度（PDF）</value>
+  </data>
+  <data name="Export_Padding_Label" xml:space="preserve">
+    <value>内容留白（DIP）</value>
+  </data>
+  <data name="Export_Padding_Placeholder" xml:space="preserve">
+    <value>边距（DIP）</value>
+  </data>
+  <data name="Export_PngAspect_Square" xml:space="preserve">
+    <value>1:1（方形）</value>
+  </data>
+  <data name="Export_PngAspect_4_3" xml:space="preserve">
+    <value>4:3</value>
+  </data>
+  <data name="Export_PngAspect_16_9" xml:space="preserve">
+    <value>16:9</value>
+  </data>
+  <data name="Export_PngSizeItem_Fmt" xml:space="preserve">
+    <value>{0}P（{1}×{2}）</value>
+  </data>
+  <data name="Export_PngSize4kItem_Fmt" xml:space="preserve">
+    <value>4K（{0}×{1}）</value>
+  </data>
+  <data name="Export_PdfDpi_Standard" xml:space="preserve">
+    <value>标准（96 DPI）</value>
+  </data>
+  <data name="Export_PdfDpi_High" xml:space="preserve">
+    <value>高清（192 DPI）</value>
+  </data>
+  <data name="Export_PdfDpi_Ultra" xml:space="preserve">
+    <value>超清（288 DPI）</value>
+  </data>
+  <data name="Export_Hint_Text" xml:space="preserve">
+    <value>提示：PNG 会按固定比例/分辨率导出（内容等比缩放并居中）；PNG 多页会导出到文件夹；PDF 会生成多页文档；WBIX 会包含全部页面与后续资源扩展位。</value>
+  </data>
+  <data name="Export_OverwriteFile_Content_Fmt" xml:space="preserve">
+    <value>文件已存在：{0}
+是否覆盖？</value>
+  </data>
+  <data name="Export_OverwritePreview_More_Fmt" xml:space="preserve">
+    <value>……（共 {0} 个）</value>
+  </data>
+  <data name="Export_OverwriteFiles_Content_Fmt" xml:space="preserve">
+    <value>目标目录中存在同名文件：{0}
+
+将覆盖以下文件：
+{1}
+
+是否继续？</value>
+  </data>
+  <data name="Export_PathEmpty_Message" xml:space="preserve">
+    <value>导出路径不能为空。</value>
+  </data>
+  <data name="Export_FolderEmpty_Message" xml:space="preserve">
+    <value>导出目录不能为空。</value>
+  </data>
+  <data name="Export_FilePrefixEmpty_Message" xml:space="preserve">
+    <value>文件名前缀不能为空。</value>
+  </data>
+  <data name="Export_NoPagesSelected_Message" xml:space="preserve">
+    <value>未选择任何页面。</value>
+  </data>
+  <data name="Export_Pdf_AtLeastOnePage_Message" xml:space="preserve">
+    <value>PDF 导出至少需要 1 页。</value>
+  </data>
+  <data name="Export_Raster_OffscreenNotInitialized_Message" xml:space="preserve">
+    <value>离屏导出器未初始化。</value>
+  </data>
+  <data name="Export_Raster_WicFactoryNotInitialized_Message" xml:space="preserve">
+    <value>WIC 工厂未初始化。</value>
+  </data>
+  <data name="Export_Raster_InvalidStride_Message" xml:space="preserve">
+    <value>位图 stride 非法。</value>
+  </data>
+  <data name="Export_PageRange_PageCountInvalid_Message" xml:space="preserve">
+    <value>页面数量非法。</value>
+  </data>
+  <data name="Export_PageRange_EmptyInput_Message" xml:space="preserve">
+    <value>请输入页码范围，例如：1,3-5。</value>
+  </data>
+  <data name="Export_PageRange_NoValidPages_Message" xml:space="preserve">
+    <value>未解析到任何有效页码。</value>
+  </data>
+  <data name="Export_PageRange_InvalidRange_Fmt" xml:space="preserve">
+    <value>非法页码范围：{0}。</value>
+  </data>
+  <data name="Export_PageRange_OrderError_Fmt" xml:space="preserve">
+    <value>页码范围起止顺序错误：{0}。</value>
+  </data>
+  <data name="Export_PageRange_InvalidPage_Fmt" xml:space="preserve">
+    <value>非法页码：{0}。</value>
+  </data>
+  <data name="Export_PageRange_PageMustStartFrom1_Fmt" xml:space="preserve">
+    <value>页码必须从 1 开始：{0}。</value>
+  </data>
+  <data name="Export_PageRange_PageMustStartFrom1_Message" xml:space="preserve">
+    <value>页码必须从 1 开始。</value>
+  </data>
+  <data name="Export_PageRange_OutOfRange_Fmt" xml:space="preserve">
+    <value>页码超出范围：当前共 {0} 页。</value>
+  </data>
+</root>

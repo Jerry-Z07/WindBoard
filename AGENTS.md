@@ -60,5 +60,5 @@
 ## 相关文档（Docs）
 
 - `docs/CODEMAP.md`：分层与目录边界、放置规则。
-- `docs/LOCALIZATION.md`：本地化约定（`Strings.resx` / `L10n` / `LocExtension`）。
+- `docs/LOCALIZATION.md`：本地化约定（`zh-CN/*.resx` / `L10n` / `LocExtension`）。
 - `docs/WBIX.md`：WBIX（`.wbix`）格式说明。

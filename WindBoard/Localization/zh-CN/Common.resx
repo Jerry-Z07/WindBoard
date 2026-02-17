@@ -1,0 +1,170 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!--
+    说明：
+    - 本文件为 zh-CN 语言资源（按功能拆分）。
+    - Key 前缀：Common_*
+  -->
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Common_OK" xml:space="preserve">
+    <value>确定</value>
+  </data>
+  <data name="Common_Cancel" xml:space="preserve">
+    <value>取消</value>
+  </data>
+  <data name="Common_Settings" xml:space="preserve">
+    <value>设置</value>
+  </data>
+  <data name="Common_Import" xml:space="preserve">
+    <value>导入</value>
+  </data>
+  <data name="Common_Export" xml:space="preserve">
+    <value>导出</value>
+  </data>
+  <data name="Common_Exit" xml:space="preserve">
+    <value>退出</value>
+  </data>
+  <data name="Common_More" xml:space="preserve">
+    <value>更多</value>
+  </data>
+  <data name="Common_Minimize" xml:space="preserve">
+    <value>最小化</value>
+  </data>
+  <data name="Common_Close" xml:space="preserve">
+    <value>关闭</value>
+  </data>
+  <data name="Common_Show" xml:space="preserve">
+    <value>显示</value>
+  </data>
+  <data name="Common_Hide" xml:space="preserve">
+    <value>隐藏</value>
+  </data>
+  <data name="Common_ResetToDefault" xml:space="preserve">
+    <value>恢复默认</value>
+  </data>
+  <data name="Common_Delete" xml:space="preserve">
+    <value>删除</value>
+  </data>
+  <data name="Common_Clear" xml:space="preserve">
+    <value>清空</value>
+  </data>
+  <data name="Common_NotConfigured" xml:space="preserve">
+    <value>未配置</value>
+  </data>
+  <data name="Common_Copy" xml:space="preserve">
+    <value>复制</value>
+  </data>
+  <data name="Common_BringToFront" xml:space="preserve">
+    <value>置顶</value>
+  </data>
+  <data name="Common_CancelBringToFront" xml:space="preserve">
+    <value>取消置顶</value>
+  </data>
+  <data name="Common_Undo" xml:space="preserve">
+    <value>撤销</value>
+  </data>
+  <data name="Common_Redo" xml:space="preserve">
+    <value>重做</value>
+  </data>
+  <data name="Common_UnknownError" xml:space="preserve">
+    <value>未知错误</value>
+  </data>
+  <data name="Common_OpenFailed_Title" xml:space="preserve">
+    <value>打开失败</value>
+  </data>
+  <data name="Common_Preview" xml:space="preserve">
+    <value>预览</value>
+  </data>
+  <data name="Common_Options" xml:space="preserve">
+    <value>选项</value>
+  </data>
+  <data name="Common_Position" xml:space="preserve">
+    <value>位置</value>
+  </data>
+  <data name="Common_Left" xml:space="preserve">
+    <value>左侧</value>
+  </data>
+  <data name="Common_Right" xml:space="preserve">
+    <value>右侧</value>
+  </data>
+  <data name="Common_Type" xml:space="preserve">
+    <value>类型</value>
+  </data>
+  <data name="Common_File" xml:space="preserve">
+    <value>文件</value>
+  </data>
+  <data name="Common_Link" xml:space="preserve">
+    <value>链接</value>
+  </data>
+  <data name="Common_Program" xml:space="preserve">
+    <value>程序</value>
+  </data>
+  <data name="Common_Url" xml:space="preserve">
+    <value>网址</value>
+  </data>
+  <data name="Common_Path" xml:space="preserve">
+    <value>路径</value>
+  </data>
+  <data name="Common_SelectEllipsis" xml:space="preserve">
+    <value>选择...</value>
+  </data>
+  <data name="Common_DisplayName" xml:space="preserve">
+    <value>显示名称</value>
+  </data>
+  <data name="Common_Icon" xml:space="preserve">
+    <value>图标</value>
+  </data>
+  <data name="Common_Default" xml:space="preserve">
+    <value>默认</value>
+  </data>
+  <data name="Common_Arguments" xml:space="preserve">
+    <value>启动参数</value>
+  </data>
+  <data name="Common_Add" xml:space="preserve">
+    <value>新增</value>
+  </data>
+  <data name="Common_PreviousPage" xml:space="preserve">
+    <value>上一页</value>
+  </data>
+  <data name="Common_NextPage" xml:space="preserve">
+    <value>下一页</value>
+  </data>
+  <data name="Common_PageNumber" xml:space="preserve">
+    <value>页码</value>
+  </data>
+  <data name="Common_Color" xml:space="preserve">
+    <value>颜色</value>
+  </data>
+  <data name="Common_Thickness" xml:space="preserve">
+    <value>粗细</value>
+  </data>
+  <data name="Common_Continue" xml:space="preserve">
+    <value>继续</value>
+  </data>
+  <data name="Common_UrlPlaceholder" xml:space="preserve">
+    <value>https://example.com</value>
+  </data>
+  <data name="Common_WindowHandleFailed_Message" xml:space="preserve">
+    <value>无法获取窗口句柄。</value>
+  </data>
+  <data name="Common_Next" xml:space="preserve">
+    <value>下一步</value>
+  </data>
+  <data name="Common_ConfirmOverwrite_Title" xml:space="preserve">
+    <value>确认覆盖</value>
+  </data>
+  <data name="Common_Overwrite" xml:space="preserve">
+    <value>覆盖</value>
+  </data>
+</root>

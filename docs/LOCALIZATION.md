@@ -4,15 +4,16 @@
 
 ## 资源位置
 
-- 资源文件：`WindBoard/Localization/Strings.resx`（默认/invariant：当前填中文）
+- 资源文件（按“语言/功能”拆分）：`WindBoard/Localization/zh-CN/*.resx`（默认语言：中文）
 - C# 入口：`WindBoard/Localization/L10n.cs`
 - XAML 入口：`WindBoard/Localization/LocExtension.cs`
 
 说明：
 
-- 当前仅提供 `Strings.resx`（中文默认）。后续新增其它语言时，增加 `Strings.en-US.resx`、`Strings.ja-JP.resx` 等即可。
+- 当前仅提供 `zh-CN`（中文默认）。后续新增其它语言时，按相同结构新增语言目录（例如 `en-US`、`ja-JP`）。
+- 运行时按 key 的第一个前缀段选择功能资源文件（例如 `Settings_*` -> `Settings.resx`）。
 - 缺语言/缺 key 的回退策略：
-  - 缺语言：自动回退到默认 `Strings.resx`（invariant）。
+  - 缺语言：自动回退到默认 `zh-CN`。
   - 缺 key：回退到 `fallback`（若提供）或 key 本身，并在 Debug 输出中记录（每个 key 只记录一次）。
 
 ## C# 用法
@@ -45,8 +46,8 @@ Header="{l10n:Loc Key=Settings_Dock_ShowUndoRedo_Header}"
 
 ## 新增语言步骤
 
-1. 复制 `WindBoard/Localization/Strings.resx` 为 `WindBoard/Localization/Strings.en-US.resx`
-2. 逐项翻译资源值（Key 不变）
+1. 复制 `WindBoard/Localization/zh-CN/` 为 `WindBoard/Localization/en-US/`（或其它目标语言目录）
+2. 逐项翻译资源值（Key 不变；文件按功能拆分）
 3. 运行 `dotnet test WindBoard.slnx` 确认本地化 Key 审计通过
 
 当前不做“运行时切换语言自动刷新 UI”，约定切换语言后需要重启应用（后续如需可引入可绑定的动态资源机制）。
@@ -56,5 +57,4 @@ Header="{l10n:Loc Key=Settings_Dock_ShowUndoRedo_Header}"
 - 单测：`WindBoard.Tests/Localization/LocalizationKeyAuditTests.cs`
   - 扫描 `WindBoard/**/*.xaml` 中 `{l10n:Loc Key=...}` 的 key
   - 扫描 `WindBoard/**/*.cs` 中 `L10n.Get/Format("...")` 的 key
-  - 断言所有引用到的 key 都存在于 `Strings.resx`
-
+  - 断言所有引用到的 key 都存在于默认语言资源（`zh-CN/*.resx`）
