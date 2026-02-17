@@ -60,7 +60,7 @@ WindBoard 支持在“设置 → 常规 → 语言”中切换应用显示语言
 
 实现要点：
 
-- `L10n` 基于 `CultureInfo.CurrentUICulture` 读取资源；启动时会先加载设置并在创建任何 UI 前应用语言偏好（避免 XAML MarkupExtension 使用旧文化）。
+- `L10n` 基于 `CultureInfo.CurrentUICulture` 读取资源；启动时会先加载设置并在创建任何 UI 前应用语言偏好（避免 XAML MarkupExtension 使用旧语言）。
 - 设置页运行中切换语言会立即写入设置并尝试应用，但**已加载的界面文本通常不会自动刷新**，因此约定提示用户重启应用后完全生效。
 
 ## 新增语言步骤

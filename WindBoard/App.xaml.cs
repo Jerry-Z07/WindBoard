@@ -42,7 +42,7 @@ namespace WindBoard
             // 日志尽可能早初始化：这样启动阶段（资源加载/设置加载）的问题也能落盘，方便用户排查。
             AppLog.Initialize();
 
-            // 捕获系统文化：用于“跟随系统”模式下的回退与运行中切换。
+            // 捕获系统语言：用于“跟随系统”模式下的回退与运行中切换。
             AppLanguageService.CaptureSystemCulturesIfNeeded();
 
             InitializeComponent();
@@ -61,7 +61,7 @@ namespace WindBoard
         {
             AppSettingsService.Instance.Load();
 
-            // 应用语言偏好：必须在创建任何 Window/加载任何 XAML 前执行，否则 LocExtension 的取值可能会缓存旧文化。
+            // 应用语言偏好：必须在创建任何 Window/加载任何 XAML 前执行，否则 LocExtension 的取值可能会缓存旧语言。
             try
             {
                 AppLanguagePreference preference = AppSettingsService.Instance.GetLanguagePreference();

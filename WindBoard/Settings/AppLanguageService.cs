@@ -20,7 +20,7 @@ namespace WindBoard.Settings
         private static CultureInfo _systemUiCulture = CultureInfo.InvariantCulture;
 
         /// <summary>
-        /// 捕获“系统文化”（进程启动时的当前文化），用于从自定义语言切回“跟随系统”。
+        /// 捕获“系统语言”（进程启动时的当前语言），用于从自定义语言切回“跟随系统”。
         /// </summary>
         internal static void CaptureSystemCulturesIfNeeded()
         {
@@ -40,7 +40,7 @@ namespace WindBoard.Settings
                 _systemUiCulture = CultureInfo.CurrentUICulture;
                 _isSystemCultureCaptured = true;
 
-                AppLog.Info("L10n", $"已捕获系统文化：culture={_systemCulture.Name}, uiCulture={_systemUiCulture.Name}");
+                AppLog.Info("L10n", $"已捕获系统语言：culture={_systemCulture.Name}, uiCulture={_systemUiCulture.Name}");
             }
         }
 
@@ -97,8 +97,8 @@ namespace WindBoard.Settings
             }
             catch (Exception ex)
             {
-                // 语言设置失败不应阻断应用启动/运行：记录日志并继续使用当前文化。
-                AppLog.Warn("L10n", "应用 CultureInfo 失败，将继续使用当前文化", ex);
+                // 语言设置失败不应阻断应用启动/运行：记录日志并继续使用当前语言。
+                AppLog.Warn("L10n", "应用 CultureInfo 失败，将继续使用当前语言", ex);
             }
 
             try

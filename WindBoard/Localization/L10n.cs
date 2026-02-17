@@ -73,7 +73,7 @@ namespace WindBoard.Localization
                     TryPreloadResourceSet(defaultSegment, feature);
                 }
 
-                // 2) 若当前 UI 文化有对应语言资源，则预加载已有的功能资源，便于尽早发现打包/命名错误。
+                // 2) 若当前 UI 语言有对应语言资源，则预加载已有的功能资源，便于尽早发现打包/命名错误。
                 //    说明：未提供该语言资源属于正常情况，不应打 Error。
                 CultureInfo uiCulture = CultureInfo.CurrentUICulture;
                 foreach (string segment in EnumerateCultureFallbackSegments(uiCulture, index, defaultSegment))
@@ -175,7 +175,7 @@ namespace WindBoard.Localization
         }
 
         /// <summary>
-        /// 获取本地化字符串，并按当前文化进行格式化。
+        /// 获取本地化字符串，并按当前语言进行格式化。
         /// </summary>
         internal static string Format(string key, params object?[] args)
         {

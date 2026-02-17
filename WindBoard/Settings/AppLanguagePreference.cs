@@ -3,7 +3,7 @@ using System;
 namespace WindBoard.Settings
 {
     /// <summary>
-    /// 应用显示语言偏好（仅用于设置持久化与文化切换入口）。
+    /// 应用显示语言偏好（仅用于设置持久化与语言切换入口）。
     /// </summary>
     internal enum AppLanguagePreference
     {
