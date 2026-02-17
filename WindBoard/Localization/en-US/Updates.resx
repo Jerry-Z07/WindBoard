@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!--
+    说明：
+    - 本文件为 en-US 语言资源（按功能拆分）。
+    - Key 前缀：Updates_*
+  -->
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Updates_CurrentVersion" xml:space="preserve">
+    <value>Current version</value>
+  </data>
+  <data name="Updates_LatestVersion" xml:space="preserve">
+    <value>Latest version</value>
+  </data>
+  <data name="Updates_ReleaseDate" xml:space="preserve">
+    <value>Release date</value>
+  </data>
+  <data name="Updates_Changelog_Title" xml:space="preserve">
+    <value>Changelog</value>
+  </data>
+  <data name="Updates_Download_Title" xml:space="preserve">
+    <value>Download</value>
+  </data>
+  <data name="Updates_Download_SelfContainedInstaller" xml:space="preserve">
+    <value>Installer (self-contained)</value>
+  </data>
+  <data name="Updates_Download_FrameworkDependentInstaller" xml:space="preserve">
+    <value>Installer (framework-dependent, -fd)</value>
+  </data>
+  <data name="Updates_Download_PortableZip" xml:space="preserve">
+    <value>Portable (zip)</value>
+  </data>
+  <data name="Updates_Download_Unknown" xml:space="preserve">
+    <value>Unknown type</value>
+  </data>
+  <data name="Updates_Download_Item_Recommended_Fmt" xml:space="preserve">
+    <value>{0} (recommended)</value>
+  </data>
+  <data name="Updates_OpenReleasePage" xml:space="preserve">
+    <value>Open release page</value>
+  </data>
+  <data name="Updates_DownloadButton" xml:space="preserve">
+    <value>Download recommended package</value>
+  </data>
+  <data name="Updates_DownloadSource_Title" xml:space="preserve">
+    <value>Download source</value>
+  </data>
+  <data name="Updates_DownloadSource_Auto" xml:space="preserve">
+    <value>Auto (speed test)</value>
+  </data>
+  <data name="Updates_DownloadSource_Github" xml:space="preserve">
+    <value>GitHub</value>
+  </data>
+  <data name="Updates_DownloadSource_GhProxy" xml:space="preserve">
+    <value>gh-proxy</value>
+  </data>
+  <data name="Updates_DownloadSource_Felicity" xml:space="preserve">
+    <value>felicity</value>
+  </data>
+  <data name="Updates_DownloadSource_07" xml:space="preserve">
+    <value>07</value>
+  </data>
+  <data name="Updates_DownloadSource_Status_Testing" xml:space="preserve">
+    <value>Speed testing…</value>
+  </data>
+  <data name="Updates_DownloadSource_Status_Current_Fmt" xml:space="preserve">
+    <value>Current: {0}</value>
+  </data>
+  <data name="Updates_DownloadSource_Status_LastTest_Fmt" xml:space="preserve">
+    <value>Last test: {0}</value>
+  </data>
+  <data name="Updates_DownloadDialog_Title" xml:space="preserve">
+    <value>Downloading update</value>
+  </data>
+  <data name="Updates_DownloadDialog_Source_Fmt" xml:space="preserve">
+    <value>Source: {0}</value>
+  </data>
+  <data name="Updates_DownloadDialog_Progress_Fmt" xml:space="preserve">
+    <value>Progress: {0} / {1}</value>
+  </data>
+  <data name="Updates_DownloadDialog_ProgressUnknown_Fmt" xml:space="preserve">
+    <value>Downloaded: {0}</value>
+  </data>
+  <data name="Updates_DownloadDialog_Completed_Title" xml:space="preserve">
+    <value>Download complete</value>
+  </data>
+  <data name="Updates_DownloadDialog_Completed_Path_Fmt" xml:space="preserve">
+    <value>File saved to: {0}</value>
+  </data>
+  <data name="Updates_DownloadDialog_RunInstaller" xml:space="preserve">
+    <value>Run installer</value>
+  </data>
+  <data name="Updates_DownloadDialog_OpenFolder" xml:space="preserve">
+    <value>Open folder</value>
+  </data>
+  <data name="Updates_DownloadDialog_Failed_Title" xml:space="preserve">
+    <value>Download failed</value>
+  </data>
+  <data name="Updates_DownloadDialog_Failed_Message" xml:space="preserve">
+    <value>Download failed (download source was switched during retry). Try again later, or open the release page to download manually.</value>
+  </data>
+  <data name="Updates_CheckResult_UpToDate_Title" xml:space="preserve">
+    <value>You're up to date</value>
+  </data>
+  <data name="Updates_CheckResult_UpdateAvailable_Title" xml:space="preserve">
+    <value>Update available</value>
+  </data>
+  <data name="Updates_CheckResult_Indeterminate_Title" xml:space="preserve">
+    <value>Update info retrieved</value>
+  </data>
+  <data name="Updates_CheckResult_Error_Title" xml:space="preserve">
+    <value>Failed to check for updates</value>
+  </data>
+  <data name="Updates_CheckFailed_Timeout" xml:space="preserve">
+    <value>Update check timed out. Please try again later.</value>
+  </data>
+  <data name="Updates_CheckFailed_Network" xml:space="preserve">
+    <value>Network request failed. Check your connection and try again.</value>
+  </data>
+  <data name="Updates_CheckFailed_Parse" xml:space="preserve">
+    <value>Failed to parse update info. Please try again later.</value>
+  </data>
+  <data name="Updates_CheckFailed_Generic" xml:space="preserve">
+    <value>Failed to check for updates. Please try again later.</value>
+  </data>
+</root>

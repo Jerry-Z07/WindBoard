@@ -42,6 +42,9 @@ namespace WindBoard
             // 日志尽可能早初始化：这样启动阶段（资源加载/设置加载）的问题也能落盘，方便用户排查。
             AppLog.Initialize();
 
+            // 捕获系统文化：用于“跟随系统”模式下的回退与运行中切换。
+            AppLanguageService.CaptureSystemCulturesIfNeeded();
+
             InitializeComponent();
 
             // 全局异常捕获：避免“静默失败”，并把关键堆栈落盘到日志文件。
@@ -56,8 +59,21 @@ namespace WindBoard
         /// <param name="args">Details about the launch request and process.</param>
         protected override void OnLaunched(Microsoft.UI.Xaml.LaunchActivatedEventArgs args)
         {
-            L10n.Initialize();
             AppSettingsService.Instance.Load();
+
+            // 应用语言偏好：必须在创建任何 Window/加载任何 XAML 前执行，否则 LocExtension 的取值可能会缓存旧文化。
+            try
+            {
+                AppLanguagePreference preference = AppSettingsService.Instance.GetLanguagePreference();
+                AppLanguageService.Apply(preference);
+            }
+            catch (Exception ex)
+            {
+                // 语言应用失败不应阻断启动：记录日志并继续。
+                AppLog.Warn("L10n", "应用语言偏好失败，将继续使用系统语言", ex);
+            }
+
+            L10n.Initialize();
 
             // 统一提醒系统：注册 Windows Toast 通知通道。
             // 说明：在某些环境（未注册/系统限制）下可能失败，这里不阻断启动，后续会自动降级为应用内弹条。

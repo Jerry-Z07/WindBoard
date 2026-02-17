@@ -24,6 +24,7 @@ namespace WindBoard.Settings
             {
                 General = new GeneralSettings
                 {
+                    LanguagePreference = settings.General?.LanguagePreference ?? AppLanguagePreferenceParser.SystemValue,
                     Camouflage = new CamouflageSettings
                     {
                         Enabled = settings.General?.Camouflage?.Enabled ?? false,

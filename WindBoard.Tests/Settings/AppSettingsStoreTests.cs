@@ -19,6 +19,7 @@ public sealed class AppSettingsStoreTests
         Assert.NotNull(settings.General);
         Assert.NotNull(settings.General.Camouflage);
         Assert.NotNull(settings.General.Updates);
+        Assert.Equal(AppLanguagePreferenceParser.SystemValue, settings.General.LanguagePreference);
         Assert.False(settings.General.Camouflage.Enabled);
         Assert.Equal(string.Empty, settings.General.Camouflage.Title);
         Assert.Equal(string.Empty, settings.General.Camouflage.SourcePath);
@@ -26,6 +27,32 @@ public sealed class AppSettingsStoreTests
         Assert.Equal(string.Empty, settings.General.Camouflage.ShortcutLastGeneratedSignature);
         Assert.Equal(string.Empty, settings.General.Camouflage.ShortcutLastGeneratedPath);
         Assert.Equal(UpdateCheckIntervalParser.WeeklyValue, settings.General.Updates.AutoCheckInterval);
+    }
+
+    [Theory]
+    [InlineData("  system  ", AppLanguagePreferenceParser.SystemValue)]
+    [InlineData("  auto  ", AppLanguagePreferenceParser.SystemValue)]
+    [InlineData("  zh-CN  ", AppLanguagePreferenceParser.ChineseValue)]
+    [InlineData("  zh_CN  ", AppLanguagePreferenceParser.ChineseValue)]
+    [InlineData("  zh  ", AppLanguagePreferenceParser.ChineseValue)]
+    [InlineData("  en-US  ", AppLanguagePreferenceParser.EnglishValue)]
+    [InlineData("  en_US  ", AppLanguagePreferenceParser.EnglishValue)]
+    [InlineData("  en  ", AppLanguagePreferenceParser.EnglishValue)]
+    [InlineData("invalid", AppLanguagePreferenceParser.SystemValue)]
+    [InlineData(null, AppLanguagePreferenceParser.SystemValue)]
+    public void NormalizeInPlace_NormalizesLanguagePreference_ToKnownValues(string? input, string expected)
+    {
+        var settings = new AppSettings
+        {
+            General = new GeneralSettings
+            {
+                LanguagePreference = input!,
+            },
+        };
+
+        AppSettingsStore.NormalizeInPlace(settings);
+
+        Assert.Equal(expected, settings.General.LanguagePreference);
     }
 
     [Fact]

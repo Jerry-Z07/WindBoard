@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!--
+    说明：
+    - 本文件为 en-US 语言资源（按功能拆分）。
+    - Key 前缀：Open_*
+  -->
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Open_CannotOpenLink_Title" xml:space="preserve">
+    <value>Cannot open link</value>
+  </data>
+  <data name="Open_LinkEmpty_Message" xml:space="preserve">
+    <value>Link is empty.</value>
+  </data>
+  <data name="Open_InvalidLinkFormat_Fmt" xml:space="preserve">
+    <value>Invalid link format: {0}</value>
+  </data>
+  <data name="Open_LaunchLinkFailed_Message" xml:space="preserve">
+    <value>The system couldn't open this link.</value>
+  </data>
+  <data name="Open_CannotOpenFile_Title" xml:space="preserve">
+    <value>Cannot open file</value>
+  </data>
+  <data name="Open_FilePathEmpty_Message" xml:space="preserve">
+    <value>File path is empty.</value>
+  </data>
+  <data name="Open_LaunchFileFailed_Fmt" xml:space="preserve">
+    <value>The system couldn't open: {0}</value>
+  </data>
+  <data name="Open_FileNotFound_Title" xml:space="preserve">
+    <value>File not found</value>
+  </data>
+  <data name="Open_FileNotFound_Fmt" xml:space="preserve">
+    <value>File not found: {0}</value>
+  </data>
+  <data name="Open_Unauthorized_Fmt" xml:space="preserve">
+    <value>Access denied: {0}</value>
+  </data>
+</root>

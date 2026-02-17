@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!--
+    说明：
+    - 本文件为 en-US 语言资源（按功能拆分）。
+    - Key 前缀：ElementCard_*
+  -->
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="ElementCard_DoubleClickToOpenLink" xml:space="preserve">
+    <value>Double-click to open link</value>
+  </data>
+  <data name="ElementCard_DoubleClickToOpenExternal" xml:space="preserve">
+    <value>Double-click to open externally</value>
+  </data>
+  <data name="ElementCard_Kind_OpenExternal_Fmt" xml:space="preserve">
+    <value>{0}
+{1}</value>
+  </data>
+  <data name="ElementCard_MediaKind_Audio" xml:space="preserve">
+    <value>Audio</value>
+  </data>
+  <data name="ElementCard_MediaKind_Video" xml:space="preserve">
+    <value>Video</value>
+  </data>
+  <data name="ElementCard_MediaKind_ImageNoPreview" xml:space="preserve">
+    <value>Image (preview unavailable)</value>
+  </data>
+  <data name="ElementCard_MediaKind_Generic" xml:space="preserve">
+    <value>Media</value>
+  </data>
+  <data name="ElementCard_Text_Title" xml:space="preserve">
+    <value>Text</value>
+  </data>
+  <data name="ElementCard_Unnamed" xml:space="preserve">
+    <value>(Unnamed)</value>
+  </data>
+  <data name="ElementCard_FileKind_Pdf" xml:space="preserve">
+    <value>PDF document</value>
+  </data>
+  <data name="ElementCard_FileKind_Word" xml:space="preserve">
+    <value>Word document</value>
+  </data>
+  <data name="ElementCard_FileKind_PowerPoint" xml:space="preserve">
+    <value>PowerPoint document</value>
+  </data>
+  <data name="ElementCard_FileKind_Excel" xml:space="preserve">
+    <value>Excel spreadsheet</value>
+  </data>
+  <data name="ElementCard_FileKind_Csv" xml:space="preserve">
+    <value>CSV file</value>
+  </data>
+  <data name="ElementCard_FileKind_Rtf" xml:space="preserve">
+    <value>RTF document</value>
+  </data>
+  <data name="ElementCard_FileKind_Epub" xml:space="preserve">
+    <value>eBook</value>
+  </data>
+  <data name="ElementCard_FileKind_Archive" xml:space="preserve">
+    <value>Archive</value>
+  </data>
+  <data name="ElementCard_File_Ext_Fmt" xml:space="preserve">
+    <value>File ({0})</value>
+  </data>
+</root>

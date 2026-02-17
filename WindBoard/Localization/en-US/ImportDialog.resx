@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!--
+    说明：
+    - 本文件为 en-US 语言资源（按功能拆分）。
+    - Key 前缀：ImportDialog_*
+  -->
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="ImportDialog_Title" xml:space="preserve">
+    <value>Import</value>
+  </data>
+  <data name="ImportDialog_Tab_Image" xml:space="preserve">
+    <value>Images</value>
+  </data>
+  <data name="ImportDialog_Tab_Media" xml:space="preserve">
+    <value>Video/Audio</value>
+  </data>
+  <data name="ImportDialog_Tab_Text" xml:space="preserve">
+    <value>Text</value>
+  </data>
+  <data name="ImportDialog_Tab_Link" xml:space="preserve">
+    <value>Links</value>
+  </data>
+  <data name="ImportDialog_Tab_Wbix" xml:space="preserve">
+    <value>WBIX / WBI</value>
+  </data>
+  <data name="ImportDialog_PickImages" xml:space="preserve">
+    <value>Choose image files…</value>
+  </data>
+  <data name="ImportDialog_PickMedia" xml:space="preserve">
+    <value>Choose video/audio files…</value>
+  </data>
+  <data name="ImportDialog_PickTextFiles" xml:space="preserve">
+    <value>Choose text files…</value>
+  </data>
+  <data name="ImportDialog_PickWbix" xml:space="preserve">
+    <value>Choose WBIX/WBI file…</value>
+  </data>
+  <data name="ImportDialog_PasteFromClipboard" xml:space="preserve">
+    <value>Paste from clipboard</value>
+  </data>
+  <data name="ImportDialog_LinkLines_Placeholder" xml:space="preserve">
+    <value>One link per line, e.g.:
+https://example.com
+example.org</value>
+  </data>
+  <data name="ImportDialog_NothingToImport_Message" xml:space="preserve">
+    <value>Please select at least one file or enter content.</value>
+  </data>
+  <data name="ImportDialog_Wbix_Invalid_Message" xml:space="preserve">
+    <value>Invalid WBIX/WBI file or preview failed.</value>
+  </data>
+  <data name="ImportDialog_FilePicker_Failed_Fmt" xml:space="preserve">
+    <value>Failed to open file picker: {0}</value>
+  </data>
+</root>

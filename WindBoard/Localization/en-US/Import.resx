@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!--
+    说明：
+    - 本文件为 en-US 语言资源（按功能拆分）。
+    - Key 前缀：Import_*
+  -->
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Import_Failed_Title" xml:space="preserve">
+    <value>Import failed</value>
+  </data>
+  <data name="Import_Tip_Title" xml:space="preserve">
+    <value>Import tips</value>
+  </data>
+  <data name="Import_UnknownType_Message" xml:space="preserve">
+    <value>Unknown import type.</value>
+  </data>
+  <data name="Import_EntryDialog_Title" xml:space="preserve">
+    <value>Import</value>
+  </data>
+  <data name="Import_EntryDialog_Prompt" xml:space="preserve">
+    <value>Please select what to import:</value>
+  </data>
+  <data name="Import_Entry_Files" xml:space="preserve">
+    <value>Import files</value>
+  </data>
+  <data name="Import_Entry_Text" xml:space="preserve">
+    <value>Import text</value>
+  </data>
+  <data name="Import_Entry_Link" xml:space="preserve">
+    <value>Import link</value>
+  </data>
+  <data name="Import_TextDialog_Title" xml:space="preserve">
+    <value>Import text</value>
+  </data>
+  <data name="Import_Text_Placeholder" xml:space="preserve">
+    <value>Enter text to import…</value>
+  </data>
+  <data name="Import_Text_Empty_Message" xml:space="preserve">
+    <value>Text is empty.</value>
+  </data>
+  <data name="Import_LinkDialog_Title" xml:space="preserve">
+    <value>Import link</value>
+  </data>
+  <data name="Import_Link_UrlLabel" xml:space="preserve">
+    <value>Link:</value>
+  </data>
+  <data name="Import_Link_TitleLabel" xml:space="preserve">
+    <value>Title (optional):</value>
+  </data>
+  <data name="Import_Link_TitlePlaceholder" xml:space="preserve">
+    <value>Title (optional)</value>
+  </data>
+  <data name="Import_Link_Empty_Message" xml:space="preserve">
+    <value>Link cannot be empty.</value>
+  </data>
+  <data name="Import_Wbix_MultipleFiles_Message" xml:space="preserve">
+    <value>WBIX/WBI files detected. Please import .wbix/.wbi separately.</value>
+  </data>
+  <data name="Import_Wbix_ParseFailed_Message" xml:space="preserve">
+    <value>Failed to parse WBIX/WBI file.</value>
+  </data>
+  <data name="Import_Wbix_Busy_Title" xml:space="preserve">
+    <value>Importing WBIX/WBI…</value>
+  </data>
+  <data name="Import_Wbix_Busy_Message" xml:space="preserve">
+    <value>Importing, please wait…</value>
+  </data>
+  <data name="Import_Risk_Title" xml:space="preserve">
+    <value>Risk warning</value>
+  </data>
+  <data name="Import_Risk_ReplaceWorkspace_Content" xml:space="preserve">
+    <value>Choosing "Replace entire workspace" will replace all current pages.
+
+We recommend exporting a backup (WBIX) before replacing.
+
+Continue?</value>
+  </data>
+  <data name="Import_Risk_ReplaceCurrentPage_Content" xml:space="preserve">
+    <value>Choosing "Replace current page" will replace the current page and insert the remaining imported pages after it.
+
+The current page content will be lost and this action cannot be undone.
+
+We recommend exporting a backup (WBIX) before replacing.
+
+Continue?</value>
+  </data>
+  <data name="Import_Risk_ContinueOverwrite" xml:space="preserve">
+    <value>Continue and replace</value>
+  </data>
+  <data name="Import_Wbix_Dialog_Title" xml:space="preserve">
+    <value>Import WBIX/WBI</value>
+  </data>
+  <data name="Import_Wbix_NoCover" xml:space="preserve">
+    <value>(No cover)</value>
+  </data>
+  <data name="Import_Wbix_Info_Fmt" xml:space="preserve">
+    <value>File: {0}
+Pages: {1}
+Version: {2}
+Created: {3}</value>
+  </data>
+  <data name="Import_Wbix_Mode_Append" xml:space="preserve">
+    <value>Append after last page</value>
+  </data>
+  <data name="Import_Wbix_Mode_ReplaceCurrentPage" xml:space="preserve">
+    <value>Replace current page (risky)</value>
+  </data>
+  <data name="Import_Wbix_InsertMethod_Label" xml:space="preserve">
+    <value>Insert method:</value>
+  </data>
+  <data name="Import_TextTruncated_Notice" xml:space="preserve">
+    <value>(Content too long; truncated)</value>
+  </data>
+  <data name="Import_TextReadFailed_Placeholder" xml:space="preserve">
+    <value>(Read failed)</value>
+  </data>
+</root>

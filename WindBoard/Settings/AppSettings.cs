@@ -23,6 +23,11 @@ namespace WindBoard.Settings
 
     internal sealed class GeneralSettings
     {
+        /// <summary>
+        /// 应用显示语言偏好（system/zh-CN/en-US）。
+        /// </summary>
+        public string LanguagePreference { get; set; } = AppLanguagePreferenceParser.SystemValue;
+
         public CamouflageSettings Camouflage { get; set; } = new();
 
         public UpdateSettings Updates { get; set; } = new();

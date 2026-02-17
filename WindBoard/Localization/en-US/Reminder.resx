@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!--
+    说明：
+    - 本文件为 en-US 语言资源（按功能拆分）。
+    - Key 前缀：Reminder_*
+  -->
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Reminder_Shortcuts_AutoFix_Title" xml:space="preserve">
+    <value>Shortcut settings were automatically fixed</value>
+  </data>
+  <data name="Reminder_Shortcuts_AutoFix_Line_Conflict_Fmt" xml:space="preserve">
+    <value>{0}: conflicts with "{1}", disabled</value>
+  </data>
+  <data name="Reminder_Shortcuts_AutoFix_Line_Invalid_Fmt" xml:space="preserve">
+    <value>{0}: invalid shortcut, restored to default ({1})</value>
+  </data>
+  <data name="Reminder_Shortcuts_AutoFix_Line_Generic" xml:space="preserve">
+    <value>Shortcut settings issues were detected and automatically fixed.</value>
+  </data>
+  <data name="Reminder_Shortcuts_AutoFix_Footer" xml:space="preserve">
+    <value>You can turn off this reminder in "Settings - Shortcuts".</value>
+  </data>
+  <data name="Reminder_Update_Available_Title_Fmt" xml:space="preserve">
+    <value>New version available: {1} (current {0})</value>
+  </data>
+  <data name="Reminder_Update_Available_Body" xml:space="preserve">
+    <value>Open "Settings - About - Check for updates" to get the download link.</value>
+  </data>
+</root>
