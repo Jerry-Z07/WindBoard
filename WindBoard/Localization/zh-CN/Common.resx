@@ -44,6 +44,9 @@
   <data name="Common_FullScreen" xml:space="preserve">
     <value>全屏</value>
   </data>
+  <data name="Common_ExitFullScreen" xml:space="preserve">
+    <value>退出全屏</value>
+  </data>
   <data name="Common_Close" xml:space="preserve">
     <value>关闭</value>
   </data>

@@ -2,6 +2,7 @@ using System;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using WindBoard.Localization;
 using WindBoard.Logging;
 using WindBoard.Settings;
 
@@ -10,28 +11,43 @@ namespace WindBoard
     public sealed partial class MainWindow : Window
     {
         private bool _hasAppliedStartupWindowMode;
-        private bool _isSyncingTemporaryFullScreenToggle;
 
         private void OnMoreMenuOpening(object sender, object e)
         {
             // “更多”菜单每次打开都同步一次当前窗口全屏状态，避免临时开关状态滞后。
-            SyncTemporaryFullScreenToggleFromWindowState();
+            SyncTemporaryFullScreenMenuItemFromWindowState();
         }
 
-        private void OnTemporaryFullScreenToggleClicked(object sender, RoutedEventArgs e)
+        private void OnTemporaryFullScreenMenuItemClicked(object sender, RoutedEventArgs e)
         {
-            if (_isSyncingTemporaryFullScreenToggle)
+            AppWindow? appWindow = TryGetAppWindow();
+            if (appWindow is null)
             {
+                // 极端兜底：窗口句柄获取失败时不做切换，并禁用菜单项避免用户连续点击无响应。
+                AppLog.Warn("WindowMode", "切换全屏失败：无法获取 AppWindow（窗口句柄可能尚未就绪）");
+                SyncTemporaryFullScreenMenuItemFromWindowState();
                 return;
             }
 
-            bool targetFullScreen = TemporaryFullScreenToggleMenuFlyoutItem?.IsChecked == true;
-            AppLog.Info("WindowMode", $"临时切换窗口全屏：targetFullScreen={targetFullScreen}");
+            bool currentIsFullScreen;
+            try
+            {
+                currentIsFullScreen = appWindow.Presenter.Kind == AppWindowPresenterKind.FullScreen;
+            }
+            catch (Exception ex)
+            {
+                // 判定失败不应影响主流程：记录日志便于排查，并保持菜单项展示不动。
+                AppLog.Warn("WindowMode", "读取窗口全屏状态失败", ex);
+                return;
+            }
+
+            bool targetFullScreen = !currentIsFullScreen;
+            AppLog.Info("WindowMode", $"临时切换窗口全屏：currentIsFullScreen={currentIsFullScreen}, targetFullScreen={targetFullScreen}");
 
             TrySetWindowFullScreen(targetFullScreen);
 
-            // 切换完成后再读一次真实状态，确保 UI 勾选与窗口一致（避免 SetPresenter 失败时“假勾选”）。
-            SyncTemporaryFullScreenToggleFromWindowState();
+            // 切换完成后再读一次真实状态，确保菜单文字/图标与窗口一致（避免 SetPresenter 失败时“假状态”）。
+            SyncTemporaryFullScreenMenuItemFromWindowState();
         }
 
         /// <summary>
@@ -68,9 +84,9 @@ namespace WindBoard
             _hasAppliedStartupWindowMode = true;
         }
 
-        private void SyncTemporaryFullScreenToggleFromWindowState()
+        private void SyncTemporaryFullScreenMenuItemFromWindowState()
         {
-            if (TemporaryFullScreenToggleMenuFlyoutItem is null)
+            if (TemporaryFullScreenMenuFlyoutItem is null)
             {
                 return;
             }
@@ -78,22 +94,18 @@ namespace WindBoard
             AppWindow? appWindow = TryGetAppWindow();
             if (appWindow is null)
             {
-                // 极端兜底：窗口句柄获取失败时禁用该临时开关，避免用户点击无响应。
-                try
+                // 极端兜底：窗口句柄获取失败时禁用该入口，避免用户点击无响应。
+                TemporaryFullScreenMenuFlyoutItem.IsEnabled = false;
+                TemporaryFullScreenMenuFlyoutItem.Text = L10n.Get("Common_FullScreen");
+                if (TemporaryFullScreenMenuIcon is not null)
                 {
-                    _isSyncingTemporaryFullScreenToggle = true;
-                    TemporaryFullScreenToggleMenuFlyoutItem.IsEnabled = false;
-                    TemporaryFullScreenToggleMenuFlyoutItem.IsChecked = false;
-                }
-                finally
-                {
-                    _isSyncingTemporaryFullScreenToggle = false;
+                    TemporaryFullScreenMenuIcon.Symbol = Symbol.FullScreen;
                 }
 
                 return;
             }
 
-            bool isFullScreen = false;
+            bool isFullScreen;
             try
             {
                 isFullScreen = appWindow.Presenter.Kind == AppWindowPresenterKind.FullScreen;
@@ -105,15 +117,24 @@ namespace WindBoard
                 return;
             }
 
-            try
+            TemporaryFullScreenMenuFlyoutItem.IsEnabled = true;
+
+            // 取消勾选区：用“文字 + 图标”表达当前状态，避免 ToggleMenuFlyoutItem 带来的额外左侧留白。
+            if (isFullScreen)
             {
-                _isSyncingTemporaryFullScreenToggle = true;
-                TemporaryFullScreenToggleMenuFlyoutItem.IsEnabled = true;
-                TemporaryFullScreenToggleMenuFlyoutItem.IsChecked = isFullScreen;
+                TemporaryFullScreenMenuFlyoutItem.Text = L10n.Get("Common_ExitFullScreen");
+                if (TemporaryFullScreenMenuIcon is not null)
+                {
+                    TemporaryFullScreenMenuIcon.Symbol = Symbol.BackToWindow;
+                }
             }
-            finally
+            else
             {
-                _isSyncingTemporaryFullScreenToggle = false;
+                TemporaryFullScreenMenuFlyoutItem.Text = L10n.Get("Common_FullScreen");
+                if (TemporaryFullScreenMenuIcon is not null)
+                {
+                    TemporaryFullScreenMenuIcon.Symbol = Symbol.FullScreen;
+                }
             }
         }
 
@@ -146,4 +167,3 @@ namespace WindBoard
         }
     }
 }
-

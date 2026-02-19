@@ -75,21 +75,21 @@
                                     </MenuFlyoutItem.Icon>
                                 </MenuFlyoutItem>
                                 <MenuFlyoutSeparator />
-                                <MenuFlyoutItem Text="{l10n:Loc Key=Common_Export}" Click="OnExportClicked">
-                                    <MenuFlyoutItem.Icon>
-                                        <SymbolIcon Symbol="OpenFile" />
-                                    </MenuFlyoutItem.Icon>
-                                </MenuFlyoutItem>
-                                <ToggleMenuFlyoutItem x:Name="TemporaryFullScreenToggleMenuFlyoutItem" Text="{l10n:Loc Key=Common_FullScreen}" Click="OnTemporaryFullScreenToggleClicked">
-                                    <ToggleMenuFlyoutItem.Icon>
-                                        <SymbolIcon Symbol="FullScreen" />
-                                    </ToggleMenuFlyoutItem.Icon>
-                                </ToggleMenuFlyoutItem>
-                                <MenuFlyoutSeparator />
-                                <MenuFlyoutItem Text="{l10n:Loc Key=Common_Exit}" Click="OnExitClicked">
-                                    <MenuFlyoutItem.Icon>
-                                        <SymbolIcon Symbol="Cancel" />
-                                    </MenuFlyoutItem.Icon>
+                                 <MenuFlyoutItem Text="{l10n:Loc Key=Common_Export}" Click="OnExportClicked">
+                                     <MenuFlyoutItem.Icon>
+                                         <SymbolIcon Symbol="OpenFile" />
+                                     </MenuFlyoutItem.Icon>
+                                 </MenuFlyoutItem>
+                                 <MenuFlyoutItem x:Name="TemporaryFullScreenMenuFlyoutItem" Text="{l10n:Loc Key=Common_FullScreen}" Click="OnTemporaryFullScreenMenuItemClicked">
+                                     <MenuFlyoutItem.Icon>
+                                         <SymbolIcon x:Name="TemporaryFullScreenMenuIcon" Symbol="FullScreen" />
+                                     </MenuFlyoutItem.Icon>
+                                 </MenuFlyoutItem>
+                                 <MenuFlyoutSeparator />
+                                 <MenuFlyoutItem Text="{l10n:Loc Key=Common_Exit}" Click="OnExitClicked">
+                                     <MenuFlyoutItem.Icon>
+                                         <SymbolIcon Symbol="Cancel" />
+                                     </MenuFlyoutItem.Icon>
                                 </MenuFlyoutItem>
                             </MenuFlyout>
                         </Button.Flyout>

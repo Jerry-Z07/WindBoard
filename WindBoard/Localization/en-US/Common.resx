@@ -44,6 +44,9 @@
   <data name="Common_FullScreen" xml:space="preserve">
     <value>Fullscreen</value>
   </data>
+  <data name="Common_ExitFullScreen" xml:space="preserve">
+    <value>Exit fullscreen</value>
+  </data>
   <data name="Common_Close" xml:space="preserve">
     <value>Close</value>
   </data>
