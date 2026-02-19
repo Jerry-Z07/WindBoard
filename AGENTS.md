@@ -29,9 +29,9 @@
   - `Persistence/`：应用层持久化服务接口/实现（避免与 `Board/Persistence/` 混淆）。
   - `Assets/`：应用资源。
   - `Properties/PublishProfiles/`：发布配置。
-- `WindBoard.Tests/`：xUnit 单元测试工程（尽量覆盖纯计算逻辑，避免 UI/设备依赖）。
+- `WindBoard.Tests/`：xUnit 单元测试工程。
   - `Board/`：核心模型测试（命令/编辑/视口/笔画等）。
-  - `Importing/`：导入模块测试（尽量覆盖纯逻辑、避免 UI/设备依赖）。
+  - `Importing/`：导入模块测试。
   - `Interaction/`：交互层测试（脏矩形计算等）。
   - `Rendering/`：渲染层测试（场景数学/脏矩形计算）。
   - `Exporting/`：导出模块测试（导出器/页范围解析等）。
@@ -52,13 +52,11 @@
 - 测试工程：`WindBoard.Tests`（xUnit）。为了避免把实现细节暴露为 `public`，主工程通过 `WindBoard/InternalsVisibleTo.cs` 允许测试访问 `internal` 类型。
 - 运行测试：`dotnet test WindBoard.slnx`（默认平台已映射到 x64；如需显式指定可用 `dotnet test WindBoard.slnx -p:Platform=x64`）。
 - 本地化 Key 审计：`WindBoard.Tests/Localization/LocalizationKeyAuditTests.cs`（要求 C# 中 `L10n.Get/Format` 的 key 为字符串字面量；XAML 使用 `{l10n:Loc Key=...}`）。
-- 目录边界与代码放置建议：参考 `docs/CODEMAP.md`。
 - 测试分层建议：
   - UI/渲染集成验证放到更高层（后续可考虑 UI 自动化/端到端 smoke），避免单测依赖 WinUI 线程与设备环境。
 
 
 ## 相关文档（Docs）
 
-- `docs/CODEMAP.md`：分层与目录边界、放置规则。
 - `docs/LOCALIZATION.md`：本地化约定（`zh-CN/*.resx` / `L10n` / `LocExtension`）。
 - `docs/WBIX.md`：WBIX（`.wbix`）格式说明。
