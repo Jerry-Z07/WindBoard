@@ -38,4 +38,16 @@
   <data name="Reminder_Update_Available_Body" xml:space="preserve">
     <value>打开“设置-关于-检查更新”获取下载链接。</value>
   </data>
+  <data name="Reminder_Data_SettingsMigrated_Title" xml:space="preserve">
+    <value>首次启动便携版，已迁移本机设置到 data 目录</value>
+  </data>
+  <data name="Reminder_Data_SettingsMigrated_Body_Fmt" xml:space="preserve">
+    <value>点击此提醒打开当前数据目录。</value>
+  </data>
+  <data name="Reminder_Data_PortableNotWritable_Title" xml:space="preserve">
+    <value>便携版 data 目录不可写</value>
+  </data>
+  <data name="Reminder_Data_PortableNotWritable_Body_Fmt" xml:space="preserve">
+    <value>已自动回退到本机数据目录保存。点击此提醒打开当前数据目录。</value>
+  </data>
 </root>

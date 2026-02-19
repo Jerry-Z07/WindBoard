@@ -5,16 +5,16 @@
 ## 资源位置
 
 - 资源文件（按“语言/功能”拆分）：
-  - `WindBoard/Localization/zh-CN/*.resx`（默认语言：中文）
+  - `WindBoard/Localization/zh-CN/*.resx`（默认语言：简体中文）
   - `WindBoard/Localization/en-US/*.resx`（英文）
 - C# 入口：`WindBoard/Localization/L10n.cs`
 - XAML 入口：`WindBoard/Localization/LocExtension.cs`
 
 说明：
 
-- 当前提供 `zh-CN`（中文默认）与 `en-US`（英文）。后续新增其它语言时，按相同结构新增语言目录（例如 `ja-JP`）。
+- 当前提供 `zh-CN`（简体中文，默认）与 `en-US`（英文）。后续新增其它语言时，按相同结构新增语言目录（例如 `ja-JP`）。
 - 运行时按 key 的第一个前缀段选择功能资源文件（例如 `Settings_*` -> `Settings.resx`）。
-- 缺语言/缺 key 的回退策略（均会记录日志，且会做去重避免刷屏）：
+- 缺语言/缺 key 的回退策略：
   - 缺语言：自动回退到默认 `zh-CN`。
   - 缺 key：回退到 `fallback`（若提供）或 key 本身，并通过 `WindBoard.Logging.AppLog` 记录（每个 key 只记录一次）。
   - 部分翻译缺失：若某语言已提供了部分资源文件，但某个 key 仍缺失，则会记录“缺少翻译”并回退到默认语言，便于后续补齐。
@@ -47,9 +47,9 @@ Text="{l10n:Loc Key=Common_Close}"
 Header="{l10n:Loc Key=Settings_Dock_ShowUndoRedo_Header}"
 ```
 
-## 语言切换（设置 - 常规）
+## 语言切换
 
-WindBoard 支持在“设置 → 常规 → 语言”中切换应用显示语言：
+在“设置 → 常规 → 语言”中切换应用显示语言：
 
 - 入口页：`WindBoard/Settings/Pages/GeneralSettingsPage.xaml`
 - 持久化：`settings.json` → `general.languagePreference`
@@ -64,7 +64,7 @@ WindBoard 支持在“设置 → 常规 → 语言”中切换应用显示语言
 
 ## 新增语言步骤
 
-1. 复制 `WindBoard/Localization/zh-CN/` 为 `WindBoard/Localization/en-US/`（或其它目标语言目录，例如 `ja-JP`）
+1. 复制 `WindBoard/Localization/zh-CN/` 为 `WindBoard/Localization/en-US/`（或其它目标语言目录，例如 `ja-JP`，以 `BCP 47` 规范命名）
 2. 逐项翻译资源值（Key 不变；文件按功能拆分）
 3. 运行 `dotnet test WindBoard.slnx` 确认本地化 Key 审计通过
 
@@ -82,4 +82,4 @@ WindBoard 支持在“设置 → 常规 → 语言”中切换应用显示语言
 - 单测：`WindBoard.Tests/Localization/LocalizationKeyAuditTests.cs`
   - 扫描 `WindBoard/**/*.xaml` 中 `{l10n:Loc Key=...}` 的 key
   - 扫描 `WindBoard/**/*.cs` 中 `L10n.Get/Format("...")` 的 key
-  - 断言所有引用到的 key 都存在于默认语言资源（`zh-CN/*.resx`）
+  - 声明所有引用到的 key 都存在于默认语言资源（`zh-CN/*.resx`）

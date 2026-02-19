@@ -11,6 +11,7 @@ using Microsoft.UI.Xaml.Input;
 using Windows.System;
 using WindBoard.Localization;
 using WindBoard.Logging;
+using WindBoard.Persistence;
 using WindBoard.Updates;
 
 namespace WindBoard.Settings.Pages
@@ -542,10 +543,16 @@ namespace WindBoard.Settings.Pages
                 return;
             }
 
-            string downloadsDir = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                "WindBoard",
-                "downloads");
+            // 更新下载目录也属于应用数据：便携版需落到 {AppBase}\data 下。
+            string downloadsDir = AppDataPaths.DownloadsDirectory;
+            if (string.IsNullOrWhiteSpace(downloadsDir))
+            {
+                // 极端兜底：避免空路径导致写入到意外位置。
+                downloadsDir = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                    "WindBoard",
+                    "downloads");
+            }
             string destinationPath = Path.Combine(downloadsDir, fileName);
 
             var cts = new CancellationTokenSource();

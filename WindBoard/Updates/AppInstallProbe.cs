@@ -26,6 +26,24 @@ namespace WindBoard.Updates
 
         internal static AppInstallProbeResult Probe()
         {
+            // 默认探测：允许记录日志（便于排查安装标记异常/注册表访问问题）。
+            return ProbeCore(enableLogging: true);
+        }
+
+        /// <summary>
+        /// 探测安装形态（不输出日志）。
+        /// 
+        /// 说明：
+        /// - 该方法用于“非常早期”的路径选择场景（例如日志/设置默认路径），避免在 AppLog 尚未完成配置时发生递归初始化。
+        /// - 发生异常时会直接走兜底策略，不记录 AppLog。
+        /// </summary>
+        internal static AppInstallProbeResult ProbeNoLog()
+        {
+            return ProbeCore(enableLogging: false);
+        }
+
+        private static AppInstallProbeResult ProbeCore(bool enableLogging)
+        {
             string baseDir = NormalizeDir(AppContext.BaseDirectory);
 
             // 1) 注册表标记：由安装包写入，能够区分自包含与 -fd 变体。
@@ -58,14 +76,20 @@ namespace WindBoard.Updates
                     // 标记存在但与当前路径不匹配：可能是旧安装残留，避免误判。
                     if (!string.IsNullOrWhiteSpace(installDir) && !IsSameDirectory(installDir, baseDir))
                     {
-                        AppLog.Debug("Updates", $"检测到安装标记但路径不匹配，将忽略：installDir='{installDir}', baseDir='{baseDir}'");
+                        if (enableLogging)
+                        {
+                            AppLog.Debug("Updates", $"检测到安装标记但路径不匹配，将忽略：installDir='{installDir}', baseDir='{baseDir}'");
+                        }
                     }
                 }
             }
             catch (Exception ex)
             {
                 // 探测失败不影响主流程：记录一次日志，后续走兜底策略。
-                AppLog.Warn("Updates", "读取安装标记失败，将使用兜底探测", ex);
+                if (enableLogging)
+                {
+                    AppLog.Warn("Updates", "读取安装标记失败，将使用兜底探测", ex);
+                }
             }
 
             // 2) 兜底：Inno Setup 安装目录通常会包含卸载器（unins*.exe）。
@@ -88,7 +112,10 @@ namespace WindBoard.Updates
             }
             catch (Exception ex)
             {
-                AppLog.Warn("Updates", "兜底探测卸载器失败，将按便携版处理", ex);
+                if (enableLogging)
+                {
+                    AppLog.Warn("Updates", "兜底探测卸载器失败，将按便携版处理", ex);
+                }
             }
 
             return new AppInstallProbeResult

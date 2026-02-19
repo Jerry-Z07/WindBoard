@@ -18,7 +18,10 @@ using Windows.Foundation;
 using Windows.Foundation.Collections;
 using WindBoard.Logging;
 using WindBoard.Localization;
+using WindBoard.Persistence;
+using WindBoard.Reminders;
 using WindBoard.Settings;
+using WindBoard.Updates;
 using Microsoft.Windows.AppNotifications;
 
 // To learn more about WinUI, the WinUI project structure,
@@ -32,10 +35,11 @@ namespace WindBoard
     public partial class App : Application
     {
         private Window? _window;
+        private static int _notificationInvokedHooked;
 
         /// <summary>
         /// Initializes the singleton application object.  This is the first line of authored code
-        /// executed, and as such is the logical equivalent of main() or WinMain().
+         /// executed, and as such is the logical equivalent of main() or WinMain().
         /// </summary>
         public App()
         {
@@ -59,6 +63,9 @@ namespace WindBoard
         /// <param name="args">Details about the launch request and process.</param>
         protected override void OnLaunched(Microsoft.UI.Xaml.LaunchActivatedEventArgs args)
         {
+            // 便携版首次启动迁移：确保 settings.json 能优先落到 {AppBase}\data 下。
+            SettingsMigrationResult settingsMigration = AppDataPaths.TryMigratePortableSettingsIfNeeded();
+
             AppSettingsService.Instance.Load();
 
             // 应用语言偏好：必须在创建任何 Window/加载任何 XAML 前执行，否则 LocExtension 的取值可能会缓存旧语言。
@@ -79,6 +86,7 @@ namespace WindBoard
             // 说明：在某些环境（未注册/系统限制）下可能失败，这里不阻断启动，后续会自动降级为应用内弹条。
             try
             {
+                EnsureAppNotificationInvokedHandlerHooked();
                 AppNotificationManager.Default.Register();
                 AppLog.Info("Reminders", "Windows 通知通道注册成功");
             }
@@ -102,10 +110,101 @@ namespace WindBoard
                 writeInitLog: false);
 
             string version = AppInfo.Version;
+            AppLog.Info(
+                "App",
+                $"数据目录：root='{AppDataPaths.RootDirectory}', kind={AppDataPaths.InstallKind}, evidence='{AppDataPaths.InstallEvidence}', installDir='{AppDataPaths.InstallDir}', settings='{AppSettingsService.Instance.SettingsFilePath}', logs='{AppLog.LogDirectory}'");
+
+            if (AppDataPaths.InstallKind == AppInstallKind.Portable && !AppDataPaths.UsingPortableDataDirectory)
+            {
+                string error = AppDataPaths.PortableDataDirectoryWriteTestError ?? "(unknown)";
+                AppLog.Warn(
+                    "App",
+                    $"便携版 data 目录不可写，已回退到 LocalAppData：data='{AppDataPaths.PortableDataDirectory}', error='{error}'");
+            }
+
             AppLog.Info("App", $"应用启动：version={version}, args='{args.Arguments ?? string.Empty}', logFile='{AppLog.CurrentLogFilePath ?? "(null)"}'");
 
             _window = new MainWindow();
             _window.Activate();
+
+            // 启动完成后再弹提醒：避免窗口尚未就绪时应用内弹条控件未挂载，导致提醒丢失。
+            TryRemindAppDataIssuesIfNeeded(_window, settingsMigration);
+        }
+
+        private static void TryRemindAppDataIssuesIfNeeded(Window window, SettingsMigrationResult settingsMigration)
+        {
+            try
+            {
+                if (settingsMigration.Migrated)
+                {
+                    AppReminderService.Instance.RemindOncePerSignature(
+                        window,
+                        signature: "Data:SettingsMigrated",
+                        new AppReminderMessage
+                        {
+                            Title = L10n.Get("Reminder_Data_SettingsMigrated_Title"),
+                            Body = L10n.Get("Reminder_Data_SettingsMigrated_Body_Fmt"),
+                            Severity = AppReminderSeverity.Info,
+                            ClickAction = AppReminderClickAction.OpenAppDataRootDirectory,
+                        });
+                }
+
+                if (AppDataPaths.InstallKind == AppInstallKind.Portable && !AppDataPaths.UsingPortableDataDirectory)
+                {
+                    AppReminderService.Instance.RemindOncePerSignature(
+                        window,
+                        signature: "Data:PortableDataNotWritable",
+                        new AppReminderMessage
+                        {
+                            Title = L10n.Get("Reminder_Data_PortableNotWritable_Title"),
+                            Body = L10n.Get("Reminder_Data_PortableNotWritable_Body_Fmt"),
+                            Severity = AppReminderSeverity.Warning,
+                            ClickAction = AppReminderClickAction.OpenAppDataRootDirectory,
+                        });
+                }
+            }
+            catch (Exception ex)
+            {
+                // 提醒失败不应影响启动：记录日志便于排查。
+                AppLog.Warn("Reminders", "启动阶段数据目录提醒失败", ex);
+            }
+        }
+
+        private static void EnsureAppNotificationInvokedHandlerHooked()
+        {
+            // 防御：避免重复订阅（理论上 OnLaunched 只会调用一次，但热重载/异常恢复等场景下可能重复进入）。
+            if (System.Threading.Interlocked.CompareExchange(ref _notificationInvokedHooked, 1, 0) != 0)
+            {
+                return;
+            }
+
+            try
+            {
+                AppNotificationManager.Default.NotificationInvoked += OnAppNotificationInvoked;
+            }
+            catch (Exception ex)
+            {
+                // 即便 Hook 失败，也不影响启动：只会导致 Toast 点击动作不可用。
+                AppLog.Warn("Reminders", "注册 Windows 通知回调失败（点击动作将不可用）", ex);
+            }
+        }
+
+        private static void OnAppNotificationInvoked(AppNotificationManager sender, AppNotificationActivatedEventArgs args)
+        {
+            try
+            {
+                if (!AppReminderToastArguments.TryParseClickAction(args, out AppReminderClickAction action))
+                {
+                    return;
+                }
+
+                AppReminderActionExecutor.TryExecute(action);
+            }
+            catch (Exception ex)
+            {
+                // 防御：通知回调异常不应影响进程。
+                AppLog.Warn("Reminders", "处理 Windows 通知点击动作失败", ex);
+            }
         }
 
         private static void OnAppUnhandledException(object sender, Microsoft.UI.Xaml.UnhandledExceptionEventArgs e)

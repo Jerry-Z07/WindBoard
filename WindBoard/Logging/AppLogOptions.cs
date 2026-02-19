@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using WindBoard.Persistence;
 
 namespace WindBoard.Logging
 {
@@ -40,6 +41,14 @@ namespace WindBoard.Logging
 
         private static string GetDefaultLogDirectory()
         {
+            // 统一由 AppDataPaths 决定日志目录（安装版/便携版不同策略）。
+            string dir = AppDataPaths.LogsDirectory;
+            if (!string.IsNullOrWhiteSpace(dir))
+            {
+                return dir;
+            }
+
+            // 极端兜底：路径解析失败时回退旧策略，避免丢日志或启动异常。
             return Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
                 "WindBoard",

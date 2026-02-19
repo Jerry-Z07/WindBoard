@@ -38,4 +38,16 @@
   <data name="Reminder_Update_Available_Body" xml:space="preserve">
     <value>Open "Settings - About - Check for updates" to get the download link.</value>
   </data>
+  <data name="Reminder_Data_SettingsMigrated_Title" xml:space="preserve">
+    <value>First launch of the portable version: Local settings have been migrated to the data directory.</value>
+  </data>
+  <data name="Reminder_Data_SettingsMigrated_Body_Fmt" xml:space="preserve">
+    <value>Click this notification to open the current data folder.</value>
+  </data>
+  <data name="Reminder_Data_PortableNotWritable_Title" xml:space="preserve">
+    <value>Portable data folder is not writable</value>
+  </data>
+  <data name="Reminder_Data_PortableNotWritable_Body_Fmt" xml:space="preserve">
+    <value>Data will be saved to the local app data folder. Click this notification to open the current data folder.</value>
+  </data>
 </root>

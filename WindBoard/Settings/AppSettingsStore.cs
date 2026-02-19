@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text.Json;
 using WindBoard.Logging;
+using WindBoard.Persistence;
 
 namespace WindBoard.Settings
 {
@@ -33,10 +34,17 @@ namespace WindBoard.Settings
 
         internal static AppSettingsStore CreateDefault()
         {
-            string dir = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                "WindBoard");
-            string path = Path.Combine(dir, "settings.json");
+            // 统一由 AppDataPaths 决定 settings.json 路径（安装版/便携版不同策略）。
+            string path = AppDataPaths.SettingsFilePath;
+            if (string.IsNullOrWhiteSpace(path))
+            {
+                // 极端兜底：路径解析失败时回退旧策略，避免启动阶段直接崩溃。
+                string dir = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                    "WindBoard");
+                path = Path.Combine(dir, "settings.json");
+            }
+
             return new AppSettingsStore(path);
         }
 

@@ -7,6 +7,7 @@ using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text;
 using WindBoard.Logging;
+using WindBoard.Persistence;
 
 namespace WindBoard.Settings
 {
@@ -27,10 +28,16 @@ namespace WindBoard.Settings
 
         private CamouflageService()
         {
-            _cacheDir = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                "WindBoard",
-                "camouflage");
+            // 统一由 AppDataPaths 决定缓存目录（安装版/便携版不同策略）。
+            _cacheDir = AppDataPaths.CamouflageCacheDirectory;
+            if (string.IsNullOrWhiteSpace(_cacheDir))
+            {
+                // 极端兜底：避免目录解析失败导致后续图标缓存/快捷方式逻辑异常。
+                _cacheDir = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                    "WindBoard",
+                    "camouflage");
+            }
         }
 
         internal static string ComputeCamouflageShortcutSettingsSignature(bool enabled, string? title, string? sourcePath, string? iconCachePath)

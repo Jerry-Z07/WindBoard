@@ -46,6 +46,29 @@ namespace WindBoard
                 IsIconVisible = true,
             };
 
+            if (message.ClickAction != AppReminderClickAction.None)
+            {
+                // 说明：
+                // - 允许点击弹条触发动作（例如打开数据目录）；
+                // - 为避免“点击关闭按钮也触发打开”，这里跳过 Button 触发源（InfoBar 关闭按钮为 Button）。
+                bar.Tapped += (_, e) =>
+                {
+                    try
+                    {
+                        if (e.OriginalSource is Button)
+                        {
+                            return;
+                        }
+
+                        AppReminderActionExecutor.TryExecute(message.ClickAction);
+                    }
+                    catch (Exception ex)
+                    {
+                        AppLog.Warn("Reminders", "处理应用内弹条点击动作失败", ex);
+                    }
+                };
+            }
+
             // 新消息放到最上方，避免重要提醒被旧消息压住。
             ReminderBannerStackPanel.Children.Insert(0, bar);
 
@@ -194,4 +217,3 @@ namespace WindBoard
         }
     }
 }
-

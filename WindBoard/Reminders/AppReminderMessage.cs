@@ -10,6 +10,10 @@ namespace WindBoard.Reminders
         public string Body { get; init; } = string.Empty;
 
         public AppReminderSeverity Severity { get; init; } = AppReminderSeverity.Info;
+
+        /// <summary>
+        /// 点击提醒后的动作（可选）。
+        /// </summary>
+        public AppReminderClickAction ClickAction { get; init; } = AppReminderClickAction.None;
     }
 }
-
