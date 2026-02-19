@@ -134,6 +134,18 @@
   <data name="Settings_General_Language_RestartTip" xml:space="preserve">
     <value>Language changed. Some UI requires restarting the app to take effect.</value>
   </data>
+  <data name="Settings_General_StartupWindowMode_Title" xml:space="preserve">
+    <value>Startup window mode</value>
+  </data>
+  <data name="Settings_General_StartupWindowMode_Description" xml:space="preserve">
+    <value>Choose how the window starts next time</value>
+  </data>
+  <data name="Settings_General_StartupWindowMode_Windowed" xml:space="preserve">
+    <value>Windowed</value>
+  </data>
+  <data name="Settings_General_StartupWindowMode_FullScreen" xml:space="preserve">
+    <value>Fullscreen</value>
+  </data>
   <data name="Settings_About_Title" xml:space="preserve">
     <value>About</value>
   </data>

@@ -67,8 +67,8 @@
                         Style="{StaticResource DockButtonStyle}"
                         HorizontalContentAlignment="Center"
                         VerticalContentAlignment="Center">
-                        <Button.Flyout>
-                            <MenuFlyout>
+                    <Button.Flyout>
+                            <MenuFlyout Opening="OnMoreMenuOpening">
                                 <MenuFlyoutItem Text="{l10n:Loc Key=Common_Settings}" Click="OnSettingsClicked">
                                     <MenuFlyoutItem.Icon>
                                         <SymbolIcon Symbol="Setting" />
@@ -80,6 +80,11 @@
                                         <SymbolIcon Symbol="OpenFile" />
                                     </MenuFlyoutItem.Icon>
                                 </MenuFlyoutItem>
+                                <ToggleMenuFlyoutItem x:Name="TemporaryFullScreenToggleMenuFlyoutItem" Text="{l10n:Loc Key=Common_FullScreen}" Click="OnTemporaryFullScreenToggleClicked">
+                                    <ToggleMenuFlyoutItem.Icon>
+                                        <SymbolIcon Symbol="FullScreen" />
+                                    </ToggleMenuFlyoutItem.Icon>
+                                </ToggleMenuFlyoutItem>
                                 <MenuFlyoutSeparator />
                                 <MenuFlyoutItem Text="{l10n:Loc Key=Common_Exit}" Click="OnExitClicked">
                                     <MenuFlyoutItem.Icon>

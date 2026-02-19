@@ -25,6 +25,7 @@ namespace WindBoard.Settings
                 General = new GeneralSettings
                 {
                     LanguagePreference = settings.General?.LanguagePreference ?? AppLanguagePreferenceParser.SystemValue,
+                    StartupWindowMode = settings.General?.StartupWindowMode ?? StartupWindowModeParser.WindowedValue,
                     Camouflage = new CamouflageSettings
                     {
                         Enabled = settings.General?.Camouflage?.Enabled ?? false,

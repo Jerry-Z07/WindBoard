@@ -30,6 +30,13 @@ namespace WindBoard.Settings
         /// </summary>
         public string LanguagePreference { get; set; } = AppLanguagePreferenceParser.SystemValue;
 
+        /// <summary>
+        /// 启动时窗口形态：
+        /// - windowed：窗口化（默认）
+        /// - fullscreen：全屏
+        /// </summary>
+        public string StartupWindowMode { get; set; } = StartupWindowModeParser.WindowedValue;
+
         public CamouflageSettings Camouflage { get; set; } = new();
 
         public UpdateSettings Updates { get; set; } = new();

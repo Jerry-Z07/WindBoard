@@ -111,6 +111,19 @@ namespace WindBoard.Settings
             return AppLanguagePreferenceParser.NormalizeOrDefault(value);
         }
 
+        internal StartupWindowMode GetStartupWindowMode()
+        {
+            string? value;
+            lock (_gate)
+            {
+                value = Current.General?.StartupWindowMode;
+            }
+
+            return StartupWindowModeParser.TryParse(value, out StartupWindowMode mode)
+                ? mode
+                : StartupWindowMode.Windowed;
+        }
+
         internal void SetLanguagePreference(string? settingValue)
         {
             string normalized = AppLanguagePreferenceParser.NormalizeOrDefault(settingValue);
@@ -118,6 +131,15 @@ namespace WindBoard.Settings
             {
                 s.General ??= new GeneralSettings();
                 s.General.LanguagePreference = normalized;
+            });
+        }
+
+        internal void SetStartupWindowMode(StartupWindowMode mode)
+        {
+            Update(s =>
+            {
+                s.General ??= new GeneralSettings();
+                s.General.StartupWindowMode = StartupWindowModeParser.ToSettingValue(mode);
             });
         }
 

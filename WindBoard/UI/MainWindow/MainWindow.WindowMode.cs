@@ -1,0 +1,149 @@
+using System;
+using Microsoft.UI.Windowing;
+using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls;
+using WindBoard.Logging;
+using WindBoard.Settings;
+
+namespace WindBoard
+{
+    public sealed partial class MainWindow : Window
+    {
+        private bool _hasAppliedStartupWindowMode;
+        private bool _isSyncingTemporaryFullScreenToggle;
+
+        private void OnMoreMenuOpening(object sender, object e)
+        {
+            // “更多”菜单每次打开都同步一次当前窗口全屏状态，避免临时开关状态滞后。
+            SyncTemporaryFullScreenToggleFromWindowState();
+        }
+
+        private void OnTemporaryFullScreenToggleClicked(object sender, RoutedEventArgs e)
+        {
+            if (_isSyncingTemporaryFullScreenToggle)
+            {
+                return;
+            }
+
+            bool targetFullScreen = TemporaryFullScreenToggleMenuFlyoutItem?.IsChecked == true;
+            AppLog.Info("WindowMode", $"临时切换窗口全屏：targetFullScreen={targetFullScreen}");
+
+            TrySetWindowFullScreen(targetFullScreen);
+
+            // 切换完成后再读一次真实状态，确保 UI 勾选与窗口一致（避免 SetPresenter 失败时“假勾选”）。
+            SyncTemporaryFullScreenToggleFromWindowState();
+        }
+
+        /// <summary>
+        /// 启动后按设置应用一次窗口形态（可能需要等待窗口句柄就绪，因此挂到 Activated 并允许重试）。
+        /// </summary>
+        private void TryApplyStartupWindowModeIfNeeded()
+        {
+            if (_hasAppliedStartupWindowMode)
+            {
+                return;
+            }
+
+            AppWindow? appWindow = TryGetAppWindow();
+            if (appWindow is null)
+            {
+                // 窗口句柄尚未就绪：等待下一次 Activated 再尝试。
+                return;
+            }
+
+            StartupWindowMode mode = AppSettingsService.Instance.GetStartupWindowMode();
+            bool targetFullScreen = mode == StartupWindowMode.FullScreen;
+            bool isFullScreen = appWindow.Presenter.Kind == AppWindowPresenterKind.FullScreen;
+
+            if (targetFullScreen != isFullScreen)
+            {
+                AppLog.Info("WindowMode", $"启动时应用窗口形态：mode={mode}, currentIsFullScreen={isFullScreen}");
+                if (!TrySetWindowFullScreen(targetFullScreen))
+                {
+                    // 应用失败时不标记完成：允许后续重试（避免极端环境句柄变化/异常导致设置永远不生效）。
+                    return;
+                }
+            }
+
+            _hasAppliedStartupWindowMode = true;
+        }
+
+        private void SyncTemporaryFullScreenToggleFromWindowState()
+        {
+            if (TemporaryFullScreenToggleMenuFlyoutItem is null)
+            {
+                return;
+            }
+
+            AppWindow? appWindow = TryGetAppWindow();
+            if (appWindow is null)
+            {
+                // 极端兜底：窗口句柄获取失败时禁用该临时开关，避免用户点击无响应。
+                try
+                {
+                    _isSyncingTemporaryFullScreenToggle = true;
+                    TemporaryFullScreenToggleMenuFlyoutItem.IsEnabled = false;
+                    TemporaryFullScreenToggleMenuFlyoutItem.IsChecked = false;
+                }
+                finally
+                {
+                    _isSyncingTemporaryFullScreenToggle = false;
+                }
+
+                return;
+            }
+
+            bool isFullScreen = false;
+            try
+            {
+                isFullScreen = appWindow.Presenter.Kind == AppWindowPresenterKind.FullScreen;
+            }
+            catch (Exception ex)
+            {
+                // 判定失败不应影响主流程：记录日志便于排查，并保持原 UI 状态不动。
+                AppLog.Warn("WindowMode", "读取窗口全屏状态失败", ex);
+                return;
+            }
+
+            try
+            {
+                _isSyncingTemporaryFullScreenToggle = true;
+                TemporaryFullScreenToggleMenuFlyoutItem.IsEnabled = true;
+                TemporaryFullScreenToggleMenuFlyoutItem.IsChecked = isFullScreen;
+            }
+            finally
+            {
+                _isSyncingTemporaryFullScreenToggle = false;
+            }
+        }
+
+        private bool TrySetWindowFullScreen(bool fullScreen)
+        {
+            AppWindow? appWindow = TryGetAppWindow();
+            if (appWindow is null)
+            {
+                AppLog.Warn("WindowMode", "切换全屏失败：无法获取 AppWindow（窗口句柄可能尚未就绪）");
+                return false;
+            }
+
+            try
+            {
+                bool current = appWindow.Presenter.Kind == AppWindowPresenterKind.FullScreen;
+                if (current == fullScreen)
+                {
+                    return true;
+                }
+
+                // Windowed：回到 Overlapped Presenter（窗口化）；FullScreen：进入全屏 Presenter。
+                appWindow.SetPresenter(fullScreen ? AppWindowPresenterKind.FullScreen : AppWindowPresenterKind.Overlapped);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                AppLog.Warn("WindowMode", $"切换全屏失败：fullScreen={fullScreen}", ex);
+                return false;
+            }
+        }
+    }
+}
+

@@ -134,6 +134,18 @@
   <data name="Settings_General_Language_RestartTip" xml:space="preserve">
     <value>语言已更改，部分界面需重启应用后生效。</value>
   </data>
+  <data name="Settings_General_StartupWindowMode_Title" xml:space="preserve">
+    <value>启动时窗口形态</value>
+  </data>
+  <data name="Settings_General_StartupWindowMode_Description" xml:space="preserve">
+    <value>设置应用下次启动时窗口显示形态</value>
+  </data>
+  <data name="Settings_General_StartupWindowMode_Windowed" xml:space="preserve">
+    <value>窗口化</value>
+  </data>
+  <data name="Settings_General_StartupWindowMode_FullScreen" xml:space="preserve">
+    <value>全屏</value>
+  </data>
   <data name="Settings_About_Title" xml:space="preserve">
     <value>关于</value>
   </data>

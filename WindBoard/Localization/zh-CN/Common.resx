@@ -41,6 +41,9 @@
   <data name="Common_Minimize" xml:space="preserve">
     <value>最小化</value>
   </data>
+  <data name="Common_FullScreen" xml:space="preserve">
+    <value>全屏</value>
+  </data>
   <data name="Common_Close" xml:space="preserve">
     <value>关闭</value>
   </data>

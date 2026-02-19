@@ -49,6 +49,34 @@
                     </Grid>
                 </Border>
 
+                <Border
+                    Background="{ThemeResource SystemControlBackgroundChromeMediumLowBrush}"
+                    BorderBrush="{ThemeResource SystemControlForegroundBaseLowBrush}"
+                    BorderThickness="1"
+                    CornerRadius="12"
+                    Padding="16,14">
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                        <StackPanel Spacing="2" VerticalAlignment="Center">
+                            <TextBlock
+                                Text="{l10n:Loc Key=Settings_General_StartupWindowMode_Title}"
+                                FontWeight="SemiBold"
+                                VerticalAlignment="Center" />
+                            <TextBlock
+                                Text="{l10n:Loc Key=Settings_General_StartupWindowMode_Description}"
+                                Opacity="0.75"
+                                TextWrapping="WrapWholeWords" />
+                        </StackPanel>
+
+                        <ComboBox
+                            x:Name="StartupWindowModeComboBox"
+                            Grid.Column="1"
+                            MinWidth="160"
+                            SelectedValuePath="Tag"
+                            SelectionChanged="OnStartupWindowModeSelectionChanged">
+                        </ComboBox>
+                    </Grid>
+                </Border>
+
                 <Button
                     x:Name="CamouflageSettingsCard"
                     Style="{StaticResource SettingsCardButtonStyle}"

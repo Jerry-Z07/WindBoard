@@ -81,6 +81,7 @@ namespace WindBoard
             ApplyAppSettingsToUi();
             Activated += (_, _) =>
             {
+                TryApplyStartupWindowModeIfNeeded();
                 ApplyCamouflageSettingsToWindow();
                 TryStartAutoUpdateCheckOnce();
             };

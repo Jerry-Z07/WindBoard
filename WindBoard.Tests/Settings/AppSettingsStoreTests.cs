@@ -20,6 +20,7 @@ public sealed class AppSettingsStoreTests
         Assert.NotNull(settings.General.Camouflage);
         Assert.NotNull(settings.General.Updates);
         Assert.Equal(AppLanguagePreferenceParser.SystemValue, settings.General.LanguagePreference);
+        Assert.Equal(StartupWindowModeParser.WindowedValue, settings.General.StartupWindowMode);
         Assert.False(settings.General.Camouflage.Enabled);
         Assert.Equal(string.Empty, settings.General.Camouflage.Title);
         Assert.Equal(string.Empty, settings.General.Camouflage.SourcePath);
@@ -53,6 +54,27 @@ public sealed class AppSettingsStoreTests
         AppSettingsStore.NormalizeInPlace(settings);
 
         Assert.Equal(expected, settings.General.LanguagePreference);
+    }
+
+    [Theory]
+    [InlineData("  windowed  ", StartupWindowModeParser.WindowedValue)]
+    [InlineData("  fullscreen  ", StartupWindowModeParser.FullScreenValue)]
+    [InlineData("  FULLSCREEN  ", StartupWindowModeParser.FullScreenValue)]
+    [InlineData("invalid", StartupWindowModeParser.WindowedValue)]
+    [InlineData(null, StartupWindowModeParser.WindowedValue)]
+    public void NormalizeInPlace_NormalizesStartupWindowMode_ToKnownValues(string? input, string expected)
+    {
+        var settings = new AppSettings
+        {
+            General = new GeneralSettings
+            {
+                StartupWindowMode = input!,
+            },
+        };
+
+        AppSettingsStore.NormalizeInPlace(settings);
+
+        Assert.Equal(expected, settings.General.StartupWindowMode);
     }
 
     [Fact]

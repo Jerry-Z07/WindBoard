@@ -11,6 +11,7 @@ namespace WindBoard.Settings.Pages
     {
         private bool _isSyncingUiFromSettings;
         private bool _isLanguageComboBoxInitialized;
+        private bool _isStartupWindowModeComboBoxInitialized;
 
         public GeneralSettingsPage()
         {
@@ -22,6 +23,7 @@ namespace WindBoard.Settings.Pages
         private void OnLoaded(object sender, RoutedEventArgs e)
         {
             EnsureLanguageComboBoxItems();
+            EnsureStartupWindowModeComboBoxItems();
             SyncUiFromSettings();
             AppSettingsService.Instance.Changed += OnAppSettingsChanged;
         }
@@ -45,11 +47,14 @@ namespace WindBoard.Settings.Pages
             try
             {
                 EnsureLanguageComboBoxItems();
+                EnsureStartupWindowModeComboBoxItems();
 
                 string settingValue = AppSettingsService.Instance.GetLanguagePreference();
+                StartupWindowMode startupMode = AppSettingsService.Instance.GetStartupWindowMode();
 
                 _isSyncingUiFromSettings = true;
                 LanguageComboBox.SelectedValue = settingValue;
+                StartupWindowModeComboBox.SelectedValue = StartupWindowModeParser.ToSettingValue(startupMode);
             }
             catch (Exception ex)
             {
@@ -59,6 +64,91 @@ namespace WindBoard.Settings.Pages
             finally
             {
                 _isSyncingUiFromSettings = false;
+            }
+        }
+
+        private void EnsureStartupWindowModeComboBoxItems()
+        {
+            if (_isStartupWindowModeComboBoxInitialized)
+            {
+                return;
+            }
+
+            _isStartupWindowModeComboBoxInitialized = true;
+
+            try
+            {
+                // 初始化过程中会触发 SelectionChanged，这里统一屏蔽。
+                _isSyncingUiFromSettings = true;
+                StartupWindowModeComboBox.Items.Clear();
+
+                StartupWindowModeComboBox.Items.Add(new ComboBoxItem
+                {
+                    Content = L10n.Get("Settings_General_StartupWindowMode_Windowed"),
+                    Tag = StartupWindowModeParser.WindowedValue,
+                });
+
+                StartupWindowModeComboBox.Items.Add(new ComboBoxItem
+                {
+                    Content = L10n.Get("Settings_General_StartupWindowMode_FullScreen"),
+                    Tag = StartupWindowModeParser.FullScreenValue,
+                });
+            }
+            catch (Exception ex)
+            {
+                // 构建下拉框失败不应影响设置页：记录日志并降级为“固定列表”。
+                AppLog.Warn("Settings", "初始化启动窗口形态下拉框失败，将回退到固定列表", ex);
+                BuildStartupWindowModeComboBoxItemsFallback();
+            }
+            finally
+            {
+                _isSyncingUiFromSettings = false;
+            }
+        }
+
+        private void BuildStartupWindowModeComboBoxItemsFallback()
+        {
+            StartupWindowModeComboBox.Items.Clear();
+
+            StartupWindowModeComboBox.Items.Add(new ComboBoxItem
+            {
+                Content = L10n.Get("Settings_General_StartupWindowMode_Windowed"),
+                Tag = StartupWindowModeParser.WindowedValue,
+            });
+
+            StartupWindowModeComboBox.Items.Add(new ComboBoxItem
+            {
+                Content = L10n.Get("Settings_General_StartupWindowMode_FullScreen"),
+                Tag = StartupWindowModeParser.FullScreenValue,
+            });
+        }
+
+        private void OnStartupWindowModeSelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (_isSyncingUiFromSettings)
+            {
+                return;
+            }
+
+            try
+            {
+                string? value = StartupWindowModeComboBox.SelectedValue as string;
+                if (string.IsNullOrWhiteSpace(value) && StartupWindowModeComboBox.SelectedItem is ComboBoxItem item)
+                {
+                    value = item.Tag as string;
+                }
+
+                StartupWindowModeParser.TryParse(value, out StartupWindowMode mode);
+                string normalized = StartupWindowModeParser.ToSettingValue(mode);
+                AppLog.Info("Settings", $"用户设置启动窗口形态：value='{normalized}'");
+
+                AppSettingsService.Instance.SetStartupWindowMode(mode);
+            }
+            catch (Exception ex)
+            {
+                // 切换失败不应导致设置页崩溃：记录日志并回退 UI。
+                AppLog.Warn("Settings", "设置启动窗口形态失败", ex);
+                SyncUiFromSettings();
             }
         }
 

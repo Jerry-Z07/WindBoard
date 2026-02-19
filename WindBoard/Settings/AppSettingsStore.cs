@@ -110,6 +110,7 @@ namespace WindBoard.Settings
 
             settings.General ??= new GeneralSettings();
             settings.General.LanguagePreference = NormalizeLanguagePreferenceOrDefault(settings.General.LanguagePreference);
+            settings.General.StartupWindowMode = NormalizeStartupWindowModeOrDefault(settings.General.StartupWindowMode);
             settings.General.Camouflage ??= new CamouflageSettings();
             NormalizeCamouflageSettingsInPlace(settings.General.Camouflage);
 
@@ -283,6 +284,19 @@ namespace WindBoard.Settings
             // - 允许大小写不敏感/简写/zh_CN 形式
             // - 非法/空值回退为默认（跟随系统）
             return AppLanguagePreferenceParser.NormalizeOrDefault(value);
+        }
+
+        private static string NormalizeStartupWindowModeOrDefault(string? value)
+        {
+            // 说明：
+            // - 允许用户手动编辑 settings.json
+            // - 非法/空值回退为默认（窗口化）
+            if (StartupWindowModeParser.TryParse(value, out StartupWindowMode mode))
+            {
+                return StartupWindowModeParser.ToSettingValue(mode);
+            }
+
+            return StartupWindowModeParser.WindowedValue;
         }
 
         private static string NormalizeDownloadSourcePolicyOrDefault(string? value)
