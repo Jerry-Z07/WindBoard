@@ -55,8 +55,7 @@ WindBoard 支持在“设置 → 常规 → 语言”中切换应用显示语言
 - 持久化：`settings.json` → `general.languagePreference`
 - 当前可选值：
   - `system`：跟随系统（默认）
-  - `zh-CN`：中文
-  - `en-US`：English
+  - `<CultureName>`：任意“已提供资源”的语言（例如 `zh-CN` / `en-US` / `ja-JP` 等）
 
 实现要点：
 
@@ -65,46 +64,18 @@ WindBoard 支持在“设置 → 常规 → 语言”中切换应用显示语言
 
 ## 新增语言步骤
 
-### 仅支持“跟随系统”
-
-仅新增资源文件，不改代码。适用于：用户系统语言匹配到该语言时自动生效。
-
 1. 复制 `WindBoard/Localization/zh-CN/` 为 `WindBoard/Localization/en-US/`（或其它目标语言目录，例如 `ja-JP`）
 2. 逐项翻译资源值（Key 不变；文件按功能拆分）
 3. 运行 `dotnet test WindBoard.slnx` 确认本地化 Key 审计通过
 
-当前不做“运行时切换语言自动刷新 UI”，约定切换语言后需要重启应用（后续如需可引入可绑定的动态资源机制）。
+说明：
+- 设置页会从程序包内嵌入的本地化资源里动态枚举“已提供资源”的语言；
+- 下拉框显示文案使用 `CultureInfo` 的 `NativeName`（并附带 `CultureName`），因此不需要为每种语言额外新增本地化 key。
 
-### 让语言出现在“设置 → 常规 → 语言”（可手动选择）
-
-在完成上一节“仅支持跟随系统”的资源新增后，还需要把该语言加入“语言偏好”的枚举与 UI 下拉框。
-
-以新增 `ja-JP`（日语）为例：
-
-1. 扩展语言偏好枚举/解析
-   - 修改 `WindBoard/Settings/AppLanguagePreference.cs`
-   - 在 `AppLanguagePreference` 中新增枚举值（例如 `Japanese`）
-   - 在 `AppLanguagePreferenceParser` 中新增常量与解析分支，并确保 `ToSettingValue` 返回**唯一且稳定**的设置值（建议直接用 CultureName，例如 `ja-JP`）
-
-2. 扩展语言应用逻辑
-   - 修改 `WindBoard/Settings/AppLanguageService.cs`
-   - 在 `Apply` 中增加新语言分支：把偏好映射到 `CultureInfo` 与 `Windows.Globalization.ApplicationLanguages.PrimaryLanguageOverride`（通常使用同一个 CultureName，例如 `ja-JP`）
-
-3. 扩展设置页下拉框选项
-   - 修改 `WindBoard/Settings/Pages/GeneralSettingsPage.xaml`
-   - 为 `LanguageComboBox` 增加一项 `ComboBoxItem`，并让 `Tag` 与解析器输出一致（例如 `Tag="ja-JP"`）
-
-4. 增加默认语言资源（下拉框显示文案）
-   - 修改 `WindBoard/Localization/zh-CN/Settings.resx`
-   - 新增一个 key（例如 `Settings_General_Language_Japanese`），用于对应新增的下拉框项 `Content`
-   - 注意：本仓库的本地化 Key 审计以默认语言 `zh-CN` 为准，**XAML 引用到的新 key 必须在 `zh-CN/*.resx` 中存在**，否则单测会失败
-
-5. 更新单元测试（建议）
-   - 修改 `WindBoard.Tests/Settings/AppLanguagePreferenceParserTests.cs`：新增 `InlineData("ja-JP", ...)` 等用例
-   - 修改 `WindBoard.Tests/Settings/AppSettingsStoreTests.cs`：新增归一化用例，确保 `general.languagePreference` 能被识别并写回规范值
-
-6. 运行验证
-   - `dotnet test WindBoard.slnx -p:Platform=x64`
+验证步骤：
+1. 运行 `dotnet test WindBoard.slnx` 确认本地化 Key 审计通过
+2. 启动应用 → 打开“设置 → 常规 → 语言”确认新语言已出现并可选择
+3. 选择后按提示重启应用，确认界面语言生效
 
 ## 质量门禁（防漏 Key）
 

@@ -45,9 +45,6 @@
                             MinWidth="160"
                             SelectedValuePath="Tag"
                             SelectionChanged="OnLanguageSelectionChanged">
-                            <ComboBoxItem Content="{l10n:Loc Key=Settings_General_Language_FollowSystem}" Tag="system" />
-                            <ComboBoxItem Content="{l10n:Loc Key=Settings_General_Language_Chinese}" Tag="zh-CN" />
-                            <ComboBoxItem Content="{l10n:Loc Key=Settings_General_Language_English}" Tag="en-US" />
                         </ComboBox>
                     </Grid>
                 </Border>

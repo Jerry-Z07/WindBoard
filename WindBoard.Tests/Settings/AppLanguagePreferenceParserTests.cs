@@ -14,12 +14,12 @@ public sealed class AppLanguagePreferenceParserTests
     [InlineData("en-US", AppLanguagePreferenceParser.EnglishValue)]
     [InlineData("en_US", AppLanguagePreferenceParser.EnglishValue)]
     [InlineData("en", AppLanguagePreferenceParser.EnglishValue)]
-    public void TryParse_AcceptsKnownValues(string input, string expectedSettingValue)
+    public void TryNormalize_AcceptsKnownValues(string input, string expectedSettingValue)
     {
-        bool ok = AppLanguagePreferenceParser.TryParse(input, out AppLanguagePreference parsed);
+        bool ok = AppLanguagePreferenceParser.TryNormalize(input, out string normalized);
 
         Assert.True(ok);
-        Assert.Equal(expectedSettingValue, AppLanguagePreferenceParser.ToSettingValue(parsed));
+        Assert.Equal(expectedSettingValue, normalized);
     }
 
     [Theory]
@@ -27,18 +27,18 @@ public sealed class AppLanguagePreferenceParserTests
     [InlineData("")]
     [InlineData("   ")]
     [InlineData("unknown")]
-    public void TryParse_RejectsInvalidValues(string? input)
+    public void TryNormalize_RejectsInvalidValues(string? input)
     {
-        bool ok = AppLanguagePreferenceParser.TryParse(input, out _);
+        bool ok = AppLanguagePreferenceParser.TryNormalize(input, out _);
 
         Assert.False(ok);
     }
 
     [Fact]
-    public void ToSettingValue_ReturnsCanonicalValues()
+    public void NormalizeOrDefault_ReturnsSystem_ForInvalidValues()
     {
-        Assert.Equal(AppLanguagePreferenceParser.SystemValue, AppLanguagePreferenceParser.ToSettingValue(AppLanguagePreference.System));
-        Assert.Equal(AppLanguagePreferenceParser.ChineseValue, AppLanguagePreferenceParser.ToSettingValue(AppLanguagePreference.Chinese));
-        Assert.Equal(AppLanguagePreferenceParser.EnglishValue, AppLanguagePreferenceParser.ToSettingValue(AppLanguagePreference.English));
+        Assert.Equal(AppLanguagePreferenceParser.SystemValue, AppLanguagePreferenceParser.NormalizeOrDefault(null));
+        Assert.Equal(AppLanguagePreferenceParser.SystemValue, AppLanguagePreferenceParser.NormalizeOrDefault(string.Empty));
+        Assert.Equal(AppLanguagePreferenceParser.SystemValue, AppLanguagePreferenceParser.NormalizeOrDefault("unknown"));
     }
 }

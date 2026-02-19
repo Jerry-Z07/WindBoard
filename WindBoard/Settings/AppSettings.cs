@@ -24,7 +24,9 @@ namespace WindBoard.Settings
     internal sealed class GeneralSettings
     {
         /// <summary>
-        /// 应用显示语言偏好（system/zh-CN/en-US）。
+        /// 应用显示语言偏好：
+        /// - system：跟随系统
+        /// - 其它：CultureName（例如 zh-CN/en-US/ja-JP）
         /// </summary>
         public string LanguagePreference { get; set; } = AppLanguagePreferenceParser.SystemValue;
 

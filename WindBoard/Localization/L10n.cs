@@ -99,6 +99,78 @@ namespace WindBoard.Localization
         }
 
         /// <summary>
+        /// 获取当前程序包内“已提供资源”的语言列表（不包含 "system"）。
+        /// 
+        /// 说明：
+        /// - 语言来源于程序集嵌入的资源名（WindBoard.Localization.&lt;Language&gt;.&lt;Feature&gt;.resources），因此无需维护枚举；
+        /// - 返回值为 <see cref="CultureInfo.Name"/> 的规范形式（例如 "zh-CN" / "en-US" / "ja-JP"）；
+        /// - 顺序稳定：默认语言优先，其余按字符串排序。
+        /// </summary>
+        internal static IReadOnlyList<string> GetSupportedCultureNames()
+        {
+            try
+            {
+                ResourceIndex index = Index.Value;
+
+                // 使用 IgnoreCase 去重：避免同时出现 zh-CN 与 zh_CN 等重复项。
+                HashSet<string> cultures = new(StringComparer.OrdinalIgnoreCase);
+
+                foreach (string segment in index.LanguageSegments)
+                {
+                    if (string.IsNullOrWhiteSpace(segment))
+                    {
+                        continue;
+                    }
+
+                    // 兼容：资源段中可能包含 '_'，统一映射为 CultureInfo 可识别的 '-'。
+                    string candidate = segment.Replace('_', '-');
+                    try
+                    {
+                        cultures.Add(CultureInfo.GetCultureInfo(candidate).Name);
+                    }
+                    catch
+                    {
+                        // 忽略无效 Culture：不把它暴露到 UI 选择中，避免用户选择后无法应用。
+                    }
+                }
+
+                // 兜底：确保默认语言一定存在（即使资源索引异常或某些构建规则导致未被扫描）。
+                cultures.Add(CultureInfo.GetCultureInfo(DefaultCultureName).Name);
+
+                List<string> result = new(cultures.Count);
+                foreach (string name in cultures)
+                {
+                    result.Add(name);
+                }
+
+                result.Sort(StringComparer.OrdinalIgnoreCase);
+
+                // 默认语言置顶
+                string defaultName = CultureInfo.GetCultureInfo(DefaultCultureName).Name;
+                for (int i = 0; i < result.Count; i++)
+                {
+                    if (result[i].Equals(defaultName, StringComparison.OrdinalIgnoreCase))
+                    {
+                        if (i != 0)
+                        {
+                            result.RemoveAt(i);
+                            result.Insert(0, defaultName);
+                        }
+
+                        break;
+                    }
+                }
+
+                return result;
+            }
+            catch (Exception ex)
+            {
+                AppLog.Warn("L10n", "获取可用语言列表失败，将回退到仅默认语言", ex);
+                return new[] { DefaultCultureName };
+            }
+        }
+
+        /// <summary>
         /// 获取本地化字符串。
         /// </summary>
         /// <param name="key">资源 Key（建议使用常量字符串）。</param>

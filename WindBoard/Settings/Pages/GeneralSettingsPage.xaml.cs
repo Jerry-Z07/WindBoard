@@ -1,6 +1,8 @@
 using System;
+using System.Globalization;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using WindBoard.Localization;
 using WindBoard.Logging;
 
 namespace WindBoard.Settings.Pages
@@ -8,6 +10,7 @@ namespace WindBoard.Settings.Pages
     public sealed partial class GeneralSettingsPage : Page
     {
         private bool _isSyncingUiFromSettings;
+        private bool _isLanguageComboBoxInitialized;
 
         public GeneralSettingsPage()
         {
@@ -18,6 +21,7 @@ namespace WindBoard.Settings.Pages
 
         private void OnLoaded(object sender, RoutedEventArgs e)
         {
+            EnsureLanguageComboBoxItems();
             SyncUiFromSettings();
             AppSettingsService.Instance.Changed += OnAppSettingsChanged;
         }
@@ -40,8 +44,9 @@ namespace WindBoard.Settings.Pages
         {
             try
             {
-                AppLanguagePreference preference = AppSettingsService.Instance.GetLanguagePreference();
-                string settingValue = AppLanguagePreferenceParser.ToSettingValue(preference);
+                EnsureLanguageComboBoxItems();
+
+                string settingValue = AppSettingsService.Instance.GetLanguagePreference();
 
                 _isSyncingUiFromSettings = true;
                 LanguageComboBox.SelectedValue = settingValue;
@@ -72,16 +77,11 @@ namespace WindBoard.Settings.Pages
                     value = item.Tag as string;
                 }
 
-                if (!AppLanguagePreferenceParser.TryParse(value, out AppLanguagePreference preference))
-                {
-                    preference = AppLanguagePreference.System;
-                }
-
-                string settingValue = AppLanguagePreferenceParser.ToSettingValue(preference);
+                string settingValue = AppLanguagePreferenceParser.NormalizeOrDefault(value);
                 AppLog.Info("L10n", $"用户切换语言偏好：value='{settingValue}'");
 
-                AppSettingsService.Instance.SetLanguagePreference(preference);
-                AppLanguageService.Apply(preference);
+                AppSettingsService.Instance.SetLanguagePreference(settingValue);
+                AppLanguageService.Apply(settingValue);
 
                 // 运行中切换语言通常需要重启才能完全生效（特别是已加载的 XAML 文本）。
                 LanguageRestartInfoBar.IsOpen = true;
@@ -91,6 +91,85 @@ namespace WindBoard.Settings.Pages
                 // 切换失败不应导致设置页崩溃：记录日志并回退 UI。
                 AppLog.Warn("L10n", "切换语言偏好失败", ex);
                 SyncUiFromSettings();
+            }
+        }
+
+        private void EnsureLanguageComboBoxItems()
+        {
+            if (_isLanguageComboBoxInitialized)
+            {
+                return;
+            }
+
+            _isLanguageComboBoxInitialized = true;
+
+            try
+            {
+                // 初始化过程中会触发 SelectionChanged，这里统一屏蔽。
+                _isSyncingUiFromSettings = true;
+                LanguageComboBox.Items.Clear();
+
+                LanguageComboBox.Items.Add(new ComboBoxItem
+                {
+                    Content = L10n.Get("Settings_General_Language_FollowSystem"),
+                    Tag = AppLanguagePreferenceParser.SystemValue,
+                });
+
+                foreach (string cultureName in L10n.GetSupportedCultureNames())
+                {
+                    LanguageComboBox.Items.Add(new ComboBoxItem
+                    {
+                        Content = FormatCultureDisplayName(cultureName),
+                        Tag = cultureName,
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                // 构建下拉框失败不应影响设置页：记录日志并降级为“固定列表”。
+                AppLog.Warn("L10n", "初始化语言下拉框失败，将回退到固定列表", ex);
+                BuildLanguageComboBoxItemsFallback();
+            }
+            finally
+            {
+                _isSyncingUiFromSettings = false;
+            }
+        }
+
+        private void BuildLanguageComboBoxItemsFallback()
+        {
+            LanguageComboBox.Items.Clear();
+
+            LanguageComboBox.Items.Add(new ComboBoxItem
+            {
+                Content = L10n.Get("Settings_General_Language_FollowSystem"),
+                Tag = AppLanguagePreferenceParser.SystemValue,
+            });
+
+            LanguageComboBox.Items.Add(new ComboBoxItem
+            {
+                Content = L10n.Get("Settings_General_Language_Chinese"),
+                Tag = AppLanguagePreferenceParser.ChineseValue,
+            });
+
+            LanguageComboBox.Items.Add(new ComboBoxItem
+            {
+                Content = L10n.Get("Settings_General_Language_English"),
+                Tag = AppLanguagePreferenceParser.EnglishValue,
+            });
+        }
+
+        private static string FormatCultureDisplayName(string cultureName)
+        {
+            try
+            {
+                CultureInfo culture = CultureInfo.GetCultureInfo(cultureName);
+                string nativeName = string.IsNullOrWhiteSpace(culture.NativeName) ? culture.Name : culture.NativeName;
+                return $"{nativeName} ({culture.Name})";
+            }
+            catch
+            {
+                return cultureName;
             }
         }
 

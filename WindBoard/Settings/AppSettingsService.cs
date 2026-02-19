@@ -100,7 +100,7 @@ namespace WindBoard.Settings
             }
         }
 
-        internal AppLanguagePreference GetLanguagePreference()
+        internal string GetLanguagePreference()
         {
             string? value;
             lock (_gate)
@@ -108,17 +108,16 @@ namespace WindBoard.Settings
                 value = Current.General?.LanguagePreference;
             }
 
-            return AppLanguagePreferenceParser.TryParse(value, out AppLanguagePreference preference)
-                ? preference
-                : AppLanguagePreference.System;
+            return AppLanguagePreferenceParser.NormalizeOrDefault(value);
         }
 
-        internal void SetLanguagePreference(AppLanguagePreference preference)
+        internal void SetLanguagePreference(string? settingValue)
         {
+            string normalized = AppLanguagePreferenceParser.NormalizeOrDefault(settingValue);
             Update(s =>
             {
                 s.General ??= new GeneralSettings();
-                s.General.LanguagePreference = AppLanguagePreferenceParser.ToSettingValue(preference);
+                s.General.LanguagePreference = normalized;
             });
         }
 

@@ -64,7 +64,7 @@ namespace WindBoard
             // 应用语言偏好：必须在创建任何 Window/加载任何 XAML 前执行，否则 LocExtension 的取值可能会缓存旧语言。
             try
             {
-                AppLanguagePreference preference = AppSettingsService.Instance.GetLanguagePreference();
+                string preference = AppSettingsService.Instance.GetLanguagePreference();
                 AppLanguageService.Apply(preference);
             }
             catch (Exception ex)

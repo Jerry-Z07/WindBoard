@@ -48,26 +48,31 @@ namespace WindBoard.Settings
         /// <summary>
         /// 应用语言偏好到当前进程。
         /// </summary>
-        internal static void Apply(AppLanguagePreference preference)
+        internal static void Apply(string? settingValue)
         {
             CaptureSystemCulturesIfNeeded();
+
+            if (!AppLanguagePreferenceParser.TryNormalize(settingValue, out string preference))
+            {
+                // 语言设置失败不应阻断应用启动/运行：记录日志并继续使用系统语言。
+                if (!string.IsNullOrWhiteSpace(settingValue))
+                {
+                    AppLog.Warn("L10n", $"语言偏好无效或未提供资源，已回退到 system：value='{settingValue}'");
+                }
+
+                preference = AppLanguagePreferenceParser.SystemValue;
+            }
 
             // 默认：跟随系统
             CultureInfo? targetCulture = null;
             CultureInfo? targetUiCulture = null;
             string primaryLanguageOverride = string.Empty;
 
-            if (preference == AppLanguagePreference.Chinese)
+            if (!AppLanguagePreferenceParser.IsSystem(preference))
             {
-                targetCulture = GetCultureOrFallback(AppLanguagePreferenceParser.ChineseValue, fallback: _systemCulture);
-                targetUiCulture = GetCultureOrFallback(AppLanguagePreferenceParser.ChineseValue, fallback: _systemUiCulture);
-                primaryLanguageOverride = AppLanguagePreferenceParser.ChineseValue;
-            }
-            else if (preference == AppLanguagePreference.English)
-            {
-                targetCulture = GetCultureOrFallback(AppLanguagePreferenceParser.EnglishValue, fallback: _systemCulture);
-                targetUiCulture = GetCultureOrFallback(AppLanguagePreferenceParser.EnglishValue, fallback: _systemUiCulture);
-                primaryLanguageOverride = AppLanguagePreferenceParser.EnglishValue;
+                targetCulture = GetCultureOrFallback(preference, fallback: _systemCulture);
+                targetUiCulture = GetCultureOrFallback(preference, fallback: _systemUiCulture);
+                primaryLanguageOverride = preference;
             }
 
             try
@@ -106,7 +111,7 @@ namespace WindBoard.Settings
 
             AppLog.Info(
                 "L10n",
-                $"语言已应用：preference={AppLanguagePreferenceParser.ToSettingValue(preference)}, culture={CultureInfo.CurrentCulture.Name}, uiCulture={CultureInfo.CurrentUICulture.Name}, primaryOverride='{appliedPrimaryLanguageOverride}'");
+                $"语言已应用：preference='{preference}', culture={CultureInfo.CurrentCulture.Name}, uiCulture={CultureInfo.CurrentUICulture.Name}, primaryOverride='{appliedPrimaryLanguageOverride}'");
         }
 
         private static string ApplyPrimaryLanguageOverride(string desiredOverride)

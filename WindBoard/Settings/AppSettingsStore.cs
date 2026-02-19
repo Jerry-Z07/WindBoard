@@ -274,12 +274,7 @@ namespace WindBoard.Settings
             // - 允许用户手动编辑 settings.json
             // - 允许大小写不敏感/简写/zh_CN 形式
             // - 非法/空值回退为默认（跟随系统）
-            if (AppLanguagePreferenceParser.TryParse(value, out AppLanguagePreference preference))
-            {
-                return AppLanguagePreferenceParser.ToSettingValue(preference);
-            }
-
-            return AppLanguagePreferenceParser.SystemValue;
+            return AppLanguagePreferenceParser.NormalizeOrDefault(value);
         }
 
         private static string NormalizeDownloadSourcePolicyOrDefault(string? value)
