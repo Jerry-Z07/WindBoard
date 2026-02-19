@@ -1,6 +1,7 @@
 using System;
 using System.Globalization;
 using WindBoard.Logging;
+using AppSdkApplicationLanguages = Microsoft.Windows.Globalization.ApplicationLanguages;
 
 namespace WindBoard.Settings
 {
@@ -101,20 +102,130 @@ namespace WindBoard.Settings
                 AppLog.Warn("L10n", "应用 CultureInfo 失败，将继续使用当前语言", ex);
             }
 
-            try
-            {
-                // 与 WinUI 的语言选择保持一致（对内置控件文本/方向等更友好）。
-                // 说明：该 API 在某些环境下可能失败（例如权限/运行时差异），这里不阻断主流程。
-                Windows.Globalization.ApplicationLanguages.PrimaryLanguageOverride = primaryLanguageOverride;
-            }
-            catch (Exception ex)
-            {
-                AppLog.Warn("L10n", $"设置 PrimaryLanguageOverride 失败：value='{primaryLanguageOverride}'", ex);
-            }
+            string appliedPrimaryLanguageOverride = ApplyPrimaryLanguageOverride(primaryLanguageOverride);
 
             AppLog.Info(
                 "L10n",
-                $"语言已应用：preference={AppLanguagePreferenceParser.ToSettingValue(preference)}, culture={CultureInfo.CurrentCulture.Name}, uiCulture={CultureInfo.CurrentUICulture.Name}, primaryOverride='{primaryLanguageOverride}'");
+                $"语言已应用：preference={AppLanguagePreferenceParser.ToSettingValue(preference)}, culture={CultureInfo.CurrentCulture.Name}, uiCulture={CultureInfo.CurrentUICulture.Name}, primaryOverride='{appliedPrimaryLanguageOverride}'");
+        }
+
+        private static string ApplyPrimaryLanguageOverride(string desiredOverride)
+        {
+            // 与 WinUI 的语言选择保持一致（对内置控件文本/方向等更友好）。
+            // 说明：
+            // - 对于“跟随系统”（desiredOverride 为空）场景，如果当前已经没有 override，则不写入，避免某些环境下对空字符串赋值会抛异常并刷警告；
+            // - 在“无包身份/运行时差异”等环境下，该 API 可能不可用：这里不阻断主流程（应用自身的本地化仍由 CultureInfo 驱动）。
+            if (!TryGetPrimaryLanguageOverride(out string currentOverride))
+            {
+                // 无法读取时：
+                // - “跟随系统”不强制写入（系统默认行为即可）；
+                // - 显式语言偏好仍尝试写入（后续会记录失败）。
+                currentOverride = string.Empty;
+            }
+
+            // 目标是“跟随系统”
+            if (string.IsNullOrEmpty(desiredOverride))
+            {
+                // 当前已经是空：无需重复写入（避免空字符串赋值异常）。
+                if (string.IsNullOrEmpty(currentOverride))
+                {
+                    return string.Empty;
+                }
+
+                // 尝试清空（按 API 约定：空字符串表示取消 override）。
+                if (TrySetPrimaryLanguageOverride(string.Empty, out Exception? clearError))
+                {
+                    return string.Empty;
+                }
+
+                // 降级策略：若清空失败，则至少把 override 设置为启动时捕获到的系统 UI 语言，避免残留旧值导致语言不一致。
+                // 注意：该降级仅影响内置控件语言，不影响 WindBoard 自身资源读取。
+                string fallback = string.IsNullOrWhiteSpace(_systemUiCulture.Name) ? string.Empty : _systemUiCulture.Name;
+                if (!string.IsNullOrEmpty(fallback) && TrySetPrimaryLanguageOverride(fallback, out _))
+                {
+                    AppLog.Info("L10n", $"清空 PrimaryLanguageOverride 失败，已降级为设置为系统语言：fallback='{fallback}'（desired=''）");
+                    return fallback;
+                }
+
+                // 清空与降级均失败：记录警告（附带一次异常堆栈便于排查）。
+                AppLog.Warn("L10n", "清空 PrimaryLanguageOverride 失败（desired=''）", clearError);
+                return currentOverride;
+            }
+
+            // 目标是指定语言：若无需变更则直接返回，避免无效写入。
+            if (string.Equals(currentOverride, desiredOverride, StringComparison.OrdinalIgnoreCase))
+            {
+                return currentOverride;
+            }
+
+            if (!TrySetPrimaryLanguageOverride(desiredOverride, out Exception? setError))
+            {
+                AppLog.Warn("L10n", $"设置 PrimaryLanguageOverride 失败：value='{desiredOverride}'", setError);
+                return currentOverride;
+            }
+
+            return desiredOverride;
+        }
+
+        private static bool TryGetPrimaryLanguageOverride(out string value)
+        {
+            try
+            {
+                value = AppSdkApplicationLanguages.PrimaryLanguageOverride;
+                if (value is null)
+                {
+                    value = string.Empty;
+                }
+
+                return true;
+            }
+            catch
+            {
+                // 忽略：继续尝试 Windows.* 版本的 API
+            }
+
+            try
+            {
+                value = Windows.Globalization.ApplicationLanguages.PrimaryLanguageOverride;
+                if (value is null)
+                {
+                    value = string.Empty;
+                }
+
+                return true;
+            }
+            catch
+            {
+                value = string.Empty;
+                return false;
+            }
+        }
+
+        private static bool TrySetPrimaryLanguageOverride(string value, out Exception? error)
+        {
+            error = null;
+
+            try
+            {
+                AppSdkApplicationLanguages.PrimaryLanguageOverride = value;
+                return true;
+            }
+            catch (Exception ex)
+            {
+                error = ex;
+            }
+
+            try
+            {
+                Windows.Globalization.ApplicationLanguages.PrimaryLanguageOverride = value;
+                error = null;
+                return true;
+            }
+            catch (Exception ex)
+            {
+                error = ex;
+                return false;
+            }
         }
 
         private static CultureInfo GetCultureOrFallback(string cultureName, CultureInfo fallback)
@@ -131,4 +242,3 @@ namespace WindBoard.Settings
         }
     }
 }
-
