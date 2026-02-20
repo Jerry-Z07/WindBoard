@@ -77,7 +77,7 @@ Header="{l10n:Loc Key=Settings_Dock_ShowUndoRedo_Header}"
 2. 启动应用 → 打开“设置 → 常规 → 语言”确认新语言已出现并可选择
 3. 选择后按提示重启应用，确认界面语言生效
 
-## 质量门禁（防漏 Key）
+## 测试
 
 - 单测：`WindBoard.Tests/Localization/LocalizationKeyAuditTests.cs`
   - 扫描 `WindBoard/**/*.xaml` 中 `{l10n:Loc Key=...}` 的 key
