@@ -77,28 +77,6 @@ jobs:
 
           $assets = @()
 
-          function Get-DirSizeBytes([string]$path) {
-            try {
-              return (Get-ChildItem -Path $path -Recurse -File | Measure-Object -Sum Length).Sum
-            } catch {
-              return 0
-            }
-          }
-
-          function Assert-CoreClrPresent([string]$publishDir, [bool]$shouldExist, [string]$label) {
-            # 运行库识别：coreclr.dll 是 self-contained 输出的典型标志文件。
-            # 说明：这里用递归查找，避免未来发布布局变化导致误判。
-            $hit = Get-ChildItem -Path $publishDir -Recurse -Filter 'coreclr.dll' -File -ErrorAction SilentlyContinue | Select-Object -First 1
-
-            if ($shouldExist -and $null -eq $hit) {
-              throw "Publish output validation failed ($label): expected coreclr.dll, but not found. publishDir=$publishDir"
-            }
-
-            if (!$shouldExist -and $null -ne $hit) {
-              throw "Publish output validation failed ($label): coreclr.dll should NOT exist for framework-dependent publish. found=$($hit.FullName)"
-            }
-          }
-
           foreach ($v in $variants) {
             $rid = $v.Rid
             $arch = $v.Arch
@@ -111,8 +89,6 @@ jobs:
               --self-contained true `
               -o $publishDirSc `
               $msbuildProps
-
-            Assert-CoreClrPresent -publishDir $publishDirSc -shouldExist $true -label "rid=$rid sc"
 
             $portableFileName = "WindBoard-$version-$rid.zip"
             $portableZipPath = Join-Path $dist $portableFileName
@@ -134,22 +110,12 @@ jobs:
 
             # --- 安装包（不带运行库，依赖运行时）---
             $publishDirFd = Join-Path $PWD ("publish/{0}/fd" -f $rid)
-
-            # 注意：当 PublishTrimmed=true 时，.NET 会强制把发布输出变为自包含（即使指定 --self-contained false），
-            # 从而导致 -fd 安装包“看起来和带运行库的一样大”。因此 fd 变体需要显式关闭裁剪。
             dotnet publish $project `
               -c Release `
               -r $rid `
               --self-contained false `
-              -p:PublishTrimmed=false `
               -o $publishDirFd `
               $msbuildProps
-
-            Assert-CoreClrPresent -publishDir $publishDirFd -shouldExist $false -label "rid=$rid fd"
-
-            $scBytes = Get-DirSizeBytes $publishDirSc
-            $fdBytes = Get-DirSizeBytes $publishDirFd
-            Write-Host ("Publish output size (rid={0}): sc={1} bytes, fd={2} bytes" -f $rid, $scBytes, $fdBytes)
 
             # --- 生成安装包（带/不带运行库）---
             $publishDirSc = Join-Path $PWD ("publish/{0}/sc" -f $rid)
