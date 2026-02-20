@@ -14,17 +14,24 @@
 
 ---
 
-![GitHub commit activity (branch)](https://img.shields.io/github/commit-activity/m/Jerry-Z07/WindBoard/main) ![GitHub Issues or Pull Requests](https://img.shields.io/github/issues/Jerry-Z07/WindBoard) ![GitHub License](https://img.shields.io/github/license/Jerry-Z07/WindBoard) 
+![GitHub commit activity (branch)](https://img.shields.io/github/commit-activity/m/Jerry-Z07/WindBoard/main) ![GitHub Issues or Pull Requests](https://img.shields.io/github/issues/Jerry-Z07/WindBoard) ![GitHub License](https://img.shields.io/github/license/Jerry-Z07/WindBoard)  [![zread](https://img.shields.io/badge/Ask_Zread-_.svg?style=flat&color=00b0aa&labelColor=000000&logo=data%3Aimage%2Fsvg%2Bxml%3Bbase64%2CPHN2ZyB3aWR0aD0iMTYiIGhlaWdodD0iMTYiIHZpZXdCb3g9IjAgMCAxNiAxNiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTQuOTYxNTYgMS42MDAxSDIuMjQxNTZDMS44ODgxIDEuNjAwMSAxLjYwMTU2IDEuODg2NjQgMS42MDE1NiAyLjI0MDFWNC45NjAxQzEuNjAxNTYgNS4zMTM1NiAxLjg4ODEgNS42MDAxIDIuMjQxNTYgNS42MDAxSDQuOTYxNTZDNS4zMTUwMiA1LjYwMDEgNS42MDE1NiA1LjMxMzU2IDUuNjAxNTYgNC45NjAxVjIuMjQwMUM1LjYwMTU2IDEuODg2NjQgNS4zMTUwMiAxLjYwMDEgNC45NjE1NiAxLjYwMDFaIiBmaWxsPSIjZmZmIi8%2BCjxwYXRoIGQ9Ik00Ljk2MTU2IDEwLjM5OTlIMi4yNDE1NkMxLjg4ODEgMTAuMzk5OSAxLjYwMTU2IDEwLjY4NjQgMS42MDE1NiAxMS4wMzk5VjEzLjc1OTlDMS42MDE1NiAxNC4xMTM0IDEuODg4MSAxNC4zOTk5IDIuMjQxNTYgMTQuMzk5OUg0Ljk2MTU2QzUuMzE1MDIgMTQuMzk5OSA1LjYwMTU2IDE0LjExMzQgNS42MDE1NiAxMy43NTk5VjExLjAzOTlDNS42MDE1NiAxMC42ODY0IDUuMzE1MDIgMTAuMzk5OSA0Ljk2MTU2IDEwLjM5OTlaIiBmaWxsPSIjZmZmIi8%2BCjxwYXRoIGQ9Ik0xMy43NTg0IDEuNjAwMUgxMS4wMzg0QzEwLjY4NSAxLjYwMDEgMTAuMzk4NCAxLjg4NjY0IDEwLjM5ODQgMi4yNDAxVjQuOTYwMUMxMC4zOTg0IDUuMzEzNTYgMTAuNjg1IDUuNjAwMSAxMS4wMzg0IDUuNjAwMUgxMy43NTg0QzE0LjExMTkgNS42MDAxIDE0LjM5ODQgNS4zMTM1NiAxNC4zOTg0IDQuOTYwMVYyLjI0MDFDMTQuMzk4NCAxLjg4NjY0IDE0LjExMTkgMS42MDAxIDEzLjc1ODQgMS42MDAxWiIgZmlsbD0iI2ZmZiIvPgo8cGF0aCBkPSJNNCAxMkwxMiA0TDQgMTJaIiBmaWxsPSIjZmZmIi8%2BCjxwYXRoIGQ9Ik00IDEyTDEyIDQiIHN0cm9rZT0iI2ZmZiIgc3Ryb2tlLXdpZHRoPSIxLjUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgo8L3N2Zz4K&logoColor=ffffff)](https://zread.ai/Jerry-Z07/WindBoard)[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/Jerry-Z07/WindBoard)
 
 
 > [!NOTE]
-> 本项目处于活跃开发阶段，API 和功能可能会频繁变更。生产环境使用请谨慎。
+> ~~本项目处于活跃开发阶段，API 和功能可能会频繁变更。~~ 生产环境使用请谨慎。
+> 由于学业繁重，开发者将无法及时处理 Issue 和 PR，开发进程也会放缓
 
 > [!IMPORTANT]
+> 本项目完全使用 AI 开发，如对此无法接受请寻找其它软件进行替代。  
 > 软件尚未成熟，如果将其用于要求较高的生产环境（如课堂等），请保证能够承担由于软件问题导致的一些突发状况（如书写手感异常、崩溃等）的责任。
 
 ## 软件截图
-截图与使用文档正在补充中，欢迎提交 PR 帮忙完善。
+<details>
+<summary>点击查看截图</summary>
+
+![主界面](./docs/images/MainWindow.png)
+![关于](./docs/images/About.png)
+</details>
 
 ## 功能
 - 基础书写（粗细、颜色、擦除、撤销/恢复等）
@@ -34,10 +41,9 @@
 - 多语言支持
 - ...（开发中）
 
-
-### 一些特别功能
-- 伪装：替换软件的图标和标题（~~如果有人问这个软件为什么不一样，就说是更新了~~）
-- 视频展台集成：与希沃视频展台的基础集成，提供一个入口供跳转
+## 特点
+- 高度自定义：可选附加内容到 Dock 栏
+- 伪装：使软件外显为自定义的图标/进程名
 
 ## 技术栈
 - UI：WinUI 3（Windows App SDK）
@@ -49,19 +55,15 @@
 
 ## 快速开始
 
-> [!IMPORTANT]
-> 本项目完全使用 AI 开发，如对此无法接受请寻找其它软件进行替代。
-
-### 用户
 可跳转 [Releases](https://github.com/Jerry-Z07/WindBoard/releases/latest) 获取软件，其中：
 - 后缀为`.exe`的为安装版，`.zip`为便携版
-- 软件名中，带`-fd`后缀的为不带运行库的版本，你需要自行安装 .NET 10 Desktop Runtime；不带`-fd`的则不需要另外安装运行库（自包含）
+- 带`-fd`后缀的为不带运行库的版本，你需要自行安装 .NET 10 Desktop Runtime；不带`-fd`的则不需要另外安装运行库（自包含）
   - 运行库下载：<https://dotnet.microsoft.com/zh-cn/download/dotnet/10.0>
 
-如遇到问题或希望看到某个功能，欢迎在 Issues 里反馈。
+## 贡献
+我们欢迎 Pull Request 和 Issue，也非常感谢你对本项目的支持！
 
-### 开发者
-#### 环境要求
+### 开发环境要求
 - .NET 10.0 SDK
 - Windows 10/11（最低支持 `10.0.19041.0`）
 - 开发工具：
@@ -69,37 +71,51 @@
   - JetBrains Rider 2025.3.1 或更高版本
   - Visual Studio Code
 
-#### 构建与测试
-- 构建：`dotnet build WindBoard.slnx -c Release -p:Platform=x64`
-- 测试：`dotnet test WindBoard.slnx -p:Platform=x64`
+### 构建与测试
+- 构建：`dotnet build WindBoard.slnx -c Release`
+- 测试：`dotnet test WindBoard.slnx`
 
-你可以阅读这两个由AI总结的文档（绝大部分是准确的）：
-[![zread](https://img.shields.io/badge/Ask_Zread-_.svg?style=flat&color=00b0aa&labelColor=000000&logo=data%3Aimage%2Fsvg%2Bxml%3Bbase64%2CPHN2ZyB3aWR0aD0iMTYiIGhlaWdodD0iMTYiIHZpZXdCb3g9IjAgMCAxNiAxNiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTQuOTYxNTYgMS42MDAxSDIuMjQxNTZDMS44ODgxIDEuNjAwMSAxLjYwMTU2IDEuODg2NjQgMS42MDE1NiAyLjI0MDFWNC45NjAxQzEuNjAxNTYgNS4zMTM1NiAxLjg4ODEgNS42MDAxIDIuMjQxNTYgNS42MDAxSDQuOTYxNTZDNS4zMTUwMiA1LjYwMDEgNS42MDE1NiA1LjMxMzU2IDUuNjAxNTYgNC45NjAxVjIuMjQwMUM1LjYwMTU2IDEuODg2NjQgNS4zMTUwMiAxLjYwMDEgNC45NjE1NiAxLjYwMDFaIiBmaWxsPSIjZmZmIi8%2BCjxwYXRoIGQ9Ik00Ljk2MTU2IDEwLjM5OTlIMi4yNDE1NkMxLjg4ODEgMTAuMzk5OSAxLjYwMTU2IDEwLjY4NjQgMS42MDE1NiAxMS4wMzk5VjEzLjc1OTlDMS42MDE1NiAxNC4xMTM0IDEuODg4MSAxNC4zOTk5IDIuMjQxNTYgMTQuMzk5OUg0Ljk2MTU2QzUuMzE1MDIgMTQuMzk5OSA1LjYwMTU2IDE0LjExMzQgNS42MDE1NiAxMy43NTk5VjExLjAzOTlDNS42MDE1NiAxMC42ODY0IDUuMzE1MDIgMTAuMzk5OSA0Ljk2MTU2IDEwLjM5OTlaIiBmaWxsPSIjZmZmIi8%2BCjxwYXRoIGQ9Ik0xMy43NTg0IDEuNjAwMUgxMS4wMzg0QzEwLjY4NSAxLjYwMDEgMTAuMzk4NCAxLjg4NjY0IDEwLjM5ODQgMi4yNDAxVjQuOTYwMUMxMC4zOTg0IDUuMzEzNTYgMTAuNjg1IDUuNjAwMSAxMS4wMzg0IDUuNjAwMUgxMy43NTg0QzE0LjExMTkgNS42MDAxIDE0LjM5ODQgNS4zMTM1NiAxNC4zOTg0IDQuOTYwMVYyLjI0MDFDMTQuMzk4NCAxLjg4NjY0IDE0LjExMTkgMS42MDAxIDEzLjc1ODQgMS42MDAxWiIgZmlsbD0iI2ZmZiIvPgo8cGF0aCBkPSJNNCAxMkwxMiA0TDQgMTJaIiBmaWxsPSIjZmZmIi8%2BCjxwYXRoIGQ9Ik00IDEyTDEyIDQiIHN0cm9rZT0iI2ZmZiIgc3Ryb2tlLXdpZHRoPSIxLjUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgo8L3N2Zz4K&logoColor=ffffff)](https://zread.ai/Jerry-Z07/WindBoard)  （中文/English）
-[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/Jerry-Z07/WindBoard)（English）
+### 参与翻译
+请参考 [本地化约定](./docs/dev/ZH/LOCALIZATION.md) 文档
 
-## 文档
-- WBIX 格式说明：`docs/dev/ZH/WBIX.md`
-- 本地化约定：`docs/dev/ZH/LOCALIZATION.md`
+### 氛围编程（Vibe Coding）相关
+- 项目目前已配置[AGENTS.md](AGENTS.md)
+- 开发中使用过的工具：
+  - MCP 
+
+  | **MCP**  | **介绍**     | **使用教程**                                                            |
+  |----------|------------|-----------------------------------------------------------------------|
+  | ace-tool | 代码库检索工具    | https://linux.do/t/topic/1360514                                    |
+  | context7 | 查询开发文档     | https://github.com/upstash/context7#installation                    |
+  | fetch    | 获取网页内容     | https://github.com/modelcontextprotocol/servers/tree/main/src/fetch |
+  | github   | 辅助操作Github | https://github.com/github/github-mcp-server                         |
+
+  - 其他
+
+  | **工具名称**                                               | **推荐理由**     | **备注** |
+  |--------------------------------------------------------|--------------|--------|
+  | [qlty](https://docs.qlty.sh/cli/quickstart)            | 代码审查与分析 CLI  | 开源，项目已init     |
+  | [MCP Router](https://github.com/mcp-router/mcp-router) | 简化 MCP 工具的配置 | 开源     |
+
+- 模型选择（仅供参考）
+  - 推荐
+    - `GPT-5.2 xhigh` - 完成了2.0版本的绝大部分编码工作
+    - `GLM-5` - 优秀的国产替代（前提是不降智）
 
 ## Todo / 仍需完善的部分
+- [ ] UI统一和美化
 - [ ] 更优化的笔迹平滑算法
-- [ ] 大量笔迹的缩放/移动性能
 - [ ] 触摸面积识别算法（用于掌擦逻辑）
 - [ ] 软件整体性能优化
 - [ ] 完善文档
 
-## 贡献
-我们欢迎 Pull Request 和 Issue，也非常感谢你对本项目的支持！
-
-
 ## 生态
-为保存和还原笔迹状态，我们设计了一个私有格式 `.wbix`（见 `docs/dev/ZH/WBIX.md`）。
-
+为保存和还原笔迹状态，我们设计了一个私有格式 `.wbix` 
+格式介绍见 [WBIX.md](./docs/dev/ZH/WBIX.md)
 
 ## 碎碎念
 ### 为什么要做这个软件？
 由于某白板软件的新版本在班上电脑冷启动耗时极长，且砍掉了视频展台的跳转，加之想探探AI的上限，于是便有了这个项目
-
 
 ## 许可证
 
