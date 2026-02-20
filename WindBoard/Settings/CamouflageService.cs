@@ -387,6 +387,7 @@ namespace WindBoard.Settings
 
         private static string SanitizeShortcutFileName(string? title)
         {
+            string fallbackName = global::WindBoard.AppDisplayName.Get();
             string name = (title ?? string.Empty).Trim();
 
             // 去掉用户误输入的扩展名，避免出现 ".lnk.lnk"。
@@ -397,7 +398,7 @@ namespace WindBoard.Settings
 
             if (string.IsNullOrWhiteSpace(name))
             {
-                name = "WindBoard";
+                name = fallbackName;
             }
 
             char[] invalidChars = Path.GetInvalidFileNameChars();
@@ -410,7 +411,7 @@ namespace WindBoard.Settings
             name = name.TrimEnd(' ', '.');
             if (string.IsNullOrWhiteSpace(name))
             {
-                name = "WindBoard";
+                name = fallbackName;
             }
 
             // 避免保留设备名导致创建失败。
@@ -425,7 +426,7 @@ namespace WindBoard.Settings
                 name = name[..maxLength].TrimEnd(' ', '.');
                 if (string.IsNullOrWhiteSpace(name))
                 {
-                    name = "WindBoard";
+                    name = fallbackName;
                 }
             }
 

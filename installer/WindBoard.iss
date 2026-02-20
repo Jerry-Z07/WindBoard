@@ -54,7 +54,7 @@
 
 [Setup]
 AppId={{C0F2F2F5-4A20-4B01-9F75-10A1FDF8E5CE}
-AppName={#MyAppName}
+AppName={cm:AppName}
 AppVersion={#MyAppVersion}
 AppPublisher={#MyAppPublisher}
 AppPublisherURL={#MyAppURL}
@@ -90,6 +90,8 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 Name: "chinesesimplified"; MessagesFile: "ChineseSimplified.isl"
 
 [CustomMessages]
+english.AppName=WindBoard
+chinesesimplified.AppName=轻风白板
 english.AppShortcutName=WindBoard
 chinesesimplified.AppShortcutName=轻风白板
 
@@ -116,4 +118,4 @@ Root: HKLM; Subkey: "Software\\WindBoard"; ValueType: string; ValueName: "Instal
 Root: HKLM; Subkey: "Software\\WindBoard"; ValueType: string; ValueName: "InstallArch"; ValueData: "{#MyArch}";
 
 [Run]
-Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#MyAppName}}"; Flags: nowait postinstall skipifsilent
+Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{cm:AppName}}"; Flags: nowait postinstall skipifsilent

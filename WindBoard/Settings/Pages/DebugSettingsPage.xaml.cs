@@ -107,7 +107,7 @@ namespace WindBoard.Settings.Pages
         {
             try
             {
-                string title = EscapeXml(L10n.Get("Settings_Debug_TestToast_Title"));
+                string title = EscapeXml(L10n.Format("Settings_Debug_TestToast_Title", global::WindBoard.AppDisplayName.Get()));
                 string body = EscapeXml(L10n.Get("Settings_Debug_TestToast_Body"));
 
                 // 最小 Toast XML：标题 + 内容（与应用内提醒通道保持一致，便于排查通知通道问题）。
@@ -245,4 +245,3 @@ namespace WindBoard.Settings.Pages
         }
     }
 }
-

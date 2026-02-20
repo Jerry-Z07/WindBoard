@@ -325,7 +325,7 @@ namespace WindBoard.Settings.Pages
         {
             try
             {
-                string defaultTitle = L10n.Get("MainWindow_Title");
+                string defaultTitle = global::WindBoard.AppDisplayName.Get();
 
                 // BuildResult 可能会触发“缓存重建并写回设置”，因此这里在调用后再取一次签名快照。
                 CamouflageSettingsSnapshot before = AppSettingsService.Instance.GetCamouflageSettingsSnapshot();

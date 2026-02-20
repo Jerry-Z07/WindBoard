@@ -37,8 +37,8 @@
                             Tapped="OnAppIconTapped" />
 
                         <TextBlock
+                            x:Name="AppNameTextBlock"
                             Grid.Column="1"
-                            Text="WindBoard"
                             FontSize="26"
                             FontWeight="SemiBold"
                             VerticalAlignment="Center" />

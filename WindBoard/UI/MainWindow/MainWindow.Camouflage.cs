@@ -4,7 +4,6 @@ using Microsoft.UI.Dispatching;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using WindBoard.Logging;
-using WindBoard.Localization;
 using WindBoard.Settings;
 
 namespace WindBoard
@@ -42,7 +41,7 @@ namespace WindBoard
             _hasAppliedCamouflageSnapshot = true;
 
             CamouflageSettingsSnapshot snapshot = AppSettingsService.Instance.GetCamouflageSettingsSnapshot();
-            string defaultTitle = L10n.Get("MainWindow_Title");
+            string defaultTitle = AppDisplayName.Get();
 
             CamouflageResult result = CamouflageService.Instance.BuildResult(snapshot, defaultTitle);
 

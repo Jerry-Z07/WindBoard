@@ -228,7 +228,7 @@
     <value>Send a test Windows Toast notification</value>
   </data>
   <data name="Settings_Debug_TestToast_Title" xml:space="preserve">
-    <value>WindBoard test notification</value>
+    <value>{0} test notification</value>
   </data>
   <data name="Settings_Debug_TestToast_Body" xml:space="preserve">
     <value>This is a test notification for debugging.</value>

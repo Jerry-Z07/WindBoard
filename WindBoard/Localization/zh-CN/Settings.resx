@@ -228,7 +228,7 @@
     <value>发送一条测试 Windows Toast 通知</value>
   </data>
   <data name="Settings_Debug_TestToast_Title" xml:space="preserve">
-    <value>WindBoard 测试通知</value>
+    <value>{0} 测试通知</value>
   </data>
   <data name="Settings_Debug_TestToast_Body" xml:space="preserve">
     <value>这是一条用于调试的测试通知。</value>

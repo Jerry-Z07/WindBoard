@@ -18,7 +18,7 @@
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <data name="MainWindow_Title" xml:space="preserve">
-    <value>WindBoard</value>
+    <value>轻风白板</value>
   </data>
   <data name="MainWindow_EraserMode_Title" xml:space="preserve">
     <value>擦除模式</value>

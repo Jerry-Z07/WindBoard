@@ -85,6 +85,11 @@ namespace WindBoard.Settings.Pages
         {
             try
             {
+                if (AppNameTextBlock is not null)
+                {
+                    AppNameTextBlock.Text = global::WindBoard.AppDisplayName.Get();
+                }
+
                 VersionTextBlock.Text = AppInfo.DisplayVersion;
 
                 UpdateCheckInterval interval = AppSettingsService.Instance.GetUpdateCheckInterval();
