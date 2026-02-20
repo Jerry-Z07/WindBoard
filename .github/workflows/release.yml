@@ -52,7 +52,7 @@ jobs:
           $shortSha = $sha
           if ($shortSha.Length -gt 8) { $shortSha = $shortSha.Substring(0, 8) }
 
-          $versionPrefixMatch = [regex]::Match($version, '^(?<prefix>\\d+\\.\\d+\\.\\d+)')
+          $versionPrefixMatch = [regex]::Match($version, '^(?<prefix>\d+\.\d+\.\d+)')
           if (!$versionPrefixMatch.Success) { throw "Invalid tag version format (expected x.y.z...): $version" }
           $versionPrefix = $versionPrefixMatch.Groups['prefix'].Value
           $informationalVersion = "$version+$shortSha"
