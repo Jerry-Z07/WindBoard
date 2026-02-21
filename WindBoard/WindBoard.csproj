@@ -30,6 +30,17 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!--
+      dotnet publish 默认不会把这些静态资源复制到发布目录，导致便携版/安装包缺少 Assets 后，
+      WinUI 在加载 XAML（例如 SvgImageSource / 图标资源）时会触发 XamlParseException（启动即崩溃）。
+    -->
+    <Content Update="Assets\**\*">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
+  </ItemGroup>
+
+  <ItemGroup>
     <Manifest Include="$(ApplicationManifest)" />
   </ItemGroup>
 
@@ -56,4 +67,28 @@
     <WindowsPackageType>None</WindowsPackageType>
     <PlatformTarget>AnyCPU</PlatformTarget>
   </PropertyGroup>
+
+  <Target Name="WindBoard_CopyWinUIResourcesToPublishDirectory" AfterTargets="Publish">
+    <!--
+      关键：WinUI 3 的 XAML 会被编译为 .xbf（二进制 XAML）并依赖 .pri（资源索引）。
+      dotnet publish 只会发布托管/运行时依赖，默认不会包含这些文件，导致运行期 LoadComponent 失败。
+    -->
+    <ItemGroup>
+      <_WindBoardWinUIXbf Include="$(TargetDir)**\*.xbf" />
+      <_WindBoardWinUIPri Include="$(TargetDir)*.pri" />
+    </ItemGroup>
+
+    <Message Importance="High"
+             Text="复制 WinUI 资源到发布目录：xbf=@(_WindBoardWinUIXbf->Count())，pri=@(_WindBoardWinUIPri->Count())，publishDir='$(PublishDir)'" />
+
+    <Copy
+      SourceFiles="@(_WindBoardWinUIXbf)"
+      DestinationFiles="@(_WindBoardWinUIXbf->'$(PublishDir)%(RecursiveDir)%(Filename)%(Extension)')"
+      SkipUnchangedFiles="true" />
+
+    <Copy
+      SourceFiles="@(_WindBoardWinUIPri)"
+      DestinationFolder="$(PublishDir)"
+      SkipUnchangedFiles="true" />
+  </Target>
 </Project>
