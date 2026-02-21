@@ -59,6 +59,7 @@ coverage*.xml
 *.bak
 *~
 *.swp
+_tmp_*/
 
 # OS files
 Thumbs.db
