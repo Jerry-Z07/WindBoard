@@ -96,10 +96,6 @@ Please refer to the [Localization Conventions](./docs/dev/EN/LOCALIZATION_EN.md)
 | [qlty](https://docs.qlty.sh/cli/quickstart)            | Code review & analysis CLI     | Open source, project was initialized |
 | [MCP Router](https://github.com/mcp-router/mcp-router) | Simplify MCP tool configuration | Open source |
 
-- Model recommendations (for reference only)
-  - Recommended
-    - `GPT-5.2 xhigh` - Completed most of the 2.0 version coding
-
 
 ## Roadmap / TODO
 - [ ] UI unification and beautification

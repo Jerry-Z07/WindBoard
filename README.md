@@ -97,10 +97,6 @@
   | [qlty](https://docs.qlty.sh/cli/quickstart)            | 代码审查与分析 CLI  | 开源，项目已init     |
   | [MCP Router](https://github.com/mcp-router/mcp-router) | 简化 MCP 工具的配置 | 开源     |
 
-- 模型选择（仅供参考）
-  - 推荐
-    - `GPT-5.2 xhigh` - 完成了2.0版本的绝大部分编码工作
-    - `GLM-5` - 优秀的国产替代（前提是不降智）
 
 ## Todo / 仍需完善的部分
 - [ ] UI统一和美化
