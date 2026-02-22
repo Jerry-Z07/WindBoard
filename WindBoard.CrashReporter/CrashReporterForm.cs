@@ -30,6 +30,20 @@ namespace WindBoard.CrashReporter
             StartPosition = FormStartPosition.CenterScreen;
             MinimumSize = new Size(width: 760, height: 420);
 
+            var ui = CreateMainLayout();
+            _summaryTextBox = ui.SummaryTextBox;
+            _detailsTextBox = ui.DetailsTextBox;
+            _toggleDetailsButton = ui.ToggleDetailsButton;
+            _statusLabel = ui.StatusLabel;
+            _suggestionsLabel = ui.SuggestionsLabel;
+
+            Controls.Add(ui.Layout);
+
+            Load += (_, _) => InitializeFromArgs();
+        }
+
+        private (TableLayoutPanel Layout, TextBox SummaryTextBox, TextBox DetailsTextBox, Button ToggleDetailsButton, Label StatusLabel, Label SuggestionsLabel) CreateMainLayout()
+        {
             var layout = new TableLayoutPanel
             {
                 Dock = DockStyle.Fill,
@@ -51,7 +65,7 @@ namespace WindBoard.CrashReporter
             };
             layout.Controls.Add(title, column: 0, row: 0);
 
-            _summaryTextBox = new TextBox
+            var summaryTextBox = new TextBox
             {
                 Dock = DockStyle.Fill,
                 Multiline = true,
@@ -59,9 +73,9 @@ namespace WindBoard.CrashReporter
                 ScrollBars = ScrollBars.Vertical,
                 Font = new Font(Font.FontFamily, 9, FontStyle.Regular),
             };
-            layout.Controls.Add(_summaryTextBox, column: 0, row: 1);
+            layout.Controls.Add(summaryTextBox, column: 0, row: 1);
 
-            _detailsTextBox = new TextBox
+            var detailsTextBox = new TextBox
             {
                 Dock = DockStyle.Fill,
                 Multiline = true,
@@ -71,7 +85,7 @@ namespace WindBoard.CrashReporter
                 Visible = false,
                 Font = new Font(Font.FontFamily, 9, FontStyle.Regular),
             };
-            layout.Controls.Add(_detailsTextBox, column: 0, row: 2);
+            layout.Controls.Add(detailsTextBox, column: 0, row: 2);
 
             var footer = new TableLayoutPanel
             {
@@ -87,7 +101,7 @@ namespace WindBoard.CrashReporter
             footer.RowStyles.Add(new RowStyle(SizeType.AutoSize));
             footer.RowStyles.Add(new RowStyle(SizeType.AutoSize));
 
-            _suggestionsLabel = new Label
+            var suggestionsLabel = new Label
             {
                 AutoSize = true,
                 ForeColor = Color.DimGray,
@@ -95,9 +109,9 @@ namespace WindBoard.CrashReporter
                 Text = BuildSuggestionsText(),
                 Margin = new Padding(0, 0, 0, 2),
             };
-            footer.Controls.Add(_suggestionsLabel, column: 0, row: 0);
+            footer.Controls.Add(suggestionsLabel, column: 0, row: 0);
 
-            _statusLabel = new Label
+            var statusLabel = new Label
             {
                 Dock = DockStyle.Fill,
                 AutoSize = true,
@@ -105,7 +119,7 @@ namespace WindBoard.CrashReporter
                 Text = string.Empty,
                 Margin = new Padding(0),
             };
-            footer.Controls.Add(_statusLabel, column: 0, row: 1);
+            footer.Controls.Add(statusLabel, column: 0, row: 1);
 
             var buttons = new FlowLayoutPanel
             {
@@ -122,9 +136,9 @@ namespace WindBoard.CrashReporter
             exitButton.Click += (_, _) => Close();
             buttons.Controls.Add(exitButton);
 
-            _toggleDetailsButton = new Button { Text = "显示详情", AutoSize = true };
-            _toggleDetailsButton.Click += (_, _) => ToggleDetails();
-            buttons.Controls.Add(_toggleDetailsButton);
+            var toggleDetailsButton = new Button { Text = "显示详情", AutoSize = true };
+            toggleDetailsButton.Click += (_, _) => ToggleDetails();
+            buttons.Controls.Add(toggleDetailsButton);
 
             var openLogsButton = new Button { Text = "打开日志目录", AutoSize = true };
             openLogsButton.Click += (_, _) => OpenLogsDirectory();
@@ -143,9 +157,7 @@ namespace WindBoard.CrashReporter
 
             layout.Controls.Add(footer, column: 0, row: 3);
 
-            Controls.Add(layout);
-
-            Load += (_, _) => InitializeFromArgs();
+            return (layout, summaryTextBox, detailsTextBox, toggleDetailsButton, statusLabel, suggestionsLabel);
         }
 
         private void InitializeFromArgs()
@@ -169,24 +181,40 @@ namespace WindBoard.CrashReporter
             }
         }
 
-        private void ToggleDetails()
+        private void SafeUiAction(string statusMessage, string logMessage, Action action)
         {
             try
+            {
+                action();
+            }
+            catch (Exception ex)
+            {
+                try
+                {
+                    CrashReporterLog.Warn(_args.LogsDirectory, logMessage, ex);
+                }
+                catch
+                {
+                    // 忽略：日志失败不影响 UI
+                }
+
+                _statusLabel.Text = statusMessage;
+            }
+        }
+
+        private void ToggleDetails()
+        {
+            SafeUiAction("切换详情失败。", "切换详情显示失败", () =>
             {
                 bool show = !_detailsTextBox.Visible;
                 _detailsTextBox.Visible = show;
                 _toggleDetailsButton.Text = show ? "隐藏详情" : "显示详情";
-            }
-            catch (Exception ex)
-            {
-                CrashReporterLog.Warn(_args.LogsDirectory, "切换详情显示失败", ex);
-                _statusLabel.Text = "切换详情失败。";
-            }
+            });
         }
 
         private void CopyDiagnostics()
         {
-            try
+            SafeUiAction("复制失败。", "复制诊断信息失败", () =>
             {
                 string text = _detailsTextBox.Text;
                 if (string.IsNullOrWhiteSpace(text))
@@ -196,17 +224,12 @@ namespace WindBoard.CrashReporter
 
                 Clipboard.SetText(text);
                 _statusLabel.Text = "已复制到剪贴板。";
-            }
-            catch (Exception ex)
-            {
-                CrashReporterLog.Warn(_args.LogsDirectory, "复制诊断信息失败", ex);
-                _statusLabel.Text = "复制失败。";
-            }
+            });
         }
 
         private void OpenLogsDirectory()
         {
-            try
+            SafeUiAction("打开日志目录失败。", "打开日志目录失败", () =>
             {
                 string dir = (_args.LogsDirectory ?? string.Empty).Trim();
                 if (string.IsNullOrWhiteSpace(dir))
@@ -226,17 +249,12 @@ namespace WindBoard.CrashReporter
                     FileName = dir,
                     UseShellExecute = true,
                 });
-            }
-            catch (Exception ex)
-            {
-                CrashReporterLog.Warn(_args.LogsDirectory, "打开日志目录失败", ex);
-                _statusLabel.Text = "打开日志目录失败。";
-            }
+            });
         }
 
         private void OpenCrashReport()
         {
-            try
+            SafeUiAction("打开崩溃报告失败。", "打开崩溃报告失败", () =>
             {
                 string path = (_args.ReportPath ?? string.Empty).Trim();
                 if (string.IsNullOrWhiteSpace(path))
@@ -258,12 +276,7 @@ namespace WindBoard.CrashReporter
                     Arguments = $"/select,\"{path}\"",
                     UseShellExecute = true,
                 });
-            }
-            catch (Exception ex)
-            {
-                CrashReporterLog.Warn(_args.LogsDirectory, "打开崩溃报告失败", ex);
-                _statusLabel.Text = "打开崩溃报告失败。";
-            }
+            });
         }
 
         private static string BuildSummaryText(CrashReporterArgs args)
@@ -300,44 +313,50 @@ namespace WindBoard.CrashReporter
         private static string TryLoadReportText(string reportPath, out bool truncated)
         {
             truncated = false;
+            string path = (reportPath ?? string.Empty).Trim();
+            if (string.IsNullOrWhiteSpace(path))
+            {
+                return string.Empty;
+            }
+
+            if (!File.Exists(path))
+            {
+                return $"(崩溃报告不存在：'{path}')";
+            }
+
             try
             {
-                string path = (reportPath ?? string.Empty).Trim();
-                if (string.IsNullOrWhiteSpace(path))
-                {
-                    return string.Empty;
-                }
-
-                if (!File.Exists(path))
-                {
-                    return $"(崩溃报告不存在：'{path}')";
-                }
-
-                using var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
-                long length = 0;
-                try { length = fs.Length; } catch { length = 0; }
-
-                int toRead = length > MaxReportBytesToLoad ? MaxReportBytesToLoad : (int)Math.Max(0, Math.Min(length, int.MaxValue));
-                if (length > MaxReportBytesToLoad)
-                {
-                    truncated = true;
-                }
-
-                // UTF-8 写入；读取时也按 UTF-8 尝试（即使失败也不抛异常）
-                byte[] buffer = new byte[toRead];
-                int read = fs.Read(buffer, 0, toRead);
-                string text = Encoding.UTF8.GetString(buffer, 0, read);
-                if (truncated)
-                {
-                    text += Environment.NewLine + Environment.NewLine + "(...内容过长，已截断...)";
-                }
-
-                return text;
+                return ReadFileWithLimit(path, MaxReportBytesToLoad, out truncated);
             }
             catch (Exception ex)
             {
                 return $"(读取崩溃报告失败：{ex.GetType().Name}: {ex.Message})";
             }
+        }
+
+        private static string ReadFileWithLimit(string path, int maxBytes, out bool truncated)
+        {
+            truncated = false;
+            using var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+            long length = 0;
+            try { length = fs.Length; } catch { length = 0; }
+
+            int toRead = length > maxBytes ? maxBytes : (int)Math.Max(0, Math.Min(length, int.MaxValue));
+            if (length > maxBytes)
+            {
+                truncated = true;
+            }
+
+            // UTF-8 写入；读取时也按 UTF-8 尝试（即使失败也不抛异常）
+            byte[] buffer = new byte[toRead];
+            int read = fs.Read(buffer, 0, toRead);
+            string text = Encoding.UTF8.GetString(buffer, 0, read);
+            if (truncated)
+            {
+                text += Environment.NewLine + Environment.NewLine + "(...内容过长，已截断...)";
+            }
+
+            return text;
         }
     }
 }

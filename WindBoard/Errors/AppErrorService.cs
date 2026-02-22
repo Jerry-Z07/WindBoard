@@ -20,12 +20,13 @@ namespace WindBoard.Errors
         private global::WindBoard.MainWindow? _mainWindow;
 
         // 防御：避免崩溃处理重入（可能出现异常连锁/重复触发）。
-        private int _winUiCrashHandlingStarted;
-        private int _appDomainCrashHandlingStarted;
+        private readonly OneTimeGate _winUiCrashGate = new();
+        private readonly OneTimeGate _appDomainCrashGate = new();
 
         // 防御：避免重复拉起 CrashReporter（可能出现 WinUI + AppDomain 同时触发）。
-        private int _crashReporterLaunchAttempted;
-        private int _crashReporterLaunched;
+        // 语义：只尝试启动一次；如果成功，则视为“已启动”（后续直接返回 true）。
+        private readonly OneTimeGate _crashReporterLaunchAttemptGate = new();
+        private readonly OneTimeGate _crashReporterLaunchedGate = new();
 
         internal static AppErrorService Instance { get; } = new();
 
@@ -63,7 +64,7 @@ namespace WindBoard.Errors
                 // 忽略：不同运行时/配置下可能不允许设置
             }
 
-            if (Interlocked.CompareExchange(ref _winUiCrashHandlingStarted, 1, 0) != 0)
+            if (!_winUiCrashGate.TryOpen())
             {
                 return;
             }
@@ -86,20 +87,13 @@ namespace WindBoard.Errors
                 out AppCrashReport report,
                 out Exception? writeError);
 
-            try
+            if (wrote)
             {
-                if (wrote)
-                {
-                    AppLog.Critical("App", $"WinUI UnhandledException（已写崩溃报告）：report='{report.ReportFilePath}'", ex);
-                }
-                else
-                {
-                    AppLog.Critical("App", "WinUI UnhandledException（写崩溃报告失败）", writeError ?? ex);
-                }
+                SafeLogCritical("App", $"WinUI UnhandledException（已写崩溃报告）：report='{report.ReportFilePath}'", ex);
             }
-            catch
+            else
             {
-                // 兜底：全局异常处理本身不能再抛异常
+                SafeLogCritical("App", "WinUI UnhandledException（写崩溃报告失败）", writeError ?? ex);
             }
 
             // 写入完成后尽力拉起 CrashReporter；无论拉起成功与否，最终都退出进程，避免处于不一致状态继续运行。
@@ -126,7 +120,7 @@ namespace WindBoard.Errors
                 return;
             }
 
-            if (Interlocked.CompareExchange(ref _appDomainCrashHandlingStarted, 1, 0) != 0)
+            if (!_appDomainCrashGate.TryOpen())
             {
                 return;
             }
@@ -143,24 +137,20 @@ namespace WindBoard.Errors
                 out AppCrashReport report,
                 out Exception? writeError);
 
-            try
+            if (wrote)
             {
-                if (wrote)
-                {
-                    AppLog.Critical("App", $"AppDomain UnhandledException（已写崩溃报告）：isTerminating={isTerminating}, report='{report.ReportFilePath}'", ex);
-                }
-                else if (ex is not null)
-                {
-                    AppLog.Critical("App", $"AppDomain UnhandledException（写崩溃报告失败）：isTerminating={isTerminating}", writeError ?? ex);
-                }
-                else
-                {
-                    AppLog.Critical("App", $"AppDomain UnhandledException（写崩溃报告失败）：isTerminating={isTerminating}, exceptionObjectType={exceptionObject?.GetType().FullName ?? "(null)"}", writeError);
-                }
+                SafeLogCritical("App", $"AppDomain UnhandledException（已写崩溃报告）：isTerminating={isTerminating}, report='{report.ReportFilePath}'", ex);
             }
-            catch
+            else if (ex is not null)
             {
-                // 兜底：全局异常处理本身不能再抛异常
+                SafeLogCritical("App", $"AppDomain UnhandledException（写崩溃报告失败）：isTerminating={isTerminating}", writeError ?? ex);
+            }
+            else
+            {
+                SafeLogCritical(
+                    "App",
+                    $"AppDomain UnhandledException（写崩溃报告失败）：isTerminating={isTerminating}, exceptionObjectType={exceptionObject?.GetType().FullName ?? "(null)"}",
+                    writeError);
             }
 
             // AppDomain 未处理异常时也尽力拉起 CrashReporter（不依赖窗口是否创建）。
@@ -183,7 +173,7 @@ namespace WindBoard.Errors
 
             try
             {
-                AppLog.Error("App", "TaskScheduler.UnobservedTaskException", e.Exception);
+                SafeLogError("App", "TaskScheduler.UnobservedTaskException", e.Exception);
 
                 // 标记已观察：避免宿主将其升级为进程级异常（不同运行时/配置下行为可能不同）。
                 e.SetObserved();
@@ -204,14 +194,7 @@ namespace WindBoard.Errors
             string c = string.IsNullOrWhiteSpace(category) ? "Errors" : category.Trim();
             string m = message ?? string.Empty;
 
-            try
-            {
-                AppLog.Error(c, m, ex);
-            }
-            catch
-            {
-                // 忽略：错误上报本身不能影响主流程
-            }
+            SafeLogError(c, m, ex);
 
             if (prompt is null)
             {
@@ -228,6 +211,11 @@ namespace WindBoard.Errors
                 ? BuildDefaultSignature(c, m, ex)
                 : prompt.Signature.Trim();
 
+            TryEnqueueHandledErrorPrompt(window, signature, prompt);
+        }
+
+        private void TryEnqueueHandledErrorPrompt(global::WindBoard.MainWindow window, string signature, AppErrorUserPrompt prompt)
+        {
             // 统一切回 UI 线程走提醒服务，避免在后台线程访问视觉树/窗口状态。
             if (!window.DispatcherQueue.TryEnqueue(() =>
             {
@@ -246,7 +234,7 @@ namespace WindBoard.Errors
                 }
                 catch (Exception reminderEx)
                 {
-                    AppLog.Warn("Errors", "展示错误提醒失败", reminderEx);
+                    SafeLogWarn("Errors", "展示错误提醒失败", reminderEx);
                 }
             }))
             {
@@ -278,14 +266,7 @@ namespace WindBoard.Errors
             }
             catch (Exception ex)
             {
-                try
-                {
-                    AppLog.Critical("App", "退出应用失败，将强制结束进程", ex);
-                }
-                catch
-                {
-                    // 忽略：日志失败不影响退出兜底
-                }
+                SafeLogCritical("App", "退出应用失败，将强制结束进程", ex);
             }
 
             try
@@ -305,27 +286,20 @@ namespace WindBoard.Errors
 
             try
             {
-                if (Volatile.Read(ref _crashReporterLaunched) == 1)
+                if (_crashReporterLaunchedGate.IsOpened)
                 {
                     return true;
                 }
 
-                if (Interlocked.CompareExchange(ref _crashReporterLaunchAttempted, 1, 0) != 0)
+                if (!_crashReporterLaunchAttemptGate.TryOpen())
                 {
-                    return Volatile.Read(ref _crashReporterLaunched) == 1;
+                    return _crashReporterLaunchedGate.IsOpened;
                 }
 
                 string exePath = GetCrashReporterExePath();
                 if (string.IsNullOrWhiteSpace(exePath) || !File.Exists(exePath))
                 {
-                    try
-                    {
-                        AppLog.Warn("App", $"CrashReporter 不存在，已跳过：path='{exePath}'");
-                    }
-                    catch
-                    {
-                        // 忽略：日志失败不影响崩溃兜底
-                    }
+                    SafeLogWarn("App", $"CrashReporter 不存在，已跳过：path='{exePath}'");
 
                     return false;
                 }
@@ -353,43 +327,70 @@ namespace WindBoard.Errors
                 Process? p = Process.Start(psi);
                 if (p is null)
                 {
-                    try
-                    {
-                        AppLog.Warn("App", $"启动 CrashReporter 失败（Process.Start 返回 null）：path='{exePath}'");
-                    }
-                    catch
-                    {
-                        // 忽略
-                    }
+                    SafeLogWarn("App", $"启动 CrashReporter 失败（Process.Start 返回 null）：path='{exePath}'");
 
                     return false;
                 }
 
-                Interlocked.Exchange(ref _crashReporterLaunched, 1);
+                _crashReporterLaunchedGate.Open();
 
-                try
-                {
-                    AppLog.Info("App", $"已启动 CrashReporter：path='{exePath}', report='{reportPath}', logsDir='{logsDir}', source={source}");
-                }
-                catch
-                {
-                    // 忽略
-                }
+                SafeLogInfo("App", $"已启动 CrashReporter：path='{exePath}', report='{reportPath}', logsDir='{logsDir}', source={source}");
 
                 return true;
             }
             catch (Exception ex)
             {
-                try
-                {
-                    AppLog.Warn("App", "启动 CrashReporter 异常", ex);
-                }
-                catch
-                {
-                    // 忽略
-                }
+                SafeLogWarn("App", "启动 CrashReporter 异常", ex);
 
                 return false;
+            }
+        }
+
+        private static void SafeLogInfo(string category, string message)
+        {
+            try
+            {
+                AppLog.Info(category, message);
+            }
+            catch
+            {
+                // 忽略：日志失败不影响关键路径
+            }
+        }
+
+        private static void SafeLogWarn(string category, string message, Exception? ex = null)
+        {
+            try
+            {
+                AppLog.Warn(category, message, ex);
+            }
+            catch
+            {
+                // 忽略：日志失败不影响关键路径
+            }
+        }
+
+        private static void SafeLogError(string category, string message, Exception? ex = null)
+        {
+            try
+            {
+                AppLog.Error(category, message, ex);
+            }
+            catch
+            {
+                // 忽略：日志失败不影响关键路径
+            }
+        }
+
+        private static void SafeLogCritical(string category, string message, Exception? ex = null)
+        {
+            try
+            {
+                AppLog.Critical(category, message, ex);
+            }
+            catch
+            {
+                // 忽略：日志失败不影响关键路径
             }
         }
 
@@ -405,6 +406,24 @@ namespace WindBoard.Errors
             catch
             {
                 return string.Empty;
+            }
+        }
+
+        // 说明：用于封装一次性标记位（Interlocked + Volatile），让主流程更聚焦于业务编排。
+        private sealed class OneTimeGate
+        {
+            private int _opened;
+
+            internal bool TryOpen()
+            {
+                return Interlocked.CompareExchange(ref _opened, 1, 0) == 0;
+            }
+
+            internal bool IsOpened => Volatile.Read(ref _opened) == 1;
+
+            internal void Open()
+            {
+                Interlocked.Exchange(ref _opened, 1);
             }
         }
 

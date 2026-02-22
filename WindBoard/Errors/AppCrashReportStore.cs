@@ -63,7 +63,10 @@ namespace WindBoard.Errors
                 int pid = TryGetProcessId();
 
                 string stamp = nowUtc.ToString("yyyyMMdd_HHmmss", CultureInfo.InvariantCulture);
-                string fileName = $"crash_{stamp}_{pid}.txt";
+                // 说明：同一进程在同一秒内可能发生多次崩溃（例如异常连锁/重入）。
+                // 为避免文件名冲突导致覆盖旧报告，这里增加一个随机熵（Guid）。
+                string unique = Guid.NewGuid().ToString("N");
+                string fileName = $"crash_{stamp}_{pid}_{unique}.txt";
                 string filePath = Path.Combine(crashDir, fileName);
 
                 string text = BuildReportText(source, nowUtc, pid, exception, exceptionObject, isTerminating, filePath, crashDir);
@@ -116,43 +119,27 @@ namespace WindBoard.Errors
                 return Path.Combine(logDirectoryOverride.Trim(), "Crashes");
             }
 
-            try
-            {
-                string dir = (AppLog.LogDirectory ?? string.Empty).Trim();
-                if (!string.IsNullOrWhiteSpace(dir))
-                {
-                    return Path.Combine(dir, "Crashes");
-                }
-            }
-            catch
-            {
-                // 忽略：继续走兜底
-            }
-
-            try
-            {
-                string dir = (AppDataPaths.LogsDirectory ?? string.Empty).Trim();
-                if (!string.IsNullOrWhiteSpace(dir))
-                {
-                    return Path.Combine(dir, "Crashes");
-                }
-            }
-            catch
-            {
-                // 忽略：继续走兜底
-            }
-
-            try
-            {
-                return Path.Combine(
+            return
+                TryGetCrashDir(() => AppLog.LogDirectory) ??
+                TryGetCrashDir(() => AppDataPaths.LogsDirectory) ??
+                TryGetCrashDir(() => Path.Combine(
                     Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
                     "WindBoard",
-                    "Logs",
-                    "Crashes");
+                    "Logs")) ??
+                string.Empty;
+        }
+
+        private static string? TryGetCrashDir(Func<string?> getBaseDir)
+        {
+            try
+            {
+                string dir = (getBaseDir() ?? string.Empty).Trim();
+                return string.IsNullOrWhiteSpace(dir) ? null : Path.Combine(dir, "Crashes");
             }
             catch
             {
-                return string.Empty;
+                // 忽略：继续走兜底
+                return null;
             }
         }
 
@@ -200,6 +187,15 @@ namespace WindBoard.Errors
             sb.AppendLine($"ReportFilePath: {reportFilePath}");
 
             sb.AppendLine();
+            AppendExceptionSection(sb, exception, exceptionObject);
+
+            sb.AppendLine();
+            sb.AppendLine("End");
+            return sb.ToString();
+        }
+
+        private static void AppendExceptionSection(StringBuilder sb, Exception? exception, object? exceptionObject)
+        {
             sb.AppendLine("Exception");
             sb.AppendLine("---------");
 
@@ -209,8 +205,10 @@ namespace WindBoard.Errors
                 sb.AppendLine($"ExceptionMessage: {exception.Message}");
                 sb.AppendLine();
                 sb.AppendLine(exception.ToString());
+                return;
             }
-            else if (exceptionObject is not null)
+
+            if (exceptionObject is not null)
             {
                 // AppDomain.UnhandledException 允许抛出非 Exception 对象。
                 sb.AppendLine($"ExceptionObjectType: {exceptionObject.GetType().FullName}");
@@ -223,15 +221,11 @@ namespace WindBoard.Errors
                 {
                     sb.AppendLine("(ExceptionObject.ToString() failed)");
                 }
-            }
-            else
-            {
-                sb.AppendLine("(null)");
+
+                return;
             }
 
-            sb.AppendLine();
-            sb.AppendLine("End");
-            return sb.ToString();
+            sb.AppendLine("(null)");
         }
 
         private static string SafeGet(Func<string> getter)
@@ -249,4 +243,3 @@ namespace WindBoard.Errors
         }
     }
 }
-
