@@ -91,4 +91,24 @@
       DestinationFolder="$(PublishDir)"
       SkipUnchangedFiles="true" />
   </Target>
+
+  <Target Name="WindBoard_PublishCrashReporter" AfterTargets="Publish">
+    <!--
+      发布独立 CrashReporter：用于主进程崩溃时仍能提示用户并提供日志/报告入口。
+
+      重要：将 CrashReporter 发布到与主程序相同的 publish 目录（$(PublishDir)），原因：
+      - self-contained 变体下主目录包含 app-local runtime（hostfxr/hostpolicy 等），CrashReporter 作为 framework-dependent 也可复用；
+      - 避免 CrashReporter 自带运行时导致体积翻倍与文件覆盖风险。
+    -->
+    <PropertyGroup>
+      <_WindBoardCrashReporterProject>$(MSBuildProjectDirectory)\..\WindBoard.CrashReporter\WindBoard.CrashReporter.csproj</_WindBoardCrashReporterProject>
+    </PropertyGroup>
+
+    <Message Importance="High"
+             Text="发布 CrashReporter：project='$(_WindBoardCrashReporterProject)'，publishDir='$(PublishDir)'，rid='$(RuntimeIdentifier)'" />
+
+    <MSBuild Projects="$(_WindBoardCrashReporterProject)"
+             Targets="Restore;Publish"
+             Properties="Configuration=$(Configuration);RuntimeIdentifier=$(RuntimeIdentifier);SelfContained=false;PublishDir=$(PublishDir)" />
+  </Target>
 </Project>

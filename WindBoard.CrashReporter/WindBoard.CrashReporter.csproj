@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows10.0.26100.0</TargetFramework>
+    <TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
+    <RootNamespace>WindBoard.CrashReporter</RootNamespace>
+    <Platforms>x86;x64;ARM64</Platforms>
+    <RuntimeIdentifiers>win-x86;win-x64;win-arm64</RuntimeIdentifiers>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+
+    <!--
+      独立崩溃提示程序：尽量不依赖 WinUI/Windows App SDK。
+      使用 WinForms 以降低依赖并保证在主进程 UI 不可用时仍可弹窗提示用户。
+    -->
+    <UseWindowsForms>true</UseWindowsForms>
+  </PropertyGroup>
+</Project>
+

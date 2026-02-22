@@ -1,4 +1,6 @@
 using System;
+using System.Diagnostics;
+using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.UI.Xaml;
@@ -23,6 +25,10 @@ namespace WindBoard.Errors
         // 防御：避免崩溃处理重入（可能出现异常连锁/重复触发）。
         private int _winUiCrashHandlingStarted;
         private int _appDomainCrashHandlingStarted;
+
+        // 防御：避免重复拉起 CrashReporter（可能出现 WinUI + AppDomain 同时触发）。
+        private int _crashReporterLaunchAttempted;
+        private int _crashReporterLaunched;
 
         internal static AppErrorService Instance { get; } = new();
 
@@ -100,7 +106,16 @@ namespace WindBoard.Errors
             }
 
             // UI 线程尽力弹窗；无论弹窗成功与否，最终都退出进程，避免处于不一致状态继续运行。
-            TryShowCrashDialogAndExit(wrote ? report : null);
+            AppCrashReport? crashReport = wrote ? report : null;
+
+            // 优先使用独立 CrashReporter：不依赖 WinUI 视觉树，成功拉起后避免重复弹窗。
+            if (TryLaunchCrashReporter(crashReport, AppCrashSource.WinUIUnhandledException))
+            {
+                TryExitApplication();
+                return;
+            }
+
+            TryShowCrashDialogAndExit(crashReport);
         }
 
         internal void HandleAppDomainUnhandledException(System.UnhandledExceptionEventArgs e)
@@ -145,6 +160,16 @@ namespace WindBoard.Errors
             catch
             {
                 // 兜底：全局异常处理本身不能再抛异常
+            }
+
+            // AppDomain 未处理异常时也尽力拉起 CrashReporter（不依赖窗口是否创建）。
+            try
+            {
+                _ = TryLaunchCrashReporter(wrote ? report : null, AppCrashSource.AppDomainUnhandledException);
+            }
+            catch
+            {
+                // 忽略：崩溃链路兜底不能再抛异常
             }
         }
 
@@ -465,6 +490,145 @@ namespace WindBoard.Errors
             catch
             {
                 // 忽略：最终兜底也失败时，交给宿主处理
+            }
+        }
+
+        private bool TryLaunchCrashReporter(AppCrashReport? report, AppCrashSource source)
+        {
+            // 说明：该方法位于“崩溃链路”，必须极其保守：任何异常都不得冒泡。
+            // 返回值语义：true 表示 CrashReporter 已经启动（或此前已启动）；false 表示未启动。
+
+            try
+            {
+                if (Volatile.Read(ref _crashReporterLaunched) == 1)
+                {
+                    return true;
+                }
+
+                if (Interlocked.CompareExchange(ref _crashReporterLaunchAttempted, 1, 0) != 0)
+                {
+                    return Volatile.Read(ref _crashReporterLaunched) == 1;
+                }
+
+                string exePath = GetCrashReporterExePath();
+                if (string.IsNullOrWhiteSpace(exePath) || !File.Exists(exePath))
+                {
+                    try
+                    {
+                        AppLog.Warn("App", $"CrashReporter 不存在，已跳过：path='{exePath}'");
+                    }
+                    catch
+                    {
+                        // 忽略：日志失败不影响崩溃兜底
+                    }
+
+                    return false;
+                }
+
+                string reportPath = report?.ReportFilePath ?? string.Empty;
+                string logsDir = GetLogsDirectoryForCrashReporter();
+
+                var psi = new ProcessStartInfo
+                {
+                    FileName = exePath,
+                    UseShellExecute = false,
+                    CreateNoWindow = true,
+                    WorkingDirectory = AppContext.BaseDirectory,
+                };
+
+                psi.ArgumentList.Add("--report");
+                psi.ArgumentList.Add(reportPath ?? string.Empty);
+
+                psi.ArgumentList.Add("--logs-dir");
+                psi.ArgumentList.Add(logsDir ?? string.Empty);
+
+                psi.ArgumentList.Add("--source");
+                psi.ArgumentList.Add(source.ToString());
+
+                Process? p = Process.Start(psi);
+                if (p is null)
+                {
+                    try
+                    {
+                        AppLog.Warn("App", $"启动 CrashReporter 失败（Process.Start 返回 null）：path='{exePath}'");
+                    }
+                    catch
+                    {
+                        // 忽略
+                    }
+
+                    return false;
+                }
+
+                Interlocked.Exchange(ref _crashReporterLaunched, 1);
+
+                try
+                {
+                    AppLog.Info("App", $"已启动 CrashReporter：path='{exePath}', report='{reportPath}', logsDir='{logsDir}', source={source}");
+                }
+                catch
+                {
+                    // 忽略
+                }
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                try
+                {
+                    AppLog.Warn("App", "启动 CrashReporter 异常", ex);
+                }
+                catch
+                {
+                    // 忽略
+                }
+
+                return false;
+            }
+        }
+
+        private static string GetCrashReporterExePath()
+        {
+            // 说明：把 CrashReporter 放在应用目录根部，便于：
+            // - self-contained 发布时复用同目录的 app-local runtime（hostfxr/hostpolicy 等）；
+            // - 安装包/便携版打包更直观（同目录递归复制即可）。
+            try
+            {
+                return Path.Combine(AppContext.BaseDirectory, "WindBoard.CrashReporter.exe");
+            }
+            catch
+            {
+                return string.Empty;
+            }
+        }
+
+        private static string GetLogsDirectoryForCrashReporter()
+        {
+            // 说明：优先使用当前日志目录（由 AppLog/AppDataPaths 决定），失败时再回退到 LocalAppData。
+            try
+            {
+                string dir = (AppLog.LogDirectory ?? string.Empty).Trim();
+                if (!string.IsNullOrWhiteSpace(dir))
+                {
+                    return dir;
+                }
+            }
+            catch
+            {
+                // 忽略：继续走兜底
+            }
+
+            try
+            {
+                return Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                    "WindBoard",
+                    "Logs");
+            }
+            catch
+            {
+                return string.Empty;
             }
         }
     }
