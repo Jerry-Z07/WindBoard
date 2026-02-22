@@ -16,6 +16,7 @@ using Windows.ApplicationModel;
 using Windows.ApplicationModel.Activation;
 using Windows.Foundation;
 using Windows.Foundation.Collections;
+using WindBoard.Errors;
 using WindBoard.Logging;
 using WindBoard.Localization;
 using WindBoard.Persistence;
@@ -49,12 +50,13 @@ namespace WindBoard
             // 捕获系统语言：用于“跟随系统”模式下的回退与运行中切换。
             AppLanguageService.CaptureSystemCulturesIfNeeded();
 
-            InitializeComponent();
-
             // 全局异常捕获：避免“静默失败”，并把关键堆栈落盘到日志文件。
+            // 说明：尽量早 Hook（在 InitializeComponent 前），避免 XAML 初始化阶段异常漏掉。
             UnhandledException += OnAppUnhandledException;
             AppDomain.CurrentDomain.UnhandledException += OnAppDomainUnhandledException;
             TaskScheduler.UnobservedTaskException += OnUnobservedTaskException;
+
+            InitializeComponent();
         }
 
         /// <summary>
@@ -126,6 +128,19 @@ namespace WindBoard
 
             _window = new MainWindow();
             _window.Activate();
+
+            try
+            {
+                if (_window is MainWindow mainWindow)
+                {
+                    AppErrorService.Instance.Initialize(mainWindow);
+                }
+            }
+            catch (Exception ex)
+            {
+                // 初始化失败不应阻断启动：记录日志便于排查。
+                AppLog.Warn("App", "初始化统一错误处理服务失败", ex);
+            }
 
             // 启动完成后再弹提醒：避免窗口尚未就绪时应用内弹条控件未挂载，导致提醒丢失。
             TryRemindAppDataIssuesIfNeeded(_window, settingsMigration);
@@ -211,7 +226,7 @@ namespace WindBoard
         {
             try
             {
-                AppLog.Critical("App", "WinUI UnhandledException", e.Exception);
+                AppErrorService.Instance.HandleWinUiUnhandledException(e);
             }
             catch
             {
@@ -223,14 +238,7 @@ namespace WindBoard
         {
             try
             {
-                if (e.ExceptionObject is Exception ex)
-                {
-                    AppLog.Critical("App", $"AppDomain UnhandledException：isTerminating={e.IsTerminating}", ex);
-                }
-                else
-                {
-                    AppLog.Critical("App", $"AppDomain UnhandledException：isTerminating={e.IsTerminating}, exceptionObjectType={e.ExceptionObject?.GetType().FullName ?? "(null)"}");
-                }
+                AppErrorService.Instance.HandleAppDomainUnhandledException(e);
             }
             catch
             {
@@ -242,10 +250,7 @@ namespace WindBoard
         {
             try
             {
-                AppLog.Error("App", "TaskScheduler.UnobservedTaskException", e.Exception);
-
-                // 标记已观察：避免宿主将其升级为进程级异常（不同运行时/配置下行为可能不同）。
-                e.SetObserved();
+                AppErrorService.Instance.HandleUnobservedTaskException(e);
             }
             catch
             {

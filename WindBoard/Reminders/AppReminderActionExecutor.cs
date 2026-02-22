@@ -21,6 +21,9 @@ namespace WindBoard.Reminders
                     case AppReminderClickAction.OpenAppDataRootDirectory:
                         TryOpenDirectory(AppDataPaths.RootDirectory, name: "AppDataRoot");
                         return;
+                    case AppReminderClickAction.OpenLogsDirectory:
+                        TryOpenDirectory(AppLog.LogDirectory, name: "Logs");
+                        return;
                     case AppReminderClickAction.None:
                     default:
                         return;
@@ -68,4 +71,3 @@ namespace WindBoard.Reminders
         }
     }
 }
-

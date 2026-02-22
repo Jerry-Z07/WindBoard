@@ -71,6 +71,21 @@
   <data name="Common_Copy" xml:space="preserve">
     <value>复制</value>
   </data>
+  <data name="Common_CopyDiagnostics" xml:space="preserve">
+    <value>复制诊断信息</value>
+  </data>
+  <data name="Common_CrashDialog_Title" xml:space="preserve">
+    <value>程序发生错误</value>
+  </data>
+  <data name="Common_CrashDialog_Body" xml:space="preserve">
+    <value>很抱歉，程序发生了未处理异常，需要退出。你可以复制诊断信息或打开日志目录以便反馈。</value>
+  </data>
+  <data name="Common_DiagnosticsCopied" xml:space="preserve">
+    <value>已复制诊断信息</value>
+  </data>
+  <data name="Common_OpenLogDirectory" xml:space="preserve">
+    <value>打开日志目录</value>
+  </data>
   <data name="Common_BringToFront" xml:space="preserve">
     <value>置顶</value>
   </data>
