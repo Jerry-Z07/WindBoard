@@ -5,7 +5,7 @@ namespace WindBoard.CrashReporter
     /// <summary>
     /// CrashReporter 命令行参数解析。
     /// 设计原则：
-    /// - 解析必须“吞得住”：不因缺参/未知参而抛异常；
+    /// - 解析不因缺参/未知参而抛异常；
     /// - 参数尽量显式，便于未来扩展。
     /// </summary>
     internal sealed class CrashReporterArgs
