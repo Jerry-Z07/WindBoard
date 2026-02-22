@@ -16,12 +16,14 @@ namespace WindBoard.Reminders
         internal const string KeyAction = "wb_action";
 
         internal const string ActionOpenDataRoot = "open_data_root";
+        internal const string ActionOpenLogsDir = "open_logs_dir";
 
         internal static string? BuildLaunchArgument(AppReminderClickAction action)
         {
             return action switch
             {
                 AppReminderClickAction.OpenAppDataRootDirectory => $"{KeyAction}={ActionOpenDataRoot}",
+                AppReminderClickAction.OpenLogsDirectory => $"{KeyAction}={ActionOpenLogsDir}",
                 _ => null,
             };
         }
@@ -77,6 +79,12 @@ namespace WindBoard.Reminders
             if (string.Equals(v, ActionOpenDataRoot, StringComparison.OrdinalIgnoreCase))
             {
                 action = AppReminderClickAction.OpenAppDataRootDirectory;
+                return true;
+            }
+
+            if (string.Equals(v, ActionOpenLogsDir, StringComparison.OrdinalIgnoreCase))
+            {
+                action = AppReminderClickAction.OpenLogsDirectory;
                 return true;
             }
 

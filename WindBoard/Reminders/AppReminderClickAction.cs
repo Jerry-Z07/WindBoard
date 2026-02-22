@@ -13,6 +13,10 @@ namespace WindBoard.Reminders
         /// 打开当前会话正在使用的“应用数据根目录”（安装版为 LocalAppData，便携版为 {AppBase}\data）。
         /// </summary>
         OpenAppDataRootDirectory,
+
+        /// <summary>
+        /// 打开当前会话正在使用的“日志目录”（通常为 {DataRoot}\Logs）。
+        /// </summary>
+        OpenLogsDirectory,
     }
 }
-

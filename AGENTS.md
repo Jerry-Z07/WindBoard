@@ -1,10 +1,16 @@
 # AGENTS.md
 
+## 通用规则（General Rules）
+
+- 关键路径需要有必要的日志输出与错误处理
+  - 主程序统一使用 `WindBoard.Logging.AppLog`（`Info/Warn/Error` 等）
+  - `WindBoard.CrashReporter` 为降低依赖，不使用主程序日志系统，统一使用 `WindBoard.CrashReporter.CrashReporterLog`
+
 ## 项目结构（Project Structure）
 
-- `WindBoard.slnx`：解决方案入口。
+- `WindBoard.slnx`：解决方案入口（`WindBoard` + `WindBoard.CrashReporter` + `WindBoard.Tests`）。
   - 支持平台：x86、x64、ARM64（默认 AnyCPU 映射到 x64）。
-- `docs/`：文档。
+- `docs/`：开发文档、图片与发布说明（`docs/dev/*`、`docs/images/*`、`docs/release-notes/*`）。
 - `WindBoard/`：WinUI 3 桌面应用（C# / XAML，Windows App SDK）。
   - `UI/`：窗口/页面的 UI 编排代码（含 `UI/MainWindow/`：`MainWindow` 的 partial 拆分）。
   - `Controls/`：自定义控件。
@@ -23,33 +29,46 @@
   - `Importing/`：导入相关的非 UI 核心逻辑（例如图片解码/文本读取等）。
   - `Localization/`：本地化资源与取值入口（`.resx` + `L10n` + XAML `Loc` 扩展）。
   - `Logging/`：应用日志（文件 + Debug 输出，入口：`WindBoard.Logging.AppLog`）。
+  - `Errors/`：应用错误处理与崩溃报告（对接 CrashReporter）。
+  - `Updates/`：应用更新检查/下载相关。
   - `Reminders/`：应用级提醒/通知（应用内 Banner、Windows Toast 等通道）。
   - `ShortcutDock/`：快捷入口（启动程序/打开链接/图标解析等）。
   - `Settings/`：设置相关。
   - `Persistence/`：应用层持久化服务接口/实现（避免与 `Board/Persistence/` 混淆）。
   - `Assets/`：应用资源。
   - `Properties/PublishProfiles/`：发布配置。
+- `WindBoard.CrashReporter/`：独立崩溃提示程序（WinForms）。
+  - `CrashReporterArgs.cs`：命令行参数解析。
+  - `CrashReporterForm.cs`：提示 UI 与交互。
+  - `CrashReporterLog.cs`：CrashReporter 自身日志（尽力落盘，吞异常兜底）。
 - `WindBoard.Tests/`：xUnit 单元测试工程。
   - `Board/`：核心模型测试（命令/编辑/视口/笔画等）。
+  - `Errors/`：错误/崩溃报告相关测试。
   - `Importing/`：导入模块测试。
   - `Interaction/`：交互层测试（脏矩形计算等）。
   - `Rendering/`：渲染层测试（场景数学/脏矩形计算）。
   - `Exporting/`：导出模块测试（导出器/页范围解析等）。
+  - `Persistence/`：应用层持久化相关测试。
   - `Localization/`：本地化相关测试（键值审计等）。
   - `Settings/`：设置模块测试（设置存储/颜色处理等）。
   - `ShortcutDock/`：快捷入口相关测试。
+  - `Updates/`：更新模块测试。
   - `AssertEx.cs`：测试辅助工具。
+- `installer/`：打包脚本（Inno Setup，入口：`installer/WindBoard.iss`）。
 
 
 ## 编码规范（Coding Style & Naming）
 
 - 缩进 4 空格；保持现有 `namespace {}` 与大括号风格一致。
 - 命名：类型/方法用 `PascalCase`；私有字段用 `_camelCase`。
-- 关键路径需要有必要的日志输出与错误处理；统一使用 `WindBoard.Logging.AppLog`（`Info/Warn/Error` 等）。
+- 关键路径需要有必要的日志输出与错误处理（见“通用规则”）。
 
 ## 测试与验证（Testing）
 
-- 测试工程：`WindBoard.Tests`（xUnit）。为了避免把实现细节暴露为 `public`，主工程通过 `WindBoard/InternalsVisibleTo.cs` 允许测试访问 `internal` 类型。
+- 测试工程：`WindBoard.Tests`（xUnit）。为了避免把实现细节暴露为 `public`，主工程通过：
+  - `WindBoard/InternalsVisibleTo.cs`
+  - `WindBoard.CrashReporter/InternalsVisibleTo.cs`
+  允许测试访问 `internal` 类型。
 - 运行测试：`dotnet test WindBoard.slnx`（默认平台已映射到 x64；如需显式指定可用 `dotnet test WindBoard.slnx -p:Platform=x64`）。
 - 本地化 Key 审计：`WindBoard.Tests/Localization/LocalizationKeyAuditTests.cs`（要求 C# 中 `L10n.Get/Format` 的 key 为字符串字面量；XAML 使用 `{l10n:Loc Key=...}`）。
 - 测试分层建议：
@@ -58,5 +77,7 @@
 
 ## 相关文档（Docs）
 
-- `docs/LOCALIZATION.md`：本地化约定（`zh-CN/*.resx` / `L10n` / `LocExtension`）。
-- `docs/WBIX.md`：WBIX（`.wbix`）格式说明。
+- `docs/dev/ZH/LOCALIZATION.md`：本地化约定（英文版：`docs/dev/EN/LOCALIZATION_EN.md`）。
+- `docs/dev/ZH/WBIX.md`：WBIX（`.wbix`）格式说明（英文版：`docs/dev/EN/WBIX_EN.md`）。
+- `docs/release-notes/`：版本发布说明。
+

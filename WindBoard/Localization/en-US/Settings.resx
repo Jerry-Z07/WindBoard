@@ -227,6 +227,36 @@
   <data name="Settings_Debug_SendTestToast_Description" xml:space="preserve">
     <value>Send a test Windows Toast notification</value>
   </data>
+  <data name="Settings_Debug_ShowTestBanner_Title" xml:space="preserve">
+    <value>Notification test (in-app banner)</value>
+  </data>
+  <data name="Settings_Debug_ShowTestBanner_Description" xml:space="preserve">
+    <value>Show a test banner in the top-right of the main window</value>
+  </data>
+  <data name="Settings_Debug_CrashWinUi_Title" xml:space="preserve">
+    <value>Crash test (UI thread)</value>
+  </data>
+  <data name="Settings_Debug_CrashWinUi_Description" xml:space="preserve">
+    <value>Intentionally trigger an unhandled UI thread exception (will write a crash report and exit)</value>
+  </data>
+  <data name="Settings_Debug_CrashAppDomain_Title" xml:space="preserve">
+    <value>Crash test (background thread)</value>
+  </data>
+  <data name="Settings_Debug_CrashAppDomain_Description" xml:space="preserve">
+    <value>Intentionally trigger an unhandled background thread exception (will write a crash report and exit)</value>
+  </data>
+  <data name="Settings_Debug_CrashConfirm_Title" xml:space="preserve">
+    <value>Confirm crash test</value>
+  </data>
+  <data name="Settings_Debug_CrashConfirm_Body" xml:space="preserve">
+    <value>This action will intentionally crash the app to verify the crash handling pipeline (write a crash report, show a crash dialog, and exit). Please save your work first.</value>
+  </data>
+  <data name="Settings_Debug_CrashConfirm_Placeholder" xml:space="preserve">
+    <value>Type CRASH to continue</value>
+  </data>
+  <data name="Settings_Debug_CrashDialogUnavailable_Message" xml:space="preserve">
+    <value>Can't show the confirmation dialog (window is not ready).</value>
+  </data>
   <data name="Settings_Debug_TestToast_Title" xml:space="preserve">
     <value>{0} test notification</value>
   </data>
@@ -263,6 +293,9 @@
   <data name="Settings_Debug_Feedback_SentToast" xml:space="preserve">
     <value>Test notification sent</value>
   </data>
+  <data name="Settings_Debug_Feedback_ShownBanner" xml:space="preserve">
+    <value>Test in-app banner shown</value>
+  </data>
   <data name="Settings_Debug_ActionFailed_Fmt" xml:space="preserve">
     <value>Action failed: {0}</value>
   </data>
@@ -283,6 +316,9 @@
   </data>
   <data name="Settings_Debug_CurrentLogFileMissing_Message" xml:space="preserve">
     <value>No log file was created for this session (file logging may be disabled).</value>
+  </data>
+  <data name="Settings_Debug_MainWindowMissing_Message" xml:space="preserve">
+    <value>Main window not found; cannot show the in-app banner.</value>
   </data>
   <data name="Settings_Camouflage_Title" xml:space="preserve">
     <value>Camouflage</value>

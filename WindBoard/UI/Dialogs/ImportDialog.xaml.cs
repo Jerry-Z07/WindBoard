@@ -45,6 +45,19 @@ namespace WindBoard.UI.Dialogs
             _hwnd = hwnd;
             InitializeComponent();
 
+            // 说明：ContentDialog 的命令按钮样式（主按钮/关闭按钮）在不同系统上可能呈现“直角/拉伸铺满”的旧观感，
+            // 这里统一覆写为与应用其它区域一致的圆角按钮样式。
+            try
+            {
+                PrimaryButtonStyle = (Style)Resources["ImportDialogPrimaryButtonStyle"];
+                CloseButtonStyle = (Style)Resources["ImportDialogCloseButtonStyle"];
+            }
+            catch (Exception ex)
+            {
+                // 样式问题不应导致导入功能不可用：记录日志后回退到默认样式。
+                AppLog.Warn("Import", $"应用导入弹窗按钮样式失败，将回退到默认样式：{ex.Message}");
+            }
+
             IsPrimaryButtonEnabled = false;
             PrimaryButtonClick += OnPrimaryButtonClick;
 

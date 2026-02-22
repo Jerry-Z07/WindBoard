@@ -23,6 +23,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\\WindBoard\\WindBoard.csproj" />
+    <ProjectReference Include="..\\WindBoard.CrashReporter\\WindBoard.CrashReporter.csproj" />
   </ItemGroup>
 
 </Project>

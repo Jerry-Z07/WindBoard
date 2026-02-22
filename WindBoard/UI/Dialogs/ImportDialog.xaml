@@ -10,9 +10,42 @@
     Title="{l10n:Loc Key=ImportDialog_Title}"
     PrimaryButtonText="{l10n:Loc Key=Common_Import}"
     CloseButtonText="{l10n:Loc Key=Common_Cancel}"
-    DefaultButton="Primary">
+    DefaultButton="Primary"
+    CornerRadius="12">
 
     <ContentDialog.Resources>
+        <Style
+            x:Key="ImportDialogBaseAccentButtonStyle"
+            TargetType="Button"
+            BasedOn="{StaticResource AccentButtonStyle}" />
+
+        <Style
+            x:Key="AccentButtonStyle"
+            TargetType="Button"
+            BasedOn="{StaticResource ImportDialogBaseAccentButtonStyle}">
+            <Setter Property="CornerRadius" Value="10" />
+            <Setter Property="MinHeight" Value="36" />
+            <Setter Property="Padding" Value="20,8" />
+        </Style>
+
+        <Style
+            x:Key="ImportDialogPrimaryButtonStyle"
+            TargetType="Button"
+            BasedOn="{StaticResource AccentButtonStyle}">
+            <Setter Property="CornerRadius" Value="10" />
+            <Setter Property="MinHeight" Value="36" />
+            <Setter Property="Padding" Value="20,8" />
+        </Style>
+
+        <Style
+            x:Key="ImportDialogCloseButtonStyle"
+            TargetType="Button"
+            BasedOn="{StaticResource DefaultButtonStyle}">
+            <Setter Property="CornerRadius" Value="10" />
+            <Setter Property="MinHeight" Value="36" />
+            <Setter Property="Padding" Value="20,8" />
+        </Style>
+
         <DataTemplate x:Key="StorageFileItemTemplate">
             <Grid Padding="8,6" ColumnSpacing="12">
                 <Grid.ColumnDefinitions>

@@ -71,6 +71,21 @@
   <data name="Common_Copy" xml:space="preserve">
     <value>Copy</value>
   </data>
+  <data name="Common_CopyDiagnostics" xml:space="preserve">
+    <value>Copy diagnostics</value>
+  </data>
+  <data name="Common_CrashDialog_Title" xml:space="preserve">
+    <value>Something went wrong</value>
+  </data>
+  <data name="Common_CrashDialog_Body" xml:space="preserve">
+    <value>The app encountered an unhandled exception and needs to exit. You can copy diagnostics or open the log directory for troubleshooting.</value>
+  </data>
+  <data name="Common_DiagnosticsCopied" xml:space="preserve">
+    <value>Diagnostics copied</value>
+  </data>
+  <data name="Common_OpenLogDirectory" xml:space="preserve">
+    <value>Open log directory</value>
+  </data>
   <data name="Common_BringToFront" xml:space="preserve">
     <value>Bring to front</value>
   </data>
