@@ -4,9 +4,6 @@ using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.UI.Xaml;
-using Microsoft.UI.Xaml.Controls;
-using Windows.ApplicationModel.DataTransfer;
-using WindBoard.Localization;
 using WindBoard.Logging;
 using WindBoard.Reminders;
 
@@ -14,7 +11,7 @@ namespace WindBoard.Errors
 {
     /// <summary>
     /// 应用统一错误处理中心：
-    /// - 未处理异常：落盘崩溃报告 +（UI 线程尽力）弹出崩溃对话框并退出；
+    /// - 未处理异常：落盘崩溃报告 + 拉起独立 CrashReporter 并退出；
     /// - 已捕获异常：统一记录日志，并可选展示用户提示（提醒一次）。
     /// </summary>
     internal sealed class AppErrorService
@@ -56,7 +53,7 @@ namespace WindBoard.Errors
                 return;
             }
 
-            // 必须尽早标记 Handled：否则可能直接被宿主终止，无法写报告/弹窗。
+            // 必须尽早标记 Handled：否则可能直接被宿主终止，无法写报告/拉起 CrashReporter。
             try
             {
                 e.Handled = true;
@@ -105,17 +102,21 @@ namespace WindBoard.Errors
                 // 兜底：全局异常处理本身不能再抛异常
             }
 
-            // UI 线程尽力弹窗；无论弹窗成功与否，最终都退出进程，避免处于不一致状态继续运行。
+            // 写入完成后尽力拉起 CrashReporter；无论拉起成功与否，最终都退出进程，避免处于不一致状态继续运行。
             AppCrashReport? crashReport = wrote ? report : null;
 
-            // 优先使用独立 CrashReporter：不依赖 WinUI 视觉树，成功拉起后避免重复弹窗。
-            if (TryLaunchCrashReporter(crashReport, AppCrashSource.WinUIUnhandledException))
+            // 使用独立 CrashReporter：不依赖 WinUI 视觉树，避免“主进程已坏导致弹窗出不来”。
+            try
             {
-                TryExitApplication();
-                return;
+                _ = TryLaunchCrashReporter(crashReport, AppCrashSource.WinUIUnhandledException);
+            }
+            catch
+            {
+                // 忽略：崩溃链路兜底不能再抛异常
             }
 
-            TryShowCrashDialogAndExit(crashReport);
+            // 无论 CrashReporter 是否拉起成功，主进程都应退出，避免处于不一致状态继续运行。
+            TryExitApplication();
         }
 
         internal void HandleAppDomainUnhandledException(System.UnhandledExceptionEventArgs e)
@@ -265,202 +266,6 @@ namespace WindBoard.Errors
             lock (_gate)
             {
                 return _mainWindow;
-            }
-        }
-
-        private void TryShowCrashDialogAndExit(AppCrashReport? report)
-        {
-            global::WindBoard.MainWindow? window = GetMainWindowSnapshot();
-            if (window is null)
-            {
-                // 没有窗口：只能直接退出。
-                TryExitApplication();
-                return;
-            }
-
-            bool enqueued = window.DispatcherQueue.TryEnqueue(async () =>
-            {
-                try
-                {
-                    await ShowCrashDialogAsync(window, report);
-                }
-                catch (Exception ex)
-                {
-                    // 注意：即使弹窗失败也要退出；这里用 Critical 便于排查“为什么没弹窗”。
-                    AppLog.Critical("App", "展示崩溃对话框失败", ex);
-                }
-                finally
-                {
-                    TryExitApplication();
-                }
-            });
-
-            if (!enqueued)
-            {
-                // DispatcherQueue 入队失败：尝试直接执行（可能已在 UI 线程）。
-                _ = ShowCrashDialogAndExitFallbackAsync(window, report);
-            }
-        }
-
-        private async Task ShowCrashDialogAndExitFallbackAsync(global::WindBoard.MainWindow window, AppCrashReport? report)
-        {
-            try
-            {
-                await ShowCrashDialogAsync(window, report);
-            }
-            catch (Exception ex)
-            {
-                AppLog.Critical("App", "展示崩溃对话框失败（fallback）", ex);
-            }
-            finally
-            {
-                TryExitApplication();
-            }
-        }
-
-        private static async Task ShowCrashDialogAsync(global::WindBoard.MainWindow window, AppCrashReport? report)
-        {
-            // 说明：崩溃对话框属于“尽力而为”，任何异常都必须被捕获，不能影响退出流程。
-            if (window is null)
-            {
-                return;
-            }
-
-            if (window.Content is not FrameworkElement root || root.XamlRoot is null)
-            {
-                return;
-            }
-
-            string reportText = report?.ReportText ?? string.Empty;
-            string reportPath = report?.ReportFilePath ?? string.Empty;
-
-            var feedback = new TextBlock
-            {
-                Text = string.Empty,
-                TextWrapping = TextWrapping.Wrap,
-            };
-
-            var info = new TextBlock
-            {
-                Text = L10n.Get("Common_CrashDialog_Body"),
-                TextWrapping = TextWrapping.Wrap,
-            };
-
-            var path = new TextBlock
-            {
-                Text = string.IsNullOrWhiteSpace(reportPath) ? string.Empty : reportPath,
-                TextWrapping = TextWrapping.Wrap,
-                FontSize = 12,
-                Opacity = 0.80,
-            };
-
-            var details = new TextBox
-            {
-                IsReadOnly = true,
-                AcceptsReturn = true,
-                TextWrapping = TextWrapping.NoWrap,
-                MinHeight = 220,
-                MaxHeight = 420,
-            };
-            // 注意：必须先设置 AcceptsReturn=true，再赋值 Text；
-            // 否则 TextBox 仍处于“单行模式”时会截断换行后的内容，导致只显示第一行。
-            details.Text = reportText;
-
-            var content = new StackPanel { Spacing = 10 };
-            content.Children.Add(info);
-            if (!string.IsNullOrWhiteSpace(path.Text))
-            {
-                content.Children.Add(path);
-            }
-
-            if (!string.IsNullOrWhiteSpace(reportText))
-            {
-                content.Children.Add(details);
-            }
-
-            content.Children.Add(feedback);
-
-            var dialog = new ContentDialog
-            {
-                Title = L10n.Get("Common_CrashDialog_Title"),
-                Content = content,
-                PrimaryButtonText = L10n.Get("Common_CopyDiagnostics"),
-                SecondaryButtonText = L10n.Get("Common_OpenLogDirectory"),
-                CloseButtonText = L10n.Get("Common_Exit"),
-                DefaultButton = ContentDialogButton.Primary,
-                XamlRoot = root.XamlRoot,
-            };
-
-            dialog.PrimaryButtonClick += (_, args) =>
-            {
-                args.Cancel = true;
-                try
-                {
-                    string text = string.IsNullOrWhiteSpace(reportText) ? BuildFallbackDiagnosticsText(reportPath) : reportText;
-                    if (TryCopyToClipboard(text, out string? error))
-                    {
-                        feedback.Text = L10n.Get("Common_DiagnosticsCopied");
-                    }
-                    else
-                    {
-                        feedback.Text = string.IsNullOrWhiteSpace(error) ? L10n.Get("Common_UnknownError") : error;
-                    }
-                }
-                catch (Exception ex)
-                {
-                    AppLog.Warn("Errors", "复制诊断信息失败", ex);
-                    feedback.Text = L10n.Get("Common_UnknownError");
-                }
-            };
-
-            dialog.SecondaryButtonClick += (_, args) =>
-            {
-                args.Cancel = true;
-                try
-                {
-                    // 统一走提醒动作执行器：失败只记日志，不影响主流程。
-                    AppReminderActionExecutor.TryExecute(AppReminderClickAction.OpenLogsDirectory);
-                }
-                catch (Exception ex)
-                {
-                    AppLog.Warn("Errors", "打开日志目录失败", ex);
-                    feedback.Text = L10n.Get("Common_UnknownError");
-                }
-            };
-
-            await dialog.ShowAsync();
-        }
-
-        private static string BuildFallbackDiagnosticsText(string reportPath)
-        {
-            // 兜底：报告文本为空时，至少让用户复制到“报告文件路径 + 日志目录”。
-            try
-            {
-                return $"report='{reportPath}', logs='{AppLog.LogDirectory}', logFile='{AppLog.CurrentLogFilePath ?? string.Empty}'";
-            }
-            catch
-            {
-                return reportPath ?? string.Empty;
-            }
-        }
-
-        private static bool TryCopyToClipboard(string text, out string? error)
-        {
-            error = null;
-
-            try
-            {
-                string value = text ?? string.Empty;
-                var package = new DataPackage();
-                package.SetText(value);
-                Clipboard.SetContent(package);
-                Clipboard.Flush();
-                return true;
-            }
-            catch (Exception ex)
-            {
-                error = ex.GetType().Name + ": " + ex.Message;
-                return false;
             }
         }
 
