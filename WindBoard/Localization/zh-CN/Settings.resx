@@ -227,6 +227,36 @@
   <data name="Settings_Debug_SendTestToast_Description" xml:space="preserve">
     <value>发送一条测试 Windows Toast 通知</value>
   </data>
+  <data name="Settings_Debug_ShowTestBanner_Title" xml:space="preserve">
+    <value>消息推送测试（应用内弹条）</value>
+  </data>
+  <data name="Settings_Debug_ShowTestBanner_Description" xml:space="preserve">
+    <value>在主窗口右上角展示一条测试弹条</value>
+  </data>
+  <data name="Settings_Debug_CrashWinUi_Title" xml:space="preserve">
+    <value>崩溃测试（UI 线程）</value>
+  </data>
+  <data name="Settings_Debug_CrashWinUi_Description" xml:space="preserve">
+    <value>故意触发 UI 线程未处理异常（将写崩溃报告并退出应用）</value>
+  </data>
+  <data name="Settings_Debug_CrashAppDomain_Title" xml:space="preserve">
+    <value>崩溃测试（后台线程）</value>
+  </data>
+  <data name="Settings_Debug_CrashAppDomain_Description" xml:space="preserve">
+    <value>故意触发后台线程未处理异常（将写崩溃报告并退出应用）</value>
+  </data>
+  <data name="Settings_Debug_CrashConfirm_Title" xml:space="preserve">
+    <value>确认崩溃测试</value>
+  </data>
+  <data name="Settings_Debug_CrashConfirm_Body" xml:space="preserve">
+    <value>此操作会故意触发崩溃，用于验证崩溃处理链路（写崩溃报告、弹出崩溃对话框并退出）。请先保存工作。</value>
+  </data>
+  <data name="Settings_Debug_CrashConfirm_Placeholder" xml:space="preserve">
+    <value>输入 CRASH 以继续</value>
+  </data>
+  <data name="Settings_Debug_CrashDialogUnavailable_Message" xml:space="preserve">
+    <value>无法显示确认对话框（窗口尚未就绪）。</value>
+  </data>
   <data name="Settings_Debug_TestToast_Title" xml:space="preserve">
     <value>{0} 测试通知</value>
   </data>
@@ -263,6 +293,9 @@
   <data name="Settings_Debug_Feedback_SentToast" xml:space="preserve">
     <value>已发送测试 Windows 通知</value>
   </data>
+  <data name="Settings_Debug_Feedback_ShownBanner" xml:space="preserve">
+    <value>已展示测试应用内弹条</value>
+  </data>
   <data name="Settings_Debug_ActionFailed_Fmt" xml:space="preserve">
     <value>操作失败：{0}</value>
   </data>
@@ -283,6 +316,9 @@
   </data>
   <data name="Settings_Debug_CurrentLogFileMissing_Message" xml:space="preserve">
     <value>当前会话未生成日志文件（可能已关闭文件日志）。</value>
+  </data>
+  <data name="Settings_Debug_MainWindowMissing_Message" xml:space="preserve">
+    <value>未找到主窗口，无法展示应用内弹条。</value>
   </data>
   <data name="Settings_Camouflage_Title" xml:space="preserve">
     <value>伪装</value>

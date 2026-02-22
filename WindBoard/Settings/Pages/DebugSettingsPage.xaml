@@ -230,6 +230,93 @@
                                 VerticalAlignment="Center" />
                         </Grid>
                     </Button>
+
+                    <Button Style="{StaticResource SettingsCardButtonStyle}" Click="OnShowTestInAppBannerClicked">
+                        <Grid ColumnSpacing="12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+
+                            <!-- 应用内右上角弹条测试 -->
+                            <FontIcon
+                                FontFamily="Segoe MDL2 Assets"
+                                FontSize="16"
+                                Glyph="&#xE7F4;"
+                                VerticalAlignment="Center" />
+
+                            <StackPanel Grid.Column="1" Spacing="2">
+                                <TextBlock Text="{l10n:Loc Key=Settings_Debug_ShowTestBanner_Title}" FontWeight="SemiBold" />
+                                <TextBlock Text="{l10n:Loc Key=Settings_Debug_ShowTestBanner_Description}" Opacity="0.75" TextWrapping="WrapWholeWords" />
+                            </StackPanel>
+
+                            <FontIcon
+                                Grid.Column="2"
+                                Glyph="&#xE76C;"
+                                FontFamily="Segoe MDL2 Assets"
+                                Opacity="0.65"
+                                VerticalAlignment="Center" />
+                        </Grid>
+                    </Button>
+
+                    <Button Style="{StaticResource SettingsCardButtonStyle}" Click="OnCrashWinUiClicked">
+                        <Grid ColumnSpacing="12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+
+                            <!-- 崩溃测试：WinUI UI 线程未处理异常 -->
+                            <FontIcon
+                                FontFamily="Segoe MDL2 Assets"
+                                FontSize="16"
+                                Glyph="&#xEA39;"
+                                VerticalAlignment="Center" />
+
+                            <StackPanel Grid.Column="1" Spacing="2">
+                                <TextBlock Text="{l10n:Loc Key=Settings_Debug_CrashWinUi_Title}" FontWeight="SemiBold" />
+                                <TextBlock Text="{l10n:Loc Key=Settings_Debug_CrashWinUi_Description}" Opacity="0.75" TextWrapping="WrapWholeWords" />
+                            </StackPanel>
+
+                            <FontIcon
+                                Grid.Column="2"
+                                Glyph="&#xE76C;"
+                                FontFamily="Segoe MDL2 Assets"
+                                Opacity="0.65"
+                                VerticalAlignment="Center" />
+                        </Grid>
+                    </Button>
+
+                    <Button Style="{StaticResource SettingsCardButtonStyle}" Click="OnCrashAppDomainClicked">
+                        <Grid ColumnSpacing="12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+
+                            <!-- 崩溃测试：AppDomain 后台线程未处理异常 -->
+                            <FontIcon
+                                FontFamily="Segoe MDL2 Assets"
+                                FontSize="16"
+                                Glyph="&#xEA39;"
+                                VerticalAlignment="Center" />
+
+                            <StackPanel Grid.Column="1" Spacing="2">
+                                <TextBlock Text="{l10n:Loc Key=Settings_Debug_CrashAppDomain_Title}" FontWeight="SemiBold" />
+                                <TextBlock Text="{l10n:Loc Key=Settings_Debug_CrashAppDomain_Description}" Opacity="0.75" TextWrapping="WrapWholeWords" />
+                            </StackPanel>
+
+                            <FontIcon
+                                Grid.Column="2"
+                                Glyph="&#xE76C;"
+                                FontFamily="Segoe MDL2 Assets"
+                                Opacity="0.65"
+                                VerticalAlignment="Center" />
+                        </Grid>
+                    </Button>
                 </StackPanel>
 
                 <StackPanel x:Name="SessionSection" Spacing="10">
@@ -268,4 +355,3 @@
         </ScrollViewer>
     </Grid>
 </Page>
-

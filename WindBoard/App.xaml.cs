@@ -39,6 +39,13 @@ namespace WindBoard
         private static int _notificationInvokedHooked;
 
         /// <summary>
+        /// 获取主窗口引用（仅用于同程序集内部的调试/工具入口）。
+        /// 说明：调试页需要通过 MainWindow 提供的应用内弹条能力做通道测试；
+        /// 这里返回可空引用，调用方需自行处理窗口不存在的情况。
+        /// </summary>
+        internal MainWindow? TryGetMainWindow() => _window as MainWindow;
+
+        /// <summary>
         /// Initializes the singleton application object.  This is the first line of authored code
          /// executed, and as such is the logical equivalent of main() or WinMain().
         /// </summary>

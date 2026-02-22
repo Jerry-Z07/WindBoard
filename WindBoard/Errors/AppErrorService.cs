@@ -331,13 +331,15 @@ namespace WindBoard.Errors
 
             var details = new TextBox
             {
-                Text = reportText,
                 IsReadOnly = true,
                 AcceptsReturn = true,
                 TextWrapping = TextWrapping.NoWrap,
                 MinHeight = 220,
                 MaxHeight = 420,
             };
+            // 注意：必须先设置 AcceptsReturn=true，再赋值 Text；
+            // 否则 TextBox 仍处于“单行模式”时会截断换行后的内容，导致只显示第一行。
+            details.Text = reportText;
 
             var content = new StackPanel { Spacing = 10 };
             content.Children.Add(info);
@@ -467,4 +469,3 @@ namespace WindBoard.Errors
         }
     }
 }
-

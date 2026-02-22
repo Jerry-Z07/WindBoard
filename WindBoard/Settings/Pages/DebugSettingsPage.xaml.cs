@@ -1,12 +1,14 @@
 using System;
 using System.IO;
 using System.Runtime.InteropServices.WindowsRuntime;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.Windows.AppNotifications;
 using WindBoard.Localization;
 using WindBoard.Logging;
+using WindBoard.Reminders;
 using Windows.ApplicationModel.DataTransfer;
 using Windows.Storage;
 using Windows.System;
@@ -133,6 +135,161 @@ namespace WindBoard.Settings.Pages
                 AppLog.Warn("Debug", "发送测试 Windows Toast 失败", ex);
                 ShowFeedback(InfoBarSeverity.Error, L10n.Format("Settings_Debug_ActionFailed_Fmt", ex.Message));
             }
+        }
+
+        private void OnShowTestInAppBannerClicked(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                // 说明：应用内弹条目前仅由 MainWindow 承载（右上角 InfoBar 栈）。
+                // 调试页运行在 SettingsWindow 内，因此需要从 App 拿到主窗口引用。
+                var app = Application.Current as global::WindBoard.App;
+                global::WindBoard.MainWindow? mainWindow = app?.TryGetMainWindow();
+                if (mainWindow is null)
+                {
+                    AppLog.Warn("Debug", "展示测试应用内弹条失败：未找到 MainWindow");
+                    ShowFeedback(InfoBarSeverity.Warning, L10n.Get("Settings_Debug_MainWindowMissing_Message"));
+                    return;
+                }
+
+                mainWindow.ShowInAppBanner(
+                    new AppReminderMessage
+                    {
+                        Title = L10n.Format("Settings_Debug_TestToast_Title", global::WindBoard.AppDisplayName.Get()),
+                        Body = L10n.Get("Settings_Debug_TestToast_Body"),
+                        Severity = AppReminderSeverity.Info,
+                    });
+
+                AppLog.Info("Debug", "已展示测试应用内弹条");
+                ShowFeedback(InfoBarSeverity.Success, L10n.Get("Settings_Debug_Feedback_ShownBanner"));
+            }
+            catch (Exception ex)
+            {
+                AppLog.Warn("Debug", "展示测试应用内弹条失败", ex);
+                ShowFeedback(InfoBarSeverity.Error, L10n.Format("Settings_Debug_ActionFailed_Fmt", ex.Message));
+            }
+        }
+
+        private async void OnCrashWinUiClicked(object sender, RoutedEventArgs e)
+        {
+            if (!await ConfirmCrashAsync(scenario: "WinUIUnhandledException").ConfigureAwait(true))
+            {
+                return;
+            }
+
+            // 注意：此处故意抛出未处理异常，用于验证 WinUI UnhandledException 链路。
+            // 不要 try/catch，否则会吞掉异常导致测试无效。
+            AppLog.Critical("Debug", "用户触发崩溃测试：WinUI UI 线程未处理异常");
+            throw new InvalidOperationException("Debug crash test: WinUI UnhandledException");
+        }
+
+        private async void OnCrashAppDomainClicked(object sender, RoutedEventArgs e)
+        {
+            if (!await ConfirmCrashAsync(scenario: "AppDomainUnhandledException").ConfigureAwait(true))
+            {
+                return;
+            }
+
+            // 注意：此处故意在新线程抛出未处理异常，用于验证 AppDomain.UnhandledException 链路。
+            // 不要 try/catch，否则会吞掉异常导致测试无效。
+            AppLog.Critical("Debug", "用户触发崩溃测试：AppDomain 后台线程未处理异常");
+
+            var thread = new Thread(() =>
+            {
+                throw new InvalidOperationException("Debug crash test: AppDomain UnhandledException");
+            })
+            {
+                IsBackground = true,
+                Name = "WindBoard.DebugCrashTest",
+            };
+
+            thread.Start();
+        }
+
+        /// <summary>
+        /// 崩溃测试强确认：要求用户输入 CRASH 才能继续。
+        /// 说明：崩溃测试会写入崩溃报告并退出进程，必须防误触。
+        /// </summary>
+        private async Task<bool> ConfirmCrashAsync(string scenario)
+        {
+            try
+            {
+                Microsoft.UI.Xaml.XamlRoot? xamlRoot = TryGetDialogXamlRoot();
+                if (xamlRoot is null)
+                {
+                    AppLog.Warn("Debug", $"展示崩溃确认对话框失败：XamlRoot 为空，scenario='{scenario}'");
+                    ShowFeedback(InfoBarSeverity.Warning, L10n.Get("Settings_Debug_CrashDialogUnavailable_Message"));
+                    return false;
+                }
+
+                var body = new TextBlock
+                {
+                    Text = L10n.Get("Settings_Debug_CrashConfirm_Body"),
+                    TextWrapping = TextWrapping.Wrap,
+                };
+
+                var input = new TextBox
+                {
+                    PlaceholderText = L10n.Get("Settings_Debug_CrashConfirm_Placeholder"),
+                };
+
+                var content = new StackPanel { Spacing = 10 };
+                content.Children.Add(body);
+                content.Children.Add(input);
+
+                var dialog = new ContentDialog
+                {
+                    Title = L10n.Get("Settings_Debug_CrashConfirm_Title"),
+                    Content = content,
+                    PrimaryButtonText = L10n.Get("Common_Continue"),
+                    CloseButtonText = L10n.Get("Common_Cancel"),
+                    DefaultButton = ContentDialogButton.Close,
+                    XamlRoot = xamlRoot,
+                };
+
+                dialog.IsPrimaryButtonEnabled = false;
+                input.TextChanged += (_, _) =>
+                {
+                    dialog.IsPrimaryButtonEnabled = IsCrashConfirmTextMatched(input.Text);
+                };
+
+                ContentDialogResult result = await dialog.ShowAsync();
+                return result == ContentDialogResult.Primary;
+            }
+            catch (Exception ex)
+            {
+                AppLog.Warn("Debug", $"展示崩溃确认对话框失败：scenario='{scenario}'", ex);
+                ShowFeedback(InfoBarSeverity.Error, L10n.Format("Settings_Debug_ActionFailed_Fmt", ex.Message));
+                return false;
+            }
+        }
+
+        private Microsoft.UI.Xaml.XamlRoot? TryGetDialogXamlRoot()
+        {
+            try
+            {
+                if (ActionFeedbackBar?.XamlRoot is not null)
+                {
+                    return ActionFeedbackBar.XamlRoot;
+                }
+
+                if (Content is FrameworkElement root && root.XamlRoot is not null)
+                {
+                    return root.XamlRoot;
+                }
+            }
+            catch
+            {
+                // 忽略：兜底返回 null
+            }
+
+            return null;
+        }
+
+        private static bool IsCrashConfirmTextMatched(string? text)
+        {
+            // 说明：Trim + 不区分大小写，避免用户输入 CRASH（大小写/前后空格）导致误判。
+            return string.Equals((text ?? string.Empty).Trim(), "CRASH", StringComparison.OrdinalIgnoreCase);
         }
 
         /// <summary>
