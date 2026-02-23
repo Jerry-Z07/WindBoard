@@ -57,7 +57,7 @@
 You can download the software from [Releases](https://github.com/Jerry-Z07/WindBoard/releases/latest):
 - `.exe` is the installer, `.zip` is the portable build
 - Builds with `-fd` are framework-dependent (no bundled runtime). You need to install the .NET 10 Desktop Runtime yourself; builds without `-fd` are self-contained and do not require a separate runtime installation
-  - Runtime download: <https://dotnet.microsoft.com/zh-cn/download/dotnet/10.0>
+  - Runtime download: <https://dotnet.microsoft.com/download/dotnet/10.0>
 
 ## Contributing
 Issues and PRs are welcome. Thanks for your support!

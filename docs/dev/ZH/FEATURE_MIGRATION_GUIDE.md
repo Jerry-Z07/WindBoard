@@ -1,6 +1,6 @@
 # Feature-first 迁移指南（代码编排整理）
 
-本指南用于把“同一功能散落在多个目录（例如 `Importing/` + `UI/MainWindow/` + `UI/Dialogs/`）”的实现，迁移为 **按功能垂直切片（Feature-first）** 的结构，降低阅读与维护成本，并让 `MainWindow` 保持轻薄。
+本指南用于把“同一功能散落在多个目录（例如 `Settings/` + `UI/MainWindow/` + `ShortcutDock/`）”的实现，迁移为 **按功能垂直切片（Feature-first）** 的结构，降低阅读与维护成本，并让 `MainWindow` 保持轻薄。
 
 > 适用范围：`WindBoard/` 主程序（WinUI 3）代码。  
 > 日志规范：主程序统一使用 `WindBoard.Logging.AppLog`（CrashReporter 例外，见根 `AGENTS.md`）。
@@ -9,7 +9,7 @@
 
 ## 1. 为什么要做 Feature-first
 
-当目录按“技术类型/层”组织（例如：逻辑在 `Importing/`，UI 在 `UI/*`，样式在 `UI/Dialogs`），功能增多后会出现：
+当目录按“技术类型/层”组织（例如：逻辑在 `Settings/` / `ShortcutDock/`，UI 在 `UI/*` 与 `Settings/Pages/*`），功能增多后会出现：
 - 改一个功能要跨多个目录跳转，定位成本高
 - `MainWindow.*.cs` 逐渐变成“功能大杂烩”
 - 复用逻辑难以沉淀（重复的对话框/忙碌弹窗/错误处理散落各处）
@@ -20,28 +20,24 @@ Feature-first 的核心是：**一个功能的“入口、编排、UI、应用�
 
 ## 2. 目标目录结构（建议）
 
-以导入（Import）为例：
+以 Dock 为例：
 
 ```
 WindBoard/
   Features/
-    Import/
-      ImportFlow.cs                 # 功能编排（入口/分支/异常处理）
+    Dock/
+      DockFlow.cs                   # 功能编排（入口/异常处理/应用设置到 UI）
       Models/
-        ImportRequests.cs           # 该功能的请求/参数模型
+        DockItemIds.cs              # Dock 项 ID（约定/常量）
+        DockSettingsModels.cs       # Dock 设置模型/快照（功能私有则放这里）
       Services/
-        BoardImportService.cs       # 应用层服务：把输入转换为元素并放置
-        TextImportReader.cs
-        ImageImportDecoder.cs
-        ImportUrlNormalizer.cs
-        ImportPlacementPlanner.cs
+        DockSettingsApplier.cs      # 应用层服务：将 Dock 设置应用到主界面
+        DockOrderApplier.cs
+        ShortcutDockIconLoader.cs
+        ShortcutDockLaunchHelper.cs
       UI/
-        ImportDialog.xaml           # 该功能的 UI（尽量功能私有）
-        ImportDialog.xaml.cs
-      Wbi/
-        WbiWorkspaceImporter.cs     # 兼容导入（旧格式）
-        WbiPreviewReader.cs
-        WbiFormatModels.cs
+        DockSettingsPage.xaml       # 该功能的 UI（尽量功能私有）
+        DockSettingsPage.xaml.cs
 
   UI/
     Common/
@@ -53,11 +49,10 @@ WindBoard/
 ```
 WindBoard.Tests/
   Features/
-    Import/
-      ImportUrlNormalizerTests.cs
-      ImportPlacementPlannerTests.cs
-      Wbi/
-        WbiWorkspaceImporterTests.cs
+    Dock/
+      DockOrderApplierTests.cs
+      ShortcutDockIconLoaderTests.cs
+      DockSettingsModelsTests.cs
 ```
 
 ---
@@ -66,10 +61,10 @@ WindBoard.Tests/
 
 建议：**目录与命名空间一致**，减少“文件在 A 目录却属于 B namespace”的困惑。
 
-- `WindBoard/Features/Import/...` → `namespace WindBoard.Features.Import.*`
-- `WindBoard/Features/Import/UI/...` → `namespace WindBoard.Features.Import.UI`
-- `WindBoard/Features/Import/Services/...` → `namespace WindBoard.Features.Import.Services`
-- `WindBoard/Features/Import/Models/...` → `namespace WindBoard.Features.Import.Models`
+- `WindBoard/Features/Dock/...` → `namespace WindBoard.Features.Dock.*`
+- `WindBoard/Features/Dock/UI/...` → `namespace WindBoard.Features.Dock.UI`
+- `WindBoard/Features/Dock/Services/...` → `namespace WindBoard.Features.Dock.Services`
+- `WindBoard/Features/Dock/Models/...` → `namespace WindBoard.Features.Dock.Models`
 
 > 提醒：本项目存在“本地化 Key 审计测试”，`L10n.Get/Format` 的 key 需要是**字符串字面量**（详见 `docs/dev/ZH/LOCALIZATION.md`）。迁移时不要把 key 抽成变量常量导致审计失败。
 
@@ -106,7 +101,7 @@ WindBoard.Tests/
 
 ### Step 2：迁移纯逻辑文件（先搬 Service/Model）
 
-把旧目录（例如 `Importing/`）下的逻辑文件移动到：
+把旧目录（例如 `Settings/`、`ShortcutDock/`）下的逻辑文件移动到：
 - `Features/<Feature>/Services/` 或 `Models/`
 
 并同步修改：
@@ -126,7 +121,7 @@ WindBoard.Tests/
 ### Step 4：迁移 UI（XAML + code-behind）
 
 移动 XAML 与 code-behind 到 `Features/<Feature>/UI/`，并同步修改：
-- `x:Class`（例如改为 `WindBoard.Features.Import.UI.ImportDialog`）
+- `x:Class`（例如改为 `WindBoard.Features.Dock.UI.DockSettingsPage`）
 - code-behind 的 `namespace` 与 `using`
 - 若 code-behind 引用到了旧的请求模型/服务，全部改为新命名空间
 
@@ -142,12 +137,12 @@ WindBoard.Tests/
 
 在 `Features/<Feature>/<Feature>Flow.cs`（或 `FeatureFlow.cs`）中集中处理：
 - 展示 UI（Dialog/Page）
-- 分支（例如：导入元素 / 导入工作区）
+- 分支（例如：应用主 Dock / 应用快捷入口 Dock）
 - 异常捕获 + 用户提示（不要把异常冒到 UI 线程导致崩溃）
 - 关键日志（开始、完成、失败、重要参数）
 
 为了让 `MainWindow` 变薄，Flow 需要从外部注入“Host 依赖”，推荐方式：
-- **委托（Func/Action）**：例如 `Func<(cameraWorld, zoom)>`、`Action<BoardElement>`
+- **委托（Func/Action）**：例如 `Func<DockSettings>`、`Action<UIElement>`
 - 或小接口（仅当依赖较多时）
 
 避免在 Flow 内直接依赖 `MainWindow` 的私有成员。
@@ -156,9 +151,9 @@ WindBoard.Tests/
 
 在 `WindBoard/UI/MainWindow/MainWindow.<Feature>.cs` 中只保留：
 - `Start<Feature>Async()`：获取 `XamlRoot`、`hwnd`，创建 Flow 并调用
-- 与窗口强耦合的小桥接方法（例如“导入后切换到选择工具并选中新元素”）
+- 与窗口强耦合的小桥接方法（例如“重建 Dock 按钮并绑定 Click 事件”）
 
-把原来散落的大量实现（FilePicker、解析、布局、导入流程）从 `MainWindow` 中移除。
+把原来散落的大量实现（设置读取、排序应用、按钮重建、图标异步加载等）从 `MainWindow` 中移除。
 
 ### Step 8：迁移测试
 
@@ -174,11 +169,11 @@ WindBoard.Tests/
 至少执行：
 - `dotnet test WindBoard.slnx -p:Platform=x64`
 
-必要的手工 Smoke（以 Import 为例）：
-- 弹窗打开/切换 Tab，InfoBar 提示逻辑正常
-- 导入图片/媒体/文本/链接均可用
-- 导入 WBIX/WBI 的两种模式可用，替换模式有风险确认
-- 导入失败能提示用户且有日志
+必要的手工 Smoke（以 Dock 为例）：
+- 打开 Dock 设置页，调整顺序/隐藏开关，应用后主窗口 Dock 立即同步
+- 快捷入口（左/右）显示与数量限制符合预期，图标异步加载能正常替换 fallback
+- Dock 背景色/画布背景色等同步逻辑正常（必要时重启验证启动时应用）
+- 异常/失败路径不影响主流程，且日志能定位（例如 `Dock/ShortcutDock`）
 
 ---
 
@@ -187,15 +182,14 @@ WindBoard.Tests/
 - **不要在迁移中顺手重写功能行为**：迁移的价值是结构清晰与可维护；行为变更要单独 PR 更容易回归验证
 - **不要把一切都上提到 Common**：Common 目录膨胀会变成新的“垃圾场”。只有确定跨功能复用才上提
 - **XAML 的 `x:Class` 一定要同步**：否则会导致运行期 `LoadComponent` 失败（XAML 解析异常）
-- **保持日志 Tag 一致**：迁移后排查问题仍能按 Tag（如 `Import/WBIX/WBI`）快速定位
+- **保持日志 Tag 一致**：迁移后排查问题仍能按 Tag（如 `Dock/ShortcutDock`）快速定位
 
 ---
 
-## 7. 参考：Import 迁移后的落点（示例）
+## 7. 参考：Dock 迁移后的落点（示例）
 
-- Flow：`WindBoard/Features/Import/ImportFlow.cs`
-- UI：`WindBoard/Features/Import/UI/ImportDialog.xaml`
-- 应用层服务：`WindBoard/Features/Import/Services/BoardImportService.cs`
-- 请求模型：`WindBoard/Features/Import/Models/ImportRequests.cs`
+- Flow：`WindBoard/Features/Dock/DockFlow.cs`
+- UI：`WindBoard/Features/Dock/UI/DockSettingsPage.xaml`
+- 应用层服务：`WindBoard/Features/Dock/Services/DockSettingsApplier.cs`
+- 请求/设置模型：`WindBoard/Features/Dock/Models/DockSettingsModels.cs`
 - 通用弹窗：`WindBoard/UI/Common/DialogHelpers.cs`
-
