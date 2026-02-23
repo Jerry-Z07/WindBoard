@@ -10,11 +10,12 @@ using Vortice.WIC;
 using WindBoard.Board;
 using WindBoard.Board.Persistence;
 using WindBoard.Board.Viewport;
+using WindBoard.Features.Export.Models;
 using WindBoard.Localization;
 using WindBoard.Rendering.Board;
 using UiColor = Windows.UI.Color;
 
-namespace WindBoard.Exporting
+namespace WindBoard.Features.Export.Services
 {
     /// <summary>
     /// 白板离屏光栅化导出器（用于 PNG 与 PDF 位图渲染）。

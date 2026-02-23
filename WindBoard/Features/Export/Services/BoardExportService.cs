@@ -6,10 +6,11 @@ using System.Threading;
 using System.Threading.Tasks;
 using WindBoard.Board.Persistence;
 using WindBoard.Board.Persistence.Wbix;
+using WindBoard.Features.Export.Models;
 using WindBoard.Localization;
 using Windows.UI;
 
-namespace WindBoard.Exporting
+namespace WindBoard.Features.Export.Services
 {
     /// <summary>
     /// 导出服务（PNG / PDF / WBIX）。

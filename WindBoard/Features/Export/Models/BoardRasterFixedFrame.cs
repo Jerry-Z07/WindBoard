@@ -1,4 +1,4 @@
-namespace WindBoard.Exporting
+namespace WindBoard.Features.Export.Models
 {
     /// <summary>
     /// 固定画面导出参数（用于把内容压入标准比例/分辨率的画布中）。
@@ -7,4 +7,3 @@ namespace WindBoard.Exporting
     /// <param name="PixelHeight">输出高度（像素）。</param>
     internal sealed record BoardRasterFixedFrame(int PixelWidth, int PixelHeight);
 }
-

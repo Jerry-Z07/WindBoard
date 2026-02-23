@@ -1,8 +1,8 @@
 using System.Collections.Generic;
-using WindBoard.Exporting;
+using WindBoard.Features.Export.Services;
 using Xunit;
 
-namespace WindBoard.Tests.Exporting;
+namespace WindBoard.Tests.Features.Export.Services;
 
 public sealed class PageRangeParserTests
 {
@@ -46,4 +46,3 @@ public sealed class PageRangeParserTests
         Assert.False(ok);
     }
 }
-

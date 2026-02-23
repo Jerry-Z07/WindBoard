@@ -1,7 +1,7 @@
 using System.Numerics;
 using Windows.UI;
 
-namespace WindBoard.Exporting
+namespace WindBoard.Features.Export.Models
 {
     /// <summary>
     /// 位图导出参数（PNG/PDF 位图渲染共用）。

@@ -1,11 +1,12 @@
 using System;
 using System.Numerics;
 using WindBoard.Board.Persistence;
-using WindBoard.Exporting;
+using WindBoard.Features.Export.Models;
+using WindBoard.Features.Export.Services;
 using Windows.UI;
 using Xunit;
 
-namespace WindBoard.Tests.Exporting;
+namespace WindBoard.Tests.Features.Export.Services;
 
 public sealed class BoardRasterExporterTests
 {

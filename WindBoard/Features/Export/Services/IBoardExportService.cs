@@ -2,8 +2,9 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using WindBoard.Board.Persistence;
+using WindBoard.Features.Export.Models;
 
-namespace WindBoard.Exporting
+namespace WindBoard.Features.Export.Services
 {
     /// <summary>
     /// 导出服务接口（PNG / PDF / WBIX）。
@@ -23,4 +24,3 @@ namespace WindBoard.Exporting
         Task ExportWbixAsync(BoardWorkspaceSnapshot snapshot, string filePath, CancellationToken cancellationToken = default);
     }
 }
-

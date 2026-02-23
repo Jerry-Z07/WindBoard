@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using WindBoard.Localization;
 
-namespace WindBoard.Exporting
+namespace WindBoard.Features.Export.Services
 {
     /// <summary>
     /// 页码范围解析器（1 基输入 → 0 基索引）。

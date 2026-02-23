@@ -6,9 +6,10 @@ using System.IO.Compression;
 using System.Text;
 using System.Threading;
 using WindBoard.Board.Persistence;
+using WindBoard.Features.Export.Models;
 using WindBoard.Localization;
 
-namespace WindBoard.Exporting
+namespace WindBoard.Features.Export.Services
 {
     /// <summary>
     /// PDF 导出（v1：位图嵌入）。
