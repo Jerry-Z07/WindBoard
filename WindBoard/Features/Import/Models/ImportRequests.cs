@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using Windows.Storage;
 
-namespace WindBoard.Importing
+namespace WindBoard.Features.Import.Models
 {
     /// <summary>
     /// 统一导入对话框（ImportDialog）提交的“元素导入”请求。

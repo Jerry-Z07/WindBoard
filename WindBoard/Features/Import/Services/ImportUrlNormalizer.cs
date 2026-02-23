@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace WindBoard.Importing
+namespace WindBoard.Features.Import.Services
 {
     /// <summary>
     /// 导入链接的归一化与解析工具。

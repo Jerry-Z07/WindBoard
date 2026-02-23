@@ -12,6 +12,7 @@ using WindBoard.Board.Persistence;
 using WindBoard.Exporting;
 using WindBoard.Logging;
 using WindBoard.Localization;
+using WindBoard.UI.Common;
 
 namespace WindBoard
 {
@@ -84,7 +85,7 @@ namespace WindBoard
                 List<int> pageIndices;
                 if (!TryResolvePageIndices(selection, out pageIndices, out string pageError))
                 {
-                    await ShowMessageDialogAsync(xamlRoot, L10n.Get("Export_PageRangeError_Title"), pageError);
+                    await DialogHelpers.ShowMessageAsync(xamlRoot, L10n.Get("Export_PageRangeError_Title"), pageError);
                     return;
                 }
 
@@ -103,14 +104,14 @@ namespace WindBoard
                         return;
 
                     default:
-                        await ShowMessageDialogAsync(xamlRoot, L10n.Get("Export_Failed_Title"), L10n.Get("Export_UnknownFormat_Message"));
+                        await DialogHelpers.ShowMessageAsync(xamlRoot, L10n.Get("Export_Failed_Title"), L10n.Get("Export_UnknownFormat_Message"));
                         return;
                 }
             }
             catch (Exception ex)
             {
                 AppLog.Error("Export", $"导出异常：format={selection.Format}, scope={selection.PageScope}, range='{selection.PageRangeText}'", ex);
-                await ShowMessageDialogAsync(xamlRoot, L10n.Get("Export_Failed_Title"), ex.Message);
+                await DialogHelpers.ShowMessageAsync(xamlRoot, L10n.Get("Export_Failed_Title"), ex.Message);
             }
         }
 
@@ -165,14 +166,14 @@ namespace WindBoard
                 return;
             }
 
-            await RunBusyDialogAsync(xamlRoot, L10n.Get("Export_Busy_Wbix_Title"), async () =>
+            await DialogHelpers.RunBusyAsync(xamlRoot, L10n.Get("Export_Busy_Wbix_Title"), L10n.Get("Export_Busy_Default_Message"), async () =>
             {
                 AppLog.Info("Export", $"导出 WBIX：path='{file.Path}'");
                 await _exportService.ExportWbixAsync(snapshot, file.Path);
-            });
+            }, logTag: "Export");
 
             AppLog.Info("Export", $"导出 WBIX 完成：path='{file.Path}'");
-            await ShowMessageDialogAsync(xamlRoot, L10n.Get("Export_Completed_Title"), L10n.Format("Export_Completed_File_Fmt", file.Path));
+            await DialogHelpers.ShowMessageAsync(xamlRoot, L10n.Get("Export_Completed_Title"), L10n.Format("Export_Completed_File_Fmt", file.Path));
         }
 
         private async Task ExportPdfAsync(XamlRoot xamlRoot, BoardWorkspaceSnapshot snapshot, List<int> pageIndices, BoardRasterExportOptions rasterOptions)
@@ -185,14 +186,14 @@ namespace WindBoard
 
             var options = new BoardPdfExportOptions(rasterOptions);
 
-            await RunBusyDialogAsync(xamlRoot, L10n.Get("Export_Busy_Pdf_Title"), async () =>
+            await DialogHelpers.RunBusyAsync(xamlRoot, L10n.Get("Export_Busy_Pdf_Title"), L10n.Get("Export_Busy_Default_Message"), async () =>
             {
                 AppLog.Info("Export", $"导出 PDF：path='{file.Path}', pages={pageIndices.Count}");
                 await _exportService.ExportPdfAsync(snapshot, pageIndices, file.Path, options);
-            });
+            }, logTag: "Export");
 
             AppLog.Info("Export", $"导出 PDF 完成：path='{file.Path}'");
-            await ShowMessageDialogAsync(xamlRoot, L10n.Get("Export_Completed_Title"), L10n.Format("Export_Completed_File_Fmt", file.Path));
+            await DialogHelpers.ShowMessageAsync(xamlRoot, L10n.Get("Export_Completed_Title"), L10n.Format("Export_Completed_File_Fmt", file.Path));
         }
 
         private async Task ExportPngAsync(XamlRoot xamlRoot, BoardWorkspaceSnapshot snapshot, List<int> pageIndices, BoardRasterExportOptions rasterOptions)
@@ -205,14 +206,14 @@ namespace WindBoard
                     return;
                 }
 
-                await RunBusyDialogAsync(xamlRoot, L10n.Get("Export_Busy_Png_Title"), async () =>
+                await DialogHelpers.RunBusyAsync(xamlRoot, L10n.Get("Export_Busy_Png_Title"), L10n.Get("Export_Busy_Default_Message"), async () =>
                 {
                     AppLog.Info("Export", $"导出 PNG：path='{file.Path}', page={pageIndices[0]}");
                     await _exportService.ExportPngAsync(snapshot, pageIndices[0], file.Path, rasterOptions);
-                });
+                }, logTag: "Export");
 
                 AppLog.Info("Export", $"导出 PNG 完成：path='{file.Path}'");
-                await ShowMessageDialogAsync(xamlRoot, L10n.Get("Export_Completed_Title"), L10n.Format("Export_Completed_File_Fmt", file.Path));
+                await DialogHelpers.ShowMessageAsync(xamlRoot, L10n.Get("Export_Completed_Title"), L10n.Format("Export_Completed_File_Fmt", file.Path));
                 return;
             }
 
@@ -237,14 +238,14 @@ namespace WindBoard
                 }
             }
 
-            await RunBusyDialogAsync(xamlRoot, L10n.Get("Export_Busy_Png_Title"), async () =>
+            await DialogHelpers.RunBusyAsync(xamlRoot, L10n.Get("Export_Busy_Png_Title"), L10n.Get("Export_Busy_Default_Message"), async () =>
             {
                 AppLog.Info("Export", $"批量导出 PNG：folder='{exportFolderPath}', pages={pageIndices.Count}");
                 await _exportService.ExportPngPagesToFolderAsync(snapshot, pageIndices, exportFolderPath, date, rasterOptions);
-            });
+            }, logTag: "Export");
 
             AppLog.Info("Export", $"批量导出 PNG 完成：folder='{exportFolderPath}'");
-            await ShowMessageDialogAsync(xamlRoot, L10n.Get("Export_Completed_Title"), L10n.Format("Export_Completed_Folder_Fmt", exportFolderPath));
+            await DialogHelpers.ShowMessageAsync(xamlRoot, L10n.Get("Export_Completed_Title"), L10n.Format("Export_Completed_Folder_Fmt", exportFolderPath));
         }
 
         private async Task<ExportDialogSelection?> ShowExportDialogAsync(XamlRoot xamlRoot)
@@ -463,74 +464,12 @@ namespace WindBoard
             return (Math.Max(1, w169), h);
         }
 
-        private async Task RunBusyDialogAsync(XamlRoot xamlRoot, string title, Func<Task> action, string? message = null)
-        {
-            string messageText = message ?? L10n.Get("Export_Busy_Default_Message");
-
-            var ring = new ProgressRing
-            {
-                IsActive = true,
-                Width = 32,
-                Height = 32,
-                HorizontalAlignment = HorizontalAlignment.Center,
-            };
-
-            var text = new TextBlock
-            {
-                Text = messageText,
-                TextWrapping = TextWrapping.Wrap,
-                HorizontalAlignment = HorizontalAlignment.Center,
-            };
-
-            var content = new StackPanel { Spacing = 12 };
-            content.Children.Add(ring);
-            content.Children.Add(text);
-
-            var dialog = new ContentDialog
-            {
-                Title = title,
-                Content = content,
-                XamlRoot = xamlRoot,
-            };
-
-            var _ = dialog.ShowAsync();
-            try
-            {
-                await action();
-            }
-            finally
-            {
-                try
-                {
-                    dialog.Hide();
-                }
-                catch (Exception ex)
-                {
-                    // 忽略关闭失败：导出流程不应因弹窗状态异常而中断
-                    AppLog.Debug("Export", $"BusyDialog 关闭失败：title='{title}'", ex);
-                }
-            }
-        }
-
-        private static async Task ShowMessageDialogAsync(XamlRoot xamlRoot, string title, string message)
-        {
-            var dialog = new ContentDialog
-            {
-                Title = title,
-                Content = message,
-                CloseButtonText = L10n.Get("Common_Close"),
-                XamlRoot = xamlRoot,
-            };
-
-            await dialog.ShowAsync();
-        }
-
         private async Task<StorageFile?> PickSaveFileAsync(XamlRoot xamlRoot, ExportFormat format)
         {
             IntPtr hwnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
             if (hwnd == IntPtr.Zero)
             {
-                await ShowMessageDialogAsync(xamlRoot, L10n.Get("Export_Failed_Title"), L10n.Get("Common_WindowHandleFailed_Message"));
+                await DialogHelpers.ShowMessageAsync(xamlRoot, L10n.Get("Export_Failed_Title"), L10n.Get("Common_WindowHandleFailed_Message"));
                 return null;
             }
 
@@ -706,7 +645,7 @@ namespace WindBoard
             IntPtr hwnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
             if (hwnd == IntPtr.Zero)
             {
-                await ShowMessageDialogAsync(xamlRoot, L10n.Get("Export_Failed_Title"), L10n.Get("Common_WindowHandleFailed_Message"));
+                await DialogHelpers.ShowMessageAsync(xamlRoot, L10n.Get("Export_Failed_Title"), L10n.Get("Common_WindowHandleFailed_Message"));
                 return null;
             }
 

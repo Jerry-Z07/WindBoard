@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 using WindBoard.Logging;
 using WindBoard.Localization;
 
-namespace WindBoard.Importing
+namespace WindBoard.Features.Import.Services
 {
     /// <summary>
     /// 文本导入读取器：以字符数为上限读取文本文件，避免大文件导致 UI 卡顿或内存占用过高。

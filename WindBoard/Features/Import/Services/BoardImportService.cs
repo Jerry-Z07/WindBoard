@@ -7,9 +7,10 @@ using Windows.Storage;
 using WindBoard.Board.Commands;
 using WindBoard.Board.Elements;
 using WindBoard.Board.Editing;
+using WindBoard.Features.Import.Models;
 using WindBoard.Logging;
 
-namespace WindBoard.Importing
+namespace WindBoard.Features.Import.Services
 {
     /// <summary>
     /// 白板导入服务：把用户选择的文件/文本/链接转换为板上元素，并以旧版“网格铺开”的方式放置。

@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Text.Json.Serialization;
 
-namespace WindBoard.Importing.Wbi
+namespace WindBoard.Features.Import.Wbi
 {
     /// <summary>
     /// WBI（旧版 WindBoard Interchange）格式模型。
@@ -111,4 +111,3 @@ namespace WindBoard.Importing.Wbi
         public string? Url { get; set; }
     }
 }
-

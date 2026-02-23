@@ -1,6 +1,6 @@
-using WindBoard.Importing;
+using WindBoard.Features.Import.Services;
 
-namespace WindBoard.Tests.Importing;
+namespace WindBoard.Tests.Features.Import;
 
 public sealed class ImportUrlNormalizerTests
 {
@@ -35,4 +35,3 @@ public sealed class ImportUrlNormalizerTests
         Assert.Contains("http://a.com/", urls);
     }
 }
-

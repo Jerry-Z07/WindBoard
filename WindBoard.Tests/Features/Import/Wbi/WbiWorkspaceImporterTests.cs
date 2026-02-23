@@ -6,14 +6,14 @@ using System.Runtime.InteropServices.WindowsRuntime;
 using System.Text.Json;
 using System.Threading.Tasks;
 using WindBoard.Board.Elements;
-using WindBoard.Importing.Wbi;
+using WindBoard.Features.Import.Wbi;
 using Windows.Foundation;
 using Windows.Storage.Streams;
 using Windows.UI;
 using Windows.UI.Input.Inking;
 using Xunit;
 
-namespace WindBoard.Tests.Importing.Wbi;
+namespace WindBoard.Tests.Features.Import.Wbi;
 
 public sealed class WbiWorkspaceImporterTests : IDisposable
 {

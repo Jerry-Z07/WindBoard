@@ -2,7 +2,7 @@ using System;
 using System.Numerics;
 using WindBoard.Board.Elements;
 
-namespace WindBoard.Importing
+namespace WindBoard.Features.Import.Services
 {
     /// <summary>
     /// 导入元素放置规划：复刻旧版“网格铺开”的体验，避免多文件导入完全重叠。
@@ -41,4 +41,3 @@ namespace WindBoard.Importing
         }
     }
 }
-

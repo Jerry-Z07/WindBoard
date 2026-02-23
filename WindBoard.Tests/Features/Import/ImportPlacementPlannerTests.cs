@@ -1,9 +1,9 @@
 using System.Numerics;
 using WindBoard.Board.Elements;
-using WindBoard.Importing;
+using WindBoard.Features.Import.Services;
 using WindBoard.Tests;
 
-namespace WindBoard.Tests.Importing;
+namespace WindBoard.Tests.Features.Import;
 
 public sealed class ImportPlacementPlannerTests
 {

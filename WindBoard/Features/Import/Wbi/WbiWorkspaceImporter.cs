@@ -11,14 +11,14 @@ using System.Threading.Tasks;
 using WindBoard.Board;
 using WindBoard.Board.Editing;
 using WindBoard.Board.Elements;
-using WindBoard.Importing;
+using WindBoard.Features.Import.Services;
 using WindBoard.Localization;
 using WindBoard.Logging;
 using Vortice.Mathematics;
 using Windows.Storage;
 using Windows.UI.Input.Inking;
 
-namespace WindBoard.Importing.Wbi
+namespace WindBoard.Features.Import.Wbi
 {
     /// <summary>
     /// WBI 工作区导入结果。

@@ -6,7 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using WindBoard.Logging;
 
-namespace WindBoard.Importing.Wbi
+namespace WindBoard.Features.Import.Wbi
 {
     /// <summary>
     /// WBI 预读：用于导入对话框的“快速预览”。
@@ -92,4 +92,3 @@ namespace WindBoard.Importing.Wbi
         }
     }
 }
-

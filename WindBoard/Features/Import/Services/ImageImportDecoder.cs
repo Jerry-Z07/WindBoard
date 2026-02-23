@@ -5,7 +5,7 @@ using Windows.Graphics.Imaging;
 using Windows.Storage;
 using Windows.Storage.Streams;
 
-namespace WindBoard.Importing
+namespace WindBoard.Features.Import.Services
 {
     /// <summary>
     /// 图片导入解码器：将任意图片解码为 BGRA8 + Premultiplied 像素缓冲，便于渲染/展示层直接使用。

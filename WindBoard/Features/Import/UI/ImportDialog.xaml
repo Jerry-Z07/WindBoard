@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ContentDialog
-    x:Class="WindBoard.UI.Dialogs.ImportDialog"
+    x:Class="WindBoard.Features.Import.UI.ImportDialog"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:l10n="using:WindBoard.Localization"

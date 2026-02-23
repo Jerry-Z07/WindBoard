@@ -13,12 +13,13 @@ using Windows.Storage;
 using Windows.Storage.Pickers;
 using Windows.Storage.Streams;
 using WindBoard.Board.Persistence.Wbix;
-using WindBoard.Importing;
-using WindBoard.Importing.Wbi;
+using WindBoard.Features.Import.Models;
+using WindBoard.Features.Import.Services;
+using WindBoard.Features.Import.Wbi;
 using WindBoard.Localization;
 using WindBoard.Logging;
 
-namespace WindBoard.UI.Dialogs
+namespace WindBoard.Features.Import.UI
 {
     public sealed partial class ImportDialog : ContentDialog
     {
