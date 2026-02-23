@@ -1,8 +1,8 @@
 using System.Diagnostics;
-using WindBoard.ShortcutDock;
+using WindBoard.Features.Dock.Services;
 using Xunit;
 
-namespace WindBoard.Tests.ShortcutDock;
+namespace WindBoard.Tests.Features.Dock;
 
 public sealed class ShortcutDockLaunchHelperProcessStartInfoTests
 {
@@ -43,4 +43,3 @@ public sealed class ShortcutDockLaunchHelperProcessStartInfoTests
         Assert.Equal(@"C:\Temp\app.lnk", info.FileName);
     }
 }
-

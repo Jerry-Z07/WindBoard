@@ -1,8 +1,8 @@
 using System;
-using WindBoard.ShortcutDock;
+using WindBoard.Features.Dock.Services;
 using Xunit;
 
-namespace WindBoard.Tests.ShortcutDock;
+namespace WindBoard.Tests.Features.Dock;
 
 public sealed class ShortcutDockLaunchHelperTests
 {

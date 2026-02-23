@@ -12,9 +12,9 @@ using Windows.Graphics.Imaging;
 using Windows.Storage;
 using Windows.Storage.FileProperties;
 using Windows.Storage.Streams;
-using WindBoard.Settings;
+using WindBoard.Features.Dock.Models;
 
-namespace WindBoard.ShortcutDock
+namespace WindBoard.Features.Dock.Services
 {
     /// <summary>
     /// 快捷入口图标加载器：
@@ -373,4 +373,3 @@ namespace WindBoard.ShortcutDock
         }
     }
 }
-

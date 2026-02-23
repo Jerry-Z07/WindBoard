@@ -2,7 +2,7 @@ using System;
 using System.Diagnostics;
 using System.IO;
 
-namespace WindBoard.ShortcutDock
+namespace WindBoard.Features.Dock.Services
 {
     /// <summary>
     /// 快捷入口 Dock：启动目标的解析与归一化（纯字符串逻辑，便于单元测试覆盖）。

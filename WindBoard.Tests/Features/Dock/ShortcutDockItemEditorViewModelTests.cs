@@ -1,8 +1,8 @@
-using WindBoard.Settings;
-using WindBoard.Settings.Pages;
+using WindBoard.Features.Dock.Models;
+using WindBoard.Features.Dock.UI;
 using Xunit;
 
-namespace WindBoard.Tests.Settings;
+namespace WindBoard.Tests.Features.Dock;
 
 public sealed class ShortcutDockItemEditorViewModelTests
 {

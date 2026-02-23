@@ -11,10 +11,11 @@ using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.UI.Xaml.Media;
 using Windows.Storage;
 using Windows.Storage.Pickers;
+using WindBoard.Features.Dock.Models;
 using WindBoard.Localization;
 using WindBoard.Settings;
 
-namespace WindBoard.Settings.Pages
+namespace WindBoard.Features.Dock.UI
 {
     public sealed partial class DockSettingsPage : Page
     {

@@ -1,6 +1,7 @@
 using System;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using WindBoard.Features.Dock.UI;
 using WindBoard.Localization;
 
 namespace WindBoard.Settings.Pages
