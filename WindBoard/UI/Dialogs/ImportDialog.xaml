@@ -96,7 +96,7 @@
             IsIconVisible="True" />
 
         <!--
-            导入入口改为 NavigationView：与设置窗口一致的“左侧导航 + 右侧内容”布局，整体更贴合 Win11 视觉。
+            导入入口使用 NavigationView：改为“顶部导航 + 下方内容”布局，释放横向空间，让文件路径等信息显示更完整。
             注意：这里不做页面导航（Frame.Navigate），改为切换不同 Panel 的 Visibility，避免引入额外 Page/UserControl。
         -->
         <NavigationView
@@ -104,9 +104,9 @@
             Grid.Row="1"
             IsBackButtonVisible="Collapsed"
             IsSettingsVisible="False"
+            IsPaneToggleButtonVisible="False"
             AlwaysShowHeader="False"
-            PaneDisplayMode="Left"
-            OpenPaneLength="196"
+            PaneDisplayMode="Top"
             SelectionChanged="OnImportNavigationSelectionChanged">
             <NavigationView.MenuItems>
                 <NavigationViewItem Content="{l10n:Loc Key=ImportDialog_Tab_Image}" Tag="image">
@@ -136,7 +136,7 @@
                 </NavigationViewItem>
             </NavigationView.MenuItems>
 
-            <Grid Padding="12,10,12,0">
+            <Grid Padding="12,12,12,0">
                 <Grid
                     x:Name="ImageImportPanel"
                     RowSpacing="12"
