@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using Windows.System;
 
-namespace WindBoard.Settings
+namespace WindBoard.Features.Shortcuts.Models
 {
     /// <summary>
     /// 键盘快捷键手势（Key + Modifiers）。

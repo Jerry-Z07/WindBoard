@@ -1,4 +1,4 @@
-namespace WindBoard.Settings
+namespace WindBoard.Features.Shortcuts.Models
 {
     /// <summary>
     /// 键盘快捷键设置快照（用于避免直接暴露内部 Settings 引用）。

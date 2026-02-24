@@ -3,11 +3,12 @@ using System.Runtime.InteropServices;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
+using WindBoard.Features.Shortcuts.Models;
 using WindBoard.Localization;
 using WindBoard.Logging;
 using WindBoard.Settings;
 
-namespace WindBoard.Settings.Pages
+namespace WindBoard.Features.Shortcuts.UI
 {
     public sealed partial class ShortcutsSettingsPage : Page
     {

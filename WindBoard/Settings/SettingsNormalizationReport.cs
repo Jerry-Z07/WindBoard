@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using WindBoard.Features.Shortcuts.Models;
 
 namespace WindBoard.Settings
 {

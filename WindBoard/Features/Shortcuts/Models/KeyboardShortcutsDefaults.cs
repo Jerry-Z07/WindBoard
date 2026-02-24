@@ -1,4 +1,4 @@
-namespace WindBoard.Settings
+namespace WindBoard.Features.Shortcuts.Models
 {
     /// <summary>
     /// 键盘快捷键的默认值（落盘到 settings.json）。

@@ -1,4 +1,4 @@
-namespace WindBoard.Settings
+namespace WindBoard.Features.Shortcuts.Models
 {
     /// <summary>
     /// 键盘快捷键设置（settings.json 的 keyboardShortcuts 节点）。

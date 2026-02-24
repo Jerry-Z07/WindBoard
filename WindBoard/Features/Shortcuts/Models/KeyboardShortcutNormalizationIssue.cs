@@ -1,4 +1,4 @@
-namespace WindBoard.Settings
+namespace WindBoard.Features.Shortcuts.Models
 {
     /// <summary>
     /// 快捷键归一化问题类型。

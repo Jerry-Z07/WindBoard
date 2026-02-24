@@ -1,7 +1,7 @@
-using WindBoard.Settings;
+using WindBoard.Features.Shortcuts.Models;
 using Xunit;
 
-namespace WindBoard.Tests.Settings;
+namespace WindBoard.Tests.Features.Shortcuts;
 
 public sealed class KeyboardShortcutGestureTests
 {
@@ -56,4 +56,3 @@ public sealed class KeyboardShortcutGestureTests
         Assert.False(KeyboardShortcutGesture.TryParse("Ctrl+Z+Y", out _));
     }
 }
-

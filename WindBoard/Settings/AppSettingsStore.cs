@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text.Json;
 using WindBoard.Features.Dock.Models;
+using WindBoard.Features.Shortcuts.Models;
 using WindBoard.Logging;
 using WindBoard.Persistence;
 
