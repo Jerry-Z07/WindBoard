@@ -3,6 +3,9 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Windows.UI;
+using WindBoard.Features.Camouflage.Models;
+using WindBoard.Features.Dock.Models;
+using WindBoard.Features.Shortcuts.Models;
 using WindBoard.Logging;
 
 namespace WindBoard.Settings

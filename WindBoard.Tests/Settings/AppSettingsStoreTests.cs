@@ -1,4 +1,6 @@
 using System.Collections.Generic;
+using WindBoard.Features.Dock.Models;
+using WindBoard.Features.Shortcuts.Models;
 using WindBoard.Settings;
 using Xunit;
 

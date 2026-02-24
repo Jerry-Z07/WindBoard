@@ -2,6 +2,7 @@ using System;
 using System.Globalization;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using WindBoard.Features.Camouflage.UI;
 using WindBoard.Localization;
 using WindBoard.Logging;
 

@@ -58,7 +58,7 @@
 可跳转 [Releases](https://github.com/Jerry-Z07/WindBoard/releases/latest) 获取软件，其中：
 - 后缀为`.exe`的为安装版，`.zip`为便携版
 - 带`-fd`后缀的为不带运行库的版本，你需要自行安装 .NET 10 Desktop Runtime；不带`-fd`的则不需要另外安装运行库（自包含）
-  - 运行库下载：<https://dotnet.microsoft.com/zh-cn/download/dotnet/10.0>
+  - 运行库下载：<https://dotnet.microsoft.com/download/dotnet/10.0>
 
 ## 贡献
 我们欢迎 Pull Request 和 Issue，也非常感谢你对本项目的支持！

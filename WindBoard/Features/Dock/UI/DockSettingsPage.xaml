@@ -1,0 +1,418 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="WindBoard.Features.Dock.UI.DockSettingsPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:l10n="using:WindBoard.Localization"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:local="using:WindBoard.Features.Dock.UI"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <Page.Resources>
+        <Style x:Key="DockPreviewListViewItemStyle" TargetType="ListViewItem">
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Margin" Value="2,0" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <Setter Property="VerticalContentAlignment" Value="Stretch" />
+        </Style>
+
+        <Style x:Key="DockPreviewItemBorderStyle" TargetType="Border">
+            <Setter Property="MinWidth" Value="60" />
+            <Setter Property="MinHeight" Value="52" />
+            <Setter Property="CornerRadius" Value="10" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="VerticalAlignment" Value="Stretch" />
+        </Style>
+    </Page.Resources>
+
+    <Grid>
+        <ScrollViewer>
+            <StackPanel Spacing="16" Padding="24">
+                <TextBlock Text="{l10n:Loc Key=Settings_Dock_Title}" Style="{ThemeResource TitleTextBlockStyle}" />
+                <TextBlock
+                    Text="{l10n:Loc Key=Settings_Dock_DragHint}"
+                    Opacity="0.75"
+                    TextWrapping="WrapWholeWords" />
+
+                <StackPanel Spacing="10">
+                    <TextBlock Text="{l10n:Loc Key=Common_Preview}" Style="{ThemeResource SubtitleTextBlockStyle}" />
+
+                    <!-- Dock 预览固定为浅色主题，保持与主界面 Dock 视觉一致 -->
+                    <Grid RequestedTheme="Light">
+                        <!--
+                            说明：设置页内容区域会受到左侧导航栏占用宽度的影响，
+                            如果把左/中/右三段 Dock 强行放在同一行，窗口稍窄就会互相挤压甚至重叠。
+                            这里改为“分三行预览”，既能保持左右/中部的相对定位，又能避免 UI 挤压。
+                        -->
+                        <Grid x:Name="DockPreviewLayoutGrid" RowDefinitions="Auto,Auto,Auto" RowSpacing="8">
+
+                            <!-- 左侧 Dock -->
+                            <Grid
+                                x:Name="LeftDockPreviewContainer"
+                                Grid.Row="0"
+                                HorizontalAlignment="Left"
+                                VerticalAlignment="Bottom">
+                                <Border
+                                    Background="{ThemeResource SystemControlBackgroundChromeMediumLowBrush}"
+                                    CornerRadius="14"
+                                    Opacity="0.85" />
+                                <ListView
+                                    x:Name="LeftDockListView"
+                                    ItemsSource="{x:Bind LeftDockItems, Mode=OneWay}"
+                                    SelectionMode="None"
+                                    AllowDrop="True"
+                                    CanDragItems="True"
+                                    CanReorderItems="True"
+                                    DragItemsCompleted="OnDockItemsDragCompleted"
+                                    ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                    ScrollViewer.VerticalScrollBarVisibility="Disabled"
+                                    ItemContainerStyle="{StaticResource DockPreviewListViewItemStyle}"
+                                    Margin="5">
+                                    <ListView.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <ItemsStackPanel Orientation="Horizontal" />
+                                        </ItemsPanelTemplate>
+                                    </ListView.ItemsPanel>
+
+                                    <ListView.ItemTemplate>
+                                        <DataTemplate x:DataType="local:DockItemViewModel">
+                                            <Border Style="{StaticResource DockPreviewItemBorderStyle}">
+                                                <StackPanel Orientation="Vertical" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                                    <IconSourceElement IconSource="{x:Bind IconSource}" />
+                                                    <TextBlock
+                                                        FontSize="11"
+                                                        Margin="0,3,0,0"
+                                                        HorizontalAlignment="Center"
+                                                        Text="{x:Bind Title}" />
+                                                </StackPanel>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ListView.ItemTemplate>
+                                </ListView>
+                            </Grid>
+
+                            <!-- 中部 Dock -->
+                            <Grid
+                                x:Name="CenterDockPreviewContainer"
+                                Grid.Row="1"
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Bottom">
+                                <Border
+                                    Background="{ThemeResource SystemControlBackgroundChromeMediumLowBrush}"
+                                    CornerRadius="14"
+                                    Opacity="0.85" />
+
+                                <StackPanel Orientation="Horizontal" Spacing="4" Margin="5">
+                                    <ListView
+                                        x:Name="ToolsDockListView"
+                                        ItemsSource="{x:Bind ToolsDockItems, Mode=OneWay}"
+                                        SelectionMode="None"
+                                        AllowDrop="True"
+                                        CanDragItems="True"
+                                        CanReorderItems="True"
+                                        DragItemsCompleted="OnDockItemsDragCompleted"
+                                        ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                        ScrollViewer.VerticalScrollBarVisibility="Disabled"
+                                        ItemContainerStyle="{StaticResource DockPreviewListViewItemStyle}">
+                                        <ListView.ItemsPanel>
+                                            <ItemsPanelTemplate>
+                                                <ItemsStackPanel Orientation="Horizontal" />
+                                            </ItemsPanelTemplate>
+                                        </ListView.ItemsPanel>
+
+                                        <ListView.ItemTemplate>
+                                            <DataTemplate x:DataType="local:DockItemViewModel">
+                                                <Border Style="{StaticResource DockPreviewItemBorderStyle}">
+                                                    <StackPanel Orientation="Vertical" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                                        <IconSourceElement IconSource="{x:Bind IconSource}" />
+                                                        <TextBlock
+                                                            FontSize="11"
+                                                            Margin="0,3,0,0"
+                                                            HorizontalAlignment="Center"
+                                                            Text="{x:Bind Title}" />
+                                                    </StackPanel>
+                                                </Border>
+                                            </DataTemplate>
+                                        </ListView.ItemTemplate>
+                                    </ListView>
+
+                                    <Rectangle
+                                        x:Name="UndoRedoSeparator"
+                                        Width="1"
+                                        Height="30"
+                                        Fill="{ThemeResource SystemControlForegroundBaseMediumLowBrush}"
+                                        VerticalAlignment="Center" />
+
+                                    <ListView
+                                        x:Name="UndoRedoDockListView"
+                                        ItemsSource="{x:Bind UndoRedoDockItems, Mode=OneWay}"
+                                        SelectionMode="None"
+                                        AllowDrop="True"
+                                        CanDragItems="True"
+                                        CanReorderItems="True"
+                                        DragItemsCompleted="OnDockItemsDragCompleted"
+                                        ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                        ScrollViewer.VerticalScrollBarVisibility="Disabled"
+                                        ItemContainerStyle="{StaticResource DockPreviewListViewItemStyle}">
+                                        <ListView.ItemsPanel>
+                                            <ItemsPanelTemplate>
+                                                <ItemsStackPanel Orientation="Horizontal" />
+                                            </ItemsPanelTemplate>
+                                        </ListView.ItemsPanel>
+
+                                        <ListView.ItemTemplate>
+                                            <DataTemplate x:DataType="local:DockItemViewModel">
+                                                <Border Style="{StaticResource DockPreviewItemBorderStyle}">
+                                                    <StackPanel Orientation="Vertical" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                                        <IconSourceElement IconSource="{x:Bind IconSource}" />
+                                                        <TextBlock
+                                                            FontSize="11"
+                                                            Margin="0,3,0,0"
+                                                            HorizontalAlignment="Center"
+                                                            Text="{x:Bind Title}" />
+                                                    </StackPanel>
+                                                </Border>
+                                            </DataTemplate>
+                                        </ListView.ItemTemplate>
+                                    </ListView>
+                                </StackPanel>
+                            </Grid>
+
+                            <!-- 右侧 Dock -->
+                            <Grid
+                                x:Name="RightDockPreviewContainer"
+                                Grid.Row="2"
+                                HorizontalAlignment="Right"
+                                VerticalAlignment="Bottom">
+                                <Border
+                                    Background="{ThemeResource SystemControlBackgroundChromeMediumLowBrush}"
+                                    CornerRadius="14"
+                                    Opacity="0.85" />
+                                <ListView
+                                    x:Name="PagesDockListView"
+                                    ItemsSource="{x:Bind PagesDockItems, Mode=OneWay}"
+                                    SelectionMode="None"
+                                    AllowDrop="True"
+                                    CanDragItems="True"
+                                    CanReorderItems="True"
+                                    DragItemsCompleted="OnDockItemsDragCompleted"
+                                    ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                    ScrollViewer.VerticalScrollBarVisibility="Disabled"
+                                    ItemContainerStyle="{StaticResource DockPreviewListViewItemStyle}"
+                                    Margin="5">
+                                    <ListView.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <ItemsStackPanel Orientation="Horizontal" />
+                                        </ItemsPanelTemplate>
+                                    </ListView.ItemsPanel>
+
+                                    <ListView.ItemTemplate>
+                                        <DataTemplate x:DataType="local:DockItemViewModel">
+                                            <Border Style="{StaticResource DockPreviewItemBorderStyle}">
+                                                <StackPanel Orientation="Vertical" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                                    <IconSourceElement IconSource="{x:Bind IconSource}" />
+                                                    <TextBlock
+                                                        FontSize="11"
+                                                        Margin="0,3,0,0"
+                                                        HorizontalAlignment="Center"
+                                                        Text="{x:Bind Title}" />
+                                                </StackPanel>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ListView.ItemTemplate>
+                                </ListView>
+                            </Grid>
+                        </Grid>
+                    </Grid>
+                </StackPanel>
+
+                <StackPanel Spacing="10">
+                    <TextBlock Text="{l10n:Loc Key=Common_Options}" Style="{ThemeResource SubtitleTextBlockStyle}" />
+
+                    <ToggleSwitch
+                        x:Name="UndoRedoVisibleToggleSwitch"
+                        Header="{l10n:Loc Key=Settings_Dock_ShowUndoRedo_Header}"
+                        OffContent="{l10n:Loc Key=Common_Hide}"
+                        OnContent="{l10n:Loc Key=Common_Show}"
+                        Toggled="OnUndoRedoVisibleToggled" />
+
+                    <ToggleSwitch
+                        x:Name="ShortcutDocksVisibleToggleSwitch"
+                        Header="{l10n:Loc Key=Settings_Dock_ShowShortcutDocks_Header}"
+                        OffContent="{l10n:Loc Key=Common_Hide}"
+                        OnContent="{l10n:Loc Key=Common_Show}"
+                        Toggled="OnShortcutDocksVisibleToggled" />
+
+                    <StackPanel
+                        x:Name="ShortcutDockEditorPanel"
+                        Spacing="12"
+                        Visibility="Collapsed">
+                        <TextBlock
+                            Text="{l10n:Loc Key=Settings_Dock_ShortcutItems_Hint}"
+                            Opacity="0.75"
+                            TextWrapping="WrapWholeWords" />
+
+                        <ListView
+                            x:Name="ShortcutDockItemsListView"
+                            ItemsSource="{x:Bind ShortcutDockItems, Mode=OneWay}"
+                            SelectionMode="None"
+                            ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                            ScrollViewer.VerticalScrollBarVisibility="Disabled">
+                            <ListView.ItemTemplate>
+                                <DataTemplate x:DataType="local:ShortcutDockItemEditorViewModel">
+                                    <Border
+                                        Background="{ThemeResource SystemControlBackgroundChromeMediumLowBrush}"
+                                        BorderBrush="{ThemeResource SystemControlForegroundBaseLowBrush}"
+                                        BorderThickness="1"
+                                        CornerRadius="12"
+                                        Padding="12">
+                                        <StackPanel Spacing="10">
+                                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                                                <StackPanel Spacing="8">
+                                                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+                                                        <TextBlock Text="{l10n:Loc Key=Common_Position}" VerticalAlignment="Center" Opacity="0.75" />
+                                                        <ComboBox
+                                                            Grid.Column="1"
+                                                            SelectedValuePath="Tag"
+                                                            SelectedValue="{x:Bind Side, Mode=TwoWay}">
+                                                            <ComboBoxItem Content="{l10n:Loc Key=Common_Left}" Tag="left" />
+                                                            <ComboBoxItem Content="{l10n:Loc Key=Common_Right}" Tag="right" />
+                                                        </ComboBox>
+                                                    </Grid>
+
+                                                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+                                                        <TextBlock Text="{l10n:Loc Key=Common_Type}" VerticalAlignment="Center" Opacity="0.75" />
+                                                        <ComboBox
+                                                            Grid.Column="1"
+                                                            SelectedValuePath="Tag"
+                                                            SelectedValue="{x:Bind Type, Mode=TwoWay}">
+                                                            <ComboBoxItem Content="{l10n:Loc Key=Common_File}" Tag="file" />
+                                                            <ComboBoxItem Content="{l10n:Loc Key=Common_Link}" Tag="link" />
+                                                            <ComboBoxItem Content="{l10n:Loc Key=Common_Program}" Tag="program" />
+                                                        </ComboBox>
+                                                    </Grid>
+                                                </StackPanel>
+
+                                                <Button
+                                                    Grid.Column="1"
+                                                    Content="{l10n:Loc Key=Common_Delete}"
+                                                    HorizontalAlignment="Right"
+                                                    VerticalAlignment="Top"
+                                                    Tag="{x:Bind}"
+                                                    Click="OnDeleteShortcutDockItemClicked" />
+                                            </Grid>
+
+                                            <StackPanel Spacing="6">
+                                                <TextBlock Text="{x:Bind PathHeader, Mode=OneWay}" FontWeight="SemiBold" />
+                                                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                                    <TextBox
+                                                        Text="{x:Bind Path, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                        PlaceholderText="{x:Bind PathPlaceholder, Mode=OneWay}" />
+                                                    <Button
+                                                        Grid.Column="1"
+                                                        Content="{l10n:Loc Key=Common_SelectEllipsis}"
+                                                        Visibility="{x:Bind PathBrowseVisibility, Mode=OneWay}"
+                                                        Tag="{x:Bind}"
+                                                        Click="OnBrowseShortcutDockPathClicked" />
+                                                </Grid>
+                                            </StackPanel>
+
+                                            <StackPanel Spacing="6">
+                                                <TextBlock Text="{l10n:Loc Key=Common_DisplayName}" FontWeight="SemiBold" />
+                                                <TextBox
+                                                    Text="{x:Bind DisplayName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                    PlaceholderText="{l10n:Loc Key=Settings_Dock_DisplayName_Placeholder}" />
+                                            </StackPanel>
+
+                                            <StackPanel Spacing="6">
+                                                <TextBlock Text="{l10n:Loc Key=Common_Icon}" FontWeight="SemiBold" />
+                                                <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
+                                                    <ComboBox
+                                                        SelectedValuePath="Tag"
+                                                        SelectedValue="{x:Bind IconSource, Mode=TwoWay}">
+                                                        <ComboBoxItem Content="{l10n:Loc Key=Common_Default}" Tag="default" />
+                                                        <ComboBoxItem Content="{l10n:Loc Key=Settings_Dock_IconSource_Custom}" Tag="icon" />
+                                                        <ComboBoxItem Content="{l10n:Loc Key=Settings_Dock_IconSource_Font}" Tag="font" />
+                                                    </ComboBox>
+                                                    <TextBox
+                                                        Grid.Column="1"
+                                                        Text="{x:Bind IconPath, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                        PlaceholderText="{l10n:Loc Key=Settings_Dock_IconPath_Placeholder}"
+                                                        Visibility="{x:Bind IconPathTextVisibility, Mode=OneWay}" />
+                                                    <Button
+                                                        Grid.Column="2"
+                                                        Content="{l10n:Loc Key=Common_SelectEllipsis}"
+                                                        Visibility="{x:Bind IconBrowseVisibility, Mode=OneWay}"
+                                                        Tag="{x:Bind}"
+                                                        Click="OnBrowseShortcutDockIconClicked" />
+                                                </Grid>
+                                                <StackPanel Spacing="6" Visibility="{x:Bind IconFontPanelVisibility, Mode=OneWay}">
+                                                    <TextBox
+                                                        Text="{x:Bind FontIconSearchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                        PlaceholderText="{l10n:Loc Key=Settings_Dock_FontIconSearch_Placeholder}" />
+                                                    <ListView
+                                                        ItemsSource="{x:Bind FilteredFontIcons, Mode=OneWay}"
+                                                        SelectedItem="{x:Bind SelectedFontIcon, Mode=TwoWay}"
+                                                        SelectionMode="Single"
+                                                        IsItemClickEnabled="False"
+                                                        ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                                        MaxHeight="160">
+                                                        <ListView.ItemsPanel>
+                                                            <ItemsPanelTemplate>
+                                                                <ItemsWrapGrid Orientation="Horizontal" MaximumRowsOrColumns="2" />
+                                                            </ItemsPanelTemplate>
+                                                        </ListView.ItemsPanel>
+                                                        <ListView.ItemTemplate>
+                                                            <DataTemplate x:DataType="local:ShortcutDockFontIcon">
+                                                                <StackPanel Width="96" Spacing="4" Padding="6">
+                                                                    <SymbolIcon Symbol="{x:Bind Symbol}" HorizontalAlignment="Center" />
+                                                                    <TextBlock
+                                                                        FontSize="11"
+                                                                        Text="{x:Bind Name}"
+                                                                        TextAlignment="Center"
+                                                                        TextWrapping="WrapWholeWords" />
+                                                                </StackPanel>
+                                                            </DataTemplate>
+                                                        </ListView.ItemTemplate>
+                                                    </ListView>
+                                                    <TextBlock
+                                                        Text="{x:Bind FontIconSelectionHint, Mode=OneWay}"
+                                                        Opacity="0.75"
+                                                        TextWrapping="WrapWholeWords" />
+                                                </StackPanel>
+                                                <TextBlock
+                                                    Text="{x:Bind IconHint, Mode=OneWay}"
+                                                    Opacity="0.75"
+                                                    TextWrapping="WrapWholeWords" />
+                                            </StackPanel>
+
+                                            <StackPanel Spacing="6" Visibility="{x:Bind ArgumentsPanelVisibility, Mode=OneWay}">
+                                                <TextBlock Text="{l10n:Loc Key=Common_Arguments}" FontWeight="SemiBold" />
+                                                <TextBox
+                                                    Text="{x:Bind Arguments, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                    PlaceholderText="{l10n:Loc Key=Settings_Dock_Arguments_Placeholder}" />
+                                            </StackPanel>
+                                        </StackPanel>
+                                    </Border>
+                                </DataTemplate>
+                            </ListView.ItemTemplate>
+                        </ListView>
+
+                        <Button
+                            x:Name="AddShortcutDockItemButton"
+                            Content="{l10n:Loc Key=Settings_Dock_AddShortcutItem_Button}"
+                            HorizontalAlignment="Left"
+                            Click="OnAddShortcutDockItemClicked" />
+                    </StackPanel>
+
+                    <Button
+                        Content="{l10n:Loc Key=Settings_Dock_ResetLayout_Button}"
+                        HorizontalAlignment="Left"
+                        Click="OnResetToDefaultClicked" />
+                </StackPanel>
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</Page>

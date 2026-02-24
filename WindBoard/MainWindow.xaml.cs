@@ -118,6 +118,16 @@ namespace WindBoard
 
                 try
                 {
+                    _camouflageFlow?.Dispose();
+                }
+                catch (Exception ex)
+                {
+                    // 忽略释放失败：不阻断关闭流程
+                    AppLog.Debug("Camouflage", "释放 CamouflageFlow 失败", ex);
+                }
+
+                try
+                {
                     BoardCanvas.Dispose();
                 }
                 catch (Exception ex)
@@ -147,64 +157,6 @@ namespace WindBoard
             ApplyKeyboardShortcutsToUi();
         }
 
-        private void ApplyKeyboardShortcutsToUi()
-        {
-            // KeyboardAccelerator 绑定到根 Grid，确保在不同控件聚焦时仍可响应（但文本输入控件内会被显式拦截）。
-            if (Content is not Grid root)
-            {
-                return;
-            }
-
-            root.KeyboardAccelerators.Clear();
-
-            KeyboardShortcutsSnapshot shortcuts = AppSettingsService.Instance.GetKeyboardShortcutsSnapshot();
-
-            // 防御：再次做去重，避免异常设置导致同一组合键绑定多个动作。
-            var used = new HashSet<string>(StringComparer.Ordinal);
-
-            TryAddKeyboardAccelerator(root, used, slot: "Undo", shortcuts.Undo, OnUndoKeyboardAcceleratorInvoked);
-            TryAddKeyboardAccelerator(root, used, slot: "Redo", shortcuts.Redo, OnRedoKeyboardAcceleratorInvoked);
-
-            // 快捷键冲突/非法值在加载/更新时会被自动归一化（例如回退默认或禁用冲突项）。
-            // 这里统一做一次提醒（可在“设置-快捷键”中关闭提醒）。
-            TryRemindKeyboardShortcutIssuesIfNeeded();
-        }
-
-        private void TryAddKeyboardAccelerator(
-            Grid root,
-            HashSet<string> used,
-            string slot,
-            string value,
-            Action<KeyboardAccelerator, KeyboardAcceleratorInvokedEventArgs> invoked)
-        {
-            if (string.IsNullOrWhiteSpace(value))
-            {
-                return;
-            }
-
-            if (!KeyboardShortcutGesture.TryParse(value, out KeyboardShortcutGesture gesture) || !gesture.IsValidForApp())
-            {
-                AppLog.Warn("Shortcuts", $"快捷键无效，已忽略：slot={slot}, value='{value}'");
-                return;
-            }
-
-            string canonical = gesture.ToSettingString();
-            if (!used.Add(canonical))
-            {
-                AppLog.Warn("Shortcuts", $"快捷键重复，已忽略：slot={slot}, value='{canonical}'");
-                return;
-            }
-
-            var accelerator = new KeyboardAccelerator
-            {
-                Key = gesture.Key,
-                Modifiers = gesture.Modifiers,
-            };
-            accelerator.Invoked += (_, args) => invoked(_, args);
-            root.KeyboardAccelerators.Add(accelerator);
-        }
-
-
         private void ApplyToolSelection(BoardTool tool)
         {
             // ToggleButton 默认允许“再次点击取消勾选”，这里强制做成类似单选的行为。
@@ -232,50 +184,6 @@ namespace WindBoard
             UndoButton.IsEnabled = BoardCanvas.CanUndo;
             RedoButton.IsEnabled = BoardCanvas.CanRedo;
             UpdateClearCanvasSlideState();
-        }
-
-        private void OnUndoKeyboardAcceleratorInvoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
-        {
-            // 文本输入控件内优先由控件自身处理 Ctrl+Z（例如导入文字对话框），避免误触撤销画布操作。
-            if (IsTextInputFocused())
-            {
-                return;
-            }
-
-            if (!BoardCanvas.CanUndo)
-            {
-                return;
-            }
-
-            BoardCanvas.Undo();
-            args.Handled = true;
-        }
-
-        private void OnRedoKeyboardAcceleratorInvoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
-        {
-            if (IsTextInputFocused())
-            {
-                return;
-            }
-
-            if (!BoardCanvas.CanRedo)
-            {
-                return;
-            }
-
-            BoardCanvas.Redo();
-            args.Handled = true;
-        }
-
-        private bool IsTextInputFocused()
-        {
-            if (Content is not FrameworkElement root || root.XamlRoot is null)
-            {
-                return false;
-            }
-
-            object? focused = FocusManager.GetFocusedElement(root.XamlRoot);
-            return focused is TextBox or PasswordBox or RichEditBox;
         }
 
         private void OnPenToolClicked(object sender, RoutedEventArgs e)
