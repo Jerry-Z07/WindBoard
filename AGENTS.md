@@ -2,6 +2,7 @@
 
 ## 通用规则（General Rules）
 
+- 语言：复杂实现必须补充必要注释，其它代码也应适当添加注释
 - 关键路径需要有必要的日志输出与错误处理
   - 主程序统一使用 `WindBoard.Logging.AppLog`（`Info/Warn/Error` 等）
   - `WindBoard.CrashReporter` 为降低依赖，不使用主程序日志系统，统一使用 `WindBoard.CrashReporter.CrashReporterLog`
@@ -20,19 +21,22 @@
     - `Elements/`：板上元素模型（文本/链接/媒体/文件等）。
     - `Persistence/`：工作区快照与序列化（含 `Persistence/Wbix/`：WBIX 格式读写）。
     - `Viewport/`：视口管理。
+  - `Features/`：按“功能”拆分的模块集合（通常包含 `Models/`、`Services/`、`UI/` 等）。
+    - `Camouflage/`：伪装相关功能。
+    - `Dock/`：快捷 Dock（启动程序/打开链接等）。
+    - `Export/`：导出能力（PNG/PDF/WBIX 等）。
+    - `Import/`：导入能力（图片/文本/WBI 等）。
+    - `Shortcuts/`：快捷键/快捷操作相关。
   - `Interaction/`：输入与交互（笔/鼠标/触控、缩放/平移、脏矩形计算等；含 `BoardInputController/`）。
   - `Rendering/`：DirectX 渲染层（Vortice；SwapChain/场景渲染）。
     - `Board/`：场景数学计算与渲染器。
     - `DxDirtyRectCalculator.cs`：脏矩形计算。
     - `DxSwapChainPanelRenderer.cs`：交换链面板渲染器（含滚动相关 `DxSwapChainPanelRenderer.Scroll.cs`）。
-  - `Exporting/`：导出能力（PNG/PDF 等）。
-  - `Importing/`：导入相关的非 UI 核心逻辑（例如图片解码/文本读取等）。
   - `Localization/`：本地化资源与取值入口（`.resx` + `L10n` + XAML `Loc` 扩展）。
   - `Logging/`：应用日志（文件 + Debug 输出，入口：`WindBoard.Logging.AppLog`）。
   - `Errors/`：应用错误处理与崩溃报告（对接 CrashReporter）。
   - `Updates/`：应用更新检查/下载相关。
   - `Reminders/`：应用级提醒/通知（应用内 Banner、Windows Toast 等通道）。
-  - `ShortcutDock/`：快捷入口（启动程序/打开链接/图标解析等）。
   - `Settings/`：设置相关。
   - `Persistence/`：应用层持久化服务接口/实现（避免与 `Board/Persistence/` 混淆）。
   - `Assets/`：应用资源。
@@ -44,14 +48,12 @@
 - `WindBoard.Tests/`：xUnit 单元测试工程。
   - `Board/`：核心模型测试（命令/编辑/视口/笔画等）。
   - `Errors/`：错误/崩溃报告相关测试。
-  - `Importing/`：导入模块测试。
+  - `Features/`：功能模块测试（导入/导出/Dock/快捷键/伪装等）。
   - `Interaction/`：交互层测试（脏矩形计算等）。
   - `Rendering/`：渲染层测试（场景数学/脏矩形计算）。
-  - `Exporting/`：导出模块测试（导出器/页范围解析等）。
   - `Persistence/`：应用层持久化相关测试。
   - `Localization/`：本地化相关测试（键值审计等）。
   - `Settings/`：设置模块测试（设置存储/颜色处理等）。
-  - `ShortcutDock/`：快捷入口相关测试。
   - `Updates/`：更新模块测试。
   - `AssertEx.cs`：测试辅助工具。
 - `installer/`：打包脚本（Inno Setup，入口：`installer/WindBoard.iss`）。
