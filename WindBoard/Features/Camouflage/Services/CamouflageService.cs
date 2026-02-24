@@ -6,10 +6,12 @@ using System.IO;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text;
+using WindBoard.Features.Camouflage.Models;
 using WindBoard.Logging;
 using WindBoard.Persistence;
+using WindBoard.Settings;
 
-namespace WindBoard.Settings
+namespace WindBoard.Features.Camouflage.Services
 {
     /// <summary>
     /// 伪装服务：
@@ -746,17 +748,5 @@ namespace WindBoard.Settings
                 AppLog.Debug("Camouflage", $"释放 COM 对象失败：{name}, ex={ex}");
             }
         }
-    }
-
-    internal sealed class CamouflageResult
-    {
-        public string Title { get; set; } = string.Empty;
-
-        public bool Enabled { get; set; }
-
-        /// <summary>
-        /// 仅在开启伪装且图标有效时返回 .ico 路径；否则为 null（表示使用默认图标）。
-        /// </summary>
-        public string? IconPath { get; set; }
     }
 }

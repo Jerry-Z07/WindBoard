@@ -11,10 +11,14 @@ using Windows.Graphics.Imaging;
 using Windows.Storage;
 using Windows.Storage.Pickers;
 using Windows.Storage.Streams;
+using WindBoard.Features.Camouflage.Models;
+using WindBoard.Features.Camouflage.Services;
 using WindBoard.Logging;
 using WindBoard.Localization;
+using WindBoard.Settings;
+using WindBoard.UI.Common;
 
-namespace WindBoard.Settings.Pages
+namespace WindBoard.Features.Camouflage.UI
 {
     public sealed partial class CamouflageSettingsPage : Page
     {
@@ -507,20 +511,13 @@ namespace WindBoard.Settings.Pages
                 return;
             }
 
-            var dialog = new ContentDialog
-            {
-                Title = title,
-                Content = message,
-                CloseButtonText = L10n.Get("Common_OK"),
-                XamlRoot = XamlRoot,
-            };
+            _ = isError;
 
-            if (isError)
-            {
-                dialog.DefaultButton = ContentDialogButton.Close;
-            }
-
-            await dialog.ShowAsync();
+            await DialogHelpers.ShowMessageAsync(
+                XamlRoot,
+                title,
+                message,
+                closeButtonText: L10n.Get("Common_OK"));
         }
 
         private static IntPtr TryGetHostWindowHandle()

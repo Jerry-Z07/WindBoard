@@ -1,8 +1,8 @@
 using System.Text.RegularExpressions;
-using WindBoard.Settings;
+using WindBoard.Features.Camouflage.Services;
 using Xunit;
 
-namespace WindBoard.Tests.Settings;
+namespace WindBoard.Tests.Features.Camouflage;
 
 public sealed class CamouflageServiceTests
 {
@@ -58,4 +58,3 @@ public sealed class CamouflageServiceTests
         Assert.NotEqual(baseSig, cacheSig);
     }
 }
-

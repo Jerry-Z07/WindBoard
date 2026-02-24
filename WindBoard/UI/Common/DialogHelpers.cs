@@ -17,16 +17,28 @@ namespace WindBoard.UI.Common
         /// </summary>
         internal static async Task ShowMessageAsync(XamlRoot xamlRoot, string title, string message)
         {
+            await ShowMessageAsync(xamlRoot, title, message, closeButtonText: null);
+        }
+
+        /// <summary>
+        /// 显示一个简单的消息对话框（仅单按钮，可自定义按钮文案）。
+        /// </summary>
+        internal static async Task ShowMessageAsync(XamlRoot xamlRoot, string title, string message, string? closeButtonText)
+        {
             if (xamlRoot is null)
             {
                 throw new ArgumentNullException(nameof(xamlRoot));
             }
 
+            string buttonText = string.IsNullOrWhiteSpace(closeButtonText)
+                ? L10n.Get("Common_Close")
+                : closeButtonText;
+
             var dialog = new ContentDialog
             {
                 Title = title,
                 Content = message,
-                CloseButtonText = L10n.Get("Common_Close"),
+                CloseButtonText = buttonText,
                 XamlRoot = xamlRoot,
             };
 
@@ -101,4 +113,3 @@ namespace WindBoard.UI.Common
         }
     }
 }
-

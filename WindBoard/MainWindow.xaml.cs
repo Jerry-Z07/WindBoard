@@ -118,6 +118,16 @@ namespace WindBoard
 
                 try
                 {
+                    _camouflageFlow?.Dispose();
+                }
+                catch (Exception ex)
+                {
+                    // 忽略释放失败：不阻断关闭流程
+                    AppLog.Debug("Camouflage", "释放 CamouflageFlow 失败", ex);
+                }
+
+                try
+                {
                     BoardCanvas.Dispose();
                 }
                 catch (Exception ex)

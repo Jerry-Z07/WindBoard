@@ -165,5 +165,24 @@ namespace WindBoard
                 return false;
             }
         }
+
+        private AppWindow? TryGetAppWindow()
+        {
+            try
+            {
+                IntPtr hwnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
+                if (hwnd == IntPtr.Zero)
+                {
+                    return null;
+                }
+
+                var windowId = Microsoft.UI.Win32Interop.GetWindowIdFromWindow(hwnd);
+                return AppWindow.GetFromWindowId(windowId);
+            }
+            catch
+            {
+                return null;
+            }
+        }
     }
 }

@@ -1,4 +1,4 @@
-namespace WindBoard.Settings
+namespace WindBoard.Features.Camouflage.Models
 {
     /// <summary>
     /// 伪装设置的只读快照（供 UI 使用，避免直接暴露可变引用）。
