@@ -4,6 +4,7 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:l10n="using:WindBoard.Localization"
+    xmlns:controls="using:CommunityToolkit.WinUI.Controls"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d">
@@ -166,19 +167,20 @@
                 <StackPanel Spacing="10">
                     <TextBlock Text="{l10n:Loc Key=Common_Color}" Style="{ThemeResource SubtitleTextBlockStyle}" />
 
-                    <NumberBox
-                        x:Name="PaletteCountNumberBox"
+                    <controls:SettingsCard
                         Header="{l10n:Loc Key=Settings_Pen_PaletteCount_Header}"
-                        Minimum="3"
-                        Maximum="24"
-                        SmallChange="1"
-                        SpinButtonPlacementMode="Inline"
-                        ValueChanged="OnPaletteCountValueChanged" />
-
-                    <TextBlock
-                        Text="{l10n:Loc Key=Settings_Pen_PaletteHint}"
-                        Opacity="0.75"
-                        TextWrapping="WrapWholeWords" />
+                        Description="{l10n:Loc Key=Settings_Pen_PaletteHint}">
+                        <controls:SettingsCard.Content>
+                            <NumberBox
+                                x:Name="PaletteCountNumberBox"
+                                Header="{x:Null}"
+                                Minimum="3"
+                                Maximum="24"
+                                SmallChange="1"
+                                SpinButtonPlacementMode="Inline"
+                                ValueChanged="OnPaletteCountValueChanged" />
+                        </controls:SettingsCard.Content>
+                    </controls:SettingsCard>
 
                     <StackPanel x:Name="SelectColorHintPanel" Spacing="6">
                         <TextBlock
@@ -211,12 +213,16 @@
                 <StackPanel Spacing="10">
                     <TextBlock Text="{l10n:Loc Key=Common_Thickness}" Style="{ThemeResource SubtitleTextBlockStyle}" />
 
-                    <ToggleSwitch
-                        x:Name="UseThicknessSliderToggleSwitch"
-                        Header="{l10n:Loc Key=Settings_Pen_UseThicknessSlider_Header}"
-                        OffContent="{l10n:Loc Key=Settings_Pen_ThicknessMode_Presets}"
-                        OnContent="{l10n:Loc Key=Settings_Pen_ThicknessMode_Slider}"
-                        Toggled="OnUseThicknessSliderToggled" />
+                    <controls:SettingsCard Header="{l10n:Loc Key=Settings_Pen_UseThicknessSlider_Header}">
+                        <controls:SettingsCard.Content>
+                            <ToggleSwitch
+                                x:Name="UseThicknessSliderToggleSwitch"
+                                Header="{x:Null}"
+                                OffContent="{l10n:Loc Key=Settings_Pen_ThicknessMode_Presets}"
+                                OnContent="{l10n:Loc Key=Settings_Pen_ThicknessMode_Slider}"
+                                Toggled="OnUseThicknessSliderToggled" />
+                        </controls:SettingsCard.Content>
+                    </controls:SettingsCard>
 
                     <StackPanel x:Name="ThicknessPresetsEditorPanel" Spacing="12">
                         <TextBlock Text="{l10n:Loc Key=Settings_Pen_ThicknessPresets_Hint}" Opacity="0.75" TextWrapping="WrapWholeWords" />
@@ -228,37 +234,58 @@
                                 <ColumnDefinition Width="*" />
                             </Grid.ColumnDefinitions>
 
-                            <NumberBox
-                                x:Name="ThicknessPreset1NumberBox"
+                            <controls:SettingsCard
                                 Header="{l10n:Loc Key=Settings_Pen_ThicknessPreset1_Header}"
-                                Minimum="0.5"
-                                Maximum="64"
-                                SmallChange="0.5"
-                                SpinButtonPlacementMode="Inline"
-                                Tag="0"
-                                ValueChanged="OnThicknessPresetValueChanged" />
+                                ContentAlignment="Vertical"
+                                HorizontalContentAlignment="Stretch">
+                                <controls:SettingsCard.Content>
+                                    <NumberBox
+                                        x:Name="ThicknessPreset1NumberBox"
+                                        Header="{x:Null}"
+                                        Minimum="0.5"
+                                        Maximum="64"
+                                        SmallChange="0.5"
+                                        SpinButtonPlacementMode="Inline"
+                                        Tag="0"
+                                        ValueChanged="OnThicknessPresetValueChanged" />
+                                </controls:SettingsCard.Content>
+                            </controls:SettingsCard>
 
-                            <NumberBox
-                                x:Name="ThicknessPreset2NumberBox"
+                            <controls:SettingsCard
                                 Grid.Column="1"
                                 Header="{l10n:Loc Key=Settings_Pen_ThicknessPreset2_Header}"
-                                Minimum="0.5"
-                                Maximum="64"
-                                SmallChange="0.5"
-                                SpinButtonPlacementMode="Inline"
-                                Tag="1"
-                                ValueChanged="OnThicknessPresetValueChanged" />
+                                ContentAlignment="Vertical"
+                                HorizontalContentAlignment="Stretch">
+                                <controls:SettingsCard.Content>
+                                    <NumberBox
+                                        x:Name="ThicknessPreset2NumberBox"
+                                        Header="{x:Null}"
+                                        Minimum="0.5"
+                                        Maximum="64"
+                                        SmallChange="0.5"
+                                        SpinButtonPlacementMode="Inline"
+                                        Tag="1"
+                                        ValueChanged="OnThicknessPresetValueChanged" />
+                                </controls:SettingsCard.Content>
+                            </controls:SettingsCard>
 
-                            <NumberBox
-                                x:Name="ThicknessPreset3NumberBox"
+                            <controls:SettingsCard
                                 Grid.Column="2"
                                 Header="{l10n:Loc Key=Settings_Pen_ThicknessPreset3_Header}"
-                                Minimum="0.5"
-                                Maximum="64"
-                                SmallChange="0.5"
-                                SpinButtonPlacementMode="Inline"
-                                Tag="2"
-                                ValueChanged="OnThicknessPresetValueChanged" />
+                                ContentAlignment="Vertical"
+                                HorizontalContentAlignment="Stretch">
+                                <controls:SettingsCard.Content>
+                                    <NumberBox
+                                        x:Name="ThicknessPreset3NumberBox"
+                                        Header="{x:Null}"
+                                        Minimum="0.5"
+                                        Maximum="64"
+                                        SmallChange="0.5"
+                                        SpinButtonPlacementMode="Inline"
+                                        Tag="2"
+                                        ValueChanged="OnThicknessPresetValueChanged" />
+                                </controls:SettingsCard.Content>
+                            </controls:SettingsCard>
                         </Grid>
                     </StackPanel>
                 </StackPanel>

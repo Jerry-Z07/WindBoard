@@ -4,6 +4,7 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:l10n="using:WindBoard.Localization"
+    xmlns:controls="using:CommunityToolkit.WinUI.Controls"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d">
@@ -13,33 +14,17 @@
             <StackPanel Spacing="16" Padding="24">
                 <TextBlock Text="{l10n:Loc Key=Settings_Writing_Title}" Style="{ThemeResource TitleTextBlockStyle}" />
 
-                <Button
+                <controls:SettingsCard
                     x:Name="PenSettingsCard"
-                    Style="{StaticResource SettingsCardButtonStyle}"
-                    Click="OnPenSettingsClicked">
-                    <Grid ColumnSpacing="12">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="Auto" />
-                        </Grid.ColumnDefinitions>
-
+                    IsClickEnabled="True"
+                    Click="OnPenSettingsClicked"
+                    Header="{l10n:Loc Key=Settings_Pen_Title}"
+                    Description="{l10n:Loc Key=Settings_Writing_Pen_Description}">
+                    <controls:SettingsCard.HeaderIcon>
                         <!-- 画笔设置：用“设置”图标与左侧导航项区分 -->
-                        <SymbolIcon Symbol="Setting" VerticalAlignment="Center" />
-
-                        <StackPanel Grid.Column="1" Spacing="2">
-                            <TextBlock Text="{l10n:Loc Key=Settings_Pen_Title}" FontWeight="SemiBold" />
-                            <TextBlock Text="{l10n:Loc Key=Settings_Writing_Pen_Description}" Opacity="0.75" TextWrapping="WrapWholeWords" />
-                        </StackPanel>
-
-                        <FontIcon
-                            Grid.Column="2"
-                            Glyph="&#xE76C;"
-                            FontFamily="Segoe MDL2 Assets"
-                            Opacity="0.65"
-                            VerticalAlignment="Center" />
-                    </Grid>
-                </Button>
+                        <SymbolIcon Symbol="Setting" />
+                    </controls:SettingsCard.HeaderIcon>
+                </controls:SettingsCard>
             </StackPanel>
         </ScrollViewer>
     </Grid>
