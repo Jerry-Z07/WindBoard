@@ -39,9 +39,9 @@
                             Click="OnUndoShortcutClicked"
                             Header="{l10n:Loc Key=Settings_Shortcuts_Undo_Title}">
                             <controls:SettingsCard.HeaderIcon>
-                                <!-- 撤销：Undo 图标（MDL2） -->
+                                <!-- 撤销：Undo 图标 -->
                                 <FontIcon
-                                    FontFamily="Segoe MDL2 Assets"
+                                    FontFamily="{ThemeResource SymbolThemeFontFamily}"
                                     FontSize="16"
                                     Glyph="&#xE10E;" />
                             </controls:SettingsCard.HeaderIcon>
@@ -59,9 +59,9 @@
                             Click="OnRedoShortcutClicked"
                             Header="{l10n:Loc Key=Settings_Shortcuts_Redo_Title}">
                             <controls:SettingsCard.HeaderIcon>
-                                <!-- 重做：Redo 图标（MDL2） -->
+                                <!-- 重做：Redo 图标 -->
                                 <FontIcon
-                                    FontFamily="Segoe MDL2 Assets"
+                                    FontFamily="{ThemeResource SymbolThemeFontFamily}"
                                     FontSize="16"
                                     Glyph="&#xE10D;" />
                             </controls:SettingsCard.HeaderIcon>

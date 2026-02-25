@@ -27,9 +27,9 @@
                         Header="{l10n:Loc Key=Settings_Background_CanvasBackgroundColor_Title}"
                         Description="{l10n:Loc Key=Settings_Background_CanvasBackgroundColor_Description}">
                         <controls:SettingsCard.HeaderIcon>
-                            <!-- Segoe MDL2 Assets：Color（更贴合“画布背景颜色”语义） -->
+                            <!-- 图标字体：Color（更贴合“画布背景颜色”语义） -->
                             <FontIcon
-                                FontFamily="Segoe MDL2 Assets"
+                                FontFamily="{ThemeResource SymbolThemeFontFamily}"
                                 FontSize="16"
                                 Glyph="&#xE790;" />
                         </controls:SettingsCard.HeaderIcon>

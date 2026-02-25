@@ -32,7 +32,7 @@
                         <controls:SettingsCard.HeaderIcon>
                             <!-- 日志目录 -->
                             <FontIcon
-                                FontFamily="Segoe MDL2 Assets"
+                                FontFamily="{ThemeResource SymbolThemeFontFamily}"
                                 FontSize="16"
                                 Glyph="&#xE8B7;" />
                         </controls:SettingsCard.HeaderIcon>
@@ -46,7 +46,7 @@
                         <controls:SettingsCard.HeaderIcon>
                             <!-- 当前日志文件 -->
                             <FontIcon
-                                FontFamily="Segoe MDL2 Assets"
+                                FontFamily="{ThemeResource SymbolThemeFontFamily}"
                                 FontSize="16"
                                 Glyph="&#xE8A5;" />
                         </controls:SettingsCard.HeaderIcon>
@@ -60,7 +60,7 @@
                         <controls:SettingsCard.HeaderIcon>
                             <!-- 复制 -->
                             <FontIcon
-                                FontFamily="Segoe MDL2 Assets"
+                                FontFamily="{ThemeResource SymbolThemeFontFamily}"
                                 FontSize="16"
                                 Glyph="&#xE8C8;" />
                         </controls:SettingsCard.HeaderIcon>
@@ -77,7 +77,7 @@
                         Description="{l10n:Loc Key=Settings_Debug_OpenSettingsDir_Description}">
                         <controls:SettingsCard.HeaderIcon>
                             <FontIcon
-                                FontFamily="Segoe MDL2 Assets"
+                                FontFamily="{ThemeResource SymbolThemeFontFamily}"
                                 FontSize="16"
                                 Glyph="&#xE8B7;" />
                         </controls:SettingsCard.HeaderIcon>
@@ -90,7 +90,7 @@
                         Description="{l10n:Loc Key=Settings_Debug_OpenSettingsFile_Description}">
                         <controls:SettingsCard.HeaderIcon>
                             <FontIcon
-                                FontFamily="Segoe MDL2 Assets"
+                                FontFamily="{ThemeResource SymbolThemeFontFamily}"
                                 FontSize="16"
                                 Glyph="&#xE8A5;" />
                         </controls:SettingsCard.HeaderIcon>
@@ -103,7 +103,7 @@
                         Description="{l10n:Loc Key=Settings_Debug_CopySettingsPath_Description}">
                         <controls:SettingsCard.HeaderIcon>
                             <FontIcon
-                                FontFamily="Segoe MDL2 Assets"
+                                FontFamily="{ThemeResource SymbolThemeFontFamily}"
                                 FontSize="16"
                                 Glyph="&#xE8C8;" />
                         </controls:SettingsCard.HeaderIcon>
@@ -121,7 +121,7 @@
                         <controls:SettingsCard.HeaderIcon>
                             <!-- 消息推送/通知测试 -->
                             <FontIcon
-                                FontFamily="Segoe MDL2 Assets"
+                                FontFamily="{ThemeResource SymbolThemeFontFamily}"
                                 FontSize="16"
                                 Glyph="&#xE7ED;" />
                         </controls:SettingsCard.HeaderIcon>
@@ -135,7 +135,7 @@
                         <controls:SettingsCard.HeaderIcon>
                             <!-- 应用内右上角弹条测试 -->
                             <FontIcon
-                                FontFamily="Segoe MDL2 Assets"
+                                FontFamily="{ThemeResource SymbolThemeFontFamily}"
                                 FontSize="16"
                                 Glyph="&#xE7F4;" />
                         </controls:SettingsCard.HeaderIcon>
@@ -149,7 +149,7 @@
                         <controls:SettingsCard.HeaderIcon>
                             <!-- 崩溃测试：WinUI UI 线程未处理异常 -->
                             <FontIcon
-                                FontFamily="Segoe MDL2 Assets"
+                                FontFamily="{ThemeResource SymbolThemeFontFamily}"
                                 FontSize="16"
                                 Glyph="&#xEA39;" />
                         </controls:SettingsCard.HeaderIcon>
@@ -163,7 +163,7 @@
                         <controls:SettingsCard.HeaderIcon>
                             <!-- 崩溃测试：AppDomain 后台线程未处理异常 -->
                             <FontIcon
-                                FontFamily="Segoe MDL2 Assets"
+                                FontFamily="{ThemeResource SymbolThemeFontFamily}"
                                 FontSize="16"
                                 Glyph="&#xEA39;" />
                         </controls:SettingsCard.HeaderIcon>
@@ -181,7 +181,7 @@
                         <controls:SettingsCard.HeaderIcon>
                             <!-- 隐藏入口 -->
                             <FontIcon
-                                FontFamily="Segoe MDL2 Assets"
+                                FontFamily="{ThemeResource SymbolThemeFontFamily}"
                                 FontSize="16"
                                 Glyph="&#xE7EE;" />
                         </controls:SettingsCard.HeaderIcon>

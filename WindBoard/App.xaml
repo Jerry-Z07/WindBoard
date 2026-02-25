@@ -36,6 +36,14 @@
                 <Setter Property="HorizontalContentAlignment" Value="Center" />
                 <Setter Property="VerticalContentAlignment" Value="Center" />
             </Style>
+
+            <!--
+              图标字体：
+              - Win11（Build >= 22000）系统自带 Segoe Fluent Icons；
+              - Win10 安装版由安装器安装字体；便携版在启动时私有加载内置 ttf；
+              - 若最终不可用，会在启动时降级为 Segoe MDL2 Assets，避免图标变成方块。
+            -->
+            <FontFamily x:Key="SymbolThemeFontFamily">Segoe Fluent Icons</FontFamily>
         </ResourceDictionary>
     </Application.Resources>
 </Application>

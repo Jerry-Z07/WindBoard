@@ -66,9 +66,9 @@
                         Header="{l10n:Loc Key=Settings_Background_CanvasBackgroundColor_Title}"
                         Description="{l10n:Loc Key=Settings_Background_CanvasBackgroundColor_Description}">
                         <controls:SettingsCard.HeaderIcon>
-                            <!-- Segoe MDL2 Assets：Color（更贴合“画布背景颜色”语义） -->
+                            <!-- 图标字体：Color（更贴合“画布背景颜色”语义） -->
                             <FontIcon
-                                FontFamily="Segoe MDL2 Assets"
+                                FontFamily="{ThemeResource SymbolThemeFontFamily}"
                                 FontSize="16"
                                 Glyph="&#xE790;" />
                         </controls:SettingsCard.HeaderIcon>
@@ -93,13 +93,13 @@
                         Click="OnDockSettingsClicked"
                         Header="{l10n:Loc Key=Settings_Dock_Title}"
                         Description="{l10n:Loc Key=Settings_Dock_Description}">
-                        <controls:SettingsCard.HeaderIcon>
-                            <FontIcon
-                                FontFamily="Segoe MDL2 Assets"
-                                FontSize="16"
-                                Glyph="&#xE8A5;" />
-                        </controls:SettingsCard.HeaderIcon>
-                    </controls:SettingsCard>
+                    <controls:SettingsCard.HeaderIcon>
+                        <FontIcon
+                            FontFamily="{ThemeResource SymbolThemeFontFamily}"
+                            FontSize="16"
+                            Glyph="&#xE8A5;" />
+                    </controls:SettingsCard.HeaderIcon>
+                </controls:SettingsCard>
 
                     <controls:SettingsCard
                         x:Name="ElementCardThemeCard"
@@ -108,15 +108,15 @@
                         Click="OnElementCardThemeClicked"
                         Header="{l10n:Loc Key=Settings_Appearance_ElementCardTheme_Title}"
                         Description="{l10n:Loc Key=Settings_Appearance_ElementCardTheme_Description}">
-                        <controls:SettingsCard.HeaderIcon>
-                            <!-- Segoe MDL2 Assets：Color -->
-                            <FontIcon
-                                FontFamily="Segoe MDL2 Assets"
-                                FontSize="16"
-                                Glyph="&#xE790;" />
-                        </controls:SettingsCard.HeaderIcon>
-                        <controls:SettingsCard.Content>
-                            <TextBlock
+                    <controls:SettingsCard.HeaderIcon>
+                        <!-- 图标字体：Color -->
+                        <FontIcon
+                            FontFamily="{ThemeResource SymbolThemeFontFamily}"
+                            FontSize="16"
+                            Glyph="&#xE790;" />
+                    </controls:SettingsCard.HeaderIcon>
+                    <controls:SettingsCard.Content>
+                        <TextBlock
                                 x:Name="CurrentElementCardThemeTextBlock"
                                 Opacity="0.75"
                                 VerticalAlignment="Center"

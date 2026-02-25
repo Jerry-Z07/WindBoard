@@ -17,6 +17,7 @@ using Windows.ApplicationModel.Activation;
 using Windows.Foundation;
 using Windows.Foundation.Collections;
 using WindBoard.Errors;
+using WindBoard.Fonts;
 using WindBoard.Logging;
 using WindBoard.Localization;
 using WindBoard.Persistence;
@@ -63,6 +64,13 @@ namespace WindBoard
             AppDomain.CurrentDomain.UnhandledException += OnAppDomainUnhandledException;
             TaskScheduler.UnobservedTaskException += OnUnobservedTaskException;
 
+            // 图标字体（Segoe Fluent Icons）可用性处理：
+            // - Win10 便携版：启动时私有加载内置 ttf
+            // - Win10 安装版：依赖安装器安装字体（这里也会做兜底处理）
+            // - Win11：系统自带
+            // 说明：尽量在 InitializeComponent 前执行，避免 XAML/渲染层过早创建图标控件导致缓存错误字体。
+            SegoeFluentIconsFontLoader.InitializeForCurrentProcess();
+
             InitializeComponent();
         }
 
@@ -72,6 +80,18 @@ namespace WindBoard
         /// <param name="args">Details about the launch request and process.</param>
         protected override void OnLaunched(Microsoft.UI.Xaml.LaunchActivatedEventArgs args)
         {
+            // 应用资源覆盖：统一让 SymbolIcon / SymbolIconSource 等走同一套图标字体。
+            // 说明：部分环境下在 App 构造函数阶段读取 Application.Resources 可能触发 COMException；
+            // 这里放到 OnLaunched（且在创建任何 Window 前）执行，兼容性更好。
+            try
+            {
+                SegoeFluentIconsFontLoader.ApplyToResources(Resources);
+            }
+            catch (Exception ex)
+            {
+                AppLog.Warn("Fonts", "获取 Application.Resources 失败，将跳过图标字体资源覆盖", ex);
+            }
+
             // 便携版首次启动迁移：确保 settings.json 能优先落到 {AppBase}\data 下。
             SettingsMigrationResult settingsMigration = AppDataPaths.TryMigratePortableSettingsIfNeeded();
 

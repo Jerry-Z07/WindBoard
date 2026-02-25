@@ -53,9 +53,9 @@
                     Header="{l10n:Loc Key=Settings_Camouflage_Title}"
                     Description="{l10n:Loc Key=Settings_Camouflage_Description}">
                     <controls:SettingsCard.HeaderIcon>
-                        <!-- 伪装：使用“眼镜/隐身”语义图标（MDL2 兼容，避免引入额外图标库） -->
+                        <!-- 伪装：使用“眼镜/隐身”语义图标 -->
                         <FontIcon
-                            FontFamily="Segoe MDL2 Assets"
+                            FontFamily="{ThemeResource SymbolThemeFontFamily}"
                             FontSize="16"
                             Glyph="&#xE7EE;" />
                     </controls:SettingsCard.HeaderIcon>
