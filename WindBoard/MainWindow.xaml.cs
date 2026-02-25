@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
@@ -556,16 +557,44 @@ namespace WindBoard
 
         private void MinimizeWindow()
         {
-            // WinUI 3 桌面端没有直接的 Window.Minimize，这里通过 AppWindow 的 Presenter 进行最小化。
-            IntPtr hwnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
-            var windowId = Microsoft.UI.Win32Interop.GetWindowIdFromWindow(hwnd);
-            AppWindow appWindow = AppWindow.GetFromWindowId(windowId);
-
-            if (appWindow.Presenter is OverlappedPresenter presenter)
+            // WinUI 3 桌面端没有直接的 Window.Minimize：
+            // 1) 普通窗口（Overlapped Presenter）时可直接调用 OverlappedPresenter.Minimize。
+            // 2) 临时全屏等模式下 Presenter 不是 OverlappedPresenter，会导致最小化按钮无效；这里增加 Win32 兜底。
+            try
             {
-                presenter.Minimize();
+                AppWindow? appWindow = TryGetAppWindow();
+                if (appWindow?.Presenter is OverlappedPresenter presenter)
+                {
+                    presenter.Minimize();
+                    return;
+                }
+
+                IntPtr hwnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
+                if (hwnd == IntPtr.Zero)
+                {
+                    AppLog.Warn("Dock", "窗口最小化失败：无法获取窗口句柄（可能尚未就绪）");
+                    return;
+                }
+
+                // 兜底：直接最小化 HWND（避免全屏 Presenter 下无法最小化）。
+                if (ShowWindow(hwnd, SwMinimize))
+                {
+                    return;
+                }
+
+                int lastError = Marshal.GetLastWin32Error();
+                AppLog.Warn("Dock", $"窗口最小化失败：ShowWindow 返回 false，lastError={lastError}");
+            }
+            catch (Exception ex)
+            {
+                AppLog.Warn("Dock", "窗口最小化失败：发生异常", ex);
             }
         }
+
+        private const int SwMinimize = 6; // SW_MINIMIZE
+
+        [DllImport("user32.dll", SetLastError = true)]
+        private static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
 
         private async void OnImportClicked(object sender, RoutedEventArgs e)
         {
