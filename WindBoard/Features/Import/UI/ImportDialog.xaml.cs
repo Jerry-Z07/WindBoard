@@ -873,12 +873,29 @@ namespace WindBoard.Features.Import.UI
                 ImportQueueGroup.Workspace => Symbol.OpenFile,
                 ImportQueueGroup.Image => Symbol.Pictures,
                 ImportQueueGroup.Video => Symbol.Video,
-                ImportQueueGroup.Audio => Symbol.Video,
+                ImportQueueGroup.Audio => ResolveAudioIconSymbol(),
                 ImportQueueGroup.Text => Symbol.Edit,
                 ImportQueueGroup.Link => Symbol.Link,
                 ImportQueueGroup.File => Symbol.OpenFile,
                 _ => Symbol.OpenFile,
             };
+        }
+
+        private static Symbol ResolveAudioIconSymbol()
+        {
+            // 音频图标：优先使用更贴近语义的 MusicInfo（若目标 SDK 不存在该枚举值则降级）。
+            // 说明：使用 TryParse 避免在不同 SDK/WinUI 版本下直接引用不存在的 Symbol 成员导致编译失败。
+            if (Enum.TryParse("MusicInfo", ignoreCase: true, out Symbol musicInfo))
+            {
+                return musicInfo;
+            }
+
+            if (Enum.TryParse("Volume", ignoreCase: true, out Symbol volume))
+            {
+                return volume;
+            }
+
+            return Symbol.Video;
         }
 
         private static Symbol ResolveLeafIcon(ImportQueueItemKind kind)
@@ -889,7 +906,7 @@ namespace WindBoard.Features.Import.UI
                 ImportQueueItemKind.WorkspaceWbi => Symbol.OpenFile,
                 ImportQueueItemKind.ImageFile => Symbol.Pictures,
                 ImportQueueItemKind.VideoFile => Symbol.Video,
-                ImportQueueItemKind.AudioFile => Symbol.Video,
+                ImportQueueItemKind.AudioFile => ResolveAudioIconSymbol(),
                 ImportQueueItemKind.TextFile => Symbol.Edit,
                 ImportQueueItemKind.InternetShortcutFile => Symbol.Link,
                 ImportQueueItemKind.GenericFile => Symbol.OpenFile,
