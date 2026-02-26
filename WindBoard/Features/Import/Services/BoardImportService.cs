@@ -40,10 +40,11 @@ namespace WindBoard.Features.Import.Services
             int totalImages = request.ImageFiles?.Count ?? 0;
             int totalMedia = request.MediaFiles?.Count ?? 0;
             int totalTextFiles = request.TextFiles?.Count ?? 0;
+            int totalOtherFiles = request.OtherFiles?.Count ?? 0;
             int hasText = string.IsNullOrWhiteSpace(request.TextContent) ? 0 : 1;
             int totalLinks = ImportUrlNormalizer.ParseAndNormalizeLinkLines(request.LinkLines).Count;
 
-            AppLog.Info("Import", $"开始导入：images={totalImages}, media={totalMedia}, textFiles={totalTextFiles}, text={hasText}, links={totalLinks}");
+            AppLog.Info("Import", $"开始导入：images={totalImages}, media={totalMedia}, textFiles={totalTextFiles}, otherFiles={totalOtherFiles}, text={hasText}, links={totalLinks}");
 
             int index = 0;
 
@@ -103,6 +104,23 @@ namespace WindBoard.Features.Import.Services
                     ImportPlacementPlanner.PlaceElementAtViewportCenterGrid(element2, sizeDip: new Vector2(360.0f, 160.0f), index++, cameraWorld, zoom);
                     session.Execute(new AddElementCommand(element2, aboveInk: false));
                     created.Add(element2);
+                }
+            }
+
+            if (request.OtherFiles is { Count: > 0 } others)
+            {
+                for (int i = 0; i < others.Count; i++)
+                {
+                    StorageFile file = others[i];
+                    var element = new BoardFileElement
+                    {
+                        SourcePath = file.Path,
+                        DisplayName = file.Name,
+                    };
+
+                    ImportPlacementPlanner.PlaceElementAtViewportCenterGrid(element, sizeDip: new Vector2(360.0f, 160.0f), index++, cameraWorld, zoom);
+                    session.Execute(new AddElementCommand(element, aboveInk: false));
+                    created.Add(element);
                 }
             }
 

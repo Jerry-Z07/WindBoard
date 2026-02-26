@@ -10,6 +10,7 @@ namespace WindBoard.Features.Import.Models
         IReadOnlyList<StorageFile> ImageFiles,
         IReadOnlyList<StorageFile> MediaFiles,
         IReadOnlyList<StorageFile> TextFiles,
+        IReadOnlyList<StorageFile> OtherFiles,
         string? TextContent,
         string? LinkLines);
 
