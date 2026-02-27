@@ -33,6 +33,11 @@ namespace WindBoard
 
                 var flow = new ExportFlow(
                     _workspace,
+                    getViewportState: () =>
+                    {
+                        BoardCanvas.GetViewportState(out Vector2 cameraWorld, out float zoom);
+                        return (cameraWorld, zoom);
+                    },
                     getFallbackViewportSizeDip: () =>
                     {
                         // 使用当前画布控件的实际尺寸作为“空页面导出尺寸”的兜底。

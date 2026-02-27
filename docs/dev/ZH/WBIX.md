@@ -28,8 +28,10 @@ pages/
   page-001.json
   ...
 assets/
-  cover.png        （可选：封面图，v2 导出会尝试生成）
-  ...              （预留：后续可存放图片/视频/音频等）
+  cover.png              （可选：封面图，v2 导出会尝试生成）
+  elements/
+    <elementId>.png      （可选：页面图片元素内嵌资源）
+  ...                    （预留：后续可存放视频/音频等资源）
 ```
 
 说明：
@@ -50,6 +52,9 @@ assets/
 - `currentIndex`：当前页索引（0 基）。
 - `pages`：页面列表（包含页 `id`、`index`、`path`）。
 - `resources`：资源列表（预留扩展位，v1/v2 可为空；v2 导出会尝试添加封面图资源条目）。
+- `viewportCameraWorld`：可选。导出时记录视口相机世界坐标（仅记录，不强制导入后应用）。
+- `viewportZoom`：可选。导出时记录视口缩放（仅记录）。
+- `viewportSizeDip`：可选。导出时记录视口尺寸（DIP，便于后续恢复视图或预览计算）。
 
 `pages` 的每个条目对应 `WbixManifestPage`：
 
@@ -110,7 +115,7 @@ assets/
 
 - `id`：页面 ID（与 manifest 中 pages 条目一致）。
 - `strokes`：笔迹列表（v1/v2 主体数据）。
-- `elements`：页面元素列表（预留扩展位；v1/v2 导出为空数组）。
+- `elements`：页面元素列表（文本/链接/媒体/文件等；导入端应忽略未知 `type` 保持前向兼容）。
 
 ### 4.1 strokes（笔迹）结构（v1/v2）
 
@@ -128,23 +133,41 @@ assets/
 
 > 坐标说明：WBIX 记录的是“世界坐标（DIP 近似）”，不是屏幕像素坐标。导入后由视口与渲染逻辑决定实际显示。
 
-### 4.2 elements（页面元素）扩展位
+### 4.2 elements（页面元素）
 
 `elements` 的每个条目对应 `WbixPageElement`：
 
-- `type`：元素类型（例如 `image`、`video`、`stickyNote`、`shape` 等）。
-- `data`：半结构化数据（`JsonElement`），用于承载该类型元素的具体字段。
+- `type`：元素类型（当前实现：`text` / `link` / `media` / `file`）。
+- `data`：元素数据（半结构化 JSON），包含通用字段 + 类型字段。
 
-建议的扩展方向（供后续开发参考）：
+#### 4.2.1 通用字段（data）
 
-- `type=image`：`data` 可包含 `resourceId`（引用 `manifest.resources[].id`）、`transform`（位置/缩放/旋转）、`size`、`opacity` 等。
-- `type=video`：`data` 可包含 `resourceId`、`posterResourceId`（封面）、`startTime`、`duration` 等。
-- `type=shape`：`data` 可包含矢量参数、边框/填充颜色等。
+- `id`：元素 ID（Guid 字符串）。
+- `layer`：层级（`belowInk` / `aboveInk`）。
+- `positionWorld`：左上角世界坐标（`Vector2`：`x/y`）。
+- `sizeWorld`：尺寸（`Vector2`：`x/y`）。
+- `order`：同层内顺序（数值越小越靠后；导入端会按 `order` 排序并保持稳定）。
 
-兼容性建议：
+#### 4.2.2 text
 
-- 导入端应 **忽略未知 `type`** 的元素（或保留原始 JSON 以便后续再导出），避免旧版本无法打开新文件。
-- 写入端新增字段时应尽量保持可选（不破坏旧读者）。
+- `type=text`
+- `data.text`：文本内容。
+
+#### 4.2.3 link
+
+- `type=link`
+- `data.url`：链接 URL。
+- `data.title`：可选标题（可为空）。
+
+#### 4.2.4 media
+
+- `type=media`
+- `data.kind`：媒体类型（`image` / `video` / `audio`）。
+- `data.displayName`：展示名称（通常为文件名）。
+- `data.sourcePath`：可选源路径（外链资源使用；内嵌图片通常为 null，避免泄漏本地绝对路径）。
+- `data.resourceId`：可选资源引用（指向 `manifest.resources[].id`；用于内嵌图片等）。
+
+> 说明：当 `resourceId` 存在时，导入端应优先使用 `manifest.resources` 找到 `path` 并从 Zip 内提取资源。
 
 ### 4.3 示例（page-000.json）
 
@@ -162,7 +185,33 @@ assets/
       "enablePressure": true
     }
   ],
-  "elements": []
+  "elements": [
+    {
+      "type": "text",
+      "data": {
+        "id": "a0e59f75-7d1a-4f9e-9c60-6f3e15b0c7c1",
+        "layer": "belowInk",
+        "positionWorld": { "x": 10.0, "y": 20.0 },
+        "sizeWorld": { "x": 300.0, "y": 120.0 },
+        "order": 0,
+        "text": "Hello"
+      }
+    },
+    {
+      "type": "media",
+      "data": {
+        "id": "c2c1a1ce-50d8-4f67-9d4a-2e3a3c5f0b6c",
+        "layer": "aboveInk",
+        "positionWorld": { "x": 100.0, "y": 200.0 },
+        "sizeWorld": { "x": 320.0, "y": 180.0 },
+        "order": 0,
+        "kind": "image",
+        "displayName": "image.png",
+        "sourcePath": null,
+        "resourceId": "img-c2c1a1ce-50d8-4f67-9d4a-2e3a3c5f0b6c"
+      }
+    }
+  ]
 }
 ```
 

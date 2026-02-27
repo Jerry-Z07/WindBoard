@@ -114,7 +114,15 @@ namespace WindBoard.Features.Import
                         return await serializer.LoadAsync(stream);
                     });
 
-                    List<BoardPage> pages = BoardWorkspaceSnapshotApplier.CreatePages(snapshot);
+                    // 说明：
+                    // - WBIX 页面可能包含图片等元素；元素像素解码属于耗时操作，应放在后台线程完成；
+                    // - 解码失败不应阻断导入，渲染端会降级为占位卡片。
+                    List<BoardPage> pages = await Task.Run(async () =>
+                    {
+                        List<BoardPage> created = BoardWorkspaceSnapshotApplier.CreatePages(snapshot);
+                        await DecodeImportedImageElementsAsync(created);
+                        return created;
+                    });
 
                     if (mode == ImportWbixMode.ReplaceCurrentPage)
                     {
@@ -155,6 +163,58 @@ namespace WindBoard.Features.Import
             {
                 AppLog.Error("WBIX", $"导入失败：'{file.Path}'", ex);
                 await DialogHelpers.ShowMessageAsync(xamlRoot, L10n.Get("Import_Failed_Title"), L10n.Get("Import_Wbix_ParseFailed_Message"));
+            }
+        }
+
+        private static async Task DecodeImportedImageElementsAsync(List<BoardPage> pages)
+        {
+            if (pages is null || pages.Count == 0)
+            {
+                return;
+            }
+
+            for (int p = 0; p < pages.Count; p++)
+            {
+                BoardPage page = pages[p];
+                BoardSession session = page.Session;
+
+                await DecodeImportedImageElementsAsync(session.Document.ElementsBelowInk);
+                await DecodeImportedImageElementsAsync(session.Document.ElementsAboveInk);
+            }
+        }
+
+        private static async Task DecodeImportedImageElementsAsync(IReadOnlyList<BoardElement> elements)
+        {
+            if (elements is null || elements.Count == 0)
+            {
+                return;
+            }
+
+            for (int i = 0; i < elements.Count; i++)
+            {
+                if (elements[i] is not BoardMediaElement { Kind: BoardMediaKind.Image } img)
+                {
+                    continue;
+                }
+
+                string path = img.SourcePath ?? string.Empty;
+                if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))
+                {
+                    continue;
+                }
+
+                try
+                {
+                    StorageFile file = await StorageFile.GetFileFromPathAsync(path);
+                    (byte[] pixels, int w, int h)? decoded = await ImageImportDecoder.TryDecodeToBgra8PremulAsync(file, maxPixelEdge: 2048);
+                    img.PixelWidth = decoded?.w ?? 0;
+                    img.PixelHeight = decoded?.h ?? 0;
+                    img.Bgra8PremulPixels = decoded?.pixels;
+                }
+                catch (Exception ex)
+                {
+                    AppLog.Warn("WBIX", $"图片解码失败：'{path}'", ex);
+                }
             }
         }
 

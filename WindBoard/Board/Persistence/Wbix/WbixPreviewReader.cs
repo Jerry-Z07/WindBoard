@@ -26,6 +26,8 @@ namespace WindBoard.Board.Persistence.Wbix
             PropertyNameCaseInsensitive = true,
             AllowTrailingCommas = true,
             ReadCommentHandling = JsonCommentHandling.Skip,
+            // Vector2 等结构体使用字段序列化（WBIX 统一使用 IncludeFields）。
+            IncludeFields = true,
         };
 
         internal sealed record WbixPreview(
