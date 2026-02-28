@@ -62,32 +62,33 @@ namespace WindBoard.Features.Import
                 return;
             }
 
-            if (dialog.WbixRequest is ImportWbixRequest wbix)
-            {
-                AppLog.Info("Import", $"开始导入 WBIX：path='{wbix.File.Path}', mode={wbix.Mode}");
-                await ImportWbixAsync(xamlRoot, wbix.File, wbix.Mode);
-                return;
-            }
-
-            if (dialog.WbiRequest is ImportWbiRequest wbi)
-            {
-                AppLog.Info("Import", $"开始导入 WBI：path='{wbi.File.Path}', mode={wbi.Mode}");
-                await ImportWbiAsync(xamlRoot, wbi.File, wbi.Mode);
-                return;
-            }
-
-            if (dialog.ElementsRequest is not ImportElementsRequest request)
+            if (dialog.Submission is not ImportDialogSubmission submission)
             {
                 return;
             }
 
-            (Vector2 cameraWorld, float zoom) = _getViewportState();
-            IReadOnlyList<BoardElement> created = await BoardImportService.ImportElementsAsync(_workspace, cameraWorld, zoom, request);
-
-            if (created.Count > 0)
+            switch (submission)
             {
-                // 复刻旧版体验：导入后自动进入选择并选中新对象。
-                _selectElement?.Invoke(created[^1]);
+                case ImportDialogSubmission.Wbix wbix:
+                    AppLog.Info("Import", $"开始导入 WBIX：path='{wbix.Request.File.Path}', mode={wbix.Request.Mode}");
+                    await ImportWbixAsync(xamlRoot, wbix.Request.File, wbix.Request.Mode);
+                    return;
+
+                case ImportDialogSubmission.Wbi wbi:
+                    AppLog.Info("Import", $"开始导入 WBI：path='{wbi.Request.File.Path}', mode={wbi.Request.Mode}");
+                    await ImportWbiAsync(xamlRoot, wbi.Request.File, wbi.Request.Mode);
+                    return;
+
+                case ImportDialogSubmission.Elements elements:
+                    (Vector2 cameraWorld, float zoom) = _getViewportState();
+                    IReadOnlyList<BoardElement> created = await BoardImportService.ImportElementsAsync(_workspace, cameraWorld, zoom, elements.Request);
+
+                    if (created.Count > 0)
+                    {
+                        // 复刻旧版体验：导入后自动进入选择并选中新对象。
+                        _selectElement?.Invoke(created[^1]);
+                    }
+                    return;
             }
         }
 
