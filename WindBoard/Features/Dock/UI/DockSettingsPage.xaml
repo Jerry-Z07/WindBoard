@@ -4,6 +4,7 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:l10n="using:WindBoard.Localization"
+    xmlns:controls="using:CommunityToolkit.WinUI.Controls"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:local="using:WindBoard.Features.Dock.UI"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
@@ -231,19 +232,27 @@
                 <StackPanel Spacing="10">
                     <TextBlock Text="{l10n:Loc Key=Common_Options}" Style="{ThemeResource SubtitleTextBlockStyle}" />
 
-                    <ToggleSwitch
-                        x:Name="UndoRedoVisibleToggleSwitch"
-                        Header="{l10n:Loc Key=Settings_Dock_ShowUndoRedo_Header}"
-                        OffContent="{l10n:Loc Key=Common_Hide}"
-                        OnContent="{l10n:Loc Key=Common_Show}"
-                        Toggled="OnUndoRedoVisibleToggled" />
+                    <controls:SettingsCard Header="{l10n:Loc Key=Settings_Dock_ShowUndoRedo_Header}">
+                        <controls:SettingsCard.Content>
+                            <ToggleSwitch
+                                x:Name="UndoRedoVisibleToggleSwitch"
+                                Header="{x:Null}"
+                                OffContent="{l10n:Loc Key=Common_Hide}"
+                                OnContent="{l10n:Loc Key=Common_Show}"
+                                Toggled="OnUndoRedoVisibleToggled" />
+                        </controls:SettingsCard.Content>
+                    </controls:SettingsCard>
 
-                    <ToggleSwitch
-                        x:Name="ShortcutDocksVisibleToggleSwitch"
-                        Header="{l10n:Loc Key=Settings_Dock_ShowShortcutDocks_Header}"
-                        OffContent="{l10n:Loc Key=Common_Hide}"
-                        OnContent="{l10n:Loc Key=Common_Show}"
-                        Toggled="OnShortcutDocksVisibleToggled" />
+                    <controls:SettingsCard Header="{l10n:Loc Key=Settings_Dock_ShowShortcutDocks_Header}">
+                        <controls:SettingsCard.Content>
+                            <ToggleSwitch
+                                x:Name="ShortcutDocksVisibleToggleSwitch"
+                                Header="{x:Null}"
+                                OffContent="{l10n:Loc Key=Common_Hide}"
+                                OnContent="{l10n:Loc Key=Common_Show}"
+                                Toggled="OnShortcutDocksVisibleToggled" />
+                        </controls:SettingsCard.Content>
+                    </controls:SettingsCard>
 
                     <StackPanel
                         x:Name="ShortcutDockEditorPanel"
@@ -262,12 +271,7 @@
                             ScrollViewer.VerticalScrollBarVisibility="Disabled">
                             <ListView.ItemTemplate>
                                 <DataTemplate x:DataType="local:ShortcutDockItemEditorViewModel">
-                                    <Border
-                                        Background="{ThemeResource SystemControlBackgroundChromeMediumLowBrush}"
-                                        BorderBrush="{ThemeResource SystemControlForegroundBaseLowBrush}"
-                                        BorderThickness="1"
-                                        CornerRadius="12"
-                                        Padding="12">
+                                    <controls:SettingsCard ContentAlignment="Left" HorizontalContentAlignment="Stretch">
                                         <StackPanel Spacing="10">
                                             <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
                                                 <StackPanel Spacing="8">
@@ -395,22 +399,30 @@
                                                     PlaceholderText="{l10n:Loc Key=Settings_Dock_Arguments_Placeholder}" />
                                             </StackPanel>
                                         </StackPanel>
-                                    </Border>
+                                    </controls:SettingsCard>
                                 </DataTemplate>
                             </ListView.ItemTemplate>
                         </ListView>
 
-                        <Button
+                        <controls:SettingsCard
                             x:Name="AddShortcutDockItemButton"
-                            Content="{l10n:Loc Key=Settings_Dock_AddShortcutItem_Button}"
-                            HorizontalAlignment="Left"
-                            Click="OnAddShortcutDockItemClicked" />
+                            IsClickEnabled="True"
+                            Click="OnAddShortcutDockItemClicked"
+                            Header="{l10n:Loc Key=Settings_Dock_AddShortcutItem_Button}">
+                            <controls:SettingsCard.HeaderIcon>
+                                <SymbolIcon Symbol="Add" />
+                            </controls:SettingsCard.HeaderIcon>
+                        </controls:SettingsCard>
                     </StackPanel>
 
-                    <Button
-                        Content="{l10n:Loc Key=Settings_Dock_ResetLayout_Button}"
-                        HorizontalAlignment="Left"
-                        Click="OnResetToDefaultClicked" />
+                    <controls:SettingsCard
+                        IsClickEnabled="True"
+                        Click="OnResetToDefaultClicked"
+                        Header="{l10n:Loc Key=Settings_Dock_ResetLayout_Button}">
+                        <controls:SettingsCard.HeaderIcon>
+                            <SymbolIcon Symbol="Refresh" />
+                        </controls:SettingsCard.HeaderIcon>
+                    </controls:SettingsCard>
                 </StackPanel>
             </StackPanel>
         </ScrollViewer>

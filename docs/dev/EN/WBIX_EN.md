@@ -28,15 +28,17 @@ pages/
   page-001.json
   ...
 assets/
-  cover.png        (Optional: cover image, v2 export will attempt to generate)
-  ...              (Reserved: can store images/videos/audio, etc. in the future)
+  cover.png              (Optional: cover image, v2 export will attempt to generate)
+  elements/
+    <elementId>.png      (Optional: embedded image resources for page elements)
+  ...                    (Reserved: may store video/audio resources in the future)
 ```
 
 Explanation:
 
 - `manifest.json`: Manifest and index (version, page list, resource list, current page, etc.).
-- `pages/page-XXX.json`: Data for each page (v1/v2 only contains strokes, `elements` is reserved).
-- `assets/`: Directory for resource binary files (v2 primarily uses `cover.png`).
+- `pages/page-XXX.json`: Data for each page (strokes + elements; unknown element types should be ignored for forward compatibility).
+- `assets/`: Directory for resource binary files (v2 uses `cover.png` and embedded element images under `assets/elements/`).
 
 ## 3. manifest.json
 
@@ -50,6 +52,9 @@ Explanation:
 - `currentIndex`: Current page index (0-based).
 - `pages`: Page list (includes page `id`, `index`, `path`).
 - `resources`: Resource list (reserved extension point, can be empty for v1/v2; v2 export will attempt to add a cover image resource entry).
+- `viewportCameraWorld`: Optional. Records viewport camera world position on export (record-only; import does not force-apply).
+- `viewportZoom`: Optional. Records viewport zoom on export (record-only).
+- `viewportSizeDip`: Optional. Records viewport size in DIP (useful for future view restore / preview).
 
 Each entry in `pages` corresponds to `WbixManifestPage`:
 
@@ -110,7 +115,7 @@ Page files correspond to `WbixPagePayload`:
 
 - `id`: Page ID (consistent with the `pages` entry in the manifest).
 - `strokes`: Stroke list (main data for v1/v2).
-- `elements`: Page element list (reserved extension point; exported as an empty array for v1/v2).
+- `elements`: Page element list (text/link/media/file; import should ignore unknown `type` for forward compatibility).
 
 ### 4.1 strokes (Stroke) Structure (v1/v2)
 
@@ -128,23 +133,41 @@ Each entry in `points` corresponds to `StrokePointSnapshot`:
 
 > Coordinate note: WBIX records "world coordinates (DIP approximate)", not screen pixel coordinates. Actual display is determined by viewport and rendering logic after import.
 
-### 4.2 elements (Page Elements) Extension Point
+### 4.2 elements (Page elements)
 
-Each entry in `elements` corresponds to `WbixPageElement`:
+Each item in `elements` corresponds to `WbixPageElement`:
 
-- `type`: Element type (e.g., `image`, `video`, `stickyNote`, `shape`, etc.).
-- `data`: Semi-structured data (`JsonElement`) for carrying specific fields of that element type.
+- `type`: Element type (current implementation: `text` / `link` / `media` / `file`).
+- `data`: Element data (semi-structured JSON) containing common fields + type-specific fields.
 
-Suggested extension directions (for future development reference):
+#### 4.2.1 Common fields (data)
 
-- `type=image`: `data` can contain `resourceId` (referencing `manifest.resources[].id`), `transform` (position/scale/rotation), `size`, `opacity`, etc.
-- `type=video`: `data` can contain `resourceId`, `posterResourceId` (cover), `startTime`, `duration`, etc.
-- `type=shape`: `data` can contain vector parameters, border/fill colors, etc.
+- `id`: Element ID (Guid string).
+- `layer`: Layer (`belowInk` / `aboveInk`).
+- `positionWorld`: Top-left world position (`Vector2`: `x/y`).
+- `sizeWorld`: Size (`Vector2`: `x/y`).
+- `order`: Order within the same layer (import sorts by `order` and keeps it stable).
 
-Compatibility suggestions:
+#### 4.2.2 text
 
-- The import side should **ignore elements with unknown `type`** (or retain the original JSON for potential re-export later) to prevent old versions from failing to open new files.
-- Writers adding new fields should keep them optional whenever possible (to avoid breaking old readers).
+- `type=text`
+- `data.text`: Text content.
+
+#### 4.2.3 link
+
+- `type=link`
+- `data.url`: URL.
+- `data.title`: Optional title.
+
+#### 4.2.4 media
+
+- `type=media`
+- `data.kind`: `image` / `video` / `audio`
+- `data.displayName`: Display name (usually a file name)
+- `data.sourcePath`: Optional source path (used for external references; embedded images usually set this to null to avoid leaking local absolute paths)
+- `data.resourceId`: Optional resource reference (points to `manifest.resources[].id`; used for embedded images, etc.)
+
+> Note: When `resourceId` is present, import should resolve `manifest.resources` and extract the asset from the Zip entry path.
 
 ### 4.3 Example (page-000.json)
 
@@ -162,7 +185,33 @@ Compatibility suggestions:
       "enablePressure": true
     }
   ],
-  "elements": []
+  "elements": [
+    {
+      "type": "text",
+      "data": {
+        "id": "a0e59f75-7d1a-4f9e-9c60-6f3e15b0c7c1",
+        "layer": "belowInk",
+        "positionWorld": { "x": 10.0, "y": 20.0 },
+        "sizeWorld": { "x": 300.0, "y": 120.0 },
+        "order": 0,
+        "text": "Hello"
+      }
+    },
+    {
+      "type": "media",
+      "data": {
+        "id": "c2c1a1ce-50d8-4f67-9d4a-2e3a3c5f0b6c",
+        "layer": "aboveInk",
+        "positionWorld": { "x": 100.0, "y": 200.0 },
+        "sizeWorld": { "x": 320.0, "y": 180.0 },
+        "order": 0,
+        "kind": "image",
+        "displayName": "image.png",
+        "sourcePath": null,
+        "resourceId": "img-c2c1a1ce-50d8-4f67-9d4a-2e3a3c5f0b6c"
+      }
+    }
+  ]
 }
 ```
 

@@ -4,10 +4,12 @@ using System.IO;
 using System.Numerics;
 using System.Threading;
 using System.Threading.Tasks;
+using WindBoard.Board.Elements;
 using WindBoard.Board.Persistence;
 using WindBoard.Board.Persistence.Wbix;
 using WindBoard.Features.Export.Models;
 using WindBoard.Localization;
+using WindBoard.Logging;
 using Windows.UI;
 
 namespace WindBoard.Features.Export.Services
@@ -22,6 +24,9 @@ namespace WindBoard.Features.Export.Services
     internal sealed class BoardExportService : IBoardExportService
     {
         private readonly WbixWorkspaceSerializer _wbixSerializer = new();
+
+        private const long MaxEmbeddedImageBytes = 32L * 1024 * 1024;
+        private const long MaxTotalEmbeddedImageBytes = 256L * 1024 * 1024;
 
         public Task ExportWbixAsync(BoardWorkspaceSnapshot snapshot, string filePath, CancellationToken cancellationToken = default)
         {
@@ -39,16 +44,18 @@ namespace WindBoard.Features.Export.Services
             {
                 cancellationToken.ThrowIfCancellationRequested();
 
-                // 生成封面图（首页）：用于后续导入/文件列表中快速识别内容。
+                // 资源列表（封面 + 页面元素资源等）：用于后续导入/文件列表中快速识别内容与增强可移植性。
                 // 说明：
                 // - 封面图属于“可选资源”，即使生成失败也不应阻断 WBIX 导出；
-                // - 当前仅导出笔迹，后续可扩展导出图片/视频等资源，并落盘到 assets/ 与 manifest.Resources。
+                // - 图片资源属于“可选增强”：尽量内嵌到 assets/，提高跨机可用性。
                 List<WbixResourceFile> resources = new();
                 if (TryCreateWbixCoverResource(snapshot, cancellationToken, out WbixResourceFile? cover)
                     && cover is not null)
                 {
                     resources.Add(cover);
                 }
+
+                TryAddWbixEmbeddedImageResources(snapshot, resources, cancellationToken);
 
                 await using var stream = new FileStream(filePath, FileMode.Create, FileAccess.Write, FileShare.None);
                 await _wbixSerializer.SaveAsync(snapshot, stream, resources, cancellationToken).ConfigureAwait(false);
@@ -257,6 +264,139 @@ namespace WindBoard.Features.Export.Services
                 coverResource = null;
                 return false;
             }
+        }
+
+        private static void TryAddWbixEmbeddedImageResources(BoardWorkspaceSnapshot snapshot, List<WbixResourceFile> resources, CancellationToken cancellationToken)
+        {
+            if (snapshot is null || snapshot.Pages.Count == 0)
+            {
+                return;
+            }
+
+            long totalBytes = 0;
+
+            for (int pageIndex = 0; pageIndex < snapshot.Pages.Count; pageIndex++)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+
+                BoardPageSnapshot page = snapshot.Pages[pageIndex];
+
+                AppendImageResourcesFromElements(page.ElementsBelowInk, page.Id, pageIndex);
+                AppendImageResourcesFromElements(page.ElementsAboveInk, page.Id, pageIndex);
+            }
+
+            void AppendImageResourcesFromElements(IReadOnlyList<BoardElementSnapshot>? elements, Guid pageId, int pageIndex)
+            {
+                if (elements is null || elements.Count == 0)
+                {
+                    return;
+                }
+
+                for (int i = 0; i < elements.Count; i++)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+
+                    if (elements[i] is not BoardMediaElementSnapshot { Kind: BoardMediaKind.Image } img)
+                    {
+                        continue;
+                    }
+
+                    string sourcePath = img.SourcePath ?? string.Empty;
+                    if (string.IsNullOrWhiteSpace(sourcePath) || !File.Exists(sourcePath))
+                    {
+                        continue;
+                    }
+
+                    try
+                    {
+                        var info = new FileInfo(sourcePath);
+                        if (info.Length <= 0 || info.Length > MaxEmbeddedImageBytes)
+                        {
+                            AppLog.Warn("WBIX", $"跳过内嵌图片（大小超限）：path='{sourcePath}', bytes={info.Length}");
+                            continue;
+                        }
+
+                        if (totalBytes + info.Length > MaxTotalEmbeddedImageBytes)
+                        {
+                            AppLog.Warn("WBIX", $"跳过内嵌图片（总大小超限）：path='{sourcePath}', bytes={info.Length}, total={totalBytes}");
+                            continue;
+                        }
+
+                        string ext = NormalizeImageExtension(Path.GetExtension(sourcePath));
+                        if (string.IsNullOrWhiteSpace(ext))
+                        {
+                            continue;
+                        }
+
+                        string fileName = $"{img.Id:N}{ext}";
+                        string zipPath = $"assets/elements/{fileName}";
+                        string contentType = ResolveImageContentType(ext);
+
+                        byte[] bytes = File.ReadAllBytes(sourcePath);
+                        if (bytes.Length == 0)
+                        {
+                            continue;
+                        }
+
+                        totalBytes += bytes.Length;
+
+                        var meta = new Dictionary<string, string>
+                        {
+                            ["role"] = "elementImage",
+                            ["elementId"] = img.Id.ToString("D"),
+                            ["pageId"] = pageId.ToString("D"),
+                            ["pageIndex"] = pageIndex.ToString(),
+                        };
+
+                        resources.Add(new WbixResourceFile(
+                            Id: $"img-{img.Id:D}",
+                            Type: "image",
+                            Path: zipPath,
+                            ContentType: contentType,
+                            Meta: meta,
+                            Bytes: bytes));
+                    }
+                    catch (Exception ex)
+                    {
+                        AppLog.Warn("WBIX", $"内嵌图片失败：path='{sourcePath}'", ex);
+                    }
+                }
+            }
+        }
+
+        private static string NormalizeImageExtension(string? ext)
+        {
+            string e = (ext ?? string.Empty).Trim().ToLowerInvariant();
+            if (e.Length == 0)
+            {
+                return string.Empty;
+            }
+
+            // 仅允许常见图片后缀，避免把任意二进制伪装为“图片”写入。
+            return e switch
+            {
+                ".png" => ".png",
+                ".jpg" => ".jpg",
+                ".jpeg" => ".jpeg",
+                ".webp" => ".webp",
+                ".bmp" => ".bmp",
+                ".gif" => ".gif",
+                _ => string.Empty,
+            };
+        }
+
+        private static string ResolveImageContentType(string ext)
+        {
+            return ext switch
+            {
+                ".png" => "image/png",
+                ".jpg" => "image/jpeg",
+                ".jpeg" => "image/jpeg",
+                ".webp" => "image/webp",
+                ".bmp" => "image/bmp",
+                ".gif" => "image/gif",
+                _ => "application/octet-stream",
+            };
         }
     }
 }

@@ -445,7 +445,7 @@
                                                 <TranslateTransform x:Name="ClearCanvasSlideThumbTransform" />
                                             </Border.RenderTransform>
                                             <FontIcon
-                                                FontFamily="Segoe MDL2 Assets"
+                                                FontFamily="{ThemeResource SymbolThemeFontFamily}"
                                                 FontSize="16"
                                                 Foreground="#6B6B6B"
                                                 Glyph="&#xE74D;"
@@ -457,9 +457,9 @@
                             </Flyout>
                         </FlyoutBase.AttachedFlyout>
 
-                        <StackPanel Orientation="Vertical">
-                            <!-- Segoe MDL2 Assets：E75C = EraseTool（橡皮擦） -->
-                            <FontIcon FontFamily="Segoe MDL2 Assets" FontSize="20" Glyph="&#xE75C;" />
+                                        <StackPanel Orientation="Vertical">
+                            <!-- 图标字体：E75C = EraseTool（橡皮擦） -->
+                            <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" FontSize="20" Glyph="&#xE75C;" />
                             <TextBlock FontSize="11" Margin="0,3,0,0" HorizontalAlignment="Center" Text="{l10n:Loc Key=Tool_Eraser}" />
                         </StackPanel>
                     </ToggleButton>
@@ -601,7 +601,7 @@
                                                             Tag="{Binding}"
                                                             Click="OnDeletePageClicked">
                                                             <FontIcon
-                                                                FontFamily="Segoe MDL2 Assets"
+                                                                FontFamily="{ThemeResource SymbolThemeFontFamily}"
                                                                 FontSize="12"
                                                                 Glyph="&#xE74D;" />
                                                         </Button>

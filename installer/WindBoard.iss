@@ -97,6 +97,9 @@ chinesesimplified.AppShortcutName=轻风白板
 
 [Files]
 Source: "{#MySourceDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+; Win10（Build < 22000）不自带 Segoe Fluent Icons：安装时自动写入系统字体目录并注册字体。
+; 说明：卸载时不移除字体（uninsneveruninstall），避免影响系统或其它程序。
+Source: "{#MySourceDir}\Assets\Segoe Fluent Icons.ttf"; DestDir: "{autofonts}"; FontInstall: "Segoe Fluent Icons"; Flags: onlyifdoesntexist uninsneveruninstall; Check: NeedInstallSegoeFluentIconsFont
 
 [Icons]
 Name: "{autoprograms}\{cm:AppShortcutName}"; Filename: "{app}\{#MyAppExeName}"
@@ -119,3 +122,13 @@ Root: HKLM; Subkey: "Software\\WindBoard"; ValueType: string; ValueName: "Instal
 
 [Run]
 Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{cm:AppName}}"; Flags: nowait postinstall skipifsilent
+
+[Code]
+function NeedInstallSegoeFluentIconsFont(): Boolean;
+var
+  Ver: TWindowsVersion;
+begin
+  { Win11 首个公开 build：22000。Win10（Build < 22000）才需要安装字体。 }
+  GetWindowsVersionEx(Ver);
+  Result := (Ver.Major = 10) and (Ver.Minor = 0) and (Ver.Build < 22000);
+end;

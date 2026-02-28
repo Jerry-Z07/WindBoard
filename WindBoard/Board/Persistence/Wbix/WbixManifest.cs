@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Numerics;
 
 namespace WindBoard.Board.Persistence.Wbix
 {
@@ -16,7 +17,10 @@ namespace WindBoard.Board.Persistence.Wbix
         DateTimeOffset CreatedUtc,
         int CurrentIndex,
         IReadOnlyList<WbixManifestPage> Pages,
-        IReadOnlyList<WbixResourceEntry> Resources);
+        IReadOnlyList<WbixResourceEntry>? Resources,
+        Vector2? ViewportCameraWorld = null,
+        float? ViewportZoom = null,
+        Vector2? ViewportSizeDip = null);
 
     internal sealed record WbixManifestPage(Guid Id, int Index, string Path);
 

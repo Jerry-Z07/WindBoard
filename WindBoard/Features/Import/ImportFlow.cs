@@ -62,32 +62,33 @@ namespace WindBoard.Features.Import
                 return;
             }
 
-            if (dialog.WbixRequest is ImportWbixRequest wbix)
-            {
-                AppLog.Info("Import", $"开始导入 WBIX：path='{wbix.File.Path}', mode={wbix.Mode}");
-                await ImportWbixAsync(xamlRoot, wbix.File, wbix.Mode);
-                return;
-            }
-
-            if (dialog.WbiRequest is ImportWbiRequest wbi)
-            {
-                AppLog.Info("Import", $"开始导入 WBI：path='{wbi.File.Path}', mode={wbi.Mode}");
-                await ImportWbiAsync(xamlRoot, wbi.File, wbi.Mode);
-                return;
-            }
-
-            if (dialog.ElementsRequest is not ImportElementsRequest request)
+            if (dialog.Submission is not ImportDialogSubmission submission)
             {
                 return;
             }
 
-            (Vector2 cameraWorld, float zoom) = _getViewportState();
-            IReadOnlyList<BoardElement> created = await BoardImportService.ImportElementsAsync(_workspace, cameraWorld, zoom, request);
-
-            if (created.Count > 0)
+            switch (submission)
             {
-                // 复刻旧版体验：导入后自动进入选择并选中新对象。
-                _selectElement?.Invoke(created[^1]);
+                case ImportDialogSubmission.Wbix wbix:
+                    AppLog.Info("Import", $"开始导入 WBIX：path='{wbix.Request.File.Path}', mode={wbix.Request.Mode}");
+                    await ImportWbixAsync(xamlRoot, wbix.Request.File, wbix.Request.Mode);
+                    return;
+
+                case ImportDialogSubmission.Wbi wbi:
+                    AppLog.Info("Import", $"开始导入 WBI：path='{wbi.Request.File.Path}', mode={wbi.Request.Mode}");
+                    await ImportWbiAsync(xamlRoot, wbi.Request.File, wbi.Request.Mode);
+                    return;
+
+                case ImportDialogSubmission.Elements elements:
+                    (Vector2 cameraWorld, float zoom) = _getViewportState();
+                    IReadOnlyList<BoardElement> created = await BoardImportService.ImportElementsAsync(_workspace, cameraWorld, zoom, elements.Request);
+
+                    if (created.Count > 0)
+                    {
+                        // 复刻旧版体验：导入后自动进入选择并选中新对象。
+                        _selectElement?.Invoke(created[^1]);
+                    }
+                    return;
             }
         }
 
@@ -114,7 +115,15 @@ namespace WindBoard.Features.Import
                         return await serializer.LoadAsync(stream);
                     });
 
-                    List<BoardPage> pages = BoardWorkspaceSnapshotApplier.CreatePages(snapshot);
+                    // 说明：
+                    // - WBIX 页面可能包含图片等元素；元素像素解码属于耗时操作，应放在后台线程完成；
+                    // - 解码失败不应阻断导入，渲染端会降级为占位卡片。
+                    List<BoardPage> pages = await Task.Run(async () =>
+                    {
+                        List<BoardPage> created = BoardWorkspaceSnapshotApplier.CreatePages(snapshot);
+                        await DecodeImportedImageElementsAsync(created);
+                        return created;
+                    });
 
                     if (mode == ImportWbixMode.ReplaceCurrentPage)
                     {
@@ -155,6 +164,58 @@ namespace WindBoard.Features.Import
             {
                 AppLog.Error("WBIX", $"导入失败：'{file.Path}'", ex);
                 await DialogHelpers.ShowMessageAsync(xamlRoot, L10n.Get("Import_Failed_Title"), L10n.Get("Import_Wbix_ParseFailed_Message"));
+            }
+        }
+
+        private static async Task DecodeImportedImageElementsAsync(List<BoardPage> pages)
+        {
+            if (pages is null || pages.Count == 0)
+            {
+                return;
+            }
+
+            for (int p = 0; p < pages.Count; p++)
+            {
+                BoardPage page = pages[p];
+                BoardSession session = page.Session;
+
+                await DecodeImportedImageElementsAsync(session.Document.ElementsBelowInk);
+                await DecodeImportedImageElementsAsync(session.Document.ElementsAboveInk);
+            }
+        }
+
+        private static async Task DecodeImportedImageElementsAsync(IReadOnlyList<BoardElement> elements)
+        {
+            if (elements is null || elements.Count == 0)
+            {
+                return;
+            }
+
+            for (int i = 0; i < elements.Count; i++)
+            {
+                if (elements[i] is not BoardMediaElement { Kind: BoardMediaKind.Image } img)
+                {
+                    continue;
+                }
+
+                string path = img.SourcePath ?? string.Empty;
+                if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))
+                {
+                    continue;
+                }
+
+                try
+                {
+                    StorageFile file = await StorageFile.GetFileFromPathAsync(path);
+                    (byte[] pixels, int w, int h)? decoded = await ImageImportDecoder.TryDecodeToBgra8PremulAsync(file, maxPixelEdge: 2048);
+                    img.PixelWidth = decoded?.w ?? 0;
+                    img.PixelHeight = decoded?.h ?? 0;
+                    img.Bgra8PremulPixels = decoded?.pixels;
+                }
+                catch (Exception ex)
+                {
+                    AppLog.Warn("WBIX", $"图片解码失败：'{path}'", ex);
+                }
             }
         }
 

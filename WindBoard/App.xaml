@@ -11,26 +11,6 @@
                 <!-- Other merged dictionaries here -->
             </ResourceDictionary.MergedDictionaries>
 
-            <!-- 设置页通用样式（全局资源，供各个设置页面复用） -->
-            <ResourceDictionary.ThemeDictionaries>
-                <!--
-                    卡片悬停/按下覆盖层颜色：不依赖系统内部资源名，避免不同 WinUI 版本缺少 Key 导致崩溃。
-                    这里用“半透明叠加”实现状态变化，效果接近 Windows 设置页。
-                -->
-                <ResourceDictionary x:Key="Dark">
-                    <SolidColorBrush x:Key="SettingsCardPointerOverOverlayBrush" Color="#14FFFFFF" />
-                    <SolidColorBrush x:Key="SettingsCardPressedOverlayBrush" Color="#22FFFFFF" />
-                </ResourceDictionary>
-                <ResourceDictionary x:Key="Light">
-                    <SolidColorBrush x:Key="SettingsCardPointerOverOverlayBrush" Color="#0F000000" />
-                    <SolidColorBrush x:Key="SettingsCardPressedOverlayBrush" Color="#1A000000" />
-                </ResourceDictionary>
-                <ResourceDictionary x:Key="HighContrast">
-                    <SolidColorBrush x:Key="SettingsCardPointerOverOverlayBrush" Color="#00000000" />
-                    <SolidColorBrush x:Key="SettingsCardPressedOverlayBrush" Color="#00000000" />
-                </ResourceDictionary>
-            </ResourceDictionary.ThemeDictionaries>
-
             <!-- 画布背景色：供页面缩略图等 XAML 元素复用（运行时会同步为当前设置值）。 -->
             <SolidColorBrush x:Key="CanvasBackgroundBrush" Color="#2E2F33" />
 
@@ -57,80 +37,13 @@
                 <Setter Property="VerticalContentAlignment" Value="Center" />
             </Style>
 
-            <Style
-                x:Key="SettingsCardButtonStyle"
-                TargetType="Button"
-                BasedOn="{StaticResource DefaultButtonStyle}">
-                <Setter Property="Background" Value="{ThemeResource SystemControlBackgroundChromeMediumLowBrush}" />
-                <Setter Property="BorderBrush" Value="{ThemeResource SystemControlForegroundBaseLowBrush}" />
-                <Setter Property="BorderThickness" Value="1" />
-                <Setter Property="CornerRadius" Value="12" />
-                <Setter Property="Padding" Value="16,14" />
-                <Setter Property="HorizontalContentAlignment" Value="Stretch" />
-                <Setter Property="VerticalContentAlignment" Value="Center" />
-                <Setter Property="UseSystemFocusVisuals" Value="True" />
-                <Setter Property="Template">
-                    <Setter.Value>
-                        <!--
-                            自定义卡片按钮模板：避免 DefaultButtonStyle 的 Reveal/过渡导致悬停时闪烁。
-                            用叠加层实现 Hover/Pressed 背景色，保证状态切换稳定。
-                        -->
-                        <ControlTemplate TargetType="Button">
-                            <Grid x:Name="RootGrid">
-                                <VisualStateManager.VisualStateGroups>
-                                    <VisualStateGroup x:Name="CommonStates">
-                                        <VisualState x:Name="Normal">
-                                            <VisualState.Setters>
-                                                <Setter Target="StateOverlay.Background" Value="{ThemeResource SettingsCardPointerOverOverlayBrush}" />
-                                                <Setter Target="StateOverlay.Opacity" Value="0" />
-                                            </VisualState.Setters>
-                                        </VisualState>
-                                        <VisualState x:Name="PointerOver">
-                                            <VisualState.Setters>
-                                                <Setter Target="StateOverlay.Opacity" Value="1" />
-                                            </VisualState.Setters>
-                                        </VisualState>
-                                        <VisualState x:Name="Pressed">
-                                            <VisualState.Setters>
-                                                <Setter Target="StateOverlay.Background" Value="{ThemeResource SettingsCardPressedOverlayBrush}" />
-                                                <Setter Target="StateOverlay.Opacity" Value="1" />
-                                            </VisualState.Setters>
-                                        </VisualState>
-                                        <VisualState x:Name="Disabled">
-                                            <VisualState.Setters>
-                                                <Setter Target="BaseBorder.Opacity" Value="0.45" />
-                                            </VisualState.Setters>
-                                        </VisualState>
-                                    </VisualStateGroup>
-                                </VisualStateManager.VisualStateGroups>
-
-                                <Border
-                                    x:Name="BaseBorder"
-                                    Background="{TemplateBinding Background}"
-                                    BorderBrush="{TemplateBinding BorderBrush}"
-                                    BorderThickness="{TemplateBinding BorderThickness}"
-                                    CornerRadius="{TemplateBinding CornerRadius}">
-                                    <Grid>
-                                        <Border
-                                            x:Name="StateOverlay"
-                                            IsHitTestVisible="False"
-                                            Background="{ThemeResource SettingsCardPointerOverOverlayBrush}"
-                                            CornerRadius="{TemplateBinding CornerRadius}"
-                                            Opacity="0" />
-                                        <ContentPresenter
-                                            Padding="{TemplateBinding Padding}"
-                                            HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
-                                            VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}"
-                                            Content="{TemplateBinding Content}"
-                                            ContentTemplate="{TemplateBinding ContentTemplate}"
-                                            ContentTransitions="{TemplateBinding ContentTransitions}" />
-                                    </Grid>
-                                </Border>
-                            </Grid>
-                        </ControlTemplate>
-                    </Setter.Value>
-                </Setter>
-            </Style>
+            <!--
+              图标字体：
+              - Win11（Build >= 22000）系统自带 Segoe Fluent Icons；
+              - Win10 安装版由安装器安装字体；便携版在启动时私有加载内置 ttf；
+              - 若最终不可用，会在启动时降级为 Segoe MDL2 Assets，避免图标变成方块。
+            -->
+            <FontFamily x:Key="SymbolThemeFontFamily">Segoe Fluent Icons</FontFamily>
         </ResourceDictionary>
     </Application.Resources>
 </Application>

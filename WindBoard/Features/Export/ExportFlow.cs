@@ -22,6 +22,7 @@ namespace WindBoard.Features.Export
     internal sealed class ExportFlow
     {
         private readonly BoardWorkspace _workspace;
+        private readonly Func<(Vector2 cameraWorld, float zoom)> _getViewportState;
         private readonly Func<Vector2> _getFallbackViewportSizeDip;
         private readonly Func<Windows.UI.Color> _getCanvasBackgroundColor;
 
@@ -29,10 +30,12 @@ namespace WindBoard.Features.Export
 
         public ExportFlow(
             BoardWorkspace workspace,
+            Func<(Vector2 cameraWorld, float zoom)> getViewportState,
             Func<Vector2> getFallbackViewportSizeDip,
             Func<Windows.UI.Color> getCanvasBackgroundColor)
         {
             _workspace = workspace ?? throw new ArgumentNullException(nameof(workspace));
+            _getViewportState = getViewportState ?? throw new ArgumentNullException(nameof(getViewportState));
             _getFallbackViewportSizeDip = getFallbackViewportSizeDip ?? throw new ArgumentNullException(nameof(getFallbackViewportSizeDip));
             _getCanvasBackgroundColor = getCanvasBackgroundColor ?? throw new ArgumentNullException(nameof(getCanvasBackgroundColor));
         }
@@ -62,9 +65,14 @@ namespace WindBoard.Features.Export
                 AppLog.Info("Export", $"开始导出：format={selection.Format}, scope={selection.PageScope}, range='{selection.PageRangeText}', dpi={selection.Dpi}, paddingDip={selection.PaddingDip}");
 
                 // 导出建议基于快照进行：避免导出耗时期间用户继续编辑导致数据竞争或导出内容不一致。
-                BoardWorkspaceSnapshot snapshot = BoardWorkspaceSnapshotConverter.CreateSnapshot(_workspace);
-
                 Vector2 fallbackViewportSizeDip = _getFallbackViewportSizeDip();
+                (Vector2 cameraWorld, float zoom) = _getViewportState();
+
+                BoardWorkspaceSnapshot snapshot = BoardWorkspaceSnapshotConverter.CreateSnapshot(
+                    _workspace,
+                    viewportCameraWorld: cameraWorld,
+                    viewportZoom: zoom,
+                    viewportSizeDip: fallbackViewportSizeDip);
 
                 var rasterOptions = new BoardRasterExportOptions(
                     Dpi: selection.Dpi,

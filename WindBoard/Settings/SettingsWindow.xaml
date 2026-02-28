@@ -30,7 +30,7 @@
             <NavigationViewItem Content="{l10n:Loc Key=SettingsWindow_Nav_Appearance}" Tag="appearance">
                 <NavigationViewItem.Icon>
                     <!-- 外观：用“调色板/颜色”语义图标，避免与其它项重复 -->
-                    <FontIcon FontFamily="Segoe MDL2 Assets" Glyph="&#xE790;" />
+                    <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" Glyph="&#xE790;" />
                 </NavigationViewItem.Icon>
             </NavigationViewItem>
             <NavigationViewItem Content="{l10n:Loc Key=SettingsWindow_Nav_Writing}" Tag="writing">
@@ -40,8 +40,8 @@
             </NavigationViewItem>
             <NavigationViewItem Content="{l10n:Loc Key=SettingsWindow_Nav_Shortcuts}" Tag="shortcuts">
                 <NavigationViewItem.Icon>
-                    <!-- 快捷键：键盘语义图标（MDL2 兼容，避免依赖 Symbol 枚举版本差异） -->
-                    <FontIcon FontFamily="Segoe MDL2 Assets" Glyph="&#xE765;" />
+                    <!-- 快捷键：键盘语义图标 -->
+                    <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" Glyph="&#xE765;" />
                 </NavigationViewItem.Icon>
             </NavigationViewItem>
         </NavigationView.MenuItems>
@@ -49,14 +49,14 @@
         <NavigationView.FooterMenuItems>
             <NavigationViewItem x:Name="DebugNavItem" Content="{l10n:Loc Key=SettingsWindow_Nav_Debug}" Tag="debug" Visibility="Collapsed">
                 <NavigationViewItem.Icon>
-                    <!-- 调试：工具语义图标（MDL2 兼容） -->
-                    <FontIcon FontFamily="Segoe MDL2 Assets" Glyph="&#xE9D9;" />
+                    <!-- 调试：工具语义图标 -->
+                    <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" Glyph="&#xE9D9;" />
                 </NavigationViewItem.Icon>
             </NavigationViewItem>
             <NavigationViewItem Content="{l10n:Loc Key=SettingsWindow_Nav_About}" Tag="about">
                 <NavigationViewItem.Icon>
-                    <!-- 关于：信息语义图标（MDL2 兼容） -->
-                    <FontIcon FontFamily="Segoe MDL2 Assets" Glyph="&#xE946;" />
+                    <!-- 关于：信息语义图标 -->
+                    <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" Glyph="&#xE946;" />
                 </NavigationViewItem.Icon>
             </NavigationViewItem>
         </NavigationView.FooterMenuItems>

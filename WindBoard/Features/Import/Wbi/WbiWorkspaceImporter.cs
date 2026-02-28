@@ -60,6 +60,44 @@ namespace WindBoard.Features.Import.Wbi
             ReadCommentHandling = JsonCommentHandling.Skip,
         };
 
+        /// <summary>
+        /// WBI 导入上下文：把 Zip/Manifest/取消令牌/缺失资源与临时解压目录收敛到一个对象中，
+        /// 用于降低方法参数数量，并让导入链路的职责更清晰。
+        /// </summary>
+        private sealed class WbiImportContext
+        {
+            internal WbiImportContext(ZipArchive archive, WbiManifest manifest, List<string> missingResources, CancellationToken cancellationToken)
+            {
+                Archive = archive ?? throw new ArgumentNullException(nameof(archive));
+                Manifest = manifest ?? throw new ArgumentNullException(nameof(manifest));
+                MissingResources = missingResources ?? throw new ArgumentNullException(nameof(missingResources));
+                CancellationToken = cancellationToken;
+            }
+
+            internal ZipArchive Archive { get; }
+
+            internal WbiManifest Manifest { get; }
+
+            internal List<string> MissingResources { get; }
+
+            internal CancellationToken CancellationToken { get; }
+
+            private string? _extractFolder;
+
+            internal string GetOrCreateExtractFolder()
+            {
+                if (!string.IsNullOrWhiteSpace(_extractFolder))
+                {
+                    return _extractFolder!;
+                }
+
+                string folder = Path.Combine(Path.GetTempPath(), "WindBoard_Import_WBI_" + Guid.NewGuid().ToString("N")[..8]);
+                Directory.CreateDirectory(folder);
+                _extractFolder = folder;
+                return folder;
+            }
+        }
+
         public async Task<WbiWorkspaceImportResult> ImportAsync(string filePath, CancellationToken cancellationToken = default)
         {
             var result = new WbiWorkspaceImportResult();
@@ -69,8 +107,6 @@ namespace WindBoard.Features.Import.Wbi
                 result.ErrorMessage = L10n.Get("Import_Wbix_ParseFailed_Message");
                 return result;
             }
-
-            string? extractFolder = null;
 
             try
             {
@@ -101,13 +137,15 @@ namespace WindBoard.Features.Import.Wbi
 
                 result.Manifest = manifest;
 
+                var context = new WbiImportContext(archive, manifest, result.MissingResources, cancellationToken);
+
                 // 逐页导入：缺页允许跳过（与旧版行为一致），但解析失败会终止导入。
                 for (int i = 0; i < manifest.Pages.Count; i++)
                 {
                     cancellationToken.ThrowIfCancellationRequested();
 
                     WbiPageRef pageRef = manifest.Pages[i];
-                    BoardPage? page = await ImportPageAsync(archive, manifest, pageRef, () => EnsureExtractFolder(ref extractFolder), result.MissingResources, cancellationToken);
+                    BoardPage? page = await ImportPageAsync(context, pageRef);
                     if (page is not null)
                     {
                         result.Pages.Add(page);
@@ -121,19 +159,18 @@ namespace WindBoard.Features.Import.Wbi
                 }
 
                 result.Success = true;
-                return result;
             }
             catch (OperationCanceledException)
             {
                 result.ErrorMessage = L10n.Get("Common_Cancel");
-                return result;
             }
             catch (Exception ex)
             {
                 AppLog.Error("WBI", $"导入失败：'{filePath}'", ex);
                 result.ErrorMessage = L10n.Get("Import_Wbix_ParseFailed_Message");
-                return result;
             }
+
+            return result;
         }
 
         private static bool IsVersionCompatible(string? minVersion)
@@ -151,129 +188,112 @@ namespace WindBoard.Features.Import.Wbi
             return required <= MaxSupportedVersion;
         }
 
-        private static Task<BoardPage?> ImportPageAsync(ZipArchive archive,
-            WbiManifest manifest,
-            WbiPageRef pageRef,
-            Func<string> getOrCreateExtractFolder,
-            List<string> missingResources,
-            CancellationToken cancellationToken)
+        private static async Task<BoardPage?> ImportPageAsync(WbiImportContext context, WbiPageRef pageRef)
         {
-            // 这个方法包含异步调用（ISF 解析/图片解码），因此主体放在局部函数里以便使用 async。
-            return ImportPageAsyncCore();
+            CancellationToken cancellationToken = context.CancellationToken;
+            cancellationToken.ThrowIfCancellationRequested();
 
-            async Task<BoardPage?> ImportPageAsyncCore()
+            string pageId = (pageRef.Id ?? string.Empty).Trim();
+            if (string.IsNullOrWhiteSpace(pageId))
             {
-                string pageId = (pageRef.Id ?? string.Empty).Trim();
-                if (string.IsNullOrWhiteSpace(pageId))
-                {
-                    AppLog.Warn("WBI", "页面引用缺少 id，已跳过。");
-                    return null;
-                }
+                AppLog.Warn("WBI", "页面引用缺少 id，已跳过。");
+                return null;
+            }
 
-                string pageJsonPath = $"{PagesFolder}/{pageId}.json";
-                ZipArchiveEntry? pageEntry = archive.GetEntry(pageJsonPath);
-                if (pageEntry is null)
-                {
-                    AppLog.Warn("WBI", $"缺少页面文件：'{pageJsonPath}'");
-                    return null;
-                }
+            string pageJsonPath = $"{PagesFolder}/{pageId}.json";
+            ZipArchiveEntry? pageEntry = context.Archive.GetEntry(pageJsonPath);
+            if (pageEntry is null)
+            {
+                AppLog.Warn("WBI", $"缺少页面文件：'{pageJsonPath}'");
+                return null;
+            }
 
-                WbiPageData pageData;
-                await using (Stream s = pageEntry.Open())
-                {
-                    pageData = await JsonSerializer.DeserializeAsync<WbiPageData>(s, JsonOptions, cancellationToken)
-                        ?? throw new InvalidDataException($"WBI 页面解析失败：'{pageJsonPath}'");
-                }
+            WbiPageData pageData;
+            await using (Stream s = pageEntry.Open())
+            {
+                pageData = await JsonSerializer.DeserializeAsync<WbiPageData>(s, JsonOptions, cancellationToken)
+                    ?? throw new InvalidDataException($"WBI 页面解析失败：'{pageJsonPath}'");
+            }
 
-                // 新版本页面只保留 strokes + elements，不承载 canvas/viewport 元数据；
-                // 这里按你的选择忽略 zoom/pan，避免因坐标系差异导致视图跳转异常。
-                var page = new BoardPage();
-                BoardSession session = page.Session;
+            // 新版本页面只保留 strokes + elements，不承载 canvas/viewport 元数据；
+            // 忽略 zoom/pan，避免因坐标系差异导致视图跳转异常。
+            var page = new BoardPage();
+            BoardSession session = page.Session;
 
-                // 导入笔迹（ISF）
-                if (!string.IsNullOrWhiteSpace(pageData.StrokesFile))
-                {
-                    string isfPath = $"{PagesFolder}/{pageData.StrokesFile}";
-                    ZipArchiveEntry? isfEntry = archive.GetEntry(isfPath);
-                    if (isfEntry is not null)
-                    {
-                        IReadOnlyList<Stroke> strokes = await TryLoadIsfStrokesAsync(isfEntry, cancellationToken);
-                        for (int i = 0; i < strokes.Count; i++)
-                        {
-                            session.Document.Strokes.Add(strokes[i]);
-                        }
-                    }
-                    else
-                    {
-                        AppLog.Warn("WBI", $"缺少笔迹文件：'{isfPath}'");
-                    }
-                }
+            await ImportStrokesAsync(context, session, pageData);
+            await ImportAttachmentsAsync(context, session, pageData.Attachments);
 
-                // 导入附件 -> 元素
-                if (pageData.Attachments is { Count: > 0 })
-                {
-                    var imported = new List<(BoardElement element, bool aboveInk, int zIndex, int order)>(pageData.Attachments.Count);
+            return page;
+        }
 
-                    for (int i = 0; i < pageData.Attachments.Count; i++)
-                    {
-                        cancellationToken.ThrowIfCancellationRequested();
+        private static async Task ImportStrokesAsync(WbiImportContext context, BoardSession session, WbiPageData pageData)
+        {
+            if (string.IsNullOrWhiteSpace(pageData.StrokesFile))
+            {
+                return;
+            }
 
-                        WbiAttachmentData att = pageData.Attachments[i];
-                        BoardElement? element = await TryCreateElementFromAttachmentAsync(archive, manifest, att, getOrCreateExtractFolder, missingResources, cancellationToken);
-                        if (element is null)
-                        {
-                            continue;
-                        }
+            string isfPath = $"{PagesFolder}/{pageData.StrokesFile}";
+            ZipArchiveEntry? isfEntry = context.Archive.GetEntry(isfPath);
+            if (isfEntry is null)
+            {
+                AppLog.Warn("WBI", $"缺少笔迹文件：'{isfPath}'");
+                return;
+            }
 
-                        // 位置/尺寸：WBI 记录的是世界坐标（DIP 近似），与新版本世界坐标直接对齐。
-                        element.PositionWorld = new Vector2(ToFiniteFloat(att.X, fallback: 0), ToFiniteFloat(att.Y, fallback: 0));
-                        element.SizeWorld = new Vector2(
-                            Math.Max(1.0f, ToFiniteFloat(att.Width, fallback: 320)),
-                            Math.Max(1.0f, ToFiniteFloat(att.Height, fallback: 180)));
-
-                        imported.Add((element, aboveInk: att.IsPinnedTop, zIndex: att.ZIndex, order: i));
-                    }
-
-                    // 按 ZIndex 排序（同值保持原始顺序），保证绘制与命中测试的层级稳定。
-                    foreach ((BoardElement element, bool aboveInk, _, _) in imported
-                        .OrderBy(x => x.zIndex)
-                        .ThenBy(x => x.order))
-                    {
-                        if (aboveInk)
-                        {
-                            session.Document.ElementsAboveInk.Add(element);
-                        }
-                        else
-                        {
-                            session.Document.ElementsBelowInk.Add(element);
-                        }
-                    }
-                }
-
-                return page;
+            IReadOnlyList<Stroke> strokes = await TryLoadIsfStrokesAsync(isfEntry, context.CancellationToken);
+            for (int i = 0; i < strokes.Count; i++)
+            {
+                session.Document.Strokes.Add(strokes[i]);
             }
         }
 
-        private static string EnsureExtractFolder(ref string? extractFolder)
+        private static async Task ImportAttachmentsAsync(WbiImportContext context, BoardSession session, IReadOnlyList<WbiAttachmentData>? attachments)
         {
-            if (!string.IsNullOrWhiteSpace(extractFolder))
+            if (attachments is not { Count: > 0 })
             {
-                return extractFolder!;
+                return;
             }
 
-            string folder = Path.Combine(Path.GetTempPath(), "WindBoard_Import_WBI_" + Guid.NewGuid().ToString("N")[..8]);
-            Directory.CreateDirectory(folder);
-            extractFolder = folder;
-            return folder;
+            var imported = new List<(BoardElement element, bool aboveInk, int zIndex, int order)>(attachments.Count);
+
+            for (int i = 0; i < attachments.Count; i++)
+            {
+                context.CancellationToken.ThrowIfCancellationRequested();
+
+                WbiAttachmentData att = attachments[i];
+                BoardElement? element = await TryCreateElementFromAttachmentAsync(context, att);
+                if (element is null)
+                {
+                    continue;
+                }
+
+                // 位置/尺寸：WBI 记录的是世界坐标（DIP 近似），与新版本世界坐标直接对齐。
+                element.PositionWorld = new Vector2(ToFiniteFloat(att.X, fallback: 0), ToFiniteFloat(att.Y, fallback: 0));
+                element.SizeWorld = new Vector2(
+                    Math.Max(1.0f, ToFiniteFloat(att.Width, fallback: 320)),
+                    Math.Max(1.0f, ToFiniteFloat(att.Height, fallback: 180)));
+
+                imported.Add((element, aboveInk: att.IsPinnedTop, zIndex: att.ZIndex, order: i));
+            }
+
+            // 按 ZIndex 排序（同值保持原始顺序），保证绘制与命中测试的层级稳定。
+            foreach ((BoardElement element, bool aboveInk, _, _) in imported
+                .OrderBy(x => x.zIndex)
+                .ThenBy(x => x.order))
+            {
+                if (aboveInk)
+                {
+                    session.Document.ElementsAboveInk.Add(element);
+                }
+                else
+                {
+                    session.Document.ElementsBelowInk.Add(element);
+                }
+            }
         }
 
-        private static async Task<BoardElement?> TryCreateElementFromAttachmentAsync(
-            ZipArchive archive,
-            WbiManifest manifest,
-            WbiAttachmentData att,
-            Func<string> getOrCreateExtractFolder,
-            List<string> missingResources,
-            CancellationToken cancellationToken)
+        private static async Task<BoardElement?> TryCreateElementFromAttachmentAsync(WbiImportContext context, WbiAttachmentData att)
         {
             string type = (att.Type ?? string.Empty).Trim();
             if (type.Length == 0)
@@ -281,34 +301,44 @@ namespace WindBoard.Features.Import.Wbi
                 return null;
             }
 
+            BoardElement? element = null;
+
             // 旧格式仅有 Image/Video/Text/Link，但这里做防御性兜底。
             switch (type.ToUpperInvariant())
             {
                 case "IMAGE":
-                    return await CreateImageElementAsync(archive, manifest, att, getOrCreateExtractFolder, missingResources, cancellationToken);
+                    element = await CreateImageElementAsync(context, att);
+                    break;
 
                 case "VIDEO":
-                    return CreateVideoElement(att, missingResources);
+                    element = CreateVideoElement(att, context.MissingResources);
+                    break;
 
                 case "TEXT":
-                    return new BoardTextElement { Text = att.Text ?? string.Empty };
+                    element = new BoardTextElement { Text = att.Text ?? string.Empty };
+                    break;
 
                 case "LINK":
-                    return new BoardLinkElement { Url = att.Url ?? string.Empty };
+                    element = new BoardLinkElement { Url = att.Url ?? string.Empty };
+                    break;
 
                 default:
                     if (!string.IsNullOrWhiteSpace(att.FilePath))
                     {
-                        return new BoardFileElement
+                        element = new BoardFileElement
                         {
                             SourcePath = att.FilePath!,
                             DisplayName = Path.GetFileName(att.FilePath),
                         };
                     }
-
-                    AppLog.Warn("WBI", $"未知附件类型：type='{att.Type}'");
-                    return null;
+                    else
+                    {
+                        AppLog.Warn("WBI", $"未知附件类型：type='{att.Type}'");
+                    }
+                    break;
             }
+
+            return element;
         }
 
         private static BoardElement CreateVideoElement(WbiAttachmentData att, List<string> missingResources)
@@ -327,14 +357,11 @@ namespace WindBoard.Features.Import.Wbi
             };
         }
 
-        private static async Task<BoardElement> CreateImageElementAsync(
-            ZipArchive archive,
-            WbiManifest manifest,
-            WbiAttachmentData att,
-            Func<string> getOrCreateExtractFolder,
-            List<string> missingResources,
-            CancellationToken cancellationToken)
+        private static async Task<BoardElement> CreateImageElementAsync(WbiImportContext context, WbiAttachmentData att)
         {
+            WbiManifest manifest = context.Manifest;
+            CancellationToken cancellationToken = context.CancellationToken;
+
             string? sourcePath = null;
             string displayName = "图片";
 
@@ -342,10 +369,10 @@ namespace WindBoard.Features.Import.Wbi
             {
                 string assetName = Path.GetFileName(att.AssetFile);
                 string assetEntryPath = $"{AssetsFolder}/{assetName}";
-                ZipArchiveEntry? assetEntry = archive.GetEntry(assetEntryPath);
+                ZipArchiveEntry? assetEntry = context.Archive.GetEntry(assetEntryPath);
                 if (assetEntry is not null)
                 {
-                    string extractFolder = getOrCreateExtractFolder();
+                    string extractFolder = context.GetOrCreateExtractFolder();
                     string extractPath = Path.Combine(extractFolder, assetName);
 
                     try
@@ -363,7 +390,7 @@ namespace WindBoard.Features.Import.Wbi
                 }
                 else
                 {
-                    missingResources.Add($"缺少内嵌图片资源：{assetEntryPath}");
+                    context.MissingResources.Add($"缺少内嵌图片资源：{assetEntryPath}");
                 }
             }
             else if (!string.IsNullOrWhiteSpace(att.FilePath))
@@ -373,7 +400,7 @@ namespace WindBoard.Features.Import.Wbi
 
                 if (!File.Exists(att.FilePath))
                 {
-                    missingResources.Add($"图片文件不存在：{att.FilePath}");
+                    context.MissingResources.Add($"图片文件不存在：{att.FilePath}");
                 }
             }
 

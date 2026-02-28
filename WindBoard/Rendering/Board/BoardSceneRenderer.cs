@@ -13,7 +13,9 @@ using Vortice.Mathematics;
 using WindBoard.Board;
 using WindBoard.Board.Elements;
 using WindBoard.Board.Viewport;
+using WindBoard.Fonts;
 using WindBoard.Localization;
+using WindBoard.Logging;
 using WindBoard.Settings;
 
 namespace WindBoard.Rendering.Board
@@ -781,15 +783,36 @@ namespace WindBoard.Rendering.Board
             _elementBodyTextFormat.TextAlignment = TextAlignment.Leading;
             _elementBodyTextFormat.ParagraphAlignment = ParagraphAlignment.Near;
 
-            _elementIconTextFormat = _dwriteFactory.CreateTextFormat(
-                // 使用图标字体绘制类型徽标，避免用“链/音/图”等文字充当图标。
-                "Segoe MDL2 Assets",
-                fontCollection: null,
-                FontWeight.Normal,
-                Vortice.DirectWrite.FontStyle.Normal,
-                FontStretch.Normal,
-                fontSize: 16.0f,
-                localeName: "zh-CN");
+            // 使用图标字体绘制类型徽标，避免用“链/音/图”等文字充当图标。
+            // 说明：优先使用 Segoe Fluent Icons；若不可用或 DirectWrite 无法创建，则降级为 Segoe MDL2 Assets。
+            string iconFontFamily = SegoeFluentIconsFontLoader.EffectiveIconFontFamilyName;
+            try
+            {
+                _elementIconTextFormat = _dwriteFactory.CreateTextFormat(
+                    iconFontFamily,
+                    fontCollection: null,
+                    FontWeight.Normal,
+                    Vortice.DirectWrite.FontStyle.Normal,
+                    FontStretch.Normal,
+                    fontSize: 16.0f,
+                    localeName: "zh-CN");
+            }
+            catch (Exception ex)
+            {
+                AppLog.Warn(
+                    "Rendering",
+                    $"创建元素图标字体失败，将降级为 '{SegoeFluentIconsFontLoader.FallbackFontFamilyName}'：family='{iconFontFamily}'",
+                    ex);
+
+                _elementIconTextFormat = _dwriteFactory.CreateTextFormat(
+                    SegoeFluentIconsFontLoader.FallbackFontFamilyName,
+                    fontCollection: null,
+                    FontWeight.Normal,
+                    Vortice.DirectWrite.FontStyle.Normal,
+                    FontStretch.Normal,
+                    fontSize: 16.0f,
+                    localeName: "zh-CN");
+            }
 
             _elementIconTextFormat.WordWrapping = WordWrapping.NoWrap;
             _elementIconTextFormat.TextAlignment = TextAlignment.Center;

@@ -4,6 +4,7 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:l10n="using:WindBoard.Localization"
+    xmlns:controls="using:CommunityToolkit.WinUI.Controls"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d">
@@ -21,98 +22,66 @@
                     <TextBlock Text="{l10n:Loc Key=Settings_Shortcuts_Keyboard_SectionTitle}" Style="{ThemeResource SubtitleTextBlockStyle}" />
 
                     <StackPanel Spacing="12">
-                        <ToggleSwitch
-                            x:Name="ConflictReminderToggleSwitch"
-                            Header="{l10n:Loc Key=Settings_Shortcuts_ConflictReminder_Header}"
-                            OffContent="{l10n:Loc Key=Settings_Shortcuts_ConflictReminder_Off}"
-                            OnContent="{l10n:Loc Key=Settings_Shortcuts_ConflictReminder_On}"
-                            Toggled="OnConflictReminderToggleSwitchToggled" />
+                        <controls:SettingsCard Header="{l10n:Loc Key=Settings_Shortcuts_ConflictReminder_Header}">
+                            <controls:SettingsCard.Content>
+                                <ToggleSwitch
+                                    x:Name="ConflictReminderToggleSwitch"
+                                    Header="{x:Null}"
+                                    OffContent="{l10n:Loc Key=Settings_Shortcuts_ConflictReminder_Off}"
+                                    OnContent="{l10n:Loc Key=Settings_Shortcuts_ConflictReminder_On}"
+                                    Toggled="OnConflictReminderToggleSwitchToggled" />
+                            </controls:SettingsCard.Content>
+                        </controls:SettingsCard>
 
-                        <Button
+                        <controls:SettingsCard
                             x:Name="UndoShortcutCard"
-                            Style="{StaticResource SettingsCardButtonStyle}"
-                            Click="OnUndoShortcutClicked">
-                            <Grid ColumnSpacing="12">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto" />
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="Auto" />
-                                    <ColumnDefinition Width="Auto" />
-                                </Grid.ColumnDefinitions>
-
-                                <!-- 撤销：Undo 图标（MDL2） -->
+                            IsClickEnabled="True"
+                            Click="OnUndoShortcutClicked"
+                            Header="{l10n:Loc Key=Settings_Shortcuts_Undo_Title}">
+                            <controls:SettingsCard.HeaderIcon>
+                                <!-- 撤销：Undo 图标 -->
                                 <FontIcon
-                                    FontFamily="Segoe MDL2 Assets"
+                                    FontFamily="{ThemeResource SymbolThemeFontFamily}"
                                     FontSize="16"
-                                    Glyph="&#xE10E;"
-                                    VerticalAlignment="Center" />
-
-                                <TextBlock
-                                    Grid.Column="1"
-                                    Text="{l10n:Loc Key=Settings_Shortcuts_Undo_Title}"
-                                    FontWeight="SemiBold"
-                                    VerticalAlignment="Center" />
-
+                                    Glyph="&#xE10E;" />
+                            </controls:SettingsCard.HeaderIcon>
+                            <controls:SettingsCard.Content>
                                 <TextBlock
                                     x:Name="UndoShortcutTextBlock"
-                                    Grid.Column="2"
                                     Opacity="0.75"
                                     VerticalAlignment="Center" />
+                            </controls:SettingsCard.Content>
+                        </controls:SettingsCard>
 
-                                <FontIcon
-                                    Grid.Column="3"
-                                    Glyph="&#xE76C;"
-                                    FontFamily="Segoe MDL2 Assets"
-                                    Opacity="0.65"
-                                    VerticalAlignment="Center" />
-                            </Grid>
-                        </Button>
-
-                        <Button
+                        <controls:SettingsCard
                             x:Name="RedoShortcutCard"
-                            Style="{StaticResource SettingsCardButtonStyle}"
-                            Click="OnRedoShortcutClicked">
-                            <Grid ColumnSpacing="12">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto" />
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="Auto" />
-                                    <ColumnDefinition Width="Auto" />
-                                </Grid.ColumnDefinitions>
-
-                                <!-- 重做：Redo 图标（MDL2） -->
+                            IsClickEnabled="True"
+                            Click="OnRedoShortcutClicked"
+                            Header="{l10n:Loc Key=Settings_Shortcuts_Redo_Title}">
+                            <controls:SettingsCard.HeaderIcon>
+                                <!-- 重做：Redo 图标 -->
                                 <FontIcon
-                                    FontFamily="Segoe MDL2 Assets"
+                                    FontFamily="{ThemeResource SymbolThemeFontFamily}"
                                     FontSize="16"
-                                    Glyph="&#xE10D;"
-                                    VerticalAlignment="Center" />
-
-                                <TextBlock
-                                    Grid.Column="1"
-                                    Text="{l10n:Loc Key=Settings_Shortcuts_Redo_Title}"
-                                    FontWeight="SemiBold"
-                                    VerticalAlignment="Center" />
-
+                                    Glyph="&#xE10D;" />
+                            </controls:SettingsCard.HeaderIcon>
+                            <controls:SettingsCard.Content>
                                 <TextBlock
                                     x:Name="RedoShortcutTextBlock"
-                                    Grid.Column="2"
                                     Opacity="0.75"
                                     VerticalAlignment="Center" />
-
-                                <FontIcon
-                                    Grid.Column="3"
-                                    Glyph="&#xE76C;"
-                                    FontFamily="Segoe MDL2 Assets"
-                                    Opacity="0.65"
-                                    VerticalAlignment="Center" />
-                            </Grid>
-                        </Button>
+                            </controls:SettingsCard.Content>
+                        </controls:SettingsCard>
                     </StackPanel>
 
-                    <Button
-                        Content="{l10n:Loc Key=Common_ResetToDefault}"
-                        HorizontalAlignment="Left"
-                        Click="OnResetToDefaultClicked" />
+                    <controls:SettingsCard
+                        IsClickEnabled="True"
+                        Click="OnResetToDefaultClicked"
+                        Header="{l10n:Loc Key=Common_ResetToDefault}">
+                        <controls:SettingsCard.HeaderIcon>
+                            <SymbolIcon Symbol="Refresh" />
+                        </controls:SettingsCard.HeaderIcon>
+                    </controls:SettingsCard>
                 </StackPanel>
 
                 <StackPanel Spacing="10">
@@ -123,121 +92,53 @@
                         TextWrapping="WrapWholeWords" />
 
                     <StackPanel Spacing="12">
-                        <Border
-                            Background="{ThemeResource SystemControlBackgroundChromeMediumLowBrush}"
-                            BorderBrush="{ThemeResource SystemControlForegroundBaseLowBrush}"
-                            BorderThickness="1"
-                            CornerRadius="12"
-                            Padding="16,14">
-                            <Grid ColumnSpacing="12">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto" />
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="Auto" />
-                                </Grid.ColumnDefinitions>
-
-                                <SymbolIcon Symbol="TouchPointer" VerticalAlignment="Center" />
-
+                        <controls:SettingsCard Header="{l10n:Loc Key=Settings_Shortcuts_Mouse_PanViewport_Title}">
+                            <controls:SettingsCard.HeaderIcon>
+                                <SymbolIcon Symbol="TouchPointer" />
+                            </controls:SettingsCard.HeaderIcon>
+                            <controls:SettingsCard.Content>
                                 <TextBlock
-                                    Grid.Column="1"
-                                    Text="{l10n:Loc Key=Settings_Shortcuts_Mouse_PanViewport_Title}"
-                                    FontWeight="SemiBold"
-                                    VerticalAlignment="Center" />
-
-                                <TextBlock
-                                    Grid.Column="2"
                                     Text="{l10n:Loc Key=Settings_Shortcuts_Mouse_PanViewport_Gesture}"
                                     Opacity="0.75"
                                     VerticalAlignment="Center" />
-                            </Grid>
-                        </Border>
+                            </controls:SettingsCard.Content>
+                        </controls:SettingsCard>
 
-                        <Border
-                            Background="{ThemeResource SystemControlBackgroundChromeMediumLowBrush}"
-                            BorderBrush="{ThemeResource SystemControlForegroundBaseLowBrush}"
-                            BorderThickness="1"
-                            CornerRadius="12"
-                            Padding="16,14">
-                            <Grid ColumnSpacing="12">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto" />
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="Auto" />
-                                </Grid.ColumnDefinitions>
-
-                                <SymbolIcon Symbol="TouchPointer" VerticalAlignment="Center" />
-
+                        <controls:SettingsCard Header="{l10n:Loc Key=Settings_Shortcuts_Mouse_ZoomViewport_Title}">
+                            <controls:SettingsCard.HeaderIcon>
+                                <SymbolIcon Symbol="TouchPointer" />
+                            </controls:SettingsCard.HeaderIcon>
+                            <controls:SettingsCard.Content>
                                 <TextBlock
-                                    Grid.Column="1"
-                                    Text="{l10n:Loc Key=Settings_Shortcuts_Mouse_ZoomViewport_Title}"
-                                    FontWeight="SemiBold"
-                                    VerticalAlignment="Center" />
-
-                                <TextBlock
-                                    Grid.Column="2"
                                     Text="{l10n:Loc Key=Settings_Shortcuts_Mouse_ZoomViewport_Gesture}"
                                     Opacity="0.75"
                                     VerticalAlignment="Center" />
-                            </Grid>
-                        </Border>
+                            </controls:SettingsCard.Content>
+                        </controls:SettingsCard>
 
-                        <Border
-                            Background="{ThemeResource SystemControlBackgroundChromeMediumLowBrush}"
-                            BorderBrush="{ThemeResource SystemControlForegroundBaseLowBrush}"
-                            BorderThickness="1"
-                            CornerRadius="12"
-                            Padding="16,14">
-                            <Grid ColumnSpacing="12">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto" />
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="Auto" />
-                                </Grid.ColumnDefinitions>
-
-                                <SymbolIcon Symbol="TouchPointer" VerticalAlignment="Center" />
-
+                        <controls:SettingsCard Header="{l10n:Loc Key=Settings_Shortcuts_Mouse_ZoomSelection_Title}">
+                            <controls:SettingsCard.HeaderIcon>
+                                <SymbolIcon Symbol="TouchPointer" />
+                            </controls:SettingsCard.HeaderIcon>
+                            <controls:SettingsCard.Content>
                                 <TextBlock
-                                    Grid.Column="1"
-                                    Text="{l10n:Loc Key=Settings_Shortcuts_Mouse_ZoomSelection_Title}"
-                                    FontWeight="SemiBold"
-                                    VerticalAlignment="Center" />
-
-                                <TextBlock
-                                    Grid.Column="2"
                                     Text="{l10n:Loc Key=Settings_Shortcuts_Mouse_ZoomSelection_Gesture}"
                                     Opacity="0.75"
                                     VerticalAlignment="Center" />
-                            </Grid>
-                        </Border>
+                            </controls:SettingsCard.Content>
+                        </controls:SettingsCard>
 
-                        <Border
-                            Background="{ThemeResource SystemControlBackgroundChromeMediumLowBrush}"
-                            BorderBrush="{ThemeResource SystemControlForegroundBaseLowBrush}"
-                            BorderThickness="1"
-                            CornerRadius="12"
-                            Padding="16,14">
-                            <Grid ColumnSpacing="12">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto" />
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="Auto" />
-                                </Grid.ColumnDefinitions>
-
-                                <SymbolIcon Symbol="TouchPointer" VerticalAlignment="Center" />
-
+                        <controls:SettingsCard Header="{l10n:Loc Key=Settings_Shortcuts_Mouse_RotateSelection_Title}">
+                            <controls:SettingsCard.HeaderIcon>
+                                <SymbolIcon Symbol="TouchPointer" />
+                            </controls:SettingsCard.HeaderIcon>
+                            <controls:SettingsCard.Content>
                                 <TextBlock
-                                    Grid.Column="1"
-                                    Text="{l10n:Loc Key=Settings_Shortcuts_Mouse_RotateSelection_Title}"
-                                    FontWeight="SemiBold"
-                                    VerticalAlignment="Center" />
-
-                                <TextBlock
-                                    Grid.Column="2"
                                     Text="{l10n:Loc Key=Settings_Shortcuts_Mouse_RotateSelection_Gesture}"
                                     Opacity="0.75"
                                     VerticalAlignment="Center" />
-                            </Grid>
-                        </Border>
+                            </controls:SettingsCard.Content>
+                        </controls:SettingsCard>
                     </StackPanel>
                 </StackPanel>
             </StackPanel>

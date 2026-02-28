@@ -11,6 +11,7 @@ using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.UI.Xaml.Media;
 using Windows.Storage;
 using Windows.Storage.Pickers;
+using WindBoard.Fonts;
 using WindBoard.Features.Dock.Models;
 using WindBoard.Localization;
 using WindBoard.Settings;
@@ -426,13 +427,13 @@ namespace WindBoard.Features.Dock.UI
 
                 DockItemIds.ToolSelect => new DockItemViewModel(id, L10n.Get("Tool_Select"), new SymbolIconSource { Symbol = Symbol.TouchPointer }),
                 DockItemIds.ToolPen => new DockItemViewModel(id, L10n.Get("Tool_Pen"), new SymbolIconSource { Symbol = Symbol.Edit }),
-                DockItemIds.ToolEraser => new DockItemViewModel(id, L10n.Get("Tool_Eraser"), new FontIconSource { FontFamily = new FontFamily("Segoe MDL2 Assets"), Glyph = "\uE75C" }),
+                DockItemIds.ToolEraser => new DockItemViewModel(id, L10n.Get("Tool_Eraser"), new FontIconSource { FontFamily = new FontFamily(SegoeFluentIconsFontLoader.EffectiveIconFontFamilyName), Glyph = "\uE75C" }),
 
                 DockItemIds.Undo => new DockItemViewModel(id, L10n.Get("Common_Undo"), new SymbolIconSource { Symbol = Symbol.Undo }),
                 DockItemIds.Redo => new DockItemViewModel(id, L10n.Get("Common_Redo"), new SymbolIconSource { Symbol = Symbol.Redo }),
 
                 DockItemIds.PagePrev => new DockItemViewModel(id, L10n.Get("Common_PreviousPage"), new SymbolIconSource { Symbol = Symbol.Back }),
-                DockItemIds.PageIndicator => new DockItemViewModel(id, L10n.Get("Common_PageNumber"), new FontIconSource { FontFamily = new FontFamily("Segoe MDL2 Assets"), Glyph = "\uE8A7" }),
+                DockItemIds.PageIndicator => new DockItemViewModel(id, L10n.Get("Common_PageNumber"), new FontIconSource { FontFamily = new FontFamily(SegoeFluentIconsFontLoader.EffectiveIconFontFamilyName), Glyph = "\uE8A7" }),
                 DockItemIds.PageNext => new DockItemViewModel(id, L10n.Get("Common_NextPage"), new SymbolIconSource { Symbol = Symbol.Forward }),
                 DockItemIds.PageAdd => new DockItemViewModel(id, L10n.Get("Common_Add"), new SymbolIconSource { Symbol = Symbol.Add }),
 

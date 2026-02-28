@@ -10,6 +10,13 @@
     <Nullable>enable</Nullable>
 
     <UseWindowsForms>true</UseWindowsForms>
+
+    <!--
+      修复：CS0579（程序集特性重复）
+      说明：该工程不依赖自动生成的 AssemblyInfo 信息，关闭生成以避免重复导入导致的编译失败。
+    -->
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <GenerateTargetFrameworkAttribute>false</GenerateTargetFrameworkAttribute>
   </PropertyGroup>
 </Project>
 

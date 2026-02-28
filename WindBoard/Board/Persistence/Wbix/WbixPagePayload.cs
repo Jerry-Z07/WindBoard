@@ -9,13 +9,13 @@ namespace WindBoard.Board.Persistence.Wbix
     /// 页面数据文件（pages/page-XXX.json）。
     /// 
     /// 说明：
-    /// - v1/v2 仅包含 strokes；
-    /// - elements 预留用于未来承载“图片/视频/便签/图形”等页面元素。
+    /// - v1/v2 都包含 strokes（笔迹）；
+    /// - elements 用于承载“文本/链接/媒体/文件”等页面元素，并保留未来扩展位。
     /// </summary>
     internal sealed record WbixPagePayload(
         Guid Id,
         IReadOnlyList<StrokeSnapshot> Strokes,
-        IReadOnlyList<WbixPageElement> Elements);
+        IReadOnlyList<WbixPageElement>? Elements);
 
     /// <summary>
     /// 页面元素（预留）。

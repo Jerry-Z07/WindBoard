@@ -1,21 +1,19 @@
 using System;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices.WindowsRuntime;
 using System.Threading.Tasks;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media.Imaging;
 using Windows.ApplicationModel.DataTransfer;
 using Windows.Storage;
 using Windows.Storage.Pickers;
 using Windows.Storage.Streams;
-using WindBoard.Board.Persistence.Wbix;
 using WindBoard.Features.Import.Models;
 using WindBoard.Features.Import.Services;
-using WindBoard.Features.Import.Wbi;
 using WindBoard.Localization;
 using WindBoard.Logging;
 
@@ -23,23 +21,36 @@ namespace WindBoard.Features.Import.UI
 {
     public sealed partial class ImportDialog : ContentDialog
     {
+        /// <summary>
+        /// TreeView 节点展示信息（作为 TreeViewNode.Content）。
+        /// </summary>
+        private sealed class ImportQueueNodeInfo
+        {
+            public required bool IsGroup { get; init; }
+
+            public required ImportQueueGroup Group { get; init; }
+
+            public required Symbol Icon { get; init; }
+
+            public required string Title { get; init; }
+
+            public string? Subtitle { get; init; }
+
+            public Visibility SubtitleVisibility => string.IsNullOrWhiteSpace(Subtitle) ? Visibility.Collapsed : Visibility.Visible;
+
+            public required Visibility RemoveButtonVisibility { get; init; }
+
+            public required Guid ItemId { get; init; }
+        }
+
         private readonly IntPtr _hwnd;
 
         private StorageFile? _selectedWorkspaceFile;
-        private WbixPreviewReader.WbixPreview? _selectedWbixPreview;
-        private WbiPreviewReader.WbiPreview? _selectedWbiPreview;
+        private ImportWorkspacePreview? _workspacePreview;
 
-        public ObservableCollection<StorageFile> ImageFiles { get; } = new();
+        private readonly ImportQueueState _queue = new();
 
-        public ObservableCollection<StorageFile> MediaFiles { get; } = new();
-
-        public ObservableCollection<StorageFile> TextFiles { get; } = new();
-
-        internal ImportElementsRequest? ElementsRequest { get; private set; }
-
-        internal ImportWbixRequest? WbixRequest { get; private set; }
-
-        internal ImportWbiRequest? WbiRequest { get; private set; }
+        internal ImportDialogSubmission? Submission { get; private set; }
 
         public ImportDialog(IntPtr hwnd)
         {
@@ -62,85 +73,32 @@ namespace WindBoard.Features.Import.UI
             IsPrimaryButtonEnabled = false;
             PrimaryButtonClick += OnPrimaryButtonClick;
 
-            ImageFiles.CollectionChanged += (_, _) => UpdatePrimaryButtonState();
-            MediaFiles.CollectionChanged += (_, _) => UpdatePrimaryButtonState();
-            TextFiles.CollectionChanged += (_, _) => UpdatePrimaryButtonState();
-
-            // 默认选中第一项（图片）。这里放到代码中设置，避免在 XAML 里直接写 IsSelected 触发异常情况。
+            // 默认选中第一项（文件）。这里放到代码中设置，避免在 XAML 里直接写 IsSelected 触发异常情况。
             ImportNavView.SelectedItem = ImportNavView.MenuItems.OfType<NavigationViewItem>().FirstOrDefault();
+
+            RefreshQueueEmptyHintState();
         }
 
         private void OnPrimaryButtonClick(ContentDialog sender, ContentDialogButtonClickEventArgs args)
         {
-            ElementsRequest = null;
-            WbixRequest = null;
-            WbiRequest = null;
+            Submission = null;
             DialogInfoBar.IsOpen = false;
 
-            // WBIX 导入：与其它导入互斥（旧版体验也是“选了 WBIX 就只导入 WBIX”）。
-            if (_selectedWorkspaceFile is StorageFile workspaceFile)
+            ImportWbixMode mode = WbixReplaceCurrentPageRadioButton.IsChecked == true
+                ? ImportWbixMode.ReplaceCurrentPage
+                : ImportWbixMode.AppendAfterLastPage;
+
+            ImportQueueBuildResult result = _queue.TryBuildSubmission(mode, hasValidWorkspacePreview: _workspacePreview is not null);
+            if (!result.Success || result.Submission is null)
             {
-                string ext = Path.GetExtension(workspaceFile.Name);
-
-                if (string.Equals(ext, ".wbix", StringComparison.OrdinalIgnoreCase))
-                {
-                    if (_selectedWbixPreview is null)
-                    {
-                        args.Cancel = true;
-                        ShowDialogWarning(L10n.Get("ImportDialog_Wbix_Invalid_Message"));
-                        return;
-                    }
-
-                    ImportWbixMode mode = WbixReplaceCurrentPageRadioButton.IsChecked == true
-                        ? ImportWbixMode.ReplaceCurrentPage
-                        : ImportWbixMode.AppendAfterLastPage;
-
-                    WbixRequest = new ImportWbixRequest(workspaceFile, mode);
-                    return;
-                }
-
-                if (string.Equals(ext, ".wbi", StringComparison.OrdinalIgnoreCase))
-                {
-                    if (_selectedWbiPreview is null)
-                    {
-                        args.Cancel = true;
-                        ShowDialogWarning(L10n.Get("ImportDialog_Wbix_Invalid_Message"));
-                        return;
-                    }
-
-                    ImportWbixMode mode = WbixReplaceCurrentPageRadioButton.IsChecked == true
-                        ? ImportWbixMode.ReplaceCurrentPage
-                        : ImportWbixMode.AppendAfterLastPage;
-
-                    WbiRequest = new ImportWbiRequest(workspaceFile, mode);
-                    return;
-                }
-
-                // 理论上不会到这里：文件选择器只允许选择 .wbix/.wbi。
                 args.Cancel = true;
-                ShowDialogWarning(L10n.Get("ImportDialog_Wbix_Invalid_Message"));
+                ShowDialogWarning(result.Error == ImportQueueBuildErrorKind.InvalidWorkspace
+                    ? L10n.Get("ImportDialog_Wbix_Invalid_Message")
+                    : L10n.Get("ImportDialog_NothingToImport_Message"));
                 return;
             }
 
-            string? textContent = string.IsNullOrWhiteSpace(TextContentTextBox.Text) ? null : TextContentTextBox.Text;
-            string? linkLines = string.IsNullOrWhiteSpace(LinkLinesTextBox.Text) ? null : LinkLinesTextBox.Text;
-
-            int linkCount = ImportUrlNormalizer.ParseAndNormalizeLinkLines(linkLines).Count;
-            int count = ImageFiles.Count + MediaFiles.Count + TextFiles.Count + (string.IsNullOrWhiteSpace(textContent) ? 0 : 1) + linkCount;
-
-            if (count <= 0)
-            {
-                args.Cancel = true;
-                ShowDialogWarning(L10n.Get("ImportDialog_NothingToImport_Message"));
-                return;
-            }
-
-            ElementsRequest = new ImportElementsRequest(
-                ImageFiles.ToList(),
-                MediaFiles.ToList(),
-                TextFiles.ToList(),
-                textContent,
-                linkLines);
+            Submission = result.Submission;
         }
 
         private void ShowDialogWarning(string message)
@@ -154,20 +112,14 @@ namespace WindBoard.Features.Import.UI
         {
             DialogInfoBar.IsOpen = false;
 
-            bool hasWorkspace = _selectedWorkspaceFile is not null
-                && (_selectedWbixPreview is not null || _selectedWbiPreview is not null);
+            bool hasWorkspace = _queue.WorkspaceItemId is Guid workspaceItemId
+                && workspaceItemId != Guid.Empty
+                && _workspacePreview is not null;
 
-            string? textContent = TextContentTextBox?.Text;
-            string? linkLines = LinkLinesTextBox?.Text;
-            bool hasLinks = ImportUrlNormalizer.ParseAndNormalizeLinkLines(linkLines).Count > 0;
+            bool hasAnyElements = _queue.WorkspaceItemId is null && _queue.Count > 0;
 
-            bool hasAny = ImageFiles.Count > 0
-                || MediaFiles.Count > 0
-                || TextFiles.Count > 0
-                || !string.IsNullOrWhiteSpace(textContent)
-                || hasLinks;
-
-            IsPrimaryButtonEnabled = hasWorkspace || hasAny;
+            IsPrimaryButtonEnabled = hasWorkspace || hasAnyElements;
+            RefreshQueueEmptyHintState();
         }
 
         private void OnImportNavigationSelectionChanged(NavigationView sender, NavigationViewSelectionChangedEventArgs args)
@@ -180,54 +132,173 @@ namespace WindBoard.Features.Import.UI
             // 切换导入类型时收起提示，避免用户看到“上一页”的警告信息。
             DialogInfoBar.IsOpen = false;
 
-            ImageImportPanel.Visibility = tag == "image" ? Visibility.Visible : Visibility.Collapsed;
-            MediaImportPanel.Visibility = tag == "media" ? Visibility.Visible : Visibility.Collapsed;
-            TextImportPanel.Visibility = tag == "text" ? Visibility.Visible : Visibility.Collapsed;
-            LinkImportPanel.Visibility = tag == "link" ? Visibility.Visible : Visibility.Collapsed;
-            WbixImportPanel.Visibility = tag == "wbix" ? Visibility.Visible : Visibility.Collapsed;
+            FileImportPanel.Visibility = tag == "file" ? Visibility.Visible : Visibility.Collapsed;
+            TextLinkImportPanel.Visibility = tag == "textLink" ? Visibility.Visible : Visibility.Collapsed;
         }
 
-        private async void OnPickImagesClicked(object sender, RoutedEventArgs e)
+        private void RefreshQueueEmptyHintState()
         {
-            IReadOnlyList<StorageFile>? files = await PickMultipleFilesAsync(
-                ".png", ".jpg", ".jpeg", ".bmp", ".gif", ".tif", ".tiff", ".webp");
-            AddFilesUnique(ImageFiles, files);
+            QueueEmptyHintTextBlock.Visibility = _queue.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
         }
 
-        private void OnClearImagesClicked(object sender, RoutedEventArgs e)
+        private void RebuildQueueTreeView()
         {
-            ImageFiles.Clear();
+            ImportQueueTreeView.RootNodes.Clear();
+
+            for (int gi = 0; gi < ImportQueueState.DisplayGroupOrder.Length; gi++)
+            {
+                ImportQueueGroup group = ImportQueueState.DisplayGroupOrder[gi];
+                IReadOnlyList<ImportQueueItem> items = _queue.GetItemsByGroup(group);
+                if (items.Count == 0)
+                {
+                    continue;
+                }
+
+                var groupNodeInfo = new ImportQueueNodeInfo
+                {
+                    IsGroup = true,
+                    Group = group,
+                    Icon = ResolveGroupIcon(group),
+                    Title = GetGroupTitle(group),
+                    Subtitle = null,
+                    RemoveButtonVisibility = Visibility.Collapsed,
+                    ItemId = Guid.Empty,
+                };
+
+                var groupNode = new TreeViewNode { Content = groupNodeInfo, IsExpanded = true };
+
+                for (int i = 0; i < items.Count; i++)
+                {
+                    ImportQueueItem item = items[i];
+
+                    var nodeInfo = new ImportQueueNodeInfo
+                    {
+                        IsGroup = false,
+                        Group = item.Group,
+                        Icon = ResolveLeafIcon(item.Kind),
+                        Title = item.DisplayTitle,
+                        Subtitle = item.DisplaySubtitle,
+                        RemoveButtonVisibility = Visibility.Visible,
+                        ItemId = item.Id,
+                    };
+
+                    groupNode.Children.Add(new TreeViewNode { Content = nodeInfo });
+                }
+
+                ImportQueueTreeView.RootNodes.Add(groupNode);
+            }
+
+            RefreshQueueEmptyHintState();
         }
 
-        private async void OnPickMediaClicked(object sender, RoutedEventArgs e)
+        private async void OnPickFilesClicked(object sender, TappedRoutedEventArgs e)
         {
-            IReadOnlyList<StorageFile>? files = await PickMultipleFilesAsync(
-                ".mp4", ".mov", ".mkv", ".wmv", ".avi", ".webm",
-                ".mp3", ".wav", ".m4a", ".aac", ".flac", ".ogg");
-            AddFilesUnique(MediaFiles, files);
+            e.Handled = true;
+
+            IReadOnlyList<StorageFile>? files = await PickMultipleFilesAsync("*");
+            await AddFilesToQueueAsync(files, source: "picker");
         }
 
-        private void OnClearMediaClicked(object sender, RoutedEventArgs e)
+        private void OnFileDropZoneDragOver(object sender, DragEventArgs e)
         {
-            MediaFiles.Clear();
+            e.Handled = true;
+
+            if (e.DataView.Contains(StandardDataFormats.StorageItems))
+            {
+                e.AcceptedOperation = DataPackageOperation.Copy;
+                return;
+            }
+
+            e.AcceptedOperation = DataPackageOperation.None;
         }
 
-        private async void OnPickTextFilesClicked(object sender, RoutedEventArgs e)
+        private async void OnFileDropZoneDrop(object sender, DragEventArgs e)
         {
-            IReadOnlyList<StorageFile>? files = await PickMultipleFilesAsync(
-                ".txt", ".md", ".log", ".json", ".url");
-            AddFilesUnique(TextFiles, files);
+            e.Handled = true;
+
+            try
+            {
+                if (!e.DataView.Contains(StandardDataFormats.StorageItems))
+                {
+                    return;
+                }
+
+                IReadOnlyList<IStorageItem> items = await e.DataView.GetStorageItemsAsync();
+                IReadOnlyList<StorageFile> files = items.OfType<StorageFile>().ToList();
+                await AddFilesToQueueAsync(files, source: "drop");
+            }
+            catch (Exception ex)
+            {
+                AppLog.Warn("Import", "处理拖拽导入失败。", ex);
+                ShowDialogWarning(L10n.Get("ImportDialog_FileDrop_Failed_Message"));
+            }
         }
 
-        private void OnClearTextClicked(object sender, RoutedEventArgs e)
+        private async Task AddFilesToQueueAsync(IReadOnlyList<StorageFile>? files, string source)
         {
-            TextFiles.Clear();
-            TextContentTextBox.Text = string.Empty;
-        }
+            if (files is null || files.Count == 0)
+            {
+                return;
+            }
 
-        private void OnTextContentChanged(object sender, TextChangedEventArgs e)
-        {
+            ImportQueueAddFilesResult result = _queue.AddFiles(files);
+            if (!result.Success && result.Error == ImportQueueAddFilesErrorKind.WorkspaceExclusive)
+            {
+                AppLog.Warn("Import", $"已选择工作区文件，忽略添加其它文件：source={source}, count={files.Count}");
+                ShowDialogWarning(L10n.Get("ImportDialog_WorkspaceExclusive_Message"));
+                return;
+            }
+
+            if (result.WorkspaceFile is StorageFile workspaceFile)
+            {
+                bool shouldWarn = result.WorkspaceExclusiveWarning;
+                AppLog.Info("Import", $"添加工作区文件到队列：source={source}, file='{workspaceFile.Path}', warn={shouldWarn}");
+
+                // 先清理旧预览，避免异步预读时出现“残留上一份预览”的闪烁。
+                ClearWorkspaceState();
+                RebuildQueueTreeView();
+
+                // 警告优先显示：若随后预读失败，会被“文件无效”提示覆盖，避免误导用户。
+                if (shouldWarn)
+                {
+                    ShowDialogWarning(L10n.Get("ImportDialog_WorkspaceExclusive_Message"));
+                }
+
+                await LoadWorkspacePreviewAsync(workspaceFile);
+                // 注意：LoadWorkspacePreviewAsync 内部会触发 UpdatePrimaryButtonState。
+                return;
+            }
+
+            AppLog.Info("Import", $"添加文件到队列：source={source}, selected={files.Count}, added={result.Added}, skippedDup={result.SkippedDuplicate}, skippedInvalid={result.SkippedInvalid}");
+            RebuildQueueTreeView();
             UpdatePrimaryButtonState();
+        }
+
+        private void OnAddTextToQueueClicked(object sender, RoutedEventArgs e)
+        {
+            ImportQueueAddTextResult result = _queue.AddText(TextDraftTextBox.Text);
+            if (!result.Success)
+            {
+                if (result.Error == ImportQueueAddTextErrorKind.WorkspaceExclusive)
+                {
+                    ShowDialogWarning(L10n.Get("ImportDialog_WorkspaceExclusive_Message"));
+                    return;
+                }
+
+                ShowDialogWarning(L10n.Get("Import_Text_Empty_Message"));
+                return;
+            }
+
+            TextDraftTextBox.Text = string.Empty;
+
+            AppLog.Info("Import", $"添加文本到队列：length={result.ContentLength}");
+            RebuildQueueTreeView();
+            UpdatePrimaryButtonState();
+        }
+
+        private void OnClearTextDraftClicked(object sender, RoutedEventArgs e)
+        {
+            TextDraftTextBox.Text = string.Empty;
         }
 
         private async void OnPasteTextClicked(object sender, RoutedEventArgs e)
@@ -238,12 +309,38 @@ namespace WindBoard.Features.Import.UI
                 return;
             }
 
-            TextContentTextBox.Text = text;
+            TextDraftTextBox.Text = text;
         }
 
-        private void OnLinkLinesChanged(object sender, TextChangedEventArgs e)
+        private void OnAddLinksToQueueClicked(object sender, RoutedEventArgs e)
         {
+            ImportQueueAddLinksResult result = _queue.AddLinks(LinkDraftTextBox.Text);
+            if (!result.Success)
+            {
+                if (result.Error == ImportQueueAddLinksErrorKind.WorkspaceExclusive)
+                {
+                    ShowDialogWarning(L10n.Get("ImportDialog_WorkspaceExclusive_Message"));
+                    return;
+                }
+
+                AppLog.Warn("Import", "添加链接到队列失败：未发现有效链接。");
+                ShowDialogWarning(L10n.Get("ImportDialog_NoValidLinks_Message"));
+                return;
+            }
+
+            if (result.Added > 0)
+            {
+                LinkDraftTextBox.Text = string.Empty;
+            }
+
+            AppLog.Info("Import", $"添加链接到队列：parsed={result.Parsed}, added={result.Added}, skippedDup={result.SkippedDuplicate}");
+            RebuildQueueTreeView();
             UpdatePrimaryButtonState();
+        }
+
+        private void OnClearLinksDraftClicked(object sender, RoutedEventArgs e)
+        {
+            LinkDraftTextBox.Text = string.Empty;
         }
 
         private async void OnPasteLinksClicked(object sender, RoutedEventArgs e)
@@ -254,119 +351,195 @@ namespace WindBoard.Features.Import.UI
                 return;
             }
 
-            LinkLinesTextBox.Text = text;
+            LinkDraftTextBox.Text = text;
         }
 
-        private void OnClearLinksClicked(object sender, RoutedEventArgs e)
+        private void OnClearQueueClicked(object sender, RoutedEventArgs e)
         {
-            LinkLinesTextBox.Text = string.Empty;
+            AppLog.Info("Import", $"清空导入队列：count={_queue.Count}");
+            _queue.Clear();
+            UpdatePrimaryButtonState();
+            ClearWorkspaceState();
+            RebuildQueueTreeView();
         }
 
-        private async void OnPickWbixClicked(object sender, RoutedEventArgs e)
+        private void OnQueueRemoveClicked(object sender, RoutedEventArgs e)
         {
-            StorageFile? file = await PickSingleFileAsync(".wbix", ".wbi");
-            if (file is null)
+            if (sender is not Button button)
             {
                 return;
             }
 
-            await LoadWorkspacePreviewAsync(file);
+            Guid itemId = button.Tag switch
+            {
+                Guid g => g,
+                string s when Guid.TryParse(s, out Guid parsed) => parsed,
+                _ => Guid.Empty,
+            };
+
+            if (itemId == Guid.Empty)
+            {
+                return;
+            }
+
+            if (!_queue.TryRemove(itemId, out ImportQueueItem? removed) || removed is null)
+            {
+                return;
+            }
+
+            if (removed.Kind is ImportQueueItemKind.WorkspaceWbix or ImportQueueItemKind.WorkspaceWbi)
+            {
+                ClearWorkspaceState();
+            }
+
+            AppLog.Info("Import", $"移除队列项：kind={removed.Kind}, title='{removed.DisplayTitle}'");
+
+            RebuildQueueTreeView();
+            UpdatePrimaryButtonState();
         }
 
         private void OnClearWbixClicked(object sender, RoutedEventArgs e)
         {
+            // “从队列移除”语义：移除工作区队列项 + 清空预览状态。
+            if (_queue.WorkspaceItemId is Guid workspaceId && workspaceId != Guid.Empty)
+            {
+                if (_queue.TryRemove(workspaceId, out ImportQueueItem? removed) && removed is not null)
+                {
+                    AppLog.Info("Import", $"移除队列项：kind={removed.Kind}, title='{removed.DisplayTitle}'");
+                }
+
+                ClearWorkspaceState();
+                RebuildQueueTreeView();
+                UpdatePrimaryButtonState();
+                return;
+            }
+
+            ClearWorkspaceState();
+            UpdatePrimaryButtonState();
+        }
+
+        private void ClearWorkspaceState()
+        {
             _selectedWorkspaceFile = null;
-            _selectedWbixPreview = null;
-            _selectedWbiPreview = null;
+            _workspacePreview = null;
             ClearWbixButton.Visibility = Visibility.Collapsed;
             WbixPreviewBorder.Visibility = Visibility.Collapsed;
             WbixCoverImage.Source = null;
             WbixCoverImageBorder.Visibility = Visibility.Collapsed;
             WbixCoverFallbackBorder.Visibility = Visibility.Visible;
             WbixInfoTextBlock.Text = string.Empty;
-            UpdatePrimaryButtonState();
+        }
+
+        private string GetGroupTitle(ImportQueueGroup group)
+        {
+            return group switch
+            {
+                ImportQueueGroup.Workspace => L10n.Get("ImportDialog_Group_Workspace"),
+                ImportQueueGroup.Image => L10n.Get("ImportDialog_Group_Image"),
+                ImportQueueGroup.Video => L10n.Get("ImportDialog_Group_Video"),
+                ImportQueueGroup.Audio => L10n.Get("ImportDialog_Group_Audio"),
+                ImportQueueGroup.Text => L10n.Get("ImportDialog_Group_Text"),
+                ImportQueueGroup.Link => L10n.Get("ImportDialog_Group_Link"),
+                ImportQueueGroup.File => L10n.Get("ImportDialog_Group_File"),
+                _ => L10n.Get("ImportDialog_Group_File"),
+            };
+        }
+
+        private static Symbol ResolveGroupIcon(ImportQueueGroup group)
+        {
+            // 尽量使用项目内已使用过的 Symbol，避免不同 SDK 版本下出现不存在的枚举值。
+            return group switch
+            {
+                ImportQueueGroup.Workspace => Symbol.OpenFile,
+                ImportQueueGroup.Image => Symbol.Pictures,
+                ImportQueueGroup.Video => Symbol.Video,
+                ImportQueueGroup.Audio => ResolveAudioIconSymbol(),
+                ImportQueueGroup.Text => Symbol.Edit,
+                ImportQueueGroup.Link => Symbol.Link,
+                ImportQueueGroup.File => Symbol.OpenFile,
+                _ => Symbol.OpenFile,
+            };
+        }
+
+        private static Symbol ResolveAudioIconSymbol()
+        {
+            // 音频图标：优先使用更贴近语义的 MusicInfo（若目标 SDK 不存在该枚举值则降级）。
+            // 说明：使用 TryParse 避免在不同 SDK/WinUI 版本下直接引用不存在的 Symbol 成员导致编译失败。
+            if (Enum.TryParse("MusicInfo", ignoreCase: true, out Symbol musicInfo))
+            {
+                return musicInfo;
+            }
+
+            if (Enum.TryParse("Volume", ignoreCase: true, out Symbol volume))
+            {
+                return volume;
+            }
+
+            return Symbol.Video;
+        }
+
+        private static Symbol ResolveLeafIcon(ImportQueueItemKind kind)
+        {
+            return kind switch
+            {
+                ImportQueueItemKind.WorkspaceWbix => Symbol.OpenFile,
+                ImportQueueItemKind.WorkspaceWbi => Symbol.OpenFile,
+                ImportQueueItemKind.ImageFile => Symbol.Pictures,
+                ImportQueueItemKind.VideoFile => Symbol.Video,
+                ImportQueueItemKind.AudioFile => ResolveAudioIconSymbol(),
+                ImportQueueItemKind.TextFile => Symbol.Edit,
+                ImportQueueItemKind.InternetShortcutFile => Symbol.Link,
+                ImportQueueItemKind.GenericFile => Symbol.OpenFile,
+                ImportQueueItemKind.TextContent => Symbol.Edit,
+                ImportQueueItemKind.LinkUrl => Symbol.Link,
+                _ => Symbol.OpenFile,
+            };
         }
 
         private async Task LoadWorkspacePreviewAsync(StorageFile file)
         {
             _selectedWorkspaceFile = file;
-            _selectedWbixPreview = null;
-            _selectedWbiPreview = null;
+            _workspacePreview = null;
 
             ClearWbixButton.Visibility = Visibility.Visible;
 
             try
             {
-                string ext = Path.GetExtension(file.Name);
-
-                if (string.Equals(ext, ".wbix", StringComparison.OrdinalIgnoreCase))
+                ImportWorkspacePreview? preview = await ImportWorkspacePreviewService.TryLoadAsync(file);
+                if (preview is null)
                 {
-                    WbixPreviewReader.WbixPreview? preview = await WbixPreviewReader.TryReadAsync(file.Path);
-                    if (preview is null)
-                    {
-                        ShowDialogWarning(L10n.Get("ImportDialog_Wbix_Invalid_Message"));
-                        WbixPreviewBorder.Visibility = Visibility.Collapsed;
-                        UpdatePrimaryButtonState();
-                        return;
-                    }
-
-                    _selectedWbixPreview = preview;
-
-                    int pageCount = preview.Manifest.Pages?.Count ?? 0;
-                    string created = preview.Manifest.CreatedUtc.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss");
-                    string info = L10n.Format("Import_Wbix_Info_Fmt", file.Name, pageCount, preview.Manifest.Version, created);
-                    WbixInfoTextBlock.Text = info;
-
-                    await ApplyWbixCoverAsync(preview.CoverPngBytes);
-
-                    WbixPreviewBorder.Visibility = Visibility.Visible;
+                    WbixPreviewBorder.Visibility = Visibility.Collapsed;
                     UpdatePrimaryButtonState();
+                    ShowDialogWarning(L10n.Get("ImportDialog_Wbix_Invalid_Message"));
                     return;
                 }
 
-                if (string.Equals(ext, ".wbi", StringComparison.OrdinalIgnoreCase))
+                _workspacePreview = preview;
+
+                string created = preview.CreatedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss");
+                string info = L10n.Format("Import_Wbix_Info_Fmt", file.Name, preview.PageCount, preview.Version, created);
+                WbixInfoTextBlock.Text = info;
+
+                if (preview.Kind == ImportWorkspacePreviewKind.Wbix)
                 {
-                    WbiPreviewReader.WbiPreview? preview = await WbiPreviewReader.TryReadAsync(file.Path);
-                    if (preview is null)
-                    {
-                        ShowDialogWarning(L10n.Get("ImportDialog_Wbix_Invalid_Message"));
-                        WbixPreviewBorder.Visibility = Visibility.Collapsed;
-                        UpdatePrimaryButtonState();
-                        return;
-                    }
-
-                    _selectedWbiPreview = preview;
-
-                    int pageCount = preview.Manifest.Pages?.Count ?? preview.Manifest.PageCount;
-                    DateTime createdUtc = preview.Manifest.CreatedAt.Kind == DateTimeKind.Unspecified
-                        ? DateTime.SpecifyKind(preview.Manifest.CreatedAt, DateTimeKind.Utc)
-                        : preview.Manifest.CreatedAt;
-
-                    string created = createdUtc.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss");
-                    string version = preview.Manifest.Version ?? "1.0";
-                    string info = L10n.Format("Import_Wbix_Info_Fmt", file.Name, pageCount, version, created);
-                    WbixInfoTextBlock.Text = info;
-
+                    await ApplyWbixCoverAsync(preview.CoverPngBytes);
+                }
+                else
+                {
                     // WBI 没有封面：强制回退到占位卡片，避免遗留上一张预览的封面。
                     await ApplyWbixCoverAsync(null);
-
-                    WbixPreviewBorder.Visibility = Visibility.Visible;
-                    UpdatePrimaryButtonState();
-                    return;
                 }
 
-                ShowDialogWarning(L10n.Get("ImportDialog_Wbix_Invalid_Message"));
-                WbixPreviewBorder.Visibility = Visibility.Collapsed;
+                WbixPreviewBorder.Visibility = Visibility.Visible;
                 UpdatePrimaryButtonState();
             }
             catch (Exception ex)
             {
                 AppLog.Warn("Import", $"预览失败：'{file.Path}'", ex);
-                ShowDialogWarning(L10n.Get("ImportDialog_Wbix_Invalid_Message"));
                 WbixPreviewBorder.Visibility = Visibility.Collapsed;
-                _selectedWbixPreview = null;
-                _selectedWbiPreview = null;
+                _workspacePreview = null;
                 UpdatePrimaryButtonState();
+                ShowDialogWarning(L10n.Get("ImportDialog_Wbix_Invalid_Message"));
             }
         }
 
@@ -422,64 +595,6 @@ namespace WindBoard.Features.Import.UI
                 AppLog.Warn("Import", $"打开文件选择器失败：extensions='{string.Join(",", extensions)}'", ex);
                 ShowDialogWarning(L10n.Format("ImportDialog_FilePicker_Failed_Fmt", ex.Message));
                 return null;
-            }
-        }
-
-        private async Task<StorageFile?> PickSingleFileAsync(params string[] extensions)
-        {
-            if (_hwnd == IntPtr.Zero)
-            {
-                ShowDialogWarning(L10n.Get("Common_WindowHandleFailed_Message"));
-                AppLog.Warn("Import", "无法打开文件选择器：窗口句柄不可用。");
-                return null;
-            }
-
-            try
-            {
-                var picker = new FileOpenPicker();
-                WinRT.Interop.InitializeWithWindow.Initialize(picker, _hwnd);
-
-                picker.SuggestedStartLocation = PickerLocationId.DocumentsLibrary;
-                picker.FileTypeFilter.Clear();
-                foreach (string ext in extensions)
-                {
-                    picker.FileTypeFilter.Add(ext);
-                }
-
-                return await picker.PickSingleFileAsync();
-            }
-            catch (Exception ex)
-            {
-                AppLog.Warn("Import", $"打开文件选择器失败：extensions='{string.Join(",", extensions)}'", ex);
-                ShowDialogWarning(L10n.Format("ImportDialog_FilePicker_Failed_Fmt", ex.Message));
-                return null;
-            }
-        }
-
-        private static void AddFilesUnique(ObservableCollection<StorageFile> target, IReadOnlyList<StorageFile>? files)
-        {
-            if (files is null || files.Count == 0)
-            {
-                return;
-            }
-
-            var existing = target
-                .Where(f => !string.IsNullOrWhiteSpace(f.Path))
-                .Select(f => f.Path)
-                .ToHashSet(StringComparer.OrdinalIgnoreCase);
-
-            for (int i = 0; i < files.Count; i++)
-            {
-                StorageFile file = files[i];
-                if (string.IsNullOrWhiteSpace(file.Path))
-                {
-                    continue;
-                }
-
-                if (existing.Add(file.Path))
-                {
-                    target.Add(file);
-                }
             }
         }
 

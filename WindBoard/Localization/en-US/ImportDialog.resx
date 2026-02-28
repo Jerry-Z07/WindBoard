@@ -20,6 +20,12 @@
   <data name="ImportDialog_Title" xml:space="preserve">
     <value>Import</value>
   </data>
+  <data name="ImportDialog_Tab_File" xml:space="preserve">
+    <value>Files</value>
+  </data>
+  <data name="ImportDialog_Tab_TextLink" xml:space="preserve">
+    <value>Text/Links</value>
+  </data>
   <data name="ImportDialog_Tab_Image" xml:space="preserve">
     <value>Images</value>
   </data>
@@ -49,6 +55,66 @@
   </data>
   <data name="ImportDialog_PasteFromClipboard" xml:space="preserve">
     <value>Paste from clipboard</value>
+  </data>
+  <data name="ImportDialog_AddTextToQueue" xml:space="preserve">
+    <value>Add text to queue</value>
+  </data>
+  <data name="ImportDialog_AddLinksToQueue" xml:space="preserve">
+    <value>Add links to queue</value>
+  </data>
+  <data name="ImportDialog_FileDrop_Title" xml:space="preserve">
+    <value>Drop files here</value>
+  </data>
+  <data name="ImportDialog_FileDrop_Subtitle" xml:space="preserve">
+    <value>or click to choose files…</value>
+  </data>
+  <data name="ImportDialog_FileDrop_Failed_Message" xml:space="preserve">
+    <value>Failed to read dropped files.</value>
+  </data>
+  <data name="ImportDialog_Queue_Title" xml:space="preserve">
+    <value>Import queue</value>
+  </data>
+  <data name="ImportDialog_Queue_ClearAll" xml:space="preserve">
+    <value>Clear</value>
+  </data>
+  <data name="ImportDialog_Queue_EmptyHint" xml:space="preserve">
+    <value>Queue is empty. Add items from the left.</value>
+  </data>
+  <data name="ImportDialog_RemoveFromQueue" xml:space="preserve">
+    <value>Remove from queue</value>
+  </data>
+  <data name="ImportDialog_RemoveFromQueue_Tooltip" xml:space="preserve">
+    <value>Remove from queue</value>
+  </data>
+  <data name="ImportDialog_WorkspaceExclusive_Message" xml:space="preserve">
+    <value>WBIX/WBI must be imported separately. Please import .wbix/.wbi alone.</value>
+  </data>
+  <data name="ImportDialog_NoValidLinks_Message" xml:space="preserve">
+    <value>No valid links found.</value>
+  </data>
+  <data name="ImportDialog_TextContent_Subtitle_Fmt" xml:space="preserve">
+    <value>Length {0} chars</value>
+  </data>
+  <data name="ImportDialog_Group_Workspace" xml:space="preserve">
+    <value>Workspace (WBIX/WBI)</value>
+  </data>
+  <data name="ImportDialog_Group_Image" xml:space="preserve">
+    <value>Images</value>
+  </data>
+  <data name="ImportDialog_Group_Video" xml:space="preserve">
+    <value>Video</value>
+  </data>
+  <data name="ImportDialog_Group_Audio" xml:space="preserve">
+    <value>Audio</value>
+  </data>
+  <data name="ImportDialog_Group_Text" xml:space="preserve">
+    <value>Text</value>
+  </data>
+  <data name="ImportDialog_Group_Link" xml:space="preserve">
+    <value>Links</value>
+  </data>
+  <data name="ImportDialog_Group_File" xml:space="preserve">
+    <value>Files</value>
   </data>
   <data name="ImportDialog_LinkLines_Placeholder" xml:space="preserve">
     <value>One link per line, e.g.:
