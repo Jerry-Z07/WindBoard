@@ -80,52 +80,45 @@ namespace WindBoard.Board.Persistence
                 return false;
             }
 
-            switch (element)
+            snapshot = element switch
             {
-                case BoardTextElement text:
-                    snapshot = new BoardTextElementSnapshot(
-                        text.Id,
-                        text.PositionWorld,
-                        text.SizeWorld,
-                        order,
-                        Text: text.Text ?? string.Empty);
-                    return true;
+                BoardTextElement text => new BoardTextElementSnapshot(
+                    text.Id,
+                    text.PositionWorld,
+                    text.SizeWorld,
+                    order,
+                    Text: text.Text ?? string.Empty),
 
-                case BoardLinkElement link:
-                    snapshot = new BoardLinkElementSnapshot(
-                        link.Id,
-                        link.PositionWorld,
-                        link.SizeWorld,
-                        order,
-                        Url: link.Url ?? string.Empty,
-                        Title: link.Title);
-                    return true;
+                BoardLinkElement link => new BoardLinkElementSnapshot(
+                    link.Id,
+                    link.PositionWorld,
+                    link.SizeWorld,
+                    order,
+                    Url: link.Url ?? string.Empty,
+                    Title: link.Title),
 
-                case BoardMediaElement media:
-                    snapshot = new BoardMediaElementSnapshot(
-                        media.Id,
-                        media.PositionWorld,
-                        media.SizeWorld,
-                        order,
-                        media.Kind,
-                        SourcePath: media.SourcePath ?? string.Empty,
-                        DisplayName: media.DisplayName ?? string.Empty);
-                    return true;
+                BoardMediaElement media => new BoardMediaElementSnapshot(
+                    media.Id,
+                    media.PositionWorld,
+                    media.SizeWorld,
+                    order,
+                    media.Kind,
+                    SourcePath: media.SourcePath ?? string.Empty,
+                    DisplayName: media.DisplayName ?? string.Empty),
 
-                case BoardFileElement file:
-                    snapshot = new BoardFileElementSnapshot(
-                        file.Id,
-                        file.PositionWorld,
-                        file.SizeWorld,
-                        order,
-                        SourcePath: file.SourcePath ?? string.Empty,
-                        DisplayName: file.DisplayName ?? string.Empty);
-                    return true;
+                BoardFileElement file => new BoardFileElementSnapshot(
+                    file.Id,
+                    file.PositionWorld,
+                    file.SizeWorld,
+                    order,
+                    SourcePath: file.SourcePath ?? string.Empty,
+                    DisplayName: file.DisplayName ?? string.Empty),
 
-                default:
-                    // 未知元素类型：当前快照不落盘该数据，避免破坏导出流程。
-                    return false;
-            }
+                // 未知元素类型：当前快照不落盘该数据，避免破坏导出流程。
+                _ => null,
+            };
+
+            return snapshot is not null;
         }
 
         private static StrokeSnapshot CreateStrokeSnapshot(Stroke stroke)

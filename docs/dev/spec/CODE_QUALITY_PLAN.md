@@ -90,8 +90,14 @@
   - `WindBoard.Tests/Features/Import/Wbi/WbiWorkspaceImporterTests.cs`：补充内嵌图片资源缺失的失败路径单测。
 
 2) WBIX 序列化/持久化
-- `WindBoard/Board/Persistence/Wbix/WbixWorkspaceSerializer.cs`
-- `WindBoard/Board/Persistence/BoardWorkspaceSnapshotConverter.cs`
+- [x] `WindBoard/Board/Persistence/Wbix/WbixWorkspaceSerializer.cs`（已完成：改为 partial 拆分 Save/Load/路径与资源处理；引入导入上下文对象收敛参数；保留原有日志与兼容行为）
+- [x] `WindBoard/Board/Persistence/BoardWorkspaceSnapshotConverter.cs`（已完成：`TryCreateElementSnapshot` 改为单出口，减少多 return smells）
+- 完成记录：
+  - `WindBoard/Board/Persistence/Wbix/WbixWorkspaceSerializer.cs`：拆分为 partial 文件，序列化入口只保留常量与 JSON 配置。
+  - `WindBoard/Board/Persistence/Wbix/WbixWorkspaceSerializer.Save.cs`：将 `SaveAsync` 拆分为 pages/resources/manifest 三段写入，降低复杂度。
+  - `WindBoard/Board/Persistence/Wbix/WbixWorkspaceSerializer.Load.cs`：引入 `WbixLoadContext` 收敛资源索引/临时目录/总提取大小；元素解析失败按单元素降级并输出日志。
+  - `WindBoard/Board/Persistence/Wbix/WbixWorkspaceSerializer.ResourcesAndPaths.cs`：集中 Zip 路径归一化/安全校验与 JSON 解析小工具，避免散落重复逻辑。
+  - `WindBoard.Tests/Board/Persistence/WbixWorkspaceSerializerFailureTests.cs`：新增缺 manifest、版本不支持、页路径不安全、资源路径不安全（降级不阻断）等失败路径单测。
 
 3) 渲染与输入（回归成本最高）
 - `WindBoard/Rendering/Board/BoardSceneRenderer.cs`
