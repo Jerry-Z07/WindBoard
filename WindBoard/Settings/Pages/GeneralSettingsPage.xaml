@@ -25,6 +25,13 @@
                 <controls:SettingsCard
                     Header="{l10n:Loc Key=Settings_General_Language_Title}"
                     Description="{l10n:Loc Key=Settings_General_Language_Description}">
+                    <controls:SettingsCard.HeaderIcon>
+                        <!-- 语言：使用“地球/世界”语义图标 -->
+                        <FontIcon
+                            FontFamily="{ThemeResource SymbolThemeFontFamily}"
+                            FontSize="16"
+                            Glyph="&#xE909;" />
+                    </controls:SettingsCard.HeaderIcon>
                     <controls:SettingsCard.Content>
                         <ComboBox
                             x:Name="LanguageComboBox"
@@ -37,6 +44,13 @@
                 <controls:SettingsCard
                     Header="{l10n:Loc Key=Settings_General_StartupWindowMode_Title}"
                     Description="{l10n:Loc Key=Settings_General_StartupWindowMode_Description}">
+                    <controls:SettingsCard.HeaderIcon>
+                        <!-- 启动时窗口形态：使用“全屏”语义图标 -->
+                        <FontIcon
+                            FontFamily="{ThemeResource SymbolThemeFontFamily}"
+                            FontSize="16"
+                            Glyph="&#xE740;" />
+                    </controls:SettingsCard.HeaderIcon>
                     <controls:SettingsCard.Content>
                         <ComboBox
                             x:Name="StartupWindowModeComboBox"
