@@ -235,6 +235,52 @@ public sealed class WbiWorkspaceImporterTests : IDisposable
     }
 
     [Fact]
+    public async Task ImportAsync_WithMissingEmbeddedImageAsset_RecordsMissingResource_AndStillSucceeds()
+    {
+        var manifest = new WbiManifest
+        {
+            Version = "1.0",
+            MinCompatibleVersion = "1.0",
+            CreatedAt = DateTime.UtcNow,
+            IncludeImageAssets = true,
+            PageCount = 1,
+            Pages = new List<WbiPageRef> { new() { Id = "page_001", Number = 1 } },
+        };
+
+        var page = new WbiPageData
+        {
+            Number = 1,
+            Attachments = new List<WbiAttachmentData>
+            {
+                new()
+                {
+                    Type = "Image",
+                    AssetFile = "missing.png",
+                    X = 10,
+                    Y = 20,
+                    Width = 320,
+                    Height = 180,
+                    ZIndex = 0,
+                    IsPinnedTop = true,
+                },
+            },
+        };
+
+        string path = await CreateWbiFileAsync(manifest, new Dictionary<string, WbiPageData> { ["page_001"] = page });
+
+        var importer = new WbiWorkspaceImporter();
+        WbiWorkspaceImportResult result = await importer.ImportAsync(path);
+
+        Assert.True(result.Success);
+        Assert.Single(result.Pages);
+        Assert.Contains(result.MissingResources, s => s.Contains("缺少内嵌图片资源"));
+
+        var doc = result.Pages[0].Session.Document;
+        Assert.Single(doc.ElementsAboveInk);
+        Assert.IsType<BoardMediaElement>(doc.ElementsAboveInk[0]);
+    }
+
+    [Fact]
     public async Task ImportAsync_WithIsfStrokes_LoadsStrokes()
     {
         byte[] isfBytes = await CreateIsfBytesAsync();

@@ -75,9 +75,19 @@
 ### 3.1 推荐优先级（从高到低）
 
 1) 导入链路
-- `WindBoard/Features/Import/UI/ImportDialog.xaml.cs`
-- `WindBoard/Features/Import/Services/BoardImportService.cs`
-- `WindBoard/Features/Import/Wbi/WbiWorkspaceImporter.cs`
+- [x] `WindBoard/Features/Import/UI/ImportDialog.xaml.cs`（已完成：队列/预览/提交逻辑下沉到 Services；TreeView 改为“状态变更后整树重建”；complexity 146 → 63）
+- [x] `WindBoard/Features/Import/Services/BoardImportService.cs`（已完成：拆分 `ImportElementsAsync`；统一媒体/`.url` 类型识别；补齐关键失败兜底与日志；complexity 50 → 39）
+- [x] `WindBoard/Features/Import/Wbi/WbiWorkspaceImporter.cs`（已完成：引入 `WbiImportContext` 降参数；拆分分页/笔迹/附件导入；补齐缺资源用例；complexity 60 → 53）
+- 完成记录：
+  - `WindBoard/Features/Import/ImportFlow.cs`：统一消费 `ImportDialogSubmission`。
+  - `WindBoard/Features/Import/Models/ImportDialogSubmission.cs`：新增提交结果模型。
+  - `WindBoard/Features/Import/Services/ImportQueueState.cs`：新增队列状态机与提交构建。
+  - `WindBoard/Features/Import/Services/ImportWorkspacePreviewService.cs`：新增工作区预览归一化读取。
+  - `WindBoard.Tests/Features/Import/ImportQueueStateTests.cs`、`WindBoard.Tests/Features/Import/Wbix/WbixPreviewReaderTests.cs`：新增失败路径单测。
+  - `WindBoard/Features/Import/Services/BoardImportService.cs`：拆分元素导入流程，失败场景可降级继续导入；媒体/快捷方式类型识别统一走 `ImportFileTypeResolver`。
+  - `WindBoard/Features/Import/Wbi/WbiWorkspaceImporter.cs`：引入 `WbiImportContext` 收敛导入上下文，拆分分页导入职责并减少多参数/高复杂度方法。
+  - `WindBoard.Tests/Features/Import/BoardImportServiceTests.cs`：新增元素导入关键失败路径与 `.url` 回退单测。
+  - `WindBoard.Tests/Features/Import/Wbi/WbiWorkspaceImporterTests.cs`：补充内嵌图片资源缺失的失败路径单测。
 
 2) WBIX 序列化/持久化
 - `WindBoard/Board/Persistence/Wbix/WbixWorkspaceSerializer.cs`
@@ -107,20 +117,6 @@
 **验收标准**（每个治理 PR）：
 - 指标不变差：不新增 smells 中的高风险项（或明确说明原因）；
 - 至少新增/调整一组测试，覆盖本次拆分触达的关键路径。
-
-## 阶段 4：硬门禁与配额（稳定后启用）
-
-**目标**：把“质量治理”变成稳定机制，而不是靠个人自觉。
-
-建议做法：
-
-- 将阶段 2 的 warning 升级为 fail（硬门禁），但只对以下范围生效：
-  - Top 热点文件（Top 20 / Top 30）
-  - 核心路径目录（例如 `Features/Import/`、`Board/Persistence/Wbix/`、`Rendering/`、`Interaction/`）
-- 为复杂度设“**年度/季度配额**”：
-  - 允许新功能带来少量复杂度增长，但必须在同一季度的治理任务中“偿还”。
-
-**验收标准**：
 - 热点区域 PR 不再出现长期质量劣化（复杂度/异味持续上升）。
 
 ## 附：建议的阈值策略（分段收敛）
@@ -134,4 +130,3 @@
   - 将 `complexity >= 120` 的文件逐步压到 < 120；
   - 将 `Function with high complexity`（通常为 20+）逐步拆到 < 20；
   - 参数数 > 6 的函数尽量引入上下文对象（`Context/Options`）。
-
