@@ -95,6 +95,13 @@ chinesesimplified.AppName=轻风白板
 english.AppShortcutName=WindBoard
 chinesesimplified.AppShortcutName=轻风白板
 
+; 卸载增强：可选删除用户数据（默认不删除）。
+; 说明：安装版用户数据默认位于 %LocalAppData%\WindBoard（见主程序 AppDataPaths 约定）。
+english.UninstallDeleteUserDataPrompt=Do you also want to delete user data (settings, logs, cache, downloads)?%n%nFolder:%n{localappdata}\WindBoard%n%nThis action cannot be undone.
+chinesesimplified.UninstallDeleteUserDataPrompt=是否同时删除当前用户数据（设置、日志、缓存、下载）？%n%n目录：%n{localappdata}\WindBoard%n%n此操作不可恢复。
+english.UninstallDeleteUserDataFailed=Failed to delete user data folder:%n{localappdata}\WindBoard%n%nSome files may be locked. You can delete it manually later.
+chinesesimplified.UninstallDeleteUserDataFailed=删除用户数据目录失败：%n{localappdata}\WindBoard%n%n可能有文件正在被占用，可稍后手动删除。
+
 [Files]
 Source: "{#MySourceDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 ; Win10（Build < 22000）不自带 Segoe Fluent Icons：安装时自动写入系统字体目录并注册字体。
@@ -131,4 +138,212 @@ begin
   { Win11 首个公开 build：22000。Win10（Build < 22000）才需要安装字体。 }
   GetWindowsVersionEx(Ver);
   Result := (Ver.Major = 10) and (Ver.Minor = 0) and (Ver.Build < 22000);
+end;
+
+var
+  ShouldDeleteUserDataOnUninstall: Boolean;
+  ShouldDeleteUserDataOnUninstallDecided: Boolean;
+
+function GetInstallerUserDataRootDir(): string;
+begin
+  // 安装版数据目录约定：%LocalAppData%\WindBoard
+  Result := ExpandConstant('{localappdata}\WindBoard');
+end;
+
+function NormalizeUninstallParam(const Param: string): string;
+begin
+  // 统一以小写比较，避免大小写差异导致识别失败。
+  Result := Lowercase(Trim(Param));
+end;
+
+function UninstallHasParamExact(const ExpectedParam: string): Boolean;
+var
+  i: Integer;
+  p: string;
+  expected: string;
+begin
+  Result := False;
+  expected := NormalizeUninstallParam(ExpectedParam);
+
+  for i := 1 to ParamCount do
+  begin
+    p := NormalizeUninstallParam(ParamStr(i));
+    if p = expected then
+    begin
+      Result := True;
+      Exit;
+    end;
+  end;
+end;
+
+function TryGetUninstallParamValue(const ParamName: string; var Value: string): Boolean;
+var
+  i: Integer;
+  p: string;
+  pNorm: string;
+  prefix: string;
+begin
+  // 解析 /NAME=VALUE 形式参数（大小写不敏感）。
+  Result := False;
+  Value := '';
+  prefix := NormalizeUninstallParam(ParamName) + '=';
+
+  for i := 1 to ParamCount do
+  begin
+    p := ParamStr(i);
+    pNorm := NormalizeUninstallParam(p);
+    if Pos(prefix, pNorm) = 1 then
+    begin
+      // 注意：这里使用 ParamName 的长度（固定）截取原始字符串，避免 Value 大小写被“归一化”破坏。
+      Value := Copy(p, Length(ParamName) + 2, Length(p));
+      Result := True;
+      Exit;
+    end;
+  end;
+end;
+
+function UninstallIsSilentLike(): Boolean;
+begin
+  // 说明：卸载器在静默模式下不应弹出任何交互式对话框，避免阻塞自动化卸载。
+  Result :=
+    UninstallHasParamExact('/silent') or
+    UninstallHasParamExact('/verysilent') or
+    UninstallHasParamExact('/suppressmsgboxes');
+end;
+
+function ParseBoolOrDefault(const Text: string; DefaultValue: Boolean): Boolean;
+var
+  t: string;
+begin
+  t := NormalizeUninstallParam(Text);
+
+  if (t = '1') or (t = 'true') or (t = 'yes') or (t = 'y') or (t = 'on') then
+  begin
+    Result := True;
+    Exit;
+  end;
+
+  if (t = '0') or (t = 'false') or (t = 'no') or (t = 'n') or (t = 'off') then
+  begin
+    Result := False;
+    Exit;
+  end;
+
+  Result := DefaultValue;
+end;
+
+function BoolToLogText(B: Boolean): string;
+begin
+  if B then
+  begin
+    Result := 'True';
+  end
+  else
+  begin
+    Result := 'False';
+  end;
+end;
+
+procedure DecideWhetherDeleteUserDataOnUninstall();
+var
+  valueText: string;
+  prompt: string;
+begin
+  if ShouldDeleteUserDataOnUninstallDecided then
+  begin
+    Exit;
+  end;
+
+  // 支持命令行参数（便于自动化卸载）：
+  // - /DELETEUSERDATA         -> 删除
+  // - /DELETEUSERDATA=0|1     -> 显式控制
+  // 约定：静默卸载默认不删除，除非显式传入 /DELETEUSERDATA。
+  if TryGetUninstallParamValue('/deleteuserdata', valueText) then
+  begin
+    ShouldDeleteUserDataOnUninstall := ParseBoolOrDefault(valueText, True);
+    ShouldDeleteUserDataOnUninstallDecided := True;
+    Log(Format('Uninstall param: /DELETEUSERDATA=%s -> %s', [valueText, BoolToLogText(ShouldDeleteUserDataOnUninstall)]));
+    Exit;
+  end;
+
+  if UninstallHasParamExact('/deleteuserdata') then
+  begin
+    ShouldDeleteUserDataOnUninstall := True;
+    ShouldDeleteUserDataOnUninstallDecided := True;
+    Log('Uninstall param: /DELETEUSERDATA -> True');
+    Exit;
+  end;
+
+  if UninstallIsSilentLike() then
+  begin
+    // 静默卸载默认保留用户数据，避免误删。
+    ShouldDeleteUserDataOnUninstall := False;
+    ShouldDeleteUserDataOnUninstallDecided := True;
+    Log('Silent uninstall detected -> keep user data by default');
+    Exit;
+  end;
+
+  prompt := ExpandConstant('{cm:UninstallDeleteUserDataPrompt}');
+  ShouldDeleteUserDataOnUninstall := MsgBox(prompt, mbConfirmation, MB_YESNO or MB_DEFBUTTON2) = IDYES;
+  ShouldDeleteUserDataOnUninstallDecided := True;
+  Log(Format('Interactive uninstall -> delete user data: %s', [BoolToLogText(ShouldDeleteUserDataOnUninstall)]));
+end;
+
+procedure TryDeleteInstallerUserDataOnUninstall();
+var
+  dir: string;
+  ok: Boolean;
+begin
+  dir := GetInstallerUserDataRootDir();
+  dir := Trim(dir);
+  if dir = '' then
+  begin
+    Log('Skip deleting user data: resolved directory is empty');
+    Exit;
+  end;
+
+  if not DirExists(dir) then
+  begin
+    Log(Format('Skip deleting user data: directory not found: %s', [dir]));
+    Exit;
+  end;
+
+  Log(Format('Deleting user data directory: %s', [dir]));
+  ok := DelTree(dir, True, True, True);
+  if ok then
+  begin
+    Log(Format('Deleted user data directory: %s', [dir]));
+  end
+  else
+  begin
+    Log(Format('Failed to delete user data directory: %s', [dir]));
+
+    if not UninstallIsSilentLike() then
+    begin
+      MsgBox(ExpandConstant('{cm:UninstallDeleteUserDataFailed}'), mbInformation, MB_OK);
+    end;
+  end;
+end;
+
+procedure InitializeUninstallProgressForm();
+begin
+  // 在卸载开始前尽早询问用户（避免卸载流程开始后弹窗造成困惑）。
+  DecideWhetherDeleteUserDataOnUninstall();
+end;
+
+procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
+begin
+  if CurUninstallStep = usUninstall then
+  begin
+    // 兜底：部分场景下 InitializeUninstallProgressForm 可能不会触发（例如某些静默参数组合），此处确保决策已完成。
+    DecideWhetherDeleteUserDataOnUninstall();
+  end
+  else if CurUninstallStep = usPostUninstall then
+  begin
+    // 文件卸载完成后再做数据清理，减少与运行时文件句柄冲突的概率。
+    if ShouldDeleteUserDataOnUninstall then
+    begin
+      TryDeleteInstallerUserDataOnUninstall();
+    end;
+  end;
 end;
