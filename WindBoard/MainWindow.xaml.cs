@@ -63,7 +63,7 @@ namespace WindBoard
             RedoButton.Click += (_, _) => BoardCanvas.Redo();
 
             // 左侧 Dock：窗口与入口
-            MinimizeButton.Click += (_, _) => MinimizeWindow();
+            MinimizeButton.Click += OnMinimizeButtonClicked;
             ImportButton.Click += OnImportClicked;
 
             // 右侧 Dock：页面切换与管理
@@ -93,6 +93,7 @@ namespace WindBoard
                 AppLog.Info("App", "主窗口关闭：开始清理资源");
 
                 AppSettingsService.Instance.Changed -= OnAppSettingsChanged;
+                StopScreenAnnotationForMainWindowClose();
 
                 // 以主窗口为“应用主生命周期”窗口：主窗口退出时同步关闭设置窗口，
                 // 避免设置窗口残留导致进程不退出。

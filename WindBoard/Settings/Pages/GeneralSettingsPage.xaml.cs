@@ -52,15 +52,17 @@ namespace WindBoard.Settings.Pages
 
                 string settingValue = AppSettingsService.Instance.GetLanguagePreference();
                 StartupWindowMode startupMode = AppSettingsService.Instance.GetStartupWindowMode();
+                bool enterScreenAnnotationWhenMinimized = AppSettingsService.Instance.GetEnterScreenAnnotationWhenMinimized();
 
                 _isSyncingUiFromSettings = true;
                 LanguageComboBox.SelectedValue = settingValue;
                 StartupWindowModeComboBox.SelectedValue = StartupWindowModeParser.ToSettingValue(startupMode);
+                EnterScreenAnnotationWhenMinimizedToggleSwitch.IsOn = enterScreenAnnotationWhenMinimized;
             }
             catch (Exception ex)
             {
                 // 同步失败不应影响设置页：记录日志便于排查。
-                AppLog.Warn("L10n", "同步语言设置 UI 失败", ex);
+                AppLog.Warn("Settings", "同步常规设置 UI 失败", ex);
             }
             finally
             {
@@ -149,6 +151,27 @@ namespace WindBoard.Settings.Pages
             {
                 // 切换失败不应导致设置页崩溃：记录日志并回退 UI。
                 AppLog.Warn("Settings", "设置启动窗口形态失败", ex);
+                SyncUiFromSettings();
+            }
+        }
+
+        private void OnEnterScreenAnnotationWhenMinimizedToggled(object sender, RoutedEventArgs e)
+        {
+            if (_isSyncingUiFromSettings)
+            {
+                return;
+            }
+
+            try
+            {
+                bool enabled = EnterScreenAnnotationWhenMinimizedToggleSwitch.IsOn;
+                AppLog.Info("Settings", $"用户设置“最小化进入屏幕批注”：enabled={enabled}");
+                AppSettingsService.Instance.SetEnterScreenAnnotationWhenMinimized(enabled);
+            }
+            catch (Exception ex)
+            {
+                // 切换失败不应导致设置页崩溃：记录日志并回退 UI。
+                AppLog.Warn("Settings", "设置“最小化进入屏幕批注”失败", ex);
                 SyncUiFromSettings();
             }
         }

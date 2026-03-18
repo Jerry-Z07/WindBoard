@@ -44,4 +44,10 @@
   <data name="MainWindow_FeatureWip_Content_Fmt" xml:space="preserve">
     <value>{0} is not implemented yet. The entry is reserved and will be completed later.</value>
   </data>
+  <data name="MainWindow_ScreenAnnotationStartFailed_Title" xml:space="preserve">
+    <value>Unable to enter screen annotation</value>
+  </data>
+  <data name="MainWindow_ScreenAnnotationStartFailed_Content_Fmt" xml:space="preserve">
+    <value>Failed to enter screen annotation. Reason: {0}</value>
+  </data>
 </root>

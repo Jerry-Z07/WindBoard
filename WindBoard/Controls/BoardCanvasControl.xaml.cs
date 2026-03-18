@@ -35,6 +35,8 @@ namespace WindBoard.Controls
         private UiColor _canvasBackgroundColor = UiColor.FromArgb(0xFF, 0x2E, 0x2F, 0x33);
         private UiColor _penColor = UiColor.FromArgb(0xFF, 0x00, 0x00, 0x00);
         private float _penBaseSize = 3.0f;
+        private bool _allowViewportManipulation = true;
+        private bool _allowSelectionInteraction = true;
         private ElementCardTheme _elementCardTheme = ElementCardTheme.Dark;
         private bool _isInitialized;
         private bool _isRenderingLoopActive;
@@ -269,6 +271,8 @@ namespace WindBoard.Controls
                 PenBaseSize = _penBaseSize,
                 Eraser = _eraser,
                 EraserRadiusDip = GetEraserRadiusDipFromCursor(),
+                AllowViewportManipulation = _allowViewportManipulation,
+                AllowSelectionInteraction = _allowSelectionInteraction,
             };
             _input.Attach();
             _input.StateChanged += OnInputStateChanged;
@@ -291,6 +295,32 @@ namespace WindBoard.Controls
         {
             cameraWorld = _viewport.CameraWorld;
             zoom = _viewport.Zoom;
+        }
+
+        /// <summary>
+        /// 设置当前视口（用于屏幕批注等非交互初始化场景）。
+        /// </summary>
+        internal void SetView(Vector2 cameraWorld, float zoom)
+        {
+            _viewport.SetView(cameraWorld, zoom);
+            RequestRender();
+        }
+
+        /// <summary>
+        /// 设置交互开关（用于受限模式下关闭视口手势或选择能力）。
+        /// </summary>
+        internal void SetInteractionOptions(bool allowViewportManipulation, bool allowSelectionInteraction)
+        {
+            _allowViewportManipulation = allowViewportManipulation;
+            _allowSelectionInteraction = allowSelectionInteraction;
+
+            if (_input is null)
+            {
+                return;
+            }
+
+            _input.AllowViewportManipulation = _allowViewportManipulation;
+            _input.AllowSelectionInteraction = _allowSelectionInteraction;
         }
 
         /// <summary>
@@ -328,6 +358,8 @@ namespace WindBoard.Controls
             _input.PenBaseSize = _penBaseSize;
             _input.Eraser = _eraser;
             _input.EraserRadiusDip = GetEraserRadiusDipFromCursor();
+            _input.AllowViewportManipulation = _allowViewportManipulation;
+            _input.AllowSelectionInteraction = _allowSelectionInteraction;
             _input.Attach();
 
             CanvasPanel.SizeChanged += OnCanvasSizeChanged;

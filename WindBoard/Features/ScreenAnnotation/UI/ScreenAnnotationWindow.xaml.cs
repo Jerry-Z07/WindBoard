@@ -1,0 +1,171 @@
+using System;
+using System.Numerics;
+using Microsoft.UI.Xaml;
+using WindBoard.Features.ScreenAnnotation.Interop;
+using WindBoard.Features.ScreenAnnotation.Models;
+using WindBoard.Features.ScreenAnnotation.Services;
+using WindBoard.Features.ScreenAnnotation.UI.Backdrop;
+using WindBoard.Logging;
+
+namespace WindBoard.Features.ScreenAnnotation.UI
+{
+    /// <summary>
+    /// 透明批注层窗口。
+    /// </summary>
+    public sealed partial class ScreenAnnotationWindow : Window
+    {
+        private readonly ScreenAnnotationDisplayTarget _displayTarget;
+        private readonly ScreenAnnotationSessionHost _sessionHost;
+        private readonly ScreenAnnotationWindowState _windowState;
+        private ScreenAnnotationTransparentBackdrop? _transparentBackdrop;
+        private bool _isWindowInitialized;
+        private bool _isCanvasConfigured;
+
+        internal ScreenAnnotationWindow(
+            ScreenAnnotationDisplayTarget displayTarget,
+            ScreenAnnotationSessionHost sessionHost,
+            ScreenAnnotationWindowState windowState)
+        {
+            _displayTarget = displayTarget;
+            _sessionHost = sessionHost ?? throw new ArgumentNullException(nameof(sessionHost));
+            _windowState = windowState ?? throw new ArgumentNullException(nameof(windowState));
+
+            InitializeComponent();
+
+            Activated += OnWindowActivated;
+            Closed += OnWindowClosed;
+            BoardCanvas.Loaded += OnBoardCanvasLoaded;
+        }
+
+        internal void ApplyMode(ScreenAnnotationMode mode)
+        {
+            _windowState.SetMode(mode);
+
+            if (_isCanvasConfigured)
+            {
+                BoardCanvas.Tool = _windowState.ActiveCanvasTool;
+            }
+
+            IntPtr hwnd = ScreenAnnotationWindowInterop.GetWindowHandle(this);
+            if (hwnd == IntPtr.Zero)
+            {
+                return;
+            }
+
+            if (!ScreenAnnotationWindowInterop.TrySetPassThrough(hwnd, _windowState.IsPassThrough, out string? error))
+            {
+                AppLog.Warn("ScreenAnnotation.Interop", $"切换批注层穿透失败：mode={mode}, error='{error}'");
+            }
+        }
+
+        private void OnWindowActivated(object sender, WindowActivatedEventArgs args)
+        {
+            if (_isWindowInitialized)
+            {
+                return;
+            }
+
+            IntPtr hwnd = ScreenAnnotationWindowInterop.GetWindowHandle(this);
+            if (hwnd == IntPtr.Zero)
+            {
+                return;
+            }
+
+            var appWindow = ScreenAnnotationWindowInterop.TryGetAppWindow(hwnd);
+            if (appWindow is null)
+            {
+                return;
+            }
+
+            if (!ScreenAnnotationWindowInterop.TryConfigureBorderlessWindow(appWindow, _displayTarget.Bounds, out string? windowError))
+            {
+                AppLog.Warn("ScreenAnnotation.Interop", $"配置批注层窗口失败：error='{windowError}'");
+                CloseWindowAfterInitializationFailure();
+                return;
+            }
+
+            if (!TryAttachTransparentBackdrop(hwnd, out string? backdropError))
+            {
+                AppLog.Warn("ScreenAnnotation.Interop", $"初始化批注层透明背景失败：error='{backdropError}'");
+                CloseWindowAfterInitializationFailure();
+                return;
+            }
+
+            if (!ScreenAnnotationWindowInterop.TryPrepareAnnotationWindow(hwnd, out string? interopError))
+            {
+                AppLog.Warn("ScreenAnnotation.Interop", $"初始化批注层原生样式失败：error='{interopError}'");
+                CloseWindowAfterInitializationFailure();
+                return;
+            }
+
+            _isWindowInitialized = true;
+        }
+
+        private void OnBoardCanvasLoaded(object sender, RoutedEventArgs e)
+        {
+            if (_isCanvasConfigured)
+            {
+                return;
+            }
+
+            // 批注层复用现有画布控件，但关闭视口手势与选择交互，只保留书写/擦除。
+            BoardCanvas.BindSession(_sessionHost.Session);
+            BoardCanvas.CanvasBackgroundColor = _sessionHost.CanvasBackgroundColor;
+            BoardCanvas.PenColor = _sessionHost.DefaultPenColor;
+            BoardCanvas.PenBaseSize = _sessionHost.DefaultPenBaseSize;
+            BoardCanvas.Eraser = _sessionHost.DefaultEraser;
+            BoardCanvas.SetInteractionOptions(allowViewportManipulation: false, allowSelectionInteraction: false);
+
+            ScreenAnnotationViewportPreset preset = _sessionHost.BuildViewportPreset(
+                new Vector2(
+                    Math.Max(1, _displayTarget.Bounds.Width),
+                    Math.Max(1, _displayTarget.Bounds.Height)));
+            BoardCanvas.SetView(preset.CameraWorld, preset.Zoom);
+
+            _isCanvasConfigured = true;
+            ApplyMode(_windowState.Mode);
+        }
+
+        private bool TryAttachTransparentBackdrop(IntPtr hwnd, out string? error)
+        {
+            if (_transparentBackdrop is not null)
+            {
+                error = null;
+                return true;
+            }
+
+            try
+            {
+                // 透明 backdrop 用于避免 WinUI 顶层窗口在透明场景下退化为黑底。
+                var backdrop = new ScreenAnnotationTransparentBackdrop(hwnd);
+                SystemBackdrop = backdrop;
+                _transparentBackdrop = backdrop;
+                error = null;
+                return true;
+            }
+            catch (Exception ex)
+            {
+                error = ex.Message;
+                return false;
+            }
+        }
+
+        private void OnWindowClosed(object sender, WindowEventArgs args)
+        {
+            SystemBackdrop = null;
+            _transparentBackdrop = null;
+        }
+
+        private void CloseWindowAfterInitializationFailure()
+        {
+            try
+            {
+                Close();
+            }
+            catch (Exception ex)
+            {
+                AppLog.Warn("ScreenAnnotation.Interop", "关闭初始化失败的批注层窗口时发生异常。", ex);
+            }
+        }
+    }
+}

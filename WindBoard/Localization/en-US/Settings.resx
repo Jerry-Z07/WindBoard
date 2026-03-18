@@ -146,6 +146,12 @@
   <data name="Settings_General_StartupWindowMode_FullScreen" xml:space="preserve">
     <value>Fullscreen</value>
   </data>
+  <data name="Settings_General_EnterScreenAnnotationWhenMinimized_Title" xml:space="preserve">
+    <value>Enter Screen Annotation When Minimized</value>
+  </data>
+  <data name="Settings_General_EnterScreenAnnotationWhenMinimized_Description" xml:space="preserve">
+    <value>When enabled, minimizing enters Screen Annotation; when disabled, it only performs a normal minimize.</value>
+  </data>
   <data name="Settings_About_Title" xml:space="preserve">
     <value>About</value>
   </data>

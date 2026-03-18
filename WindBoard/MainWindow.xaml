@@ -85,6 +85,15 @@
                                          <SymbolIcon x:Name="TemporaryFullScreenMenuIcon" Symbol="FullScreen" />
                                      </MenuFlyoutItem.Icon>
                                  </MenuFlyoutItem>
+                                 <MenuFlyoutItem
+                                     x:Name="ScreenAnnotationMenuFlyoutItem"
+                                     Text="{l10n:Loc Key=Common_ScreenAnnotation}"
+                                     Click="OnEnterScreenAnnotationClicked"
+                                     Visibility="Collapsed">
+                                     <MenuFlyoutItem.Icon>
+                                         <SymbolIcon Symbol="Edit" />
+                                     </MenuFlyoutItem.Icon>
+                                 </MenuFlyoutItem>
                                  <MenuFlyoutSeparator />
                                  <MenuFlyoutItem Text="{l10n:Loc Key=Common_Exit}" Click="OnExitClicked">
                                      <MenuFlyoutItem.Icon>

@@ -39,6 +39,14 @@ namespace WindBoard.Settings
         /// </summary>
         public string StartupWindowMode { get; set; } = StartupWindowModeParser.WindowedValue;
 
+        /// <summary>
+        /// 最小化时是否进入屏幕批注：
+        /// - true：最小化时进入屏幕批注（默认）
+        /// - false：仅普通最小化
+        /// 说明：使用可空 bool 兼容历史 settings.json 缺失字段的场景。
+        /// </summary>
+        public bool? EnterScreenAnnotationWhenMinimized { get; set; } = true;
+
         public CamouflageSettings Camouflage { get; set; } = new();
 
         public UpdateSettings Updates { get; set; } = new();

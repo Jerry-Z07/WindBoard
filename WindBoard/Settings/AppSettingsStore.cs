@@ -113,6 +113,7 @@ namespace WindBoard.Settings
             settings.General ??= new GeneralSettings();
             settings.General.LanguagePreference = NormalizeLanguagePreferenceOrDefault(settings.General.LanguagePreference);
             settings.General.StartupWindowMode = NormalizeStartupWindowModeOrDefault(settings.General.StartupWindowMode);
+            settings.General.EnterScreenAnnotationWhenMinimized ??= true;
             settings.General.Camouflage ??= new CamouflageSettings();
             NormalizeCamouflageSettingsInPlace(settings.General.Camouflage);
 

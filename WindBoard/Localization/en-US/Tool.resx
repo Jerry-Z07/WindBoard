@@ -26,4 +26,7 @@
   <data name="Tool_Eraser" xml:space="preserve">
     <value>Eraser</value>
   </data>
+  <data name="Tool_PassThrough" xml:space="preserve">
+    <value>Pass-through</value>
+  </data>
 </root>

@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Window
+    x:Class="WindBoard.Features.ScreenAnnotation.UI.ScreenAnnotationToolbarWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:l10n="using:WindBoard.Localization"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <Grid Background="Transparent" RequestedTheme="Light">
+        <Border
+            x:Name="RootBorder"
+            Padding="6"
+            Background="#F2FFFFFF"
+            BorderBrush="#33000000"
+            BorderThickness="1"
+            CornerRadius="18">
+            <StackPanel Orientation="Horizontal" Spacing="6">
+                <Border
+                    x:Name="DragHandleBorder"
+                    Padding="12,10"
+                    Background="#FFF8F8F8"
+                    BorderBrush="#22000000"
+                    BorderThickness="1"
+                    CornerRadius="14"
+                    PointerPressed="OnDragHandlePointerPressed"
+                    PointerMoved="OnDragHandlePointerMoved"
+                    PointerReleased="OnDragHandlePointerReleased"
+                    PointerCanceled="OnDragHandlePointerCanceled"
+                    PointerCaptureLost="OnDragHandlePointerCaptureLost">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <SymbolIcon Symbol="Edit" />
+                        <TextBlock
+                            VerticalAlignment="Center"
+                            FontWeight="SemiBold"
+                            Text="{l10n:Loc Key=Common_ScreenAnnotation}" />
+                    </StackPanel>
+                </Border>
+
+                <StackPanel
+                    x:Name="ToolButtonsPanel"
+                    Orientation="Horizontal"
+                    Spacing="6">
+                    <ToggleButton
+                        x:Name="PassThroughButton"
+                        MinWidth="74"
+                        Padding="10,8"
+                        Click="OnPassThroughButtonClicked">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <SymbolIcon Symbol="TouchPointer" />
+                            <TextBlock Text="{l10n:Loc Key=Tool_PassThrough}" />
+                        </StackPanel>
+                    </ToggleButton>
+
+                    <ToggleButton
+                        x:Name="PenButton"
+                        MinWidth="74"
+                        Padding="10,8"
+                        Click="OnPenButtonClicked">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <SymbolIcon Symbol="Edit" />
+                            <TextBlock Text="{l10n:Loc Key=Tool_Pen}" />
+                        </StackPanel>
+                    </ToggleButton>
+
+                    <ToggleButton
+                        x:Name="EraserButton"
+                        MinWidth="74"
+                        Padding="10,8"
+                        Click="OnEraserButtonClicked">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" Glyph="&#xE75C;" />
+                            <TextBlock Text="{l10n:Loc Key=Tool_Eraser}" />
+                        </StackPanel>
+                    </ToggleButton>
+
+                    <Button
+                        x:Name="ReturnToAppButton"
+                        MinWidth="90"
+                        Padding="10,8"
+                        Click="OnReturnToAppButtonClicked">
+                        <StackPanel Orientation="Horizontal" Spacing="6">
+                            <SymbolIcon Symbol="BackToWindow" />
+                            <TextBlock Text="{l10n:Loc Key=Common_ReturnToApp}" />
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
+            </StackPanel>
+        </Border>
+    </Grid>
+</Window>

@@ -188,4 +188,10 @@
   <data name="Common_Overwrite" xml:space="preserve">
     <value>Overwrite</value>
   </data>
+  <data name="Common_ScreenAnnotation" xml:space="preserve">
+    <value>Screen annotation</value>
+  </data>
+  <data name="Common_ReturnToApp" xml:space="preserve">
+    <value>Return to app</value>
+  </data>
 </root>

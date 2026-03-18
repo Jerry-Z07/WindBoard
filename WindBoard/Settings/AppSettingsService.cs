@@ -127,6 +127,15 @@ namespace WindBoard.Settings
                 : StartupWindowMode.Windowed;
         }
 
+        internal bool GetEnterScreenAnnotationWhenMinimized()
+        {
+            lock (_gate)
+            {
+                // 历史配置缺失该字段时按默认开启处理，避免升级后行为被意外关闭。
+                return Current.General?.EnterScreenAnnotationWhenMinimized ?? true;
+            }
+        }
+
         internal void SetLanguagePreference(string? settingValue)
         {
             string normalized = AppLanguagePreferenceParser.NormalizeOrDefault(settingValue);
@@ -143,6 +152,15 @@ namespace WindBoard.Settings
             {
                 s.General ??= new GeneralSettings();
                 s.General.StartupWindowMode = StartupWindowModeParser.ToSettingValue(mode);
+            });
+        }
+
+        internal void SetEnterScreenAnnotationWhenMinimized(bool enabled)
+        {
+            Update(s =>
+            {
+                s.General ??= new GeneralSettings();
+                s.General.EnterScreenAnnotationWhenMinimized = enabled;
             });
         }
 
