@@ -11,7 +11,13 @@ namespace WindBoard.Features.ScreenAnnotation.Interop
     /// </summary>
     internal static class ScreenAnnotationWindowInterop
     {
+        private const int GwlStyle = -16;
         private const int GwlExStyle = -20;
+        private const uint WsCaption = 0x00C00000;
+        private const uint WsThickFrame = 0x00040000;
+        private const uint WsMinimizeBox = 0x00020000;
+        private const uint WsMaximizeBox = 0x00010000;
+        private const uint WsSysMenu = 0x00080000;
         private const uint WsExTransparent = 0x00000020;
         private const uint WsExToolWindow = 0x00000080;
         private const uint WsExLayered = 0x00080000;
@@ -31,6 +37,7 @@ namespace WindBoard.Features.ScreenAnnotation.Interop
         private const uint MonitorDefaultToNearest = 2;
 
         private static readonly IntPtr HwndTopMost = new(-1);
+        private const uint BorderlessWindowStyleMask = WsCaption | WsThickFrame | WsMinimizeBox | WsMaximizeBox | WsSysMenu;
 
         internal static IntPtr GetWindowHandle(Window window)
         {
@@ -104,11 +111,12 @@ namespace WindBoard.Features.ScreenAnnotation.Interop
 
         internal static bool TryPrepareAnnotationWindow(IntPtr hwnd, out string? error)
         {
-            if (!TryUpdateExtendedStyle(
-                hwnd,
-                addFlags: WsExToolWindow | WsExLayered,
-                removeFlags: 0,
-                out error))
+            if (!TryUpdateStandardStyle(hwnd, BuildBorderlessWindowStyle, out error))
+            {
+                return false;
+            }
+
+            if (!TryUpdateExtendedStyle(hwnd, BuildAnnotationWindowExtendedStyle, out error))
             {
                 return false;
             }
@@ -124,11 +132,12 @@ namespace WindBoard.Features.ScreenAnnotation.Interop
 
         internal static bool TryPrepareToolbarWindow(IntPtr hwnd, out string? error)
         {
-            if (!TryUpdateExtendedStyle(
-                hwnd,
-                addFlags: WsExToolWindow,
-                removeFlags: 0,
-                out error))
+            if (!TryUpdateStandardStyle(hwnd, BuildBorderlessWindowStyle, out error))
+            {
+                return false;
+            }
+
+            if (!TryUpdateExtendedStyle(hwnd, BuildToolbarWindowExtendedStyle, out error))
             {
                 return false;
             }
@@ -179,6 +188,25 @@ namespace WindBoard.Features.ScreenAnnotation.Interop
                 addFlags: enabled ? WsExTransparent : 0,
                 removeFlags: enabled ? 0 : WsExTransparent,
                 out error);
+        }
+
+        /// <summary>
+        /// 仅依赖 <c>OverlappedPresenter.SetBorderAndTitleBar(false, false)</c> 在部分 WinUI 3 场景下
+        /// 仍会保留非客户区边框，这里额外移除 Win32 标准窗口样式中的边框相关位。
+        /// </summary>
+        internal static uint BuildBorderlessWindowStyle(uint currentStyle)
+        {
+            return currentStyle & ~BorderlessWindowStyleMask;
+        }
+
+        internal static uint BuildAnnotationWindowExtendedStyle(uint currentStyle)
+        {
+            return BuildUpdatedStyle(currentStyle, WsExToolWindow | WsExLayered, removeFlags: 0);
+        }
+
+        internal static uint BuildToolbarWindowExtendedStyle(uint currentStyle)
+        {
+            return BuildUpdatedStyle(currentStyle, WsExToolWindow, removeFlags: 0);
         }
 
         internal static bool TryMinimizeWindow(IntPtr hwnd, out string? error)
@@ -320,7 +348,35 @@ namespace WindBoard.Features.ScreenAnnotation.Interop
             return true;
         }
 
+        private static bool TryUpdateStandardStyle(IntPtr hwnd, Func<uint, uint> updateStyle, out string? error)
+        {
+            return TryUpdateWindowStyle(hwnd, GwlStyle, updateStyle, styleName: "style", out error);
+        }
+
+        private static bool TryUpdateExtendedStyle(IntPtr hwnd, Func<uint, uint> updateStyle, out string? error)
+        {
+            return TryUpdateWindowStyle(hwnd, GwlExStyle, updateStyle, styleName: "exStyle", out error);
+        }
+
         private static bool TryUpdateExtendedStyle(IntPtr hwnd, uint addFlags, uint removeFlags, out string? error)
+        {
+            return TryUpdateExtendedStyle(
+                hwnd,
+                currentStyle => BuildUpdatedStyle(currentStyle, addFlags, removeFlags),
+                out error);
+        }
+
+        private static uint BuildUpdatedStyle(uint currentStyle, uint addFlags, uint removeFlags)
+        {
+            return (currentStyle | addFlags) & ~removeFlags;
+        }
+
+        private static bool TryUpdateWindowStyle(
+            IntPtr hwnd,
+            int index,
+            Func<uint, uint> updateStyle,
+            string styleName,
+            out string? error)
         {
             if (hwnd == IntPtr.Zero)
             {
@@ -329,22 +385,28 @@ namespace WindBoard.Features.ScreenAnnotation.Interop
             }
 
             SetLastError(0);
-            nint currentStyle = GetWindowLongPtr(hwnd, GwlExStyle);
+            nint currentStyleValue = GetWindowLongPtr(hwnd, index);
             int currentError = Marshal.GetLastWin32Error();
-            if (currentStyle == 0 && currentError != 0)
+            if (currentStyleValue == 0 && currentError != 0)
             {
-                error = $"GetWindowLongPtr failed: lastError={currentError}";
+                error = $"GetWindowLongPtr({styleName}) failed: lastError={currentError}";
                 return false;
             }
 
-            uint newStyle = (((uint)currentStyle) | addFlags) & ~removeFlags;
+            uint currentStyle = unchecked((uint)currentStyleValue.ToInt64());
+            uint newStyle = updateStyle(currentStyle);
+            if (newStyle == currentStyle)
+            {
+                error = null;
+                return true;
+            }
 
             SetLastError(0);
-            _ = SetWindowLongPtr(hwnd, GwlExStyle, (nint)newStyle);
+            _ = SetWindowLongPtr(hwnd, index, (nint)newStyle);
             int setError = Marshal.GetLastWin32Error();
             if (setError != 0)
             {
-                error = $"SetWindowLongPtr failed: lastError={setError}";
+                error = $"SetWindowLongPtr({styleName}) failed: lastError={setError}";
                 return false;
             }
 
