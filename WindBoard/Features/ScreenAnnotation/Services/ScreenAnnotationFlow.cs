@@ -176,6 +176,8 @@ namespace WindBoard.Features.ScreenAnnotation.Services
 
             if (_annotationWindow is not null)
             {
+                _annotationWindow.OverlayActivated += OnAnnotationWindowActivated;
+                _annotationWindow.OverlayWindowPositionChanged += OnAnnotationWindowPositionChanged;
                 _annotationWindow.Closed += OnManagedWindowClosed;
             }
         }
@@ -196,15 +198,19 @@ namespace WindBoard.Features.ScreenAnnotation.Services
 
             if (_annotationWindow is not null)
             {
+                _annotationWindow.OverlayActivated -= OnAnnotationWindowActivated;
+                _annotationWindow.OverlayWindowPositionChanged -= OnAnnotationWindowPositionChanged;
                 _annotationWindow.Closed -= OnManagedWindowClosed;
             }
         }
 
         private void ApplyMode(ScreenAnnotationMode mode)
         {
-            _windowState?.SetMode(mode);
-            _annotationWindow?.ApplyMode(mode);
-            _toolbarWindow?.SetSelectedMode(mode);
+            ScreenAnnotationToolbarInteractivityCoordinator.ApplyMode(
+                mode,
+                _windowState,
+                _annotationWindow,
+                _toolbarWindow);
 
             AppLog.Info("ScreenAnnotation", $"模式切换：mode={mode}");
         }
@@ -260,6 +266,47 @@ namespace WindBoard.Features.ScreenAnnotation.Services
 
             AppLog.Warn("ScreenAnnotation", "检测到桌面批注窗口被关闭，开始执行回收流程。");
             await StopAsync(restoreOwnerWindow: true, activateOwnerWindow: true);
+        }
+
+        private void OnAnnotationWindowActivated(object? sender, EventArgs e)
+        {
+            if (_isStopping)
+            {
+                return;
+            }
+
+            try
+            {
+                // 批注层在书写过程中可能重新跃升到顶层，这里立即把工具栏重新抬回最上面。
+                ScreenAnnotationToolbarInteractivityCoordinator.EnsureToolbarInteractiveAfterOverlayActivation(
+                    _annotationWindow,
+                    _toolbarWindow);
+            }
+            catch (Exception ex)
+            {
+                AppLog.Warn("ScreenAnnotation", "批注层重新激活后刷新工具栏层级失败。", ex);
+            }
+        }
+
+        private void OnAnnotationWindowPositionChanged(object? sender, ScreenAnnotationOverlayWindowPositionChangedEventArgs e)
+        {
+            if (_isStopping)
+            {
+                return;
+            }
+
+            try
+            {
+                ScreenAnnotationToolbarInteractivityCoordinator.EnsureToolbarInteractiveAfterOverlayWindowPositionChanged(
+                    _annotationWindow,
+                    _toolbarWindow,
+                    e.InsertAfterHwnd,
+                    e.WindowPosFlags);
+            }
+            catch (Exception ex)
+            {
+                AppLog.Warn("ScreenAnnotation", "批注层窗口顺序变化后刷新工具栏层级失败。", ex);
+            }
         }
 
         private static void CloseWindowSafely(Window? window, string name)

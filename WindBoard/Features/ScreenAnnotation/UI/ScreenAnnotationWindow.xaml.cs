@@ -12,8 +12,10 @@ namespace WindBoard.Features.ScreenAnnotation.UI
     /// <summary>
     /// 透明批注层窗口。
     /// </summary>
-    public sealed partial class ScreenAnnotationWindow : Window
+    public sealed partial class ScreenAnnotationWindow : Window, IScreenAnnotationModeOverlay
     {
+        private const uint WmWindowPosChanged = 0x0047;
+
         private readonly ScreenAnnotationDisplayTarget _displayTarget;
         private readonly ScreenAnnotationSessionHost _sessionHost;
         private readonly ScreenAnnotationWindowState _windowState;
@@ -62,6 +64,11 @@ namespace WindBoard.Features.ScreenAnnotation.UI
         {
             if (_isWindowInitialized)
             {
+                if (args.WindowActivationState != WindowActivationState.Deactivated)
+                {
+                    OverlayActivated?.Invoke(this, EventArgs.Empty);
+                }
+
                 return;
             }
 
@@ -101,6 +108,16 @@ namespace WindBoard.Features.ScreenAnnotation.UI
             _isWindowInitialized = true;
         }
 
+        internal event EventHandler? OverlayActivated;
+
+        internal event EventHandler<ScreenAnnotationOverlayWindowPositionChangedEventArgs>? OverlayWindowPositionChanged;
+
+        internal bool TryGetWindowHandle(out IntPtr hwnd)
+        {
+            hwnd = ScreenAnnotationWindowInterop.GetWindowHandle(this);
+            return hwnd != IntPtr.Zero;
+        }
+
         private void OnBoardCanvasLoaded(object sender, RoutedEventArgs e)
         {
             if (_isCanvasConfigured)
@@ -138,6 +155,7 @@ namespace WindBoard.Features.ScreenAnnotation.UI
             {
                 // 透明 backdrop 用于避免 WinUI 顶层窗口在透明场景下退化为黑底。
                 var backdrop = new ScreenAnnotationTransparentBackdrop(hwnd);
+                backdrop.WindowMessageObserved += OnBackdropWindowMessageObserved;
                 SystemBackdrop = backdrop;
                 _transparentBackdrop = backdrop;
                 error = null;
@@ -152,8 +170,31 @@ namespace WindBoard.Features.ScreenAnnotation.UI
 
         private void OnWindowClosed(object sender, WindowEventArgs args)
         {
+            if (_transparentBackdrop is not null)
+            {
+                _transparentBackdrop.WindowMessageObserved -= OnBackdropWindowMessageObserved;
+            }
+
             SystemBackdrop = null;
             _transparentBackdrop = null;
+        }
+
+        private void OnBackdropWindowMessageObserved(object? sender, Backdrop.ScreenAnnotationWindowMessageEventArgs e)
+        {
+            if (!_isWindowInitialized || e.MessageId != WmWindowPosChanged)
+            {
+                return;
+            }
+
+            if (!ScreenAnnotationWindowInterop.TryReadWindowPos(e.LParam, out IntPtr insertAfterHwnd, out uint flags))
+            {
+                return;
+            }
+
+            // 只把窗口位置变化事实向上层汇报，由流程层决定是否需要恢复“工具栏在上、批注层在下”的顺序。
+            OverlayWindowPositionChanged?.Invoke(
+                this,
+                new ScreenAnnotationOverlayWindowPositionChangedEventArgs(insertAfterHwnd, flags));
         }
 
         private void CloseWindowAfterInitializationFailure()
@@ -167,5 +208,28 @@ namespace WindBoard.Features.ScreenAnnotation.UI
                 AppLog.Warn("ScreenAnnotation.Interop", "关闭初始化失败的批注层窗口时发生异常。", ex);
             }
         }
+
+        void IScreenAnnotationModeOverlay.ApplyMode(ScreenAnnotationMode mode)
+        {
+            ApplyMode(mode);
+        }
+
+        bool IScreenAnnotationModeOverlay.TryGetWindowHandle(out IntPtr hwnd)
+        {
+            return TryGetWindowHandle(out hwnd);
+        }
+    }
+
+    internal sealed class ScreenAnnotationOverlayWindowPositionChangedEventArgs : EventArgs
+    {
+        internal ScreenAnnotationOverlayWindowPositionChangedEventArgs(IntPtr insertAfterHwnd, uint windowPosFlags)
+        {
+            InsertAfterHwnd = insertAfterHwnd;
+            WindowPosFlags = windowPosFlags;
+        }
+
+        internal IntPtr InsertAfterHwnd { get; }
+
+        internal uint WindowPosFlags { get; }
     }
 }

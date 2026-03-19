@@ -5,6 +5,7 @@ using Microsoft.UI.Xaml.Input;
 using Windows.Graphics;
 using WindBoard.Features.ScreenAnnotation.Interop;
 using WindBoard.Features.ScreenAnnotation.Models;
+using WindBoard.Features.ScreenAnnotation.Services;
 using WindBoard.Logging;
 
 namespace WindBoard.Features.ScreenAnnotation.UI
@@ -12,7 +13,7 @@ namespace WindBoard.Features.ScreenAnnotation.UI
     /// <summary>
     /// 屏幕批注悬浮工具栏。
     /// </summary>
-    public sealed partial class ScreenAnnotationToolbarWindow : Window
+    public sealed partial class ScreenAnnotationToolbarWindow : Window, IScreenAnnotationModeToolbar
     {
         private readonly ScreenAnnotationDisplayTarget _displayTarget;
         private bool _isWindowInitialized;
@@ -39,6 +40,37 @@ namespace WindBoard.Features.ScreenAnnotation.UI
             PassThroughButton.IsChecked = mode == ScreenAnnotationMode.PassThrough;
             PenButton.IsChecked = mode == ScreenAnnotationMode.Pen;
             EraserButton.IsChecked = mode == ScreenAnnotationMode.Eraser;
+        }
+
+        internal void EnsureInteractiveTopMost(IScreenAnnotationModeOverlay? overlay)
+        {
+            IntPtr hwnd = ScreenAnnotationWindowInterop.GetWindowHandle(this);
+            if (hwnd == IntPtr.Zero)
+            {
+                return;
+            }
+
+            if (!ScreenAnnotationWindowInterop.TryPromoteWindowToTopMost(hwnd, out string? error))
+            {
+                AppLog.Warn("ScreenAnnotation.Interop", $"刷新工具栏顶层顺序失败：error='{error}'");
+                return;
+            }
+
+            if (overlay is null || !overlay.TryGetWindowHandle(out IntPtr overlayHwnd))
+            {
+                return;
+            }
+
+            if (!ScreenAnnotationWindowInterop.TryPlaceWindowBehind(overlayHwnd, hwnd, out string? stackError))
+            {
+                AppLog.Warn("ScreenAnnotation.Interop", $"恢复工具栏与批注层相对层级失败：error='{stackError}'");
+            }
+        }
+
+        internal bool TryGetWindowHandle(out IntPtr hwnd)
+        {
+            hwnd = ScreenAnnotationWindowInterop.GetWindowHandle(this);
+            return hwnd != IntPtr.Zero;
         }
 
         private void OnWindowActivated(object sender, WindowActivatedEventArgs args)
@@ -220,6 +252,21 @@ namespace WindBoard.Features.ScreenAnnotation.UI
             {
                 AppLog.Warn("ScreenAnnotation.Interop", "关闭初始化失败的工具栏窗口时发生异常。", ex);
             }
+        }
+
+        void IScreenAnnotationModeToolbar.SetSelectedMode(ScreenAnnotationMode mode)
+        {
+            SetSelectedMode(mode);
+        }
+
+        void IScreenAnnotationModeToolbar.EnsureInteractiveTopMost(IScreenAnnotationModeOverlay? overlay)
+        {
+            EnsureInteractiveTopMost(overlay);
+        }
+
+        bool IScreenAnnotationModeToolbar.TryGetWindowHandle(out IntPtr hwnd)
+        {
+            return TryGetWindowHandle(out hwnd);
         }
     }
 }

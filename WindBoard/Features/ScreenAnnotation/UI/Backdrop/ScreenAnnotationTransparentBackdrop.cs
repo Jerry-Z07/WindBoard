@@ -38,6 +38,8 @@ namespace WindBoard.Features.ScreenAnnotation.UI.Backdrop
             _tintColor = tintColor;
         }
 
+        internal event EventHandler<ScreenAnnotationWindowMessageEventArgs>? WindowMessageObserved;
+
         protected override CompositionBrush CreateBrush(Compositor compositor)
         {
             _brush = compositor.CreateColorBrush(_tintColor);
@@ -121,6 +123,8 @@ namespace WindBoard.Features.ScreenAnnotation.UI.Backdrop
                 e.Result = IntPtr.Zero;
                 e.Handled = true;
             }
+
+            WindowMessageObserved?.Invoke(this, e);
         }
 
         private void ConfigureDwm(IntPtr hwnd)

@@ -136,6 +136,42 @@ namespace WindBoard.Features.ScreenAnnotation.Interop
             return TrySetTopMost(hwnd, out error);
         }
 
+        internal static bool TryPromoteWindowToTopMost(IntPtr hwnd, out string? error)
+        {
+            return TrySetTopMost(hwnd, out error);
+        }
+
+        internal static bool TryPlaceWindowBehind(IntPtr hwnd, IntPtr behindWindowHwnd, out string? error)
+        {
+            if (hwnd == IntPtr.Zero)
+            {
+                error = "Window handle is zero.";
+                return false;
+            }
+
+            if (behindWindowHwnd == IntPtr.Zero)
+            {
+                error = "Behind window handle is zero.";
+                return false;
+            }
+
+            if (!SetWindowPos(
+                hwnd,
+                behindWindowHwnd,
+                0,
+                0,
+                0,
+                0,
+                SwpNoMove | SwpNoSize | SwpNoActivate | SwpShowWindow))
+            {
+                error = $"SetWindowPos(relative z-order) failed: lastError={Marshal.GetLastWin32Error()}";
+                return false;
+            }
+
+            error = null;
+            return true;
+        }
+
         internal static bool TrySetPassThrough(IntPtr hwnd, bool enabled, out string? error)
         {
             return TryUpdateExtendedStyle(
@@ -246,6 +282,22 @@ namespace WindBoard.Features.ScreenAnnotation.Interop
             bounds = ToRectInt32(monitorInfo.MonitorRect);
             workArea = ToRectInt32(monitorInfo.WorkRect);
             error = null;
+            return true;
+        }
+
+        internal static bool TryReadWindowPos(nint lParam, out IntPtr insertAfterHwnd, out uint flags)
+        {
+            insertAfterHwnd = IntPtr.Zero;
+            flags = 0;
+
+            if (lParam == 0)
+            {
+                return false;
+            }
+
+            WindowPos windowPos = Marshal.PtrToStructure<WindowPos>((IntPtr)lParam);
+            insertAfterHwnd = windowPos.InsertAfter;
+            flags = windowPos.Flags;
             return true;
         }
 
@@ -389,6 +441,18 @@ namespace WindBoard.Features.ScreenAnnotation.Interop
         {
             public int X;
             public int Y;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct WindowPos
+        {
+            public IntPtr Hwnd;
+            public IntPtr InsertAfter;
+            public int X;
+            public int Y;
+            public int Cx;
+            public int Cy;
+            public uint Flags;
         }
     }
 }
