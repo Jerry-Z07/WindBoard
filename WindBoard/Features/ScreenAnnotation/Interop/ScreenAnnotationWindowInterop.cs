@@ -32,9 +32,14 @@ namespace WindBoard.Features.ScreenAnnotation.Interop
         private const int SwMinimize = 6;
         private const int SwRestore = 9;
         private const int SwShow = 5;
+        private const int EInvalidArg = unchecked((int)0x80070057);
 
         private const uint LwaAlpha = 0x00000002;
         private const uint MonitorDefaultToNearest = 2;
+        internal const uint DwmWindowCornerPreferenceAttribute = 33;
+        internal const uint DwmBorderColorAttribute = 34;
+        internal const uint DwmWindowCornerPreferenceDoNotRound = 1;
+        internal const uint DwmColorNone = 0xFFFFFFFE;
 
         private static readonly IntPtr HwndTopMost = new(-1);
         private const uint BorderlessWindowStyleMask = WsCaption | WsThickFrame | WsMinimizeBox | WsMaximizeBox | WsSysMenu;
@@ -127,6 +132,11 @@ namespace WindBoard.Features.ScreenAnnotation.Interop
                 return false;
             }
 
+            if (!TrySuppressWindowBorder(hwnd, out error))
+            {
+                return false;
+            }
+
             return TrySetTopMost(hwnd, out error);
         }
 
@@ -138,6 +148,17 @@ namespace WindBoard.Features.ScreenAnnotation.Interop
             }
 
             if (!TryUpdateExtendedStyle(hwnd, BuildToolbarWindowExtendedStyle, out error))
+            {
+                return false;
+            }
+
+            if (!SetLayeredWindowAttributes(hwnd, 0, 255, LwaAlpha))
+            {
+                error = $"SetLayeredWindowAttributes failed: lastError={Marshal.GetLastWin32Error()}";
+                return false;
+            }
+
+            if (!TrySuppressWindowBorder(hwnd, out error))
             {
                 return false;
             }
@@ -206,7 +227,7 @@ namespace WindBoard.Features.ScreenAnnotation.Interop
 
         internal static uint BuildToolbarWindowExtendedStyle(uint currentStyle)
         {
-            return BuildUpdatedStyle(currentStyle, WsExToolWindow, removeFlags: 0);
+            return BuildUpdatedStyle(currentStyle, WsExToolWindow | WsExLayered, removeFlags: 0);
         }
 
         internal static bool TryMinimizeWindow(IntPtr hwnd, out string? error)
@@ -348,6 +369,42 @@ namespace WindBoard.Features.ScreenAnnotation.Interop
             return true;
         }
 
+        private static bool TrySuppressWindowBorder(IntPtr hwnd, out string? error)
+        {
+            if (hwnd == IntPtr.Zero)
+            {
+                error = "Window handle is zero.";
+                return false;
+            }
+
+            // 在 Win11 上，单纯移除 Win32 样式位仍可能残留系统圆角轮廓与描边；
+            // 这里尽力关闭圆角偏好并把边框颜色设为 NONE。
+            uint cornerPreference = DwmWindowCornerPreferenceDoNotRound;
+            int cornerResult = DwmSetWindowAttribute(
+                hwnd,
+                DwmWindowCornerPreferenceAttribute,
+                ref cornerPreference,
+                (uint)Marshal.SizeOf<uint>());
+            if (cornerResult != 0 && cornerResult != EInvalidArg)
+            {
+                error = $"DwmSetWindowAttribute(DWMWA_WINDOW_CORNER_PREFERENCE) failed: hr=0x{cornerResult:X8}";
+                return false;
+            }
+
+            uint borderColor = DwmColorNone;
+            int result = DwmSetWindowAttribute(hwnd, DwmBorderColorAttribute, ref borderColor, (uint)Marshal.SizeOf<uint>());
+            if (result == 0 || result == EInvalidArg)
+            {
+                // Win11 22000+ 可通过 DWMWA_BORDER_COLOR=DWMWA_COLOR_NONE 隐藏系统描边；
+                // 对不支持该属性的系统（如部分 Win10 环境）退化为忽略，避免影响窗口初始化。
+                error = null;
+                return true;
+            }
+
+            error = $"DwmSetWindowAttribute(DWMWA_BORDER_COLOR) failed: hr=0x{result:X8}";
+            return false;
+        }
+
         private static bool TryUpdateStandardStyle(IntPtr hwnd, Func<uint, uint> updateStyle, out string? error)
         {
             return TryUpdateWindowStyle(hwnd, GwlStyle, updateStyle, styleName: "style", out error);
@@ -458,6 +515,13 @@ namespace WindBoard.Features.ScreenAnnotation.Interop
 
         [DllImport("user32.dll", SetLastError = true)]
         private static extern bool SetForegroundWindow(IntPtr hWnd);
+
+        [DllImport("dwmapi.dll", PreserveSig = true)]
+        private static extern int DwmSetWindowAttribute(
+            IntPtr hwnd,
+            uint dwAttribute,
+            ref uint pvAttribute,
+            uint cbAttribute);
 
         [DllImport("user32.dll", SetLastError = true)]
         private static extern bool GetCursorPos(out Point point);

@@ -12,30 +12,33 @@
         <Border
             x:Name="RootBorder"
             Padding="6"
-            Background="#F2FFFFFF"
-            BorderBrush="#33000000"
-            BorderThickness="1"
+            Background="Transparent"
+            BorderBrush="Transparent"
+            BorderThickness="0"
             CornerRadius="18">
             <StackPanel Orientation="Horizontal" Spacing="6">
                 <Border
                     x:Name="DragHandleBorder"
-                    Padding="12,10"
+                    Width="48"
+                    Height="48"
+                    Padding="0"
                     Background="#FFF8F8F8"
                     BorderBrush="#22000000"
                     BorderThickness="1"
                     CornerRadius="14"
+                    ToolTipService.ToolTip="{l10n:Loc Key=Common_ScreenAnnotation}"
                     PointerPressed="OnDragHandlePointerPressed"
                     PointerMoved="OnDragHandlePointerMoved"
                     PointerReleased="OnDragHandlePointerReleased"
                     PointerCanceled="OnDragHandlePointerCanceled"
                     PointerCaptureLost="OnDragHandlePointerCaptureLost">
-                    <StackPanel Orientation="Horizontal" Spacing="8">
-                        <SymbolIcon Symbol="Edit" />
-                        <TextBlock
-                            VerticalAlignment="Center"
-                            FontWeight="SemiBold"
-                            Text="{l10n:Loc Key=Common_ScreenAnnotation}" />
-                    </StackPanel>
+                    <Image
+                        Width="20"
+                        Height="20"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center"
+                        Source="ms-appx:///Assets/icon.png"
+                        Stretch="Uniform" />
                 </Border>
 
                 <StackPanel
@@ -44,46 +47,42 @@
                     Spacing="6">
                     <ToggleButton
                         x:Name="PassThroughButton"
-                        MinWidth="74"
-                        Padding="10,8"
+                        Width="48"
+                        Height="48"
+                        Padding="0"
+                        ToolTipService.ToolTip="{l10n:Loc Key=Tool_PassThrough}"
                         Click="OnPassThroughButtonClicked">
-                        <StackPanel Orientation="Horizontal" Spacing="6">
-                            <SymbolIcon Symbol="TouchPointer" />
-                            <TextBlock Text="{l10n:Loc Key=Tool_PassThrough}" />
-                        </StackPanel>
+                        <SymbolIcon Symbol="TouchPointer" />
                     </ToggleButton>
 
                     <ToggleButton
                         x:Name="PenButton"
-                        MinWidth="74"
-                        Padding="10,8"
+                        Width="48"
+                        Height="48"
+                        Padding="0"
+                        ToolTipService.ToolTip="{l10n:Loc Key=Tool_Pen}"
                         Click="OnPenButtonClicked">
-                        <StackPanel Orientation="Horizontal" Spacing="6">
-                            <SymbolIcon Symbol="Edit" />
-                            <TextBlock Text="{l10n:Loc Key=Tool_Pen}" />
-                        </StackPanel>
+                        <SymbolIcon Symbol="Edit" />
                     </ToggleButton>
 
                     <ToggleButton
                         x:Name="EraserButton"
-                        MinWidth="74"
-                        Padding="10,8"
+                        Width="48"
+                        Height="48"
+                        Padding="0"
+                        ToolTipService.ToolTip="{l10n:Loc Key=Tool_Eraser}"
                         Click="OnEraserButtonClicked">
-                        <StackPanel Orientation="Horizontal" Spacing="6">
-                            <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" Glyph="&#xE75C;" />
-                            <TextBlock Text="{l10n:Loc Key=Tool_Eraser}" />
-                        </StackPanel>
+                        <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" Glyph="&#xE75C;" />
                     </ToggleButton>
 
                     <Button
                         x:Name="ReturnToAppButton"
-                        MinWidth="90"
-                        Padding="10,8"
+                        Width="48"
+                        Height="48"
+                        Padding="0"
+                        ToolTipService.ToolTip="{l10n:Loc Key=Common_ReturnToApp}"
                         Click="OnReturnToAppButtonClicked">
-                        <StackPanel Orientation="Horizontal" Spacing="6">
-                            <SymbolIcon Symbol="BackToWindow" />
-                            <TextBlock Text="{l10n:Loc Key=Common_ReturnToApp}" />
-                        </StackPanel>
+                        <SymbolIcon Symbol="BackToWindow" />
                     </Button>
                 </StackPanel>
             </StackPanel>

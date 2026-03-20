@@ -18,7 +18,7 @@ namespace WindBoard.Features.ScreenAnnotation.Models
         /// </summary>
         /// <remarks>
         /// 约定：
-        /// - 优先放在工作区右上角；
+        /// - 优先放在工作区左下角；
         /// - 若工具栏尺寸大于工作区，则钳制到工作区内，避免初始位置跑出屏幕。
         /// </remarks>
         internal RectInt32 GetInitialToolbarBounds(int width, int height)
@@ -32,8 +32,8 @@ namespace WindBoard.Features.ScreenAnnotation.Models
             int minY = area.Y;
             int maxY = area.Y + Math.Max(0, area.Height - toolbarHeight);
 
-            int preferredX = area.X + area.Width - toolbarWidth - DefaultToolbarMargin;
-            int preferredY = area.Y + DefaultToolbarMargin;
+            int preferredX = area.X + DefaultToolbarMargin;
+            int preferredY = area.Y + area.Height - toolbarHeight - DefaultToolbarMargin;
 
             return new RectInt32(
                 Math.Clamp(preferredX, minX, maxX),

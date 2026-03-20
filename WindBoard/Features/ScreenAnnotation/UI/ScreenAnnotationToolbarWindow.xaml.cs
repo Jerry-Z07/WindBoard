@@ -6,6 +6,7 @@ using Windows.Graphics;
 using WindBoard.Features.ScreenAnnotation.Interop;
 using WindBoard.Features.ScreenAnnotation.Models;
 using WindBoard.Features.ScreenAnnotation.Services;
+using WindBoard.Features.ScreenAnnotation.UI.Backdrop;
 using WindBoard.Logging;
 
 namespace WindBoard.Features.ScreenAnnotation.UI
@@ -15,7 +16,11 @@ namespace WindBoard.Features.ScreenAnnotation.UI
     /// </summary>
     public sealed partial class ScreenAnnotationToolbarWindow : Window, IScreenAnnotationModeToolbar
     {
+        private const int ExpandedToolbarWidth = 276;
+        private const int ToolbarHeight = 60;
+
         private readonly ScreenAnnotationDisplayTarget _displayTarget;
+        private ScreenAnnotationTransparentBackdrop? _transparentBackdrop;
         private bool _isWindowInitialized;
         private bool _isCollapsed;
         private uint? _dragPointerId;
@@ -29,6 +34,7 @@ namespace WindBoard.Features.ScreenAnnotation.UI
 
             InitializeComponent();
             Activated += OnWindowActivated;
+            Closed += OnWindowClosed;
         }
 
         internal event EventHandler<ScreenAnnotationMode>? ModeRequested;
@@ -92,10 +98,17 @@ namespace WindBoard.Features.ScreenAnnotation.UI
                 return;
             }
 
-            RectInt32 bounds = _displayTarget.GetInitialToolbarBounds(width: 420, height: 72);
+            RectInt32 bounds = _displayTarget.GetInitialToolbarBounds(width: ExpandedToolbarWidth, height: ToolbarHeight);
             if (!ScreenAnnotationWindowInterop.TryConfigureBorderlessWindow(appWindow, bounds, out string? windowError))
             {
                 AppLog.Warn("ScreenAnnotation.Interop", $"配置工具栏窗口失败：error='{windowError}'");
+                CloseWindowAfterInitializationFailure();
+                return;
+            }
+
+            if (!TryAttachTransparentBackdrop(hwnd, out string? backdropError))
+            {
+                AppLog.Warn("ScreenAnnotation.Interop", $"初始化工具栏透明背景失败：error='{backdropError}'");
                 CloseWindowAfterInitializationFailure();
                 return;
             }
@@ -240,6 +253,36 @@ namespace WindBoard.Features.ScreenAnnotation.UI
         {
             _isCollapsed = !_isCollapsed;
             ToolButtonsPanel.Visibility = _isCollapsed ? Visibility.Collapsed : Visibility.Visible;
+        }
+
+        private bool TryAttachTransparentBackdrop(IntPtr hwnd, out string? error)
+        {
+            if (_transparentBackdrop is not null)
+            {
+                error = null;
+                return true;
+            }
+
+            try
+            {
+                // 工具栏也需要挂透明 backdrop，否则即便 XAML 根节点透明，WinUI 顶层窗口仍可能退化成黑底。
+                var backdrop = new ScreenAnnotationTransparentBackdrop(hwnd);
+                SystemBackdrop = backdrop;
+                _transparentBackdrop = backdrop;
+                error = null;
+                return true;
+            }
+            catch (Exception ex)
+            {
+                error = ex.Message;
+                return false;
+            }
+        }
+
+        private void OnWindowClosed(object sender, WindowEventArgs args)
+        {
+            SystemBackdrop = null;
+            _transparentBackdrop = null;
         }
 
         private void CloseWindowAfterInitializationFailure()

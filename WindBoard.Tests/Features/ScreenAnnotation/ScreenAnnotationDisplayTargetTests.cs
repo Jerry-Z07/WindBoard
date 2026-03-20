@@ -7,7 +7,7 @@ namespace WindBoard.Tests.Features.ScreenAnnotation;
 public sealed class ScreenAnnotationDisplayTargetTests
 {
     [Fact]
-    public void GetInitialToolbarBounds_PlacesToolbarInsideDisplay()
+    public void GetInitialToolbarBounds_PlacesToolbarAtBottomLeftWithMargin()
     {
         var target = new ScreenAnnotationDisplayTarget(
             MonitorHandle: nint.Zero,
@@ -16,10 +16,10 @@ public sealed class ScreenAnnotationDisplayTargetTests
 
         RectInt32 toolbarBounds = target.GetInitialToolbarBounds(width: 280, height: 72);
 
-        Assert.True(toolbarBounds.X >= target.Bounds.X);
-        Assert.True(toolbarBounds.Y >= target.Bounds.Y);
-        Assert.True(toolbarBounds.X + toolbarBounds.Width <= target.Bounds.X + target.Bounds.Width);
-        Assert.True(toolbarBounds.Y + toolbarBounds.Height <= target.Bounds.Y + target.Bounds.Height);
+        Assert.Equal(108, toolbarBounds.X);
+        Assert.Equal(1020, toolbarBounds.Y);
+        Assert.Equal(280, toolbarBounds.Width);
+        Assert.Equal(72, toolbarBounds.Height);
     }
 
     [Fact]
@@ -33,7 +33,7 @@ public sealed class ScreenAnnotationDisplayTargetTests
         RectInt32 toolbarBounds = target.GetInitialToolbarBounds(width: 280, height: 72);
 
         Assert.Equal(0, toolbarBounds.X);
-        Assert.Equal(8, toolbarBounds.Y);
+        Assert.Equal(0, toolbarBounds.Y);
         Assert.Equal(200, toolbarBounds.Width);
         Assert.Equal(72, toolbarBounds.Height);
     }

@@ -47,12 +47,26 @@ public sealed class ScreenAnnotationWindowInteropStyleTests
     }
 
     [Fact]
-    public void BuildToolbarWindowExtendedStyle_AddsToolWindowAndKeepsExistingFlags()
+    public void BuildToolbarWindowExtendedStyle_AddsToolWindowAndLayeredFlags()
     {
         uint result = ScreenAnnotationWindowInterop.BuildToolbarWindowExtendedStyle(WsExTransparent);
 
         Assert.Equal(WsExTransparent, result & WsExTransparent);
         Assert.Equal(WsExToolWindow, result & WsExToolWindow);
-        Assert.Equal(0u, result & WsExLayered);
+        Assert.Equal(WsExLayered, result & WsExLayered);
+    }
+
+    [Fact]
+    public void DwmBorderSuppressionConstants_MatchExpectedValues()
+    {
+        Assert.Equal(34u, ScreenAnnotationWindowInterop.DwmBorderColorAttribute);
+        Assert.Equal(0xFFFFFFFEu, ScreenAnnotationWindowInterop.DwmColorNone);
+    }
+
+    [Fact]
+    public void DwmCornerSuppressionConstants_MatchExpectedValues()
+    {
+        Assert.Equal(33u, ScreenAnnotationWindowInterop.DwmWindowCornerPreferenceAttribute);
+        Assert.Equal(1u, ScreenAnnotationWindowInterop.DwmWindowCornerPreferenceDoNotRound);
     }
 }
