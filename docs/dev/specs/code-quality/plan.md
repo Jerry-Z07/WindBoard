@@ -1,11 +1,11 @@
 # 代码质量持续治理计划（分阶段）
 
-本计划用于指导后续对 `docs/dev/spec/CODE_QUALITY.md` 中的热点与异味进行持续治理，目标是**长期稳定地降低维护成本**，并避免“新功能把复杂度越堆越高”。
+本计划用于指导后续对 `docs/dev/specs/code-quality/README.md` 中的热点与异味进行持续治理，目标是**长期稳定地降低维护成本**，并避免“新功能把复杂度越堆越高”。
 
 ## 适用范围与基线
 
 - 适用范围：本仓库所有 `C# / XAML` 源码（排除 `bin/obj`）。
-- 基线文件：`docs/dev/spec/CODE_QUALITY.md`（包含 TOTAL 指标、Top 热点文件与 smells 清单）。
+- 基线文件：`docs/dev/specs/code-quality/README.md`（包含 TOTAL 指标、Top 热点文件与 smells 清单）。
 - 原则：
   - 先“**不变差**”（防回归），再“**逐步变好**”（拆分与重构）。
   - 重构优先围绕**用户高频路径/高风险逻辑**（导入、序列化、渲染、输入、更新）。

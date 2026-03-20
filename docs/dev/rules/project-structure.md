@@ -1,6 +1,6 @@
 - `WindBoard.slnx`：解决方案入口（`WindBoard` + `WindBoard.CrashReporter` + `WindBoard.Tests`）。
   - 支持平台：x86、x64、ARM64（默认 AnyCPU 映射到 x64）。
-- `docs/`：开发文档、图片与发布说明（`docs/dev/*`、`docs/images/*`、`docs/release-notes/*`）。
+- `docs/`：开发文档、图片资源、发布说明与计划文档（`docs/dev/*`、`docs/assets/images/*`、`docs/release-notes/*`、`docs/superpowers/*`）。
 - `WindBoard/`：WinUI 3 桌面应用（C# / XAML，Windows App SDK）。
   - `UI/`：窗口/页面的 UI 编排代码（含 `UI/MainWindow/`：`MainWindow` 的 partial 拆分）。
   - `Controls/`：自定义控件。

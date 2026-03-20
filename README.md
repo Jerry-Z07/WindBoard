@@ -29,8 +29,8 @@
 <details>
 <summary>点击查看截图</summary>
 
-![主界面](./docs/images/MainWindow.png)
-![关于](./docs/images/About.png)
+![主界面](./docs/assets/images/MainWindow.png)
+![关于](./docs/assets/images/About.png)
 </details>
 
 ## 功能
@@ -76,7 +76,7 @@
 - 测试：`dotnet test WindBoard.slnx`
 
 ### 参与翻译
-请参考 [本地化约定](./docs/dev/ZH/LOCALIZATION.md) 文档
+请参考 [本地化约定](./docs/dev/guides/localization.zh-CN.md) 文档
 
 ### 氛围编程（Vibe Coding）相关
 - 项目目前已配置[AGENTS.md](AGENTS.md)
@@ -107,7 +107,7 @@
 
 ## 生态
 为保存和还原笔迹状态，我们设计了一个私有格式 `.wbix`   
-格式介绍见 [WBIX.md](./docs/dev/ZH/WBIX.md)
+格式介绍见 [WBIX.md](./docs/dev/guides/wbix.zh-CN.md)
 
 ## 碎碎念
 ### 为什么要做这个软件？

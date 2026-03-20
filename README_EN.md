@@ -28,8 +28,8 @@
 <details>
 <summary>Click to view screenshots</summary>
 
-![Main Window](./docs/images/MainWindow.png)
-![About](./docs/images/About.png)
+![Main Window](./docs/assets/images/MainWindow.png)
+![About](./docs/assets/images/About.png)
 </details>
 
 ## Features
@@ -75,7 +75,7 @@ Issues and PRs are welcome. Thanks for your support!
 - Test: `dotnet test WindBoard.slnx`
 
 ### Contributing Translations
-Please refer to the [Localization Conventions](./docs/dev/EN/LOCALIZATION_EN.md) document
+Please refer to the [Localization Conventions](./docs/dev/guides/localization.en-US.md) document
 
 ### Vibe Coding
 - The project is currently configured with [AGENTS.md](AGENTS.md)
@@ -106,7 +106,7 @@ Please refer to the [Localization Conventions](./docs/dev/EN/LOCALIZATION_EN.md)
 
 ## Eco
 To save and restore ink states, we designed a private format: `.wbix`.  
-See [WBIX format](./docs/dev/EN/WBIX_EN.md)
+See [WBIX format](./docs/dev/guides/wbix.en-US.md)
 
 ## License
 Apache License 2.0

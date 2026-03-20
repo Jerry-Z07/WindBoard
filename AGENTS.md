@@ -27,8 +27,8 @@
 
 ## 相关文档（Docs）
 
-- `docs/dev/ZH/LOCALIZATION.md`：本地化约定）。
-- `docs/dev/ZH/WBIX.md`：WBIX（`.wbix`）格式说明。
+- `docs/dev/guides/localization.zh-CN.md`：本地化约定）。
+- `docs/dev/guides/wbix.zh-CN.md`：WBIX（`.wbix`）格式说明。
 - `docs/release-notes/`：版本发布说明，一般不需要阅读其中内容。
 - `docs/dev/archive/`：存档文档，不要阅读文件夹内的文档内容.
 - `docs/dev/rules`：开发相关，编码前需阅读，包括：
