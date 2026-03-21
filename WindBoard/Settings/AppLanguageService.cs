@@ -40,8 +40,6 @@ namespace WindBoard.Settings
                 _systemCulture = CultureInfo.CurrentCulture;
                 _systemUiCulture = CultureInfo.CurrentUICulture;
                 _isSystemCultureCaptured = true;
-
-                AppLog.Info("L10n", $"已捕获系统语言：culture={_systemCulture.Name}, uiCulture={_systemUiCulture.Name}");
             }
         }
 
@@ -107,11 +105,7 @@ namespace WindBoard.Settings
                 AppLog.Warn("L10n", "应用 CultureInfo 失败，将继续使用当前语言", ex);
             }
 
-            string appliedPrimaryLanguageOverride = ApplyPrimaryLanguageOverride(primaryLanguageOverride);
-
-            AppLog.Info(
-                "L10n",
-                $"语言已应用：preference='{preference}', culture={CultureInfo.CurrentCulture.Name}, uiCulture={CultureInfo.CurrentUICulture.Name}, primaryOverride='{appliedPrimaryLanguageOverride}'");
+            _ = ApplyPrimaryLanguageOverride(primaryLanguageOverride);
         }
 
         private static string ApplyPrimaryLanguageOverride(string desiredOverride)
@@ -148,7 +142,6 @@ namespace WindBoard.Settings
                 string fallback = string.IsNullOrWhiteSpace(_systemUiCulture.Name) ? string.Empty : _systemUiCulture.Name;
                 if (!string.IsNullOrEmpty(fallback) && TrySetPrimaryLanguageOverride(fallback, out _))
                 {
-                    AppLog.Info("L10n", $"清空 PrimaryLanguageOverride 失败，已降级为设置为系统语言：fallback='{fallback}'（desired=''）");
                     return fallback;
                 }
 

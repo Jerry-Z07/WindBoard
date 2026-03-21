@@ -34,7 +34,6 @@ namespace WindBoard.Features.ScreenAnnotation.Services
 
             if (IsRunning)
             {
-                AppLog.Info("ScreenAnnotation", "忽略重复启动请求：屏幕批注已在运行。");
                 return true;
             }
 
@@ -47,8 +46,6 @@ namespace WindBoard.Features.ScreenAnnotation.Services
                 AppLog.Warn("ScreenAnnotation", "启动失败：无法获取主窗口句柄。");
                 return false;
             }
-
-            AppLog.Info("ScreenAnnotation", $"开始进入屏幕批注：source='{options.Source}', minimizeOwner={options.MinimizeOwnerWindow}");
 
             _options = new ScreenAnnotationStartOptions
             {
@@ -84,7 +81,6 @@ namespace WindBoard.Features.ScreenAnnotation.Services
                     AppLog.Warn("ScreenAnnotation", $"最小化主窗口失败：{minimizeError}");
                 }
 
-                AppLog.Info("ScreenAnnotation", "进入屏幕批注成功。");
                 return true;
             }
             catch (Exception ex)
@@ -106,10 +102,6 @@ namespace WindBoard.Features.ScreenAnnotation.Services
 
             try
             {
-                AppLog.Info(
-                    "ScreenAnnotation",
-                    $"开始退出屏幕批注：restoreOwnerWindow={restoreOwnerWindow}, activateOwnerWindow={activateOwnerWindow}");
-
                 UnhookWindowEvents();
 
                 CloseWindowSafely(_toolbarWindow, "Toolbar");
@@ -150,7 +142,6 @@ namespace WindBoard.Features.ScreenAnnotation.Services
                 }
 
                 _options = null;
-                AppLog.Info("ScreenAnnotation", "退出屏幕批注完成。");
             }
             finally
             {
@@ -211,8 +202,6 @@ namespace WindBoard.Features.ScreenAnnotation.Services
                 _windowState,
                 _annotationWindow,
                 _toolbarWindow);
-
-            AppLog.Info("ScreenAnnotation", $"模式切换：mode={mode}");
         }
 
         private void OnToolbarModeRequested(object? sender, ScreenAnnotationMode mode)
@@ -251,9 +240,6 @@ namespace WindBoard.Features.ScreenAnnotation.Services
                 return;
             }
 
-            AppLog.Info(
-                "ScreenAnnotation",
-                $"检测到主窗口重新激活，开始退出屏幕批注：state={args.WindowActivationState}");
             await StopAsync(restoreOwnerWindow: false, activateOwnerWindow: false);
         }
 
@@ -264,7 +250,6 @@ namespace WindBoard.Features.ScreenAnnotation.Services
                 return;
             }
 
-            AppLog.Warn("ScreenAnnotation", "检测到桌面批注窗口被关闭，开始执行回收流程。");
             await StopAsync(restoreOwnerWindow: true, activateOwnerWindow: true);
         }
 

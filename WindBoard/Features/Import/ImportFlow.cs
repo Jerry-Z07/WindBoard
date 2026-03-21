@@ -70,12 +70,10 @@ namespace WindBoard.Features.Import
             switch (submission)
             {
                 case ImportDialogSubmission.Wbix wbix:
-                    AppLog.Info("Import", $"开始导入 WBIX：path='{wbix.Request.File.Path}', mode={wbix.Request.Mode}");
                     await ImportWbixAsync(xamlRoot, wbix.Request.File, wbix.Request.Mode);
                     return;
 
                 case ImportDialogSubmission.Wbi wbi:
-                    AppLog.Info("Import", $"开始导入 WBI：path='{wbi.Request.File.Path}', mode={wbi.Request.Mode}");
                     await ImportWbiAsync(xamlRoot, wbi.Request.File, wbi.Request.Mode);
                     return;
 
@@ -127,7 +125,6 @@ namespace WindBoard.Features.Import
 
                     if (mode == ImportWbixMode.ReplaceCurrentPage)
                     {
-                        AppLog.Info("WBIX", $"替换工作区：pages={pages.Count}, currentIndex={snapshot.CurrentIndex}");
                         if (pages.Count == 0)
                         {
                             AppLog.Warn("WBIX", "pages=0，忽略导入。");
@@ -136,8 +133,6 @@ namespace WindBoard.Features.Import
 
                         int insertIndex = _workspace.CurrentIndex;
                         int replaceImportCurrent = Math.Clamp(snapshot.CurrentIndex, 0, Math.Max(0, pages.Count - 1));
-
-                        AppLog.Info("WBIX", $"覆盖当前页并插入：workspaceCurrent={insertIndex}, importPages={pages.Count}, importCurrent={replaceImportCurrent}");
 
                         // 覆盖当前页：用导入文件的第 1 页替换当前页，然后把剩余页插入到其后。
                         _workspace.ReplacePageAt(insertIndex, pages[0]);
@@ -148,7 +143,6 @@ namespace WindBoard.Features.Import
                         }
 
                         int replaceTargetIndex = Math.Clamp(insertIndex + replaceImportCurrent, 0, Math.Max(0, _workspace.Pages.Count - 1));
-                        AppLog.Info("WBIX", $"覆盖导入完成：switchTo={replaceTargetIndex}, pagesAfter={_workspace.Pages.Count}");
                         _workspace.SetCurrentIndex(replaceTargetIndex);
                         return;
                     }
@@ -156,7 +150,6 @@ namespace WindBoard.Features.Import
                     int startIndex = _workspace.AppendPages(pages, switchToFirstAppendedPage: false);
                     int importCurrent = Math.Clamp(snapshot.CurrentIndex, 0, Math.Max(0, pages.Count - 1));
                     int targetIndex = Math.Clamp(startIndex + importCurrent, 0, Math.Max(0, _workspace.Pages.Count - 1));
-                    AppLog.Info("WBIX", $"追加页面：startIndex={startIndex}, pages={pages.Count}, switchTo={targetIndex}");
                     _workspace.SetCurrentIndex(targetIndex);
                 }, logTag: "Import");
             }
@@ -251,7 +244,6 @@ namespace WindBoard.Features.Import
 
                     if (mode == ImportWbixMode.ReplaceCurrentPage)
                     {
-                        AppLog.Info("WBI", $"替换工作区：pages={pages.Count}");
                         if (pages.Count == 0)
                         {
                             AppLog.Warn("WBI", "pages=0，忽略导入。");
@@ -259,7 +251,6 @@ namespace WindBoard.Features.Import
                         }
 
                         int insertIndex = _workspace.CurrentIndex;
-                        AppLog.Info("WBI", $"覆盖当前页并插入：workspaceCurrent={insertIndex}, importPages={pages.Count}");
 
                         // 覆盖当前页：用导入文件的第 1 页替换当前页，然后把剩余页插入到其后。
                         _workspace.ReplacePageAt(insertIndex, pages[0]);
@@ -270,14 +261,12 @@ namespace WindBoard.Features.Import
                         }
 
                         int replaceTargetIndex = Math.Clamp(insertIndex + importCurrent, 0, Math.Max(0, _workspace.Pages.Count - 1));
-                        AppLog.Info("WBI", $"覆盖导入完成：switchTo={replaceTargetIndex}, pagesAfter={_workspace.Pages.Count}");
                         _workspace.SetCurrentIndex(replaceTargetIndex);
                         return;
                     }
 
                     int startIndex = _workspace.AppendPages(pages, switchToFirstAppendedPage: false);
                     int targetIndex = Math.Clamp(startIndex + importCurrent, 0, Math.Max(0, _workspace.Pages.Count - 1));
-                    AppLog.Info("WBI", $"追加页面：startIndex={startIndex}, pages={pages.Count}, switchTo={targetIndex}");
                     _workspace.SetCurrentIndex(targetIndex);
                 }, logTag: "Import");
             }

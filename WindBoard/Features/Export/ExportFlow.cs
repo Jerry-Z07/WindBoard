@@ -62,8 +62,6 @@ namespace WindBoard.Features.Export
                     return;
                 }
 
-                AppLog.Info("Export", $"开始导出：format={selection.Format}, scope={selection.PageScope}, range='{selection.PageRangeText}', dpi={selection.Dpi}, paddingDip={selection.PaddingDip}");
-
                 // 导出建议基于快照进行：避免导出耗时期间用户继续编辑导致数据竞争或导出内容不一致。
                 Vector2 fallbackViewportSizeDip = _getFallbackViewportSizeDip();
                 (Vector2 cameraWorld, float zoom) = _getViewportState();
@@ -165,11 +163,9 @@ namespace WindBoard.Features.Export
 
             await DialogHelpers.RunBusyAsync(xamlRoot, L10n.Get("Export_Busy_Wbix_Title"), L10n.Get("Export_Busy_Default_Message"), async () =>
             {
-                AppLog.Info("Export", $"导出 WBIX：path='{file.Path}'");
                 await _exportService.ExportWbixAsync(snapshot, file.Path);
             }, logTag: "Export");
 
-            AppLog.Info("Export", $"导出 WBIX 完成：path='{file.Path}'");
             await DialogHelpers.ShowMessageAsync(xamlRoot, L10n.Get("Export_Completed_Title"), L10n.Format("Export_Completed_File_Fmt", file.Path));
         }
 
@@ -185,11 +181,9 @@ namespace WindBoard.Features.Export
 
             await DialogHelpers.RunBusyAsync(xamlRoot, L10n.Get("Export_Busy_Pdf_Title"), L10n.Get("Export_Busy_Default_Message"), async () =>
             {
-                AppLog.Info("Export", $"导出 PDF：path='{file.Path}', pages={pageIndices.Count}");
                 await _exportService.ExportPdfAsync(snapshot, pageIndices, file.Path, options);
             }, logTag: "Export");
 
-            AppLog.Info("Export", $"导出 PDF 完成：path='{file.Path}'");
             await DialogHelpers.ShowMessageAsync(xamlRoot, L10n.Get("Export_Completed_Title"), L10n.Format("Export_Completed_File_Fmt", file.Path));
         }
 
@@ -205,11 +199,9 @@ namespace WindBoard.Features.Export
 
                 await DialogHelpers.RunBusyAsync(xamlRoot, L10n.Get("Export_Busy_Png_Title"), L10n.Get("Export_Busy_Default_Message"), async () =>
                 {
-                    AppLog.Info("Export", $"导出 PNG：path='{file.Path}', page={pageIndices[0]}");
                     await _exportService.ExportPngAsync(snapshot, pageIndices[0], file.Path, rasterOptions);
                 }, logTag: "Export");
 
-                AppLog.Info("Export", $"导出 PNG 完成：path='{file.Path}'");
                 await DialogHelpers.ShowMessageAsync(xamlRoot, L10n.Get("Export_Completed_Title"), L10n.Format("Export_Completed_File_Fmt", file.Path));
                 return;
             }
@@ -237,11 +229,9 @@ namespace WindBoard.Features.Export
 
             await DialogHelpers.RunBusyAsync(xamlRoot, L10n.Get("Export_Busy_Png_Title"), L10n.Get("Export_Busy_Default_Message"), async () =>
             {
-                AppLog.Info("Export", $"批量导出 PNG：folder='{exportFolderPath}', pages={pageIndices.Count}");
                 await _exportService.ExportPngPagesToFolderAsync(snapshot, pageIndices, exportFolderPath, date, rasterOptions);
             }, logTag: "Export");
 
-            AppLog.Info("Export", $"批量导出 PNG 完成：folder='{exportFolderPath}'");
             await DialogHelpers.ShowMessageAsync(xamlRoot, L10n.Get("Export_Completed_Title"), L10n.Format("Export_Completed_Folder_Fmt", exportFolderPath));
         }
 

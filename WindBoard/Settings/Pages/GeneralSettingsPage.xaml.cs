@@ -142,9 +142,6 @@ namespace WindBoard.Settings.Pages
                 }
 
                 StartupWindowModeParser.TryParse(value, out StartupWindowMode mode);
-                string normalized = StartupWindowModeParser.ToSettingValue(mode);
-                AppLog.Info("Settings", $"用户设置启动窗口形态：value='{normalized}'");
-
                 AppSettingsService.Instance.SetStartupWindowMode(mode);
             }
             catch (Exception ex)
@@ -165,7 +162,6 @@ namespace WindBoard.Settings.Pages
             try
             {
                 bool enabled = EnterScreenAnnotationWhenMinimizedToggleSwitch.IsOn;
-                AppLog.Info("Settings", $"用户设置“最小化进入屏幕批注”：enabled={enabled}");
                 AppSettingsService.Instance.SetEnterScreenAnnotationWhenMinimized(enabled);
             }
             catch (Exception ex)
@@ -192,8 +188,6 @@ namespace WindBoard.Settings.Pages
                 }
 
                 string settingValue = AppLanguagePreferenceParser.NormalizeOrDefault(value);
-                AppLog.Info("L10n", $"用户切换语言偏好：value='{settingValue}'");
-
                 AppSettingsService.Instance.SetLanguagePreference(settingValue);
                 AppLanguageService.Apply(settingValue);
 

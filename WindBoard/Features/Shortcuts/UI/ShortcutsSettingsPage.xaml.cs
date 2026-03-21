@@ -102,7 +102,6 @@ namespace WindBoard.Features.Shortcuts.UI
             try
             {
                 AppSettingsService.Instance.SetShortcutConflictReminderEnabled(enabled);
-                AppLog.Info("Shortcuts", $"快捷键冲突提醒开关已更新：enabled={enabled}");
             }
             catch (Exception ex)
             {
@@ -289,8 +288,6 @@ namespace WindBoard.Features.Shortcuts.UI
                             break;
                     }
                 });
-
-                AppLog.Info("Shortcuts", $"快捷键已更新：slot={slot}, value='{value}'");
             }
             catch (Exception ex)
             {
@@ -309,8 +306,6 @@ namespace WindBoard.Features.Shortcuts.UI
                     s.KeyboardShortcuts.Undo = KeyboardShortcutsDefaults.Undo;
                     s.KeyboardShortcuts.Redo = KeyboardShortcutsDefaults.Redo;
                 });
-
-                AppLog.Info("Shortcuts", "快捷键已恢复默认值");
             }
             catch (Exception ex)
             {

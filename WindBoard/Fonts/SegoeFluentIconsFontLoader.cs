@@ -31,7 +31,6 @@ namespace WindBoard.Fonts
 
         private static int _windowsBuildNumber;
         private static AppInstallKind _installKind;
-        private static bool _privateFontLoaded;
         private static string _effectiveIconFontFamilyName = FluentFontFamilyName;
 
         /// <summary>
@@ -72,9 +71,6 @@ namespace WindBoard.Fonts
             try
             {
                 resources["SymbolThemeFontFamily"] = new FontFamily(_effectiveIconFontFamilyName);
-                AppLog.Info(
-                    "Fonts",
-                    $"已应用图标字体资源：SymbolThemeFontFamily='{_effectiveIconFontFamilyName}', build={_windowsBuildNumber}, installKind={_installKind}, privateLoaded={_privateFontLoaded}");
             }
             catch (Exception ex)
             {
@@ -132,7 +128,6 @@ namespace WindBoard.Fonts
             if (isWin11OrLater)
             {
                 _effectiveIconFontFamilyName = DecideEffectiveIconFontFamilyName(_windowsBuildNumber, fluentInstalled: false, privateFontLoaded: false);
-                AppLog.Info("Fonts", $"检测到 Win11+（build={_windowsBuildNumber}），将直接使用系统图标字体：{FluentFontFamilyName}");
                 return;
             }
 
@@ -141,7 +136,6 @@ namespace WindBoard.Fonts
             if (fluentInstalled)
             {
                 _effectiveIconFontFamilyName = DecideEffectiveIconFontFamilyName(_windowsBuildNumber, fluentInstalled: true, privateFontLoaded: false);
-                AppLog.Info("Fonts", $"检测到系统已安装图标字体：{FluentFontFamilyName}（build={_windowsBuildNumber}, installKind={_installKind}）");
                 return;
             }
 
@@ -157,11 +151,7 @@ namespace WindBoard.Fonts
 
             if (TryLoadPrivateFontFromAssets(out string? error))
             {
-                _privateFontLoaded = true;
                 _effectiveIconFontFamilyName = DecideEffectiveIconFontFamilyName(_windowsBuildNumber, fluentInstalled: false, privateFontLoaded: true);
-                AppLog.Info(
-                    "Fonts",
-                    $"已私有加载图标字体：family='{FluentFontFamilyName}', build={_windowsBuildNumber}, installKind={_installKind}, assets='{GetAssetsFontFilePath()}'");
                 return;
             }
 

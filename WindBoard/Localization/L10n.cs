@@ -282,10 +282,8 @@ namespace WindBoard.Localization
 
         private static void LogUnsupportedCultureOnce(string cultureName)
         {
-            if (UnsupportedCultureLogged.TryAdd(cultureName, 0))
-            {
-                AppLog.Info("L10n", $"未提供语言资源：culture={cultureName}，已回退到 {DefaultCultureName}");
-            }
+            // “缺少整套语言资源”属于可预期回退分支，记录一次状态即可，避免常规日志被成功回退刷屏。
+            _ = UnsupportedCultureLogged.TryAdd(cultureName, 0);
         }
 
         private static void LogResourceErrorOnce(string baseName, string action, Exception? ex = null)

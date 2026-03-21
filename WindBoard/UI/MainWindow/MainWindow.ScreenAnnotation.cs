@@ -56,7 +56,6 @@ namespace WindBoard
                 bool started = await _screenAnnotationFlow.StartAsync(options);
                 if (started)
                 {
-                    AppLog.Info("ScreenAnnotation", $"主窗口触发进入屏幕批注成功：source={source}, minimizeOwnerWindow={minimizeOwnerWindow}");
                     return true;
                 }
 
@@ -87,7 +86,6 @@ namespace WindBoard
                     .StopAsync(restoreOwnerWindow: false, activateOwnerWindow: false)
                     .GetAwaiter()
                     .GetResult();
-                AppLog.Info("ScreenAnnotation", "主窗口关闭：已停止屏幕批注流程。");
             }
             catch (Exception ex)
             {
