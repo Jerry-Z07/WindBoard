@@ -1,13 +1,21 @@
 using System;
+using System.Collections.Generic;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.UI.Xaml.Input;
+using Microsoft.UI.Xaml.Media;
+using Microsoft.UI.Xaml.Media.Animation;
+using Microsoft.UI.Xaml.Shapes;
+using Windows.Foundation;
 using Windows.Graphics;
+using Windows.UI;
 using WindBoard.Features.ScreenAnnotation.Interop;
 using WindBoard.Features.ScreenAnnotation.Models;
 using WindBoard.Features.ScreenAnnotation.Services;
 using WindBoard.Features.ScreenAnnotation.UI.Backdrop;
 using WindBoard.Logging;
+using WindBoard.Settings;
 
 namespace WindBoard.Features.ScreenAnnotation.UI
 {
@@ -18,15 +26,38 @@ namespace WindBoard.Features.ScreenAnnotation.UI
     {
         private const int ExpandedToolbarWidth = 276;
         private const int ToolbarHeight = 60;
+        private const int FlyoutHostPadding = 12;
+        private const int PenFlyoutFallbackWidth = 232;
+        private const int PenFlyoutFallbackHeight = 220;
+        private const int EraserFlyoutFallbackWidth = 232;
+        private const int EraserFlyoutFallbackHeight = 120;
+        private const double ClearCanvasSlideThumbInset = 6.0;
+        private const double ClearCanvasSlideCompleteRatio = 0.90;
+        private const int ClearCanvasSlideResetAnimationMs = 160;
 
         private readonly ScreenAnnotationDisplayTarget _displayTarget;
         private ScreenAnnotationTransparentBackdrop? _transparentBackdrop;
+        private ScreenAnnotationMode _selectedMode = ScreenAnnotationMode.PassThrough;
         private bool _isWindowInitialized;
         private bool _isCollapsed;
+        private bool _isPenFlyoutOpen;
+        private bool _isEraserFlyoutOpen;
+        private bool _isPenThicknessSliderSyncing;
+        private bool _isEraserModeSyncing;
+        private bool _isClearCanvasSlideEnabled;
         private uint? _dragPointerId;
         private PointInt32 _dragStartCursor;
         private PointInt32 _dragStartWindowOrigin;
         private bool _dragMoved;
+        private uint? _clearCanvasSlidePointerId;
+        private double _clearCanvasSlidePointerStartX;
+        private double _clearCanvasSlideThumbStartX;
+        private Storyboard? _clearCanvasSlideResetStoryboard;
+        private ScreenAnnotationDrawingStateSnapshot _drawingState = new(
+            PenColor: Color.FromArgb(0xFF, 0x00, 0x00, 0x00),
+            PenBaseSize: 3.0f,
+            EraserMode: ScreenAnnotationEraserMode.Pixel,
+            CanClear: false);
 
         internal ScreenAnnotationToolbarWindow(ScreenAnnotationDisplayTarget displayTarget)
         {
@@ -39,13 +70,50 @@ namespace WindBoard.Features.ScreenAnnotation.UI
 
         internal event EventHandler<ScreenAnnotationMode>? ModeRequested;
 
+        internal event Action<Color>? PenColorRequested;
+
+        internal event Action<float>? PenBaseSizeRequested;
+
+        internal event Action<ScreenAnnotationEraserMode>? EraserModeRequested;
+
+        internal event Action? ClearCanvasRequested;
+
         internal event EventHandler? ReturnToAppRequested;
 
         internal void SetSelectedMode(ScreenAnnotationMode mode)
         {
+            _selectedMode = mode;
             PassThroughButton.IsChecked = mode == ScreenAnnotationMode.PassThrough;
             PenButton.IsChecked = mode == ScreenAnnotationMode.Pen;
             EraserButton.IsChecked = mode == ScreenAnnotationMode.Eraser;
+
+            if (mode != ScreenAnnotationMode.Pen)
+            {
+                TryHidePenFlyout();
+            }
+
+            if (mode != ScreenAnnotationMode.Eraser)
+            {
+                TryHideEraserFlyout();
+            }
+        }
+
+        internal void SyncDrawingState(ScreenAnnotationDrawingStateSnapshot state)
+        {
+            _drawingState = state;
+
+            if (_isPenFlyoutOpen)
+            {
+                SyncPenFlyoutFromState();
+            }
+
+            if (_isEraserFlyoutOpen)
+            {
+                SyncEraserFlyoutFromState();
+                return;
+            }
+
+            UpdateClearCanvasSlideState();
         }
 
         internal void EnsureInteractiveTopMost(IScreenAnnotationModeOverlay? overlay)
@@ -131,17 +199,525 @@ namespace WindBoard.Features.ScreenAnnotation.UI
 
         private void OnPenButtonClicked(object sender, RoutedEventArgs e)
         {
+            bool alreadyPen = ScreenAnnotationToolbarBehavior.IsSecondaryClick(_selectedMode, ScreenAnnotationMode.Pen);
             ModeRequested?.Invoke(this, ScreenAnnotationMode.Pen);
+
+            if (!alreadyPen)
+            {
+                return;
+            }
+
+            if (_isPenFlyoutOpen)
+            {
+                TryHidePenFlyout();
+                return;
+            }
+
+            ApplyPenFlyoutSettings();
+            SyncPenFlyoutFromState();
+            ResizeWindowForFlyout(PenFlyoutRootBorder, PenFlyoutFallbackWidth, PenFlyoutFallbackHeight);
+            FlyoutBase.ShowAttachedFlyout(PenButton);
+        }
+
+        private void OnPenFlyoutOpened(object sender, object e)
+        {
+            _isPenFlyoutOpen = true;
+            ApplyPenFlyoutSettings();
+            SyncPenFlyoutFromState();
+            ResizeWindowForFlyout(PenFlyoutRootBorder, PenFlyoutFallbackWidth, PenFlyoutFallbackHeight);
+        }
+
+        private void OnPenFlyoutClosed(object sender, object e)
+        {
+            _isPenFlyoutOpen = false;
+            RestoreCompactToolbarBounds();
+        }
+
+        private void OnPenThicknessClicked(object sender, RoutedEventArgs e)
+        {
+            if (sender is not ToggleButton button)
+            {
+                return;
+            }
+
+            if (!TryParseFloatTag(button.Tag, out float size))
+            {
+                return;
+            }
+
+            _drawingState = _drawingState with { PenBaseSize = size };
+            PenBaseSizeRequested?.Invoke(size);
+            SetExclusiveToggleChecked(PenThicknessPanel, button);
+        }
+
+        private void OnPenThicknessSliderValueChanged(object sender, RangeBaseValueChangedEventArgs e)
+        {
+            if (_isPenThicknessSliderSyncing || PenThicknessSliderPanel.Visibility != Visibility.Visible)
+            {
+                return;
+            }
+
+            float size = (float)e.NewValue;
+            _drawingState = _drawingState with { PenBaseSize = size };
+            PenBaseSizeRequested?.Invoke(size);
+        }
+
+        private void OnPenColorClicked(object sender, RoutedEventArgs e)
+        {
+            if (sender is not ToggleButton button)
+            {
+                return;
+            }
+
+            if (button.Tag is not string hex || !ColorHex.TryParse(hex, out Color color))
+            {
+                return;
+            }
+
+            Color normalized = Color.FromArgb(0xFF, color.R, color.G, color.B);
+            _drawingState = _drawingState with { PenColor = normalized };
+            PenColorRequested?.Invoke(normalized);
+            SetExclusiveToggleChecked(PenColorGrid, button);
+        }
+
+        private void ApplyPenFlyoutSettings()
+        {
+            PenSettingsSnapshot snapshot = AppSettingsService.Instance.GetPenSettingsSnapshot();
+            ApplyPenPaletteToFlyout(snapshot.PaletteHexes);
+            ApplyPenThicknessToFlyout(snapshot);
+        }
+
+        private void ApplyPenPaletteToFlyout(IReadOnlyList<string?> paletteHexes)
+        {
+            PenColorGrid.Children.Clear();
+            PenColorGrid.RowDefinitions.Clear();
+            PenColorGrid.ColumnDefinitions.Clear();
+
+            int count = paletteHexes.Count;
+            if (count <= 0)
+            {
+                return;
+            }
+
+            int columns = ComputePaletteColumns(count);
+            int rows = (int)Math.Ceiling(count / (double)columns);
+
+            for (int c = 0; c < columns; c++)
+            {
+                PenColorGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            }
+
+            for (int r = 0; r < rows; r++)
+            {
+                PenColorGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            }
+
+            for (int i = 0; i < count; i++)
+            {
+                ToggleButton button = CreatePenColorSwatchButton(paletteHexes[i]);
+                int row = i / columns;
+                int col = i % columns;
+                Grid.SetRow(button, row);
+                Grid.SetColumn(button, col);
+                PenColorGrid.Children.Add(button);
+            }
+        }
+
+        private ToggleButton CreatePenColorSwatchButton(string? hex)
+        {
+            var button = new ToggleButton
+            {
+                Style = GetRequiredStyle("SharedPenColorSwatchToggleButtonStyle"),
+                ClickMode = ClickMode.Release,
+            };
+            button.Click += OnPenColorClicked;
+
+            var ellipse = new Ellipse { Margin = new Thickness(2) };
+
+            if (ColorHex.TryParse(hex, out Color color))
+            {
+                string normalized = ColorHex.ToHexRgb(color);
+                button.Tag = normalized;
+                button.IsEnabled = true;
+                ellipse.Fill = new SolidColorBrush(Color.FromArgb(0xFF, color.R, color.G, color.B));
+            }
+            else
+            {
+                // 空色块：保留描边但禁用点击，避免选中到“无颜色”。
+                button.Tag = null;
+                button.IsEnabled = false;
+                ellipse.Fill = new SolidColorBrush(Color.FromArgb(0, 0, 0, 0));
+            }
+
+            button.Content = ellipse;
+            return button;
+        }
+
+        private void ApplyPenThicknessToFlyout(PenSettingsSnapshot snapshot)
+        {
+            PenThicknessPresetsPanel.Visibility = snapshot.UseThicknessSlider
+                ? Visibility.Collapsed
+                : Visibility.Visible;
+            PenThicknessSliderPanel.Visibility = snapshot.UseThicknessSlider
+                ? Visibility.Visible
+                : Visibility.Collapsed;
+
+            if (!snapshot.UseThicknessSlider)
+            {
+                BuildPenThicknessPresetButtons(snapshot.ThicknessPresets);
+            }
+        }
+
+        private void BuildPenThicknessPresetButtons(float[] presets)
+        {
+            PenThicknessPanel.Children.Clear();
+
+            foreach (float size in presets)
+            {
+                var button = new ToggleButton
+                {
+                    Tag = size,
+                    Style = GetRequiredStyle("SharedPenThicknessToggleButtonStyle"),
+                };
+                button.Click += OnPenThicknessClicked;
+
+                var line = new Line
+                {
+                    X1 = 12,
+                    Y1 = 22,
+                    X2 = 32,
+                    Y2 = 22,
+                    Stroke = new SolidColorBrush(Color.FromArgb(0xFF, 0, 0, 0)),
+                    StrokeThickness = size,
+                    StrokeStartLineCap = PenLineCap.Round,
+                    StrokeEndLineCap = PenLineCap.Round,
+                };
+
+                button.Content = line;
+                PenThicknessPanel.Children.Add(button);
+            }
+        }
+
+        private static int ComputePaletteColumns(int count)
+        {
+            int columns = (int)Math.Ceiling(Math.Sqrt(count));
+            return Math.Clamp(columns, 3, 6);
+        }
+
+        private void SyncPenFlyoutFromState()
+        {
+            Color currentColor = _drawingState.PenColor;
+            foreach (UIElement element in PenColorGrid.Children)
+            {
+                if (element is ToggleButton button
+                    && button.Tag is string hex
+                    && ColorHex.TryParse(hex, out Color color))
+                {
+                    button.IsChecked = color.A == currentColor.A
+                        && color.R == currentColor.R
+                        && color.G == currentColor.G
+                        && color.B == currentColor.B;
+                }
+            }
+
+            float currentSize = _drawingState.PenBaseSize;
+            if (PenThicknessSliderPanel.Visibility == Visibility.Visible)
+            {
+                _isPenThicknessSliderSyncing = true;
+                try
+                {
+                    double clamped = Math.Clamp(currentSize, (float)PenThicknessSlider.Minimum, (float)PenThicknessSlider.Maximum);
+                    if (Math.Abs(PenThicknessSlider.Value - clamped) > 0.001)
+                    {
+                        PenThicknessSlider.Value = clamped;
+                    }
+                }
+                finally
+                {
+                    _isPenThicknessSliderSyncing = false;
+                }
+
+                return;
+            }
+
+            foreach (UIElement element in PenThicknessPanel.Children)
+            {
+                if (element is ToggleButton button && TryParseFloatTag(button.Tag, out float size))
+                {
+                    button.IsChecked = Math.Abs(currentSize - size) < 0.001f;
+                }
+            }
+        }
+
+        private static bool TryParseFloatTag(object? tag, out float value)
+        {
+            value = 0;
+            return tag is not null && float.TryParse(tag.ToString(), out value);
+        }
+
+        private static void SetExclusiveToggleChecked(Panel panel, ToggleButton checkedButton)
+        {
+            foreach (UIElement child in panel.Children)
+            {
+                if (child is ToggleButton button)
+                {
+                    button.IsChecked = ReferenceEquals(button, checkedButton);
+                }
+            }
         }
 
         private void OnEraserButtonClicked(object sender, RoutedEventArgs e)
         {
+            bool alreadyEraser = ScreenAnnotationToolbarBehavior.IsSecondaryClick(_selectedMode, ScreenAnnotationMode.Eraser);
             ModeRequested?.Invoke(this, ScreenAnnotationMode.Eraser);
+
+            if (!alreadyEraser)
+            {
+                return;
+            }
+
+            if (_isEraserFlyoutOpen)
+            {
+                TryHideEraserFlyout();
+                return;
+            }
+
+            ResetClearCanvasSlide(false);
+            SyncEraserFlyoutFromState();
+            ResizeWindowForFlyout(EraserFlyoutRootPanel, EraserFlyoutFallbackWidth, EraserFlyoutFallbackHeight);
+            FlyoutBase.ShowAttachedFlyout(EraserButton);
+        }
+
+        private void OnEraserFlyoutOpened(object sender, object e)
+        {
+            _isEraserFlyoutOpen = true;
+            ResetClearCanvasSlide(false);
+            SyncEraserFlyoutFromState();
+            ResizeWindowForFlyout(EraserFlyoutRootPanel, EraserFlyoutFallbackWidth, EraserFlyoutFallbackHeight);
+        }
+
+        private void OnEraserFlyoutClosed(object sender, object e)
+        {
+            _isEraserFlyoutOpen = false;
+            ResetClearCanvasSlide(false);
+            RestoreCompactToolbarBounds();
+        }
+
+        private void OnEraserModeChecked(object sender, RoutedEventArgs e)
+        {
+            if (_isEraserModeSyncing)
+            {
+                return;
+            }
+
+            ScreenAnnotationEraserMode mode = PixelEraserRadioButton?.IsChecked == true
+                ? ScreenAnnotationEraserMode.Pixel
+                : ScreenAnnotationEraserMode.WholeStroke;
+
+            _drawingState = _drawingState with { EraserMode = mode };
+            EraserModeRequested?.Invoke(mode);
+        }
+
+        private void SyncEraserFlyoutFromState()
+        {
+            _isEraserModeSyncing = true;
+            try
+            {
+                bool isPixel = _drawingState.EraserMode == ScreenAnnotationEraserMode.Pixel;
+                if (PixelEraserRadioButton is not null)
+                {
+                    PixelEraserRadioButton.IsChecked = isPixel;
+                }
+
+                if (StrokeEraserRadioButton is not null)
+                {
+                    StrokeEraserRadioButton.IsChecked = !isPixel;
+                }
+            }
+            finally
+            {
+                _isEraserModeSyncing = false;
+            }
+
+            UpdateClearCanvasSlideState();
+        }
+
+        private void TryHideEraserFlyout()
+        {
+            FlyoutBase? flyout = FlyoutBase.GetAttachedFlyout(EraserButton);
+            flyout?.Hide();
+        }
+
+        private void TryHidePenFlyout()
+        {
+            FlyoutBase? flyout = FlyoutBase.GetAttachedFlyout(PenButton);
+            flyout?.Hide();
         }
 
         private void OnReturnToAppButtonClicked(object sender, RoutedEventArgs e)
         {
             ReturnToAppRequested?.Invoke(this, EventArgs.Empty);
+        }
+
+        private void OnClearCanvasThumbPointerPressed(object sender, PointerRoutedEventArgs e)
+        {
+            if (!_isClearCanvasSlideEnabled || ClearCanvasSlideThumbTransform is null || ClearCanvasSlideHost is null)
+            {
+                return;
+            }
+
+            if (_clearCanvasSlidePointerId is not null)
+            {
+                return;
+            }
+
+            _clearCanvasSlideResetStoryboard?.Stop();
+            _clearCanvasSlideResetStoryboard = null;
+
+            _clearCanvasSlidePointerId = e.Pointer.PointerId;
+            _clearCanvasSlideThumbStartX = ClearCanvasSlideThumbTransform.X;
+            _clearCanvasSlidePointerStartX = e.GetCurrentPoint(ClearCanvasSlideHost).Position.X;
+            ClearCanvasSlideThumb?.CapturePointer(e.Pointer);
+            e.Handled = true;
+        }
+
+        private void OnClearCanvasThumbPointerMoved(object sender, PointerRoutedEventArgs e)
+        {
+            if (_clearCanvasSlidePointerId != e.Pointer.PointerId
+                || ClearCanvasSlideThumbTransform is null
+                || ClearCanvasSlideHost is null)
+            {
+                return;
+            }
+
+            double maxX = GetClearCanvasThumbMaxX();
+            double currentX = e.GetCurrentPoint(ClearCanvasSlideHost).Position.X;
+            double nextX = Math.Clamp(_clearCanvasSlideThumbStartX + (currentX - _clearCanvasSlidePointerStartX), 0, maxX);
+            ClearCanvasSlideThumbTransform.X = nextX;
+            e.Handled = true;
+        }
+
+        private void OnClearCanvasThumbPointerReleased(object sender, PointerRoutedEventArgs e)
+        {
+            if (_clearCanvasSlidePointerId != e.Pointer.PointerId)
+            {
+                return;
+            }
+
+            CompleteClearCanvasSlideGesture(shouldEvaluate: true);
+            e.Handled = true;
+        }
+
+        private void OnClearCanvasThumbPointerCanceled(object sender, PointerRoutedEventArgs e)
+        {
+            if (_clearCanvasSlidePointerId != e.Pointer.PointerId)
+            {
+                return;
+            }
+
+            CompleteClearCanvasSlideGesture(shouldEvaluate: false);
+            e.Handled = true;
+        }
+
+        private void OnClearCanvasThumbPointerCaptureLost(object sender, PointerRoutedEventArgs e)
+        {
+            if (_clearCanvasSlidePointerId != e.Pointer.PointerId)
+            {
+                return;
+            }
+
+            CompleteClearCanvasSlideGesture(shouldEvaluate: false);
+            e.Handled = true;
+        }
+
+        private void CompleteClearCanvasSlideGesture(bool shouldEvaluate)
+        {
+            _clearCanvasSlidePointerId = null;
+            ClearCanvasSlideThumb?.ReleasePointerCaptures();
+
+            if (ClearCanvasSlideThumbTransform is null)
+            {
+                return;
+            }
+
+            if (shouldEvaluate)
+            {
+                double maxX = GetClearCanvasThumbMaxX();
+                bool reached = maxX > 0 && ClearCanvasSlideThumbTransform.X >= maxX * ClearCanvasSlideCompleteRatio;
+                if (reached && _drawingState.CanClear)
+                {
+                    ClearCanvasRequested?.Invoke();
+                    TryHideEraserFlyout();
+                    return;
+                }
+            }
+
+            ResetClearCanvasSlide(true);
+        }
+
+        private void UpdateClearCanvasSlideState()
+        {
+            if (ClearCanvasSlideThumb is null || ClearCanvasSlideHost is null)
+            {
+                return;
+            }
+
+            bool canClear = _drawingState.CanClear;
+            _isClearCanvasSlideEnabled = canClear;
+            ClearCanvasSlideThumb.IsHitTestVisible = canClear;
+            ClearCanvasSlideThumb.Opacity = canClear ? 1.0 : 0.55;
+            ClearCanvasSlideHost.Opacity = canClear ? 1.0 : 0.55;
+
+            if (!canClear && _clearCanvasSlidePointerId is not null)
+            {
+                _clearCanvasSlidePointerId = null;
+                ClearCanvasSlideThumb.ReleasePointerCaptures();
+                ResetClearCanvasSlide(false);
+            }
+        }
+
+        private double GetClearCanvasThumbMaxX()
+        {
+            if (ClearCanvasSlideHost is null || ClearCanvasSlideThumb is null)
+            {
+                return 0;
+            }
+
+            double hostWidth = ClearCanvasSlideHost.ActualWidth > 0 ? ClearCanvasSlideHost.ActualWidth : ClearCanvasSlideHost.Width;
+            double thumbWidth = ClearCanvasSlideThumb.ActualWidth > 0 ? ClearCanvasSlideThumb.ActualWidth : ClearCanvasSlideThumb.Width;
+            return Math.Max(0, hostWidth - thumbWidth - ClearCanvasSlideThumbInset * 2);
+        }
+
+        private void ResetClearCanvasSlide(bool animated)
+        {
+            if (ClearCanvasSlideThumbTransform is null)
+            {
+                return;
+            }
+
+            _clearCanvasSlideResetStoryboard?.Stop();
+            _clearCanvasSlideResetStoryboard = null;
+
+            if (!animated)
+            {
+                ClearCanvasSlideThumbTransform.X = 0;
+                return;
+            }
+
+            var storyboard = new Storyboard();
+            var animation = new DoubleAnimation
+            {
+                To = 0,
+                Duration = new Duration(TimeSpan.FromMilliseconds(ClearCanvasSlideResetAnimationMs)),
+                EnableDependentAnimation = true,
+                EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut },
+            };
+
+            Storyboard.SetTarget(animation, ClearCanvasSlideThumbTransform);
+            Storyboard.SetTargetProperty(animation, "X");
+            storyboard.Children.Add(animation);
+            _clearCanvasSlideResetStoryboard = storyboard;
+            storyboard.Begin();
         }
 
         private void OnDragHandlePointerPressed(object sender, PointerRoutedEventArgs e)
@@ -255,6 +831,80 @@ namespace WindBoard.Features.ScreenAnnotation.UI
             ToolButtonsPanel.Visibility = _isCollapsed ? Visibility.Collapsed : Visibility.Visible;
         }
 
+        private void ResizeWindowForFlyout(FrameworkElement? contentRoot, int fallbackWidth, int fallbackHeight)
+        {
+            var appWindow = ScreenAnnotationWindowInterop.TryGetAppWindow(this);
+            if (appWindow is null || !TryGetCurrentWindowBounds(out RectInt32 currentBounds))
+            {
+                return;
+            }
+
+            Size desiredSize = MeasureFlyoutContent(contentRoot);
+            int flyoutWidth = Math.Max(fallbackWidth, (int)Math.Ceiling(desiredSize.Width) + FlyoutHostPadding * 2);
+            int flyoutHeight = Math.Max(fallbackHeight, (int)Math.Ceiling(desiredSize.Height) + FlyoutHostPadding);
+            RectInt32 nextBounds = ScreenAnnotationToolbarBehavior.BuildFlyoutHostBounds(
+                _displayTarget,
+                currentBounds,
+                flyoutWidth,
+                flyoutHeight,
+                ToolbarHeight);
+
+            try
+            {
+                // 工具栏本体固定贴到底部，扩容的空间只留给上方 Flyout，避免被小窗口边界裁切。
+                appWindow.MoveAndResize(nextBounds);
+            }
+            catch (Exception ex)
+            {
+                AppLog.Warn("ScreenAnnotation.Interop", $"扩展工具栏窗口以承载 Flyout 失败：bounds={nextBounds}", ex);
+            }
+        }
+
+        private void RestoreCompactToolbarBounds()
+        {
+            var appWindow = ScreenAnnotationWindowInterop.TryGetAppWindow(this);
+            if (appWindow is null || !TryGetCurrentWindowBounds(out RectInt32 currentBounds))
+            {
+                return;
+            }
+
+            RectInt32 nextBounds = ScreenAnnotationToolbarBehavior.BuildCompactToolbarBounds(
+                _displayTarget,
+                currentBounds,
+                ExpandedToolbarWidth,
+                ToolbarHeight);
+
+            try
+            {
+                appWindow.MoveAndResize(nextBounds);
+            }
+            catch (Exception ex)
+            {
+                AppLog.Warn("ScreenAnnotation.Interop", $"恢复紧凑工具栏窗口尺寸失败：bounds={nextBounds}", ex);
+            }
+        }
+
+        private bool TryGetCurrentWindowBounds(out RectInt32 bounds)
+        {
+            IntPtr hwnd = ScreenAnnotationWindowInterop.GetWindowHandle(this);
+            return ScreenAnnotationWindowInterop.TryGetWindowRect(hwnd, out bounds);
+        }
+
+        private static Size MeasureFlyoutContent(FrameworkElement? contentRoot)
+        {
+            if (contentRoot is null)
+            {
+                return new Size(0, 0);
+            }
+
+            // 允许在 Flyout 真正打开前先测量一遍内容，以便提前扩容窗口，避免首次弹出被裁切。
+            contentRoot.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+            Size desiredSize = contentRoot.DesiredSize;
+            double width = double.IsNaN(desiredSize.Width) || double.IsInfinity(desiredSize.Width) ? 0 : desiredSize.Width;
+            double height = double.IsNaN(desiredSize.Height) || double.IsInfinity(desiredSize.Height) ? 0 : desiredSize.Height;
+            return new Size(width, height);
+        }
+
         private bool TryAttachTransparentBackdrop(IntPtr hwnd, out string? error)
         {
             if (_transparentBackdrop is not null)
@@ -297,6 +947,16 @@ namespace WindBoard.Features.ScreenAnnotation.UI
             }
         }
 
+        private static Style GetRequiredStyle(string key)
+        {
+            if (Application.Current.Resources[key] is Style style)
+            {
+                return style;
+            }
+
+            throw new InvalidOperationException($"找不到共享样式资源：{key}");
+        }
+
         void IScreenAnnotationModeToolbar.SetSelectedMode(ScreenAnnotationMode mode)
         {
             SetSelectedMode(mode);
@@ -313,3 +973,4 @@ namespace WindBoard.Features.ScreenAnnotation.UI
         }
     }
 }
+

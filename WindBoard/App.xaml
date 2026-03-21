@@ -37,6 +37,57 @@
                 <Setter Property="VerticalContentAlignment" Value="Center" />
             </Style>
 
+            <!-- 浮层面板：统一去掉默认边框/阴影/焦点框，避免出现额外白色外框。 -->
+            <Style x:Key="CompactFlyoutPresenterStyle" TargetType="FlyoutPresenter">
+                <Setter Property="Padding" Value="0" />
+                <Setter Property="BorderThickness" Value="0" />
+                <Setter Property="CornerRadius" Value="14" />
+                <Setter Property="Background" Value="Transparent" />
+                <Setter Property="Shadow" Value="{x:Null}" />
+                <Setter Property="IsTabStop" Value="False" />
+                <Setter Property="UseSystemFocusVisuals" Value="False" />
+                <Setter Property="FocusVisualPrimaryBrush" Value="Transparent" />
+                <Setter Property="FocusVisualSecondaryBrush" Value="Transparent" />
+            </Style>
+
+            <SolidColorBrush x:Key="SharedPenFlyoutDividerBrush" Color="#1A000000" />
+
+            <!-- 画笔粗细按钮：主白板与屏幕批注共用。 -->
+            <Style
+                x:Key="SharedPenThicknessToggleButtonStyle"
+                TargetType="ToggleButton"
+                BasedOn="{StaticResource DefaultToggleButtonStyle}">
+                <Setter Property="Width" Value="44" />
+                <Setter Property="Height" Value="44" />
+                <Setter Property="Padding" Value="0" />
+                <Setter Property="CornerRadius" Value="10" />
+                <Setter Property="BorderThickness" Value="0" />
+                <Setter Property="Background" Value="Transparent" />
+                <Setter Property="HorizontalContentAlignment" Value="Center" />
+                <Setter Property="VerticalContentAlignment" Value="Center" />
+                <Setter Property="UseSystemFocusVisuals" Value="False" />
+                <Setter Property="FocusVisualPrimaryBrush" Value="Transparent" />
+                <Setter Property="FocusVisualSecondaryBrush" Value="Transparent" />
+            </Style>
+
+            <!-- 颜色色块按钮：主白板、屏幕批注、设置页共用。 -->
+            <Style
+                x:Key="SharedPenColorSwatchToggleButtonStyle"
+                TargetType="ToggleButton"
+                BasedOn="{StaticResource DefaultToggleButtonStyle}">
+                <Setter Property="Width" Value="44" />
+                <Setter Property="Height" Value="44" />
+                <Setter Property="Padding" Value="0" />
+                <Setter Property="CornerRadius" Value="22" />
+                <Setter Property="BorderThickness" Value="2" />
+                <Setter Property="Background" Value="Transparent" />
+                <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                <Setter Property="VerticalContentAlignment" Value="Stretch" />
+                <Setter Property="UseSystemFocusVisuals" Value="False" />
+                <Setter Property="FocusVisualPrimaryBrush" Value="Transparent" />
+                <Setter Property="FocusVisualSecondaryBrush" Value="Transparent" />
+            </Style>
+
             <!--
               图标字体：
               - Win11（Build >= 22000）系统自带 Segoe Fluent Icons；

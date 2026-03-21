@@ -320,7 +320,7 @@ namespace WindBoard
         {
             var button = new ToggleButton
             {
-                Style = (Style)PenFlyoutRootBorder.Resources["PenColorSwatchToggleButtonStyle"],
+                Style = GetRequiredStyle("SharedPenColorSwatchToggleButtonStyle"),
                 ClickMode = ClickMode.Release,
             };
             button.Click += OnPenColorClicked;
@@ -371,7 +371,7 @@ namespace WindBoard
                 var button = new ToggleButton
                 {
                     Tag = size,
-                    Style = (Style)PenFlyoutRootBorder.Resources["PenThicknessToggleButtonStyle"],
+                    Style = GetRequiredStyle("SharedPenThicknessToggleButtonStyle"),
                 };
                 button.Click += OnPenThicknessClicked;
 
@@ -468,6 +468,16 @@ namespace WindBoard
                     button.IsChecked = ReferenceEquals(button, checkedButton);
                 }
             }
+        }
+
+        private static Style GetRequiredStyle(string key)
+        {
+            if (Application.Current.Resources[key] is Style style)
+            {
+                return style;
+            }
+
+            throw new InvalidOperationException($"找不到共享样式资源：{key}");
         }
 
         private void OnEraserToolClicked(object sender, RoutedEventArgs e)

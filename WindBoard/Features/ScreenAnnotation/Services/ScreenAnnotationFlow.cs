@@ -1,6 +1,7 @@
 using System;
 using System.Threading.Tasks;
 using Microsoft.UI.Xaml;
+using Windows.UI;
 using WindBoard.Features.ScreenAnnotation.Interop;
 using WindBoard.Features.ScreenAnnotation.Models;
 using WindBoard.Features.ScreenAnnotation.UI;
@@ -72,6 +73,7 @@ namespace WindBoard.Features.ScreenAnnotation.Services
 
                 _annotationWindow.Activate();
                 _toolbarWindow.Activate();
+                _toolbarWindow.SyncDrawingState(_sessionHost.CreateInitialDrawingStateSnapshot());
 
                 ApplyMode(ScreenAnnotationMode.PassThrough);
 
@@ -161,12 +163,17 @@ namespace WindBoard.Features.ScreenAnnotation.Services
             if (_toolbarWindow is not null)
             {
                 _toolbarWindow.ModeRequested += OnToolbarModeRequested;
+                _toolbarWindow.PenColorRequested += OnToolbarPenColorRequested;
+                _toolbarWindow.PenBaseSizeRequested += OnToolbarPenBaseSizeRequested;
+                _toolbarWindow.EraserModeRequested += OnToolbarEraserModeRequested;
+                _toolbarWindow.ClearCanvasRequested += OnToolbarClearCanvasRequested;
                 _toolbarWindow.ReturnToAppRequested += OnReturnToAppRequested;
                 _toolbarWindow.Closed += OnManagedWindowClosed;
             }
 
             if (_annotationWindow is not null)
             {
+                _annotationWindow.DrawingStateChanged += OnAnnotationDrawingStateChanged;
                 _annotationWindow.OverlayActivated += OnAnnotationWindowActivated;
                 _annotationWindow.OverlayWindowPositionChanged += OnAnnotationWindowPositionChanged;
                 _annotationWindow.Closed += OnManagedWindowClosed;
@@ -183,12 +190,17 @@ namespace WindBoard.Features.ScreenAnnotation.Services
             if (_toolbarWindow is not null)
             {
                 _toolbarWindow.ModeRequested -= OnToolbarModeRequested;
+                _toolbarWindow.PenColorRequested -= OnToolbarPenColorRequested;
+                _toolbarWindow.PenBaseSizeRequested -= OnToolbarPenBaseSizeRequested;
+                _toolbarWindow.EraserModeRequested -= OnToolbarEraserModeRequested;
+                _toolbarWindow.ClearCanvasRequested -= OnToolbarClearCanvasRequested;
                 _toolbarWindow.ReturnToAppRequested -= OnReturnToAppRequested;
                 _toolbarWindow.Closed -= OnManagedWindowClosed;
             }
 
             if (_annotationWindow is not null)
             {
+                _annotationWindow.DrawingStateChanged -= OnAnnotationDrawingStateChanged;
                 _annotationWindow.OverlayActivated -= OnAnnotationWindowActivated;
                 _annotationWindow.OverlayWindowPositionChanged -= OnAnnotationWindowPositionChanged;
                 _annotationWindow.Closed -= OnManagedWindowClosed;
@@ -214,6 +226,59 @@ namespace WindBoard.Features.ScreenAnnotation.Services
             {
                 AppLog.Warn("ScreenAnnotation", $"模式切换失败：mode={mode}", ex);
             }
+        }
+
+        private void OnToolbarPenColorRequested(Color color)
+        {
+            try
+            {
+                _annotationWindow?.SetPenColor(color);
+            }
+            catch (Exception ex)
+            {
+                AppLog.Warn("ScreenAnnotation", "切换屏幕批注画笔颜色失败。", ex);
+            }
+        }
+
+        private void OnToolbarPenBaseSizeRequested(float size)
+        {
+            try
+            {
+                _annotationWindow?.SetPenBaseSize(size);
+            }
+            catch (Exception ex)
+            {
+                AppLog.Warn("ScreenAnnotation", $"切换屏幕批注画笔粗细失败：size={size}", ex);
+            }
+        }
+
+        private void OnToolbarEraserModeRequested(ScreenAnnotationEraserMode mode)
+        {
+            try
+            {
+                _annotationWindow?.SetEraserMode(mode);
+            }
+            catch (Exception ex)
+            {
+                AppLog.Warn("ScreenAnnotation", $"切换屏幕批注擦除模式失败：mode={mode}", ex);
+            }
+        }
+
+        private void OnToolbarClearCanvasRequested()
+        {
+            try
+            {
+                _annotationWindow?.ClearAll();
+            }
+            catch (Exception ex)
+            {
+                AppLog.Warn("ScreenAnnotation", "清空屏幕批注内容失败。", ex);
+            }
+        }
+
+        private void OnAnnotationDrawingStateChanged(ScreenAnnotationDrawingStateSnapshot state)
+        {
+            _toolbarWindow?.SyncDrawingState(state);
         }
 
         private async void OnReturnToAppRequested(object? sender, EventArgs e)

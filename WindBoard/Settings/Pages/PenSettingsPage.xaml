@@ -10,38 +10,12 @@
     mc:Ignorable="d">
 
     <Page.Resources>
-        <SolidColorBrush x:Key="PenFlyoutDividerBrush" Color="#1A000000" />
-
         <!-- 颜色：圆形色块（背景始终透明，选中态用描边提示） -->
-        <Style x:Key="PenColorSwatchToggleButtonStyle" TargetType="ToggleButton" BasedOn="{StaticResource DefaultToggleButtonStyle}">
-            <Setter Property="Width" Value="44" />
-            <Setter Property="Height" Value="44" />
-            <Setter Property="Padding" Value="0" />
-            <Setter Property="CornerRadius" Value="22" />
-            <Setter Property="BorderThickness" Value="2" />
-            <Setter Property="Background" Value="Transparent" />
-            <!-- Ellipse 未显式设置尺寸时，需 Stretch 才能按按钮可用空间正确渲染为圆形色块 -->
-            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
-            <Setter Property="VerticalContentAlignment" Value="Stretch" />
-            <Setter Property="UseSystemFocusVisuals" Value="False" />
-            <Setter Property="FocusVisualPrimaryBrush" Value="Transparent" />
-            <Setter Property="FocusVisualSecondaryBrush" Value="Transparent" />
-        </Style>
+        <Style x:Key="PenColorSwatchToggleButtonStyle" TargetType="ToggleButton" BasedOn="{StaticResource SharedPenColorSwatchToggleButtonStyle}" />
 
         <!-- 粗细：仅用于“预览”，不响应交互 -->
-        <Style x:Key="PenThicknessPreviewToggleButtonStyle" TargetType="ToggleButton" BasedOn="{StaticResource DefaultToggleButtonStyle}">
-            <Setter Property="Width" Value="44" />
-            <Setter Property="Height" Value="44" />
-            <Setter Property="Padding" Value="0" />
-            <Setter Property="CornerRadius" Value="10" />
-            <Setter Property="BorderThickness" Value="0" />
-            <Setter Property="Background" Value="Transparent" />
-            <Setter Property="HorizontalContentAlignment" Value="Center" />
-            <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Style x:Key="PenThicknessPreviewToggleButtonStyle" TargetType="ToggleButton" BasedOn="{StaticResource SharedPenThicknessToggleButtonStyle}">
             <Setter Property="IsHitTestVisible" Value="False" />
-            <Setter Property="UseSystemFocusVisuals" Value="False" />
-            <Setter Property="FocusVisualPrimaryBrush" Value="Transparent" />
-            <Setter Property="FocusVisualSecondaryBrush" Value="Transparent" />
         </Style>
     </Page.Resources>
 
@@ -76,7 +50,7 @@
                                 Opacity="0.85"
                                 Margin="16,12,16,10" />
 
-                            <Rectangle Grid.Row="1" Height="1" Fill="{StaticResource PenFlyoutDividerBrush}" />
+                            <Rectangle Grid.Row="1" Height="1" Fill="{StaticResource SharedPenFlyoutDividerBrush}" />
 
                             <StackPanel Grid.Row="2" Spacing="12" Padding="14">
                                 <!-- 颜色预览（可点击选择要编辑的色块） -->

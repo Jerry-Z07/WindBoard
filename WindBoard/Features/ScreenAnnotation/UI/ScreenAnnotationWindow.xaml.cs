@@ -1,6 +1,7 @@
 using System;
 using System.Numerics;
 using Microsoft.UI.Xaml;
+using WindBoard.Board.Editing;
 using WindBoard.Features.ScreenAnnotation.Interop;
 using WindBoard.Features.ScreenAnnotation.Models;
 using WindBoard.Features.ScreenAnnotation.Services;
@@ -19,9 +20,14 @@ namespace WindBoard.Features.ScreenAnnotation.UI
         private readonly ScreenAnnotationDisplayTarget _displayTarget;
         private readonly ScreenAnnotationSessionHost _sessionHost;
         private readonly ScreenAnnotationWindowState _windowState;
+        private readonly IBoardEraser _pixelEraser;
+        private readonly IBoardEraser _wholeStrokeEraser = new WholeStrokeEraser();
         private ScreenAnnotationTransparentBackdrop? _transparentBackdrop;
         private bool _isWindowInitialized;
         private bool _isCanvasConfigured;
+        private Windows.UI.Color _currentPenColor;
+        private float _currentPenBaseSize;
+        private ScreenAnnotationEraserMode _currentEraserMode;
 
         internal ScreenAnnotationWindow(
             ScreenAnnotationDisplayTarget displayTarget,
@@ -31,6 +37,10 @@ namespace WindBoard.Features.ScreenAnnotation.UI
             _displayTarget = displayTarget;
             _sessionHost = sessionHost ?? throw new ArgumentNullException(nameof(sessionHost));
             _windowState = windowState ?? throw new ArgumentNullException(nameof(windowState));
+            _pixelEraser = _sessionHost.DefaultEraser;
+            _currentPenColor = _sessionHost.DefaultPenColor;
+            _currentPenBaseSize = _sessionHost.DefaultPenBaseSize;
+            _currentEraserMode = _sessionHost.DefaultEraserMode;
 
             InitializeComponent();
 
@@ -38,6 +48,8 @@ namespace WindBoard.Features.ScreenAnnotation.UI
             Closed += OnWindowClosed;
             BoardCanvas.Loaded += OnBoardCanvasLoaded;
         }
+
+        internal event Action<ScreenAnnotationDrawingStateSnapshot>? DrawingStateChanged;
 
         internal void ApplyMode(ScreenAnnotationMode mode)
         {
@@ -58,6 +70,72 @@ namespace WindBoard.Features.ScreenAnnotation.UI
             {
                 AppLog.Warn("ScreenAnnotation.Interop", $"切换批注层穿透失败：mode={mode}, error='{error}'");
             }
+        }
+
+        internal ScreenAnnotationDrawingStateSnapshot GetDrawingStateSnapshot()
+        {
+            bool canClear = _isCanvasConfigured
+                ? BoardCanvas.CanClear
+                : _sessionHost.Session.HasStrokes;
+
+            return new ScreenAnnotationDrawingStateSnapshot(
+                PenColor: _currentPenColor,
+                PenBaseSize: _currentPenBaseSize,
+                EraserMode: _currentEraserMode,
+                CanClear: canClear);
+        }
+
+        internal void SetPenColor(Windows.UI.Color color)
+        {
+            _currentPenColor = NormalizeOpaqueColor(color);
+
+            if (_isCanvasConfigured)
+            {
+                BoardCanvas.PenColor = _currentPenColor;
+            }
+
+            RaiseDrawingStateChanged();
+        }
+
+        internal void SetPenBaseSize(float size)
+        {
+            if (float.IsNaN(size) || float.IsInfinity(size) || size < 0.5f || size > 64.0f)
+            {
+                throw new ArgumentOutOfRangeException(nameof(size));
+            }
+
+            _currentPenBaseSize = size;
+
+            if (_isCanvasConfigured)
+            {
+                BoardCanvas.PenBaseSize = _currentPenBaseSize;
+            }
+
+            RaiseDrawingStateChanged();
+        }
+
+        internal void SetEraserMode(ScreenAnnotationEraserMode mode)
+        {
+            _currentEraserMode = mode;
+
+            if (_isCanvasConfigured)
+            {
+                BoardCanvas.Eraser = ResolveEraser(mode);
+            }
+
+            RaiseDrawingStateChanged();
+        }
+
+        internal void ClearAll()
+        {
+            if (_isCanvasConfigured)
+            {
+                BoardCanvas.ClearAll();
+                return;
+            }
+
+            _sessionHost.Session.ClearAll();
+            RaiseDrawingStateChanged();
         }
 
         private void OnWindowActivated(object sender, WindowActivatedEventArgs args)
@@ -128,10 +206,11 @@ namespace WindBoard.Features.ScreenAnnotation.UI
             // 批注层复用现有画布控件，但关闭视口手势与选择交互，只保留书写/擦除。
             BoardCanvas.BindSession(_sessionHost.Session);
             BoardCanvas.CanvasBackgroundColor = _sessionHost.CanvasBackgroundColor;
-            BoardCanvas.PenColor = _sessionHost.DefaultPenColor;
-            BoardCanvas.PenBaseSize = _sessionHost.DefaultPenBaseSize;
-            BoardCanvas.Eraser = _sessionHost.DefaultEraser;
+            BoardCanvas.PenColor = _currentPenColor;
+            BoardCanvas.PenBaseSize = _currentPenBaseSize;
+            BoardCanvas.Eraser = ResolveEraser(_currentEraserMode);
             BoardCanvas.SetInteractionOptions(allowViewportManipulation: false, allowSelectionInteraction: false);
+            BoardCanvas.CommandStateChanged += OnBoardCanvasCommandStateChanged;
 
             ScreenAnnotationViewportPreset preset = _sessionHost.BuildViewportPreset(
                 new Vector2(
@@ -141,6 +220,7 @@ namespace WindBoard.Features.ScreenAnnotation.UI
 
             _isCanvasConfigured = true;
             ApplyMode(_windowState.Mode);
+            RaiseDrawingStateChanged();
         }
 
         private bool TryAttachTransparentBackdrop(IntPtr hwnd, out string? error)
@@ -170,6 +250,8 @@ namespace WindBoard.Features.ScreenAnnotation.UI
 
         private void OnWindowClosed(object sender, WindowEventArgs args)
         {
+            BoardCanvas.CommandStateChanged -= OnBoardCanvasCommandStateChanged;
+
             if (_transparentBackdrop is not null)
             {
                 _transparentBackdrop.WindowMessageObserved -= OnBackdropWindowMessageObserved;
@@ -207,6 +289,26 @@ namespace WindBoard.Features.ScreenAnnotation.UI
             {
                 AppLog.Warn("ScreenAnnotation.Interop", "关闭初始化失败的批注层窗口时发生异常。", ex);
             }
+        }
+
+        private void OnBoardCanvasCommandStateChanged(object? sender, EventArgs e)
+        {
+            RaiseDrawingStateChanged();
+        }
+
+        private IBoardEraser ResolveEraser(ScreenAnnotationEraserMode mode)
+        {
+            return mode == ScreenAnnotationEraserMode.WholeStroke ? _wholeStrokeEraser : _pixelEraser;
+        }
+
+        private static Windows.UI.Color NormalizeOpaqueColor(Windows.UI.Color color)
+        {
+            return Windows.UI.Color.FromArgb(0xFF, color.R, color.G, color.B);
+        }
+
+        private void RaiseDrawingStateChanged()
+        {
+            DrawingStateChanged?.Invoke(GetDrawingStateSnapshot());
         }
 
         void IScreenAnnotationModeOverlay.ApplyMode(ScreenAnnotationMode mode)
