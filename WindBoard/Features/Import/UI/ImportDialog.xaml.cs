@@ -252,7 +252,6 @@ namespace WindBoard.Features.Import.UI
             if (result.WorkspaceFile is StorageFile workspaceFile)
             {
                 bool shouldWarn = result.WorkspaceExclusiveWarning;
-                AppLog.Info("Import", $"添加工作区文件到队列：source={source}, file='{workspaceFile.Path}', warn={shouldWarn}");
 
                 // 先清理旧预览，避免异步预读时出现“残留上一份预览”的闪烁。
                 ClearWorkspaceState();
@@ -269,7 +268,6 @@ namespace WindBoard.Features.Import.UI
                 return;
             }
 
-            AppLog.Info("Import", $"添加文件到队列：source={source}, selected={files.Count}, added={result.Added}, skippedDup={result.SkippedDuplicate}, skippedInvalid={result.SkippedInvalid}");
             RebuildQueueTreeView();
             UpdatePrimaryButtonState();
         }
@@ -291,7 +289,6 @@ namespace WindBoard.Features.Import.UI
 
             TextDraftTextBox.Text = string.Empty;
 
-            AppLog.Info("Import", $"添加文本到队列：length={result.ContentLength}");
             RebuildQueueTreeView();
             UpdatePrimaryButtonState();
         }
@@ -323,7 +320,6 @@ namespace WindBoard.Features.Import.UI
                     return;
                 }
 
-                AppLog.Warn("Import", "添加链接到队列失败：未发现有效链接。");
                 ShowDialogWarning(L10n.Get("ImportDialog_NoValidLinks_Message"));
                 return;
             }
@@ -333,7 +329,6 @@ namespace WindBoard.Features.Import.UI
                 LinkDraftTextBox.Text = string.Empty;
             }
 
-            AppLog.Info("Import", $"添加链接到队列：parsed={result.Parsed}, added={result.Added}, skippedDup={result.SkippedDuplicate}");
             RebuildQueueTreeView();
             UpdatePrimaryButtonState();
         }
@@ -356,7 +351,6 @@ namespace WindBoard.Features.Import.UI
 
         private void OnClearQueueClicked(object sender, RoutedEventArgs e)
         {
-            AppLog.Info("Import", $"清空导入队列：count={_queue.Count}");
             _queue.Clear();
             UpdatePrimaryButtonState();
             ClearWorkspaceState();
@@ -392,8 +386,6 @@ namespace WindBoard.Features.Import.UI
                 ClearWorkspaceState();
             }
 
-            AppLog.Info("Import", $"移除队列项：kind={removed.Kind}, title='{removed.DisplayTitle}'");
-
             RebuildQueueTreeView();
             UpdatePrimaryButtonState();
         }
@@ -403,10 +395,7 @@ namespace WindBoard.Features.Import.UI
             // “从队列移除”语义：移除工作区队列项 + 清空预览状态。
             if (_queue.WorkspaceItemId is Guid workspaceId && workspaceId != Guid.Empty)
             {
-                if (_queue.TryRemove(workspaceId, out ImportQueueItem? removed) && removed is not null)
-                {
-                    AppLog.Info("Import", $"移除队列项：kind={removed.Kind}, title='{removed.DisplayTitle}'");
-                }
+                _ = _queue.TryRemove(workspaceId, out _);
 
                 ClearWorkspaceState();
                 RebuildQueueTreeView();

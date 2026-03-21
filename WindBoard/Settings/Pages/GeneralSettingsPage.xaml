@@ -61,6 +61,23 @@
                 </controls:SettingsCard>
 
                 <controls:SettingsCard
+                    Header="{l10n:Loc Key=Settings_General_EnterScreenAnnotationWhenMinimized_Title}"
+                    Description="{l10n:Loc Key=Settings_General_EnterScreenAnnotationWhenMinimized_Description}">
+                    <controls:SettingsCard.HeaderIcon>
+                        <!-- 最小化进入屏幕批注：使用“批注/便签”语义图标 -->
+                        <FontIcon
+                            FontFamily="{ThemeResource SymbolThemeFontFamily}"
+                            FontSize="16"
+                            Glyph="&#xE70B;" />
+                    </controls:SettingsCard.HeaderIcon>
+                    <controls:SettingsCard.Content>
+                        <ToggleSwitch
+                            x:Name="EnterScreenAnnotationWhenMinimizedToggleSwitch"
+                            Toggled="OnEnterScreenAnnotationWhenMinimizedToggled" />
+                    </controls:SettingsCard.Content>
+                </controls:SettingsCard>
+
+                <controls:SettingsCard
                     x:Name="CamouflageSettingsCard"
                     IsClickEnabled="True"
                     Click="OnCamouflageSettingsClicked"

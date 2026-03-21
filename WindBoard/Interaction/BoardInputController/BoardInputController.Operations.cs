@@ -603,8 +603,13 @@ namespace WindBoard.Interaction
             return true;
         }
 
-        private static bool ShouldStartPan(Pointer pointer, PointerPoint point)
+        private bool ShouldStartPan(Pointer pointer, PointerPoint point)
         {
+            if (!_allowViewportManipulation)
+            {
+                return false;
+            }
+
             if (pointer.PointerDeviceType != PointerDeviceType.Mouse)
             {
                 return false;

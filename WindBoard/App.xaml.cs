@@ -117,7 +117,6 @@ namespace WindBoard
             {
                 EnsureAppNotificationInvokedHandlerHooked();
                 AppNotificationManager.Default.Register();
-                AppLog.Info("Reminders", "Windows 通知通道注册成功");
             }
             catch (Exception ex)
             {
@@ -139,9 +138,6 @@ namespace WindBoard
                 writeInitLog: false);
 
             string version = AppInfo.Version;
-            AppLog.Info(
-                "App",
-                $"数据目录：root='{AppDataPaths.RootDirectory}', kind={AppDataPaths.InstallKind}, evidence='{AppDataPaths.InstallEvidence}', installDir='{AppDataPaths.InstallDir}', settings='{AppSettingsService.Instance.SettingsFilePath}', logs='{AppLog.LogDirectory}'");
 
             if (AppDataPaths.InstallKind == AppInstallKind.Portable && !AppDataPaths.UsingPortableDataDirectory)
             {

@@ -16,6 +16,15 @@ namespace WindBoard
         {
             // “更多”菜单每次打开都同步一次当前窗口全屏状态，避免临时开关状态滞后。
             SyncTemporaryFullScreenMenuItemFromWindowState();
+
+            // 设置为“最小化进入屏幕批注”时，不重复展示菜单入口；关闭该设置时再显示显式入口。
+            bool enterScreenAnnotationWhenMinimized = AppSettingsService.Instance.GetEnterScreenAnnotationWhenMinimized();
+            if (ScreenAnnotationMenuFlyoutItem is not null)
+            {
+                ScreenAnnotationMenuFlyoutItem.Visibility = enterScreenAnnotationWhenMinimized
+                    ? Visibility.Collapsed
+                    : Visibility.Visible;
+            }
         }
 
         private void OnTemporaryFullScreenMenuItemClicked(object sender, RoutedEventArgs e)

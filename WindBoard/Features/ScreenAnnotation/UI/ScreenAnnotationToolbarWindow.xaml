@@ -1,0 +1,280 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Window
+    x:Class="WindBoard.Features.ScreenAnnotation.UI.ScreenAnnotationToolbarWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:l10n="using:WindBoard.Localization"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <Grid Background="Transparent" RequestedTheme="Light">
+        <Border
+            x:Name="RootBorder"
+            HorizontalAlignment="Left"
+            VerticalAlignment="Bottom"
+            Padding="6"
+            Background="Transparent"
+            BorderBrush="Transparent"
+            BorderThickness="0"
+            CornerRadius="18">
+            <StackPanel Orientation="Horizontal" Spacing="6">
+                <Border
+                    x:Name="DragHandleBorder"
+                    Width="48"
+                    Height="48"
+                    Padding="0"
+                    Background="#FFF8F8F8"
+                    BorderBrush="#22000000"
+                    BorderThickness="1"
+                    CornerRadius="14"
+                    ToolTipService.ToolTip="{l10n:Loc Key=Common_ScreenAnnotation}"
+                    PointerPressed="OnDragHandlePointerPressed"
+                    PointerMoved="OnDragHandlePointerMoved"
+                    PointerReleased="OnDragHandlePointerReleased"
+                    PointerCanceled="OnDragHandlePointerCanceled"
+                    PointerCaptureLost="OnDragHandlePointerCaptureLost">
+                    <Image
+                        Width="20"
+                        Height="20"
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center"
+                        Source="ms-appx:///Assets/icon.png"
+                        Stretch="Uniform" />
+                </Border>
+
+                <StackPanel
+                    x:Name="ToolButtonsPanel"
+                    Orientation="Horizontal"
+                    Spacing="6">
+                    <ToggleButton
+                        x:Name="PassThroughButton"
+                        Width="48"
+                        Height="48"
+                        Padding="0"
+                        ToolTipService.ToolTip="{l10n:Loc Key=Tool_PassThrough}"
+                        Click="OnPassThroughButtonClicked">
+                        <SymbolIcon Symbol="TouchPointer" />
+                    </ToggleButton>
+
+                    <ToggleButton
+                        x:Name="PenButton"
+                        Width="48"
+                        Height="48"
+                        Padding="0"
+                        ToolTipService.ToolTip="{l10n:Loc Key=Tool_Pen}"
+                        Click="OnPenButtonClicked">
+                        <FlyoutBase.AttachedFlyout>
+                            <Flyout Placement="Top" ShouldConstrainToRootBounds="False" Opened="OnPenFlyoutOpened" Closed="OnPenFlyoutClosed">
+                                <Flyout.FlyoutPresenterStyle>
+                                    <StaticResource ResourceKey="CompactFlyoutPresenterStyle" />
+                                </Flyout.FlyoutPresenterStyle>
+
+                                <Border
+                                    x:Name="PenFlyoutRootBorder"
+                                    CornerRadius="14"
+                                    Background="{ThemeResource SystemControlBackgroundChromeMediumLowBrush}"
+                                    BorderBrush="{ThemeResource SystemControlForegroundBaseMediumLowBrush}"
+                                    BorderThickness="1"
+                                    RequestedTheme="Light">
+                                    <Grid>
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto" />
+                                            <RowDefinition Height="1" />
+                                            <RowDefinition Height="Auto" />
+                                        </Grid.RowDefinitions>
+
+                                        <TextBlock
+                                            Text="{l10n:Loc Key=Settings_Pen_Title}"
+                                            Foreground="{ThemeResource SystemControlForegroundBaseHighBrush}"
+                                            FontSize="14"
+                                            FontWeight="SemiBold"
+                                            Opacity="0.85"
+                                            Margin="16,12,16,10" />
+
+                                        <Rectangle Grid.Row="1" Height="1" Fill="{StaticResource SharedPenFlyoutDividerBrush}" />
+
+                                        <StackPanel Grid.Row="2" Spacing="12" Padding="14">
+                                            <Grid
+                                                x:Name="PenColorGrid"
+                                                RowSpacing="14"
+                                                ColumnSpacing="14"
+                                                HorizontalAlignment="Left">
+                                                <Grid.Resources>
+                                                    <SolidColorBrush x:Key="ToggleButtonBackground" Color="#00000000" />
+                                                    <SolidColorBrush x:Key="ToggleButtonBackgroundPointerOver" Color="#00000000" />
+                                                    <SolidColorBrush x:Key="ToggleButtonBackgroundPressed" Color="#00000000" />
+                                                    <SolidColorBrush x:Key="ToggleButtonBackgroundDisabled" Color="#00000000" />
+                                                    <SolidColorBrush x:Key="ToggleButtonBackgroundChecked" Color="#00000000" />
+                                                    <SolidColorBrush x:Key="ToggleButtonBackgroundCheckedPointerOver" Color="#00000000" />
+                                                    <SolidColorBrush x:Key="ToggleButtonBackgroundCheckedPressed" Color="#00000000" />
+                                                    <SolidColorBrush x:Key="ToggleButtonBackgroundCheckedDisabled" Color="#00000000" />
+                                                    <SolidColorBrush x:Key="ToggleButtonBorderBrush" Color="#1F000000" />
+                                                    <SolidColorBrush x:Key="ToggleButtonBorderBrushPointerOver" Color="#33000000" />
+                                                    <SolidColorBrush x:Key="ToggleButtonBorderBrushPressed" Color="#33000000" />
+                                                    <SolidColorBrush x:Key="ToggleButtonBorderBrushDisabled" Color="#14000000" />
+                                                    <SolidColorBrush x:Key="ToggleButtonBorderBrushChecked" Color="#FF1976D2" />
+                                                    <SolidColorBrush x:Key="ToggleButtonBorderBrushCheckedPointerOver" Color="#FF1976D2" />
+                                                    <SolidColorBrush x:Key="ToggleButtonBorderBrushCheckedPressed" Color="#FF1976D2" />
+                                                    <SolidColorBrush x:Key="ToggleButtonBorderBrushCheckedDisabled" Color="#551976D2" />
+                                                </Grid.Resources>
+                                            </Grid>
+
+                                            <StackPanel x:Name="PenThicknessPresetsPanel" Spacing="6">
+                                                <TextBlock Text="{l10n:Loc Key=Common_Thickness}" Opacity="0.75" />
+                                                <Grid>
+                                                    <Grid.Resources>
+                                                        <SolidColorBrush x:Key="ToggleButtonBackground" Color="#00000000" />
+                                                        <SolidColorBrush x:Key="ToggleButtonBackgroundPointerOver" Color="#0F000000" />
+                                                        <SolidColorBrush x:Key="ToggleButtonBackgroundPressed" Color="#1A000000" />
+                                                        <SolidColorBrush x:Key="ToggleButtonBackgroundDisabled" Color="#00000000" />
+                                                        <SolidColorBrush x:Key="ToggleButtonBackgroundChecked" Color="#331976D2" />
+                                                        <SolidColorBrush x:Key="ToggleButtonBackgroundCheckedPointerOver" Color="#401976D2" />
+                                                        <SolidColorBrush x:Key="ToggleButtonBackgroundCheckedPressed" Color="#501976D2" />
+                                                        <SolidColorBrush x:Key="ToggleButtonBackgroundCheckedDisabled" Color="#201976D2" />
+                                                    </Grid.Resources>
+
+                                                    <StackPanel x:Name="PenThicknessPanel" Orientation="Horizontal" Spacing="14" />
+                                                </Grid>
+                                            </StackPanel>
+
+                                            <StackPanel x:Name="PenThicknessSliderPanel" Spacing="6" Visibility="Collapsed">
+                                                <TextBlock Text="{l10n:Loc Key=Common_Thickness}" Opacity="0.75" />
+                                                <Slider
+                                                    x:Name="PenThicknessSlider"
+                                                    Minimum="0.5"
+                                                    Maximum="64"
+                                                    SmallChange="0.5"
+                                                    StepFrequency="0.5"
+                                                    ValueChanged="OnPenThicknessSliderValueChanged" />
+                                            </StackPanel>
+                                        </StackPanel>
+                                    </Grid>
+                                </Border>
+                            </Flyout>
+                        </FlyoutBase.AttachedFlyout>
+
+                        <SymbolIcon Symbol="Edit" />
+                    </ToggleButton>
+
+                    <ToggleButton
+                        x:Name="EraserButton"
+                        Width="48"
+                        Height="48"
+                        Padding="0"
+                        ToolTipService.ToolTip="{l10n:Loc Key=Tool_Eraser}"
+                        Click="OnEraserButtonClicked">
+                        <FlyoutBase.AttachedFlyout>
+                            <Flyout Placement="Top" ShouldConstrainToRootBounds="False" Opened="OnEraserFlyoutOpened" Closed="OnEraserFlyoutClosed">
+                                <Flyout.FlyoutPresenterStyle>
+                                    <StaticResource ResourceKey="CompactFlyoutPresenterStyle" />
+                                </Flyout.FlyoutPresenterStyle>
+
+                                <StackPanel x:Name="EraserFlyoutRootPanel" Width="232" Spacing="10">
+                                    <Border
+                                        CornerRadius="14"
+                                        Background="{ThemeResource SystemControlBackgroundChromeMediumLowBrush}"
+                                        BorderBrush="{ThemeResource SystemControlForegroundBaseMediumLowBrush}"
+                                        BorderThickness="1"
+                                        Padding="12,10,12,10">
+                                        <Border.Resources>
+                                            <SolidColorBrush x:Key="ToggleButtonBackgroundPointerOver" Color="#00000000" />
+                                            <SolidColorBrush x:Key="ToggleButtonBackgroundPressed" Color="#00000000" />
+                                            <SolidColorBrush x:Key="ToggleButtonForegroundPointerOver" Color="#FF1A1A1A" />
+                                            <SolidColorBrush x:Key="ToggleButtonForegroundPressed" Color="#FF1A1A1A" />
+                                            <SolidColorBrush x:Key="RadioButtonBackgroundPointerOver" Color="#00000000" />
+                                            <SolidColorBrush x:Key="RadioButtonBackgroundPressed" Color="#00000000" />
+                                            <SolidColorBrush x:Key="RadioButtonForegroundPointerOver" Color="#FF1A1A1A" />
+                                            <SolidColorBrush x:Key="RadioButtonForegroundPressed" Color="#FF1A1A1A" />
+                                            <SolidColorBrush x:Key="RadioButtonForegroundCheckedPointerOver" Color="#FF1A1A1A" />
+                                            <SolidColorBrush x:Key="RadioButtonForegroundCheckedPressed" Color="#FF1A1A1A" />
+                                        </Border.Resources>
+
+                                        <StackPanel Spacing="8">
+                                            <TextBlock
+                                                Text="{l10n:Loc Key=MainWindow_EraserMode_Title}"
+                                                Foreground="{ThemeResource SystemControlForegroundBaseHighBrush}"
+                                                FontSize="12"
+                                                Opacity="0.85" />
+                                            <StackPanel Orientation="Horizontal" Spacing="16">
+                                                <RadioButton
+                                                    x:Name="PixelEraserRadioButton"
+                                                    Content="{l10n:Loc Key=MainWindow_EraserMode_Point}"
+                                                    GroupName="ScreenAnnotationEraserMode"
+                                                    IsChecked="True"
+                                                    Foreground="{ThemeResource SystemControlForegroundBaseHighBrush}"
+                                                    Checked="OnEraserModeChecked" />
+                                                <RadioButton
+                                                    x:Name="StrokeEraserRadioButton"
+                                                    Content="{l10n:Loc Key=MainWindow_EraserMode_Stroke}"
+                                                    GroupName="ScreenAnnotationEraserMode"
+                                                    Foreground="{ThemeResource SystemControlForegroundBaseHighBrush}"
+                                                    Checked="OnEraserModeChecked" />
+                                            </StackPanel>
+                                        </StackPanel>
+                                    </Border>
+
+                                    <Grid x:Name="ClearCanvasSlideHost" Width="232" Height="52">
+                                        <Border
+                                            CornerRadius="14"
+                                            Background="{ThemeResource SystemControlBackgroundChromeMediumLowBrush}"
+                                            BorderBrush="{ThemeResource SystemControlForegroundBaseMediumLowBrush}"
+                                            BorderThickness="1" />
+                                        <TextBlock
+                                            x:Name="ClearCanvasSlideText"
+                                            Text="{l10n:Loc Key=MainWindow_ClearCanvas_Slide}"
+                                            Foreground="{ThemeResource SystemControlForegroundBaseHighBrush}"
+                                            FontSize="15"
+                                            FontWeight="SemiBold"
+                                            HorizontalAlignment="Center"
+                                            VerticalAlignment="Center" />
+                                        <Border
+                                            x:Name="ClearCanvasSlideThumb"
+                                            Width="44"
+                                            Height="44"
+                                            HorizontalAlignment="Left"
+                                            VerticalAlignment="Center"
+                                            Margin="6,0,0,0"
+                                            Background="#F2F2F2"
+                                            CornerRadius="22"
+                                            BorderBrush="{ThemeResource SystemControlForegroundBaseMediumLowBrush}"
+                                            BorderThickness="1"
+                                            PointerPressed="OnClearCanvasThumbPointerPressed"
+                                            PointerMoved="OnClearCanvasThumbPointerMoved"
+                                            PointerReleased="OnClearCanvasThumbPointerReleased"
+                                            PointerCanceled="OnClearCanvasThumbPointerCanceled"
+                                            PointerCaptureLost="OnClearCanvasThumbPointerCaptureLost">
+                                            <Border.RenderTransform>
+                                                <TranslateTransform x:Name="ClearCanvasSlideThumbTransform" />
+                                            </Border.RenderTransform>
+                                            <FontIcon
+                                                FontFamily="{ThemeResource SymbolThemeFontFamily}"
+                                                FontSize="16"
+                                                Foreground="#6B6B6B"
+                                                Glyph="&#xE74D;"
+                                                HorizontalAlignment="Center"
+                                                VerticalAlignment="Center" />
+                                        </Border>
+                                    </Grid>
+                                </StackPanel>
+                            </Flyout>
+                        </FlyoutBase.AttachedFlyout>
+
+                        <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" Glyph="&#xE75C;" />
+                    </ToggleButton>
+
+                    <Button
+                        x:Name="ReturnToAppButton"
+                        Width="48"
+                        Height="48"
+                        Padding="0"
+                        ToolTipService.ToolTip="{l10n:Loc Key=Common_ReturnToApp}"
+                        Click="OnReturnToAppButtonClicked">
+                        <SymbolIcon Symbol="BackToWindow" />
+                    </Button>
+                </StackPanel>
+            </StackPanel>
+        </Border>
+    </Grid>
+</Window>
+

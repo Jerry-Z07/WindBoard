@@ -41,15 +41,6 @@ namespace WindBoard.Features.Import.Services
 
             IReadOnlyList<string> links = ImportUrlNormalizer.ParseAndNormalizeLinkLines(request.LinkLines);
 
-            int totalImages = request.ImageFiles?.Count ?? 0;
-            int totalMedia = request.MediaFiles?.Count ?? 0;
-            int totalTextFiles = request.TextFiles?.Count ?? 0;
-            int totalOtherFiles = request.OtherFiles?.Count ?? 0;
-            int hasText = string.IsNullOrWhiteSpace(request.TextContent) ? 0 : 1;
-            int totalLinks = links.Count;
-
-            AppLog.Info("Import", $"开始导入：images={totalImages}, media={totalMedia}, textFiles={totalTextFiles}, otherFiles={totalOtherFiles}, text={hasText}, links={totalLinks}");
-
             BoardSession session = workspace.CurrentPage.Session;
             var context = new ImportExecutionContext(session, cameraWorld, zoom);
 
@@ -59,8 +50,6 @@ namespace WindBoard.Features.Import.Services
             await ImportTextFilesAsync(context, request.TextFiles);
             ImportTextContent(context, request.TextContent);
             ImportLinks(context, links);
-
-            AppLog.Info("Import", $"导入完成：created={context.Created.Count}");
             return context.Created;
         }
 

@@ -146,6 +146,12 @@
   <data name="Settings_General_StartupWindowMode_FullScreen" xml:space="preserve">
     <value>全屏</value>
   </data>
+  <data name="Settings_General_EnterScreenAnnotationWhenMinimized_Title" xml:space="preserve">
+    <value>最小化时进入屏幕批注</value>
+  </data>
+  <data name="Settings_General_EnterScreenAnnotationWhenMinimized_Description" xml:space="preserve">
+    <value>开启后最小化会进入屏幕批注；关闭后仅执行普通最小化</value>
+  </data>
   <data name="Settings_About_Title" xml:space="preserve">
     <value>关于</value>
   </data>

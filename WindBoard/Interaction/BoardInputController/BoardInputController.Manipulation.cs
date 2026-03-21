@@ -21,6 +21,11 @@ namespace WindBoard.Interaction
     {
         private void OnCanvasPointerWheelChanged(object sender, PointerRoutedEventArgs e)
         {
+            if (!_allowViewportManipulation)
+            {
+                return;
+            }
+
             if (HasBlockingInteractionForWheelZoom())
             {
                 return;
@@ -234,6 +239,12 @@ namespace WindBoard.Interaction
 
         private void OnCanvasManipulationStarting(object sender, ManipulationStartingRoutedEventArgs e)
         {
+            if (!_allowViewportManipulation)
+            {
+                e.Handled = true;
+                return;
+            }
+
             // 触摸手势以 CanvasPanel 为坐标系
             if (HasBlockingInteractionForManipulation())
             {
@@ -275,6 +286,12 @@ namespace WindBoard.Interaction
 
         private void OnCanvasManipulationDelta(object sender, ManipulationDeltaRoutedEventArgs e)
         {
+            if (!_allowViewportManipulation)
+            {
+                e.Handled = true;
+                return;
+            }
+
             // 触摸：多指拖动 + 捏合缩放（以手势中心为缩放锚点）
             const int minTouchCount = 2;
             bool canHandle = !HasBlockingInteractionForManipulation() && _activeTouchPointers.Count >= minTouchCount;
@@ -445,6 +462,14 @@ namespace WindBoard.Interaction
 
         private void OnCanvasManipulationCompleted(object sender, ManipulationCompletedRoutedEventArgs e)
         {
+            if (!_allowViewportManipulation)
+            {
+                _activeTouchPointers.Clear();
+                _touchManipulationTarget = TouchManipulationTarget.Viewport;
+                e.Handled = true;
+                return;
+            }
+
             // 在三指及以上的复杂触摸手势下，系统可能不会为每个触点都完整触发 PointerReleased/PointerCanceled。
             // 为避免触点残留导致始终被判定为“多指”，这里在手势结束时强制清空触摸状态。
             _activeTouchPointers.Clear();

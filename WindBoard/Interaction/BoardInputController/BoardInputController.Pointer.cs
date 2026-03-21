@@ -40,13 +40,17 @@ namespace WindBoard.Interaction
             // 多指触摸：交给 Manipulation 处理缩放/拖动；如果正在用“触摸单指画线/擦除”，则先结束。
             if (_activeTouchPointers.Count >= 2)
             {
-                EndTouchSingleFingerToolOperationForManipulation();
+                if (_allowViewportManipulation)
+                {
+                    EndTouchSingleFingerToolOperationForManipulation();
+                }
+
                 e.Handled = true;
                 FrameInvalidated?.Invoke();
                 return;
             }
 
-            if (Tool == BoardTool.Select)
+            if (Tool == BoardTool.Select && _allowSelectionInteractions)
             {
                 // 选择模式：单指用于“框选”；双指/多指用于视口手势或对已选中笔迹做变换。
                 Vector2 screen = new((float)point.Position.X, (float)point.Position.Y);
@@ -126,6 +130,11 @@ namespace WindBoard.Interaction
 
         private bool TryBeginSelectGesture(PointerRoutedEventArgs e, PointerPoint point)
         {
+            if (!_allowSelectionInteractions)
+            {
+                return false;
+            }
+
             // 选择模式（框选）：
             // - 鼠标右键：平移视口
             // - 其它：单指/鼠标左键/触控笔拖拽 → 框选；在已选中笔迹范围内拖拽 → 移动选中笔迹

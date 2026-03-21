@@ -231,8 +231,6 @@ namespace WindBoard.Updates
                 return id;
             }
 
-            AppLog.Info("Updates", $"开始下载源测速：installKind={install.Kind}, mode={mode}, lastTestUtc={prefs.LastTestUtc:O}");
-
             DownloadSourceSpeedTestResult[] results = await DownloadSourceSpeedTester
                 .TestAsync(UpdateConstants.LatestJsonUrl, cancellationToken)
                 .ConfigureAwait(false);
@@ -262,8 +260,6 @@ namespace WindBoard.Updates
                 string url = DownloadSourceUrlRewriter.Rewrite(UpdateConstants.LatestJsonUrl, source);
                 try
                 {
-                    AppLog.Info("Updates", $"开始获取最新版本信息：source={source}, url='{url}'");
-
                     using HttpRequestMessage req = new(HttpMethod.Get, url);
                     using HttpResponseMessage resp = await UpdateHttpClient
                         .SendAsync(req, HttpCompletionOption.ResponseHeadersRead, cancellationToken)

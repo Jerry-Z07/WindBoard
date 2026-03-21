@@ -26,4 +26,7 @@
   <data name="Tool_Eraser" xml:space="preserve">
     <value>擦除</value>
   </data>
+  <data name="Tool_PassThrough" xml:space="preserve">
+    <value>穿透</value>
+  </data>
 </root>

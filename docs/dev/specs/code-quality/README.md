@@ -2,7 +2,7 @@
 
 本文档用于把当前仓库的复杂度热点与可维护性风险“落盘”，作为后续持续治理的**基线**与 PR/迭代的对照标准。
 
-持续治理路线图：见 `docs/dev/spec/CODE_QUALITY_PLAN.md`。
+持续治理路线图：见 `docs/dev/specs/code-quality/plan.md`。
 
 ## 元信息
 

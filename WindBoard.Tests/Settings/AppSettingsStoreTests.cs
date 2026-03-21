@@ -23,6 +23,7 @@ public sealed class AppSettingsStoreTests
         Assert.NotNull(settings.General.Updates);
         Assert.Equal(AppLanguagePreferenceParser.SystemValue, settings.General.LanguagePreference);
         Assert.Equal(StartupWindowModeParser.WindowedValue, settings.General.StartupWindowMode);
+        Assert.True(settings.General.EnterScreenAnnotationWhenMinimized);
         Assert.False(settings.General.Camouflage.Enabled);
         Assert.Equal(string.Empty, settings.General.Camouflage.Title);
         Assert.Equal(string.Empty, settings.General.Camouflage.SourcePath);
@@ -77,6 +78,39 @@ public sealed class AppSettingsStoreTests
         AppSettingsStore.NormalizeInPlace(settings);
 
         Assert.Equal(expected, settings.General.StartupWindowMode);
+    }
+
+    [Fact]
+    public void NormalizeInPlace_PreservesEnterScreenAnnotationWhenMinimized_WhenConfigured()
+    {
+        var settings = new AppSettings
+        {
+            General = new GeneralSettings
+            {
+                EnterScreenAnnotationWhenMinimized = false,
+            },
+        };
+
+        AppSettingsStore.NormalizeInPlace(settings);
+
+        Assert.False(settings.General.EnterScreenAnnotationWhenMinimized);
+    }
+
+    [Fact]
+    public void NormalizeInPlace_DefaultsEnterScreenAnnotationWhenMinimized_ToTrue_WhenFieldMissing()
+    {
+        var settings = new AppSettings
+        {
+            General = new GeneralSettings
+            {
+                // 模拟历史配置缺少字段（反序列化到可空 bool 为 null）。
+                EnterScreenAnnotationWhenMinimized = null,
+            },
+        };
+
+        AppSettingsStore.NormalizeInPlace(settings);
+
+        Assert.True(settings.General.EnterScreenAnnotationWhenMinimized);
     }
 
     [Fact]

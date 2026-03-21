@@ -36,7 +36,6 @@ namespace WindBoard.Settings.Pages
                     return;
                 }
 
-                AppLog.Info("Updates", "用户点击检查更新");
                 AppUpdateCheckResult result = await AppUpdateService.Instance
                     .CheckForUpdatesAsync(UpdateCheckMode.Manual, _checkUpdatesCts.Token)
                     .ConfigureAwait(true);

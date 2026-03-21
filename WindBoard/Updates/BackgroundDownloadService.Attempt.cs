@@ -119,7 +119,6 @@ namespace WindBoard.Updates
             }
 
             reporter.ReportCompleted(downloaded);
-            AppLog.Info("Downloads", $"下载完成：source={sourceId}, path='{context.DestinationPath}', bytes={downloaded}");
             return DownloadResult.SuccessResult(context.DestinationPath, sourceId);
         }
 
@@ -184,7 +183,6 @@ namespace WindBoard.Updates
                 // Range 不可用：可能远端文件变更或本地 .part 损坏，删除后从头重下。
                 resp.Dispose();
                 TryDeletePartFile(context.PartPath);
-                AppLog.Info("Downloads", $"断点续传不可用，将从头下载：source={context.SourceId}");
 
                 existingBytes = 0;
                 resp = await SendDownloadRequestAsync(context, existingBytes, cancellationToken).ConfigureAwait(false);
@@ -195,7 +193,6 @@ namespace WindBoard.Updates
                 // 部分镜像源可能忽略 Range 并返回 200，此时只能从头重下，否则会导致文件拼接错误。
                 resp.Dispose();
                 TryDeletePartFile(context.PartPath);
-                AppLog.Info("Downloads", $"远端未返回 PartialContent，将从头下载：source={context.SourceId}");
 
                 existingBytes = 0;
                 resp = await SendDownloadRequestAsync(context, existingBytes, cancellationToken).ConfigureAwait(false);

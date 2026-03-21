@@ -156,7 +156,6 @@ namespace WindBoard.Settings.Pages
                 interval = UpdateCheckInterval.Weekly;
             }
 
-            AppLog.Info("Updates", $"自动检查更新频率变更：interval='{UpdateCheckIntervalParser.ToSettingValue(interval)}'");
             AppSettingsService.Instance.SetUpdateCheckInterval(interval);
         }
 
@@ -176,7 +175,6 @@ namespace WindBoard.Settings.Pages
             string v = (value ?? string.Empty).Trim();
             if (v.Equals("auto", StringComparison.OrdinalIgnoreCase))
             {
-                AppLog.Info("Updates", "用户选择下载源：auto");
                 AppSettingsService.Instance.SetUpdateDownloadSourcePolicy(DownloadSourcePolicy.Auto);
 
                 // 自动模式：后台测速并写入最快源。
@@ -189,7 +187,6 @@ namespace WindBoard.Settings.Pages
                 id = DownloadSourceId.Github;
             }
 
-            AppLog.Info("Updates", $"用户选择下载源：fixed/{id}");
             AppSettingsService.Instance.SetUpdateDownloadSourcePolicy(DownloadSourcePolicy.Fixed);
             AppSettingsService.Instance.SetUpdateDownloadSourceId(id);
         }

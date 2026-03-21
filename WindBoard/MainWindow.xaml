@@ -85,6 +85,15 @@
                                          <SymbolIcon x:Name="TemporaryFullScreenMenuIcon" Symbol="FullScreen" />
                                      </MenuFlyoutItem.Icon>
                                  </MenuFlyoutItem>
+                                 <MenuFlyoutItem
+                                     x:Name="ScreenAnnotationMenuFlyoutItem"
+                                     Text="{l10n:Loc Key=Common_ScreenAnnotation}"
+                                     Click="OnEnterScreenAnnotationClicked"
+                                     Visibility="Collapsed">
+                                     <MenuFlyoutItem.Icon>
+                                         <SymbolIcon Symbol="Edit" />
+                                     </MenuFlyoutItem.Icon>
+                                 </MenuFlyoutItem>
                                  <MenuFlyoutSeparator />
                                  <MenuFlyoutItem Text="{l10n:Loc Key=Common_Exit}" Click="OnExitClicked">
                                      <MenuFlyoutItem.Icon>
@@ -190,63 +199,17 @@
                         <FlyoutBase.AttachedFlyout>
                             <Flyout Placement="Top" Opened="OnPenFlyoutOpened" Closed="OnPenFlyoutClosed">
                                 <Flyout.FlyoutPresenterStyle>
-                                    <Style TargetType="FlyoutPresenter">
-                                        <Setter Property="Padding" Value="0" />
-                                        <Setter Property="BorderThickness" Value="0" />
-                                        <!-- 禁用 Flyout 默认边框/阴影/焦点框，避免出现“白色方形外框” -->
-                                        <Setter Property="CornerRadius" Value="14" />
-                                        <Setter Property="Background" Value="Transparent" />
-                                        <Setter Property="Shadow" Value="{x:Null}" />
-                                        <Setter Property="IsTabStop" Value="False" />
-                                        <Setter Property="UseSystemFocusVisuals" Value="False" />
-                                        <Setter Property="FocusVisualPrimaryBrush" Value="Transparent" />
-                                        <Setter Property="FocusVisualSecondaryBrush" Value="Transparent" />
-                                    </Style>
+                                    <StaticResource ResourceKey="CompactFlyoutPresenterStyle" />
                                 </Flyout.FlyoutPresenterStyle>
 
                                  <!-- 书写：画笔设置（颜色/粗细） -->
                                  <Border
                                      x:Name="PenFlyoutRootBorder"
                                       CornerRadius="14"
-                                      Background="{ThemeResource SystemControlBackgroundChromeMediumLowBrush}"
+                                     Background="{ThemeResource SystemControlBackgroundChromeMediumLowBrush}"
                                       BorderBrush="{ThemeResource SystemControlForegroundBaseMediumLowBrush}"
                                       BorderThickness="1"
                                      RequestedTheme="Light">
-                                     <Border.Resources>
-                                         <SolidColorBrush x:Key="PenFlyoutDividerBrush" Color="#1A000000" />
- 
-                                         <!-- 粗细：用图标表示（选中态浅蓝高亮） -->
-                                         <Style x:Key="PenThicknessToggleButtonStyle" TargetType="ToggleButton" BasedOn="{StaticResource DefaultToggleButtonStyle}">
-                                             <Setter Property="Width" Value="44" />
-                                            <Setter Property="Height" Value="44" />
-                                            <Setter Property="Padding" Value="0" />
-                                            <Setter Property="CornerRadius" Value="10" />
-                                            <Setter Property="BorderThickness" Value="0" />
-                                            <Setter Property="Background" Value="Transparent" />
-                                            <Setter Property="HorizontalContentAlignment" Value="Center" />
-                                            <Setter Property="VerticalContentAlignment" Value="Center" />
-                                            <Setter Property="UseSystemFocusVisuals" Value="False" />
-                                            <Setter Property="FocusVisualPrimaryBrush" Value="Transparent" />
-                                            <Setter Property="FocusVisualSecondaryBrush" Value="Transparent" />
-                                        </Style>
-
-                                        <!-- 颜色：圆形色块（背景始终透明，选中态用描边提示） -->
-                                        <Style x:Key="PenColorSwatchToggleButtonStyle" TargetType="ToggleButton" BasedOn="{StaticResource DefaultToggleButtonStyle}">
-                                            <Setter Property="Width" Value="44" />
-                                            <Setter Property="Height" Value="44" />
-                                            <Setter Property="Padding" Value="0" />
-                                            <Setter Property="CornerRadius" Value="22" />
-                                            <Setter Property="BorderThickness" Value="2" />
-                                            <Setter Property="Background" Value="Transparent" />
-                                            <!-- Ellipse 未显式设置尺寸时，需 Stretch 才能按按钮可用空间正确渲染为圆形色块 -->
-                                            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
-                                            <Setter Property="VerticalContentAlignment" Value="Stretch" />
-                                            <Setter Property="UseSystemFocusVisuals" Value="False" />
-                                            <Setter Property="FocusVisualPrimaryBrush" Value="Transparent" />
-                                            <Setter Property="FocusVisualSecondaryBrush" Value="Transparent" />
-                                        </Style>
-                                    </Border.Resources>
-
                                     <Grid>
                                         <Grid.RowDefinitions>
                                             <RowDefinition Height="Auto" />
@@ -262,7 +225,7 @@
                                             Opacity="0.85"
                                             Margin="16,12,16,10" />
 
-                                         <Rectangle Grid.Row="1" Height="1" Fill="{StaticResource PenFlyoutDividerBrush}" />
+                                         <Rectangle Grid.Row="1" Height="1" Fill="{StaticResource SharedPenFlyoutDividerBrush}" />
  
                                          <StackPanel Grid.Row="2" Spacing="12" Padding="14">
                                              <!-- 颜色：可变数量的固定色板（允许空色块） -->
@@ -347,18 +310,7 @@
                         <FlyoutBase.AttachedFlyout>
                             <Flyout Placement="Top" Opened="OnEraserFlyoutOpened" Closed="OnEraserFlyoutClosed">
                                 <Flyout.FlyoutPresenterStyle>
-                                    <Style TargetType="FlyoutPresenter">
-                                        <Setter Property="Padding" Value="0" />
-                                        <Setter Property="BorderThickness" Value="0" />
-                                        <!-- 禁用 Flyout 默认边框/阴影/焦点框，避免出现“白色方形外框” -->
-                                        <Setter Property="CornerRadius" Value="14" />
-                                        <Setter Property="Background" Value="Transparent" />
-                                        <Setter Property="Shadow" Value="{x:Null}" />
-                                        <Setter Property="IsTabStop" Value="False" />
-                                        <Setter Property="UseSystemFocusVisuals" Value="False" />
-                                        <Setter Property="FocusVisualPrimaryBrush" Value="Transparent" />
-                                        <Setter Property="FocusVisualSecondaryBrush" Value="Transparent" />
-                                    </Style>
+                                    <StaticResource ResourceKey="CompactFlyoutPresenterStyle" />
                                 </Flyout.FlyoutPresenterStyle>
 
                                 <StackPanel Width="232" Spacing="10">

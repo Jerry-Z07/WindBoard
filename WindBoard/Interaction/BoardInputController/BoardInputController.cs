@@ -50,6 +50,8 @@ namespace WindBoard.Interaction
         private bool _isManipulatingSelection;
         private bool _isInteracting;
         private bool _isWheelZooming;
+        private bool _allowViewportManipulation = true;
+        private bool _allowSelectionInteractions = true;
         private DateTimeOffset _lastWheelZoomAt;
         private DispatcherQueueTimer? _wheelZoomTimer;
         private Vector2 _pendingPanScreenDelta = Vector2.Zero;
@@ -116,6 +118,33 @@ namespace WindBoard.Interaction
         /// 是否启用压感（会影响笔迹宽度随压力变化），仅影响后续新建笔迹。
         /// </summary>
         public bool PenEnablePressure { get; set; } = true;
+
+        /// <summary>
+        /// 是否允许视口类交互（右键平移、滚轮缩放、双指拖动/捏合）。
+        /// </summary>
+        public bool AllowViewportManipulation
+        {
+            get => _allowViewportManipulation;
+            set
+            {
+                if (_allowViewportManipulation == value)
+                {
+                    return;
+                }
+
+                _allowViewportManipulation = value;
+                UpdateManipulationMode();
+            }
+        }
+
+        /// <summary>
+        /// 是否允许选择相关交互（框选、拖动选中对象等）。
+        /// </summary>
+        public bool AllowSelectionInteraction
+        {
+            get => _allowSelectionInteractions;
+            set => _allowSelectionInteractions = value;
+        }
 
         public IBoardEraser Eraser
         {
@@ -265,7 +294,7 @@ namespace WindBoard.Interaction
             _panel.PointerWheelChanged += OnCanvasPointerWheelChanged;
 
             // 触摸：单指画线；双指/多指拖动+捏合缩放（Pinch Zoom）
-            _panel.ManipulationMode = ManipulationModes.TranslateX | ManipulationModes.TranslateY | ManipulationModes.Scale | ManipulationModes.Rotate;
+            UpdateManipulationMode();
             _panel.ManipulationStarting += OnCanvasManipulationStarting;
             _panel.ManipulationDelta += OnCanvasManipulationDelta;
             _panel.ManipulationCompleted += OnCanvasManipulationCompleted;
@@ -293,6 +322,13 @@ namespace WindBoard.Interaction
 
             _isWheelZooming = false;
             _lastWheelZoomAt = default;
+        }
+
+        private void UpdateManipulationMode()
+        {
+            _panel.ManipulationMode = _allowViewportManipulation
+                ? ManipulationModes.TranslateX | ManipulationModes.TranslateY | ManipulationModes.Scale | ManipulationModes.Rotate
+                : ManipulationModes.None;
         }
 
 

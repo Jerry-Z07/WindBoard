@@ -28,6 +28,7 @@ namespace WindBoard.Settings
                 {
                     LanguagePreference = settings.General?.LanguagePreference ?? AppLanguagePreferenceParser.SystemValue,
                     StartupWindowMode = settings.General?.StartupWindowMode ?? StartupWindowModeParser.WindowedValue,
+                    EnterScreenAnnotationWhenMinimized = settings.General?.EnterScreenAnnotationWhenMinimized ?? true,
                     Camouflage = new CamouflageSettings
                     {
                         Enabled = settings.General?.Camouflage?.Enabled ?? false,

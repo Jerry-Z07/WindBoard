@@ -63,14 +63,12 @@ namespace WindBoard.Reminders
 
             if (_toastChannel.TryShow(window, message, out Exception? toastError))
             {
-                AppLog.Info("Reminders", $"已发送 Windows 通知：signature='{signature}'");
                 return;
             }
 
             AppLog.Warn("Reminders", "Windows 通知发送失败，已降级为应用内弹条", toastError);
             if (_bannerChannel.TryShow(window, message, out Exception? fallbackError))
             {
-                AppLog.Info("Reminders", $"已展示应用内弹条：signature='{signature}'");
                 return;
             }
 
@@ -79,4 +77,3 @@ namespace WindBoard.Reminders
         }
     }
 }
-
