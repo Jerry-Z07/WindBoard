@@ -7,7 +7,6 @@ using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Media.Animation;
 using Microsoft.UI.Xaml.Shapes;
-using Windows.Foundation;
 using Windows.Graphics;
 using Windows.UI;
 using WindBoard.Features.ScreenAnnotation.Interop;
@@ -26,11 +25,6 @@ namespace WindBoard.Features.ScreenAnnotation.UI
     {
         private const int ExpandedToolbarWidth = 276;
         private const int ToolbarHeight = 60;
-        private const int FlyoutHostPadding = 12;
-        private const int PenFlyoutFallbackWidth = 232;
-        private const int PenFlyoutFallbackHeight = 220;
-        private const int EraserFlyoutFallbackWidth = 232;
-        private const int EraserFlyoutFallbackHeight = 120;
         private const double ClearCanvasSlideThumbInset = 6.0;
         private const double ClearCanvasSlideCompleteRatio = 0.90;
         private const int ClearCanvasSlideResetAnimationMs = 160;
@@ -215,7 +209,6 @@ namespace WindBoard.Features.ScreenAnnotation.UI
 
             ApplyPenFlyoutSettings();
             SyncPenFlyoutFromState();
-            ResizeWindowForFlyout(PenFlyoutRootBorder, PenFlyoutFallbackWidth, PenFlyoutFallbackHeight);
             FlyoutBase.ShowAttachedFlyout(PenButton);
         }
 
@@ -224,13 +217,11 @@ namespace WindBoard.Features.ScreenAnnotation.UI
             _isPenFlyoutOpen = true;
             ApplyPenFlyoutSettings();
             SyncPenFlyoutFromState();
-            ResizeWindowForFlyout(PenFlyoutRootBorder, PenFlyoutFallbackWidth, PenFlyoutFallbackHeight);
         }
 
         private void OnPenFlyoutClosed(object sender, object e)
         {
             _isPenFlyoutOpen = false;
-            RestoreCompactToolbarBounds();
         }
 
         private void OnPenThicknessClicked(object sender, RoutedEventArgs e)
@@ -484,7 +475,6 @@ namespace WindBoard.Features.ScreenAnnotation.UI
 
             ResetClearCanvasSlide(false);
             SyncEraserFlyoutFromState();
-            ResizeWindowForFlyout(EraserFlyoutRootPanel, EraserFlyoutFallbackWidth, EraserFlyoutFallbackHeight);
             FlyoutBase.ShowAttachedFlyout(EraserButton);
         }
 
@@ -493,14 +483,12 @@ namespace WindBoard.Features.ScreenAnnotation.UI
             _isEraserFlyoutOpen = true;
             ResetClearCanvasSlide(false);
             SyncEraserFlyoutFromState();
-            ResizeWindowForFlyout(EraserFlyoutRootPanel, EraserFlyoutFallbackWidth, EraserFlyoutFallbackHeight);
         }
 
         private void OnEraserFlyoutClosed(object sender, object e)
         {
             _isEraserFlyoutOpen = false;
             ResetClearCanvasSlide(false);
-            RestoreCompactToolbarBounds();
         }
 
         private void OnEraserModeChecked(object sender, RoutedEventArgs e)
@@ -829,80 +817,6 @@ namespace WindBoard.Features.ScreenAnnotation.UI
         {
             _isCollapsed = !_isCollapsed;
             ToolButtonsPanel.Visibility = _isCollapsed ? Visibility.Collapsed : Visibility.Visible;
-        }
-
-        private void ResizeWindowForFlyout(FrameworkElement? contentRoot, int fallbackWidth, int fallbackHeight)
-        {
-            var appWindow = ScreenAnnotationWindowInterop.TryGetAppWindow(this);
-            if (appWindow is null || !TryGetCurrentWindowBounds(out RectInt32 currentBounds))
-            {
-                return;
-            }
-
-            Size desiredSize = MeasureFlyoutContent(contentRoot);
-            int flyoutWidth = Math.Max(fallbackWidth, (int)Math.Ceiling(desiredSize.Width) + FlyoutHostPadding * 2);
-            int flyoutHeight = Math.Max(fallbackHeight, (int)Math.Ceiling(desiredSize.Height) + FlyoutHostPadding);
-            RectInt32 nextBounds = ScreenAnnotationToolbarBehavior.BuildFlyoutHostBounds(
-                _displayTarget,
-                currentBounds,
-                flyoutWidth,
-                flyoutHeight,
-                ToolbarHeight);
-
-            try
-            {
-                // 工具栏本体固定贴到底部，扩容的空间只留给上方 Flyout，避免被小窗口边界裁切。
-                appWindow.MoveAndResize(nextBounds);
-            }
-            catch (Exception ex)
-            {
-                AppLog.Warn("ScreenAnnotation.Interop", $"扩展工具栏窗口以承载 Flyout 失败：bounds={nextBounds}", ex);
-            }
-        }
-
-        private void RestoreCompactToolbarBounds()
-        {
-            var appWindow = ScreenAnnotationWindowInterop.TryGetAppWindow(this);
-            if (appWindow is null || !TryGetCurrentWindowBounds(out RectInt32 currentBounds))
-            {
-                return;
-            }
-
-            RectInt32 nextBounds = ScreenAnnotationToolbarBehavior.BuildCompactToolbarBounds(
-                _displayTarget,
-                currentBounds,
-                ExpandedToolbarWidth,
-                ToolbarHeight);
-
-            try
-            {
-                appWindow.MoveAndResize(nextBounds);
-            }
-            catch (Exception ex)
-            {
-                AppLog.Warn("ScreenAnnotation.Interop", $"恢复紧凑工具栏窗口尺寸失败：bounds={nextBounds}", ex);
-            }
-        }
-
-        private bool TryGetCurrentWindowBounds(out RectInt32 bounds)
-        {
-            IntPtr hwnd = ScreenAnnotationWindowInterop.GetWindowHandle(this);
-            return ScreenAnnotationWindowInterop.TryGetWindowRect(hwnd, out bounds);
-        }
-
-        private static Size MeasureFlyoutContent(FrameworkElement? contentRoot)
-        {
-            if (contentRoot is null)
-            {
-                return new Size(0, 0);
-            }
-
-            // 允许在 Flyout 真正打开前先测量一遍内容，以便提前扩容窗口，避免首次弹出被裁切。
-            contentRoot.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
-            Size desiredSize = contentRoot.DesiredSize;
-            double width = double.IsNaN(desiredSize.Width) || double.IsInfinity(desiredSize.Width) ? 0 : desiredSize.Width;
-            double height = double.IsNaN(desiredSize.Height) || double.IsInfinity(desiredSize.Height) ? 0 : desiredSize.Height;
-            return new Size(width, height);
         }
 
         private bool TryAttachTransparentBackdrop(IntPtr hwnd, out string? error)

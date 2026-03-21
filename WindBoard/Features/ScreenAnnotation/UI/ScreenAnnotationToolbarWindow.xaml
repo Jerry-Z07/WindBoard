@@ -65,7 +65,7 @@
                         ToolTipService.ToolTip="{l10n:Loc Key=Tool_Pen}"
                         Click="OnPenButtonClicked">
                         <FlyoutBase.AttachedFlyout>
-                            <Flyout Placement="Top" Opened="OnPenFlyoutOpened" Closed="OnPenFlyoutClosed">
+                            <Flyout Placement="Top" ShouldConstrainToRootBounds="False" Opened="OnPenFlyoutOpened" Closed="OnPenFlyoutClosed">
                                 <Flyout.FlyoutPresenterStyle>
                                     <StaticResource ResourceKey="CompactFlyoutPresenterStyle" />
                                 </Flyout.FlyoutPresenterStyle>
@@ -165,7 +165,7 @@
                         ToolTipService.ToolTip="{l10n:Loc Key=Tool_Eraser}"
                         Click="OnEraserButtonClicked">
                         <FlyoutBase.AttachedFlyout>
-                            <Flyout Placement="Top" Opened="OnEraserFlyoutOpened" Closed="OnEraserFlyoutClosed">
+                            <Flyout Placement="Top" ShouldConstrainToRootBounds="False" Opened="OnEraserFlyoutOpened" Closed="OnEraserFlyoutClosed">
                                 <Flyout.FlyoutPresenterStyle>
                                     <StaticResource ResourceKey="CompactFlyoutPresenterStyle" />
                                 </Flyout.FlyoutPresenterStyle>
