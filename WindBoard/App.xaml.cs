@@ -92,9 +92,6 @@ namespace WindBoard
                 AppLog.Warn("Fonts", "获取 Application.Resources 失败，将跳过图标字体资源覆盖", ex);
             }
 
-            // 便携版首次启动迁移：确保 settings.json 能优先落到 {AppBase}\data 下。
-            SettingsMigrationResult settingsMigration = AppDataPaths.TryMigratePortableSettingsIfNeeded();
-
             AppSettingsService.Instance.Load();
 
             // 应用语言偏好：必须在创建任何 Window/加载任何 XAML 前执行，否则 LocExtension 的取值可能会缓存旧语言。
@@ -166,27 +163,13 @@ namespace WindBoard
             }
 
             // 启动完成后再弹提醒：避免窗口尚未就绪时应用内弹条控件未挂载，导致提醒丢失。
-            TryRemindAppDataIssuesIfNeeded(_window, settingsMigration);
+            TryRemindAppDataIssuesIfNeeded(_window);
         }
 
-        private static void TryRemindAppDataIssuesIfNeeded(Window window, SettingsMigrationResult settingsMigration)
+        private static void TryRemindAppDataIssuesIfNeeded(Window window)
         {
             try
             {
-                if (settingsMigration.Migrated)
-                {
-                    AppReminderService.Instance.RemindOncePerSignature(
-                        window,
-                        signature: "Data:SettingsMigrated",
-                        new AppReminderMessage
-                        {
-                            Title = L10n.Get("Reminder_Data_SettingsMigrated_Title"),
-                            Body = L10n.Get("Reminder_Data_SettingsMigrated_Body_Fmt"),
-                            Severity = AppReminderSeverity.Info,
-                            ClickAction = AppReminderClickAction.OpenAppDataRootDirectory,
-                        });
-                }
-
                 if (AppDataPaths.InstallKind == AppInstallKind.Portable && !AppDataPaths.UsingPortableDataDirectory)
                 {
                     AppReminderService.Instance.RemindOncePerSignature(

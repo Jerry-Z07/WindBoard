@@ -1,31 +1,10 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
 using WindBoard.Persistence;
 using WindBoard.Updates;
 
 namespace WindBoard.Tests.Persistence;
 
-public sealed class AppDataPathsTests : IDisposable
+public sealed class AppDataPathsTests
 {
-    private readonly List<string> _tempDirs = new();
-
-    public void Dispose()
-    {
-        foreach (string dir in _tempDirs)
-        {
-            try { if (Directory.Exists(dir)) Directory.Delete(dir, recursive: true); } catch { }
-        }
-    }
-
-    private string CreateTempDir()
-    {
-        string dir = Path.Combine(Path.GetTempPath(), $"WindBoardTests_{Guid.NewGuid():N}");
-        Directory.CreateDirectory(dir);
-        _tempDirs.Add(dir);
-        return dir;
-    }
-
     [Fact]
     public void ComputeSnapshot_Installer_UsesLocalAppData()
     {
@@ -115,41 +94,4 @@ public sealed class AppDataPathsTests : IDisposable
         Assert.False(snapshot.PortableDataDirectoryWritable);
         Assert.Equal("AccessDenied", snapshot.PortableDataDirectoryWriteTestError);
     }
-
-    [Fact]
-    public void TryMigrateSettingsFileIfNeeded_WhenDestinationMissing_CopiesFile()
-    {
-        string root = CreateTempDir();
-        string source = Path.Combine(root, "old", "settings.json");
-        string dest = Path.Combine(root, "data", "settings.json");
-
-        Directory.CreateDirectory(Path.GetDirectoryName(source)!);
-        File.WriteAllText(source, "{\"a\":1}");
-
-        SettingsMigrationResult result = AppDataPaths.TryMigrateSettingsFileIfNeeded(source, dest);
-
-        Assert.True(result.Migrated);
-        Assert.True(File.Exists(dest));
-        Assert.Equal("{\"a\":1}", File.ReadAllText(dest));
-        Assert.True(File.Exists(source));
-    }
-
-    [Fact]
-    public void TryMigrateSettingsFileIfNeeded_WhenDestinationExists_DoesNotOverwrite()
-    {
-        string root = CreateTempDir();
-        string source = Path.Combine(root, "old", "settings.json");
-        string dest = Path.Combine(root, "data", "settings.json");
-
-        Directory.CreateDirectory(Path.GetDirectoryName(source)!);
-        Directory.CreateDirectory(Path.GetDirectoryName(dest)!);
-        File.WriteAllText(source, "{\"old\":1}");
-        File.WriteAllText(dest, "{\"new\":2}");
-
-        SettingsMigrationResult result = AppDataPaths.TryMigrateSettingsFileIfNeeded(source, dest);
-
-        Assert.False(result.Migrated);
-        Assert.Equal("{\"new\":2}", File.ReadAllText(dest));
-    }
 }
-

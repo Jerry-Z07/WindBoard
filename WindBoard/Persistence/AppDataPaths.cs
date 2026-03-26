@@ -1,6 +1,5 @@
 using System;
 using System.IO;
-using WindBoard.Logging;
 using WindBoard.Updates;
 
 namespace WindBoard.Persistence
@@ -133,95 +132,6 @@ namespace WindBoard.Persistence
                 DownloadsDirectory = downloadsDir,
             };
         }
-
-        /// <summary>
-        /// 仅在便携版首次启动时迁移 settings.json：
-        /// - 若 data/settings.json 不存在
-        /// - 且 %LocalAppData%/WindBoard/settings.json 存在
-        /// 则复制一份到 data 目录（不覆盖）。
-        /// </summary>
-        internal static SettingsMigrationResult TryMigratePortableSettingsIfNeeded()
-        {
-            AppDataPathsSnapshot snapshot = GetSnapshot();
-            if (!snapshot.UsingPortableDataDirectory)
-            {
-                return default;
-            }
-
-            SettingsMigrationResult result = TryMigrateSettingsFileIfNeeded(
-                sourcePath: snapshot.LocalAppDataSettingsFilePath,
-                destinationPath: snapshot.SettingsFilePath);
-
-            if (result.Migrated)
-            {
-                AppLog.Info(
-                    "Settings",
-                    $"已迁移 settings.json 到便携版 data 目录：from='{snapshot.LocalAppDataSettingsFilePath}', to='{snapshot.SettingsFilePath}'");
-            }
-            else if (!string.IsNullOrWhiteSpace(result.ErrorMessage))
-            {
-                AppLog.Warn(
-                    "Settings",
-                    $"迁移 settings.json 失败，将继续使用现有设置：from='{snapshot.LocalAppDataSettingsFilePath}', to='{snapshot.SettingsFilePath}', error='{result.ErrorMessage}'");
-            }
-
-            return result;
-        }
-
-        internal static SettingsMigrationResult TryMigrateSettingsFileIfNeeded(string sourcePath, string destinationPath)
-        {
-            string source = (sourcePath ?? string.Empty).Trim();
-            string dest = (destinationPath ?? string.Empty).Trim();
-
-            if (string.IsNullOrWhiteSpace(source) || string.IsNullOrWhiteSpace(dest))
-            {
-                return new SettingsMigrationResult
-                {
-                    Migrated = false,
-                    ErrorMessage = "sourcePath/destinationPath 不能为空。",
-                };
-            }
-
-            try
-            {
-                string sourceFull = Path.GetFullPath(source);
-                string destFull = Path.GetFullPath(dest);
-
-                // 同一路径无需迁移：直接返回。
-                if (string.Equals(sourceFull, destFull, StringComparison.OrdinalIgnoreCase))
-                {
-                    return default;
-                }
-
-                if (File.Exists(destFull))
-                {
-                    return default;
-                }
-
-                if (!File.Exists(sourceFull))
-                {
-                    return default;
-                }
-
-                string? dir = Path.GetDirectoryName(destFull);
-                if (!string.IsNullOrWhiteSpace(dir))
-                {
-                    Directory.CreateDirectory(dir);
-                }
-
-                File.Copy(sourceFull, destFull, overwrite: false);
-                return new SettingsMigrationResult { Migrated = true };
-            }
-            catch (Exception ex)
-            {
-                return new SettingsMigrationResult
-                {
-                    Migrated = false,
-                    ErrorMessage = ex.GetType().Name + ": " + ex.Message,
-                };
-            }
-        }
-
         private static (bool ok, string? errorMessage) TryEnsureDirectoryWritable(string directory)
         {
             string dir = (directory ?? string.Empty).Trim();
@@ -322,11 +232,5 @@ namespace WindBoard.Persistence
         internal string LogsDirectory { get; init; } = string.Empty;
         internal string CamouflageCacheDirectory { get; init; } = string.Empty;
         internal string DownloadsDirectory { get; init; } = string.Empty;
-    }
-
-    internal readonly struct SettingsMigrationResult
-    {
-        internal bool Migrated { get; init; }
-        internal string? ErrorMessage { get; init; }
     }
 }
