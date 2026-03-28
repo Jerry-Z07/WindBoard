@@ -219,6 +219,21 @@
   <data name="Settings_About_SettingsManagement_ActionFailed_Fmt" xml:space="preserve">
     <value>操作失败：{0}</value>
   </data>
+  <data name="Settings_About_SettingsManagement_SelectedPathInvalid_Message" xml:space="preserve">
+    <value>无法读取所选设置文件路径。</value>
+  </data>
+  <data name="Settings_About_SettingsManagement_ImportFileUnavailable_Message" xml:space="preserve">
+    <value>选中的设置文件不存在或不可用。</value>
+  </data>
+  <data name="Settings_About_SettingsManagement_ExportFailed_Message" xml:space="preserve">
+    <value>导出设置失败。请稍后重试。</value>
+  </data>
+  <data name="Settings_About_SettingsManagement_ImportFailed_Message" xml:space="preserve">
+    <value>导入设置失败。请检查所选文件后重试。</value>
+  </data>
+  <data name="Settings_About_SettingsManagement_ResetFailed_Message" xml:space="preserve">
+    <value>恢复默认设置失败。请稍后重试。</value>
+  </data>
   <data name="Settings_About_AutoCheckUpdates" xml:space="preserve">
     <value>自动检查更新</value>
   </data>

@@ -40,7 +40,7 @@ namespace WindBoard.Settings
 
         internal event EventHandler? Changed;
 
-        private AppSettingsService(AppSettingsStore store)
+        internal AppSettingsService(AppSettingsStore store)
         {
             _store = store ?? throw new ArgumentNullException(nameof(store));
         }

@@ -1,6 +1,5 @@
 using System;
 using System.IO;
-using System.Reflection;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
@@ -28,7 +27,7 @@ public sealed class AppSettingsServiceTests
                 settings.General.Updates.LastNotifiedVersion = "  v2.5.0  ";
             });
 
-            await InvokeTaskMethodAsync(service, "ExportToFileAsync", exportPath, CancellationToken.None);
+            await service.ExportToFileAsync(exportPath, CancellationToken.None);
 
             var exportedStore = new AppSettingsStore(exportPath);
             AppSettings exported = exportedStore.LoadOrDefault();
@@ -75,7 +74,7 @@ public sealed class AppSettingsServiceTests
                 }
                 """);
 
-            await InvokeTaskMethodAsync(service, "ImportFromFileAsync", importPath, CancellationToken.None);
+            await service.ImportFromFileAsync(importPath, CancellationToken.None);
 
             Assert.Equal(AppLanguagePreferenceParser.ChineseValue, service.GetLanguagePreference());
             Assert.Equal(UpdateCheckInterval.Weekly, service.GetUpdateCheckInterval());
@@ -106,7 +105,7 @@ public sealed class AppSettingsServiceTests
             service.SetEnterScreenAnnotationWhenMinimized(false);
             await service.SaveAsync();
 
-            await InvokeTaskMethodAsync(service, "ResetToDefaultsAsync", CancellationToken.None);
+            await service.ResetToDefaultsAsync(CancellationToken.None);
 
             Assert.Equal(AppLanguagePreferenceParser.SystemValue, service.GetLanguagePreference());
             Assert.Equal(StartupWindowMode.Windowed, service.GetStartupWindowMode());
@@ -141,7 +140,7 @@ public sealed class AppSettingsServiceTests
             await File.WriteAllTextAsync(importPath, "{ invalid json ");
 
             JsonException ex = await Assert.ThrowsAsync<JsonException>(
-                () => InvokeTaskMethodAsync(service, "ImportFromFileAsync", importPath, CancellationToken.None));
+                () => service.ImportFromFileAsync(importPath, CancellationToken.None));
 
             Assert.NotNull(ex);
             Assert.Equal(AppLanguagePreferenceParser.EnglishValue, service.GetLanguagePreference());
@@ -155,33 +154,7 @@ public sealed class AppSettingsServiceTests
     private static AppSettingsService CreateService(string settingsPath)
     {
         var store = new AppSettingsStore(settingsPath);
-        ConstructorInfo? ctor = typeof(AppSettingsService).GetConstructor(
-            BindingFlags.Instance | BindingFlags.NonPublic,
-            binder: null,
-            [typeof(AppSettingsStore)],
-            modifiers: null);
-
-        Assert.NotNull(ctor);
-        return Assert.IsType<AppSettingsService>(ctor.Invoke([store]));
-    }
-
-    private static async Task InvokeTaskMethodAsync(object target, string methodName, params object[] args)
-    {
-        MethodInfo? method = target.GetType().GetMethod(
-            methodName,
-            BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
-
-        Assert.NotNull(method);
-
-        try
-        {
-            var task = Assert.IsAssignableFrom<Task>(method.Invoke(target, args));
-            await task.ConfigureAwait(false);
-        }
-        catch (TargetInvocationException ex) when (ex.InnerException is not null)
-        {
-            throw ex.InnerException;
-        }
+        return new AppSettingsService(store);
     }
 
     private static string CreateTempDirectory()

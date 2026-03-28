@@ -46,19 +46,24 @@ namespace WindBoard.Settings.Pages
                 }
 
                 StorageFile? file = await PickExportSettingsFileWithOverwriteConfirmAsync(hwnd).ConfigureAwait(true);
-                if (file is null)
+                if (!TryGetPickedSettingsPath(file, requireExistingFile: false, out string filePath))
                 {
                     return;
                 }
 
-                await AppSettingsService.Instance.ExportToFileAsync(file.Path, CancellationToken.None).ConfigureAwait(true);
-                AppLog.Info("Settings", $"设置已导出：path='{file.Path}'");
-                ShowSettingsManagementFeedback(InfoBarSeverity.Success, L10n.Format("Settings_About_SettingsManagement_Exported_Fmt", file.Path));
+                await AppSettingsService.Instance.ExportToFileAsync(filePath, CancellationToken.None).ConfigureAwait(true);
+                AppLog.Info("Settings", $"设置已导出：path='{filePath}'");
+                ShowSettingsManagementFeedback(InfoBarSeverity.Success, L10n.Format("Settings_About_SettingsManagement_Exported_Fmt", filePath));
+            }
+            catch (ArgumentException ex)
+            {
+                AppLog.Warn("Settings", "导出设置失败：文件路径无效", ex);
+                ShowSettingsManagementFeedback(InfoBarSeverity.Error, L10n.Get("Settings_About_SettingsManagement_SelectedPathInvalid_Message"));
             }
             catch (Exception ex)
             {
                 AppLog.Warn("Settings", "导出设置失败", ex);
-                ShowSettingsManagementFeedback(InfoBarSeverity.Error, L10n.Format("Settings_About_SettingsManagement_ActionFailed_Fmt", ex.Message));
+                ShowSettingsManagementFeedback(InfoBarSeverity.Error, L10n.Get("Settings_About_SettingsManagement_ExportFailed_Message"));
             }
             finally
             {
@@ -89,20 +94,30 @@ namespace WindBoard.Settings.Pages
                 }
 
                 StorageFile? file = await PickImportSettingsFileAsync(hwnd).ConfigureAwait(true);
-                if (file is null)
+                if (!TryGetPickedSettingsPath(file, requireExistingFile: true, out string filePath))
                 {
                     return;
                 }
 
-                bool confirmed = await ConfirmImportSettingsAsync(file.Path).ConfigureAwait(true);
+                bool confirmed = await ConfirmImportSettingsAsync(filePath).ConfigureAwait(true);
                 if (!confirmed)
                 {
                     return;
                 }
 
-                await AppSettingsService.Instance.ImportFromFileAsync(file.Path, CancellationToken.None).ConfigureAwait(true);
-                AppLog.Info("Settings", $"设置已导入：path='{file.Path}'");
-                ShowSettingsManagementFeedback(InfoBarSeverity.Success, L10n.Format("Settings_About_SettingsManagement_Imported_Fmt", file.Path));
+                await AppSettingsService.Instance.ImportFromFileAsync(filePath, CancellationToken.None).ConfigureAwait(true);
+                AppLog.Info("Settings", $"设置已导入：path='{filePath}'");
+                ShowSettingsManagementFeedback(InfoBarSeverity.Success, L10n.Format("Settings_About_SettingsManagement_Imported_Fmt", filePath));
+            }
+            catch (ArgumentException ex)
+            {
+                AppLog.Warn("Settings", "导入设置失败：文件路径无效", ex);
+                ShowSettingsManagementFeedback(InfoBarSeverity.Error, L10n.Get("Settings_About_SettingsManagement_SelectedPathInvalid_Message"));
+            }
+            catch (FileNotFoundException ex)
+            {
+                AppLog.Warn("Settings", "导入设置失败：文件不存在或不可用", ex);
+                ShowSettingsManagementFeedback(InfoBarSeverity.Error, L10n.Get("Settings_About_SettingsManagement_ImportFileUnavailable_Message"));
             }
             catch (JsonException ex)
             {
@@ -112,7 +127,7 @@ namespace WindBoard.Settings.Pages
             catch (Exception ex)
             {
                 AppLog.Warn("Settings", "导入设置失败", ex);
-                ShowSettingsManagementFeedback(InfoBarSeverity.Error, L10n.Format("Settings_About_SettingsManagement_ActionFailed_Fmt", ex.Message));
+                ShowSettingsManagementFeedback(InfoBarSeverity.Error, L10n.Get("Settings_About_SettingsManagement_ImportFailed_Message"));
             }
             finally
             {
@@ -148,7 +163,7 @@ namespace WindBoard.Settings.Pages
             catch (Exception ex)
             {
                 AppLog.Warn("Settings", "恢复默认设置失败", ex);
-                ShowSettingsManagementFeedback(InfoBarSeverity.Error, L10n.Format("Settings_About_SettingsManagement_ActionFailed_Fmt", ex.Message));
+                ShowSettingsManagementFeedback(InfoBarSeverity.Error, L10n.Get("Settings_About_SettingsManagement_ResetFailed_Message"));
             }
             finally
             {
@@ -202,6 +217,32 @@ namespace WindBoard.Settings.Pages
             SettingsManagementFeedbackBar.Severity = severity;
             SettingsManagementFeedbackBar.Message = message ?? string.Empty;
             SettingsManagementFeedbackBar.IsOpen = true;
+        }
+
+        private bool TryGetPickedSettingsPath(StorageFile? file, bool requireExistingFile, out string filePath)
+        {
+            filePath = string.Empty;
+            if (file is null)
+            {
+                return false;
+            }
+
+            // 文件选择器返回的 Path 在极端场景下可能为空，这里先做 UI 层兜底，
+            // 避免服务层参数异常直接以技术细节形式暴露给用户。
+            filePath = (file.Path ?? string.Empty).Trim();
+            if (string.IsNullOrWhiteSpace(filePath))
+            {
+                ShowSettingsManagementFeedback(InfoBarSeverity.Error, L10n.Get("Settings_About_SettingsManagement_SelectedPathInvalid_Message"));
+                return false;
+            }
+
+            if (requireExistingFile && !File.Exists(filePath))
+            {
+                ShowSettingsManagementFeedback(InfoBarSeverity.Error, L10n.Get("Settings_About_SettingsManagement_ImportFileUnavailable_Message"));
+                return false;
+            }
+
+            return true;
         }
 
         private async Task<StorageFile?> PickExportSettingsFileWithOverwriteConfirmAsync(IntPtr hwnd)
@@ -341,8 +382,9 @@ namespace WindBoard.Settings.Pages
                     return SettingsWindow.Active.Hwnd;
                 }
             }
-            catch
+            catch (Exception ex)
             {
+                AppLog.Debug("Settings", "获取设置管理页宿主窗口句柄失败", ex);
                 return IntPtr.Zero;
             }
 

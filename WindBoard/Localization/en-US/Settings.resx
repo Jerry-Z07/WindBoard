@@ -219,6 +219,21 @@ This action will be saved to the current device immediately. Continue?</value>
   <data name="Settings_About_SettingsManagement_ActionFailed_Fmt" xml:space="preserve">
     <value>Action failed: {0}</value>
   </data>
+  <data name="Settings_About_SettingsManagement_SelectedPathInvalid_Message" xml:space="preserve">
+    <value>Can't read the selected settings file path.</value>
+  </data>
+  <data name="Settings_About_SettingsManagement_ImportFileUnavailable_Message" xml:space="preserve">
+    <value>The selected settings file doesn't exist or is unavailable.</value>
+  </data>
+  <data name="Settings_About_SettingsManagement_ExportFailed_Message" xml:space="preserve">
+    <value>Failed to export settings. Please try again later.</value>
+  </data>
+  <data name="Settings_About_SettingsManagement_ImportFailed_Message" xml:space="preserve">
+    <value>Failed to import settings. Check the selected file and try again.</value>
+  </data>
+  <data name="Settings_About_SettingsManagement_ResetFailed_Message" xml:space="preserve">
+    <value>Failed to restore default settings. Please try again later.</value>
+  </data>
   <data name="Settings_About_AutoCheckUpdates" xml:space="preserve">
     <value>Automatically check for updates</value>
   </data>
