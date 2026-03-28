@@ -21,8 +21,8 @@
                     Header="{l10n:Loc Key=Settings_Pen_Title}"
                     Description="{l10n:Loc Key=Settings_Writing_Pen_Description}">
                     <controls:SettingsCard.HeaderIcon>
-                        <!-- 画笔设置：用“设置”图标与左侧导航项区分 -->
-                        <SymbolIcon Symbol="Setting" />
+                        <!-- 画笔设置：改用更贴近书写语义的高亮笔图标 -->
+                        <SymbolIcon Symbol="Highlight" />
                     </controls:SettingsCard.HeaderIcon>
                 </controls:SettingsCard>
             </StackPanel>

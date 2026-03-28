@@ -109,11 +109,8 @@
                         Header="{l10n:Loc Key=Settings_Appearance_ElementCardTheme_Title}"
                         Description="{l10n:Loc Key=Settings_Appearance_ElementCardTheme_Description}">
                     <controls:SettingsCard.HeaderIcon>
-                        <!-- 图标字体：Color -->
-                        <FontIcon
-                            FontFamily="{ThemeResource SymbolThemeFontFamily}"
-                            FontSize="16"
-                            Glyph="&#xE790;" />
+                        <!-- 元素卡片主题：改用“预览”语义图标，避免与背景颜色重复 -->
+                        <SymbolIcon Symbol="Preview" />
                     </controls:SettingsCard.HeaderIcon>
                     <controls:SettingsCard.Content>
                         <TextBlock

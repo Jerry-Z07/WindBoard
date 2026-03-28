@@ -94,7 +94,8 @@
                     <StackPanel Spacing="12">
                         <controls:SettingsCard Header="{l10n:Loc Key=Settings_Shortcuts_Mouse_PanViewport_Title}">
                             <controls:SettingsCard.HeaderIcon>
-                                <SymbolIcon Symbol="TouchPointer" />
+                                <!-- 平移视口：使用“地图/平移”语义图标 -->
+                                <SymbolIcon Symbol="Map" />
                             </controls:SettingsCard.HeaderIcon>
                             <controls:SettingsCard.Content>
                                 <TextBlock
@@ -106,7 +107,8 @@
 
                         <controls:SettingsCard Header="{l10n:Loc Key=Settings_Shortcuts_Mouse_ZoomViewport_Title}">
                             <controls:SettingsCard.HeaderIcon>
-                                <SymbolIcon Symbol="TouchPointer" />
+                                <!-- 缩放视口：使用通用缩放图标 -->
+                                <SymbolIcon Symbol="Zoom" />
                             </controls:SettingsCard.HeaderIcon>
                             <controls:SettingsCard.Content>
                                 <TextBlock
@@ -118,7 +120,8 @@
 
                         <controls:SettingsCard Header="{l10n:Loc Key=Settings_Shortcuts_Mouse_ZoomSelection_Title}">
                             <controls:SettingsCard.HeaderIcon>
-                                <SymbolIcon Symbol="TouchPointer" />
+                                <!-- 缩放选区：改用兼容性更稳的“框选区域”语义图标 -->
+                                <SymbolIcon Symbol="Crop" />
                             </controls:SettingsCard.HeaderIcon>
                             <controls:SettingsCard.Content>
                                 <TextBlock
@@ -130,7 +133,8 @@
 
                         <controls:SettingsCard Header="{l10n:Loc Key=Settings_Shortcuts_Mouse_RotateSelection_Title}">
                             <controls:SettingsCard.HeaderIcon>
-                                <SymbolIcon Symbol="TouchPointer" />
+                                <!-- 旋转选区：使用旋转语义图标 -->
+                                <SymbolIcon Symbol="Rotate" />
                             </controls:SettingsCard.HeaderIcon>
                             <controls:SettingsCard.Content>
                                 <TextBlock
