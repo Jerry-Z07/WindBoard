@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using Windows.UI;
@@ -445,6 +446,37 @@ namespace WindBoard.Settings
             });
         }
 
+        internal async Task ExportToFileAsync(string filePath, CancellationToken cancellationToken = default)
+        {
+            string path = NormalizeExternalFilePath(filePath);
+
+            AppSettings snapshot;
+            lock (_gate)
+            {
+                snapshot = AppSettingsCloner.Clone(Current);
+            }
+
+            await SaveInternalAsync(snapshot, new AppSettingsStore(path), cancellationToken).ConfigureAwait(false);
+        }
+
+        internal async Task ImportFromFileAsync(string filePath, CancellationToken cancellationToken = default)
+        {
+            string path = NormalizeExternalFilePath(filePath);
+            string json = await File.ReadAllTextAsync(path, cancellationToken).ConfigureAwait(false);
+
+            var report = new SettingsNormalizationReport();
+            AppSettings imported = AppSettingsStore.Deserialize(json, report);
+            ReplaceAllCore(imported, report, requestSaveDebounced: false);
+            await SaveAsync(cancellationToken).ConfigureAwait(false);
+        }
+
+        internal async Task ResetToDefaultsAsync(CancellationToken cancellationToken = default)
+        {
+            var report = new SettingsNormalizationReport();
+            ReplaceAllCore(new AppSettings(), report, requestSaveDebounced: false);
+            await SaveAsync(cancellationToken).ConfigureAwait(false);
+        }
+
         internal Task SaveAsync(CancellationToken cancellationToken = default)
         {
             AppSettings snapshot;
@@ -456,7 +488,7 @@ namespace WindBoard.Settings
                 snapshot = AppSettingsCloner.Clone(Current);
             }
 
-            return SaveInternalAsync(snapshot, cancellationToken);
+            return SaveInternalAsync(snapshot, _store, cancellationToken);
         }
 
         private void RequestSaveDebounced()
@@ -493,12 +525,58 @@ namespace WindBoard.Settings
             });
         }
 
-        private async Task SaveInternalAsync(AppSettings snapshot, CancellationToken cancellationToken)
+        private void ReplaceAllCore(AppSettings settings, SettingsNormalizationReport report, bool requestSaveDebounced)
+        {
+            if (settings is null)
+            {
+                throw new ArgumentNullException(nameof(settings));
+            }
+
+            if (report is null)
+            {
+                throw new ArgumentNullException(nameof(report));
+            }
+
+            // 先复制再归一化，避免外部继续持有引用并修改内部状态。
+            AppSettings next = AppSettingsCloner.Clone(settings);
+            AppSettingsStore.NormalizeInPlace(next, report);
+
+            lock (_gate)
+            {
+                Current = next;
+
+                // 导入/恢复默认后，旧的快捷键归一化问题不再相关，这里整体替换为新快照对应的问题列表。
+                _pendingKeyboardShortcutIssues.Clear();
+                if (report.KeyboardShortcutIssues.Count > 0)
+                {
+                    _pendingKeyboardShortcutIssues.AddRange(report.KeyboardShortcutIssues);
+                }
+            }
+
+            Changed?.Invoke(this, EventArgs.Empty);
+            if (requestSaveDebounced)
+            {
+                RequestSaveDebounced();
+            }
+        }
+
+        private static string NormalizeExternalFilePath(string filePath)
+        {
+            string path = (filePath ?? string.Empty).Trim();
+            if (string.IsNullOrWhiteSpace(path))
+            {
+                throw new ArgumentException("文件路径不能为空。", nameof(filePath));
+            }
+
+            return path;
+        }
+
+        private async Task SaveInternalAsync(AppSettings snapshot, AppSettingsStore targetStore, CancellationToken cancellationToken)
         {
             await _ioGate.WaitAsync(cancellationToken).ConfigureAwait(false);
             try
             {
-                _store.Save(snapshot);
+                targetStore.Save(snapshot);
             }
             finally
             {

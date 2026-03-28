@@ -60,8 +60,7 @@ namespace WindBoard.Settings
                 }
 
                 string json = File.ReadAllText(FilePath);
-                AppSettings? settings = JsonSerializer.Deserialize<AppSettings>(json, JsonOptions);
-                return NormalizeInPlace(settings ?? new AppSettings(), report);
+                return Deserialize(json, report);
             }
             catch (Exception ex)
             {
@@ -78,8 +77,7 @@ namespace WindBoard.Settings
                 throw new ArgumentNullException(nameof(settings));
             }
 
-            AppSettings snapshot = CloneAndNormalize(settings);
-            string json = JsonSerializer.Serialize(snapshot, JsonOptions);
+            string json = Serialize(settings);
 
             string? directory = Path.GetDirectoryName(FilePath);
             if (!string.IsNullOrEmpty(directory))
@@ -90,6 +88,28 @@ namespace WindBoard.Settings
             string tempPath = FilePath + ".tmp";
             File.WriteAllText(tempPath, json);
             File.Move(tempPath, FilePath, overwrite: true);
+        }
+
+        internal static AppSettings Deserialize(string json, SettingsNormalizationReport? report = null)
+        {
+            if (json is null)
+            {
+                throw new ArgumentNullException(nameof(json));
+            }
+
+            AppSettings? settings = JsonSerializer.Deserialize<AppSettings>(json, JsonOptions);
+            return NormalizeInPlace(settings ?? new AppSettings(), report);
+        }
+
+        internal static string Serialize(AppSettings settings)
+        {
+            if (settings is null)
+            {
+                throw new ArgumentNullException(nameof(settings));
+            }
+
+            AppSettings snapshot = CloneAndNormalize(settings);
+            return JsonSerializer.Serialize(snapshot, JsonOptions);
         }
 
         /// <summary>

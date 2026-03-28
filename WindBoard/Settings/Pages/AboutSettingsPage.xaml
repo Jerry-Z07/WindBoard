@@ -52,6 +52,20 @@
                     </controls:SettingsCard.Content>
                 </controls:SettingsCard>
 
+                <controls:SettingsCard
+                    x:Name="SettingsManagementEntryCard"
+                    IsClickEnabled="True"
+                    Click="OnSettingsManagementClicked"
+                    Header="{l10n:Loc Key=Settings_About_SettingsManagement_SectionTitle}"
+                    Description="{l10n:Loc Key=Settings_About_SettingsManagement_Entry_Description}">
+                    <controls:SettingsCard.HeaderIcon>
+                        <FontIcon
+                            FontFamily="{ThemeResource SymbolThemeFontFamily}"
+                            FontSize="16"
+                            Glyph="&#xE713;" />
+                    </controls:SettingsCard.HeaderIcon>
+                </controls:SettingsCard>
+
                 <controls:SettingsCard Header="{l10n:Loc Key=Settings_About_AutoCheckUpdates}">
                     <controls:SettingsCard.Content>
                         <ComboBox

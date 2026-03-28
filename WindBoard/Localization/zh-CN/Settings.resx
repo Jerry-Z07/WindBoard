@@ -158,6 +158,67 @@
   <data name="Settings_About_Version" xml:space="preserve">
     <value>版本</value>
   </data>
+  <data name="Settings_About_SettingsManagement_SectionTitle" xml:space="preserve">
+    <value>设置管理</value>
+  </data>
+  <data name="Settings_About_SettingsManagement_Entry_Description" xml:space="preserve">
+    <value>导入、导出或恢复默认设置</value>
+  </data>
+  <data name="Settings_About_SettingsManagement_Export_Title" xml:space="preserve">
+    <value>导出设置</value>
+  </data>
+  <data name="Settings_About_SettingsManagement_Export_Description" xml:space="preserve">
+    <value>导出当前全部设置到 JSON 文件</value>
+  </data>
+  <data name="Settings_About_SettingsManagement_Import_Title" xml:space="preserve">
+    <value>导入设置</value>
+  </data>
+  <data name="Settings_About_SettingsManagement_Import_Description" xml:space="preserve">
+    <value>从 JSON 文件导入并覆盖当前全部设置</value>
+  </data>
+  <data name="Settings_About_SettingsManagement_Reset_Title" xml:space="preserve">
+    <value>恢复默认设置</value>
+  </data>
+  <data name="Settings_About_SettingsManagement_Reset_Description" xml:space="preserve">
+    <value>清空当前设置并恢复默认值</value>
+  </data>
+  <data name="Settings_About_SettingsManagement_FileType" xml:space="preserve">
+    <value>设置 JSON 文件</value>
+  </data>
+  <data name="Settings_About_SettingsManagement_OverwriteExport_Content_Fmt" xml:space="preserve">
+    <value>文件已存在：{0}
+是否覆盖导出的设置文件？</value>
+  </data>
+  <data name="Settings_About_SettingsManagement_ImportConfirm_Title" xml:space="preserve">
+    <value>确认导入设置</value>
+  </data>
+  <data name="Settings_About_SettingsManagement_ImportConfirm_Content_Fmt" xml:space="preserve">
+    <value>即将从以下文件导入设置，并覆盖当前全部设置：
+{0}
+
+此操作会立即保存到当前设备，是否继续？</value>
+  </data>
+  <data name="Settings_About_SettingsManagement_ResetConfirm_Title" xml:space="preserve">
+    <value>确认恢复默认设置</value>
+  </data>
+  <data name="Settings_About_SettingsManagement_ResetConfirm_Content" xml:space="preserve">
+    <value>当前全部设置将恢复为默认值，并清空现有设置记录。此操作会立即保存，是否继续？</value>
+  </data>
+  <data name="Settings_About_SettingsManagement_Exported_Fmt" xml:space="preserve">
+    <value>已导出设置：{0}</value>
+  </data>
+  <data name="Settings_About_SettingsManagement_Imported_Fmt" xml:space="preserve">
+    <value>已导入设置：{0}</value>
+  </data>
+  <data name="Settings_About_SettingsManagement_ResetCompleted" xml:space="preserve">
+    <value>已恢复默认设置</value>
+  </data>
+  <data name="Settings_About_SettingsManagement_ImportInvalid_Message" xml:space="preserve">
+    <value>选中的设置文件无效或格式不正确。</value>
+  </data>
+  <data name="Settings_About_SettingsManagement_ActionFailed_Fmt" xml:space="preserve">
+    <value>操作失败：{0}</value>
+  </data>
   <data name="Settings_About_AutoCheckUpdates" xml:space="preserve">
     <value>自动检查更新</value>
   </data>

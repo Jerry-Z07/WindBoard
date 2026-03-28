@@ -158,6 +158,67 @@
   <data name="Settings_About_Version" xml:space="preserve">
     <value>Version</value>
   </data>
+  <data name="Settings_About_SettingsManagement_SectionTitle" xml:space="preserve">
+    <value>Settings management</value>
+  </data>
+  <data name="Settings_About_SettingsManagement_Entry_Description" xml:space="preserve">
+    <value>Import, export, or reset settings to default</value>
+  </data>
+  <data name="Settings_About_SettingsManagement_Export_Title" xml:space="preserve">
+    <value>Export settings</value>
+  </data>
+  <data name="Settings_About_SettingsManagement_Export_Description" xml:space="preserve">
+    <value>Export all current settings to a JSON file</value>
+  </data>
+  <data name="Settings_About_SettingsManagement_Import_Title" xml:space="preserve">
+    <value>Import settings</value>
+  </data>
+  <data name="Settings_About_SettingsManagement_Import_Description" xml:space="preserve">
+    <value>Import a JSON file and overwrite all current settings</value>
+  </data>
+  <data name="Settings_About_SettingsManagement_Reset_Title" xml:space="preserve">
+    <value>Reset settings to default</value>
+  </data>
+  <data name="Settings_About_SettingsManagement_Reset_Description" xml:space="preserve">
+    <value>Clear current settings and restore default values</value>
+  </data>
+  <data name="Settings_About_SettingsManagement_FileType" xml:space="preserve">
+    <value>Settings JSON file</value>
+  </data>
+  <data name="Settings_About_SettingsManagement_OverwriteExport_Content_Fmt" xml:space="preserve">
+    <value>File already exists: {0}
+Overwrite the exported settings file?</value>
+  </data>
+  <data name="Settings_About_SettingsManagement_ImportConfirm_Title" xml:space="preserve">
+    <value>Confirm import settings</value>
+  </data>
+  <data name="Settings_About_SettingsManagement_ImportConfirm_Content_Fmt" xml:space="preserve">
+    <value>The following file will be imported and all current settings will be overwritten:
+{0}
+
+This action will be saved to the current device immediately. Continue?</value>
+  </data>
+  <data name="Settings_About_SettingsManagement_ResetConfirm_Title" xml:space="preserve">
+    <value>Confirm reset settings</value>
+  </data>
+  <data name="Settings_About_SettingsManagement_ResetConfirm_Content" xml:space="preserve">
+    <value>All current settings will be restored to default values, and existing settings records will be cleared. This action will be saved immediately. Continue?</value>
+  </data>
+  <data name="Settings_About_SettingsManagement_Exported_Fmt" xml:space="preserve">
+    <value>Settings exported: {0}</value>
+  </data>
+  <data name="Settings_About_SettingsManagement_Imported_Fmt" xml:space="preserve">
+    <value>Settings imported: {0}</value>
+  </data>
+  <data name="Settings_About_SettingsManagement_ResetCompleted" xml:space="preserve">
+    <value>Settings restored to default</value>
+  </data>
+  <data name="Settings_About_SettingsManagement_ImportInvalid_Message" xml:space="preserve">
+    <value>The selected settings file is invalid or malformed.</value>
+  </data>
+  <data name="Settings_About_SettingsManagement_ActionFailed_Fmt" xml:space="preserve">
+    <value>Action failed: {0}</value>
+  </data>
   <data name="Settings_About_AutoCheckUpdates" xml:space="preserve">
     <value>Automatically check for updates</value>
   </data>
