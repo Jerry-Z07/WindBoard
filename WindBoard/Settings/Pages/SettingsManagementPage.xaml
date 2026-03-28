@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="WindBoard.Settings.Pages.SettingsManagementPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:l10n="using:WindBoard.Localization"
+    xmlns:controls="using:CommunityToolkit.WinUI.Controls"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <Grid>
+        <ScrollViewer>
+            <StackPanel Spacing="16" Padding="24">
+                <TextBlock
+                    Text="{l10n:Loc Key=Settings_About_SettingsManagement_SectionTitle}"
+                    Style="{ThemeResource TitleTextBlockStyle}" />
+
+                <InfoBar
+                    x:Name="SettingsManagementFeedbackBar"
+                    IsOpen="False"
+                    IsClosable="True"
+                    IsIconVisible="True"
+                    Severity="Informational" />
+
+                <controls:SettingsCard
+                    x:Name="ExportSettingsCard"
+                    IsClickEnabled="True"
+                    Click="OnExportSettingsClicked"
+                    Header="{l10n:Loc Key=Settings_About_SettingsManagement_Export_Title}"
+                    Description="{l10n:Loc Key=Settings_About_SettingsManagement_Export_Description}">
+                    <controls:SettingsCard.HeaderIcon>
+                        <FontIcon
+                            FontFamily="{ThemeResource SymbolThemeFontFamily}"
+                            FontSize="16"
+                            Glyph="&#xE898;" />
+                    </controls:SettingsCard.HeaderIcon>
+                </controls:SettingsCard>
+
+                <controls:SettingsCard
+                    x:Name="ImportSettingsCard"
+                    IsClickEnabled="True"
+                    Click="OnImportSettingsClicked"
+                    Header="{l10n:Loc Key=Settings_About_SettingsManagement_Import_Title}"
+                    Description="{l10n:Loc Key=Settings_About_SettingsManagement_Import_Description}">
+                    <controls:SettingsCard.HeaderIcon>
+                        <FontIcon
+                            FontFamily="{ThemeResource SymbolThemeFontFamily}"
+                            FontSize="16"
+                            Glyph="&#xE896;" />
+                    </controls:SettingsCard.HeaderIcon>
+                </controls:SettingsCard>
+
+                <controls:SettingsCard
+                    x:Name="ResetSettingsCard"
+                    IsClickEnabled="True"
+                    Click="OnResetSettingsClicked"
+                    Header="{l10n:Loc Key=Settings_About_SettingsManagement_Reset_Title}"
+                    Description="{l10n:Loc Key=Settings_About_SettingsManagement_Reset_Description}">
+                    <controls:SettingsCard.HeaderIcon>
+                        <FontIcon
+                            FontFamily="{ThemeResource SymbolThemeFontFamily}"
+                            FontSize="16"
+                            Glyph="&#xE72C;" />
+                    </controls:SettingsCard.HeaderIcon>
+                </controls:SettingsCard>
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</Page>
