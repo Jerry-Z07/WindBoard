@@ -240,7 +240,32 @@ jobs:
           $latestJsonPath = Join-Path $dist 'latest.json'
           ($latest | ConvertTo-Json -Depth 10) | Set-Content -Path $latestJsonPath -Encoding UTF8
 
+          # GitHub Release 正文顶部追加下载表格，便于直接选择对应架构和包类型。
+          $releaseAssetRows = foreach ($arch in @('x64', 'x86', 'arm64')) {
+            $recommendedInstaller = $assets | Where-Object { $_.arch -eq $arch -and $_.runtime -eq 'installer' -and $_.fileName -notlike '*-fd.exe' } | Select-Object -First 1
+            $runtimeFreeInstaller = $assets | Where-Object { $_.arch -eq $arch -and $_.runtime -eq 'installer' -and $_.fileName -like '*-fd.exe' } | Select-Object -First 1
+            $portablePackage = $assets | Where-Object { $_.arch -eq $arch -and $_.runtime -eq 'self-contained' } | Select-Object -First 1
+
+            if ($null -eq $recommendedInstaller -or $null -eq $runtimeFreeInstaller -or $null -eq $portablePackage) {
+              throw "Missing release asset for architecture: $arch"
+            }
+
+            "| $arch | [安装版（推荐）]($($recommendedInstaller.downloadUrl)) | [安装版（无运行库）]($($runtimeFreeInstaller.downloadUrl)) | [便携版]($($portablePackage.downloadUrl)) |"
+          }
+
+          $releaseAssetTable = @(
+            '## 下载'
+            ''
+            '| 架构 | 安装版 | 安装版（无运行库） | 便携版 |'
+            '| --- | --- | --- | --- |'
+            $releaseAssetRows
+          ) -join "`n"
+
           $releaseNotes = @(
+            $releaseAssetTable
+            ''
+            '---'
+            ''
             $changelogZh
             ''
             '---'
