@@ -58,11 +58,7 @@
 
 ## 快速开始
 
-可跳转 [Releases](https://github.com/Jerry-Z07/WindBoard/releases/latest) 获取软件，其中：
-
-- 后缀为`.exe`的为安装版，`.zip`为便携版
-- 带`-fd`后缀的为不带运行库的版本，你需要自行安装 .NET 10 Desktop Runtime；不带`-fd`的则不需要另外安装运行库（自包含）
-  - 运行库下载：<https://dotnet.microsoft.com/download/dotnet/10.0>
+可跳转 [Releases](https://github.com/Jerry-Z07/WindBoard/releases/latest) 获取软件。
 
 ## 贡献
 
@@ -116,14 +112,9 @@
 
 ## 生态
 
-为保存和还原笔迹状态，我们设计了一个私有格式 `.wbix`
+为保存和还原笔迹状态，我们设计了一个私有格式 `.wbix`  
 格式介绍见 [WBIX.md](./docs/dev/guides/wbix.zh-CN.md)
 
-## 碎碎念
-
-### 为什么要做这个软件？
-
-由于某白板软件的新版本在班上电脑冷启动耗时极长，且砍掉了视频展台的跳转，加之想探探AI的上限，于是便有了这个项目
 
 ## 许可证
 
