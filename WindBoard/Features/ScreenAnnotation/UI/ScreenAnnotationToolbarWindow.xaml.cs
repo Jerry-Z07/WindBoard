@@ -23,11 +23,12 @@ namespace WindBoard.Features.ScreenAnnotation.UI
     /// </summary>
     public sealed partial class ScreenAnnotationToolbarWindow : Window, IScreenAnnotationModeToolbar
     {
-        private const int ExpandedToolbarWidth = 276;
-        private const int ToolbarHeight = 60;
+        private const double ExpandedToolbarWidthDip = 276;
+        private const double ToolbarHeightDip = 60;
         private const double ClearCanvasSlideThumbInset = 6.0;
         private const double ClearCanvasSlideCompleteRatio = 0.90;
         private const int ClearCanvasSlideResetAnimationMs = 160;
+        private const uint DefaultWindowDpi = 96;
 
         private readonly ScreenAnnotationDisplayTarget _displayTarget;
         private ScreenAnnotationTransparentBackdrop? _transparentBackdrop;
@@ -160,7 +161,7 @@ namespace WindBoard.Features.ScreenAnnotation.UI
                 return;
             }
 
-            RectInt32 bounds = _displayTarget.GetInitialToolbarBounds(width: ExpandedToolbarWidth, height: ToolbarHeight);
+            RectInt32 bounds = BuildInitialToolbarBounds(hwnd);
             if (!ScreenAnnotationWindowInterop.TryConfigureBorderlessWindow(appWindow, bounds, out string? windowError))
             {
                 AppLog.Warn("ScreenAnnotation.Interop", $"配置工具栏窗口失败：error='{windowError}'");
@@ -547,6 +548,28 @@ namespace WindBoard.Features.ScreenAnnotation.UI
             ReturnToAppRequested?.Invoke(this, EventArgs.Empty);
         }
 
+        private RectInt32 BuildInitialToolbarBounds(IntPtr hwnd)
+        {
+            // 工具栏 XAML 按有效像素设计，但顶层 AppWindow 需要物理像素矩形；
+            // 这里统一按窗口当前 DPI 把设计尺寸转换后再交给原生窗口。
+            uint dpi = ResolveWindowDpi(hwnd);
+            int width = ScreenAnnotationWindowInterop.ConvertDipSizeToPixels(ExpandedToolbarWidthDip, dpi);
+            int height = ScreenAnnotationWindowInterop.ConvertDipSizeToPixels(ToolbarHeightDip, dpi);
+            int margin = ScreenAnnotationWindowInterop.ConvertDipCoordinateToPixels(ScreenAnnotationDisplayTarget.DefaultToolbarMargin, dpi);
+            return _displayTarget.GetInitialToolbarBounds(width, height, margin);
+        }
+
+        private uint ResolveWindowDpi(IntPtr hwnd)
+        {
+            if (ScreenAnnotationWindowInterop.TryGetWindowDpi(hwnd, out uint dpi, out string? error))
+            {
+                return dpi;
+            }
+
+            AppLog.Warn("ScreenAnnotation.Interop", $"读取工具栏窗口 DPI 失败，将回退到默认 DPI：error='{error}'");
+            return DefaultWindowDpi;
+        }
+
         private void OnClearCanvasThumbPointerPressed(object sender, PointerRoutedEventArgs e)
         {
             if (!_isClearCanvasSlideEnabled || ClearCanvasSlideThumbTransform is null || ClearCanvasSlideHost is null)
@@ -760,12 +783,18 @@ namespace WindBoard.Features.ScreenAnnotation.UI
                 return;
             }
 
+            IntPtr hwnd = ScreenAnnotationWindowInterop.GetWindowHandle(this);
+            if (!ScreenAnnotationWindowInterop.TryGetWindowRect(hwnd, out RectInt32 currentWindowBounds))
+            {
+                return;
+            }
+
             RectInt32 area = _displayTarget.WorkArea.Width > 0 && _displayTarget.WorkArea.Height > 0
                 ? _displayTarget.WorkArea
                 : _displayTarget.Bounds;
 
-            int maxX = area.X + Math.Max(0, area.Width - appWindow.Size.Width);
-            int maxY = area.Y + Math.Max(0, area.Height - appWindow.Size.Height);
+            int maxX = area.X + Math.Max(0, area.Width - currentWindowBounds.Width);
+            int maxY = area.Y + Math.Max(0, area.Height - currentWindowBounds.Height);
 
             int newX = Math.Clamp(_dragStartWindowOrigin.X + deltaX, area.X, maxX);
             int newY = Math.Clamp(_dragStartWindowOrigin.Y + deltaY, area.Y, maxY);
@@ -819,6 +848,30 @@ namespace WindBoard.Features.ScreenAnnotation.UI
             ToolButtonsPanel.Visibility = _isCollapsed ? Visibility.Collapsed : Visibility.Visible;
         }
 
+        private void OnBackdropWindowMessageObserved(object? sender, ScreenAnnotationWindowMessageEventArgs e)
+        {
+            if (!_isWindowInitialized || e.MessageId != ScreenAnnotationWindowInterop.WmDpiChanged)
+            {
+                return;
+            }
+
+            if (!ScreenAnnotationWindowInterop.TryReadDpiChangedSuggestedRect(e.LParam, out RectInt32 suggestedBounds))
+            {
+                AppLog.Warn("ScreenAnnotation.Interop", "读取工具栏 DPI 变化建议矩形失败。");
+                return;
+            }
+
+            RectInt32 clampedBounds = _displayTarget.ClampBoundsToVisibleArea(suggestedBounds);
+            if (!ScreenAnnotationWindowInterop.TryMoveAndResizeWindow(e.Hwnd, clampedBounds, out string? error))
+            {
+                AppLog.Warn("ScreenAnnotation.Interop", $"处理工具栏 DPI 变化失败：error='{error}'");
+                return;
+            }
+
+            e.Result = IntPtr.Zero;
+            e.Handled = true;
+        }
+
         private bool TryAttachTransparentBackdrop(IntPtr hwnd, out string? error)
         {
             if (_transparentBackdrop is not null)
@@ -831,6 +884,7 @@ namespace WindBoard.Features.ScreenAnnotation.UI
             {
                 // 工具栏也需要挂透明 backdrop，否则即便 XAML 根节点透明，WinUI 顶层窗口仍可能退化成黑底。
                 var backdrop = new ScreenAnnotationTransparentBackdrop(hwnd);
+                backdrop.WindowMessageObserved += OnBackdropWindowMessageObserved;
                 SystemBackdrop = backdrop;
                 _transparentBackdrop = backdrop;
                 error = null;
@@ -845,6 +899,11 @@ namespace WindBoard.Features.ScreenAnnotation.UI
 
         private void OnWindowClosed(object sender, WindowEventArgs args)
         {
+            if (_transparentBackdrop is not null)
+            {
+                _transparentBackdrop.WindowMessageObserved -= OnBackdropWindowMessageObserved;
+            }
+
             SystemBackdrop = null;
             _transparentBackdrop = null;
         }

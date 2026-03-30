@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.WindowsRuntime;
 using System.Threading.Tasks;
 using Microsoft.UI.Xaml;
@@ -17,6 +18,7 @@ using Windows.ApplicationModel.Activation;
 using Windows.Foundation;
 using Windows.Foundation.Collections;
 using WindBoard.Errors;
+using WindBoard.Features.ScreenAnnotation.Interop;
 using WindBoard.Fonts;
 using WindBoard.Logging;
 using WindBoard.Localization;
@@ -147,6 +149,7 @@ namespace WindBoard
             AppLog.Info("App", $"应用启动：version={version}, args='{args.Arguments ?? string.Empty}', logFile='{AppLog.CurrentLogFilePath ?? "(null)"}'");
 
             _window = new MainWindow();
+            LogStartupEnvironmentInfo(_window);
             _window.Activate();
 
             try
@@ -189,6 +192,29 @@ namespace WindBoard
                 // 提醒失败不应影响启动：记录日志便于排查。
                 AppLog.Warn("Reminders", "启动阶段数据目录提醒失败", ex);
             }
+        }
+
+        private static void LogStartupEnvironmentInfo(Window window)
+        {
+            string osDescription = RuntimeInformation.OSDescription;
+            IntPtr hwnd = WinRT.Interop.WindowNative.GetWindowHandle(window);
+            if (hwnd == IntPtr.Zero)
+            {
+                AppLog.Warn("App.Environment", $"启动阶段读取环境信息失败：system='{osDescription}', reason='window-handle-zero'");
+                return;
+            }
+
+            if (!ScreenAnnotationWindowInterop.TryGetWindowDpi(hwnd, out uint dpi, out string? error))
+            {
+                AppLog.Warn("App.Environment", $"启动阶段读取环境信息失败：system='{osDescription}', error='{error}'");
+                return;
+            }
+
+            double scaleRatio = ScreenAnnotationWindowInterop.ConvertDpiToScaleRatio(dpi);
+            int scalePercent = ScreenAnnotationWindowInterop.ConvertDpiToScalePercent(dpi);
+            AppLog.Info(
+                "App.Environment",
+                $"启动环境：system='{osDescription}', dpi={dpi}, scaleRatio={scaleRatio:F2}, scalePercent={scalePercent}%");
         }
 
         private static void EnsureAppNotificationInvokedHandlerHooked()

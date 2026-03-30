@@ -33,9 +33,11 @@ namespace WindBoard.Features.ScreenAnnotation.Interop
         private const int SwRestore = 9;
         private const int SwShow = 5;
         private const int EInvalidArg = unchecked((int)0x80070057);
+        private const uint UserDefaultScreenDpi = 96;
 
         private const uint LwaAlpha = 0x00000002;
         private const uint MonitorDefaultToNearest = 2;
+        internal const uint WmDpiChanged = 0x02E0;
         internal const uint DwmWindowCornerPreferenceAttribute = 33;
         internal const uint DwmBorderColorAttribute = 34;
         internal const uint DwmWindowCornerPreferenceDoNotRound = 1;
@@ -230,6 +232,61 @@ namespace WindBoard.Features.ScreenAnnotation.Interop
             return BuildUpdatedStyle(currentStyle, WsExToolWindow | WsExLayered, removeFlags: 0);
         }
 
+        /// <summary>
+        /// 将 XAML 使用的有效像素坐标转换为窗口互操作所需的物理像素坐标。
+        /// </summary>
+        internal static int ConvertDipCoordinateToPixels(double value, uint dpi)
+        {
+            return (int)Math.Round(value * dpi / UserDefaultScreenDpi, MidpointRounding.AwayFromZero);
+        }
+
+        /// <summary>
+        /// 将 XAML 使用的有效像素尺寸转换为窗口互操作所需的物理像素尺寸。
+        /// 对尺寸使用向上取整，避免高 DPI 下出现 1px 裁切。
+        /// </summary>
+        internal static int ConvertDipSizeToPixels(double value, uint dpi)
+        {
+            return (int)Math.Ceiling(value * dpi / UserDefaultScreenDpi);
+        }
+
+        /// <summary>
+        /// 把窗口 DPI 转换为相对 96 DPI 基准的缩放倍数。
+        /// </summary>
+        internal static double ConvertDpiToScaleRatio(uint dpi)
+        {
+            uint safeDpi = dpi == 0 ? UserDefaultScreenDpi : dpi;
+            return safeDpi / (double)UserDefaultScreenDpi;
+        }
+
+        /// <summary>
+        /// 把窗口 DPI 转换为常见日志使用的百分比缩放值。
+        /// </summary>
+        internal static int ConvertDpiToScalePercent(uint dpi)
+        {
+            return (int)Math.Round(ConvertDpiToScaleRatio(dpi) * 100, MidpointRounding.AwayFromZero);
+        }
+
+        internal static bool TryGetWindowDpi(IntPtr hwnd, out uint dpi, out string? error)
+        {
+            dpi = 0;
+
+            if (hwnd == IntPtr.Zero)
+            {
+                error = "Window handle is zero.";
+                return false;
+            }
+
+            dpi = GetDpiForWindow(hwnd);
+            if (dpi == 0)
+            {
+                error = $"GetDpiForWindow failed: lastError={Marshal.GetLastWin32Error()}";
+                return false;
+            }
+
+            error = null;
+            return true;
+        }
+
         internal static bool TryMinimizeWindow(IntPtr hwnd, out string? error)
         {
             if (hwnd == IntPtr.Zero)
@@ -347,6 +404,45 @@ namespace WindBoard.Features.ScreenAnnotation.Interop
             WindowPos windowPos = Marshal.PtrToStructure<WindowPos>((IntPtr)lParam);
             insertAfterHwnd = windowPos.InsertAfter;
             flags = windowPos.Flags;
+            return true;
+        }
+
+        internal static bool TryReadDpiChangedSuggestedRect(nint lParam, out RectInt32 rect)
+        {
+            rect = default;
+
+            if (lParam == 0)
+            {
+                return false;
+            }
+
+            Rect nativeRect = Marshal.PtrToStructure<Rect>((IntPtr)lParam);
+            rect = ToRectInt32(nativeRect);
+            return true;
+        }
+
+        internal static bool TryMoveAndResizeWindow(IntPtr hwnd, RectInt32 bounds, out string? error)
+        {
+            if (hwnd == IntPtr.Zero)
+            {
+                error = "Window handle is zero.";
+                return false;
+            }
+
+            if (!SetWindowPos(
+                hwnd,
+                IntPtr.Zero,
+                bounds.X,
+                bounds.Y,
+                bounds.Width,
+                bounds.Height,
+                SwpNoZOrder | SwpNoActivate | SwpShowWindow))
+            {
+                error = $"SetWindowPos(move and resize) failed: lastError={Marshal.GetLastWin32Error()}";
+                return false;
+            }
+
+            error = null;
             return true;
         }
 
@@ -528,6 +624,9 @@ namespace WindBoard.Features.ScreenAnnotation.Interop
 
         [DllImport("user32.dll", SetLastError = true)]
         private static extern bool GetWindowRect(IntPtr hwnd, out Rect rect);
+
+        [DllImport("user32.dll", SetLastError = true)]
+        private static extern uint GetDpiForWindow(IntPtr hwnd);
 
         [DllImport("user32.dll", SetLastError = true)]
         private static extern nint MonitorFromWindow(IntPtr hwnd, uint dwFlags);

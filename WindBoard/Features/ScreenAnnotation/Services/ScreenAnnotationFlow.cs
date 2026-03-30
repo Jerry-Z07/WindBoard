@@ -375,5 +375,6 @@ namespace WindBoard.Features.ScreenAnnotation.Services
                 AppLog.Warn("ScreenAnnotation", $"关闭桌面批注窗口失败：name={name}", ex);
             }
         }
+
     }
 }
