@@ -37,4 +37,20 @@ public sealed class ScreenAnnotationDisplayTargetTests
         Assert.Equal(200, toolbarBounds.Width);
         Assert.Equal(72, toolbarBounds.Height);
     }
+
+    [Fact]
+    public void GetInitialToolbarBounds_UsesProvidedMargin()
+    {
+        var target = new ScreenAnnotationDisplayTarget(
+            MonitorHandle: nint.Zero,
+            Bounds: new RectInt32(100, 200, 1600, 900),
+            WorkArea: new RectInt32(100, 200, 1600, 900));
+
+        RectInt32 toolbarBounds = target.GetInitialToolbarBounds(width: 345, height: 75, margin: 10);
+
+        Assert.Equal(110, toolbarBounds.X);
+        Assert.Equal(1015, toolbarBounds.Y);
+        Assert.Equal(345, toolbarBounds.Width);
+        Assert.Equal(75, toolbarBounds.Height);
+    }
 }
