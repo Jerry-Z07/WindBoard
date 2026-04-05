@@ -94,4 +94,34 @@ public sealed class AppDataPathsTests
         Assert.False(snapshot.PortableDataDirectoryWritable);
         Assert.Equal("AccessDenied", snapshot.PortableDataDirectoryWriteTestError);
     }
+
+    [Fact]
+    public void ComputeSnapshot_Portable_SharedLayout_UsesProductRootDataDirectory()
+    {
+        int ensureWritableCalls = 0;
+
+        var install = new AppInstallProbeResult
+        {
+            Kind = AppInstallKind.Portable,
+            Evidence = "fallback",
+            InstallDir = @"D:\WindBoard",
+        };
+
+        AppDataPathsSnapshot snapshot = AppDataPaths.ComputeSnapshot(
+            install,
+            appBaseDirectory: @"D:\WindBoard\shared\",
+            localAppDataDirectory: @"C:\Users\test\AppData\Local\",
+            tryEnsureWritable: dir =>
+            {
+                ensureWritableCalls++;
+                Assert.Equal(@"D:\WindBoard\data", dir);
+                return (ok: true, errorMessage: null);
+            });
+
+        Assert.Equal(1, ensureWritableCalls);
+        Assert.Equal(Path.Combine(@"D:\WindBoard", "data"), snapshot.RootDirectory);
+        Assert.True(snapshot.UsingPortableDataDirectory);
+        Assert.Equal(@"D:\WindBoard", snapshot.InstallDir);
+        Assert.Equal(@"D:\WindBoard\shared", snapshot.AppBaseDirectory);
+    }
 }

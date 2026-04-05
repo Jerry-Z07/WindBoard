@@ -1,4 +1,5 @@
 using Xunit;
+using WindBoard.Tests;
 
 namespace WindBoard.Tests.Logging;
 
@@ -7,7 +8,7 @@ public sealed class LogNoiseAuditTests
     [Fact]
     public void HighNoiseLogSnippets_Should_Not_Exist_In_ApplicationSources()
     {
-        DirectoryInfo? repoRoot = FindRepoRoot();
+        DirectoryInfo? repoRoot = RepoRootLocator.Find();
         if (repoRoot is null)
         {
             return;
@@ -89,22 +90,6 @@ public sealed class LogNoiseAuditTests
         Assert.True(
             matches.Count == 0,
             "发现不应保留的高噪声日志片段：\n" + string.Join('\n', matches));
-    }
-
-    private static DirectoryInfo? FindRepoRoot()
-    {
-        DirectoryInfo? current = new(AppContext.BaseDirectory);
-        for (int i = 0; i < 20 && current is not null; i++)
-        {
-            if (File.Exists(Path.Combine(current.FullName, "WindBoard.slnx")))
-            {
-                return current;
-            }
-
-            current = current.Parent;
-        }
-
-        return null;
     }
 
     private static List<string> CollectMatches(string windBoardDir, IEnumerable<string> bannedSnippets)

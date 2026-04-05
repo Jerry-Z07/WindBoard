@@ -45,7 +45,9 @@ jobs:
 
           $repo = '${{ github.repository }}'
           $project = Join-Path $PWD 'WindBoard/WindBoard.csproj'
+          $launcherProject = Join-Path $PWD 'WindBoard.Launcher/WindBoard.Launcher.csproj'
           if (!(Test-Path $project)) { throw "Project file not found: $project" }
+          if (!(Test-Path $launcherProject)) { throw "Launcher project file not found: $launcherProject" }
 
           # 版本号写入到程序集/文件属性中，便于 About 页与日志展示一致，并方便定位构建来源。
           $sha = '${{ github.sha }}'
@@ -83,11 +85,23 @@ jobs:
 
             # --- 便携版（带运行库，自包含）---
             $publishDirSc = Join-Path $PWD ("publish/{0}/sc" -f $rid)
+            $publishDirScShared = Join-Path $publishDirSc 'shared'
             dotnet publish $project `
               -c Release `
               -r $rid `
               --self-contained true `
+              -o $publishDirScShared `
+              -p:PublishReadyToRun=false `
+              $msbuildProps
+
+            dotnet publish $launcherProject `
+              -c Release `
+              -r $rid `
               -o $publishDirSc `
+              -p:AssemblyName=WindBoard `
+              -p:TargetName=WindBoard `
+              -p:DebugSymbols=false `
+              -p:DebugType=None `
               $msbuildProps
 
             $portableFileName = "WindBoard-$version-$rid.zip"
@@ -110,11 +124,23 @@ jobs:
 
             # --- 安装包（不带运行库，依赖运行时）---
             $publishDirFd = Join-Path $PWD ("publish/{0}/fd" -f $rid)
+            $publishDirFdShared = Join-Path $publishDirFd 'shared'
             dotnet publish $project `
               -c Release `
               -r $rid `
               --self-contained false `
+              -o $publishDirFdShared `
+              -p:PublishReadyToRun=false `
+              $msbuildProps
+
+            dotnet publish $launcherProject `
+              -c Release `
+              -r $rid `
               -o $publishDirFd `
+              -p:AssemblyName=WindBoard `
+              -p:TargetName=WindBoard `
+              -p:DebugSymbols=false `
+              -p:DebugType=None `
               $msbuildProps
 
             # --- 生成安装包（带/不带运行库）---
