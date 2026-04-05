@@ -40,12 +40,14 @@
 - 多页面管理
 - 无界书写
 - 多语言支持
-- ...（开发中）
+- 屏幕批注
+- ...
 
 ## 特点
 
 - 高度自定义：可选附加内容到 Dock 栏
 - 伪装：使软件外显为自定义的图标/进程名
+- ...
 
 ## 技术栈
 
@@ -82,25 +84,6 @@
 
 请参考 [本地化约定](./docs/dev/guides/localization.zh-CN.md) 文档
 
-### 氛围编程（Vibe Coding）相关
-
-- 项目目前已配置[AGENTS.md](AGENTS.md)
-- 开发中使用过的工具：
-  - MCP
-
-  | **MCP**  | **介绍**     | **使用教程**                                                            |
-  |----------|------------|-----------------------------------------------------------------------|
-  | ace-tool | 代码库检索工具    | <https://linux.do/t/topic/1360514>                                    |
-  | context7 | 查询开发文档     | <https://github.com/upstash/context7#installation>                    |
-  | fetch    | 获取网页内容     | <https://github.com/modelcontextprotocol/servers/tree/main/src/fetch> |
-  | github   | 辅助操作Github | <https://github.com/github/github-mcp-server>                         |
-
-  - 其他
-
-  | **工具名称**                                               | **推荐理由**     | **备注** |
-  |--------------------------------------------------------|--------------|--------|
-  | [qlty](https://docs.qlty.sh/cli/quickstart)            | 代码审查与分析 CLI  | 开源，项目已init     |
-  | [MCP Router](https://github.com/mcp-router/mcp-router) | 简化 MCP 工具的配置 | 开源     |
 
 ## Todo / 仍需完善的部分
 

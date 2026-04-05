@@ -1,48 +1,22 @@
+# 项目结构
+
 - `WindBoard.slnx`：解决方案入口（`WindBoard` + `WindBoard.CrashReporter` + `WindBoard.Tests`）。
-  - 支持平台：x86、x64、ARM64（默认 AnyCPU 映射到 x64）。
-- `docs/`：开发文档、图片资源、发布说明与计划文档（`docs/dev/*`、`docs/assets/images/*`、`docs/release-notes/*`、`docs/superpowers/*`）。
+- `docs/`：开发文档与资源（`dev/` 开发指南、`assets/` 图片、`release-notes/` 发布说明、`superpowers/`、`archive/` 存档）。
 - `WindBoard/`：WinUI 3 桌面应用（C# / XAML，Windows App SDK）。
-  - `UI/`：窗口/页面的 UI 编排代码（含 `UI/MainWindow/`：`MainWindow` 的 partial 拆分）。
+  - `Board/`：画板核心模型（文档/会话/命令/编辑/元素/视口/持久化）。
   - `Controls/`：自定义控件。
-  - `Board/`：画板核心模型（文档/会话/命令/编辑/视口等）。
-    - `Commands/`：命令模式实现（添加笔画/清空/替换笔画等）。
-    - `Editing/`：编辑功能（页面/会话/工作区/橡皮擦/命中测试等）。
-    - `Elements/`：板上元素模型（文本/链接/媒体/文件等）。
-    - `Persistence/`：工作区快照与序列化（含 `Persistence/Wbix/`：WBIX 格式读写）。
-    - `Viewport/`：视口管理。
-  - `Features/`：按“功能”拆分的模块集合（通常包含 `Models/`、`Services/`、`UI/` 等）。
-    - `Camouflage/`：伪装相关功能。
-    - `Dock/`：快捷 Dock（启动程序/打开链接等）。
-    - `Export/`：导出能力（PNG/PDF/WBIX 等）。
-    - `Import/`：导入能力（图片/文本/WBI 等）。
-    - `Shortcuts/`：快捷键/快捷操作相关。
-  - `Interaction/`：输入与交互（笔/鼠标/触控、缩放/平移、脏矩形计算等；含 `BoardInputController/`）。
-  - `Rendering/`：DirectX 渲染层（Vortice；SwapChain/场景渲染）。
-    - `Board/`：场景数学计算与渲染器。
-    - `DxDirtyRectCalculator.cs`：脏矩形计算。
-    - `DxSwapChainPanelRenderer.cs`：交换链面板渲染器（含滚动相关 `DxSwapChainPanelRenderer.Scroll.cs`）。
-  - `Localization/`：本地化资源与取值入口（`.resx` + `L10n` + XAML `Loc` 扩展）。
-  - `Logging/`：应用日志（文件 + Debug 输出，入口：`WindBoard.Logging.AppLog`）。
-  - `Errors/`：应用错误处理与崩溃报告（对接 CrashReporter）。
-  - `Updates/`：应用更新检查/下载相关。
-  - `Reminders/`：应用级提醒/通知（应用内 Banner、Windows Toast 等通道）。
-  - `Settings/`：设置相关。
-  - `Persistence/`：应用层持久化服务接口/实现（避免与 `Board/Persistence/` 混淆）。
-  - `Assets/`：应用资源。
-  - `Properties/PublishProfiles/`：发布配置。
-- `WindBoard.CrashReporter/`：独立崩溃提示程序（WinForms）。
-  - `CrashReporterArgs.cs`：命令行参数解析。
-  - `CrashReporterForm.cs`：提示 UI 与交互。
-  - `CrashReporterLog.cs`：CrashReporter 自身日志（尽力落盘，吞异常兜底）。
-- `WindBoard.Tests/`：xUnit 单元测试工程。
-  - `Board/`：核心模型测试（命令/编辑/视口/笔画等）。
-  - `Errors/`：错误/崩溃报告相关测试。
-  - `Features/`：功能模块测试（导入/导出/Dock/快捷键/伪装等）。
-  - `Interaction/`：交互层测试（脏矩形计算等）。
-  - `Rendering/`：渲染层测试（场景数学/脏矩形计算）。
-  - `Persistence/`：应用层持久化相关测试。
-  - `Localization/`：本地化相关测试（键值审计等）。
-  - `Settings/`：设置模块测试（设置存储/颜色处理等）。
-  - `Updates/`：更新模块测试。
-  - `AssertEx.cs`：测试辅助工具。
-- `installer/`：打包脚本（Inno Setup，入口：`installer/WindBoard.iss`）。
+  - `Features/`：按功能拆分的模块（`Camouflage` 伪装、`Dock` 快捷栏、`Export` 导出、`Import` 导入、`ScreenAnnotation` 屏幕标注、`Shortcuts` 快捷键）。
+  - `Interaction/`：输入与交互（笔/鼠标/触控、缩放/平移、`BoardInputController`）。
+  - `Rendering/`：DirectX 渲染层（Vortice，场景数学计算、交换链渲染、脏矩形计算）。
+  - `Localization/`：本地化（`.resx` + `L10n` + XAML `Loc` 扩展）。
+  - `Logging/`：应用日志（文件 + Debug 输出，入口 `AppLog`）。
+  - `Errors/`：错误处理与崩溃报告（对接 CrashReporter）。
+  - `Updates/`：应用更新检查/下载。
+  - `Reminders/`：应用级提醒/通知（Banner、Windows Toast）。
+  - `Settings/`：设置管理。
+  - `Persistence/`：应用层持久化服务（区别于 `Board/Persistence/` 的画板序列化）。
+  - `UI/`：窗口/页面 UI 编排（含 `MainWindow` partial 拆分）。
+  - `Assets/`、`Fonts/`、`Properties/`：应用资源与发布配置。
+- `WindBoard.CrashReporter/`：独立崩溃提示程序（WinForms，含参数解析、提示 UI、自身日志）。
+- `WindBoard.Tests/`：xUnit 单元测试（目录结构与主工程基本对应，含 `AssertEx` 测试辅助）。
+- `installer/`：打包脚本（Inno Setup，入口 `installer/WindBoard.iss`）。
