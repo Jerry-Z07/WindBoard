@@ -5,7 +5,7 @@
 - `WindBoard/`：WinUI 3 桌面应用（C# / XAML，Windows App SDK）。
   - `Board/`：画板核心模型（文档/会话/命令/编辑/元素/视口/持久化）。
   - `Controls/`：自定义控件。
-  - `Features/`：按功能拆分的模块（`Camouflage` 伪装、`Dock` 快捷栏、`Export` 导出、`Import` 导入、`ScreenAnnotation` 屏幕标注、`Shortcuts` 快捷键）。
+  - `Features/`：按功能拆分的模块（`Camouflage` 伪装、`Dock` 快捷栏、`Export` 导出、`Import` 导入、`ScreenAnnotation` 屏幕批注、`Shortcuts` 快捷键）。
   - `Interaction/`：输入与交互（笔/鼠标/触控、缩放/平移、`BoardInputController`）。
   - `Rendering/`：DirectX 渲染层（Vortice，场景数学计算、交换链渲染、脏矩形计算）。
   - `Localization/`：本地化（`.resx` + `L10n` + XAML `Loc` 扩展）。
