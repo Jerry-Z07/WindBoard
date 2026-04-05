@@ -397,8 +397,8 @@ namespace WindBoard.Errors
         private static string GetCrashReporterExePath()
         {
             // 说明：把 CrashReporter 放在应用目录根部，便于：
-            // - self-contained 发布时复用同目录的 app-local runtime（hostfxr/hostpolicy 等）；
-            // - 安装包/便携版打包更直观（同目录递归复制即可）。
+            // - 安装包/便携版统一打包（同目录递归复制即可）；
+            // - self-contained 发布时连同 CrashReporter 自身运行库一起分发，避免额外的全局运行时依赖。
             try
             {
                 return Path.Combine(AppContext.BaseDirectory, "WindBoard.CrashReporter.exe");
