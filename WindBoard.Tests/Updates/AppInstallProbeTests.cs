@@ -5,15 +5,14 @@ namespace WindBoard.Tests.Updates;
 public sealed class AppInstallProbeTests
 {
     [Fact]
-    public void ComputeProbeResult_SharedLayout_WithMatchingRegistryInstallDir_IsInstaller()
+    public void ComputeProbeResult_WithMatchingRegistryInstallDir_IsInstaller()
     {
         AppInstallProbeResult result = AppInstallProbe.ComputeProbeResult(
-            appBaseDirectory: @"C:\Program Files\WindBoard\shared\",
+            productRootDirectory: @"C:\Program Files\WindBoard",
             registryInstallDir: @"C:\Program Files\WindBoard",
             registryInstallKind: "installer",
             registryInstallVariant: "framework-dependent",
-            hasUninstallerInProductRoot: false,
-            enableLogging: false);
+            hasUninstallerInProductRoot: false);
 
         Assert.Equal(AppInstallKind.Installer, result.Kind);
         Assert.Equal(AppInstallVariant.FrameworkDependent, result.Variant);
@@ -22,15 +21,14 @@ public sealed class AppInstallProbeTests
     }
 
     [Fact]
-    public void ComputeProbeResult_SharedLayout_WithUninstallerInProductRoot_IsInstaller()
+    public void ComputeProbeResult_WithUninstallerInProductRoot_IsInstaller()
     {
         AppInstallProbeResult result = AppInstallProbe.ComputeProbeResult(
-            appBaseDirectory: @"C:\Program Files\WindBoard\shared\",
+            productRootDirectory: @"C:\Program Files\WindBoard",
             registryInstallDir: string.Empty,
             registryInstallKind: string.Empty,
             registryInstallVariant: string.Empty,
-            hasUninstallerInProductRoot: true,
-            enableLogging: false);
+            hasUninstallerInProductRoot: true);
 
         Assert.Equal(AppInstallKind.Installer, result.Kind);
         Assert.Equal(AppInstallVariant.Unknown, result.Variant);

@@ -47,6 +47,7 @@ namespace WindBoard.Updates
         {
             string baseDir = NormalizeDir(AppContext.BaseDirectory);
             AppRuntimeLayout layout = AppRuntimeLayout.Resolve(baseDir);
+            string productRootDirectory = layout.ProductRootDirectory;
 
             string registryInstallDir = string.Empty;
             string registryKind = string.Empty;
@@ -77,9 +78,9 @@ namespace WindBoard.Updates
             // 2) 兜底：Inno Setup 安装目录通常会包含卸载器（unins*.exe）。
             try
             {
-                if (Directory.Exists(layout.ProductRootDirectory))
+                if (Directory.Exists(productRootDirectory))
                 {
-                    hasUninstallerInProductRoot = Directory.EnumerateFiles(layout.ProductRootDirectory, "unins*.exe", SearchOption.TopDirectoryOnly).Any();
+                    hasUninstallerInProductRoot = Directory.EnumerateFiles(productRootDirectory, "unins*.exe", SearchOption.TopDirectoryOnly).Any();
                 }
             }
             catch (Exception ex)
@@ -91,37 +92,32 @@ namespace WindBoard.Updates
             }
 
             AppInstallProbeResult result = ComputeProbeResult(
-                appBaseDirectory: baseDir,
+                productRootDirectory: productRootDirectory,
                 registryInstallDir: registryInstallDir,
                 registryInstallKind: registryKind,
                 registryInstallVariant: registryVariant,
-                hasUninstallerInProductRoot: hasUninstallerInProductRoot,
-                enableLogging: enableLogging);
+                hasUninstallerInProductRoot: hasUninstallerInProductRoot);
 
             if (enableLogging
                 && !string.IsNullOrWhiteSpace(registryInstallDir)
                 && !string.Equals(result.Evidence, "registry", StringComparison.OrdinalIgnoreCase)
-                && !IsSameDirectory(registryInstallDir, layout.ProductRootDirectory))
+                && !IsSameDirectory(registryInstallDir, productRootDirectory))
             {
-                AppLog.Debug("Updates", $"检测到安装标记但路径不匹配，将忽略：installDir='{registryInstallDir}', productRoot='{layout.ProductRootDirectory}'");
+                AppLog.Debug("Updates", $"检测到安装标记但路径不匹配，将忽略：installDir='{registryInstallDir}', productRoot='{productRootDirectory}'");
             }
 
             return result;
         }
 
         internal static AppInstallProbeResult ComputeProbeResult(
-            string appBaseDirectory,
+            string productRootDirectory,
             string registryInstallDir,
             string registryInstallKind,
             string registryInstallVariant,
-            bool hasUninstallerInProductRoot,
-            bool enableLogging)
+            bool hasUninstallerInProductRoot)
         {
-            AppRuntimeLayout layout = AppRuntimeLayout.Resolve(appBaseDirectory);
-            string productRoot = layout.ProductRootDirectory;
-            string normalizedRegistryInstallDir = NormalizeDir(registryInstallDir);
-
-            if (IsSameDirectory(normalizedRegistryInstallDir, productRoot)
+            // ProbeCore 已完成布局解析与 I/O；这里仅保留纯判定逻辑，便于单测。
+            if (IsSameDirectory(registryInstallDir, productRootDirectory)
                 && string.Equals((registryInstallKind ?? string.Empty).Trim(), KindInstaller, StringComparison.OrdinalIgnoreCase))
             {
                 AppInstallVariant variant = NormalizeVariant(registryInstallVariant);
@@ -130,7 +126,7 @@ namespace WindBoard.Updates
                     Kind = AppInstallKind.Installer,
                     Variant = variant,
                     Evidence = "registry",
-                    InstallDir = productRoot,
+                    InstallDir = productRootDirectory,
                 };
             }
 
@@ -141,7 +137,7 @@ namespace WindBoard.Updates
                     Kind = AppInstallKind.Installer,
                     Variant = AppInstallVariant.Unknown,
                     Evidence = "uninstaller-file",
-                    InstallDir = productRoot,
+                    InstallDir = productRootDirectory,
                 };
             }
 
@@ -150,7 +146,7 @@ namespace WindBoard.Updates
                 Kind = AppInstallKind.Portable,
                 Variant = AppInstallVariant.Unknown,
                 Evidence = "fallback",
-                InstallDir = productRoot,
+                InstallDir = productRootDirectory,
             };
         }
 

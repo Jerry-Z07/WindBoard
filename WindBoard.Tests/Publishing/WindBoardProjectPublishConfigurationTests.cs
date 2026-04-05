@@ -1,4 +1,5 @@
 using System.Xml.Linq;
+using WindBoard.Tests;
 using Xunit;
 
 namespace WindBoard.Tests.Publishing;
@@ -8,7 +9,7 @@ public sealed class WindBoardProjectPublishConfigurationTests
     [Fact]
     public void ReleaseWorkflow_DisablesReadyToRun_ForPortablePublishes()
     {
-        DirectoryInfo? repoRoot = FindRepoRoot();
+        DirectoryInfo? repoRoot = RepoRootLocator.Find();
         Assert.NotNull(repoRoot);
 
         string workflowFilePath = Path.Combine(repoRoot!.FullName, ".github", "workflows", "release.yml");
@@ -24,7 +25,7 @@ public sealed class WindBoardProjectPublishConfigurationTests
     [Fact]
     public void InstallerScript_UsesSharedAssetsFontSource()
     {
-        DirectoryInfo? repoRoot = FindRepoRoot();
+        DirectoryInfo? repoRoot = RepoRootLocator.Find();
         Assert.NotNull(repoRoot);
 
         string installerFilePath = Path.Combine(repoRoot!.FullName, "installer", "WindBoard.iss");
@@ -56,19 +57,4 @@ public sealed class WindBoardProjectPublishConfigurationTests
         }
     }
 
-    private static DirectoryInfo? FindRepoRoot()
-    {
-        DirectoryInfo? current = new(AppContext.BaseDirectory);
-        for (int i = 0; i < 20 && current is not null; i++)
-        {
-            if (File.Exists(Path.Combine(current.FullName, "WindBoard.slnx")))
-            {
-                return current;
-            }
-
-            current = current.Parent;
-        }
-
-        return null;
-    }
 }

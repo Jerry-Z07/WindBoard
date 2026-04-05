@@ -1,4 +1,5 @@
 using System.Xml.Linq;
+using WindBoard.Tests;
 using Xunit;
 
 namespace WindBoard.Tests.Launcher;
@@ -8,7 +9,7 @@ public sealed class LauncherProjectConfigurationTests
     [Fact]
     public void LauncherProject_UsesPortableTargetFramework_WithoutWindowsTargeting()
     {
-        DirectoryInfo? repoRoot = FindRepoRoot();
+        DirectoryInfo? repoRoot = RepoRootLocator.Find();
         Assert.NotNull(repoRoot);
 
         string projectFilePath = Path.Combine(repoRoot!.FullName, "WindBoard.Launcher", "WindBoard.Launcher.csproj");
@@ -29,19 +30,4 @@ public sealed class LauncherProjectConfigurationTests
         return propertyGroup.Elements(propertyName).Select(static element => element.Value.Trim()).FirstOrDefault();
     }
 
-    private static DirectoryInfo? FindRepoRoot()
-    {
-        DirectoryInfo? current = new(AppContext.BaseDirectory);
-        for (int i = 0; i < 20 && current is not null; i++)
-        {
-            if (File.Exists(Path.Combine(current.FullName, "WindBoard.slnx")))
-            {
-                return current;
-            }
-
-            current = current.Parent;
-        }
-
-        return null;
-    }
 }

@@ -52,7 +52,7 @@ internal static partial class Program
     private static void ShowLaunchError(string targetExecutablePath)
     {
         string path = string.IsNullOrWhiteSpace(targetExecutablePath) ? "(unknown)" : targetExecutablePath;
-        _ = MessageBox(IntPtr.Zero, $"无法启动 WindBoard。\n\n未找到主程序：\n{path}", "WindBoard", 0x00000010u);
+        _ = MessageBox(IntPtr.Zero, $"Unable to launch WindBoard.\n\nMain executable was not found:\n{path}", "WindBoard", 0x00000010u);
     }
 
     [DllImport("user32.dll", EntryPoint = "MessageBoxW", CharSet = CharSet.Unicode)]
