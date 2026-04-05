@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.UI.Xaml;
 using WindBoard.Logging;
+using WindBoard.Persistence;
 using WindBoard.Reminders;
 
 namespace WindBoard.Errors
@@ -312,7 +313,7 @@ namespace WindBoard.Errors
                     FileName = exePath,
                     UseShellExecute = false,
                     CreateNoWindow = true,
-                    WorkingDirectory = AppContext.BaseDirectory,
+                    WorkingDirectory = AppRuntimeLayout.Resolve(AppContext.BaseDirectory).RuntimeDirectory,
                 };
 
                 psi.ArgumentList.Add("--report");
@@ -396,12 +397,9 @@ namespace WindBoard.Errors
 
         private static string GetCrashReporterExePath()
         {
-            // 说明：把 CrashReporter 放在应用目录根部，便于：
-            // - 安装包/便携版统一打包（同目录递归复制即可）；
-            // - self-contained 发布时连同 CrashReporter 自身运行库一起分发，避免额外的全局运行时依赖。
             try
             {
-                return Path.Combine(AppContext.BaseDirectory, "WindBoard.CrashReporter.exe");
+                return AppRuntimeLayout.Resolve(AppContext.BaseDirectory).CrashReporterExecutablePath;
             }
             catch
             {

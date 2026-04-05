@@ -57,7 +57,8 @@
   <!-- Publish Properties -->
   <PropertyGroup>
     <PublishReadyToRun Condition="'$(Configuration)' == 'Debug'">False</PublishReadyToRun>
-    <PublishReadyToRun Condition="'$(Configuration)' != 'Debug'">True</PublishReadyToRun>
+    <PublishReadyToRun Condition="'$(Configuration)' != 'Debug' and '$(SelfContained)' == 'true'">False</PublishReadyToRun>
+    <PublishReadyToRun Condition="'$(Configuration)' != 'Debug' and '$(SelfContained)' != 'true'">True</PublishReadyToRun>
     <!--
       重要：WinUI 3（Windows App SDK）对 IL Trim 的兼容性较差，
       Release 发布时开启裁剪可能导致运行期 XAML 解析失败（启动即崩溃）。

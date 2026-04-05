@@ -67,10 +67,11 @@ namespace WindBoard.Persistence
 
             string baseDir = NormalizeDir(appBaseDirectory);
             string localAppData = NormalizeDir(localAppDataDirectory);
+            AppRuntimeLayout layout = AppRuntimeLayout.Resolve(baseDir);
 
-            // 安装版默认使用 LocalAppData；便携版优先尝试 {base}\data。
+            // 安装版默认使用 LocalAppData；便携版优先尝试产品根目录下的 data。
             string localRoot = Path.Combine(localAppData, "WindBoard");
-            string portableRoot = string.IsNullOrWhiteSpace(baseDir) ? string.Empty : NormalizeDir(Path.Combine(baseDir, "data"));
+            string portableRoot = layout.PortableDataDirectory;
 
             bool attemptedPortable = install.Kind == AppInstallKind.Portable;
             bool portableWritable = false;

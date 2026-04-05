@@ -57,4 +57,24 @@ public sealed class CamouflageServiceTests
         Assert.NotEqual(baseSig, sourceSig);
         Assert.NotEqual(baseSig, cacheSig);
     }
+
+    [Fact]
+    public void ResolveShortcutExecutablePath_SharedLayout_UsesLauncherExecutable()
+    {
+        string path = CamouflageService.ResolveShortcutExecutablePath(
+            processPath: @"D:\Apps\WindBoard\shared\WindBoard.exe",
+            appBaseDirectory: @"D:\Apps\WindBoard\shared\");
+
+        Assert.Equal(@"D:\Apps\WindBoard\WindBoard.exe", path);
+    }
+
+    [Fact]
+    public void ResolveShortcutExecutablePath_DefaultLayout_UsesProcessPath()
+    {
+        string path = CamouflageService.ResolveShortcutExecutablePath(
+            processPath: @"D:\Apps\WindBoard\WindBoard.exe",
+            appBaseDirectory: @"D:\Apps\WindBoard\");
+
+        Assert.Equal(@"D:\Apps\WindBoard\WindBoard.exe", path);
+    }
 }

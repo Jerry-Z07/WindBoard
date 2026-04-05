@@ -98,7 +98,7 @@ chinesesimplified.AppShortcutName=轻风白板
 ; 卸载增强：可选删除用户数据（默认不删除）。
 ; 说明：安装版用户数据默认位于 %LocalAppData%\WindBoard（见主程序 AppDataPaths 约定）。
 english.UninstallDeleteUserDataPrompt=Do you also want to delete user data (settings, logs, cache, downloads)?%n%nFolder:%n{localappdata}\WindBoard%n%nThis action cannot be undone.
-chinesesimplified.UninstallDeleteUserDataPrompt=是否同时删除当前用户数据（设置、日志、缓存、下载）？%n%n目录：%n{localappdata}\WindBoard%n%n此操作不可恢复。
+chinesesimplified.UninstallDeleteUserDataPrompt=是否同时删除用户数据？%n目录：%n{localappdata}\WindBoard%n%n此操作不可恢复。
 english.UninstallDeleteUserDataFailed=Failed to delete user data folder:%n{localappdata}\WindBoard%n%nSome files may be locked. You can delete it manually later.
 chinesesimplified.UninstallDeleteUserDataFailed=删除用户数据目录失败：%n{localappdata}\WindBoard%n%n可能有文件正在被占用，可稍后手动删除。
 
@@ -106,7 +106,7 @@ chinesesimplified.UninstallDeleteUserDataFailed=删除用户数据目录失败�
 Source: "{#MySourceDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 ; Win10（Build < 22000）不自带 Segoe Fluent Icons：安装时自动写入系统字体目录并注册字体。
 ; 说明：卸载时不移除字体（uninsneveruninstall），避免影响系统或其它程序。
-Source: "{#MySourceDir}\Assets\Segoe Fluent Icons.ttf"; DestDir: "{autofonts}"; FontInstall: "Segoe Fluent Icons"; Flags: onlyifdoesntexist uninsneveruninstall; Check: NeedInstallSegoeFluentIconsFont
+Source: "{#MySourceDir}\shared\Assets\Segoe Fluent Icons.ttf"; DestDir: "{autofonts}"; FontInstall: "Segoe Fluent Icons"; Flags: onlyifdoesntexist uninsneveruninstall; Check: NeedInstallSegoeFluentIconsFont
 
 [Icons]
 Name: "{autoprograms}\{cm:AppShortcutName}"; Filename: "{app}\{#MyAppExeName}"
