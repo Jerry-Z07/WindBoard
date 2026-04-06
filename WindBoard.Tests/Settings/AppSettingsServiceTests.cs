@@ -1,6 +1,7 @@
 using System;
 using System.Globalization;
 using System.IO;
+using System.Reflection;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
@@ -140,6 +141,65 @@ public sealed class AppSettingsServiceTests
     }
 
     [Fact]
+    public async Task ImportFromFileAsync_DoesNotPostBackToCapturedSynchronizationContext()
+    {
+        string root = CreateTempDirectory();
+        CultureSnapshot cultureSnapshot = CaptureCultureSnapshot();
+        SynchronizationContext? originalContext = SynchronizationContext.Current;
+        var trackingContext = new TrackingSynchronizationContext();
+        try
+        {
+            string defaultSettingsPath = Path.Combine(root, "data", "settings.json");
+            string importPath = Path.Combine(root, "incoming", "settings.json");
+            AppSettingsService service = CreateService(defaultSettingsPath);
+
+            Directory.CreateDirectory(Path.GetDirectoryName(importPath)!);
+            await File.WriteAllTextAsync(importPath, "{ \"general\": { \"languagePreference\": \"en-US\" } }");
+
+            SynchronizationContext.SetSynchronizationContext(trackingContext);
+            await service.ImportFromFileAsync(importPath, CancellationToken.None).ConfigureAwait(false);
+
+            Assert.Equal(0, trackingContext.PostCount);
+        }
+        finally
+        {
+            SynchronizationContext.SetSynchronizationContext(originalContext);
+            RestoreCultureSnapshot(cultureSnapshot);
+            DeleteDirectory(root);
+        }
+    }
+
+    [Fact]
+    public async Task ResetToDefaultsAsync_DoesNotPostBackToCapturedSynchronizationContext()
+    {
+        string root = CreateTempDirectory();
+        CultureSnapshot cultureSnapshot = CaptureCultureSnapshot();
+        SynchronizationContext? originalContext = SynchronizationContext.Current;
+        var trackingContext = new TrackingSynchronizationContext();
+        try
+        {
+            string defaultSettingsPath = Path.Combine(root, "data", "settings.json");
+            AppSettingsService service = CreateService(defaultSettingsPath);
+            SemaphoreSlim ioGate = GetIoGate(service);
+            Assert.True(ioGate.Wait(0));
+
+            SynchronizationContext.SetSynchronizationContext(trackingContext);
+            Task resetTask = service.ResetToDefaultsAsync(CancellationToken.None);
+            await Task.Delay(20).ConfigureAwait(false);
+            ioGate.Release();
+            await resetTask.ConfigureAwait(false);
+
+            Assert.Equal(0, trackingContext.PostCount);
+        }
+        finally
+        {
+            SynchronizationContext.SetSynchronizationContext(originalContext);
+            RestoreCultureSnapshot(cultureSnapshot);
+            DeleteDirectory(root);
+        }
+    }
+
+    [Fact]
     public async Task ImportFromFileAsync_ThrowsOnInvalidJson_AndKeepsCurrentSettings()
     {
         string root = CreateTempDirectory();
@@ -209,4 +269,28 @@ public sealed class AppSettingsServiceTests
         CultureInfo CurrentUICulture,
         CultureInfo? DefaultThreadCurrentCulture,
         CultureInfo? DefaultThreadCurrentUICulture);
+
+    private static SemaphoreSlim GetIoGate(AppSettingsService service)
+    {
+        FieldInfo? ioGateField = typeof(AppSettingsService).GetField("_ioGate", BindingFlags.Instance | BindingFlags.NonPublic);
+        Assert.NotNull(ioGateField);
+        return Assert.IsType<SemaphoreSlim>(ioGateField.GetValue(service));
+    }
+
+    private sealed class TrackingSynchronizationContext : SynchronizationContext
+    {
+        private int _postCount;
+
+        internal int PostCount => Volatile.Read(ref _postCount);
+
+        public override void Post(SendOrPostCallback d, object? state)
+        {
+            Interlocked.Increment(ref _postCount);
+            ThreadPool.QueueUserWorkItem(static callbackState =>
+            {
+                var (callback, callbackArg) = ((SendOrPostCallback Callback, object? State))callbackState!;
+                callback(callbackArg);
+            }, (d, state));
+        }
+    }
 }

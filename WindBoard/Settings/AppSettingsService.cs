@@ -462,19 +462,19 @@ namespace WindBoard.Settings
         internal async Task ImportFromFileAsync(string filePath, CancellationToken cancellationToken = default)
         {
             string path = NormalizeExternalFilePath(filePath);
-            string json = await File.ReadAllTextAsync(path, cancellationToken).ConfigureAwait(true);
+            string json = await File.ReadAllTextAsync(path, cancellationToken).ConfigureAwait(false);
 
             var report = new SettingsNormalizationReport();
             AppSettings imported = AppSettingsStore.Deserialize(json, report);
             ReplaceAllCore(imported, report, requestSaveDebounced: false);
-            await SaveAsync(cancellationToken).ConfigureAwait(true);
+            await SaveAsync(cancellationToken).ConfigureAwait(false);
         }
 
         internal async Task ResetToDefaultsAsync(CancellationToken cancellationToken = default)
         {
             var report = new SettingsNormalizationReport();
             ReplaceAllCore(new AppSettings(), report, requestSaveDebounced: false);
-            await SaveAsync(cancellationToken).ConfigureAwait(true);
+            await SaveAsync(cancellationToken).ConfigureAwait(false);
         }
 
         internal Task SaveAsync(CancellationToken cancellationToken = default)
