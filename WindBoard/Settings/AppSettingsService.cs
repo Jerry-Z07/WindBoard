@@ -462,19 +462,19 @@ namespace WindBoard.Settings
         internal async Task ImportFromFileAsync(string filePath, CancellationToken cancellationToken = default)
         {
             string path = NormalizeExternalFilePath(filePath);
-            string json = await File.ReadAllTextAsync(path, cancellationToken).ConfigureAwait(false);
+            string json = await File.ReadAllTextAsync(path, cancellationToken).ConfigureAwait(true);
 
             var report = new SettingsNormalizationReport();
             AppSettings imported = AppSettingsStore.Deserialize(json, report);
             ReplaceAllCore(imported, report, requestSaveDebounced: false);
-            await SaveAsync(cancellationToken).ConfigureAwait(false);
+            await SaveAsync(cancellationToken).ConfigureAwait(true);
         }
 
         internal async Task ResetToDefaultsAsync(CancellationToken cancellationToken = default)
         {
             var report = new SettingsNormalizationReport();
             ReplaceAllCore(new AppSettings(), report, requestSaveDebounced: false);
-            await SaveAsync(cancellationToken).ConfigureAwait(false);
+            await SaveAsync(cancellationToken).ConfigureAwait(true);
         }
 
         internal Task SaveAsync(CancellationToken cancellationToken = default)
@@ -540,6 +540,7 @@ namespace WindBoard.Settings
             // 先复制再归一化，避免外部继续持有引用并修改内部状态。
             AppSettings next = AppSettingsCloner.Clone(settings);
             AppSettingsStore.NormalizeInPlace(next, report);
+            string languagePreference = AppLanguagePreferenceParser.NormalizeOrDefault(next.General?.LanguagePreference);
 
             lock (_gate)
             {
@@ -553,6 +554,8 @@ namespace WindBoard.Settings
                 }
             }
 
+            // 导入/恢复默认属于整包替换，这里同步更新当前进程语言，避免设置值与运行时文化不一致。
+            AppLanguageService.Apply(languagePreference);
             Changed?.Invoke(this, EventArgs.Empty);
             if (requestSaveDebounced)
             {

@@ -106,6 +106,7 @@ namespace WindBoard.Settings.Pages
                 }
 
                 await AppSettingsService.Instance.ImportFromFileAsync(filePath, CancellationToken.None).ConfigureAwait(true);
+                AppLanguageService.Apply(AppSettingsService.Instance.GetLanguagePreference());
                 AppLog.Info("Settings", $"设置已导入：path='{filePath}'");
                 ShowSettingsManagementFeedback(InfoBarSeverity.Success, L10n.Format("Settings_About_SettingsManagement_Imported_Fmt", filePath));
             }
@@ -157,6 +158,7 @@ namespace WindBoard.Settings.Pages
                 }
 
                 await AppSettingsService.Instance.ResetToDefaultsAsync(CancellationToken.None).ConfigureAwait(true);
+                AppLanguageService.Apply(AppSettingsService.Instance.GetLanguagePreference());
                 AppLog.Info("Settings", "已恢复默认设置");
                 ShowSettingsManagementFeedback(InfoBarSeverity.Success, L10n.Get("Settings_About_SettingsManagement_ResetCompleted"));
             }

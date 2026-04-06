@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 using System.IO;
 using System.Text.Json;
 using System.Threading;
@@ -45,11 +46,13 @@ public sealed class AppSettingsServiceTests
     public async Task ImportFromFileAsync_ReplacesCurrentSettingsAndPersistsNormalizedValues()
     {
         string root = CreateTempDirectory();
+        CultureSnapshot cultureSnapshot = CaptureCultureSnapshot();
         try
         {
             string defaultSettingsPath = Path.Combine(root, "data", "settings.json");
             string importPath = Path.Combine(root, "incoming", "settings.json");
             AppSettingsService service = CreateService(defaultSettingsPath);
+            AppLanguageService.Apply(AppLanguagePreferenceParser.EnglishValue);
 
             service.SetLanguagePreference(AppLanguagePreferenceParser.EnglishValue);
             service.SetUpdateCheckInterval(UpdateCheckInterval.Monthly);
@@ -77,6 +80,8 @@ public sealed class AppSettingsServiceTests
             await service.ImportFromFileAsync(importPath, CancellationToken.None);
 
             Assert.Equal(AppLanguagePreferenceParser.ChineseValue, service.GetLanguagePreference());
+            Assert.Equal(AppLanguagePreferenceParser.ChineseValue, CultureInfo.DefaultThreadCurrentCulture?.Name);
+            Assert.Equal(AppLanguagePreferenceParser.ChineseValue, CultureInfo.DefaultThreadCurrentUICulture?.Name);
             Assert.Equal(UpdateCheckInterval.Weekly, service.GetUpdateCheckInterval());
             Assert.Equal(365, service.GetLoggingSettingsSnapshot().RetentionDays);
 
@@ -87,6 +92,7 @@ public sealed class AppSettingsServiceTests
         }
         finally
         {
+            RestoreCultureSnapshot(cultureSnapshot);
             DeleteDirectory(root);
         }
     }
@@ -95,12 +101,18 @@ public sealed class AppSettingsServiceTests
     public async Task ResetToDefaultsAsync_RestoresDefaultSettingsAndPersists()
     {
         string root = CreateTempDirectory();
+        CultureSnapshot cultureSnapshot = CaptureCultureSnapshot();
         try
         {
             string defaultSettingsPath = Path.Combine(root, "data", "settings.json");
             AppSettingsService service = CreateService(defaultSettingsPath);
+            string expectedSystemUiCulture = CultureInfo.CurrentUICulture.Name;
+            string overriddenLanguage = string.Equals(expectedSystemUiCulture, AppLanguagePreferenceParser.ChineseValue, StringComparison.OrdinalIgnoreCase)
+                ? AppLanguagePreferenceParser.EnglishValue
+                : AppLanguagePreferenceParser.ChineseValue;
 
-            service.SetLanguagePreference(AppLanguagePreferenceParser.EnglishValue);
+            service.SetLanguagePreference(overriddenLanguage);
+            AppLanguageService.Apply(overriddenLanguage);
             service.SetStartupWindowMode(StartupWindowMode.FullScreen);
             service.SetEnterScreenAnnotationWhenMinimized(false);
             await service.SaveAsync();
@@ -108,6 +120,8 @@ public sealed class AppSettingsServiceTests
             await service.ResetToDefaultsAsync(CancellationToken.None);
 
             Assert.Equal(AppLanguagePreferenceParser.SystemValue, service.GetLanguagePreference());
+            Assert.Null(CultureInfo.DefaultThreadCurrentCulture);
+            Assert.Null(CultureInfo.DefaultThreadCurrentUICulture);
             Assert.Equal(StartupWindowMode.Windowed, service.GetStartupWindowMode());
             Assert.True(service.GetEnterScreenAnnotationWhenMinimized());
             Assert.Equal(UpdateCheckInterval.Weekly, service.GetUpdateCheckInterval());
@@ -120,6 +134,7 @@ public sealed class AppSettingsServiceTests
         }
         finally
         {
+            RestoreCultureSnapshot(cultureSnapshot);
             DeleteDirectory(root);
         }
     }
@@ -157,6 +172,23 @@ public sealed class AppSettingsServiceTests
         return new AppSettingsService(store);
     }
 
+    private static CultureSnapshot CaptureCultureSnapshot()
+    {
+        return new CultureSnapshot(
+            CultureInfo.CurrentCulture,
+            CultureInfo.CurrentUICulture,
+            CultureInfo.DefaultThreadCurrentCulture,
+            CultureInfo.DefaultThreadCurrentUICulture);
+    }
+
+    private static void RestoreCultureSnapshot(CultureSnapshot snapshot)
+    {
+        CultureInfo.CurrentCulture = snapshot.CurrentCulture;
+        CultureInfo.CurrentUICulture = snapshot.CurrentUICulture;
+        CultureInfo.DefaultThreadCurrentCulture = snapshot.DefaultThreadCurrentCulture;
+        CultureInfo.DefaultThreadCurrentUICulture = snapshot.DefaultThreadCurrentUICulture;
+    }
+
     private static string CreateTempDirectory()
     {
         string path = Path.Combine(Path.GetTempPath(), "WindBoard.Tests", Guid.NewGuid().ToString("N"));
@@ -171,4 +203,10 @@ public sealed class AppSettingsServiceTests
             Directory.Delete(path, recursive: true);
         }
     }
+
+    private sealed record CultureSnapshot(
+        CultureInfo CurrentCulture,
+        CultureInfo CurrentUICulture,
+        CultureInfo? DefaultThreadCurrentCulture,
+        CultureInfo? DefaultThreadCurrentUICulture);
 }
