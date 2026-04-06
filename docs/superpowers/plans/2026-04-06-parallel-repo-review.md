@@ -10,6 +10,33 @@
 
 ---
 
+## 执行状态（2026-04-06）
+
+> 实际执行路线从"文档审查"调整为"直接改代码"，以下为本轮已完成的工作。
+
+### Stage 1：框选命中 + 语言同步 + 本地 Build 输出 CrashReporter
+- [x] 修复 `StrokeRectSelectTest.IsStrokeIntersectWorldRect` 从仅 AABB 改为真实几何判断，并按压感段宽均值处理线段
+- [x] 修复 `AppSettingsService.ImportFromFileAsync` / `ResetToDefaultsAsync` 导入/恢复默认后同步应用语言偏好
+- [x] 修复 `SettingsManagementPage` 导入/恢复默认后在 UI 线程补一次 `AppLanguageService.Apply`
+- [x] 新增 `WindBoard_BuildCrashReporterIntoAppOutput` 目标，本地 `Build` 后把 CrashReporter 输出到主程序目录
+- [x] 补充对应测试 5 个，全部通过
+- [x] 全量测试通过（337 pass）
+- 提交：`bb1ba05` `fix(编辑与设置): 修复框选命中与语言同步`
+
+### Stage 2：更新提醒未展示仍记录已提醒版本
+- [x] 修复 `AppReminderService.RemindOncePerSignature` 返回是否真正展示成功，通道失败时回滚签名占用
+- [x] 修复 `AppUpdateService.TryAutoCheckAndRemindAsync` 仅在提醒真正展示后写入 `LastNotifiedVersion`
+- [x] 修复自动检查在 `CheckForUpdatesAsync` 等待期间可能拿旧快照误提醒的问题（展示前重新读取）
+- [x] 为 `AppReminderService` 和 `AppUpdateService` 新增 4 个测试，全部通过
+- [x] 全量测试通过（343 pass）
+- 提交：`84fa0df` `fix(更新提醒): 修复未展示仍记录已提醒版本`
+
+### 未完成的计划任务
+- [ ] Task 1-6：审查文档生成（已弱化，不再作为主线输出）
+- [ ] Stage 3+：后续高置信问题扫描与修复（待继续）
+
+---
+
 ## Scope Guard
 
 - 审查输入包含当前源码、测试工程、项目规则文档、解决方案和发布脚本。
