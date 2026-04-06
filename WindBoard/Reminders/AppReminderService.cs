@@ -16,17 +16,26 @@ namespace WindBoard.Reminders
     {
         private readonly object _gate = new();
         private readonly HashSet<string> _shownSignatures = new(StringComparer.Ordinal);
+        private readonly Func<Window, bool> _isFullScreen;
 
-        private readonly IAppReminderChannel _toastChannel = new WindowsToastReminderChannel();
-        private readonly IAppReminderChannel _bannerChannel = new InAppBannerReminderChannel();
+        private readonly IAppReminderChannel _toastChannel;
+        private readonly IAppReminderChannel _bannerChannel;
 
         internal static AppReminderService Instance { get; } = new();
 
         private AppReminderService()
+            : this(new WindowsToastReminderChannel(), new InAppBannerReminderChannel(), WindowDisplayModeHelper.IsFullScreen)
         {
         }
 
-        internal void RemindOncePerSignature(Window window, string signature, AppReminderMessage message)
+        internal AppReminderService(IAppReminderChannel toastChannel, IAppReminderChannel bannerChannel, Func<Window, bool> isFullScreen)
+        {
+            _toastChannel = toastChannel ?? throw new ArgumentNullException(nameof(toastChannel));
+            _bannerChannel = bannerChannel ?? throw new ArgumentNullException(nameof(bannerChannel));
+            _isFullScreen = isFullScreen ?? throw new ArgumentNullException(nameof(isFullScreen));
+        }
+
+        internal bool RemindOncePerSignature(Window window, string signature, AppReminderMessage message)
         {
             if (window is null)
             {
@@ -46,34 +55,46 @@ namespace WindBoard.Reminders
 
             if (!firstTime)
             {
-                return;
+                return false;
             }
 
-            bool isFullScreen = WindowDisplayModeHelper.IsFullScreen(window);
+            bool isFullScreen = _isFullScreen(window);
             if (isFullScreen)
             {
                 // 预留：未来全屏时直接走应用内弹条（避免 Toast 遮挡或体验不一致）。
                 if (!_bannerChannel.TryShow(window, message, out Exception? bannerError))
                 {
                     AppLog.Warn("Reminders", "全屏提醒展示失败（应用内弹条通道不可用）", bannerError);
+                    RemoveShownSignature(signature);
+                    return false;
                 }
 
-                return;
+                return true;
             }
 
             if (_toastChannel.TryShow(window, message, out Exception? toastError))
             {
-                return;
+                return true;
             }
 
             AppLog.Warn("Reminders", "Windows 通知发送失败，已降级为应用内弹条", toastError);
             if (_bannerChannel.TryShow(window, message, out Exception? fallbackError))
             {
-                return;
+                return true;
             }
 
             // 两种通道都失败：记录错误但不影响主流程。
             AppLog.Error("Reminders", "提醒展示失败：Windows 通知与应用内弹条均不可用", fallbackError);
+            RemoveShownSignature(signature);
+            return false;
+        }
+
+        private void RemoveShownSignature(string signature)
+        {
+            lock (_gate)
+            {
+                _shownSignatures.Remove(signature);
+            }
         }
     }
 }
