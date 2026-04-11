@@ -33,11 +33,27 @@ namespace WindBoard.Updates
         private static readonly HttpClient UpdateHttpClient = CreateHttpClient();
 
         private readonly SemaphoreSlim _checkGate = new(1, 1);
+        private readonly Func<UpdateCheckMode, CancellationToken, Task<AppUpdateCheckResult>>? _checkForUpdatesOverride;
+        private readonly Func<UpdatePreferencesSnapshot>? _getUpdatePreferencesOverride;
+        private readonly Action<string>? _setUpdateLastNotifiedVersionOverride;
+        private readonly Func<Window, string, AppReminderMessage, bool>? _remindOncePerSignatureOverride;
 
         internal static AppUpdateService Instance { get; } = new();
 
         private AppUpdateService()
         {
+        }
+
+        internal AppUpdateService(
+            Func<UpdateCheckMode, CancellationToken, Task<AppUpdateCheckResult>> checkForUpdatesOverride,
+            Func<UpdatePreferencesSnapshot> getUpdatePreferencesOverride,
+            Action<string> setUpdateLastNotifiedVersionOverride,
+            Func<Window, string, AppReminderMessage, bool> remindOncePerSignatureOverride)
+        {
+            _checkForUpdatesOverride = checkForUpdatesOverride ?? throw new ArgumentNullException(nameof(checkForUpdatesOverride));
+            _getUpdatePreferencesOverride = getUpdatePreferencesOverride ?? throw new ArgumentNullException(nameof(getUpdatePreferencesOverride));
+            _setUpdateLastNotifiedVersionOverride = setUpdateLastNotifiedVersionOverride ?? throw new ArgumentNullException(nameof(setUpdateLastNotifiedVersionOverride));
+            _remindOncePerSignatureOverride = remindOncePerSignatureOverride ?? throw new ArgumentNullException(nameof(remindOncePerSignatureOverride));
         }
 
         internal async Task TryEnsureInstallerDownloadSourceSelectedAsync(CancellationToken cancellationToken = default)
@@ -165,7 +181,7 @@ namespace WindBoard.Updates
                 throw new ArgumentNullException(nameof(window));
             }
 
-            UpdatePreferencesSnapshot prefs = AppSettingsService.Instance.GetUpdatePreferencesSnapshot();
+            UpdatePreferencesSnapshot prefs = GetUpdatePreferencesSnapshot();
             DateTimeOffset nowUtc = DateTimeOffset.UtcNow;
 
             if (!UpdateCheckDueCalculator.IsDue(prefs.AutoCheckInterval, prefs.LastCheckUtc, nowUtc))
@@ -174,7 +190,7 @@ namespace WindBoard.Updates
                 return;
             }
 
-            AppUpdateCheckResult result = await CheckForUpdatesAsync(UpdateCheckMode.Auto, cancellationToken).ConfigureAwait(false);
+            AppUpdateCheckResult result = await CheckForUpdatesForReminderAsync(UpdateCheckMode.Auto, cancellationToken).ConfigureAwait(false);
             if (result.State != AppUpdateCheckState.UpdateAvailable)
             {
                 return;
@@ -186,28 +202,96 @@ namespace WindBoard.Updates
                 return;
             }
 
-            // “提醒一次”去重：跨会话基于 settings.json；会话内基于 AppReminderService 的 signature。
-            if (string.Equals(prefs.LastNotifiedVersion, latestVersion, StringComparison.OrdinalIgnoreCase))
-            {
-                AppLog.Debug("Updates", $"已提醒过该版本更新，将跳过：version='{latestVersion}'");
-                return;
-            }
-
+            UpdatePreferencesSnapshot latestPrefs = GetUpdatePreferencesSnapshot();
             string title = L10n.Format("Reminder_Update_Available_Title_Fmt", AppInfo.DisplayVersion, "v" + latestVersion);
             string body = L10n.Get("Reminder_Update_Available_Body");
 
-            string signature = $"UpdateAvailable:{latestVersion}";
-            AppReminderService.Instance.RemindOncePerSignature(
+            bool shown = TryShowAvailableUpdateReminder(
                 window,
-                signature,
+                latestVersion,
+                latestPrefs.LastNotifiedVersion,
                 new AppReminderMessage
                 {
                     Title = title,
                     Body = body,
                     Severity = AppReminderSeverity.Info,
-                });
+                },
+                RemindOncePerSignature);
 
-            AppSettingsService.Instance.SetUpdateLastNotifiedVersion(latestVersion);
+            if (shown)
+            {
+                SetUpdateLastNotifiedVersion(latestVersion);
+            }
+        }
+
+        internal static bool TryShowAvailableUpdateReminder(
+            Window window,
+            string latestVersion,
+            string lastNotifiedVersion,
+            AppReminderMessage message,
+            Func<Window, string, AppReminderMessage, bool> remindOncePerSignature)
+        {
+            if (window is null)
+            {
+                throw new ArgumentNullException(nameof(window));
+            }
+
+            if (message is null)
+            {
+                throw new ArgumentNullException(nameof(message));
+            }
+
+            if (remindOncePerSignature is null)
+            {
+                throw new ArgumentNullException(nameof(remindOncePerSignature));
+            }
+
+            if (string.IsNullOrWhiteSpace(latestVersion))
+            {
+                return false;
+            }
+
+            // “提醒一次”去重：跨会话基于 settings.json；会话内基于 AppReminderService 的 signature。
+            if (string.Equals(lastNotifiedVersion, latestVersion, StringComparison.OrdinalIgnoreCase))
+            {
+                AppLog.Debug("Updates", $"已提醒过该版本更新，将跳过：version='{latestVersion}'");
+                return false;
+            }
+
+            string signature = $"UpdateAvailable:{latestVersion}";
+            return remindOncePerSignature(window, signature, message);
+        }
+
+        private Task<AppUpdateCheckResult> CheckForUpdatesForReminderAsync(UpdateCheckMode mode, CancellationToken cancellationToken)
+        {
+            return _checkForUpdatesOverride is not null
+                ? _checkForUpdatesOverride(mode, cancellationToken)
+                : CheckForUpdatesAsync(mode, cancellationToken);
+        }
+
+        private UpdatePreferencesSnapshot GetUpdatePreferencesSnapshot()
+        {
+            return _getUpdatePreferencesOverride is not null
+                ? _getUpdatePreferencesOverride()
+                : AppSettingsService.Instance.GetUpdatePreferencesSnapshot();
+        }
+
+        private void SetUpdateLastNotifiedVersion(string version)
+        {
+            if (_setUpdateLastNotifiedVersionOverride is not null)
+            {
+                _setUpdateLastNotifiedVersionOverride(version);
+                return;
+            }
+
+            AppSettingsService.Instance.SetUpdateLastNotifiedVersion(version);
+        }
+
+        private bool RemindOncePerSignature(Window window, string signature, AppReminderMessage message)
+        {
+            return _remindOncePerSignatureOverride is not null
+                ? _remindOncePerSignatureOverride(window, signature, message)
+                : AppReminderService.Instance.RemindOncePerSignature(window, signature, message);
         }
 
         private static async Task<DownloadSourceId> ResolvePreferredDownloadSourceIdAsync(
