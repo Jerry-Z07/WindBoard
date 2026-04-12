@@ -30,10 +30,7 @@ namespace WindBoard.Interaction
             _activePointerId = null;
             _activeStrokeDeviceType = null;
             _pendingStrokeDirtyRect = null;
-            _panel.ReleasePointerCaptures();
-            UpdateInteractionState();
-            FrameInvalidated?.Invoke();
-            StateChanged?.Invoke();
+            FinalizeGestureState();
         }
 
         public void CancelActiveToolOperation()
@@ -70,10 +67,7 @@ namespace WindBoard.Interaction
         {
             _panPointerId = null;
             _pendingPanScreenDelta = Vector2.Zero;
-            _panel.ReleasePointerCaptures();
-            UpdateInteractionState();
-            FrameInvalidated?.Invoke();
-            StateChanged?.Invoke();
+            FinalizeGestureState();
         }
 
         private void BeginMarqueeSelectionGesture(Pointer pointer, Vector2 startScreenDip)
@@ -83,9 +77,7 @@ namespace WindBoard.Interaction
             _marqueeStartScreen = startScreenDip;
             _marqueeCurrentScreen = startScreenDip;
 
-            UpdateInteractionState();
-            FrameInvalidated?.Invoke();
-            StateChanged?.Invoke();
+            NotifyInteractionUiChanged();
         }
 
         private void CommitMarqueeSelectionGesture(bool releasePointerCaptures)
@@ -147,9 +139,7 @@ namespace WindBoard.Interaction
                 HandleElementClickForMaybeOpen(selectedElement, start);
             }
 
-            UpdateInteractionState();
-            FrameInvalidated?.Invoke();
-            StateChanged?.Invoke();
+            NotifyInteractionUiChanged();
         }
 
         private void HitTestSelectableAtScreenPoint(Vector2 screenDip, out Stroke? stroke, out BoardElement? element)
@@ -205,9 +195,7 @@ namespace WindBoard.Interaction
                 _panel.ReleasePointerCaptures();
             }
 
-            UpdateInteractionState();
-            FrameInvalidated?.Invoke();
-            StateChanged?.Invoke();
+            NotifyInteractionUiChanged();
         }
 
         private void BeginSelectionTransformSnapshot(Stroke stroke)
@@ -355,9 +343,7 @@ namespace WindBoard.Interaction
             }
 
             _selectionModified = false;
-            UpdateInteractionState();
-            FrameInvalidated?.Invoke();
-            StateChanged?.Invoke();
+            NotifyInteractionUiChanged();
         }
 
         private void CancelSelectionGesture(bool releasePointerCaptures = true)
@@ -395,9 +381,7 @@ namespace WindBoard.Interaction
                 _panel.ReleasePointerCaptures();
             }
 
-            UpdateInteractionState();
-            FrameInvalidated?.Invoke();
-            StateChanged?.Invoke();
+            NotifyInteractionUiChanged();
         }
 
         private static void RestoreStrokePoints(Stroke stroke, List<StrokePoint> snapshot)
@@ -418,10 +402,7 @@ namespace WindBoard.Interaction
             _activePointerId = null;
             _activeStrokeDeviceType = null;
             _pendingStrokeDirtyRect = null;
-            _panel.ReleasePointerCaptures();
-            UpdateInteractionState();
-            FrameInvalidated?.Invoke();
-            StateChanged?.Invoke();
+            FinalizeGestureState();
         }
 
         private void BeginEraserGesture(Pointer pointer, PointerPoint point)
@@ -495,10 +476,7 @@ namespace WindBoard.Interaction
 
             _activePointerId = null;
             _activeStrokeDeviceType = null;
-            _panel.ReleasePointerCaptures();
-            UpdateInteractionState();
-            FrameInvalidated?.Invoke();
-            StateChanged?.Invoke();
+            FinalizeGestureState();
         }
 
         private void CancelEraserGesture()
@@ -521,10 +499,7 @@ namespace WindBoard.Interaction
 
             _activePointerId = null;
             _activeStrokeDeviceType = null;
-            _panel.ReleasePointerCaptures();
-            UpdateInteractionState();
-            FrameInvalidated?.Invoke();
-            StateChanged?.Invoke();
+            FinalizeGestureState();
         }
 
         private static bool IsSameStrokeList(List<Stroke> a, List<Stroke> b)
@@ -629,12 +604,30 @@ namespace WindBoard.Interaction
             return Math.Clamp(p, 0.1f, 1.0f);
         }
 
+        private void FinalizeGestureState(bool releasePointerCaptures = true, bool notifyStateChanged = true)
+        {
+            if (releasePointerCaptures)
+            {
+                _panel.ReleasePointerCaptures();
+            }
+
+            NotifyInteractionUiChanged(notifyStateChanged);
+        }
+
+        private void NotifyInteractionUiChanged(bool notifyStateChanged = true)
+        {
+            UpdateInteractionState();
+            FrameInvalidated?.Invoke();
+
+            if (notifyStateChanged)
+            {
+                StateChanged?.Invoke();
+            }
+        }
+
         private void UpdateInteractionState()
         {
-            bool hasActiveTool = ActiveStroke is not null || _isErasing;
-            bool hasViewportGesture = _panPointerId is not null || _isManipulating;
-            bool hasSelectionGesture = _selectionPointerId is not null || _isManipulatingSelection || _marqueePointerId is not null;
-            bool isInteracting = hasActiveTool || hasViewportGesture || hasSelectionGesture || _isWheelZooming;
+            bool isInteracting = HasActiveToolInteraction || HasViewportGesture || HasSelectionGesture || _isWheelZooming;
 
             if (_isInteracting == isInteracting)
             {

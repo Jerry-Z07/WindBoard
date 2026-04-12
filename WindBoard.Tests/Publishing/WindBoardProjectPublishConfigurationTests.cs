@@ -35,6 +35,22 @@ public sealed class WindBoardProjectPublishConfigurationTests
         Assert.Contains(@"Source: ""{#MySourceDir}\shared\Assets\Segoe Fluent Icons.ttf""", text, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void MainProject_BuildsCrashReporterIntoAppOutput_ForLocalBuilds()
+    {
+        DirectoryInfo? repoRoot = RepoRootLocator.Find();
+        Assert.NotNull(repoRoot);
+
+        string projectFilePath = Path.Combine(repoRoot!.FullName, "WindBoard", "WindBoard.csproj");
+        Assert.True(File.Exists(projectFilePath), $"未找到主项目文件：{projectFilePath}");
+
+        string text = File.ReadAllText(projectFilePath);
+        Assert.Contains("<Target Name=\"WindBoard_BuildCrashReporterIntoAppOutput\" AfterTargets=\"Build\">", text, StringComparison.Ordinal);
+        Assert.Contains("WindBoard.CrashReporter\\WindBoard.CrashReporter.csproj", text, StringComparison.Ordinal);
+        Assert.Contains("OutDir=$(TargetDir)", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("Condition=\"'$(PublishDir)' == ''\"", text, StringComparison.Ordinal);
+    }
+
     private static int CountOccurrences(string text, string value)
     {
         if (string.IsNullOrEmpty(text) || string.IsNullOrEmpty(value))

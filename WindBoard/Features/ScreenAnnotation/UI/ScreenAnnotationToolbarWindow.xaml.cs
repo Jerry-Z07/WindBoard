@@ -15,6 +15,7 @@ using WindBoard.Features.ScreenAnnotation.Services;
 using WindBoard.Features.ScreenAnnotation.UI.Backdrop;
 using WindBoard.Logging;
 using WindBoard.Settings;
+using WindBoard.UI.Common;
 
 namespace WindBoard.Features.ScreenAnnotation.UI
 {
@@ -25,9 +26,6 @@ namespace WindBoard.Features.ScreenAnnotation.UI
     {
         private const double ExpandedToolbarWidthDip = 276;
         private const double ToolbarHeightDip = 60;
-        private const double ClearCanvasSlideThumbInset = 6.0;
-        private const double ClearCanvasSlideCompleteRatio = 0.90;
-        private const int ClearCanvasSlideResetAnimationMs = 160;
         private const uint DefaultWindowDpi = 96;
 
         private readonly ScreenAnnotationDisplayTarget _displayTarget;
@@ -39,15 +37,11 @@ namespace WindBoard.Features.ScreenAnnotation.UI
         private bool _isEraserFlyoutOpen;
         private bool _isPenThicknessSliderSyncing;
         private bool _isEraserModeSyncing;
-        private bool _isClearCanvasSlideEnabled;
         private uint? _dragPointerId;
         private PointInt32 _dragStartCursor;
         private PointInt32 _dragStartWindowOrigin;
         private bool _dragMoved;
-        private uint? _clearCanvasSlidePointerId;
-        private double _clearCanvasSlidePointerStartX;
-        private double _clearCanvasSlideThumbStartX;
-        private Storyboard? _clearCanvasSlideResetStoryboard;
+        private readonly ClearCanvasSlideController _clearCanvasSlideController;
         private ScreenAnnotationDrawingStateSnapshot _drawingState = new(
             PenColor: Color.FromArgb(0xFF, 0x00, 0x00, 0x00),
             PenBaseSize: 3.0f,
@@ -59,6 +53,19 @@ namespace WindBoard.Features.ScreenAnnotation.UI
             _displayTarget = displayTarget;
 
             InitializeComponent();
+            _clearCanvasSlideController = new ClearCanvasSlideController(
+                new ClearCanvasSlideController.UiRefs
+                {
+                    Host = ClearCanvasSlideHost,
+                    Thumb = ClearCanvasSlideThumb,
+                    ThumbTransform = ClearCanvasSlideThumbTransform,
+                },
+                canCompleteClear: () => _drawingState.CanClear,
+                onCompleted: () =>
+                {
+                    ClearCanvasRequested?.Invoke();
+                    TryHideEraserFlyout();
+                });
             Activated += OnWindowActivated;
             Closed += OnWindowClosed;
         }
@@ -572,163 +579,37 @@ namespace WindBoard.Features.ScreenAnnotation.UI
 
         private void OnClearCanvasThumbPointerPressed(object sender, PointerRoutedEventArgs e)
         {
-            if (!_isClearCanvasSlideEnabled || ClearCanvasSlideThumbTransform is null || ClearCanvasSlideHost is null)
-            {
-                return;
-            }
-
-            if (_clearCanvasSlidePointerId is not null)
-            {
-                return;
-            }
-
-            _clearCanvasSlideResetStoryboard?.Stop();
-            _clearCanvasSlideResetStoryboard = null;
-
-            _clearCanvasSlidePointerId = e.Pointer.PointerId;
-            _clearCanvasSlideThumbStartX = ClearCanvasSlideThumbTransform.X;
-            _clearCanvasSlidePointerStartX = e.GetCurrentPoint(ClearCanvasSlideHost).Position.X;
-            ClearCanvasSlideThumb?.CapturePointer(e.Pointer);
-            e.Handled = true;
+            _clearCanvasSlideController.OnPointerPressed(e);
         }
 
         private void OnClearCanvasThumbPointerMoved(object sender, PointerRoutedEventArgs e)
         {
-            if (_clearCanvasSlidePointerId != e.Pointer.PointerId
-                || ClearCanvasSlideThumbTransform is null
-                || ClearCanvasSlideHost is null)
-            {
-                return;
-            }
-
-            double maxX = GetClearCanvasThumbMaxX();
-            double currentX = e.GetCurrentPoint(ClearCanvasSlideHost).Position.X;
-            double nextX = Math.Clamp(_clearCanvasSlideThumbStartX + (currentX - _clearCanvasSlidePointerStartX), 0, maxX);
-            ClearCanvasSlideThumbTransform.X = nextX;
-            e.Handled = true;
+            _clearCanvasSlideController.OnPointerMoved(e);
         }
 
         private void OnClearCanvasThumbPointerReleased(object sender, PointerRoutedEventArgs e)
         {
-            if (_clearCanvasSlidePointerId != e.Pointer.PointerId)
-            {
-                return;
-            }
-
-            CompleteClearCanvasSlideGesture(shouldEvaluate: true);
-            e.Handled = true;
+            _clearCanvasSlideController.OnPointerReleased(e);
         }
 
         private void OnClearCanvasThumbPointerCanceled(object sender, PointerRoutedEventArgs e)
         {
-            if (_clearCanvasSlidePointerId != e.Pointer.PointerId)
-            {
-                return;
-            }
-
-            CompleteClearCanvasSlideGesture(shouldEvaluate: false);
-            e.Handled = true;
+            _clearCanvasSlideController.OnPointerCanceled(e);
         }
 
         private void OnClearCanvasThumbPointerCaptureLost(object sender, PointerRoutedEventArgs e)
         {
-            if (_clearCanvasSlidePointerId != e.Pointer.PointerId)
-            {
-                return;
-            }
-
-            CompleteClearCanvasSlideGesture(shouldEvaluate: false);
-            e.Handled = true;
-        }
-
-        private void CompleteClearCanvasSlideGesture(bool shouldEvaluate)
-        {
-            _clearCanvasSlidePointerId = null;
-            ClearCanvasSlideThumb?.ReleasePointerCaptures();
-
-            if (ClearCanvasSlideThumbTransform is null)
-            {
-                return;
-            }
-
-            if (shouldEvaluate)
-            {
-                double maxX = GetClearCanvasThumbMaxX();
-                bool reached = maxX > 0 && ClearCanvasSlideThumbTransform.X >= maxX * ClearCanvasSlideCompleteRatio;
-                if (reached && _drawingState.CanClear)
-                {
-                    ClearCanvasRequested?.Invoke();
-                    TryHideEraserFlyout();
-                    return;
-                }
-            }
-
-            ResetClearCanvasSlide(true);
+            _clearCanvasSlideController.OnPointerCaptureLost(e);
         }
 
         private void UpdateClearCanvasSlideState()
         {
-            if (ClearCanvasSlideThumb is null || ClearCanvasSlideHost is null)
-            {
-                return;
-            }
-
-            bool canClear = _drawingState.CanClear;
-            _isClearCanvasSlideEnabled = canClear;
-            ClearCanvasSlideThumb.IsHitTestVisible = canClear;
-            ClearCanvasSlideThumb.Opacity = canClear ? 1.0 : 0.55;
-            ClearCanvasSlideHost.Opacity = canClear ? 1.0 : 0.55;
-
-            if (!canClear && _clearCanvasSlidePointerId is not null)
-            {
-                _clearCanvasSlidePointerId = null;
-                ClearCanvasSlideThumb.ReleasePointerCaptures();
-                ResetClearCanvasSlide(false);
-            }
-        }
-
-        private double GetClearCanvasThumbMaxX()
-        {
-            if (ClearCanvasSlideHost is null || ClearCanvasSlideThumb is null)
-            {
-                return 0;
-            }
-
-            double hostWidth = ClearCanvasSlideHost.ActualWidth > 0 ? ClearCanvasSlideHost.ActualWidth : ClearCanvasSlideHost.Width;
-            double thumbWidth = ClearCanvasSlideThumb.ActualWidth > 0 ? ClearCanvasSlideThumb.ActualWidth : ClearCanvasSlideThumb.Width;
-            return Math.Max(0, hostWidth - thumbWidth - ClearCanvasSlideThumbInset * 2);
+            _clearCanvasSlideController.UpdateEnabledState(_drawingState.CanClear);
         }
 
         private void ResetClearCanvasSlide(bool animated)
         {
-            if (ClearCanvasSlideThumbTransform is null)
-            {
-                return;
-            }
-
-            _clearCanvasSlideResetStoryboard?.Stop();
-            _clearCanvasSlideResetStoryboard = null;
-
-            if (!animated)
-            {
-                ClearCanvasSlideThumbTransform.X = 0;
-                return;
-            }
-
-            var storyboard = new Storyboard();
-            var animation = new DoubleAnimation
-            {
-                To = 0,
-                Duration = new Duration(TimeSpan.FromMilliseconds(ClearCanvasSlideResetAnimationMs)),
-                EnableDependentAnimation = true,
-                EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut },
-            };
-
-            Storyboard.SetTarget(animation, ClearCanvasSlideThumbTransform);
-            Storyboard.SetTargetProperty(animation, "X");
-            storyboard.Children.Add(animation);
-            _clearCanvasSlideResetStoryboard = storyboard;
-            storyboard.Begin();
+            _clearCanvasSlideController.Reset(animated);
         }
 
         private void OnDragHandlePointerPressed(object sender, PointerRoutedEventArgs e)

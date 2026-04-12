@@ -76,9 +76,48 @@ namespace WindBoard.Board.Editing
                 return false;
             }
 
-            // 为避免依赖 stroke.HasBounds（导入/外部构造可能未计算），这里按点列“计算等价 Bounds”做 AABB 相交判断。
+            // 先用等价 Bounds 做快速剔除，再按线段/端点与矩形的真实距离判断，避免仅 AABB 重叠时误命中。
             GetStrokeBoundsWorld(stroke, out Vector2 strokeMin, out Vector2 strokeMax);
-            return IntersectsAabb(strokeMin, strokeMax, minWorld, maxWorld);
+            if (!IntersectsAabb(strokeMin, strokeMax, minWorld, maxWorld))
+            {
+                return false;
+            }
+
+            return IntersectsStrokeGeometry(stroke, minWorld, maxWorld);
+        }
+
+        private static bool IntersectsStrokeGeometry(Stroke stroke, Vector2 minWorld, Vector2 maxWorld)
+        {
+            Vector2 rectMin = new(
+                Math.Min(minWorld.X, maxWorld.X),
+                Math.Min(minWorld.Y, maxWorld.Y));
+            Vector2 rectMax = new(
+                Math.Max(minWorld.X, maxWorld.X),
+                Math.Max(minWorld.Y, maxWorld.Y));
+
+            for (int i = 0; i < stroke.Points.Count; i++)
+            {
+                StrokePoint point = stroke.Points[i];
+                float pointRadius = GetHalfStrokeWidthWorld(stroke, point.Pressure);
+                if (DistanceSquaredPointToRect(point.Position, rectMin, rectMax) <= pointRadius * pointRadius)
+                {
+                    return true;
+                }
+            }
+
+            for (int i = 1; i < stroke.Points.Count; i++)
+            {
+                StrokePoint from = stroke.Points[i - 1];
+                StrokePoint to = stroke.Points[i];
+                float segmentRadius = GetHalfStrokeWidthWorld(stroke, from.Pressure, to.Pressure);
+
+                if (IsSegmentIntersectWorldRect(from.Position, to.Position, segmentRadius, rectMin, rectMax))
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         private static void GetStrokeBoundsWorld(Stroke stroke, out Vector2 minWorld, out Vector2 maxWorld)
@@ -110,12 +149,87 @@ namespace WindBoard.Board.Editing
             return Math.Max(0.25f, stroke.BaseSize * widthFactor / 2.0f);
         }
 
+        private static float GetHalfStrokeWidthWorld(Stroke stroke, float pressure0, float pressure1)
+        {
+            float widthFactor = stroke.EnablePressure
+                ? Math.Clamp((pressure0 + pressure1) / 2.0f, 0.1f, 1.0f)
+                : 1.0f;
+
+            return Math.Max(0.25f, stroke.BaseSize * widthFactor / 2.0f);
+        }
+
         private static bool IntersectsAabb(Vector2 aMin, Vector2 aMax, Vector2 bMin, Vector2 bMax)
         {
             return aMin.X <= bMax.X
                 && aMax.X >= bMin.X
                 && aMin.Y <= bMax.Y
                 && aMax.Y >= bMin.Y;
+        }
+
+        private static bool IsSegmentIntersectWorldRect(Vector2 from, Vector2 to, float radiusWorld, Vector2 rectMin, Vector2 rectMax)
+        {
+            if (IsPointInsideRect(from, rectMin, rectMax) || IsPointInsideRect(to, rectMin, rectMax))
+            {
+                return true;
+            }
+
+            Vector2 topLeft = rectMin;
+            Vector2 topRight = new(rectMax.X, rectMin.Y);
+            Vector2 bottomLeft = new(rectMin.X, rectMax.Y);
+            Vector2 bottomRight = rectMax;
+
+            if (SegmentMath2D.SegmentsIntersect(from, to, topLeft, topRight)
+                || SegmentMath2D.SegmentsIntersect(from, to, topRight, bottomRight)
+                || SegmentMath2D.SegmentsIntersect(from, to, bottomRight, bottomLeft)
+                || SegmentMath2D.SegmentsIntersect(from, to, bottomLeft, topLeft))
+            {
+                return true;
+            }
+
+            float radiusSquared = radiusWorld * radiusWorld;
+            if (DistanceSquaredPointToRect(from, rectMin, rectMax) <= radiusSquared
+                || DistanceSquaredPointToRect(to, rectMin, rectMax) <= radiusSquared)
+            {
+                return true;
+            }
+
+            return SegmentMath2D.DistanceSquaredPointToSegment(topLeft, from, to) <= radiusSquared
+                || SegmentMath2D.DistanceSquaredPointToSegment(topRight, from, to) <= radiusSquared
+                || SegmentMath2D.DistanceSquaredPointToSegment(bottomRight, from, to) <= radiusSquared
+                || SegmentMath2D.DistanceSquaredPointToSegment(bottomLeft, from, to) <= radiusSquared;
+        }
+
+        private static bool IsPointInsideRect(Vector2 point, Vector2 rectMin, Vector2 rectMax)
+        {
+            return point.X >= rectMin.X
+                && point.X <= rectMax.X
+                && point.Y >= rectMin.Y
+                && point.Y <= rectMax.Y;
+        }
+
+        private static float DistanceSquaredPointToRect(Vector2 point, Vector2 rectMin, Vector2 rectMax)
+        {
+            float dx = 0.0f;
+            if (point.X < rectMin.X)
+            {
+                dx = rectMin.X - point.X;
+            }
+            else if (point.X > rectMax.X)
+            {
+                dx = point.X - rectMax.X;
+            }
+
+            float dy = 0.0f;
+            if (point.Y < rectMin.Y)
+            {
+                dy = rectMin.Y - point.Y;
+            }
+            else if (point.Y > rectMax.Y)
+            {
+                dy = point.Y - rectMax.Y;
+            }
+
+            return dx * dx + dy * dy;
         }
     }
 }

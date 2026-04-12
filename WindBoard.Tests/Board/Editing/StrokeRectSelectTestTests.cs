@@ -49,4 +49,52 @@ public sealed class StrokeRectSelectTestTests
 
         Assert.False(hit);
     }
+
+    [Fact]
+    public void IsStrokeIntersectWorldRect_ReturnsFalse_WhenOnlyBoundingBoxesOverlap()
+    {
+        Stroke stroke = StrokeTestFactory.CreateStroke(new Vector2(0, 0), new Vector2(10, 10));
+
+        bool hit = StrokeRectSelectTest.IsStrokeIntersectWorldRect(
+            stroke,
+            minWorld: new Vector2(8.0f, -2.0f),
+            maxWorld: new Vector2(12.0f, 2.0f));
+
+        Assert.False(hit);
+    }
+
+    [Fact]
+    public void IsStrokeIntersectWorldRect_ReturnsTrue_WhenRectTouchesStrokeThickness()
+    {
+        Stroke stroke = StrokeTestFactory.CreateStroke(new Vector2(0, 0), new Vector2(10, 10));
+
+        bool hit = StrokeRectSelectTest.IsStrokeIntersectWorldRect(
+            stroke,
+            minWorld: new Vector2(7.0f, 3.0f),
+            maxWorld: new Vector2(8.0f, 4.0f));
+
+        Assert.True(hit);
+    }
+
+    [Fact]
+    public void IsStrokeIntersectWorldRect_DoesNotUseMaxEndpointWidth_ForPressureStrokeSegment()
+    {
+        var stroke = new Stroke
+        {
+            BaseSize = 10.0f,
+            EnablePressure = true,
+        };
+
+        stroke.Points.Add(new StrokePoint(new Vector2(0.0f, 0.0f), 1.0f));
+        stroke.ExpandBounds(new Vector2(0.0f, 0.0f), 1.0f);
+        stroke.Points.Add(new StrokePoint(new Vector2(10.0f, 10.0f), 0.1f));
+        stroke.ExpandBounds(new Vector2(10.0f, 10.0f), 0.1f);
+
+        bool hit = StrokeRectSelectTest.IsStrokeIntersectWorldRect(
+            stroke,
+            minWorld: new Vector2(8.0f, -2.0f),
+            maxWorld: new Vector2(12.0f, 2.0f));
+
+        Assert.False(hit);
+    }
 }

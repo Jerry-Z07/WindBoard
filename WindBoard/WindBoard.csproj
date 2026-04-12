@@ -87,6 +87,18 @@
     <Copy SourceFiles="@(_WindBoardWinUIPri)" DestinationFolder="$(PublishDir)" SkipUnchangedFiles="true" />
   </Target>
 
+  <Target Name="WindBoard_BuildCrashReporterIntoAppOutput" AfterTargets="Build">
+    <PropertyGroup>
+      <_WindBoardCrashReporterProject>$(MSBuildProjectDirectory)\..\WindBoard.CrashReporter\WindBoard.CrashReporter.csproj</_WindBoardCrashReporterProject>
+      <_WindBoardCrashReporterPlatform>$(Platform)</_WindBoardCrashReporterPlatform>
+      <_WindBoardCrashReporterPlatform Condition="'$(_WindBoardCrashReporterPlatform)' == '' or '$(_WindBoardCrashReporterPlatform)' == 'AnyCPU'">x64</_WindBoardCrashReporterPlatform>
+    </PropertyGroup>
+
+    <Message Importance="High" Text="构建 CrashReporter 到主程序输出目录：project='$(_WindBoardCrashReporterProject)'，platform='$(_WindBoardCrashReporterPlatform)'，outDir='$(TargetDir)'" />
+
+    <MSBuild Projects="$(_WindBoardCrashReporterProject)" Targets="Build" Properties="Configuration=$(Configuration);Platform=$(_WindBoardCrashReporterPlatform);OutDir=$(TargetDir)" />
+  </Target>
+
   <Target Name="WindBoard_PublishCrashReporter" AfterTargets="Publish">
     <!--
       发布独立 CrashReporter：用于主进程崩溃时仍能提示用户并提供日志/报告入口。

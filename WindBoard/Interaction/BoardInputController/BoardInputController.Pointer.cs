@@ -126,7 +126,7 @@ namespace WindBoard.Interaction
             }
         }
 
-        private bool HasActivePointerCapture => _activePointerId is not null || _panPointerId is not null || _selectionPointerId is not null || _marqueePointerId is not null;
+        private bool HasActivePointerCapture => _activePointerId is not null || HasPointerGesture;
 
         private bool TryBeginSelectGesture(PointerRoutedEventArgs e, PointerPoint point)
         {
@@ -394,9 +394,7 @@ namespace WindBoard.Interaction
             _panel.CapturePointer(pointer);
             _panPointerId = pointer.PointerId;
             _lastPanScreen = new Vector2((float)point.Position.X, (float)point.Position.Y);
-            UpdateInteractionState();
-            FrameInvalidated?.Invoke();
-            StateChanged?.Invoke();
+            NotifyInteractionUiChanged();
         }
 
         private void BeginSelectionMoveGesture(Pointer pointer, Vector2 screenDip)
@@ -420,9 +418,7 @@ namespace WindBoard.Interaction
                 BeginSelectionTransformSnapshot(element);
             }
 
-            UpdateInteractionState();
-            FrameInvalidated?.Invoke();
-            StateChanged?.Invoke();
+            NotifyInteractionUiChanged();
         }
 
     }

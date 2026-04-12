@@ -124,10 +124,7 @@ namespace WindBoard.Interaction
         {
             // 滚轮缩放属于“瞬时交互”，当同时存在其它连续交互（例如画线/擦除/平移/选择变换）时直接忽略，
             // 避免状态互相干扰或导致撤销快照不一致。
-            bool hasActiveTool = ActiveStroke is not null || _isErasing;
-            bool hasPointerGesture = _panPointerId is not null || _selectionPointerId is not null || _marqueePointerId is not null;
-            bool hasSelectionManipulation = _isManipulatingSelection;
-            return hasActiveTool || hasPointerGesture || hasSelectionManipulation;
+            return HasActiveToolInteraction || HasPointerGesture || _isManipulatingSelection;
         }
 
         private void BeginWheelZoomInteraction()
@@ -455,9 +452,7 @@ namespace WindBoard.Interaction
             // Manipulation 属于触摸手势通道，与“指针捕获 + 工具动作”互斥：
             // - 正在画线/擦除时不进入手势
             // - 正在鼠标右键平移/框选/移动选中时不进入手势
-            bool hasActiveTool = ActiveStroke is not null || _isErasing;
-            bool hasPointerGesture = _panPointerId is not null || _selectionPointerId is not null || _marqueePointerId is not null;
-            return hasActiveTool || hasPointerGesture;
+            return HasActiveToolInteraction || HasPointerGesture;
         }
 
         private void OnCanvasManipulationCompleted(object sender, ManipulationCompletedRoutedEventArgs e)
@@ -484,8 +479,7 @@ namespace WindBoard.Interaction
             }
 
             _isManipulating = false;
-            UpdateInteractionState();
-            FrameInvalidated?.Invoke();
+            NotifyInteractionUiChanged(notifyStateChanged: false);
             e.Handled = true;
         }
 

@@ -17,23 +17,16 @@ using WindBoard.Interaction;
 using WindBoard.Logging;
 using WindBoard.Localization;
 using WindBoard.Settings;
+using WindBoard.UI.Common;
 
 namespace WindBoard
 {
     public sealed partial class MainWindow : Window
     {
-        private const double ClearCanvasSlideThumbInset = 6.0;
-        private const double ClearCanvasSlideCompleteRatio = 0.90;
-        private const int ClearCanvasSlideResetAnimationMs = 160;
-
         private bool _isEraserFlyoutOpen;
         private bool _isPenFlyoutOpen;
         private bool _isPenThicknessSliderSyncing;
-        private bool _isClearCanvasSlideEnabled;
-        private uint? _clearCanvasSlidePointerId;
-        private double _clearCanvasSlidePointerStartX;
-        private double _clearCanvasSlideThumbStartX;
-        private Storyboard? _clearCanvasSlideResetStoryboard;
+        private readonly ClearCanvasSlideController _clearCanvasSlideController;
 
         // 擦除模式：默认像素擦除；整笔擦除作为可选项。
         private readonly IBoardEraser _pixelEraser = new PixelStrokeEraser();
@@ -47,6 +40,19 @@ namespace WindBoard
         public MainWindow()
         {
             InitializeComponent();
+            _clearCanvasSlideController = new ClearCanvasSlideController(
+                new ClearCanvasSlideController.UiRefs
+                {
+                    Host = ClearCanvasSlideHost,
+                    Thumb = ClearCanvasSlideThumb,
+                    ThumbTransform = ClearCanvasSlideThumbTransform,
+                },
+                canCompleteClear: () => BoardCanvas.CanClear,
+                onCompleted: () =>
+                {
+                    BoardCanvas.ClearAll();
+                    TryHideEraserFlyout();
+                });
 
             // 与 XAML 默认值对齐：默认像素擦除。
             BoardCanvas.Eraser = _pixelEraser;
