@@ -247,15 +247,8 @@ namespace WindBoard.Interaction
 
             _panPointerId = null;
 
-            if (releasePointerCaptures)
-            {
-                _panel.ReleasePointerCaptures();
-            }
-
             e.Handled = true;
-            UpdateInteractionState();
-            FrameInvalidated?.Invoke();
-            StateChanged?.Invoke();
+            FinalizeGestureState(releasePointerCaptures);
             return true;
         }
 

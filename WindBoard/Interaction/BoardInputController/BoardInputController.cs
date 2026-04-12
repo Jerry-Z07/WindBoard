@@ -177,9 +177,17 @@ namespace WindBoard.Interaction
 
         public bool IsWheelZooming => _isWheelZooming;
 
-        public bool IsContinuousViewportInteraction => _panPointerId is not null || _isManipulating;
+        private bool HasActiveToolInteraction => ActiveStroke is not null || _isErasing;
 
-        public bool IsContinuousSelectionInteraction => _selectionPointerId is not null || _isManipulatingSelection || _marqueePointerId is not null;
+        private bool HasPointerGesture => _panPointerId is not null || _selectionPointerId is not null || _marqueePointerId is not null;
+
+        private bool HasViewportGesture => _panPointerId is not null || _isManipulating;
+
+        private bool HasSelectionGesture => _selectionPointerId is not null || _isManipulatingSelection || _marqueePointerId is not null;
+
+        public bool IsContinuousViewportInteraction => HasViewportGesture;
+
+        public bool IsContinuousSelectionInteraction => HasSelectionGesture;
 
         public bool TryGetSelectionMarqueeRectDip(out Rect marqueeRectDip)
         {
