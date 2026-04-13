@@ -2,7 +2,6 @@
 
 ## 通用规则（General Rules）
 
-- 语言：复杂实现必须补充必要注释，其它代码也应适当添加注释
 - 关键路径需要有必要的日志输出与错误处理
   - 主程序统一使用 `WindBoard.Logging.AppLog`（`Info/Warn/Error` 等）
   - `WindBoard.CrashReporter` 为降低依赖，不使用主程序日志系统，统一使用 `WindBoard.CrashReporter.CrashReporterLog`
@@ -11,7 +10,6 @@
 
 - 缩进 4 空格；保持现有 `namespace {}` 与大括号风格一致。
 - 命名：类型/方法用 `PascalCase`；私有字段用 `_camelCase`。
-- 关键路径需要有必要的日志输出与错误处理（见“通用规则”）。
 
 ## 测试与验证（Testing）
 
@@ -24,12 +22,9 @@
 - 测试分层建议：
   - UI/渲染集成验证放到更高层（后续可考虑 UI 自动化/端到端 smoke），避免单测依赖 WinUI 线程与设备环境。
 
-
 ## 相关文档（Docs）
 
-- `docs/dev/guides/localization.zh-CN.md`：本地化约定）。
+- `docs/dev/guides/localization.zh-CN.md`：本地化约定。
 - `docs/dev/guides/wbix.zh-CN.md`：WBIX（`.wbix`）格式说明。
-- `docs/release-notes/`：版本发布说明，一般不需要阅读其中内容。
-- `docs/dev/archive/`：存档文档，不要阅读文件夹内的文档内容.
-- `docs/dev/rules`：开发相关，编码前需阅读，包括：
-  - 项目架构
+- 不要阅读 `docs/release-notes/` 和 `docs/dev/archive/` 中的内容。
+- `docs/dev/rules`：编码前需阅读，包括项目架构。

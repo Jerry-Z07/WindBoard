@@ -21,8 +21,8 @@ public sealed class BringElementToFrontCommandTests
         var cmd = new BringElementToFrontCommand(a);
 
         cmd.Do(doc);
-        Assert.Equal(1, doc.ElementsBelowInk.Count);
-        Assert.Same(b, doc.ElementsBelowInk[0]);
+        BoardElement remainingBelowInk = Assert.Single(doc.ElementsBelowInk);
+        Assert.Same(b, remainingBelowInk);
         Assert.Single(doc.ElementsAboveInk);
         Assert.Same(a, doc.ElementsAboveInk[0]);
 

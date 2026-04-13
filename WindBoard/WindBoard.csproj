@@ -9,7 +9,11 @@
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <Platforms>x86;x64;ARM64</Platforms>
     <RuntimeIdentifiers>win-x86;win-x64;win-arm64</RuntimeIdentifiers>
-    <PublishProfile>win-$(Platform).pubxml</PublishProfile>
+    <!--
+      仅在 VS/显式平台发布时选择对应 pubxml，避免命令行 dotnet publish 默认 Platform=AnyCPU 时
+      误去加载不存在的 win-AnyCPU.pubxml，从而触发 NETSDK1198。
+    -->
+    <PublishProfile Condition="'$(Platform)' == 'x86' or '$(Platform)' == 'x64' or '$(Platform)' == 'ARM64'">win-$(Platform).pubxml</PublishProfile>
     <UseWinUI>true</UseWinUI>
     <WinUISDKReferences>false</WinUISDKReferences>
     <EnableMsixTooling>false</EnableMsixTooling>
@@ -45,7 +49,6 @@
     <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.26100.7705" />
     <PackageReference Include="Microsoft.WindowsAppSDK" Version="1.8.260209005" />
     <PackageReference Include="System.Drawing.Common" Version="10.0.3" />
-    <PackageReference Include="System.Text.Json" Version="10.0.3" />
     <PackageReference Include="Vortice.Direct2D1" Version="3.8.2" />
     <PackageReference Include="Vortice.Direct3D11" Version="3.8.2" />
   </ItemGroup>
@@ -53,7 +56,8 @@
   <!-- Publish Properties -->
   <PropertyGroup>
     <PublishReadyToRun Condition="'$(Configuration)' == 'Debug'">False</PublishReadyToRun>
-    <PublishReadyToRun Condition="'$(Configuration)' != 'Debug'">True</PublishReadyToRun>
+    <PublishReadyToRun Condition="'$(Configuration)' != 'Debug' and '$(SelfContained)' == 'true'">False</PublishReadyToRun>
+    <PublishReadyToRun Condition="'$(Configuration)' != 'Debug' and '$(SelfContained)' != 'true'">True</PublishReadyToRun>
     <!--
       重要：WinUI 3（Windows App SDK）对 IL Trim 的兼容性较差，
       Release 发布时开启裁剪可能导致运行期 XAML 解析失败（启动即崩溃）。
@@ -82,20 +86,35 @@
     <Copy SourceFiles="@(_WindBoardWinUIPri)" DestinationFolder="$(PublishDir)" SkipUnchangedFiles="true" />
   </Target>
 
+  <Target Name="WindBoard_BuildCrashReporterIntoAppOutput" AfterTargets="Build">
+    <PropertyGroup>
+      <_WindBoardCrashReporterProject>$(MSBuildProjectDirectory)\..\WindBoard.CrashReporter\WindBoard.CrashReporter.csproj</_WindBoardCrashReporterProject>
+      <_WindBoardCrashReporterPlatform>$(Platform)</_WindBoardCrashReporterPlatform>
+      <_WindBoardCrashReporterPlatform Condition="'$(_WindBoardCrashReporterPlatform)' == '' or '$(_WindBoardCrashReporterPlatform)' == 'AnyCPU'">x64</_WindBoardCrashReporterPlatform>
+    </PropertyGroup>
+
+    <Message Importance="High" Text="构建 CrashReporter 到主程序输出目录：project='$(_WindBoardCrashReporterProject)'，platform='$(_WindBoardCrashReporterPlatform)'，outDir='$(TargetDir)'" />
+
+    <MSBuild Projects="$(_WindBoardCrashReporterProject)" Targets="Build" Properties="Configuration=$(Configuration);Platform=$(_WindBoardCrashReporterPlatform);OutDir=$(TargetDir)" />
+  </Target>
+
   <Target Name="WindBoard_PublishCrashReporter" AfterTargets="Publish">
     <!--
       发布独立 CrashReporter：用于主进程崩溃时仍能提示用户并提供日志/报告入口。
 
       重要：将 CrashReporter 发布到与主程序相同的 publish 目录（$(PublishDir)），原因：
-      - self-contained 变体下主目录包含 app-local runtime（hostfxr/hostpolicy 等），CrashReporter 作为 framework-dependent 也可复用；
-      - 避免 CrashReporter 自带运行时导致体积翻倍与文件覆盖风险。
+      - self-contained 变体下，CrashReporter 也必须 self-contained：它依赖 Microsoft.WindowsDesktop.App，
+        不能假设 WinUI 主程序目录已提供该共享框架；
+      - framework-dependent 变体下，继续按 framework-dependent 发布，避免重复打包运行时。
     -->
     <PropertyGroup>
       <_WindBoardCrashReporterProject>$(MSBuildProjectDirectory)\..\WindBoard.CrashReporter\WindBoard.CrashReporter.csproj</_WindBoardCrashReporterProject>
+      <_WindBoardCrashReporterSelfContained>$(SelfContained)</_WindBoardCrashReporterSelfContained>
+      <_WindBoardCrashReporterSelfContained Condition="'$(_WindBoardCrashReporterSelfContained)' == ''">false</_WindBoardCrashReporterSelfContained>
     </PropertyGroup>
 
-    <Message Importance="High" Text="发布 CrashReporter：project='$(_WindBoardCrashReporterProject)'，publishDir='$(PublishDir)'，rid='$(RuntimeIdentifier)'" />
+    <Message Importance="High" Text="发布 CrashReporter：project='$(_WindBoardCrashReporterProject)'，publishDir='$(PublishDir)'，rid='$(RuntimeIdentifier)'，selfContained='$(_WindBoardCrashReporterSelfContained)'" />
 
-    <MSBuild Projects="$(_WindBoardCrashReporterProject)" Targets="Restore;Publish" Properties="Configuration=$(Configuration);RuntimeIdentifier=$(RuntimeIdentifier);SelfContained=false;PublishDir=$(PublishDir)" />
+    <MSBuild Projects="$(_WindBoardCrashReporterProject)" Targets="Restore;Publish" Properties="Configuration=$(Configuration);RuntimeIdentifier=$(RuntimeIdentifier);SelfContained=$(_WindBoardCrashReporterSelfContained);PublishDir=$(PublishDir)" />
   </Target>
 </Project>

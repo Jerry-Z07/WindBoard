@@ -4,6 +4,7 @@ using System.Reflection;
 using System.Resources;
 using System.Text.RegularExpressions;
 using WindBoard.Localization;
+using WindBoard.Tests;
 using Xunit;
 
 namespace WindBoard.Tests.Localization;
@@ -13,7 +14,7 @@ public sealed class LocalizationKeyAuditTests
     [Fact]
     public void All_LocKeys_Should_Exist_In_DefaultLanguageResx()
     {
-        DirectoryInfo? repoRoot = FindRepoRoot();
+        DirectoryInfo? repoRoot = RepoRootLocator.Find();
         if (repoRoot is null)
         {
             SkipOrReturn("未找到 WindBoard.slnx，跳过本地化 Key 审计测试。");
@@ -49,22 +50,6 @@ public sealed class LocalizationKeyAuditTests
             missingKeys.Length == 0,
             "以下 Key 在 XAML/C# 中被引用，但未在默认语言资源中定义：\n"
             + string.Join('\n', missingKeys));
-    }
-
-    private static DirectoryInfo? FindRepoRoot()
-    {
-        DirectoryInfo? current = new(AppContext.BaseDirectory);
-        for (int i = 0; i < 20 && current is not null; i++)
-        {
-            if (File.Exists(Path.Combine(current.FullName, "WindBoard.slnx")))
-            {
-                return current;
-            }
-
-            current = current.Parent;
-        }
-
-        return null;
     }
 
     private static HashSet<string> CollectXamlLocKeys(string windBoardDir)

@@ -123,10 +123,18 @@ namespace WindBoard.Controls
                     return;
                 }
 
-                _tool = value;
+                BoardTool previousTool = _tool;
 
                 // 切换工具前结束当前动作，避免遗留捕获/状态。
                 _input?.CancelActiveToolOperation();
+
+                // 离开选择模式时清除已完成的选中状态，避免切回选择模式时残留旧选中。
+                if (previousTool == BoardTool.Select && value != BoardTool.Select)
+                {
+                    _input?.ClearSelection();
+                }
+
+                _tool = value;
 
                 if (_input is not null)
                 {

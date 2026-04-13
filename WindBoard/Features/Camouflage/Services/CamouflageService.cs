@@ -225,7 +225,7 @@ namespace WindBoard.Features.Camouflage.Services
 
             try
             {
-                string? exePath = Environment.ProcessPath;
+                string exePath = ResolveShortcutExecutablePath(Environment.ProcessPath, AppContext.BaseDirectory);
                 if (string.IsNullOrWhiteSpace(exePath))
                 {
                     errorMessage = "无法获取程序路径。";
@@ -267,6 +267,23 @@ namespace WindBoard.Features.Camouflage.Services
             {
                 ReleaseComObject(linkObj, "ShellLink");
             }
+        }
+
+        internal static string ResolveShortcutExecutablePath(string? processPath, string? appBaseDirectory)
+        {
+            string processExecutablePath = (processPath ?? string.Empty).Trim();
+            if (string.IsNullOrWhiteSpace(processExecutablePath))
+            {
+                return string.Empty;
+            }
+
+            AppRuntimeLayout layout = AppRuntimeLayout.Resolve(appBaseDirectory);
+            if (string.IsNullOrWhiteSpace(layout.LauncherExecutablePath))
+            {
+                return processExecutablePath;
+            }
+
+            return layout.LauncherExecutablePath;
         }
 
         private static void TryCleanupOldDesktopShortcut(string? previousShortcutPath, string newShortcutPath, string exePath, string desktopDir)

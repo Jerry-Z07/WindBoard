@@ -74,25 +74,6 @@ Issues and PRs are welcome. Thanks for your support!
 ### Contributing Translations
 Please refer to the [Localization Conventions](./docs/dev/guides/localization.en-US.md) document
 
-### Vibe Coding
-- The project is currently configured with [AGENTS.md](AGENTS.md)
-- Tools used in development:
-  - MCP
-
-| **MCP**    | **Description**                                                | **Tutorial**                                                            |
-|------------|----------------------------------------------------------------|-------------------------------------------------------------------------|
-| ace-tool   | Codebase search tool                                          | https://linux.do/t/topic/1360514                                      |
-| context7   | Query development docs                                        | https://github.com/upstash/context7#installation                      |
-| fetch      | Fetch web content                                             | https://github.com/modelcontextprotocol/servers/tree/main/src/fetch   |
-| github     | Assist with GitHub operations                                 | https://github.com/github/github-mcp-server                           |
-
-  - Others
-
-| **Tool**                                               | **Recommendation Reason**       | **Notes** |
-|--------------------------------------------------------|--------------------------------|-----------|
-| [qlty](https://docs.qlty.sh/cli/quickstart)            | Code review & analysis CLI     | Open source, project was initialized |
-| [MCP Router](https://github.com/mcp-router/mcp-router) | Simplify MCP tool configuration | Open source |
-
 
 ## Roadmap / TODO
 - [ ] UI unification and beautification
