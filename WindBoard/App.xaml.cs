@@ -165,16 +165,19 @@ namespace WindBoard
                 AppLog.Warn("App", "初始化统一错误处理服务失败", ex);
             }
 
-            // 清理过期的下载安装包与旧版本伪装图标缓存。
-            try
+            // 清理涉及目录枚举与文件删除，放到后台执行，避免阻塞启动线程。
+            _ = Task.Run(() =>
             {
-                AppDataCleanup.Run();
-            }
-            catch (Exception ex)
-            {
-                // 清理失败不影响启动。
-                AppLog.Warn("App", "启动阶段清理过期文件失败", ex);
-            }
+                try
+                {
+                    AppDataCleanup.Run();
+                }
+                catch (Exception ex)
+                {
+                    // 清理失败不影响启动。
+                    AppLog.Warn("App", "启动阶段清理过期文件失败", ex);
+                }
+            });
 
             // 启动完成后再弹提醒：避免窗口尚未就绪时应用内弹条控件未挂载，导致提醒丢失。
             TryRemindAppDataIssuesIfNeeded(_window);
