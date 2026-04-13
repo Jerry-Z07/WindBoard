@@ -91,6 +91,9 @@
       <_WindBoardCrashReporterProject>$(MSBuildProjectDirectory)\..\WindBoard.CrashReporter\WindBoard.CrashReporter.csproj</_WindBoardCrashReporterProject>
       <_WindBoardCrashReporterPlatform>$(Platform)</_WindBoardCrashReporterPlatform>
       <_WindBoardCrashReporterPlatform Condition="'$(_WindBoardCrashReporterPlatform)' == '' or '$(_WindBoardCrashReporterPlatform)' == 'AnyCPU'">x64</_WindBoardCrashReporterPlatform>
+      <_WindBoardCrashReporterPlatform Condition="'$(RuntimeIdentifier)' == 'win-x86'">x86</_WindBoardCrashReporterPlatform>
+      <_WindBoardCrashReporterPlatform Condition="'$(RuntimeIdentifier)' == 'win-x64'">x64</_WindBoardCrashReporterPlatform>
+      <_WindBoardCrashReporterPlatform Condition="'$(RuntimeIdentifier)' == 'win-arm64'">ARM64</_WindBoardCrashReporterPlatform>
     </PropertyGroup>
 
     <Message Importance="High" Text="构建 CrashReporter 到主程序输出目录：project='$(_WindBoardCrashReporterProject)'，platform='$(_WindBoardCrashReporterPlatform)'，outDir='$(TargetDir)'" />
