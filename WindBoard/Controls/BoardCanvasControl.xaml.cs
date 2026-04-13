@@ -128,6 +128,12 @@ namespace WindBoard.Controls
                 // 切换工具前结束当前动作，避免遗留捕获/状态。
                 _input?.CancelActiveToolOperation();
 
+                // 离开选择模式时清除已完成的选中状态，避免切回选择模式时残留旧选中。
+                if (_tool != BoardTool.Select)
+                {
+                    _input?.ClearSelection();
+                }
+
                 if (_input is not null)
                 {
                     _input.Tool = _tool;
