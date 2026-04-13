@@ -156,14 +156,14 @@ public sealed class AppSettingsServiceTests
             Directory.CreateDirectory(Path.GetDirectoryName(importPath)!);
             await File.WriteAllTextAsync(importPath, "{ \"general\": { \"languagePreference\": \"en-US\" } }");
 
-            SynchronizationContext.SetSynchronizationContext(trackingContext);
-            await service.ImportFromFileAsync(importPath, CancellationToken.None).ConfigureAwait(false);
+            int postCount = await RunOnTrackingSynchronizationContextAsync(
+                trackingContext,
+                () => service.ImportFromFileAsync(importPath, CancellationToken.None));
 
-            Assert.Equal(0, trackingContext.PostCount);
+            Assert.Equal(0, postCount);
         }
         finally
         {
-            SynchronizationContext.SetSynchronizationContext(originalContext);
             RestoreCultureSnapshot(cultureSnapshot);
             DeleteDirectory(root);
         }
@@ -183,17 +183,12 @@ public sealed class AppSettingsServiceTests
             SemaphoreSlim ioGate = GetIoGate(service);
             Assert.True(ioGate.Wait(0));
 
-            SynchronizationContext.SetSynchronizationContext(trackingContext);
-            Task resetTask = service.ResetToDefaultsAsync(CancellationToken.None);
-            await Task.Delay(20).ConfigureAwait(false);
-            ioGate.Release();
-            await resetTask.ConfigureAwait(false);
+            int postCount = await RunResetOnTrackingSynchronizationContextAsync(service, ioGate, trackingContext);
 
-            Assert.Equal(0, trackingContext.PostCount);
+            Assert.Equal(0, postCount);
         }
         finally
         {
-            SynchronizationContext.SetSynchronizationContext(originalContext);
             RestoreCultureSnapshot(cultureSnapshot);
             DeleteDirectory(root);
         }
@@ -275,6 +270,39 @@ public sealed class AppSettingsServiceTests
         FieldInfo? ioGateField = typeof(AppSettingsService).GetField("_ioGate", BindingFlags.Instance | BindingFlags.NonPublic);
         Assert.NotNull(ioGateField);
         return Assert.IsType<SemaphoreSlim>(ioGateField.GetValue(service));
+    }
+
+    private static Task<int> RunResetOnTrackingSynchronizationContextAsync(
+        AppSettingsService service,
+        SemaphoreSlim ioGate,
+        TrackingSynchronizationContext trackingContext)
+    {
+        return RunOnTrackingSynchronizationContextAsync(
+            trackingContext,
+            async () =>
+            {
+                Task resetTask = service.ResetToDefaultsAsync(CancellationToken.None);
+                await Task.Delay(20).ConfigureAwait(false);
+                ioGate.Release();
+                await resetTask.ConfigureAwait(false);
+            });
+    }
+
+    private static async Task<int> RunOnTrackingSynchronizationContextAsync(
+        TrackingSynchronizationContext trackingContext,
+        Func<Task> action)
+    {
+        SynchronizationContext? originalContext = SynchronizationContext.Current;
+        try
+        {
+            SynchronizationContext.SetSynchronizationContext(trackingContext);
+            await action().ConfigureAwait(false);
+            return trackingContext.PostCount;
+        }
+        finally
+        {
+            SynchronizationContext.SetSynchronizationContext(originalContext);
+        }
     }
 
     private sealed class TrackingSynchronizationContext : SynchronizationContext
