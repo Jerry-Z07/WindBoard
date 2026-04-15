@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Numerics;
 using System.Threading.Tasks;
+using DevWinUI;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Windows.Storage;
@@ -39,7 +40,7 @@ namespace WindBoard.Features.Import
             _selectElement = selectElement;
         }
 
-        public async Task StartAsync(XamlRoot xamlRoot, IntPtr hwnd)
+        public async Task StartAsync(XamlRoot xamlRoot, Window? ownerWindow, IntPtr hwnd)
         {
             if (xamlRoot is null)
             {
@@ -57,7 +58,50 @@ namespace WindBoard.Features.Import
                 XamlRoot = xamlRoot,
             };
 
-            if (await dialog.ShowAsync() != ContentDialogResult.Primary)
+            WindowedDialogPresentationPlan presentationPlan = WindowedDialogPresentationPlanBuilder.BuildImport(ownerWindow is not null, hwnd);
+
+            ContentDialogResult result;
+            if (presentationPlan.Kind == DialogPresentationKind.WindowedContentDialog && ownerWindow is not null)
+            {
+                object? windowedContent = dialog.DetachContentForWindowedHost();
+
+                var windowedDialog = new WindowedContentDialog
+                {
+                    Title = dialog.Title,
+                    WindowTitle = dialog.Title?.ToString() ?? string.Empty,
+                    Content = windowedContent,
+                    PrimaryButtonText = dialog.PrimaryButtonText,
+                    CloseButtonText = dialog.CloseButtonText,
+                    DefaultButton = dialog.DefaultButton,
+                    IsPrimaryButtonEnabled = dialog.IsPrimaryButtonEnabled,
+                    PrimaryButtonStyle = dialog.PrimaryButtonStyle,
+                    CloseButtonStyle = dialog.CloseButtonStyle,
+                    OwnerWindow = ownerWindow,
+                    HasTitleBar = true,
+                    CenterInParent = true,
+                    IsResizable = false,
+                    ContentMinWidth = presentationPlan.MinimumWidth,
+                };
+
+                dialog.AttachWindowedHost(windowedDialog, presentationPlan);
+                windowedDialog.PrimaryButtonClick += dialog.OnWindowedPrimaryButtonClick;
+
+                try
+                {
+                    result = await windowedDialog.ShowAsync();
+                }
+                finally
+                {
+                    windowedDialog.PrimaryButtonClick -= dialog.OnWindowedPrimaryButtonClick;
+                    dialog.DetachWindowedHost();
+                }
+            }
+            else
+            {
+                result = await dialog.ShowAsync();
+            }
+
+            if (result != ContentDialogResult.Primary)
             {
                 return;
             }

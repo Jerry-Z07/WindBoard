@@ -41,7 +41,7 @@ namespace WindBoard
                     },
                     selectElement: SelectImportedElement);
 
-                await flow.StartAsync(xamlRoot, hwnd);
+                await flow.StartAsync(xamlRoot, this, hwnd);
             }
             catch (Exception ex)
             {

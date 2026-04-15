@@ -1,9 +1,11 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices.WindowsRuntime;
 using System.Threading.Tasks;
+using DevWinUI;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
@@ -16,6 +18,7 @@ using WindBoard.Features.Import.Models;
 using WindBoard.Features.Import.Services;
 using WindBoard.Localization;
 using WindBoard.Logging;
+using WindBoard.UI.Common;
 
 namespace WindBoard.Features.Import.UI
 {
@@ -47,6 +50,7 @@ namespace WindBoard.Features.Import.UI
 
         private StorageFile? _selectedWorkspaceFile;
         private ImportWorkspacePreview? _workspacePreview;
+        private WindowedContentDialog? _windowedHost;
 
         private readonly ImportQueueState _queue = new();
 
@@ -79,7 +83,43 @@ namespace WindBoard.Features.Import.UI
             RefreshQueueEmptyHintState();
         }
 
+        internal void AttachWindowedHost(WindowedContentDialog host, WindowedDialogPresentationPlan presentationPlan)
+        {
+            _windowedHost = host ?? throw new ArgumentNullException(nameof(host));
+            DialogRootGrid.Width = presentationPlan.InitialWidth;
+            SyncWindowedHostState();
+        }
+
+        internal object? DetachContentForWindowedHost()
+        {
+            object? content = Content;
+            Content = null;
+            return content;
+        }
+
+        internal void DetachWindowedHost()
+        {
+            _windowedHost = null;
+            DialogRootGrid.Width = double.NaN;
+        }
+
+        internal void OnWindowedPrimaryButtonClick(WindowedContentDialog sender, CancelEventArgs args)
+        {
+            if (!TryCaptureSubmission())
+            {
+                args.Cancel = true;
+            }
+        }
+
         private void OnPrimaryButtonClick(ContentDialog sender, ContentDialogButtonClickEventArgs args)
+        {
+            if (!TryCaptureSubmission())
+            {
+                args.Cancel = true;
+            }
+        }
+
+        private bool TryCaptureSubmission()
         {
             Submission = null;
             DialogInfoBar.IsOpen = false;
@@ -91,14 +131,24 @@ namespace WindBoard.Features.Import.UI
             ImportQueueBuildResult result = _queue.TryBuildSubmission(mode, hasValidWorkspacePreview: _workspacePreview is not null);
             if (!result.Success || result.Submission is null)
             {
-                args.Cancel = true;
                 ShowDialogWarning(result.Error == ImportQueueBuildErrorKind.InvalidWorkspace
                     ? L10n.Get("ImportDialog_Wbix_Invalid_Message")
                     : L10n.Get("ImportDialog_NothingToImport_Message"));
-                return;
+                return false;
             }
 
             Submission = result.Submission;
+            return true;
+        }
+
+        private void SyncWindowedHostState()
+        {
+            if (_windowedHost is null)
+            {
+                return;
+            }
+
+            _windowedHost.IsPrimaryButtonEnabled = IsPrimaryButtonEnabled;
         }
 
         private void ShowDialogWarning(string message)
@@ -119,6 +169,7 @@ namespace WindBoard.Features.Import.UI
             bool hasAnyElements = _queue.WorkspaceItemId is null && _queue.Count > 0;
 
             IsPrimaryButtonEnabled = hasWorkspace || hasAnyElements;
+            SyncWindowedHostState();
             RefreshQueueEmptyHintState();
         }
 

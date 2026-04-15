@@ -42,6 +42,7 @@
 ### Feature 模块约定
 
 `Features/` 下每个功能模块遵循统一结构：
+
 - `*Flow.cs` — 协调器/编排器
 - `Models/` — 数据模型、快照
 - `Services/` — 业务逻辑
