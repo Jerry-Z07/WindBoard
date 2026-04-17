@@ -1,12 +1,12 @@
 # Frontend Development Guidelines
 
-> Best practices for frontend development in this project.
+> Best practices for frontend (WinUI 3 UI, controls, features) development in WindBoard.
 
 ---
 
 ## Overview
 
-This directory contains guidelines for frontend development. Fill in each file with your project's specific conventions.
+WindBoard 前端指 WinUI 3 XAML 页面、UserControl、MainWindow 和 Feature UI。项目不使用 MVVM，code-behind 直接操控控件，服务通过静态单例访问。
 
 ---
 
@@ -14,26 +14,19 @@ This directory contains guidelines for frontend development. Fill in each file w
 
 | Guide | Description | Status |
 |-------|-------------|--------|
-| [Directory Structure](./directory-structure.md) | Module organization and file layout | To fill |
-| [Component Guidelines](./component-guidelines.md) | Component patterns, props, composition | To fill |
-| [Hook Guidelines](./hook-guidelines.md) | Custom hooks, data fetching patterns | To fill |
-| [State Management](./state-management.md) | Local state, global state, server state | To fill |
-| [Quality Guidelines](./quality-guidelines.md) | Code standards, forbidden patterns | To fill |
-| [Type Safety](./type-safety.md) | Type patterns, validation | To fill |
+| [Directory Structure](./directory-structure.md) | Feature module organization, partial class patterns | Filled |
+| [Component Guidelines](./component-guidelines.md) | UserControl patterns, event handling, localization | Filled |
+| [Hook Guidelines](./hook-guidelines.md) | Event-driven patterns, lifecycle hooks, DispatcherQueue | Filled |
+| [State Management](./state-management.md) | Domain state, settings state, UI local state | Filled |
+| [Quality Guidelines](./quality-guidelines.md) | Forbidden patterns, WinUI best practices, review checklist | Filled |
+| [Type Safety](./type-safety.md) | Nullable types, record patterns, Result objects | Filled |
 
 ---
 
-## How to Fill These Guidelines
+## Pre-Development Checklist
 
-For each guideline file:
+Before modifying frontend code, read:
 
-1. Document your project's **actual conventions** (not ideals)
-2. Include **code examples** from your codebase
-3. List **forbidden patterns** and why
-4. Add **common mistakes** your team has made
-
-The goal is to help AI assistants and new team members understand how YOUR project works.
-
----
-
-**Language**: All documentation should be written in **English**.
+- [ ] [Component Guidelines](./component-guidelines.md) — 确认使用正确的事件处理和通信模式
+- [ ] [State Management](./state-management.md) — 确认通过正确的路径修改状态
+- [ ] [Quality Guidelines](./quality-guidelines.md) — 确认遵循 WinUI 和本地化约定

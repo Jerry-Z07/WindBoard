@@ -1,12 +1,12 @@
 # Backend Development Guidelines
 
-> Best practices for backend development in this project.
+> Best practices for backend (domain logic, services, persistence) development in WindBoard.
 
 ---
 
 ## Overview
 
-This directory contains guidelines for backend development. Fill in each file with your project's specific conventions.
+WindBoard 后端指 Board 域模型层、服务层和持久化层——纯 C# 代码，无 UI 依赖。核心原则：Board 层必须保持纯净，不引用任何 UI 命名空间。
 
 ---
 
@@ -14,25 +14,18 @@ This directory contains guidelines for backend development. Fill in each file wi
 
 | Guide | Description | Status |
 |-------|-------------|--------|
-| [Directory Structure](./directory-structure.md) | Module organization and file layout | To fill |
-| [Database Guidelines](./database-guidelines.md) | ORM patterns, queries, migrations | To fill |
-| [Error Handling](./error-handling.md) | Error types, handling strategies | To fill |
-| [Quality Guidelines](./quality-guidelines.md) | Code standards, forbidden patterns | To fill |
-| [Logging Guidelines](./logging-guidelines.md) | Structured logging, log levels | To fill |
+| [Directory Structure](./directory-structure.md) | Module organization and file layout | Filled |
+| [Data Persistence](./database-guidelines.md) | WBIX format, settings storage, path infrastructure | Filled |
+| [Error Handling](./error-handling.md) | Error types, crash reporter, Result patterns | Filled |
+| [Quality Guidelines](./quality-guidelines.md) | Code standards, forbidden patterns, testing | Filled |
+| [Logging Guidelines](./logging-guidelines.md) | AppLog, log levels, what to log/not log | Filled |
 
 ---
 
-## How to Fill These Guidelines
+## Pre-Development Checklist
 
-For each guideline file:
+Before modifying backend code, read:
 
-1. Document your project's **actual conventions** (not ideals)
-2. Include **code examples** from your codebase
-3. List **forbidden patterns** and why
-4. Add **common mistakes** your team has made
-
-The goal is to help AI assistants and new team members understand how YOUR project works.
-
----
-
-**Language**: All documentation should be written in **English**.
+- [ ] [Directory Structure](./directory-structure.md) — 确认文件放在正确的层
+- [ ] [Error Handling](./error-handling.md) — 确认使用正确的错误处理模式
+- [ ] [Logging Guidelines](./logging-guidelines.md) — 确认不在高频路径添加日志
