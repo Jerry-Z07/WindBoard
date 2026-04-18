@@ -91,14 +91,21 @@
         </Style>
 
         <!--
-            统一“卡片容器”观感：与设置页中的卡片样式保持一致，避免导入弹窗显得突兀。
+            统一"卡片容器"观感：与设置页中的卡片样式保持一致，避免导入弹窗显得突兀。
         -->
         <Style x:Key="ImportCardBorderStyle" TargetType="Border">
             <Setter Property="Background" Value="{ThemeResource SystemControlBackgroundChromeMediumLowBrush}" />
-            <Setter Property="BorderBrush" Value="{ThemeResource SystemControlForegroundBaseLowBrush}" />
-            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="BorderThickness" Value="0" />
             <Setter Property="CornerRadius" Value="12" />
             <Setter Property="Padding" Value="4" />
+        </Style>
+
+        <!-- 文本/链接导入区域卡片样式：无外边框，仅背景区分 -->
+        <Style x:Key="ImportInputCardStyle" TargetType="Border">
+            <Setter Property="Background" Value="{ThemeResource SystemControlBackgroundChromeMediumLowBrush}" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="CornerRadius" Value="12" />
+            <Setter Property="Padding" Value="12" />
         </Style>
 
         <DataTemplate x:Key="ImportQueueNodeTemplate">
@@ -275,8 +282,8 @@
                         x:Name="TextLinkImportPanel"
                         Visibility="Collapsed">
                         <ScrollViewer VerticalScrollBarVisibility="Auto">
-                            <StackPanel Spacing="12">
-                                <Border Style="{StaticResource ImportCardBorderStyle}" Padding="12">
+                            <StackPanel Spacing="16">
+                                <Border Style="{StaticResource ImportInputCardStyle}">
                                     <StackPanel Spacing="10">
                                         <TextBlock Text="{l10n:Loc Key=ImportDialog_Tab_Text}" FontWeight="SemiBold" />
 
@@ -294,6 +301,7 @@
                                                     ScrollViewer.VerticalScrollBarVisibility="Auto"
                                                     MinHeight="40"
                                                     Padding="10,8,82,8"
+                                                    CornerRadius="8"
                                                     TextChanged="OnTextDraftTextChanged"
                                                     PlaceholderText="{l10n:Loc Key=Import_Text_Placeholder}" />
 
@@ -336,7 +344,7 @@
                                     </StackPanel>
                                 </Border>
 
-                                <Border Style="{StaticResource ImportCardBorderStyle}" Padding="12">
+                                <Border Style="{StaticResource ImportInputCardStyle}">
                                     <StackPanel Spacing="10">
                                         <TextBlock Text="{l10n:Loc Key=ImportDialog_Tab_Link}" FontWeight="SemiBold" />
 
@@ -354,6 +362,7 @@
                                                     ScrollViewer.VerticalScrollBarVisibility="Auto"
                                                     MinHeight="40"
                                                     Padding="10,8,82,8"
+                                                    CornerRadius="8"
                                                     TextChanged="OnLinkDraftTextChanged"
                                                     PlaceholderText="{l10n:Loc Key=ImportDialog_LinkLines_Placeholder}" />
 
