@@ -626,7 +626,11 @@ namespace WindBoard.Features.Import.UI
 
         private async Task<IReadOnlyList<StorageFile>?> PickMultipleFilesAsync(params string[] extensions)
         {
-            if (_hwnd == IntPtr.Zero)
+            IntPtr ownerHwnd = _windowedHost is not null
+                ? Microsoft.UI.Win32Interop.GetWindowFromWindowId(DialogRootGrid.XamlRoot.ContentIslandEnvironment.AppWindowId)
+                : _hwnd;
+
+            if (ownerHwnd == IntPtr.Zero)
             {
                 ShowDialogWarning(L10n.Get("Common_WindowHandleFailed_Message"));
                 AppLog.Warn("Import", "无法打开文件选择器：窗口句柄不可用。");
@@ -636,7 +640,7 @@ namespace WindBoard.Features.Import.UI
             try
             {
                 var picker = new FileOpenPicker();
-                WinRT.Interop.InitializeWithWindow.Initialize(picker, _hwnd);
+                WinRT.Interop.InitializeWithWindow.Initialize(picker, ownerHwnd);
 
                 picker.SuggestedStartLocation = PickerLocationId.DocumentsLibrary;
                 picker.FileTypeFilter.Clear();
