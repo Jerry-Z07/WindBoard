@@ -70,3 +70,36 @@
 ### Next Steps
 
 - None - task complete
+
+
+## Session 2: 改进导入对话框文本与链接输入区
+
+**Date**: 2026-04-18
+**Task**: 改进导入对话框文本与链接输入区
+**Branch**: `develop`
+
+### Summary
+
+调整导入对话框中文本和链接输入区域的布局，将粘贴/清空图标嵌入输入框右上角，添加与输入框同宽的添加到队列按钮，并在输入为空时禁用按钮。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `f8e9963` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
