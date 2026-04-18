@@ -12,14 +12,12 @@ namespace WindBoard.Updates
     internal static class DownloadSourceUrlRewriter
     {
         internal const string GhProxyPrefix = "https://gh-proxy.top/";
-        internal const string FelicityPrefix = "https://gh.felicity.ac.cn/";
         internal const string ZeroSevenPrefix = "https://ghm.078465.xyz/";
 
         private static readonly DownloadSourceId[] AllSourceIds =
         [
             DownloadSourceId.Github,
             DownloadSourceId.GhProxy,
-            DownloadSourceId.Felicity,
             DownloadSourceId.ZeroSeven,
         ];
 
@@ -70,7 +68,6 @@ namespace WindBoard.Updates
 
             Add(preferred);
             Add(DownloadSourceId.GhProxy);
-            Add(DownloadSourceId.Felicity);
             Add(DownloadSourceId.ZeroSeven);
             Add(DownloadSourceId.Github);
 
@@ -83,7 +80,6 @@ namespace WindBoard.Updates
             string prefix = id switch
             {
                 DownloadSourceId.GhProxy => GhProxyPrefix,
-                DownloadSourceId.Felicity => FelicityPrefix,
                 DownloadSourceId.ZeroSeven => ZeroSevenPrefix,
                 _ => string.Empty,
             };

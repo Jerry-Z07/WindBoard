@@ -113,7 +113,7 @@ namespace WindBoard.Settings
         public string DownloadSourcePolicy { get; set; } = DownloadSourcePolicyParser.AutoValue;
 
         /// <summary>
-        /// 当前选择的下载源（github/gh-proxy/felicity/07）。
+        /// 当前选择的下载源（github/gh-proxy/07）。
         /// 说明：当 DownloadSourcePolicy=auto 时，该值表示“最近一次测速选出的最快源”。
         /// </summary>
         public string DownloadSourceId { get; set; } = DownloadSourceIdParser.GithubValue;

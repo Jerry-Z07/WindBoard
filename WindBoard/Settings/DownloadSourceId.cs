@@ -9,7 +9,6 @@ namespace WindBoard.Settings
     {
         Github,
         GhProxy,
-        Felicity,
         ZeroSeven,
     }
 
@@ -20,7 +19,6 @@ namespace WindBoard.Settings
     {
         internal const string GithubValue = "github";
         internal const string GhProxyValue = "gh-proxy";
-        internal const string FelicityValue = "felicity";
         internal const string ZeroSevenValue = "07";
 
         internal static bool TryParse(string? text, out DownloadSourceId id)
@@ -46,12 +44,6 @@ namespace WindBoard.Settings
                 return true;
             }
 
-            if (value.Equals(FelicityValue, StringComparison.OrdinalIgnoreCase))
-            {
-                id = DownloadSourceId.Felicity;
-                return true;
-            }
-
             if (value.Equals(ZeroSevenValue, StringComparison.OrdinalIgnoreCase))
             {
                 id = DownloadSourceId.ZeroSeven;
@@ -66,7 +58,6 @@ namespace WindBoard.Settings
             return id switch
             {
                 DownloadSourceId.GhProxy => GhProxyValue,
-                DownloadSourceId.Felicity => FelicityValue,
                 DownloadSourceId.ZeroSeven => ZeroSevenValue,
                 _ => GithubValue,
             };

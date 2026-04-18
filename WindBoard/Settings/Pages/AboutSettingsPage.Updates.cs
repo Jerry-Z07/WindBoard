@@ -911,7 +911,6 @@ namespace WindBoard.Settings.Pages
             return id switch
             {
                 DownloadSourceId.GhProxy => L10n.Get("Updates_DownloadSource_GhProxy"),
-                DownloadSourceId.Felicity => L10n.Get("Updates_DownloadSource_Felicity"),
                 DownloadSourceId.ZeroSeven => L10n.Get("Updates_DownloadSource_07"),
                 _ => L10n.Get("Updates_DownloadSource_Github"),
             };

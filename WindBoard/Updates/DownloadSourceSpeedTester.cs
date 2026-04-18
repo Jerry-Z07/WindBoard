@@ -24,7 +24,6 @@ namespace WindBoard.Updates
             [
                 DownloadSourceId.Github,
                 DownloadSourceId.GhProxy,
-                DownloadSourceId.Felicity,
                 DownloadSourceId.ZeroSeven,
             ];
 

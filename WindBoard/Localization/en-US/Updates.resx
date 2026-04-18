@@ -68,9 +68,6 @@
   <data name="Updates_DownloadSource_GhProxy" xml:space="preserve">
     <value>gh-proxy</value>
   </data>
-  <data name="Updates_DownloadSource_Felicity" xml:space="preserve">
-    <value>felicity</value>
-  </data>
   <data name="Updates_DownloadSource_07" xml:space="preserve">
     <value>07</value>
   </data>

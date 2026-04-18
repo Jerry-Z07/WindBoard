@@ -97,7 +97,6 @@
                             <ComboBoxItem Content="{l10n:Loc Key=Updates_DownloadSource_Auto}" Tag="auto" />
                             <ComboBoxItem Content="{l10n:Loc Key=Updates_DownloadSource_Github}" Tag="github" />
                             <ComboBoxItem Content="{l10n:Loc Key=Updates_DownloadSource_GhProxy}" Tag="gh-proxy" />
-                            <ComboBoxItem Content="{l10n:Loc Key=Updates_DownloadSource_Felicity}" Tag="felicity" />
                             <ComboBoxItem Content="{l10n:Loc Key=Updates_DownloadSource_07}" Tag="07" />
                         </ComboBox>
                     </controls:SettingsCard.Content>
