@@ -131,6 +131,10 @@ Root: HKLM; Subkey: "Software\\WindBoard"; ValueType: string; ValueName: "Instal
 Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{cm:AppName}}"; Flags: nowait postinstall skipifsilent
 
 [Code]
+// ============================================================
+// 字体安装检测
+// ============================================================
+
 function NeedInstallSegoeFluentIconsFont(): Boolean;
 var
   Ver: TWindowsVersion;
@@ -139,6 +143,10 @@ begin
   GetWindowsVersionEx(Ver);
   Result := (Ver.Major = 10) and (Ver.Minor = 0) and (Ver.Build < 22000);
 end;
+
+// ============================================================
+// 用户数据删除逻辑（卸载时使用）
+// ============================================================
 
 var
   ShouldDeleteUserDataOnUninstall: Boolean;
@@ -344,6 +352,110 @@ begin
     if ShouldDeleteUserDataOnUninstall then
     begin
       TryDeleteInstallerUserDataOnUninstall();
+    end;
+  end;
+end;
+
+// ============================================================
+// 更新安装：静默卸载旧版本（保留用户数据）
+// ============================================================
+
+function GetUninstallerPath(): string;
+var
+  UninstallKey: string;
+  UninstallerPath: string;
+begin
+  Result := '';
+  UninstallKey := 'Software\Microsoft\Windows\CurrentVersion\Uninstall\' + '{#MyAppName}' + '_is1';
+
+  // 从注册表读取旧版本卸载程序路径
+  if RegQueryStringValue(HKLM, UninstallKey, 'UninstallString', UninstallerPath) then
+  begin
+    // UninstallString 通常是: "C:\...\unins000.exe" /S0
+    // 需要提取引号内的路径
+    UninstallerPath := Trim(UninstallerPath);
+    if Pos('"', UninstallerPath) = 1 then
+    begin
+      // 格式: "path" /params
+      Delete(UninstallerPath, 1, 1);
+      if Pos('"', UninstallerPath) > 0 then
+      begin
+        SetLength(UninstallerPath, Pos('"', UninstallerPath) - 1);
+      end;
+    end
+    else
+    begin
+      // 格式: path /params（无引号）
+      if Pos(' ', UninstallerPath) > 0 then
+      begin
+        SetLength(UninstallerPath, Pos(' ', UninstallerPath) - 1);
+      end;
+    end;
+    Result := Trim(UninstallerPath);
+  end;
+end;
+
+function IsUpgradeInstallation(): Boolean;
+begin
+  // 检测是否为更新安装：已存在安装目录
+  Result := DirExists(ExpandConstant('{app}'));
+end;
+
+function PerformSilentUninstallForUpgrade(): Boolean;
+var
+  UninstallerPath: string;
+  UninstallCmd: string;
+  ResultCode: Integer;
+begin
+  Result := False;
+  UninstallerPath := GetUninstallerPath();
+
+  if UninstallerPath = '' then
+  begin
+    Log('Upgrade: No existing uninstaller found, skip uninstall');
+    Result := True; // 没有卸载程序，视为成功（可能首次安装）
+    Exit;
+  end;
+
+  if not FileExists(UninstallerPath) then
+  begin
+    Log('Upgrade: Uninstaller not found: ' + UninstallerPath);
+    Exit;
+  end;
+
+  // 构造静默卸载命令（保留用户数据）
+  // /verysilent: 完全静默，无任何界面
+  // /deleteuserdata=0: 保留用户数据
+  UninstallCmd := '"' + UninstallerPath + '" /verysilent /deleteuserdata=0';
+
+  Log('Upgrade: Starting silent uninstall: ' + UninstallCmd);
+
+  // 执行静默卸载并等待完成
+  if Exec(UninstallCmd, '', '', SW_HIDE, ewWaitUntilTerminated, ResultCode) then
+  begin
+    Log('Upgrade: Silent uninstall completed with exit code: ' + IntToStr(ResultCode));
+    Result := (ResultCode = 0);
+  end
+  else
+  begin
+    Log('Upgrade: Failed to execute silent uninstall');
+    Result := False;
+  end;
+end;
+
+procedure CurInstallStepChanged(CurInstallStep: TInstallStep);
+begin
+  if CurInstallStep = ssInstall then
+  begin
+    // 在开始复制文件前，检测是否为更新安装
+    if IsUpgradeInstallation() then
+    begin
+      Log('Upgrade: Detected existing installation, performing silent uninstall...');
+      if not PerformSilentUninstallForUpgrade() then
+      begin
+        Log('Upgrade: Silent uninstall failed, but continuing installation');
+        // 不中止安装，允许覆盖安装
+      end;
     end;
   end;
 end;
