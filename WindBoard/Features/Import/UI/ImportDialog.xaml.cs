@@ -80,7 +80,24 @@ namespace WindBoard.Features.Import.UI
             // 默认选中第一项（文件）。这里放到代码中设置，避免在 XAML 里直接写 IsSelected 触发异常情况。
             ImportNavView.SelectedItem = ImportNavView.MenuItems.OfType<NavigationViewItem>().FirstOrDefault();
 
+            UpdateDraftActionButtonStates();
             RefreshQueueEmptyHintState();
+        }
+
+        private void OnTextDraftTextChanged(object sender, TextChangedEventArgs e)
+        {
+            UpdateDraftActionButtonStates();
+        }
+
+        private void OnLinkDraftTextChanged(object sender, TextChangedEventArgs e)
+        {
+            UpdateDraftActionButtonStates();
+        }
+
+        private void UpdateDraftActionButtonStates()
+        {
+            AddTextToQueueButton.IsEnabled = !string.IsNullOrWhiteSpace(TextDraftTextBox.Text);
+            AddLinksToQueueButton.IsEnabled = !string.IsNullOrWhiteSpace(LinkDraftTextBox.Text);
         }
 
         internal void AttachWindowedHost(WindowedContentDialog host, WindowedDialogPresentationPlan presentationPlan)

@@ -78,6 +78,18 @@
             <Setter Property="Padding" Value="12,8" />
         </Style>
 
+        <Style
+            x:Key="ImportIconActionButtonStyle"
+            TargetType="Button"
+            BasedOn="{StaticResource DefaultButtonStyle}">
+            <Setter Property="CornerRadius" Value="10" />
+            <Setter Property="Width" Value="32" />
+            <Setter Property="Height" Value="32" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="HorizontalAlignment" Value="Right" />
+            <Setter Property="VerticalAlignment" Value="Top" />
+        </Style>
+
         <!--
             统一“卡片容器”观感：与设置页中的卡片样式保持一致，避免导入弹窗显得突兀。
         -->
@@ -268,34 +280,59 @@
                                     <StackPanel Spacing="10">
                                         <TextBlock Text="{l10n:Loc Key=ImportDialog_Tab_Text}" FontWeight="SemiBold" />
 
-                                        <TextBox
-                                            x:Name="TextDraftTextBox"
-                                            AcceptsReturn="True"
-                                            TextWrapping="Wrap"
-                                            ScrollViewer.VerticalScrollBarVisibility="Auto"
-                                            MinHeight="120"
-                                            PlaceholderText="{l10n:Loc Key=Import_Text_Placeholder}" />
+                                        <Grid RowSpacing="10">
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto" />
+                                                <RowDefinition Height="Auto" />
+                                            </Grid.RowDefinitions>
 
-                                        <StackPanel Orientation="Horizontal" Spacing="8">
-                                            <Button Style="{StaticResource ImportActionButtonStyle}" Click="OnAddTextToQueueClicked">
+                                            <Grid>
+                                                <TextBox
+                                                    x:Name="TextDraftTextBox"
+                                                    AcceptsReturn="True"
+                                                    TextWrapping="NoWrap"
+                                                    ScrollViewer.VerticalScrollBarVisibility="Auto"
+                                                    MinHeight="40"
+                                                    Padding="10,8,82,8"
+                                                    TextChanged="OnTextDraftTextChanged"
+                                                    PlaceholderText="{l10n:Loc Key=Import_Text_Placeholder}" />
+
+                                                <StackPanel
+                                                    Orientation="Horizontal"
+                                                    Spacing="6"
+                                                    HorizontalAlignment="Right"
+                                                    VerticalAlignment="Top"
+                                                    Margin="0,4,4,0"
+                                                    IsHitTestVisible="True">
+                                                    <Button
+                                                        Style="{StaticResource ImportIconActionButtonStyle}"
+                                                        Click="OnPasteTextClicked"
+                                                        ToolTipService.ToolTip="{l10n:Loc Key=ImportDialog_PasteFromClipboard}">
+                                                        <SymbolIcon Symbol="Paste" />
+                                                    </Button>
+
+                                                    <Button
+                                                        Style="{StaticResource ImportIconActionButtonStyle}"
+                                                        Click="OnClearTextDraftClicked"
+                                                        ToolTipService.ToolTip="{l10n:Loc Key=Common_Clear}">
+                                                        <SymbolIcon Symbol="Delete" />
+                                                    </Button>
+                                                </StackPanel>
+                                            </Grid>
+
+                                            <Button
+                                                x:Name="AddTextToQueueButton"
+                                                Grid.Row="1"
+                                                Style="{StaticResource ImportActionButtonStyle}"
+                                                Click="OnAddTextToQueueClicked"
+                                                IsEnabled="False"
+                                                HorizontalAlignment="Stretch">
                                                 <StackPanel Orientation="Horizontal" Spacing="8">
                                                     <SymbolIcon Symbol="Add" />
                                                     <TextBlock Text="{l10n:Loc Key=ImportDialog_AddTextToQueue}" VerticalAlignment="Center" />
                                                 </StackPanel>
                                             </Button>
-                                            <Button Style="{StaticResource ImportActionButtonStyle}" Click="OnPasteTextClicked">
-                                                <StackPanel Orientation="Horizontal" Spacing="8">
-                                                    <SymbolIcon Symbol="Paste" />
-                                                    <TextBlock Text="{l10n:Loc Key=ImportDialog_PasteFromClipboard}" VerticalAlignment="Center" />
-                                                </StackPanel>
-                                            </Button>
-                                            <Button Style="{StaticResource ImportActionButtonStyle}" Click="OnClearTextDraftClicked">
-                                                <StackPanel Orientation="Horizontal" Spacing="8">
-                                                    <SymbolIcon Symbol="Delete" />
-                                                    <TextBlock Text="{l10n:Loc Key=Common_Clear}" VerticalAlignment="Center" />
-                                                </StackPanel>
-                                            </Button>
-                                        </StackPanel>
+                                        </Grid>
                                     </StackPanel>
                                 </Border>
 
@@ -303,34 +340,59 @@
                                     <StackPanel Spacing="10">
                                         <TextBlock Text="{l10n:Loc Key=ImportDialog_Tab_Link}" FontWeight="SemiBold" />
 
-                                        <TextBox
-                                            x:Name="LinkDraftTextBox"
-                                            AcceptsReturn="True"
-                                            TextWrapping="Wrap"
-                                            ScrollViewer.VerticalScrollBarVisibility="Auto"
-                                            MinHeight="160"
-                                            PlaceholderText="{l10n:Loc Key=ImportDialog_LinkLines_Placeholder}" />
+                                        <Grid RowSpacing="10">
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto" />
+                                                <RowDefinition Height="Auto" />
+                                            </Grid.RowDefinitions>
 
-                                        <StackPanel Orientation="Horizontal" Spacing="8">
-                                            <Button Style="{StaticResource ImportActionButtonStyle}" Click="OnAddLinksToQueueClicked">
+                                            <Grid>
+                                                <TextBox
+                                                    x:Name="LinkDraftTextBox"
+                                                    AcceptsReturn="True"
+                                                    TextWrapping="NoWrap"
+                                                    ScrollViewer.VerticalScrollBarVisibility="Auto"
+                                                    MinHeight="40"
+                                                    Padding="10,8,82,8"
+                                                    TextChanged="OnLinkDraftTextChanged"
+                                                    PlaceholderText="{l10n:Loc Key=ImportDialog_LinkLines_Placeholder}" />
+
+                                                <StackPanel
+                                                    Orientation="Horizontal"
+                                                    Spacing="6"
+                                                    HorizontalAlignment="Right"
+                                                    VerticalAlignment="Top"
+                                                    Margin="0,4,4,0"
+                                                    IsHitTestVisible="True">
+                                                    <Button
+                                                        Style="{StaticResource ImportIconActionButtonStyle}"
+                                                        Click="OnPasteLinksClicked"
+                                                        ToolTipService.ToolTip="{l10n:Loc Key=ImportDialog_PasteFromClipboard}">
+                                                        <SymbolIcon Symbol="Paste" />
+                                                    </Button>
+
+                                                    <Button
+                                                        Style="{StaticResource ImportIconActionButtonStyle}"
+                                                        Click="OnClearLinksDraftClicked"
+                                                        ToolTipService.ToolTip="{l10n:Loc Key=Common_Clear}">
+                                                        <SymbolIcon Symbol="Delete" />
+                                                    </Button>
+                                                </StackPanel>
+                                            </Grid>
+
+                                            <Button
+                                                x:Name="AddLinksToQueueButton"
+                                                Grid.Row="1"
+                                                Style="{StaticResource ImportActionButtonStyle}"
+                                                Click="OnAddLinksToQueueClicked"
+                                                IsEnabled="False"
+                                                HorizontalAlignment="Stretch">
                                                 <StackPanel Orientation="Horizontal" Spacing="8">
                                                     <SymbolIcon Symbol="Add" />
                                                     <TextBlock Text="{l10n:Loc Key=ImportDialog_AddLinksToQueue}" VerticalAlignment="Center" />
                                                 </StackPanel>
                                             </Button>
-                                            <Button Style="{StaticResource ImportActionButtonStyle}" Click="OnPasteLinksClicked">
-                                                <StackPanel Orientation="Horizontal" Spacing="8">
-                                                    <SymbolIcon Symbol="Paste" />
-                                                    <TextBlock Text="{l10n:Loc Key=ImportDialog_PasteFromClipboard}" VerticalAlignment="Center" />
-                                                </StackPanel>
-                                            </Button>
-                                            <Button Style="{StaticResource ImportActionButtonStyle}" Click="OnClearLinksDraftClicked">
-                                                <StackPanel Orientation="Horizontal" Spacing="8">
-                                                    <SymbolIcon Symbol="Delete" />
-                                                    <TextBlock Text="{l10n:Loc Key=Common_Clear}" VerticalAlignment="Center" />
-                                                </StackPanel>
-                                            </Button>
-                                        </StackPanel>
+                                        </Grid>
                                     </StackPanel>
                                 </Border>
                             </StackPanel>
