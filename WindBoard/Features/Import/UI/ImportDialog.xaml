@@ -53,22 +53,6 @@
             <Setter Property="Padding" Value="20,8" />
         </Style>
 
-        <DataTemplate x:Key="StorageFileItemTemplate">
-            <Grid Padding="8,6" ColumnSpacing="12">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto" />
-                    <ColumnDefinition Width="*" />
-                </Grid.ColumnDefinitions>
-
-                <SymbolIcon Symbol="OpenFile" Opacity="0.75" />
-
-                <StackPanel Grid.Column="1" Spacing="2">
-                    <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
-                    <TextBlock Text="{Binding Path}" Opacity="0.65" FontSize="11" TextTrimming="CharacterEllipsis" />
-                </StackPanel>
-            </Grid>
-        </DataTemplate>
-
         <Style
             x:Key="ImportActionButtonStyle"
             TargetType="Button"
@@ -108,45 +92,37 @@
             <Setter Property="Padding" Value="12" />
         </Style>
 
-        <DataTemplate x:Key="ImportQueueNodeTemplate">
-            <Grid Padding="6,4" ColumnSpacing="10">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto" />
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="Auto" />
-                </Grid.ColumnDefinitions>
+        <!-- 队列项卡片行样式 -->
+        <Style x:Key="QueueItemBorderStyle" TargetType="Border">
+            <Setter Property="Background" Value="{ThemeResource SystemControlBackgroundChromeMediumLowBrush}" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="Padding" Value="12,8" />
+        </Style>
 
-                <!-- 说明：TreeView 使用 RootNodes(TreeViewNode) 作为数据源，ItemTemplate 的 DataContext 是 TreeViewNode，本模板需从 Content 取展示信息。 -->
-                <SymbolIcon Symbol="{Binding Content.Icon}" Opacity="0.75" VerticalAlignment="Center" />
+        <!-- 工作区预览卡片样式 -->
+        <Style x:Key="WorkspacePreviewBorderStyle" TargetType="Border">
+            <Setter Property="Background" Value="{ThemeResource SystemControlBackgroundChromeMediumLowBrush}" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="CornerRadius" Value="12" />
+            <Setter Property="Padding" Value="12" />
+        </Style>
 
-                <StackPanel Grid.Column="1" Spacing="2">
-                    <TextBlock Text="{Binding Content.Title}" TextTrimming="CharacterEllipsis" />
-                    <TextBlock
-                        Text="{Binding Content.Subtitle}"
-                        Visibility="{Binding Content.SubtitleVisibility}"
-                        Opacity="0.65"
-                        FontSize="11"
-                        TextTrimming="CharacterEllipsis" />
-                </StackPanel>
-
-                <Button
-                    Grid.Column="2"
-                    Visibility="{Binding Content.RemoveButtonVisibility}"
-                    Click="OnQueueRemoveClicked"
-                    Tag="{Binding Content.ItemId}"
-                    Style="{StaticResource DefaultButtonStyle}"
-                    MinHeight="32"
-                    Padding="8,6"
-                    CornerRadius="4"
-                    ToolTipService.ToolTip="{l10n:Loc Key=ImportDialog_RemoveFromQueue_Tooltip}">
-                    <SymbolIcon Symbol="Delete" />
-                </Button>
-            </Grid>
-        </DataTemplate>
+        <!-- 队列项删除按钮样式 -->
+        <Style x:Key="QueueItemRemoveButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Width" Value="28" />
+            <Setter Property="Height" Value="28" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="CornerRadius" Value="4" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
     </ContentDialog.Resources>
 
     <Grid x:Name="DialogRootGrid" MinWidth="1040" MaxWidth="1320" MinHeight="620" RowSpacing="12">
         <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
@@ -157,259 +133,203 @@
             Severity="Warning"
             IsIconVisible="True" />
 
+        <!-- 顶部 TabView：文件导入 / 文本链接导入 -->
+        <TabView
+            x:Name="ImportTabView"
+            Grid.Row="1"
+            IsAddTabButtonVisible="False"
+            CanDragTabs="False"
+            CanReorderTabs="False"
+            TabWidthMode="Equal"
+            SelectedIndex="0"
+            SelectionChanged="OnTabSelectionChanged">
+            <TabViewItem
+                Header="{l10n:Loc Key=ImportDialog_Tab_File}"
+                IsClosable="False">
+                <TabViewItem.IconSource>
+                    <SymbolIconSource Symbol="OpenFile" />
+                </TabViewItem.IconSource>
+            </TabViewItem>
+            <TabViewItem
+                Header="{l10n:Loc Key=ImportDialog_Tab_TextLink}"
+                IsClosable="False">
+                <TabViewItem.IconSource>
+                    <SymbolIconSource Symbol="Edit" />
+                </TabViewItem.IconSource>
+            </TabViewItem>
+        </TabView>
+
         <!--
-            整体布局：左右分栏
-            - 左侧：导入入口（文件 / 文本/链接），图标左侧排列；
-            - 右侧：导入队列 TreeView，用于统一展示/删除待导入内容。
+            主内容区：左右分栏
+            - 左侧：导入入口面板（文件拖拽区 / 文本链接输入）
+            - 右侧：待导入内容卡片列表
         -->
-        <Grid Grid.Row="1" ColumnSpacing="16">
+        <Grid Grid.Row="2" ColumnSpacing="16">
             <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="1.35*" />
+                <ColumnDefinition Width="1.3*" />
                 <ColumnDefinition Width="1*" />
             </Grid.ColumnDefinitions>
 
-            <NavigationView
-                x:Name="ImportNavView"
+            <!-- 左侧：文件导入面板 -->
+            <ScrollViewer
+                x:Name="FileImportPanel"
                 Grid.Column="0"
-                IsBackButtonVisible="Collapsed"
-                IsSettingsVisible="False"
-                IsPaneToggleButtonVisible="False"
-                IsPaneOpen="True"
-                AlwaysShowHeader="False"
-                OpenPaneLength="176"
-                PaneDisplayMode="Left"
-                SelectionChanged="OnImportNavigationSelectionChanged">
-                <NavigationView.MenuItems>
-                    <NavigationViewItem Content="{l10n:Loc Key=ImportDialog_Tab_File}" Tag="file">
-                        <NavigationViewItem.Icon>
-                            <SymbolIcon Symbol="OpenFile" />
-                        </NavigationViewItem.Icon>
-                    </NavigationViewItem>
-                    <NavigationViewItem Content="{l10n:Loc Key=ImportDialog_Tab_TextLink}" Tag="textLink">
-                        <NavigationViewItem.Icon>
-                            <SymbolIcon Symbol="Edit" />
-                        </NavigationViewItem.Icon>
-                    </NavigationViewItem>
-                </NavigationView.MenuItems>
+                VerticalScrollBarVisibility="Auto">
+                <StackPanel Spacing="12" Padding="0,8,0,0">
+                    <Border
+                        x:Name="FileDropZoneBorder"
+                        Style="{StaticResource ImportCardBorderStyle}"
+                        Padding="24"
+                        MinHeight="160"
+                        AllowDrop="True"
+                        DragOver="OnFileDropZoneDragOver"
+                        Drop="OnFileDropZoneDrop"
+                        Tapped="OnPickFilesClicked">
+                        <StackPanel Spacing="6" HorizontalAlignment="Center" VerticalAlignment="Center">
+                            <SymbolIcon Symbol="OpenFile" Opacity="0.75" />
+                            <TextBlock Text="{l10n:Loc Key=ImportDialog_FileDrop_Title}" FontWeight="SemiBold" />
+                            <TextBlock
+                                Text="{l10n:Loc Key=ImportDialog_FileDrop_Subtitle}"
+                                Opacity="0.65"
+                                TextAlignment="Center"
+                                TextWrapping="WrapWholeWords" />
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </ScrollViewer>
 
-                <Grid Padding="12,12,12,0">
-                    <Grid
-                        x:Name="FileImportPanel"
-                        Visibility="Visible">
-                        <ScrollViewer VerticalScrollBarVisibility="Auto">
-                            <StackPanel Spacing="12">
-                                <Border
-                                    x:Name="FileDropZoneBorder"
-                                    Style="{StaticResource ImportCardBorderStyle}"
-                                    Padding="24"
-                                    MinHeight="160"
-                                    AllowDrop="True"
-                                    DragOver="OnFileDropZoneDragOver"
-                                    Drop="OnFileDropZoneDrop"
-                                    Tapped="OnPickFilesClicked">
-                                    <StackPanel Spacing="6" HorizontalAlignment="Center" VerticalAlignment="Center">
-                                        <SymbolIcon Symbol="OpenFile" Opacity="0.75" />
-                                        <TextBlock Text="{l10n:Loc Key=ImportDialog_FileDrop_Title}" FontWeight="SemiBold" />
-                                        <TextBlock
-                                            Text="{l10n:Loc Key=ImportDialog_FileDrop_Subtitle}"
-                                            Opacity="0.65"
-                                            TextAlignment="Center"
-                                            TextWrapping="WrapWholeWords" />
+            <!-- 左侧：文本/链接导入面板 -->
+            <ScrollViewer
+                x:Name="TextLinkImportPanel"
+                Grid.Column="0"
+                Visibility="Collapsed"
+                VerticalScrollBarVisibility="Auto">
+                <StackPanel Spacing="16" Padding="0,8,0,0">
+                    <Border Style="{StaticResource ImportInputCardStyle}">
+                        <StackPanel Spacing="10">
+                            <TextBlock Text="{l10n:Loc Key=ImportDialog_Tab_Text}" FontWeight="SemiBold" />
+
+                            <Grid RowSpacing="10">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+
+                                <Grid>
+                                    <TextBox
+                                        x:Name="TextDraftTextBox"
+                                        AcceptsReturn="True"
+                                        TextWrapping="NoWrap"
+                                        ScrollViewer.VerticalScrollBarVisibility="Auto"
+                                        MinHeight="40"
+                                        Padding="10,8,82,8"
+                                        CornerRadius="8"
+                                        TextChanged="OnTextDraftTextChanged"
+                                        PlaceholderText="{l10n:Loc Key=Import_Text_Placeholder}" />
+
+                                    <StackPanel
+                                        Orientation="Horizontal"
+                                        Spacing="6"
+                                        HorizontalAlignment="Right"
+                                        VerticalAlignment="Top"
+                                        Margin="0,4,4,0"
+                                        IsHitTestVisible="True">
+                                        <Button
+                                            Style="{StaticResource ImportIconActionButtonStyle}"
+                                            Click="OnPasteTextClicked"
+                                            ToolTipService.ToolTip="{l10n:Loc Key=ImportDialog_PasteFromClipboard}">
+                                            <SymbolIcon Symbol="Paste" />
+                                        </Button>
+
+                                        <Button
+                                            Style="{StaticResource ImportIconActionButtonStyle}"
+                                            Click="OnClearTextDraftClicked"
+                                            ToolTipService.ToolTip="{l10n:Loc Key=Common_Clear}">
+                                            <SymbolIcon Symbol="Delete" />
+                                        </Button>
                                     </StackPanel>
-                                </Border>
+                                </Grid>
 
                                 <Button
-                                    x:Name="ClearWbixButton"
+                                    x:Name="AddTextToQueueButton"
+                                    Grid.Row="1"
                                     Style="{StaticResource ImportActionButtonStyle}"
-                                    Click="OnClearWbixClicked"
-                                    Visibility="Collapsed"
-                                    HorizontalAlignment="Left">
+                                    Click="OnAddTextToQueueClicked"
+                                    IsEnabled="False"
+                                    HorizontalAlignment="Stretch">
                                     <StackPanel Orientation="Horizontal" Spacing="8">
-                                        <SymbolIcon Symbol="Delete" />
-                                        <TextBlock Text="{l10n:Loc Key=ImportDialog_RemoveFromQueue}" VerticalAlignment="Center" />
+                                        <SymbolIcon Symbol="Add" />
+                                        <TextBlock Text="{l10n:Loc Key=ImportDialog_AddTextToQueue}" VerticalAlignment="Center" />
                                     </StackPanel>
                                 </Button>
+                            </Grid>
+                        </StackPanel>
+                    </Border>
 
-                                <Border
-                                    x:Name="WbixPreviewBorder"
-                                    Style="{StaticResource ImportCardBorderStyle}"
-                                    Padding="12"
-                                    Visibility="Collapsed">
-                                    <Grid ColumnSpacing="12">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="Auto" />
-                                            <ColumnDefinition Width="*" />
-                                        </Grid.ColumnDefinitions>
+                    <Border Style="{StaticResource ImportInputCardStyle}">
+                        <StackPanel Spacing="10">
+                            <TextBlock Text="{l10n:Loc Key=ImportDialog_Tab_Link}" FontWeight="SemiBold" />
 
-                                        <Grid>
-                                            <Border
-                                                x:Name="WbixCoverFallbackBorder"
-                                                Width="240"
-                                                Height="180"
-                                                CornerRadius="12"
-                                                Background="{ThemeResource SystemControlBackgroundChromeMediumLowBrush}">
-                                                <TextBlock
-                                                    HorizontalAlignment="Center"
-                                                    VerticalAlignment="Center"
-                                                    Text="{l10n:Loc Key=Import_Wbix_NoCover}" />
-                                            </Border>
-                                            <Border
-                                                x:Name="WbixCoverImageBorder"
-                                                Width="240"
-                                                Height="180"
-                                                CornerRadius="12"
-                                                Visibility="Collapsed">
-                                                <Image
-                                                    x:Name="WbixCoverImage"
-                                                    Stretch="UniformToFill" />
-                                            </Border>
-                                        </Grid>
+                            <Grid RowSpacing="10">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
 
-                                        <StackPanel Grid.Column="1" Spacing="6">
-                                            <TextBlock x:Name="WbixInfoTextBlock" TextWrapping="WrapWholeWords" />
+                                <Grid>
+                                    <TextBox
+                                        x:Name="LinkDraftTextBox"
+                                        AcceptsReturn="True"
+                                        TextWrapping="NoWrap"
+                                        ScrollViewer.VerticalScrollBarVisibility="Auto"
+                                        MinHeight="40"
+                                        Padding="10,8,82,8"
+                                        CornerRadius="8"
+                                        TextChanged="OnLinkDraftTextChanged"
+                                        PlaceholderText="{l10n:Loc Key=ImportDialog_LinkLines_Placeholder}" />
 
-                                            <TextBlock Text="{l10n:Loc Key=Import_Wbix_InsertMethod_Label}" FontWeight="SemiBold" Margin="0,6,0,0" />
-                                            <RadioButton x:Name="WbixAppendRadioButton" Content="{l10n:Loc Key=Import_Wbix_Mode_Append}" IsChecked="True" />
-                                            <RadioButton x:Name="WbixReplaceCurrentPageRadioButton" Content="{l10n:Loc Key=Import_Wbix_Mode_ReplaceCurrentPage}" />
-                                        </StackPanel>
-                                    </Grid>
-                                </Border>
-                            </StackPanel>
-                        </ScrollViewer>
-                    </Grid>
+                                    <StackPanel
+                                        Orientation="Horizontal"
+                                        Spacing="6"
+                                        HorizontalAlignment="Right"
+                                        VerticalAlignment="Top"
+                                        Margin="0,4,4,0"
+                                        IsHitTestVisible="True">
+                                        <Button
+                                            Style="{StaticResource ImportIconActionButtonStyle}"
+                                            Click="OnPasteLinksClicked"
+                                            ToolTipService.ToolTip="{l10n:Loc Key=ImportDialog_PasteFromClipboard}">
+                                            <SymbolIcon Symbol="Paste" />
+                                        </Button>
 
-                    <Grid
-                        x:Name="TextLinkImportPanel"
-                        Visibility="Collapsed">
-                        <ScrollViewer VerticalScrollBarVisibility="Auto">
-                            <StackPanel Spacing="16">
-                                <Border Style="{StaticResource ImportInputCardStyle}">
-                                    <StackPanel Spacing="10">
-                                        <TextBlock Text="{l10n:Loc Key=ImportDialog_Tab_Text}" FontWeight="SemiBold" />
-
-                                        <Grid RowSpacing="10">
-                                            <Grid.RowDefinitions>
-                                                <RowDefinition Height="Auto" />
-                                                <RowDefinition Height="Auto" />
-                                            </Grid.RowDefinitions>
-
-                                            <Grid>
-                                                <TextBox
-                                                    x:Name="TextDraftTextBox"
-                                                    AcceptsReturn="True"
-                                                    TextWrapping="NoWrap"
-                                                    ScrollViewer.VerticalScrollBarVisibility="Auto"
-                                                    MinHeight="40"
-                                                    Padding="10,8,82,8"
-                                                    CornerRadius="8"
-                                                    TextChanged="OnTextDraftTextChanged"
-                                                    PlaceholderText="{l10n:Loc Key=Import_Text_Placeholder}" />
-
-                                                <StackPanel
-                                                    Orientation="Horizontal"
-                                                    Spacing="6"
-                                                    HorizontalAlignment="Right"
-                                                    VerticalAlignment="Top"
-                                                    Margin="0,4,4,0"
-                                                    IsHitTestVisible="True">
-                                                    <Button
-                                                        Style="{StaticResource ImportIconActionButtonStyle}"
-                                                        Click="OnPasteTextClicked"
-                                                        ToolTipService.ToolTip="{l10n:Loc Key=ImportDialog_PasteFromClipboard}">
-                                                        <SymbolIcon Symbol="Paste" />
-                                                    </Button>
-
-                                                    <Button
-                                                        Style="{StaticResource ImportIconActionButtonStyle}"
-                                                        Click="OnClearTextDraftClicked"
-                                                        ToolTipService.ToolTip="{l10n:Loc Key=Common_Clear}">
-                                                        <SymbolIcon Symbol="Delete" />
-                                                    </Button>
-                                                </StackPanel>
-                                            </Grid>
-
-                                            <Button
-                                                x:Name="AddTextToQueueButton"
-                                                Grid.Row="1"
-                                                Style="{StaticResource ImportActionButtonStyle}"
-                                                Click="OnAddTextToQueueClicked"
-                                                IsEnabled="False"
-                                                HorizontalAlignment="Stretch">
-                                                <StackPanel Orientation="Horizontal" Spacing="8">
-                                                    <SymbolIcon Symbol="Add" />
-                                                    <TextBlock Text="{l10n:Loc Key=ImportDialog_AddTextToQueue}" VerticalAlignment="Center" />
-                                                </StackPanel>
-                                            </Button>
-                                        </Grid>
+                                        <Button
+                                            Style="{StaticResource ImportIconActionButtonStyle}"
+                                            Click="OnClearLinksDraftClicked"
+                                            ToolTipService.ToolTip="{l10n:Loc Key=Common_Clear}">
+                                            <SymbolIcon Symbol="Delete" />
+                                        </Button>
                                     </StackPanel>
-                                </Border>
+                                </Grid>
 
-                                <Border Style="{StaticResource ImportInputCardStyle}">
-                                    <StackPanel Spacing="10">
-                                        <TextBlock Text="{l10n:Loc Key=ImportDialog_Tab_Link}" FontWeight="SemiBold" />
-
-                                        <Grid RowSpacing="10">
-                                            <Grid.RowDefinitions>
-                                                <RowDefinition Height="Auto" />
-                                                <RowDefinition Height="Auto" />
-                                            </Grid.RowDefinitions>
-
-                                            <Grid>
-                                                <TextBox
-                                                    x:Name="LinkDraftTextBox"
-                                                    AcceptsReturn="True"
-                                                    TextWrapping="NoWrap"
-                                                    ScrollViewer.VerticalScrollBarVisibility="Auto"
-                                                    MinHeight="40"
-                                                    Padding="10,8,82,8"
-                                                    CornerRadius="8"
-                                                    TextChanged="OnLinkDraftTextChanged"
-                                                    PlaceholderText="{l10n:Loc Key=ImportDialog_LinkLines_Placeholder}" />
-
-                                                <StackPanel
-                                                    Orientation="Horizontal"
-                                                    Spacing="6"
-                                                    HorizontalAlignment="Right"
-                                                    VerticalAlignment="Top"
-                                                    Margin="0,4,4,0"
-                                                    IsHitTestVisible="True">
-                                                    <Button
-                                                        Style="{StaticResource ImportIconActionButtonStyle}"
-                                                        Click="OnPasteLinksClicked"
-                                                        ToolTipService.ToolTip="{l10n:Loc Key=ImportDialog_PasteFromClipboard}">
-                                                        <SymbolIcon Symbol="Paste" />
-                                                    </Button>
-
-                                                    <Button
-                                                        Style="{StaticResource ImportIconActionButtonStyle}"
-                                                        Click="OnClearLinksDraftClicked"
-                                                        ToolTipService.ToolTip="{l10n:Loc Key=Common_Clear}">
-                                                        <SymbolIcon Symbol="Delete" />
-                                                    </Button>
-                                                </StackPanel>
-                                            </Grid>
-
-                                            <Button
-                                                x:Name="AddLinksToQueueButton"
-                                                Grid.Row="1"
-                                                Style="{StaticResource ImportActionButtonStyle}"
-                                                Click="OnAddLinksToQueueClicked"
-                                                IsEnabled="False"
-                                                HorizontalAlignment="Stretch">
-                                                <StackPanel Orientation="Horizontal" Spacing="8">
-                                                    <SymbolIcon Symbol="Add" />
-                                                    <TextBlock Text="{l10n:Loc Key=ImportDialog_AddLinksToQueue}" VerticalAlignment="Center" />
-                                                </StackPanel>
-                                            </Button>
-                                        </Grid>
+                                <Button
+                                    x:Name="AddLinksToQueueButton"
+                                    Grid.Row="1"
+                                    Style="{StaticResource ImportActionButtonStyle}"
+                                    Click="OnAddLinksToQueueClicked"
+                                    IsEnabled="False"
+                                    HorizontalAlignment="Stretch">
+                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                        <SymbolIcon Symbol="Add" />
+                                        <TextBlock Text="{l10n:Loc Key=ImportDialog_AddLinksToQueue}" VerticalAlignment="Center" />
                                     </StackPanel>
-                                </Border>
-                            </StackPanel>
-                        </ScrollViewer>
-                    </Grid>
-                </Grid>
-            </NavigationView>
+                                </Button>
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </ScrollViewer>
 
+            <!-- 右侧：待导入内容列表 -->
             <Border
                 Grid.Column="1"
                 Style="{StaticResource ImportCardBorderStyle}"
@@ -420,6 +340,7 @@
                         <RowDefinition Height="*" />
                     </Grid.RowDefinitions>
 
+                    <!-- 列表标题 + 清空按钮 -->
                     <Grid ColumnSpacing="8">
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
@@ -441,13 +362,77 @@
                         </Button>
                     </Grid>
 
+                    <!-- 队列内容区域 -->
                     <Grid Grid.Row="1">
-                        <TreeView
-                            x:Name="ImportQueueTreeView"
-                            ItemTemplate="{StaticResource ImportQueueNodeTemplate}"
-                            ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-                            ScrollViewer.VerticalScrollBarVisibility="Auto" />
+                        <ScrollViewer
+                            x:Name="QueueScrollViewer"
+                            VerticalScrollBarVisibility="Auto"
+                            Visibility="Collapsed">
+                            <StackPanel x:Name="QueueItemsPanel" Spacing="6" />
+                        </ScrollViewer>
 
+                        <!-- WBIX/WBI 工作区预览：在队列项列表上方展示 -->
+                        <ScrollViewer
+                            x:Name="WorkspacePreviewScrollViewer"
+                            VerticalScrollBarVisibility="Auto"
+                            Visibility="Collapsed">
+                            <StackPanel Spacing="8">
+                                <Border Style="{StaticResource WorkspacePreviewBorderStyle}">
+                                    <Grid ColumnSpacing="12">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+
+                                        <Grid>
+                                            <Border
+                                                x:Name="WbixCoverFallbackBorder"
+                                                Width="200"
+                                                Height="150"
+                                                CornerRadius="8"
+                                                Background="{ThemeResource SystemControlBackgroundChromeMediumLowBrush}">
+                                                <TextBlock
+                                                    HorizontalAlignment="Center"
+                                                    VerticalAlignment="Center"
+                                                    Text="{l10n:Loc Key=Import_Wbix_NoCover}" />
+                                            </Border>
+                                            <Border
+                                                x:Name="WbixCoverImageBorder"
+                                                Width="200"
+                                                Height="150"
+                                                CornerRadius="8"
+                                                Visibility="Collapsed">
+                                                <Image
+                                                    x:Name="WbixCoverImage"
+                                                    Stretch="UniformToFill" />
+                                            </Border>
+                                        </Grid>
+
+                                        <StackPanel Grid.Column="1" Spacing="6">
+                                            <TextBlock x:Name="WbixInfoTextBlock" TextWrapping="WrapWholeWords" />
+
+                                            <TextBlock Text="{l10n:Loc Key=Import_Wbix_InsertMethod_Label}" FontWeight="SemiBold" Margin="0,6,0,0" />
+                                            <RadioButton x:Name="WbixAppendRadioButton" Content="{l10n:Loc Key=Import_Wbix_Mode_Append}" IsChecked="True" />
+                                            <RadioButton x:Name="WbixReplaceCurrentPageRadioButton" Content="{l10n:Loc Key=Import_Wbix_Mode_ReplaceCurrentPage}" />
+
+                                            <Button
+                                                Style="{StaticResource ImportActionButtonStyle}"
+                                                Click="OnClearWbixClicked"
+                                                Margin="0,4,0,0"
+                                                MinHeight="28"
+                                                Padding="12,4">
+                                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                                    <SymbolIcon Symbol="Delete" />
+                                                    <TextBlock Text="{l10n:Loc Key=ImportDialog_RemoveFromQueue}" VerticalAlignment="Center" />
+                                                </StackPanel>
+                                            </Button>
+                                        </StackPanel>
+                                    </Grid>
+                                </Border>
+                            </StackPanel>
+                        </ScrollViewer>
+
+                        <!-- 空状态提示 -->
                         <TextBlock
                             x:Name="QueueEmptyHintTextBlock"
                             Text="{l10n:Loc Key=ImportDialog_Queue_EmptyHint}"

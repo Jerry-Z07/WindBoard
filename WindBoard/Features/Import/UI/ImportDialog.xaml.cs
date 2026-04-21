@@ -24,28 +24,6 @@ namespace WindBoard.Features.Import.UI
 {
     public sealed partial class ImportDialog : ContentDialog
     {
-        /// <summary>
-        /// TreeView 节点展示信息（作为 TreeViewNode.Content）。
-        /// </summary>
-        private sealed class ImportQueueNodeInfo
-        {
-            public required bool IsGroup { get; init; }
-
-            public required ImportQueueGroup Group { get; init; }
-
-            public required Symbol Icon { get; init; }
-
-            public required string Title { get; init; }
-
-            public string? Subtitle { get; init; }
-
-            public Visibility SubtitleVisibility => string.IsNullOrWhiteSpace(Subtitle) ? Visibility.Collapsed : Visibility.Visible;
-
-            public required Visibility RemoveButtonVisibility { get; init; }
-
-            public required Guid ItemId { get; init; }
-        }
-
         private readonly IntPtr _hwnd;
 
         private StorageFile? _selectedWorkspaceFile;
@@ -61,7 +39,7 @@ namespace WindBoard.Features.Import.UI
             _hwnd = hwnd;
             InitializeComponent();
 
-            // 说明：ContentDialog 的命令按钮样式（主按钮/关闭按钮）在不同系统上可能呈现“直角/拉伸铺满”的旧观感，
+            // 说明：ContentDialog 的命令按钮样式（主按钮/关闭按钮）在不同系统上可能呈现"直角/拉伸铺满"的旧观感，
             // 这里统一覆写为与应用其它区域一致的圆角按钮样式。
             try
             {
@@ -77,12 +55,25 @@ namespace WindBoard.Features.Import.UI
             IsPrimaryButtonEnabled = false;
             PrimaryButtonClick += OnPrimaryButtonClick;
 
-            // 默认选中第一项（文件）。这里放到代码中设置，避免在 XAML 里直接写 IsSelected 触发异常情况。
-            ImportNavView.SelectedItem = ImportNavView.MenuItems.OfType<NavigationViewItem>().FirstOrDefault();
-
             UpdateDraftActionButtonStates();
             RefreshQueueEmptyHintState();
         }
+
+        #region TabView 切换
+
+        private void OnTabSelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            // 切换标签时收起提示，避免用户看到"上一页"的警告信息。
+            DialogInfoBar.IsOpen = false;
+
+            bool isFileTab = ImportTabView.SelectedIndex == 0;
+            FileImportPanel.Visibility = isFileTab ? Visibility.Visible : Visibility.Collapsed;
+            TextLinkImportPanel.Visibility = isFileTab ? Visibility.Collapsed : Visibility.Visible;
+        }
+
+        #endregion
+
+        #region 文本/链接草稿按钮状态
 
         private void OnTextDraftTextChanged(object sender, TextChangedEventArgs e)
         {
@@ -99,6 +90,10 @@ namespace WindBoard.Features.Import.UI
             AddTextToQueueButton.IsEnabled = !string.IsNullOrWhiteSpace(TextDraftTextBox.Text);
             AddLinksToQueueButton.IsEnabled = !string.IsNullOrWhiteSpace(LinkDraftTextBox.Text);
         }
+
+        #endregion
+
+        #region WindowedContentDialog 承载
 
         internal void AttachWindowedHost(WindowedContentDialog host, WindowedDialogPresentationPlan presentationPlan)
         {
@@ -127,6 +122,10 @@ namespace WindBoard.Features.Import.UI
                 args.Cancel = true;
             }
         }
+
+        #endregion
+
+        #region 提交与按钮状态
 
         private void OnPrimaryButtonClick(ContentDialog sender, ContentDialogButtonClickEventArgs args)
         {
@@ -190,74 +189,9 @@ namespace WindBoard.Features.Import.UI
             RefreshQueueEmptyHintState();
         }
 
-        private void OnImportNavigationSelectionChanged(NavigationView sender, NavigationViewSelectionChangedEventArgs args)
-        {
-            if (args.SelectedItem is not NavigationViewItem item || item.Tag is not string tag)
-            {
-                return;
-            }
+        #endregion
 
-            // 切换导入类型时收起提示，避免用户看到“上一页”的警告信息。
-            DialogInfoBar.IsOpen = false;
-
-            FileImportPanel.Visibility = tag == "file" ? Visibility.Visible : Visibility.Collapsed;
-            TextLinkImportPanel.Visibility = tag == "textLink" ? Visibility.Visible : Visibility.Collapsed;
-        }
-
-        private void RefreshQueueEmptyHintState()
-        {
-            QueueEmptyHintTextBlock.Visibility = _queue.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
-        }
-
-        private void RebuildQueueTreeView()
-        {
-            ImportQueueTreeView.RootNodes.Clear();
-
-            for (int gi = 0; gi < ImportQueueState.DisplayGroupOrder.Length; gi++)
-            {
-                ImportQueueGroup group = ImportQueueState.DisplayGroupOrder[gi];
-                IReadOnlyList<ImportQueueItem> items = _queue.GetItemsByGroup(group);
-                if (items.Count == 0)
-                {
-                    continue;
-                }
-
-                var groupNodeInfo = new ImportQueueNodeInfo
-                {
-                    IsGroup = true,
-                    Group = group,
-                    Icon = ResolveGroupIcon(group),
-                    Title = GetGroupTitle(group),
-                    Subtitle = null,
-                    RemoveButtonVisibility = Visibility.Collapsed,
-                    ItemId = Guid.Empty,
-                };
-
-                var groupNode = new TreeViewNode { Content = groupNodeInfo, IsExpanded = true };
-
-                for (int i = 0; i < items.Count; i++)
-                {
-                    ImportQueueItem item = items[i];
-
-                    var nodeInfo = new ImportQueueNodeInfo
-                    {
-                        IsGroup = false,
-                        Group = item.Group,
-                        Icon = ResolveLeafIcon(item.Kind),
-                        Title = item.DisplayTitle,
-                        Subtitle = item.DisplaySubtitle,
-                        RemoveButtonVisibility = Visibility.Visible,
-                        ItemId = item.Id,
-                    };
-
-                    groupNode.Children.Add(new TreeViewNode { Content = nodeInfo });
-                }
-
-                ImportQueueTreeView.RootNodes.Add(groupNode);
-            }
-
-            RefreshQueueEmptyHintState();
-        }
+        #region 文件拖拽与选择
 
         private async void OnPickFilesClicked(object sender, TappedRoutedEventArgs e)
         {
@@ -321,24 +255,27 @@ namespace WindBoard.Features.Import.UI
             {
                 bool shouldWarn = result.WorkspaceExclusiveWarning;
 
-                // 先清理旧预览，避免异步预读时出现“残留上一份预览”的闪烁。
+                // 先清理旧预览，避免异步预读时出现"残留上一份预览"的闪烁。
                 ClearWorkspaceState();
-                RebuildQueueTreeView();
+                RebuildQueueList();
 
-                // 警告优先显示：若随后预读失败，会被“文件无效”提示覆盖，避免误导用户。
+                // 警告优先显示：若随后预读失败，会被"文件无效"提示覆盖，避免误导用户。
                 if (shouldWarn)
                 {
                     ShowDialogWarning(L10n.Get("ImportDialog_WorkspaceExclusive_Message"));
                 }
 
                 await LoadWorkspacePreviewAsync(workspaceFile);
-                // 注意：LoadWorkspacePreviewAsync 内部会触发 UpdatePrimaryButtonState。
                 return;
             }
 
-            RebuildQueueTreeView();
+            RebuildQueueList();
             UpdatePrimaryButtonState();
         }
+
+        #endregion
+
+        #region 文本/链接输入
 
         private void OnAddTextToQueueClicked(object sender, RoutedEventArgs e)
         {
@@ -357,7 +294,7 @@ namespace WindBoard.Features.Import.UI
 
             TextDraftTextBox.Text = string.Empty;
 
-            RebuildQueueTreeView();
+            RebuildQueueList();
             UpdatePrimaryButtonState();
         }
 
@@ -397,7 +334,7 @@ namespace WindBoard.Features.Import.UI
                 LinkDraftTextBox.Text = string.Empty;
             }
 
-            RebuildQueueTreeView();
+            RebuildQueueList();
             UpdatePrimaryButtonState();
         }
 
@@ -417,12 +354,16 @@ namespace WindBoard.Features.Import.UI
             LinkDraftTextBox.Text = text;
         }
 
+        #endregion
+
+        #region 队列操作
+
         private void OnClearQueueClicked(object sender, RoutedEventArgs e)
         {
             _queue.Clear();
             UpdatePrimaryButtonState();
             ClearWorkspaceState();
-            RebuildQueueTreeView();
+            RebuildQueueList();
         }
 
         private void OnQueueRemoveClicked(object sender, RoutedEventArgs e)
@@ -454,19 +395,19 @@ namespace WindBoard.Features.Import.UI
                 ClearWorkspaceState();
             }
 
-            RebuildQueueTreeView();
+            RebuildQueueList();
             UpdatePrimaryButtonState();
         }
 
         private void OnClearWbixClicked(object sender, RoutedEventArgs e)
         {
-            // “从队列移除”语义：移除工作区队列项 + 清空预览状态。
+            // "从队列移除"语义：移除工作区队列项 + 清空预览状态。
             if (_queue.WorkspaceItemId is Guid workspaceId && workspaceId != Guid.Empty)
             {
                 _ = _queue.TryRemove(workspaceId, out _);
 
                 ClearWorkspaceState();
-                RebuildQueueTreeView();
+                RebuildQueueList();
                 UpdatePrimaryButtonState();
                 return;
             }
@@ -475,82 +416,151 @@ namespace WindBoard.Features.Import.UI
             UpdatePrimaryButtonState();
         }
 
+        #endregion
+
+        #region 队列列表渲染
+
+        private void RefreshQueueEmptyHintState()
+        {
+            bool isEmpty = _queue.Count == 0 && _workspacePreview is null;
+            QueueEmptyHintTextBlock.Visibility = isEmpty ? Visibility.Visible : Visibility.Collapsed;
+        }
+
+        /// <summary>
+        /// 重建右侧队列卡片列表。
+        /// </summary>
+        private void RebuildQueueList()
+        {
+            QueueItemsPanel.Children.Clear();
+
+            bool hasWorkspace = _queue.WorkspaceItemId is not null;
+
+            // 工作区预览与元素队列互斥：有工作区时展示预览卡片，否则展示元素列表。
+            WorkspacePreviewScrollViewer.Visibility = hasWorkspace ? Visibility.Visible : Visibility.Collapsed;
+            QueueScrollViewer.Visibility = hasWorkspace ? Visibility.Collapsed : Visibility.Visible;
+
+            if (hasWorkspace)
+            {
+                // 工作区预览卡片在 XAML 中已静态定义，此处无需动态创建。
+                RefreshQueueEmptyHintState();
+                return;
+            }
+
+            // 按分组顺序扁平渲染队列项。
+            for (int gi = 0; gi < ImportQueueState.DisplayGroupOrder.Length; gi++)
+            {
+                ImportQueueGroup group = ImportQueueState.DisplayGroupOrder[gi];
+                IReadOnlyList<ImportQueueItem> items = _queue.GetItemsByGroup(group);
+                if (items.Count == 0)
+                {
+                    continue;
+                }
+
+                // 添加分组标签（仅在有内容时显示）。
+                var groupLabel = new TextBlock
+                {
+                    Text = GetGroupTitle(group),
+                    FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
+                    Opacity = 0.8,
+                    FontSize = 12,
+                    Margin = new Thickness(0, gi > 0 ? 8 : 0, 0, 2),
+                };
+                QueueItemsPanel.Children.Add(groupLabel);
+
+                for (int i = 0; i < items.Count; i++)
+                {
+                    ImportQueueItem item = items[i];
+                    Border card = CreateQueueItemCard(item);
+                    QueueItemsPanel.Children.Add(card);
+                }
+            }
+
+            RefreshQueueEmptyHintState();
+        }
+
+        /// <summary>
+        /// 创建单个队列项卡片行。
+        /// </summary>
+        private Border CreateQueueItemCard(ImportQueueItem item)
+        {
+            var card = new Border
+            {
+                Style = (Style)Resources["QueueItemBorderStyle"],
+                Tag = item.Id,
+            };
+
+            var grid = new Grid
+            {
+                ColumnSpacing = 10,
+            };
+
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+
+            // 图标
+            var icon = new SymbolIcon
+            {
+                Symbol = ResolveLeafIcon(item.Kind),
+                Opacity = 0.75,
+            };
+            Grid.SetColumn(icon, 0);
+            grid.Children.Add(icon);
+
+            // 标题 + 副标题
+            var textStack = new StackPanel { Spacing = 2 };
+
+            var titleBlock = new TextBlock
+            {
+                Text = item.DisplayTitle,
+                TextTrimming = TextTrimming.CharacterEllipsis,
+            };
+            textStack.Children.Add(titleBlock);
+
+            if (!string.IsNullOrWhiteSpace(item.DisplaySubtitle))
+            {
+                var subtitleBlock = new TextBlock
+                {
+                    Text = item.DisplaySubtitle,
+                    Opacity = 0.65,
+                    FontSize = 11,
+                    TextTrimming = TextTrimming.CharacterEllipsis,
+                };
+                textStack.Children.Add(subtitleBlock);
+            }
+
+            Grid.SetColumn(textStack, 1);
+            grid.Children.Add(textStack);
+
+            // 删除按钮
+            var removeIcon = new SymbolIcon { Symbol = Symbol.Delete };
+            var removeButton = new Button
+            {
+                Style = (Style)Resources["QueueItemRemoveButtonStyle"],
+                Tag = item.Id,
+                Content = removeIcon,
+            };
+            ToolTipService.SetToolTip(removeButton, L10n.Get("ImportDialog_RemoveFromQueue_Tooltip"));
+            removeButton.Click += OnQueueRemoveClicked;
+            Grid.SetColumn(removeButton, 2);
+            grid.Children.Add(removeButton);
+
+            card.Child = grid;
+            return card;
+        }
+
+        #endregion
+
+        #region 工作区预览
+
         private void ClearWorkspaceState()
         {
             _selectedWorkspaceFile = null;
             _workspacePreview = null;
-            ClearWbixButton.Visibility = Visibility.Collapsed;
-            WbixPreviewBorder.Visibility = Visibility.Collapsed;
             WbixCoverImage.Source = null;
             WbixCoverImageBorder.Visibility = Visibility.Collapsed;
             WbixCoverFallbackBorder.Visibility = Visibility.Visible;
             WbixInfoTextBlock.Text = string.Empty;
-        }
-
-        private string GetGroupTitle(ImportQueueGroup group)
-        {
-            return group switch
-            {
-                ImportQueueGroup.Workspace => L10n.Get("ImportDialog_Group_Workspace"),
-                ImportQueueGroup.Image => L10n.Get("ImportDialog_Group_Image"),
-                ImportQueueGroup.Video => L10n.Get("ImportDialog_Group_Video"),
-                ImportQueueGroup.Audio => L10n.Get("ImportDialog_Group_Audio"),
-                ImportQueueGroup.Text => L10n.Get("ImportDialog_Group_Text"),
-                ImportQueueGroup.Link => L10n.Get("ImportDialog_Group_Link"),
-                ImportQueueGroup.File => L10n.Get("ImportDialog_Group_File"),
-                _ => L10n.Get("ImportDialog_Group_File"),
-            };
-        }
-
-        private static Symbol ResolveGroupIcon(ImportQueueGroup group)
-        {
-            // 尽量使用项目内已使用过的 Symbol，避免不同 SDK 版本下出现不存在的枚举值。
-            return group switch
-            {
-                ImportQueueGroup.Workspace => Symbol.OpenFile,
-                ImportQueueGroup.Image => Symbol.Pictures,
-                ImportQueueGroup.Video => Symbol.Video,
-                ImportQueueGroup.Audio => ResolveAudioIconSymbol(),
-                ImportQueueGroup.Text => Symbol.Edit,
-                ImportQueueGroup.Link => Symbol.Link,
-                ImportQueueGroup.File => Symbol.OpenFile,
-                _ => Symbol.OpenFile,
-            };
-        }
-
-        private static Symbol ResolveAudioIconSymbol()
-        {
-            // 音频图标：优先使用更贴近语义的 MusicInfo（若目标 SDK 不存在该枚举值则降级）。
-            // 说明：使用 TryParse 避免在不同 SDK/WinUI 版本下直接引用不存在的 Symbol 成员导致编译失败。
-            if (Enum.TryParse("MusicInfo", ignoreCase: true, out Symbol musicInfo))
-            {
-                return musicInfo;
-            }
-
-            if (Enum.TryParse("Volume", ignoreCase: true, out Symbol volume))
-            {
-                return volume;
-            }
-
-            return Symbol.Video;
-        }
-
-        private static Symbol ResolveLeafIcon(ImportQueueItemKind kind)
-        {
-            return kind switch
-            {
-                ImportQueueItemKind.WorkspaceWbix => Symbol.OpenFile,
-                ImportQueueItemKind.WorkspaceWbi => Symbol.OpenFile,
-                ImportQueueItemKind.ImageFile => Symbol.Pictures,
-                ImportQueueItemKind.VideoFile => Symbol.Video,
-                ImportQueueItemKind.AudioFile => ResolveAudioIconSymbol(),
-                ImportQueueItemKind.TextFile => Symbol.Edit,
-                ImportQueueItemKind.InternetShortcutFile => Symbol.Link,
-                ImportQueueItemKind.GenericFile => Symbol.OpenFile,
-                ImportQueueItemKind.TextContent => Symbol.Edit,
-                ImportQueueItemKind.LinkUrl => Symbol.Link,
-                _ => Symbol.OpenFile,
-            };
         }
 
         private async Task LoadWorkspacePreviewAsync(StorageFile file)
@@ -558,14 +568,13 @@ namespace WindBoard.Features.Import.UI
             _selectedWorkspaceFile = file;
             _workspacePreview = null;
 
-            ClearWbixButton.Visibility = Visibility.Visible;
-
             try
             {
                 ImportWorkspacePreview? preview = await ImportWorkspacePreviewService.TryLoadAsync(file);
                 if (preview is null)
                 {
-                    WbixPreviewBorder.Visibility = Visibility.Collapsed;
+                    WorkspacePreviewScrollViewer.Visibility = Visibility.Collapsed;
+                    QueueEmptyHintTextBlock.Visibility = Visibility.Visible;
                     UpdatePrimaryButtonState();
                     ShowDialogWarning(L10n.Get("ImportDialog_Wbix_Invalid_Message"));
                     return;
@@ -587,13 +596,16 @@ namespace WindBoard.Features.Import.UI
                     await ApplyWbixCoverAsync(null);
                 }
 
-                WbixPreviewBorder.Visibility = Visibility.Visible;
+                // 展示工作区预览卡片。
+                WorkspacePreviewScrollViewer.Visibility = Visibility.Visible;
+                QueueScrollViewer.Visibility = Visibility.Collapsed;
                 UpdatePrimaryButtonState();
             }
             catch (Exception ex)
             {
                 AppLog.Warn("Import", $"预览失败：'{file.Path}'", ex);
-                WbixPreviewBorder.Visibility = Visibility.Collapsed;
+                WorkspacePreviewScrollViewer.Visibility = Visibility.Collapsed;
+                QueueEmptyHintTextBlock.Visibility = Visibility.Visible;
                 _workspacePreview = null;
                 UpdatePrimaryButtonState();
                 ShowDialogWarning(L10n.Get("ImportDialog_Wbix_Invalid_Message"));
@@ -622,6 +634,59 @@ namespace WindBoard.Features.Import.UI
             WbixCoverImage.Source = bitmap;
             WbixCoverImageBorder.Visibility = Visibility.Visible;
             WbixCoverFallbackBorder.Visibility = Visibility.Collapsed;
+        }
+
+        #endregion
+
+        #region 工具方法
+
+        private string GetGroupTitle(ImportQueueGroup group)
+        {
+            return group switch
+            {
+                ImportQueueGroup.Workspace => L10n.Get("ImportDialog_Group_Workspace"),
+                ImportQueueGroup.Image => L10n.Get("ImportDialog_Group_Image"),
+                ImportQueueGroup.Video => L10n.Get("ImportDialog_Group_Video"),
+                ImportQueueGroup.Audio => L10n.Get("ImportDialog_Group_Audio"),
+                ImportQueueGroup.Text => L10n.Get("ImportDialog_Group_Text"),
+                ImportQueueGroup.Link => L10n.Get("ImportDialog_Group_Link"),
+                ImportQueueGroup.File => L10n.Get("ImportDialog_Group_File"),
+                _ => L10n.Get("ImportDialog_Group_File"),
+            };
+        }
+
+        private static Symbol ResolveLeafIcon(ImportQueueItemKind kind)
+        {
+            return kind switch
+            {
+                ImportQueueItemKind.WorkspaceWbix => Symbol.OpenFile,
+                ImportQueueItemKind.WorkspaceWbi => Symbol.OpenFile,
+                ImportQueueItemKind.ImageFile => Symbol.Pictures,
+                ImportQueueItemKind.VideoFile => Symbol.Video,
+                ImportQueueItemKind.AudioFile => ResolveAudioIconSymbol(),
+                ImportQueueItemKind.TextFile => Symbol.Edit,
+                ImportQueueItemKind.InternetShortcutFile => Symbol.Link,
+                ImportQueueItemKind.GenericFile => Symbol.OpenFile,
+                ImportQueueItemKind.TextContent => Symbol.Edit,
+                ImportQueueItemKind.LinkUrl => Symbol.Link,
+                _ => Symbol.OpenFile,
+            };
+        }
+
+        private static Symbol ResolveAudioIconSymbol()
+        {
+            // 音频图标：优先使用更贴近语义的 MusicInfo（若目标 SDK 不存在该枚举值则降级）。
+            if (Enum.TryParse("MusicInfo", ignoreCase: true, out Symbol musicInfo))
+            {
+                return musicInfo;
+            }
+
+            if (Enum.TryParse("Volume", ignoreCase: true, out Symbol volume))
+            {
+                return volume;
+            }
+
+            return Symbol.Video;
         }
 
         private async Task<IReadOnlyList<StorageFile>?> PickMultipleFilesAsync(params string[] extensions)
@@ -694,5 +759,7 @@ namespace WindBoard.Features.Import.UI
                 return null;
             }
         }
+
+        #endregion
     }
 }
