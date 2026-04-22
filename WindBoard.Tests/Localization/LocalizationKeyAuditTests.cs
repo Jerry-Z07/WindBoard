@@ -1,9 +1,4 @@
-using System.Collections;
-using System.Globalization;
-using System.Reflection;
-using System.Resources;
 using System.Text.RegularExpressions;
-using WindBoard.Localization;
 using WindBoard.Tests;
 using Xunit;
 
@@ -12,7 +7,7 @@ namespace WindBoard.Tests.Localization;
 public sealed class LocalizationKeyAuditTests
 {
     [Fact]
-    public void All_LocKeys_Should_Exist_In_DefaultLanguageResx()
+    public void All_LocKeys_Should_Exist_In_DefaultLanguageResw()
     {
         DirectoryInfo? repoRoot = RepoRootLocator.Find();
         if (repoRoot is null)
@@ -39,10 +34,10 @@ public sealed class LocalizationKeyAuditTests
             "发现不允许的动态 Key 调用（要求 L10n.Get/Format 的 key 参数使用字符串字面量）：\n"
             + string.Join('\n', dynamicKeyUsages));
 
-        HashSet<string> resxKeys = CollectDefaultLanguageResxKeys();
+        HashSet<string> reswKeys = CollectDefaultLanguageReswKeys(windBoardDir);
 
         string[] missingKeys = usedKeys
-            .Except(resxKeys)
+            .Except(reswKeys)
             .OrderBy(static k => k, StringComparer.Ordinal)
             .ToArray();
 
@@ -112,127 +107,31 @@ public sealed class LocalizationKeyAuditTests
         return keys;
     }
 
-    private static HashSet<string> CollectDefaultLanguageResxKeys()
+    private static HashSet<string> CollectDefaultLanguageReswKeys(string windBoardDir)
     {
         const string defaultCultureName = "zh-CN";
-
-        Assembly assembly = typeof(LocExtension).Assembly;
-        ResourceIndex index = BuildResourceIndex(assembly);
-
-        string defaultLanguageSegment = GetDefaultLanguageSegment(index, defaultCultureName);
-        IReadOnlyCollection<string> features = index.GetFeatures(defaultLanguageSegment);
-
-        Assert.True(features.Count > 0, $"默认语言资源为空：languageSegment={defaultLanguageSegment}");
+        string stringsDir = Path.Combine(windBoardDir, "Strings", defaultCultureName);
+        Assert.True(Directory.Exists(stringsDir), $"未找到默认语言资源目录：{stringsDir}");
 
         HashSet<string> keys = new(StringComparer.Ordinal);
+        Regex keyRegex = new(@"<data\s+name=""(?<key>[^""]+)""", RegexOptions.Compiled);
 
-        foreach (string feature in features)
+        foreach (string filePath in Directory.EnumerateFiles(stringsDir, "*.resw", SearchOption.TopDirectoryOnly))
         {
-            ResourceManager manager = new($"WindBoard.Localization.{defaultLanguageSegment}.{feature}", assembly);
-            ResourceSet? resourceSet = manager.GetResourceSet(CultureInfo.InvariantCulture, createIfNotExists: true, tryParents: false);
-
-            Assert.True(resourceSet is not null, $"无法读取默认语言资源集：languageSegment={defaultLanguageSegment}, feature={feature}");
-
-            foreach (DictionaryEntry entry in resourceSet!)
+            string text = File.ReadAllText(filePath);
+            foreach (Match match in keyRegex.Matches(text))
             {
-                if (entry.Key is string key && !string.IsNullOrWhiteSpace(key))
+                string key = match.Groups["key"].Value.Trim();
+                if (!string.IsNullOrWhiteSpace(key))
                 {
                     keys.Add(key);
                 }
             }
         }
 
+        Assert.True(keys.Count > 0, $"默认语言资源为空：{stringsDir}");
+
         return keys;
-    }
-
-    private static string GetDefaultLanguageSegment(ResourceIndex index, string defaultCultureName)
-    {
-        foreach (string candidate in EnumerateLanguageSegmentCandidates(defaultCultureName))
-        {
-            if (index.HasLanguageSegment(candidate))
-            {
-                return candidate;
-            }
-        }
-
-        Assert.Fail($"未找到默认语言资源：{defaultCultureName}（候选：{string.Join(", ", EnumerateLanguageSegmentCandidates(defaultCultureName))}）");
-        return defaultCultureName;
-    }
-
-    private static IEnumerable<string> EnumerateLanguageSegmentCandidates(string cultureName)
-    {
-        yield return cultureName;
-
-        if (cultureName.Contains('-', StringComparison.Ordinal))
-        {
-            string normalized = cultureName.Replace('-', '_');
-            if (!normalized.Equals(cultureName, StringComparison.Ordinal))
-            {
-                yield return normalized;
-            }
-        }
-    }
-
-    private static ResourceIndex BuildResourceIndex(Assembly assembly)
-    {
-        ResourceIndex index = new();
-        string[] names = assembly.GetManifestResourceNames();
-
-        const string prefix = "WindBoard.Localization.";
-        const string suffix = ".resources";
-
-        foreach (string name in names)
-        {
-            if (!name.StartsWith(prefix, StringComparison.Ordinal) || !name.EndsWith(suffix, StringComparison.Ordinal))
-            {
-                continue;
-            }
-
-            string payload = name.Substring(prefix.Length, name.Length - prefix.Length - suffix.Length);
-            int dot = payload.IndexOf('.');
-            if (dot <= 0 || dot >= payload.Length - 1)
-            {
-                continue;
-            }
-
-            string languageSegment = payload.Substring(0, dot);
-            string feature = payload.Substring(dot + 1);
-
-            index.Add(languageSegment, feature);
-        }
-
-        return index;
-    }
-
-    private sealed class ResourceIndex
-    {
-        private readonly Dictionary<string, HashSet<string>> _featuresByLanguageSegment = new(StringComparer.Ordinal);
-
-        internal void Add(string languageSegment, string feature)
-        {
-            if (!_featuresByLanguageSegment.TryGetValue(languageSegment, out HashSet<string>? features))
-            {
-                features = new HashSet<string>(StringComparer.Ordinal);
-                _featuresByLanguageSegment.Add(languageSegment, features);
-            }
-
-            features.Add(feature);
-        }
-
-        internal bool HasLanguageSegment(string languageSegment)
-        {
-            return _featuresByLanguageSegment.ContainsKey(languageSegment);
-        }
-
-        internal IReadOnlyCollection<string> GetFeatures(string languageSegment)
-        {
-            if (_featuresByLanguageSegment.TryGetValue(languageSegment, out HashSet<string>? features))
-            {
-                return features;
-            }
-
-            return Array.Empty<string>();
-        }
     }
 
     private static IEnumerable<string> EnumerateProjectFiles(string windBoardDir, string pattern)

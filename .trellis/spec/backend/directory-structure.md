@@ -46,7 +46,8 @@ WindBoard/
 │   ├── Errors/                 # AppErrorService
 │   └── Updates/                # Update checking
 ├── Logging/                     # AppLog, FileLogSink
-├── Localization/               # L10n extension, localization support
+├── Localization/               # L10n runtime entry, localization support
+├── Strings/                    # Localization source files (Strings/<culture>/<Feature>.resw)
 └── UI/MainWindow/             # MainWindow partial splits by feature
 
 WindBoard.CrashReporter/        # WinForms crash reporter (standalone)

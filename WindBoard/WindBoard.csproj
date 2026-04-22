@@ -20,7 +20,17 @@
     <Nullable>enable</Nullable>
     <!-- 伪装功能需要生成/处理 .ico：使用 System.Drawing（Windows-only）。 -->
     <UseSystemDrawing>true</UseSystemDrawing>
+    <WindBoardGeneratedLocalizationDir>$(MSBuildProjectDirectory)\obj\Generated\Localization\</WindBoardGeneratedLocalizationDir>
+    <WindBoardLocalizationMetadataFile>$(WindBoardGeneratedLocalizationDir)L10nResourceMetadata.g.cs</WindBoardLocalizationMetadataFile>
   </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="Generated\**\*.cs" />
+    <None Remove="Strings\**\*.resw" />
+    <PRIResource Remove="Strings\**\*.resw" />
+    <PRIResource Include="Strings\**\*.resw" />
+    <Compile Include="$(WindBoardLocalizationMetadataFile)" Visible="false" />
+  </ItemGroup>
 
   <ItemGroup>
     <Content Include="Assets\Eraser.svg" />
@@ -85,6 +95,15 @@
     <Copy SourceFiles="@(_WindBoardWinUIXbf)" DestinationFiles="@(_WindBoardWinUIXbf->'$(PublishDir)%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
 
     <Copy SourceFiles="@(_WindBoardWinUIPri)" DestinationFolder="$(PublishDir)" SkipUnchangedFiles="true" />
+  </Target>
+
+  <Target
+    Name="WindBoard_GenerateLocalizationMetadata"
+    BeforeTargets="CoreCompile"
+    Inputs="@(PRIResource);$(MSBuildProjectDirectory)\Build\GenerateLocalizationMetadata.ps1"
+    Outputs="$(WindBoardLocalizationMetadataFile)">
+    <MakeDir Directories="$(WindBoardGeneratedLocalizationDir)" />
+    <Exec Command="pwsh -NoLogo -NoProfile -ExecutionPolicy Bypass -File &quot;$(MSBuildProjectDirectory)\Build\GenerateLocalizationMetadata.ps1&quot; -ProjectDir &quot;$(MSBuildProjectDirectory)&quot; -OutputFile &quot;$(WindBoardLocalizationMetadataFile)&quot;" />
   </Target>
 
   <Target Name="WindBoard_BuildCrashReporterIntoAppOutput" AfterTargets="Build">
