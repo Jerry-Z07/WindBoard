@@ -11,7 +11,7 @@
 
         <Grid>
         <ScrollViewer>
-            <StackPanel Spacing="4" Padding="24">
+            <StackPanel Style="{StaticResource SettingsPageRootStackPanelStyle}">
                 <InfoBar
                     x:Name="ActionFeedbackBar"
                     IsOpen="False"
@@ -19,7 +19,7 @@
                     IsIconVisible="True"
                     Severity="Informational" />
 
-                <StackPanel Spacing="4">
+                <StackPanel Style="{StaticResource SettingsPageSectionStackPanelStyle}">
                     <TextBlock Text="{l10n:Loc Key=Settings_Debug_Logs_SectionTitle}" Style="{ThemeResource SubtitleTextBlockStyle}" />
 
                     <controls:SettingsCard
@@ -65,7 +65,7 @@
                     </controls:SettingsCard>
                 </StackPanel>
 
-                <StackPanel Spacing="4">
+                <StackPanel Style="{StaticResource SettingsPageSectionStackPanelStyle}">
                     <TextBlock Text="{l10n:Loc Key=Settings_Debug_SettingsFile_SectionTitle}" Style="{ThemeResource SubtitleTextBlockStyle}" />
 
                     <controls:SettingsCard
@@ -108,7 +108,7 @@
                     </controls:SettingsCard>
                 </StackPanel>
 
-                <StackPanel Spacing="4">
+                <StackPanel Style="{StaticResource SettingsPageSectionStackPanelStyle}">
                     <TextBlock Text="{l10n:Loc Key=Settings_Debug_Tests_SectionTitle}" Style="{ThemeResource SubtitleTextBlockStyle}" />
 
                     <controls:SettingsCard
@@ -168,7 +168,7 @@
                     </controls:SettingsCard>
                 </StackPanel>
 
-                <StackPanel x:Name="SessionSection" Spacing="4">
+                <StackPanel x:Name="SessionSection" Style="{StaticResource SettingsPageSectionStackPanelStyle}">
                     <TextBlock Text="{l10n:Loc Key=Settings_Debug_Session_SectionTitle}" Style="{ThemeResource SubtitleTextBlockStyle}" />
 
                     <controls:SettingsCard

@@ -21,8 +21,8 @@
 
         <Grid>
         <ScrollViewer>
-            <StackPanel Spacing="4" Padding="24">
-                <StackPanel Spacing="4">
+            <StackPanel Style="{StaticResource SettingsPageRootStackPanelStyle}">
+                <StackPanel Style="{StaticResource SettingsPageSectionStackPanelStyle}">
                     <TextBlock Text="{l10n:Loc Key=Common_Preview}" Style="{ThemeResource SubtitleTextBlockStyle}" />
 
                     <!-- 预览区域固定为浅色主题，保持与主界面“画笔设置 Flyout”一致 -->
@@ -136,7 +136,7 @@
                     </Border>
                 </StackPanel>
 
-                <StackPanel Spacing="4">
+                <StackPanel Style="{StaticResource SettingsPageSectionStackPanelStyle}">
                     <TextBlock Text="{l10n:Loc Key=Common_Color}" Style="{ThemeResource SubtitleTextBlockStyle}" />
 
                     <controls:SettingsCard
@@ -182,7 +182,7 @@
                     </StackPanel>
                 </StackPanel>
 
-                <StackPanel Spacing="4">
+                <StackPanel Style="{StaticResource SettingsPageSectionStackPanelStyle}">
                     <TextBlock Text="{l10n:Loc Key=Common_Thickness}" Style="{ThemeResource SubtitleTextBlockStyle}" />
 
                     <controls:SettingsCard Header="{l10n:Loc Key=Settings_Pen_UseThicknessSlider_Header}">
@@ -196,10 +196,10 @@
                         </controls:SettingsCard.Content>
                     </controls:SettingsCard>
 
-                    <StackPanel x:Name="ThicknessPresetsEditorPanel" Spacing="4">
+                    <StackPanel x:Name="ThicknessPresetsEditorPanel" Style="{StaticResource SettingsPageSectionStackPanelStyle}">
                         <TextBlock Text="{l10n:Loc Key=Settings_Pen_ThicknessPresets_Hint}" Opacity="0.75" TextWrapping="WrapWholeWords" />
 
-                        <Grid ColumnSpacing="4">
+                        <Grid Style="{StaticResource SettingsPageCardGridStyle}">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*" />
                                 <ColumnDefinition Width="*" />

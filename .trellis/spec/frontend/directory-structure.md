@@ -71,7 +71,8 @@ WindBoard/
 │       ├── Services/
 │       └── UI/
 ├── Localization/                    # L10n 标记扩展 + 资源文件
-├── Settings/                        # AppSettingsService + AppSettingsStore
+├── Settings/                        # AppSettingsService、AppSettingsStore、设置页共享资源
+│   ├── SettingsPageResources.xaml   # 设置页共用间距/容器样式，App.xaml 合并后供各 Page 直接引用
 ├── Errors/                          # AppErrorService
 ├── Reminders/                       # AppReminderService
 ├── Updates/                         # AppUpdateService

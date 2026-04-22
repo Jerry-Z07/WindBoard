@@ -11,7 +11,7 @@
 
         <Grid>
         <ScrollViewer>
-            <StackPanel Spacing="4" Padding="24">
+            <StackPanel Style="{StaticResource SettingsPageRootStackPanelStyle}">
                 <TextBlock Text="{l10n:Loc Key=Settings_Camouflage_Description}" Opacity="0.75" TextWrapping="WrapWholeWords" />
 
                 <controls:SettingsCard Header="{l10n:Loc Key=Settings_Camouflage_Enabled_Header}">
@@ -24,7 +24,7 @@
                 </controls:SettingsCard>
 
                 <!-- 伪装未启用时，隐藏下方选项，避免误解为“已生效”。 -->
-                <StackPanel x:Name="OptionsPanel" Spacing="4" Visibility="Collapsed">
+                <StackPanel x:Name="OptionsPanel" Style="{StaticResource SettingsPageSectionStackPanelStyle}" Visibility="Collapsed">
                     <controls:SettingsCard
                         Header="{l10n:Loc Key=Settings_Camouflage_WindowTitle_Header}">
                         <controls:SettingsCard.Content>

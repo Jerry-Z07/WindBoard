@@ -183,6 +183,54 @@ L10n.Format("Settings_Camouflage_CreateShortcut_Success_Fmt", shortcutPath)
     PaneToggleRequested="OnTitleBarPaneToggleRequested" />
 ```
 
+### Convention: 设置页共享 ResourceDictionary
+
+**What**：当多个设置页需要复用同一套间距、Padding、卡片网格节奏时，把常量和基础容器样式放到 `WindBoard/Settings/SettingsPageResources.xaml`，并由 `WindBoard/App.xaml` 的 `MergedDictionaries` 统一合并。
+
+**Why**：设置页常量散落在各个 XAML 页面里时，一次视觉收敛会演变成多文件批量修改，容易漏改并造成密度漂移。共享 ResourceDictionary 可以把“单一视觉决策”收敛成单点配置。
+
+**Current contract**：
+
+- 资源文件路径：`WindBoard/Settings/SettingsPageResources.xaml`
+- 合并入口：`WindBoard/App.xaml`
+- 当前共享键：`SettingsCardGroupSpacing`、`SettingsPagePadding`
+- 当前共享样式：`SettingsPageRootStackPanelStyle`、`SettingsPageSectionStackPanelStyle`、`SettingsPageCardGridStyle`
+
+**Use when**：
+
+- 3 个及以上设置页需要同一视觉常量
+- 复用的是布局节奏，不是单页私有表单排版
+- 目标容器是设置页根 `StackPanel`、分组 `StackPanel` 或卡片列表 `Grid`
+
+**Example**：
+
+```xaml
+<!-- WindBoard/App.xaml -->
+<ResourceDictionary.MergedDictionaries>
+    <XamlControlsResources xmlns="using:Microsoft.UI.Xaml.Controls" />
+    <ResourceDictionary Source="ms-appx:///Settings/SettingsPageResources.xaml" />
+</ResourceDictionary.MergedDictionaries>
+
+<!-- Settings page root -->
+<StackPanel Style="{StaticResource SettingsPageRootStackPanelStyle}">
+    <StackPanel Style="{StaticResource SettingsPageSectionStackPanelStyle}">
+        <TextBlock Style="{ThemeResource SubtitleTextBlockStyle}" Text="Section" />
+        <controls:SettingsCard Header="Example" />
+    </StackPanel>
+
+    <Grid Style="{StaticResource SettingsPageCardGridStyle}">
+        <controls:SettingsCard Header="Left" />
+        <controls:SettingsCard Grid.Column="1" Header="Right" />
+    </Grid>
+</StackPanel>
+```
+
+**Don't**：
+
+- 不要把单页私有的预览区、弹窗内容间距强行抽进这个字典
+- 不要为了一个页面或一个局部控件新建全局键
+- 不要在多个设置页里重复写 `Spacing="4" Padding="24"` 这一类共享布局常量
+
 ### 避免（来自 winui-app skill + deslop skill）
 
 - 散落的主题画刷和样式（应集中到 App.xaml 或共享 ResourceDictionary）

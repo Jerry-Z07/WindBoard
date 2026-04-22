@@ -11,7 +11,7 @@
 
         <Grid>
         <ScrollViewer>
-            <StackPanel Spacing="4" Padding="24">
+            <StackPanel Style="{StaticResource SettingsPageRootStackPanelStyle}">
                 <InfoBar
                     x:Name="DebugUnlockInfoBar"
                     IsOpen="False"
