@@ -21,11 +21,8 @@ public sealed class DownloadSourceUrlRewriterTests
         string a = DownloadSourceUrlRewriter.Rewrite(original, DownloadSourceId.GhProxy);
         Assert.Equal("https://gh-proxy.top/" + original, a);
 
-        string b = DownloadSourceUrlRewriter.Rewrite(original, DownloadSourceId.Felicity);
-        Assert.Equal("https://gh.felicity.ac.cn/" + original, b);
-
-        string c = DownloadSourceUrlRewriter.Rewrite(original, DownloadSourceId.ZeroSeven);
-        Assert.Equal("https://ghm.078465.xyz/" + original, c);
+        string b = DownloadSourceUrlRewriter.Rewrite(original, DownloadSourceId.ZeroSeven);
+        Assert.Equal("https://ghm.078465.xyz/" + original, b);
     }
 
     [Fact]
@@ -39,8 +36,8 @@ public sealed class DownloadSourceUrlRewriterTests
     [Fact]
     public void BuildFailoverOrder_Should_Start_With_Preferred_And_End_With_Github()
     {
-        IReadOnlyList<DownloadSourceId> order = DownloadSourceUrlRewriter.BuildFailoverOrder(DownloadSourceId.Felicity);
-        Assert.Equal(DownloadSourceId.Felicity, order[0]);
+        IReadOnlyList<DownloadSourceId> order = DownloadSourceUrlRewriter.BuildFailoverOrder(DownloadSourceId.GhProxy);
+        Assert.Equal(DownloadSourceId.GhProxy, order[0]);
         Assert.Equal(DownloadSourceId.Github, order[^1]);
     }
 }
