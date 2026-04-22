@@ -59,8 +59,7 @@ WindBoard/
 │   │   ├── ImportFlow.cs
 │   │   ├── Models/
 │   │   ├── Services/
-│   │   └── UI/
-│   │       └── ImportDialog.xaml(.cs)  # ContentDialog
+│   │   └── UI/                         # 可选：仅在需要独立 XAML 页面/对话框时创建
 │   ├── ScreenAnnotation/
 │   │   ├── ScreenAnnotationFlow.cs
 │   │   ├── Services/
@@ -101,7 +100,7 @@ FeatureName/
 | 场景 | 基类 | 示例 |
 |------|------|------|
 | 设置页 | `Page` | `DockSettingsPage`、`CamouflageSettingsPage` |
-| 弹窗对话框 | `ContentDialog` | `ImportDialog` |
+| 弹窗对话框 | `ContentDialog` | `ImportFlow.ConfirmReplaceCurrentPageRiskAsync` |
 | 独立窗口 | `Window` | `ScreenAnnotationWindow` |
 
 ### MainWindow Partial 拆分
@@ -128,7 +127,7 @@ FeatureName/
 | 类型 | 约定 | 示例 |
 |------|------|------|
 | XAML 页面 | `{Feature}{Purpose}Page.xaml` | `DockSettingsPage.xaml` |
-| XAML 对话框 | `{Feature}Dialog.xaml` | `ImportDialog.xaml` |
+| XAML 对话框 | `{Feature}Dialog.xaml` | `（按需创建；当前导入流程无独立 XAML 对话框）` |
 | XAML 窗口 | `{Feature}Window.xaml` | `ScreenAnnotationWindow.xaml` |
 | Partial class | `{ClassName}.{Feature}.cs` | `MainWindow.Pages.cs` |
 | Flow 协调器 | `{Feature}Flow.cs` | `ExportFlow.cs` |

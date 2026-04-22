@@ -124,8 +124,8 @@ xmlns:l10n="using:WindBoard.Localization"
 
 <TextBlock Text="{l10n:Loc Key=Settings_Dock_Title}" />
 <Button Content="{l10n:Loc Key=Common_SelectEllipsis}" />
-<ContentDialog Title="{l10n:Loc Key=ImportDialog_Title}"
-               PrimaryButtonText="{l10n:Loc Key=Common_Import}" />
+<ContentDialog Title="{l10n:Loc Key=Common_ConfirmOverwrite_Title}"
+               PrimaryButtonText="{l10n:Loc Key=Common_Overwrite}" />
 <ToolTipService.ToolTip="{l10n:Loc Key=Some_Tooltip}" />
 ```
 
@@ -136,7 +136,7 @@ L10n.Get("Common_BringToFront")
 L10n.Format("Settings_Camouflage_CreateShortcut_Success_Fmt", shortcutPath)
 ```
 
-**Key 命名约定**：`功能域_子项`（如 `Settings_Dock_Title`、`Common_Delete`、`ImportDialog_Queue_Title`）
+**Key 命名约定**：`功能域_子项`（如 `Settings_Dock_Title`、`Common_Delete`、`Import_Failed_Title`）
 
 ---
 
