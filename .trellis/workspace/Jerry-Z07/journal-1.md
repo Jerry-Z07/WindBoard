@@ -103,3 +103,37 @@
 ### Next Steps
 
 - None - task complete
+
+
+## Session 3: 移除导入窗口并改为直接文件选择器导入
+
+**Date**: 2026-04-22
+**Task**: 移除导入窗口并改为直接文件选择器导入
+**Branch**: `develop`
+
+### Summary
+
+移除 ImportDialog、ImportQueueState 与工作区预览服务，导入入口改为 FileOpenPicker 直导；同步 .trellis/spec/frontend 文档，删除过时 ImportDialog 结构与示例。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `6c52be0` | (see git log) |
+| `af5c12d` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
