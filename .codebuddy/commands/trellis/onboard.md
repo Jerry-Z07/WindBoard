@@ -85,16 +85,16 @@ Even after injecting guidelines, AI has limited context window. As conversation 
 
 ### Understanding spec/ subdirectories
 
-**frontend/** - Single-layer frontend knowledge:
-- Component patterns (how to write components in THIS project)
-- State management rules (Redux? Zustand? Context?)
-- Styling conventions (CSS modules? Tailwind? Styled-components?)
-- Hook patterns (custom hooks, data fetching)
+**frontend/** - Desktop UI knowledge:
+- Component patterns (WinUI 3, XAML, UserControl)
+- State management (no MVVM; direct UI manipulation, static singleton services)
+- Rendering conventions (Vortice DirectX, D3D11/D2D1)
+- Feature module structure (`*Flow.cs`, `Models/`, `Services/`, `UI/`)
 
-**backend/** - Single-layer backend knowledge:
-- API design patterns (REST? GraphQL? tRPC?)
-- Database conventions (query patterns, migrations)
-- Error handling standards
+**backend/** - Domain and infrastructure knowledge:
+- Command pattern (`IBoardCommand`, `BoardSession`)
+- API design patterns (not applicable; this is a desktop app)
+- Error handling standards (`AppLog`, `AppErrorService`)
 - Logging and monitoring rules
 
 **guides/** - Cross-layer thinking guides:

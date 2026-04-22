@@ -12,17 +12,15 @@ Before submitting or committing, use this checklist to ensure work completeness.
 
 ```bash
 # Must pass
-pnpm lint
-pnpm type-check
-pnpm test
+dotnet build WindBoard.slnx -c Release
+dotnet test WindBoard.slnx
 ```
 
-- [ ] `pnpm lint` passes with 0 errors?
-- [ ] `pnpm type-check` passes with no type errors?
-- [ ] Tests pass?
-- [ ] No `console.log` statements (use logger)?
-- [ ] No non-null assertions (the `x!` operator)?
-- [ ] No `any` types?
+- [ ] `dotnet build` passes with 0 errors?
+- [ ] `dotnet test` passes with no failures?
+- [ ] No `Console.WriteLine` statements (use `AppLog`)?
+- [ ] No null-forgiving operator (`x!`) without justification?
+- [ ] No `dynamic` or untyped usage without justification?
 
 ### 2. Code-Spec Sync
 
@@ -53,23 +51,21 @@ If this change touches infra or cross-layer contracts, this is a blocking checkl
 In pipeline mode, the finish agent will automatically detect and execute spec updates when gaps are found.
 If running this checklist manually, ensure spec sync is complete before committing — run `/trellis:update-spec` if needed.
 
-### 3. API Changes
+### 3. Public API Changes
 
-If you modified API endpoints:
+If you modified public interfaces or command signatures:
 
-- [ ] Input schema updated?
-- [ ] Output schema updated?
-- [ ] API documentation updated?
-- [ ] Client code updated to match?
+- [ ] Interface signatures updated?
+- [ ] Callers updated to match?
+- [ ] Tests updated to cover new contract?
 
-### 4. Database Changes
+### 4. Persistence / Data Format Changes
 
-If you modified database schema:
+If you modified file formats, serialization, or persistence:
 
-- [ ] Migration file created?
-- [ ] Schema file updated?
-- [ ] Related queries updated?
-- [ ] Seed data updated (if applicable)?
+- [ ] Version compatibility considered?
+- [ ] Related parsers/serializers updated?
+- [ ] Import/export logic updated (if applicable)?
 
 ### 5. Cross-Layer Verification
 
@@ -82,10 +78,10 @@ If the change spans multiple layers:
 
 ### 6. Manual Testing
 
-- [ ] Feature works in browser/app?
+- [ ] Feature works in the app?
 - [ ] Edge cases tested?
 - [ ] Error states tested?
-- [ ] Works after page refresh?
+- [ ] Works after app restart?
 
 ---
 
@@ -93,7 +89,7 @@ If the change spans multiple layers:
 
 ```bash
 # 1. Code checks
-pnpm lint && pnpm type-check
+dotnet build WindBoard.slnx -c Release
 
 # 2. View changes
 git status
@@ -113,7 +109,7 @@ git diff --name-only
 | Migration not created | Schema out of sync | Check db/migrations/ |
 | Types not synced | Runtime errors | Check shared types |
 | Tests not updated | False confidence | Run full test suite |
-| Console.log left in | Noisy production logs | Search for console.log |
+| Console.WriteLine left in | Noisy production logs | Search for Console.WriteLine |
 
 ---
 

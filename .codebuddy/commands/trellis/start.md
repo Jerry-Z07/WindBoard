@@ -295,7 +295,7 @@ Implement the task described in `prd.md`.
 
 - Follow all specs injected into implement context
 - Keep changes scoped to requirements
-- Run lint and typecheck before finishing
+- Run `dotnet build WindBoard.slnx -c Release` and `dotnet test WindBoard.slnx` before finishing
 
 **Step 9: Check Quality** `[AI]`
 
@@ -303,11 +303,11 @@ Run a quality pass against check context:
 
 - Review all code changes against the specs
 - Fix issues directly
-- Ensure lint and typecheck pass
+- Ensure `dotnet build WindBoard.slnx -c Release` and `dotnet test WindBoard.slnx` pass
 
 **Step 10: Complete** `[AI]`
 
-1. Verify lint and typecheck pass
+1. Verify `dotnet build WindBoard.slnx -c Release` and `dotnet test WindBoard.slnx` pass
 2. Report what was implemented
 3. Remind user to:
    - Test the changes

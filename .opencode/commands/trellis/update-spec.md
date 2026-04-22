@@ -189,7 +189,7 @@ If you added a new section or the code-spec status changed, update the category'
 **Decision**: We chose Option X because...
 
 **Example**:
-\`\`\`typescript
+\`\`\`csharp
 // How it's implemented
 code example
 \`\`\`
@@ -207,7 +207,7 @@ code example
 **Why**: Why we do it this way in this project.
 
 **Example**:
-\`\`\`typescript
+\`\`\`csharp
 // How to follow this convention
 code example
 \`\`\`

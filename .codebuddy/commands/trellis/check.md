@@ -20,6 +20,11 @@ Execute these steps:
 
 4. **Read the specific guideline files** referenced in the Quality Check section (e.g., `quality-guidelines.md`, `conventions.md`). The index is NOT the goal — it points you to the actual guideline files. Read those files and review your code against them.
 
-5. **Run lint and typecheck** for the affected package.
+5. **Run build and tests** for the affected project.
+
+```bash
+dotnet build WindBoard.slnx -c Release
+dotnet test WindBoard.slnx
+```
 
 6. **Report any violations** and fix them if found.
