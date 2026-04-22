@@ -11,7 +11,7 @@
 
         <Grid>
         <ScrollViewer>
-            <StackPanel Spacing="16" Padding="24">
+            <StackPanel Spacing="4" Padding="24">
                 <InfoBar
                     x:Name="LanguageRestartInfoBar"
                     IsOpen="False"
@@ -33,7 +33,6 @@
                     <controls:SettingsCard.Content>
                         <ComboBox
                             x:Name="LanguageComboBox"
-                            MinWidth="160"
                             SelectedValuePath="Tag"
                             SelectionChanged="OnLanguageSelectionChanged" />
                     </controls:SettingsCard.Content>
@@ -52,7 +51,6 @@
                     <controls:SettingsCard.Content>
                         <ComboBox
                             x:Name="StartupWindowModeComboBox"
-                            MinWidth="160"
                             SelectedValuePath="Tag"
                             SelectionChanged="OnStartupWindowModeSelectionChanged" />
                     </controls:SettingsCard.Content>

@@ -11,16 +11,16 @@
 
         <Grid>
         <ScrollViewer>
-            <StackPanel Spacing="16" Padding="24">
+            <StackPanel Spacing="4" Padding="24">
                 <TextBlock
                     Text="{l10n:Loc Key=Settings_Shortcuts_Description}"
                     Opacity="0.75"
                     TextWrapping="WrapWholeWords" />
 
-                <StackPanel Spacing="10">
+                <StackPanel Spacing="4">
                     <TextBlock Text="{l10n:Loc Key=Settings_Shortcuts_Keyboard_SectionTitle}" Style="{ThemeResource SubtitleTextBlockStyle}" />
 
-                    <StackPanel Spacing="12">
+                    <StackPanel Spacing="4">
                         <controls:SettingsCard Header="{l10n:Loc Key=Settings_Shortcuts_ConflictReminder_Header}">
                             <controls:SettingsCard.Content>
                                 <ToggleSwitch
@@ -83,14 +83,14 @@
                     </controls:SettingsCard>
                 </StackPanel>
 
-                <StackPanel Spacing="10">
+                <StackPanel Spacing="4">
                     <TextBlock Text="{l10n:Loc Key=Settings_Shortcuts_Mouse_SectionTitle}" Style="{ThemeResource SubtitleTextBlockStyle}" />
                     <TextBlock
                         Text="{l10n:Loc Key=Settings_Shortcuts_Mouse_SectionDescription}"
                         Opacity="0.75"
                         TextWrapping="WrapWholeWords" />
 
-                    <StackPanel Spacing="12">
+                    <StackPanel Spacing="4">
                         <controls:SettingsCard Header="{l10n:Loc Key=Settings_Shortcuts_Mouse_PanViewport_Title}">
                             <controls:SettingsCard.HeaderIcon>
                                 <!-- 平移视口：使用“地图/平移”语义图标 -->

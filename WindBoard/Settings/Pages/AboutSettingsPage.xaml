@@ -11,7 +11,7 @@
 
         <Grid>
         <ScrollViewer>
-            <StackPanel Spacing="16" Padding="24">
+            <StackPanel Spacing="4" Padding="24">
                 <InfoBar
                     x:Name="DebugUnlockInfoBar"
                     IsOpen="False"
@@ -68,7 +68,6 @@
                     <controls:SettingsCard.Content>
                         <ComboBox
                             x:Name="AutoCheckUpdatesComboBox"
-                            MinWidth="160"
                             SelectedValuePath="Tag"
                             SelectionChanged="OnAutoCheckUpdatesSelectionChanged">
                             <ComboBoxItem Content="{l10n:Loc Key=Settings_About_Interval_Weekly}" Tag="weekly" />
@@ -89,7 +88,6 @@
                     <controls:SettingsCard.Content>
                         <ComboBox
                             x:Name="DownloadSourceComboBox"
-                            MinWidth="160"
                             SelectedValuePath="Tag"
                             SelectionChanged="OnDownloadSourceSelectionChanged">
                             <ComboBoxItem Content="{l10n:Loc Key=Updates_DownloadSource_Auto}" Tag="auto" />
