@@ -3,17 +3,16 @@ using System.Collections.Generic;
 using System.IO;
 using System.Numerics;
 using System.Threading.Tasks;
-using DevWinUI;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Windows.Storage;
+using Windows.Storage.Pickers;
 using WindBoard.Board.Elements;
 using WindBoard.Board.Editing;
 using WindBoard.Board.Persistence;
 using WindBoard.Board.Persistence.Wbix;
 using WindBoard.Features.Import.Models;
 using WindBoard.Features.Import.Services;
-using WindBoard.Features.Import.UI;
 using WindBoard.Features.Import.Wbi;
 using WindBoard.Localization;
 using WindBoard.Logging;
@@ -40,7 +39,7 @@ namespace WindBoard.Features.Import
             _selectElement = selectElement;
         }
 
-        public async Task StartAsync(XamlRoot xamlRoot, Window? ownerWindow, IntPtr hwnd)
+        public async Task StartAsync(XamlRoot xamlRoot, IntPtr hwnd)
         {
             if (xamlRoot is null)
             {
@@ -53,64 +52,104 @@ namespace WindBoard.Features.Import
                 return;
             }
 
-            var dialog = new ImportDialog(hwnd)
-            {
-                XamlRoot = xamlRoot,
-            };
-
-            WindowedDialogPresentationPlan presentationPlan = WindowedDialogPresentationPlanBuilder.BuildImport(ownerWindow is not null, hwnd);
-
-            ContentDialogResult result;
-            if (presentationPlan.Kind == DialogPresentationKind.WindowedContentDialog && ownerWindow is not null)
-            {
-                object? windowedContent = dialog.DetachContentForWindowedHost();
-
-                var windowedDialog = new WindowedContentDialog
-                {
-                    Title = dialog.Title,
-                    WindowTitle = dialog.Title?.ToString() ?? string.Empty,
-                    Content = windowedContent,
-                    PrimaryButtonText = dialog.PrimaryButtonText,
-                    CloseButtonText = dialog.CloseButtonText,
-                    DefaultButton = dialog.DefaultButton,
-                    IsPrimaryButtonEnabled = dialog.IsPrimaryButtonEnabled,
-                    PrimaryButtonStyle = dialog.PrimaryButtonStyle,
-                    CloseButtonStyle = dialog.CloseButtonStyle,
-                    OwnerWindow = ownerWindow,
-                    HasTitleBar = true,
-                    CenterInParent = true,
-                    IsResizable = false,
-                    ContentMinWidth = presentationPlan.MinimumWidth,
-                };
-
-                dialog.AttachWindowedHost(windowedDialog, presentationPlan);
-                windowedDialog.PrimaryButtonClick += dialog.OnWindowedPrimaryButtonClick;
-
-                try
-                {
-                    result = await windowedDialog.ShowAsync();
-                }
-                finally
-                {
-                    windowedDialog.PrimaryButtonClick -= dialog.OnWindowedPrimaryButtonClick;
-                    dialog.DetachWindowedHost();
-                }
-            }
-            else
-            {
-                result = await dialog.ShowAsync();
-            }
-
-            if (result != ContentDialogResult.Primary)
+            IReadOnlyList<StorageFile>? files = await PickMultipleFilesAsync(xamlRoot, hwnd);
+            if (files is null || files.Count == 0)
             {
                 return;
             }
 
-            if (dialog.Submission is not ImportDialogSubmission submission)
+            ImportDialogSubmission submission = await BuildSubmissionFromPickedFilesAsync(xamlRoot, files);
+            await ExecuteSubmissionAsync(xamlRoot, submission);
+        }
+
+        private static async Task<IReadOnlyList<StorageFile>?> PickMultipleFilesAsync(XamlRoot xamlRoot, IntPtr hwnd)
+        {
+            if (hwnd == IntPtr.Zero)
             {
-                return;
+                await DialogHelpers.ShowMessageAsync(xamlRoot, L10n.Get("Import_Failed_Title"), L10n.Get("Common_WindowHandleFailed_Message"));
+                return null;
             }
 
+            try
+            {
+                var picker = new FileOpenPicker();
+                WinRT.Interop.InitializeWithWindow.Initialize(picker, hwnd);
+
+                picker.SuggestedStartLocation = PickerLocationId.DocumentsLibrary;
+                picker.FileTypeFilter.Clear();
+                picker.FileTypeFilter.Add("*");
+
+                return await picker.PickMultipleFilesAsync();
+            }
+            catch (Exception ex)
+            {
+                AppLog.Warn("Import", "打开导入文件选择器失败。", ex);
+                await DialogHelpers.ShowMessageAsync(xamlRoot, L10n.Get("Import_Failed_Title"), ex.Message);
+                return null;
+            }
+        }
+
+        private static async Task<ImportDialogSubmission> BuildSubmissionFromPickedFilesAsync(XamlRoot xamlRoot, IReadOnlyList<StorageFile> files)
+        {
+            if (TryGetFirstWorkspaceFile(files, out StorageFile? workspaceFile, out ImportFileContentKind workspaceKind))
+            {
+                if (files.Count > 1)
+                {
+                    AppLog.Warn("Import", $"检测到工作区文件与其它文件同时选择，按工作区导入处理：selected={files.Count}, workspace={workspaceFile!.Path}");
+                    await DialogHelpers.ShowMessageAsync(xamlRoot, L10n.Get("Import_Tip_Title"), L10n.Get("ImportDialog_WorkspaceExclusive_Message"));
+                }
+
+                return workspaceKind == ImportFileContentKind.Wbix
+                    ? new ImportDialogSubmission.Wbix(new ImportWbixRequest(workspaceFile!, ImportWbixMode.AppendAfterLastPage))
+                    : new ImportDialogSubmission.Wbi(new ImportWbiRequest(workspaceFile!, ImportWbixMode.AppendAfterLastPage));
+            }
+
+            var imageFiles = new List<StorageFile>();
+            var mediaFiles = new List<StorageFile>();
+            var textFiles = new List<StorageFile>();
+            var otherFiles = new List<StorageFile>();
+
+            for (int i = 0; i < files.Count; i++)
+            {
+                StorageFile file = files[i];
+                if (string.IsNullOrWhiteSpace(file.Path))
+                {
+                    continue;
+                }
+
+                ImportFileContentKind kind = ImportFileTypeResolver.Resolve(file.Name);
+                switch (kind)
+                {
+                    case ImportFileContentKind.Image:
+                        imageFiles.Add(file);
+                        break;
+                    case ImportFileContentKind.Video:
+                    case ImportFileContentKind.Audio:
+                        mediaFiles.Add(file);
+                        break;
+                    case ImportFileContentKind.Text:
+                    case ImportFileContentKind.UrlShortcut:
+                        textFiles.Add(file);
+                        break;
+                    default:
+                        otherFiles.Add(file);
+                        break;
+                }
+            }
+
+            var request = new ImportElementsRequest(
+                ImageFiles: imageFiles,
+                MediaFiles: mediaFiles,
+                TextFiles: textFiles,
+                OtherFiles: otherFiles,
+                TextContent: null,
+                LinkLines: null);
+
+            return new ImportDialogSubmission.Elements(request);
+        }
+
+        private async Task ExecuteSubmissionAsync(XamlRoot xamlRoot, ImportDialogSubmission submission)
+        {
             switch (submission)
             {
                 case ImportDialogSubmission.Wbix wbix:
@@ -132,6 +171,28 @@ namespace WindBoard.Features.Import
                     }
                     return;
             }
+        }
+
+        private static bool TryGetFirstWorkspaceFile(IReadOnlyList<StorageFile> files, out StorageFile? workspaceFile, out ImportFileContentKind workspaceKind)
+        {
+            workspaceFile = null;
+            workspaceKind = ImportFileContentKind.Other;
+
+            for (int i = 0; i < files.Count; i++)
+            {
+                StorageFile file = files[i];
+                ImportFileContentKind kind = ImportFileTypeResolver.Resolve(file.Name);
+                if (kind is not (ImportFileContentKind.Wbix or ImportFileContentKind.Wbi))
+                {
+                    continue;
+                }
+
+                workspaceFile = file;
+                workspaceKind = kind;
+                return true;
+            }
+
+            return false;
         }
 
         private async Task ImportWbixAsync(XamlRoot xamlRoot, StorageFile file, ImportWbixMode mode)

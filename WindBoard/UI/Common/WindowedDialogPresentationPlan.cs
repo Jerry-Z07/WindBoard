@@ -16,24 +16,11 @@ namespace WindBoard.UI.Common
 
     internal static class WindowedDialogPresentationPlanBuilder
     {
-        private const double ImportInitialWidth = 1320d;
-        private const double ImportMinimumWidth = 1040d;
-        private const double ImportMinimumHeight = 620d;
-
         private const double UpdateTwoColumnInitialWidth = 1240d;
         private const double UpdateTwoColumnMinimumWidth = 980d;
         private const double UpdateSingleColumnInitialWidth = 760d;
         private const double UpdateSingleColumnMinimumWidth = 560d;
         private const double UpdateMinimumHeight = 0d;
-
-        internal static WindowedDialogPresentationPlan BuildImport(bool hasOwnerWindow, IntPtr ownerHwnd)
-        {
-            return new WindowedDialogPresentationPlan(
-                ResolveKind(hasOwnerWindow, ownerHwnd),
-                ImportInitialWidth,
-                ImportMinimumWidth,
-                ImportMinimumHeight);
-        }
 
         internal static WindowedDialogPresentationPlan BuildUpdateResult(bool hasOwnerWindow, IntPtr ownerHwnd, bool useTwoColumnLayout)
         {
