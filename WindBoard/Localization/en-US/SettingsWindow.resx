@@ -35,4 +35,7 @@
   <data name="SettingsWindow_Nav_About" xml:space="preserve">
     <value>About</value>
   </data>
+  <data name="SettingsWindow_Search_Placeholder" xml:space="preserve">
+    <value>Search settings</value>
+  </data>
 </root>

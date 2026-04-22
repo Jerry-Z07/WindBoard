@@ -146,15 +146,49 @@ L10n.Format("Settings_Camouflage_CreateShortcut_Success_Fmt", shortcutPath)
 
 - 使用原生 `CommandBar` 或其他标准 WinUI 命令表面，不自行发明工具栏
 - 优先组合/重样式内置 WinUI 控件，再考虑 CommunityToolkit，最后才自定义控件
+- 组件和 UI 交互优先使用原生 WinUI 实现，不要为按钮、返回按钮、侧边栏折叠按钮等常规控件做自绘替代
+- 当 `TitleBar`、`NavigationView`、`CommandBar`、`Button` 等原生控件已提供所需能力时，直接使用其内建能力，不在外层再包一层“仿原生”实现
 - 默认支持 Light/Dark 主题，使用主题感知资源和系统画刷
 - 使用 `x:Bind` 提升编译时安全性和性能
 - 保持简洁的可视化树，避免过深的 XAML 嵌套
+
+### 原生控件约定
+
+**What**：常规交互组件默认使用 WinUI 原生控件或其内建能力，不使用自绘去模拟已有系统控件。
+
+**Why**：原生控件能自动获得系统交互、主题、可访问性、标题栏集成和平台后续行为更新；自绘“仿原生”按钮容易在尺寸、边框、状态、焦点反馈和可访问性上与系统行为漂移。
+
+**Example**：
+
+```xaml
+<!-- Wrong: 原生 TitleBar 已有 BackButton/PaneToggleButton，仍自行塞入两个 Button 模拟 -->
+<TitleBar>
+    <TitleBar.LeftHeader>
+        <StackPanel Orientation="Horizontal">
+            <Button>
+                <SymbolIcon Symbol="Back" />
+            </Button>
+            <Button>
+                <FontIcon Glyph="&#xE700;" />
+            </Button>
+        </StackPanel>
+    </TitleBar.LeftHeader>
+</TitleBar>
+
+<!-- Correct: 使用 TitleBar 内建按钮，仅处理事件 -->
+<TitleBar
+    IsBackButtonVisible="True"
+    IsPaneToggleButtonVisible="True"
+    BackRequested="OnTitleBarBackRequested"
+    PaneToggleRequested="OnTitleBarPaneToggleRequested" />
+```
 
 ### 避免（来自 winui-app skill + deslop skill）
 
 - 散落的主题画刷和样式（应集中到 App.xaml 或共享 ResourceDictionary）
 - 不必要的 `Border` 包装（"双重卡片"反模式）
 - 硬编码颜色值（应使用主题资源）
+- 用自绘 `Button`、`Border`、`Path` 等去模拟已有原生控件的视觉与行为
 - 过度防御性检查（如在已验证的内部调用路径上加 null 检查）
 - AI 生成的多余注释（注释应解释"为什么"，而非重复代码含义）
 
@@ -168,6 +202,7 @@ L10n.Format("Settings_Camouflage_CreateShortcut_Success_Fmt", shortcutPath)
 - 硬编码用户可见字符串（必须使用 `{l10n:Loc Key=...}` 或 `L10n.Get()`)
 - 在 XAML 中使用 `Binding` 当 `x:Bind` 可用时
 - 忘记 `_isSyncingFromSettings` 防循环（设置页几乎都需要）
+- 在已有原生控件能力的场景下，用自绘组件替代系统按钮/标题栏按钮/导航按钮
 
 ### ✅ DO
 - 事件处理在 code-behind，业务逻辑在 Services
@@ -175,3 +210,4 @@ L10n.Format("Settings_Camouflage_CreateShortcut_Success_Fmt", shortcutPath)
 - 通过 `AppSettingsService.Instance.Update()` 修改设置
 - 新 Feature 遵循 Flow + Models + Services + UI 统一结构
 - 崩溃链路中的 UI 操作必须包裹在 try-catch 中
+- 先确认 WinUI 原生控件是否已满足需求，再决定是否需要重样式或引入额外控件

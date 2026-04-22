@@ -19,11 +19,9 @@
         </Style>
     </Page.Resources>
 
-    <Grid>
+        <Grid>
         <ScrollViewer>
             <StackPanel Spacing="16" Padding="24">
-                <TextBlock Text="{l10n:Loc Key=Settings_Pen_Title}" Style="{ThemeResource TitleTextBlockStyle}" />
-
                 <StackPanel Spacing="10">
                     <TextBlock Text="{l10n:Loc Key=Common_Preview}" Style="{ThemeResource SubtitleTextBlockStyle}" />
 

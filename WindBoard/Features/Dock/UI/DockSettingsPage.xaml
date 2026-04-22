@@ -28,10 +28,9 @@
         </Style>
     </Page.Resources>
 
-    <Grid>
+        <Grid>
         <ScrollViewer>
             <StackPanel Spacing="16" Padding="24">
-                <TextBlock Text="{l10n:Loc Key=Settings_Dock_Title}" Style="{ThemeResource TitleTextBlockStyle}" />
                 <TextBlock
                     Text="{l10n:Loc Key=Settings_Dock_DragHint}"
                     Opacity="0.75"
