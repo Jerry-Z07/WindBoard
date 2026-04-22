@@ -137,3 +137,36 @@
 ### Next Steps
 
 - None - task complete
+
+
+## Session 4: 设置窗口标题栏原生化与设置搜索
+
+**Date**: 2026-04-23
+**Task**: 设置窗口标题栏原生化与设置搜索
+**Branch**: `develop`
+
+### Summary
+
+重构设置窗口，使用原生 TitleBar 和 NavigationView 集成侧边栏折叠、返回导航与设置搜索；移除自绘仿原生按钮，清理相关文案，并同步更新 .trellis/spec/frontend，明确组件与 UI 优先使用原生 WinUI 实现。验证通过 dotnet build WindBoard.slnx -c Release 与 dotnet test WindBoard.slnx -c Release。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `e5a01d1` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
