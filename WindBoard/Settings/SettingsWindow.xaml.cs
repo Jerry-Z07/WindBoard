@@ -490,7 +490,10 @@ namespace WindBoard.Settings
             Dictionary<string, SettingsRootDefinition> definitions = new(StringComparer.Ordinal);
             foreach (SettingsRootDefinition definition in RootDefinitions)
             {
-                definitions.Add(definition.Tag, definition);
+                if (!definitions.TryAdd(definition.Tag, definition))
+                {
+                    throw new InvalidOperationException($"Settings 根节点 Tag 重复：{definition.Tag}");
+                }
             }
 
             return definitions;
@@ -508,7 +511,10 @@ namespace WindBoard.Settings
 
             foreach (SettingsRootDefinition definition in RootDefinitions)
             {
-                providers[definition.PageType] = definition.TitleProvider;
+                if (!providers.TryAdd(definition.PageType, definition.TitleProvider))
+                {
+                    throw new InvalidOperationException($"Settings 页面标题提供器重复：{definition.PageType.FullName}");
+                }
             }
 
             return providers;

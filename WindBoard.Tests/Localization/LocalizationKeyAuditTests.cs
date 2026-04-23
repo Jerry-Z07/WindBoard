@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using System.Xml.Linq;
 using WindBoard.Tests;
 using Xunit;
 
@@ -114,14 +115,19 @@ public sealed class LocalizationKeyAuditTests
         Assert.True(Directory.Exists(stringsDir), $"未找到默认语言资源目录：{stringsDir}");
 
         HashSet<string> keys = new(StringComparer.Ordinal);
-        Regex keyRegex = new(@"<data\s+name=""(?<key>[^""]+)""", RegexOptions.Compiled);
 
         foreach (string filePath in Directory.EnumerateFiles(stringsDir, "*.resw", SearchOption.TopDirectoryOnly))
         {
-            string text = File.ReadAllText(filePath);
-            foreach (Match match in keyRegex.Matches(text))
+            XDocument document = XDocument.Load(filePath, LoadOptions.None);
+            foreach (XElement element in document.Descendants())
             {
-                string key = match.Groups["key"].Value.Trim();
+                if (!string.Equals(element.Name.LocalName, "data", StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                string key = (string?)element.Attribute("name") ?? string.Empty;
+                key = key.Trim();
                 if (!string.IsNullOrWhiteSpace(key))
                 {
                     keys.Add(key);
