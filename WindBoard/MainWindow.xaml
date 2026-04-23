@@ -17,27 +17,47 @@
     <!-- 常用快捷键：撤销/重做（可在“设置-快捷键”中自定义） -->
     <!-- KeyboardAcceleratorPlacementMode=Hidden：避免在悬停控件时反复弹出快捷键提示 -->
     <Grid KeyboardAcceleratorPlacementMode="Hidden">
-        <controls:BoardCanvasControl x:Name="BoardCanvas" />
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
 
-        <!-- 统一提醒：右上角弹条（Toast 失败兜底 / 未来全屏模式通道预留） -->
-        <StackPanel
-            x:Name="ReminderBannerStackPanel"
-            HorizontalAlignment="Right"
-            VerticalAlignment="Top"
-            Margin="14,14,14,0"
-            Spacing="10"
-            MaxWidth="420" />
+        <TitleBar
+            x:Name="MainTitleBar"
+            Grid.Row="0"
+            Title="{l10n:Loc Key=MainWindow_Title}"
+            IsBackButtonVisible="False"
+            IsBackButtonEnabled="False"
+            IsPaneToggleButtonVisible="False">
+            <TitleBar.IconSource>
+                <BitmapIconSource
+                    UriSource="ms-appx:///Assets/icon.ico"
+                    ShowAsMonochrome="False" />
+            </TitleBar.IconSource>
+        </TitleBar>
 
-        <!-- 底部 Dock：左侧“更多/最小化/导入”，中部“工具/撤销重做”，右侧“+”入口 -->
-        <!-- 使用三块浮层分别对齐 Left/Center/Right，保证中部 Dock 始终以窗口居中对齐。 -->
-        <!-- 底部 Dock 固定为浅色主题：不随系统深色/浅色切换 -->
-        <Grid VerticalAlignment="Bottom" Margin="14,0,14,14" RequestedTheme="Light">
-            <Grid.Resources>
-                <ResourceDictionary>
-                    <!-- Dock 内按钮/切换按钮的交互态配色：选中态使用灰色高亮（截图风格） -->
-                    <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="#14FFFFFF" />
-                    <SolidColorBrush x:Key="ButtonBackgroundPressed" Color="#22FFFFFF" />
-                    <SolidColorBrush x:Key="ButtonBackgroundDisabled" Color="#00000000" />
+        <Grid Grid.Row="1">
+            <controls:BoardCanvasControl x:Name="BoardCanvas" />
+
+            <!-- 统一提醒：右上角弹条（Toast 失败兜底 / 未来全屏模式通道预留） -->
+            <StackPanel
+                x:Name="ReminderBannerStackPanel"
+                HorizontalAlignment="Right"
+                VerticalAlignment="Top"
+                Margin="14,14,14,0"
+                Spacing="10"
+                MaxWidth="420" />
+
+            <!-- 底部 Dock：左侧“更多/最小化/导入”，中部“工具/撤销重做”，右侧“+”入口 -->
+            <!-- 使用三块浮层分别对齐 Left/Center/Right，保证中部 Dock 始终以窗口居中对齐。 -->
+            <!-- 底部 Dock 固定为浅色主题：不随系统深色/浅色切换 -->
+            <Grid VerticalAlignment="Bottom" Margin="14,0,14,14" RequestedTheme="Light">
+                <Grid.Resources>
+                    <ResourceDictionary>
+                        <!-- Dock 内按钮/切换按钮的交互态配色：选中态使用灰色高亮（截图风格） -->
+                        <SolidColorBrush x:Key="ButtonBackgroundPointerOver" Color="#14FFFFFF" />
+                        <SolidColorBrush x:Key="ButtonBackgroundPressed" Color="#22FFFFFF" />
+                        <SolidColorBrush x:Key="ButtonBackgroundDisabled" Color="#00000000" />
 
                     <SolidColorBrush x:Key="ToggleButtonBackgroundPointerOver" Color="#14FFFFFF" />
                     <SolidColorBrush x:Key="ToggleButtonBackgroundPressed" Color="#22FFFFFF" />
@@ -628,6 +648,7 @@
                         <SymbolIcon Symbol="Add" />
                     </Button>
                 </StackPanel>
+            </Grid>
             </Grid>
         </Grid>
     </Grid>

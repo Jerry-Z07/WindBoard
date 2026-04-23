@@ -1,4 +1,5 @@
 using System;
+using Microsoft.UI;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -11,6 +12,29 @@ namespace WindBoard
     public sealed partial class MainWindow : Window
     {
         private bool _hasAppliedStartupWindowMode;
+
+        private void ConfigureTitleBar()
+        {
+            ExtendsContentIntoTitleBar = true;
+            SetTitleBar(MainTitleBar);
+
+            _appWindowTitleBar = AppWindow.TitleBar;
+            _appWindowTitleBar.ButtonBackgroundColor = Colors.Transparent;
+            _appWindowTitleBar.ButtonInactiveBackgroundColor = Colors.Transparent;
+        }
+
+        private void SyncTitleBarVisibilityFromWindowState()
+        {
+            AppWindow? appWindow = TryGetAppWindow();
+            if (appWindow is null)
+            {
+                return;
+            }
+
+            MainTitleBar.Visibility = appWindow.Presenter.Kind == AppWindowPresenterKind.FullScreen
+                ? Visibility.Collapsed
+                : Visibility.Visible;
+        }
 
         private void OnMoreMenuOpening(object sender, object e)
         {
@@ -91,6 +115,7 @@ namespace WindBoard
             }
 
             _hasAppliedStartupWindowMode = true;
+            SyncTitleBarVisibilityFromWindowState();
         }
 
         private void SyncTemporaryFullScreenMenuItemFromWindowState()
@@ -166,6 +191,7 @@ namespace WindBoard
 
                 // Windowed：回到 Overlapped Presenter（窗口化）；FullScreen：进入全屏 Presenter。
                 appWindow.SetPresenter(fullScreen ? AppWindowPresenterKind.FullScreen : AppWindowPresenterKind.Overlapped);
+                SyncTitleBarVisibilityFromWindowState();
                 return true;
             }
             catch (Exception ex)

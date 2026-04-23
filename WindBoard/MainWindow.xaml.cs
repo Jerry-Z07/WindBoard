@@ -35,11 +35,13 @@ namespace WindBoard
         private readonly BoardWorkspace _workspace = new();
         private readonly ObservableCollection<PageListItem> _pageItems = new();
         private bool _isUpdatingPageSelection;
+        private AppWindowTitleBar? _appWindowTitleBar;
         private SettingsWindow? _settingsWindow;
 
         public MainWindow()
         {
             InitializeComponent();
+            ConfigureTitleBar();
             _clearCanvasSlideController = new ClearCanvasSlideController(
                 new ClearCanvasSlideController.UiRefs
                 {
@@ -89,6 +91,7 @@ namespace WindBoard
             Activated += (_, _) =>
             {
                 TryApplyStartupWindowModeIfNeeded();
+                SyncTitleBarVisibilityFromWindowState();
                 ApplyCamouflageSettingsToWindow();
                 TryStartAutoUpdateCheckOnce();
             };
