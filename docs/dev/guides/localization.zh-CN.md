@@ -1,19 +1,20 @@
 # 本地化（Localization）
 
-本文档约定 WindBoard 的“用户可见文本”如何统一提取到资源字典（`.resx`），为后续多语言扩展做准备。
+本文档约定 WindBoard 的“用户可见文本”如何统一提取到资源字典（`.resw`），并通过 WinUI 3 / MRT Core 打包进 `WindBoard.pri`。
 
 ## 资源位置
 
 - 资源文件（按“语言/功能”拆分）：
-  - `WindBoard/Localization/zh-CN/*.resx`（默认语言：简体中文）
-  - `WindBoard/Localization/en-US/*.resx`（英文）
+  - `WindBoard/Strings/zh-CN/*.resw`（默认语言：简体中文）
+  - `WindBoard/Strings/en-US/*.resw`（英文）
 - C# 入口：`WindBoard/Localization/L10n.cs`
 - XAML 入口：`WindBoard/Localization/LocExtension.cs`
+- 构建期语言/Feature 元数据生成：`WindBoard/Build/GenerateLocalizationMetadata.ps1`
 
 说明：
 
 - 当前提供 `zh-CN`（简体中文，默认）与 `en-US`（英文）。后续新增其它语言时，按相同结构新增语言目录（例如 `ja-JP`）。
-- 运行时按 key 的第一个前缀段选择功能资源文件（例如 `Settings_*` -> `Settings.resx`）。
+- 运行时按 key 的第一个前缀段选择功能资源文件（例如 `Settings_*` -> `Settings.resw`），并通过 `WindBoard.pri` 读取。
 - 缺语言/缺 key 的回退策略：
   - 缺语言：自动回退到默认 `zh-CN`。
   - 缺 key：回退到 `fallback`（若提供）或 key 本身，并通过 `WindBoard.Logging.AppLog` 记录（每个 key 只记录一次）。
@@ -64,12 +65,12 @@ Header="{l10n:Loc Key=Settings_Dock_ShowUndoRedo_Header}"
 
 ## 新增语言步骤
 
-1. 复制 `WindBoard/Localization/zh-CN/` 为 `WindBoard/Localization/en-US/`（或其它目标语言目录，例如 `ja-JP`，以 `BCP 47` 规范命名）
+1. 复制 `WindBoard/Strings/zh-CN/` 为 `WindBoard/Strings/en-US/`（或其它目标语言目录，例如 `ja-JP`，以 `BCP 47` 规范命名）
 2. 逐项翻译资源值（Key 不变；文件按功能拆分）
 3. 运行 `dotnet test WindBoard.slnx` 确认本地化 Key 审计通过
 
 说明：
-- 设置页会从程序包内嵌入的本地化资源里动态枚举“已提供资源”的语言；
+- 设置页会从构建期根据 `Strings/**/*.resw` 生成的元数据里动态枚举“已提供资源”的语言；
 - 下拉框显示文案使用 `CultureInfo` 的 `NativeName`（并附带 `CultureName`），因此不需要为每种语言额外新增本地化 key。
 
 验证步骤：
@@ -82,4 +83,4 @@ Header="{l10n:Loc Key=Settings_Dock_ShowUndoRedo_Header}"
 - 单测：`WindBoard.Tests/Localization/LocalizationKeyAuditTests.cs`
   - 扫描 `WindBoard/**/*.xaml` 中 `{l10n:Loc Key=...}` 的 key
   - 扫描 `WindBoard/**/*.cs` 中 `L10n.Get/Format("...")` 的 key
-  - 声明所有引用到的 key 都存在于默认语言资源（`zh-CN/*.resx`）
+  - 声明所有引用到的 key 都存在于默认语言资源（`Strings/zh-CN/*.resw`）

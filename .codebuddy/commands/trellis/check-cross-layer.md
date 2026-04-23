@@ -48,7 +48,7 @@ Based on your change type, execute relevant checks below:
 - [ ] Write flow: UI -> API -> Service -> Database
 - [ ] Types/schemas correctly passed between layers?
 - [ ] Errors properly propagated to caller?
-- [ ] Loading/pending states handled at each layer?
+- [ ] Resource lifecycle handled at each layer (dispose, cleanup)?
 
 **Detailed Guide**: `.trellis/spec/guides/cross-layer-thinking-guide.md`
 

@@ -21,7 +21,7 @@ namespace WindBoard.Updates
             Major = major;
             Minor = minor;
             Patch = patch;
-            _prereleaseIds = prereleaseIds ?? Array.Empty<PrereleaseId>();
+            _prereleaseIds = prereleaseIds ?? [];
         }
 
         public int CompareTo(SemanticVersion other)
@@ -136,7 +136,7 @@ namespace WindBoard.Updates
                 return false;
             }
 
-            PrereleaseId[] prereleaseIds = Array.Empty<PrereleaseId>();
+            PrereleaseId[] prereleaseIds = [];
             if (!string.IsNullOrEmpty(prerelease))
             {
                 if (!TryParsePrerelease(prerelease, out prereleaseIds))
@@ -176,7 +176,7 @@ namespace WindBoard.Updates
 
         private static bool TryParsePrerelease(string prerelease, out PrereleaseId[] ids)
         {
-            ids = Array.Empty<PrereleaseId>();
+            ids = [];
 
             if (string.IsNullOrWhiteSpace(prerelease))
             {

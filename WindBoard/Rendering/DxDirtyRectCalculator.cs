@@ -32,15 +32,15 @@ namespace WindBoard.Rendering
 
             if (vertical is null && horizontal is null)
             {
-                return Array.Empty<RectI>();
+                return [];
             }
 
             if (vertical is not null && horizontal is not null)
             {
-                return new[] { vertical.Value, horizontal.Value };
+                return [vertical.Value, horizontal.Value];
             }
 
-            return new[] { vertical ?? horizontal ?? default };
+            return [vertical ?? horizontal ?? default];
         }
     }
 }

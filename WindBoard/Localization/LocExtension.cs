@@ -10,6 +10,7 @@ namespace WindBoard.Localization
     /// xmlns:l10n="using:WindBoard.Localization"
     /// Text="{l10n:Loc Key=Common_Close}"
     /// </code>
+    /// 说明：底层资源实现可演进，但 XAML 调用点统一保留 `{l10n:Loc Key=...}`，避免大面积迁移到 `x:Uid`。
     /// </summary>
     public sealed class LocExtension : MarkupExtension
     {
@@ -23,4 +24,3 @@ namespace WindBoard.Localization
         }
     }
 }
-

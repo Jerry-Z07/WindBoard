@@ -37,7 +37,7 @@ What mechanisms would prevent this from happening again?
 |------|-------------|---------|
 | **Documentation** | Write it down so people know | Update thinking guide |
 | **Architecture** | Make the error impossible structurally | Type-safe wrappers |
-| **Compile-time** | TypeScript strict, no any | Signature change causes compile error |
+| **Compile-time** | C# compiler strict, no `dynamic` | Signature change causes build error |
 | **Runtime** | Monitoring, alerts, scans | Detect orphan entities |
 | **Test Coverage** | E2E tests, integration tests | Verify full flow |
 | **Code Review** | Checklist, PR template | "Did you check X?" |

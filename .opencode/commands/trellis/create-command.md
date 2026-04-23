@@ -1,6 +1,6 @@
 # Create New Slash Command
 
-Create a new slash command in both `.cursor/commands/` (with `trellis-` prefix) and `.opencode/commands/trellis/` directories based on user requirements.
+Create a new slash command in both `.codebuddy/commands/trellis/` and `.opencode/commands/trellis/` directories based on user requirements.
 
 ## Usage
 
@@ -61,7 +61,7 @@ Template
 ### 4. Create Files
 
 Create in both directories:
-- `.cursor/commands/trellis-<command-name>.md`
+- `.codebuddy/commands/trellis/<command-name>.md`
 - `.opencode/commands/trellis/<command-name>.md`
 
 ### 5. Confirm Creation
@@ -71,7 +71,7 @@ Output result:
 [OK] Created Slash Command: /<command-name>
 
 File paths:
-- .cursor/commands/trellis-<command-name>.md
+- .codebuddy/commands/trellis/<command-name>.md
 - .opencode/commands/trellis/<command-name>.md
 
 Usage:

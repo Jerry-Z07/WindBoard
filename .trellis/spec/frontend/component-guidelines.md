@@ -138,6 +138,20 @@ L10n.Format("Settings_Camouflage_CreateShortcut_Success_Fmt", shortcutPath)
 
 **Key 命名约定**：`功能域_子项`（如 `Settings_Dock_Title`、`Common_Delete`、`Import_Failed_Title`）
 
+**资源存放与构建约定**：
+
+- 资源源文件放在 `WindBoard/Strings/<culture>/<Feature>.resw`
+- `<Feature>` 必须与 key 前缀首段一致；例如 `Settings_Dock_Title` 必须位于 `Strings/<culture>/Settings.resw`
+- 不直接在 XAML 中使用 `x:Uid`；统一保留 `{l10n:Loc Key=...}`，由 `Localization/L10n.cs` 在运行时读取 `WindBoard.pri`
+- 新增语言或新 feature 资源后，构建会通过 `Build/GenerateLocalizationMetadata.ps1` 自动刷新可用语言/feature 元数据
+
+**验证点**：
+
+- Good：新增 `Strings/ja-JP/Settings.resw` 且包含 `Settings_*` key，设置页语言下拉框自动出现 `ja-JP`
+- Base：新增 `Settings_NewOption_Title` 后，`Settings.resw` 中存在同名 key，`LocalizationKeyAuditTests` 通过
+- Bad：把 `Settings_*` key 放进 `Common.resw`，运行时会按 feature 路由失败并回退到 key/fallback
+- 必跑：`dotnet build WindBoard.slnx -c Release` 与 `dotnet test WindBoard.slnx -c Release`
+
 ---
 
 ## WinUI Best Practices

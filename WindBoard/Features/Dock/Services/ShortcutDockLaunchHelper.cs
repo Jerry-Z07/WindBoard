@@ -194,7 +194,7 @@ namespace WindBoard.Features.Dock.Services
             target = input;
             arguments = string.Empty;
 
-            string[] extensions = { ".exe", ".bat", ".cmd", ".lnk" };
+            string[] extensions = [".exe", ".bat", ".cmd", ".lnk"];
             foreach (string extension in extensions)
             {
                 int index = 0;

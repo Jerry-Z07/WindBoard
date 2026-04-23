@@ -161,7 +161,7 @@ namespace WindBoard.Rendering
         private bool TryGetScrollRectsPixels(Int2 scrollOffsetPixels, out RectI scrollRectPixels, out RectI[] dirtyRectsPixels)
         {
             scrollRectPixels = default;
-            dirtyRectsPixels = Array.Empty<RectI>();
+            dirtyRectsPixels = [];
 
             int width = _pixelWidth;
             int height = _pixelHeight;

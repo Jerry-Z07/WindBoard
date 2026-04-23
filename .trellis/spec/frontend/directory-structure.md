@@ -70,7 +70,8 @@ WindBoard/
 │       ├── Models/
 │       ├── Services/
 │       └── UI/
-├── Localization/                    # L10n 标记扩展 + 资源文件
+├── Localization/                    # L10n 运行时入口 + XAML 标记扩展
+├── Strings/                         # 本地化源文件（Strings/<culture>/<Feature>.resw）
 ├── Settings/                        # AppSettingsService、AppSettingsStore、设置页共享资源
 │   ├── SettingsPageResources.xaml   # 设置页共用间距/容器样式，App.xaml 合并后供各 Page 直接引用
 ├── Errors/                          # AppErrorService
@@ -83,6 +84,18 @@ WindBoard/
 ---
 
 ## Module Organization
+
+### Localization 约定
+
+- `Localization/L10n.cs`：运行时本地化入口；继续提供 `L10n.Get/Format/GetSupportedCultureNames`
+- `Localization/LocExtension.cs`：XAML 侧 `{l10n:Loc Key=...}` 入口
+- `Strings/<culture>/<Feature>.resw`：本地化源文件；`<Feature>` 必须与 key 前缀首段一致（例如 `Settings_*` -> `Settings.resw`）
+- `Build/GenerateLocalizationMetadata.ps1`：构建期扫描 `Strings/**/*.resw`，生成 `obj/Generated/Localization/L10nResourceMetadata.g.cs`
+
+验证要求：
+
+- 修改 `.resw` 后，必须运行 `dotnet build WindBoard.slnx -c Release`
+- 修改 `.resw` 或本地化 key 后，必须运行 `dotnet test WindBoard.slnx -c Release`
 
 ### Feature 模块约定
 

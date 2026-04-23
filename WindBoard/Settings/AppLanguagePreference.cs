@@ -14,7 +14,7 @@ namespace WindBoard.Settings
     ///   - 其它：<see cref="CultureInfo.Name"/>（例如 "zh-CN" / "en-US" / "ja-JP"）。
     /// 
     /// 设计目标：
-    /// - 新增语言时尽量不改代码：只要增加对应的 *.resx 资源目录，设置页即可自动出现该语言选项；
+    /// - 新增语言时尽量不改代码：只要增加对应的 *.resw 资源目录，设置页即可自动出现该语言选项；
     /// - 允许用户手工编辑 settings.json：支持大小写不敏感、'_' vs '-'、以及常见简写。
     /// </summary>
     internal static class AppLanguagePreferenceParser

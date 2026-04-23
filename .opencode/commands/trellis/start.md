@@ -265,7 +265,7 @@ Task(
   prompt: "Implement the task described in prd.md.
 
   Follow all code-spec files that have been injected into your context.
-  Run lint and typecheck before finishing.",
+  Run `dotnet build WindBoard.slnx -c Release` and `dotnet test WindBoard.slnx` before finishing.",
   model: "opus"
 )
 ```
@@ -280,14 +280,14 @@ Task(
   prompt: "Review all code changes against the code-spec requirements.
 
   Fix any issues you find directly.
-  Ensure lint and typecheck pass.",
+  Ensure `dotnet build WindBoard.slnx -c Release` and `dotnet test WindBoard.slnx` pass.",
   model: "opus"
 )
 ```
 
 **Step 10: Complete** `[AI]`
 
-1. Verify lint and typecheck pass
+1. Verify `dotnet build WindBoard.slnx -c Release` and `dotnet test WindBoard.slnx` pass
 2. Report what was implemented
 3. Remind user to:
    - Test the changes

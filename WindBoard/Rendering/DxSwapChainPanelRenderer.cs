@@ -219,7 +219,7 @@ namespace WindBoard.Rendering
 
                 var present = new PresentParameters
                 {
-                    DirtyRectangles = new RawRect[] { dirtyRectPixels },
+                    DirtyRectangles = [dirtyRectPixels],
                     ScrollRectangle = null,
                     ScrollOffset = null,
                 };
