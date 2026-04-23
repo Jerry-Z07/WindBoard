@@ -337,7 +337,7 @@ namespace WindBoard.Updates
                 return null;
             }
 
-            int separatorIndex = text.IndexOfAny(new[] { ' ', '\t' });
+            int separatorIndex = text.IndexOfAny([' ', '\t']);
             return separatorIndex >= 0 ? text[..separatorIndex] : text;
         }
     }

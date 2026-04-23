@@ -26,7 +26,7 @@ namespace WindBoard.Features.Export.Services
             var indices = new SortedSet<int>();
 
             bool ok = true;
-            string[] parts = Array.Empty<string>();
+            string[] parts = [];
 
             if (pageCount <= 0)
             {

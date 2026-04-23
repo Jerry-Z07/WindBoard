@@ -164,7 +164,7 @@ namespace WindBoard.Features.Export.Services
         private sealed class PdfWriter
         {
             private static readonly byte[] PdfHeader = Encoding.ASCII.GetBytes("%PDF-1.4\n");
-            private static readonly byte[] PdfBinaryComment = { (byte)'%', 0xE2, 0xE3, 0xCF, 0xD3, (byte)'\n' };
+            private static readonly byte[] PdfBinaryComment = [(byte)'%', 0xE2, 0xE3, 0xCF, 0xD3, (byte)'\n'];
 
             private readonly Stream _stream;
             private readonly long[] _objectOffsets;
