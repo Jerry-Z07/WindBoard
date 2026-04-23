@@ -14,6 +14,55 @@ namespace WindBoard.Settings
 {
     public sealed partial class SettingsWindow : Window
     {
+        private static readonly SettingsRootDefinition[] RootDefinitions =
+        [
+            new("general", typeof(GeneralSettingsPage), static () => L10n.Get("Settings_General_Title")),
+            new("appearance", typeof(AppearanceSettingsPage), static () => L10n.Get("Settings_Appearance_Title")),
+            new("writing", typeof(WritingSettingsPage), static () => L10n.Get("Settings_Writing_Title")),
+            new("shortcuts", typeof(ShortcutsSettingsPage), static () => L10n.Get("Settings_Shortcuts_Title")),
+            new("debug", typeof(DebugSettingsPage), static () => L10n.Get("Settings_Debug_Title")),
+            new("about", typeof(AboutSettingsPage), static () => L10n.Get("Settings_About_Title")),
+        ];
+
+        private static readonly SearchTargetDefinition[] SearchTargetDefinitions =
+        [
+            new("general", null, static () => L10n.Get("Settings_General_Title")),
+            new("general", null, static () => L10n.Get("Settings_General_Language_Title"), static () => L10n.Get("Settings_General_Language_Description"), "LanguageComboBox"),
+            new("general", null, static () => L10n.Get("Settings_General_StartupWindowMode_Title"), static () => L10n.Get("Settings_General_StartupWindowMode_Description"), "StartupWindowModeComboBox"),
+            new("general", null, static () => L10n.Get("Settings_General_EnterScreenAnnotationWhenMinimized_Title"), static () => L10n.Get("Settings_General_EnterScreenAnnotationWhenMinimized_Description"), "EnterScreenAnnotationWhenMinimizedToggleSwitch"),
+            new("general", typeof(CamouflageSettingsPage), static () => L10n.Get("Settings_Camouflage_Title"), static () => L10n.Get("Settings_Camouflage_Description"), "EnabledToggleSwitch"),
+
+            new("appearance", null, static () => L10n.Get("Settings_Appearance_Title")),
+            new("appearance", null, static () => L10n.Get("Settings_Background_CanvasBackgroundColor_Title"), static () => L10n.Get("Settings_Background_CanvasBackgroundColor_Description"), "CanvasBackgroundCard"),
+            new("appearance", null, static () => L10n.Get("Settings_Appearance_ElementCardTheme_Title"), static () => L10n.Get("Settings_Appearance_ElementCardTheme_Description"), "ElementCardThemeCard"),
+            new("appearance", typeof(DockSettingsPage), static () => L10n.Get("Settings_Dock_Title"), static () => L10n.Get("Settings_Dock_Description"), "UndoRedoVisibleToggleSwitch"),
+
+            new("writing", null, static () => L10n.Get("Settings_Writing_Title")),
+            new("writing", typeof(PenSettingsPage), static () => L10n.Get("Settings_Pen_Title"), static () => L10n.Get("Settings_Writing_Pen_Description"), "PaletteCountNumberBox"),
+
+            new("shortcuts", null, static () => L10n.Get("Settings_Shortcuts_Title"), static () => L10n.Get("Settings_Shortcuts_Description")),
+            new("shortcuts", null, static () => L10n.Get("Settings_Shortcuts_ConflictReminder_Header"), null, "ConflictReminderToggleSwitch"),
+            new("shortcuts", null, static () => L10n.Get("Settings_Shortcuts_Undo_Title"), null, "UndoShortcutCard"),
+            new("shortcuts", null, static () => L10n.Get("Settings_Shortcuts_Redo_Title"), null, "RedoShortcutCard"),
+
+            new("about", null, static () => L10n.Get("Settings_About_Title")),
+            new("about", typeof(SettingsManagementPage), static () => L10n.Get("Settings_About_SettingsManagement_SectionTitle"), static () => L10n.Get("Settings_About_SettingsManagement_Entry_Description"), "ExportSettingsCard"),
+            new("about", null, static () => L10n.Get("Settings_About_AutoCheckUpdates"), null, "AutoCheckUpdatesComboBox"),
+            new("about", null, static () => L10n.Get("Updates_DownloadSource_Title"), null, "DownloadSourceComboBox"),
+            new("about", null, static () => L10n.Get("Settings_About_CheckUpdates"), null, "CheckUpdatesButton"),
+        ];
+
+        private static readonly SearchTargetDefinition[] DebugSearchTargetDefinitions =
+        [
+            new("debug", null, static () => L10n.Get("Settings_Debug_Title")),
+            new("debug", null, static () => L10n.Get("Settings_Debug_OpenLogDir_Title"), static () => L10n.Get("Settings_Debug_OpenLogDir_Description")),
+            new("debug", null, static () => L10n.Get("Settings_Debug_OpenSettingsDir_Title"), static () => L10n.Get("Settings_Debug_OpenSettingsDir_Description")),
+            new("debug", null, static () => L10n.Get("Settings_Debug_SendTestToast_Title"), static () => L10n.Get("Settings_Debug_SendTestToast_Description")),
+        ];
+
+        private static readonly Dictionary<string, SettingsRootDefinition> RootDefinitionsByTag = CreateRootDefinitionsByTag();
+        private static readonly Dictionary<Type, Func<string>> PageTitleProviders = CreatePageTitleProviders();
+
         private readonly List<SettingsSearchTarget> _searchTargets = new();
         private readonly List<SettingsSearchTarget> _filteredSearchTargets = new();
         private AppWindowTitleBar? _appWindowTitleBar;
@@ -120,16 +169,7 @@ namespace WindBoard.Settings
         private void NavigateFromTag(string? tag)
         {
             // 顶层分类切换：根据 Tag 导航，并清空二级页面的返回栈。
-            Type pageType = tag switch
-            {
-                "general" => typeof(GeneralSettingsPage),
-                "appearance" => typeof(AppearanceSettingsPage),
-                "writing" => typeof(WritingSettingsPage),
-                "shortcuts" => typeof(WindBoard.Features.Shortcuts.UI.ShortcutsSettingsPage),
-                "debug" => typeof(DebugSettingsPage),
-                "about" => typeof(AboutSettingsPage),
-                _ => typeof(GeneralSettingsPage),
-            };
+            Type pageType = GetPageTypeFromTag(tag);
 
             if (ContentFrame.CurrentSourcePageType != pageType)
             {
@@ -147,16 +187,12 @@ namespace WindBoard.Settings
 
         private static Type GetPageTypeFromTag(string? tag)
         {
-            return tag switch
+            if (!string.IsNullOrWhiteSpace(tag) && RootDefinitionsByTag.TryGetValue(tag, out SettingsRootDefinition? definition))
             {
-                "general" => typeof(GeneralSettingsPage),
-                "appearance" => typeof(AppearanceSettingsPage),
-                "writing" => typeof(WritingSettingsPage),
-                "shortcuts" => typeof(ShortcutsSettingsPage),
-                "debug" => typeof(DebugSettingsPage),
-                "about" => typeof(AboutSettingsPage),
-                _ => typeof(GeneralSettingsPage),
-            };
+                return definition.PageType;
+            }
+
+            return typeof(GeneralSettingsPage);
         }
 
         private void OnDebugToolsGateChanged(object? sender, EventArgs e)
@@ -232,54 +268,9 @@ namespace WindBoard.Settings
 
         private static string GetPageTitle(Type? pageType)
         {
-            if (pageType == typeof(GeneralSettingsPage))
+            if (pageType is not null && PageTitleProviders.TryGetValue(pageType, out Func<string>? titleProvider))
             {
-                return L10n.Get("Settings_General_Title");
-            }
-
-            if (pageType == typeof(AppearanceSettingsPage))
-            {
-                return L10n.Get("Settings_Appearance_Title");
-            }
-
-            if (pageType == typeof(WritingSettingsPage))
-            {
-                return L10n.Get("Settings_Writing_Title");
-            }
-
-            if (pageType == typeof(ShortcutsSettingsPage))
-            {
-                return L10n.Get("Settings_Shortcuts_Title");
-            }
-
-            if (pageType == typeof(DebugSettingsPage))
-            {
-                return L10n.Get("Settings_Debug_Title");
-            }
-
-            if (pageType == typeof(AboutSettingsPage))
-            {
-                return L10n.Get("Settings_About_Title");
-            }
-
-            if (pageType == typeof(CamouflageSettingsPage))
-            {
-                return L10n.Get("Settings_Camouflage_Title");
-            }
-
-            if (pageType == typeof(DockSettingsPage))
-            {
-                return L10n.Get("Settings_Dock_Title");
-            }
-
-            if (pageType == typeof(PenSettingsPage))
-            {
-                return L10n.Get("Settings_Pen_Title");
-            }
-
-            if (pageType == typeof(SettingsManagementPage))
-            {
-                return L10n.Get("Settings_About_SettingsManagement_SectionTitle");
+                return titleProvider();
             }
 
             return string.Empty;
@@ -287,116 +278,47 @@ namespace WindBoard.Settings
 
         private static string GetRootTitle(string rootTag)
         {
-            return rootTag switch
+            if (RootDefinitionsByTag.TryGetValue(rootTag, out SettingsRootDefinition? definition))
             {
-                "general" => L10n.Get("Settings_General_Title"),
-                "appearance" => L10n.Get("Settings_Appearance_Title"),
-                "writing" => L10n.Get("Settings_Writing_Title"),
-                "shortcuts" => L10n.Get("Settings_Shortcuts_Title"),
-                "debug" => L10n.Get("Settings_Debug_Title"),
-                "about" => L10n.Get("Settings_About_Title"),
-                _ => L10n.Get("Common_Settings"),
-            };
+                return definition.TitleProvider();
+            }
+
+            return L10n.Get("Common_Settings");
         }
 
         private void RebuildSearchTargets()
         {
             _searchTargets.Clear();
 
-            AddSearchTarget("general", null, "Settings_General_Title");
-            AddSearchTarget("general", null, "Settings_General_Language_Title", "Settings_General_Language_Description", "LanguageComboBox");
-            AddSearchTarget("general", null, "Settings_General_StartupWindowMode_Title", "Settings_General_StartupWindowMode_Description", "StartupWindowModeComboBox");
-            AddSearchTarget("general", null, "Settings_General_EnterScreenAnnotationWhenMinimized_Title", "Settings_General_EnterScreenAnnotationWhenMinimized_Description", "EnterScreenAnnotationWhenMinimizedToggleSwitch");
-            AddSearchTarget("general", typeof(CamouflageSettingsPage), "Settings_Camouflage_Title", "Settings_Camouflage_Description", "EnabledToggleSwitch");
-
-            AddSearchTarget("appearance", null, "Settings_Appearance_Title");
-            AddSearchTarget("appearance", null, "Settings_Background_CanvasBackgroundColor_Title", "Settings_Background_CanvasBackgroundColor_Description", "CanvasBackgroundCard");
-            AddSearchTarget("appearance", null, "Settings_Appearance_ElementCardTheme_Title", "Settings_Appearance_ElementCardTheme_Description", "ElementCardThemeCard");
-            AddSearchTarget("appearance", typeof(DockSettingsPage), "Settings_Dock_Title", "Settings_Dock_Description", "UndoRedoVisibleToggleSwitch");
-
-            AddSearchTarget("writing", null, "Settings_Writing_Title");
-            AddSearchTarget("writing", typeof(PenSettingsPage), "Settings_Pen_Title", "Settings_Writing_Pen_Description", "PaletteCountNumberBox");
-
-            AddSearchTarget("shortcuts", null, "Settings_Shortcuts_Title", "Settings_Shortcuts_Description");
-            AddSearchTarget("shortcuts", null, "Settings_Shortcuts_ConflictReminder_Header", null, "ConflictReminderToggleSwitch");
-            AddSearchTarget("shortcuts", null, "Settings_Shortcuts_Undo_Title", null, "UndoShortcutCard");
-            AddSearchTarget("shortcuts", null, "Settings_Shortcuts_Redo_Title", null, "RedoShortcutCard");
-
-            AddSearchTarget("about", null, "Settings_About_Title");
-            AddSearchTarget("about", typeof(SettingsManagementPage), "Settings_About_SettingsManagement_SectionTitle", "Settings_About_SettingsManagement_Entry_Description", "ExportSettingsCard");
-            AddSearchTarget("about", null, "Settings_About_AutoCheckUpdates", null, "AutoCheckUpdatesComboBox");
-            AddSearchTarget("about", null, "Updates_DownloadSource_Title", null, "DownloadSourceComboBox");
-            AddSearchTarget("about", null, "Settings_About_CheckUpdates", null, "CheckUpdatesButton");
+            foreach (SearchTargetDefinition definition in SearchTargetDefinitions)
+            {
+                AddSearchTarget(definition);
+            }
 
             if (DebugToolsGate.IsVisible)
             {
-                AddSearchTarget("debug", null, "Settings_Debug_Title");
-                AddSearchTarget("debug", null, "Settings_Debug_OpenLogDir_Title", "Settings_Debug_OpenLogDir_Description");
-                AddSearchTarget("debug", null, "Settings_Debug_OpenSettingsDir_Title", "Settings_Debug_OpenSettingsDir_Description");
-                AddSearchTarget("debug", null, "Settings_Debug_SendTestToast_Title", "Settings_Debug_SendTestToast_Description");
+                foreach (SearchTargetDefinition definition in DebugSearchTargetDefinitions)
+                {
+                    AddSearchTarget(definition);
+                }
             }
         }
 
-        private void AddSearchTarget(string rootTag, Type? detailPageType, string titleKey, string? descriptionKey = null, string? focusElementName = null)
+        private void AddSearchTarget(SearchTargetDefinition definition)
         {
-            string rootTitle = GetRootTitle(rootTag);
-            string title = GetSearchResource(titleKey);
+            string rootTitle = GetRootTitle(definition.RootTag);
+            string title = definition.TitleProvider();
             string displayText = string.Equals(rootTitle, title, StringComparison.Ordinal)
                 ? title
                 : $"{rootTitle} / {title}";
 
             string searchText = displayText;
-            if (!string.IsNullOrWhiteSpace(descriptionKey))
+            if (definition.DescriptionProvider is not null)
             {
-                searchText = $"{searchText} {GetSearchResource(descriptionKey)}";
+                searchText = $"{searchText} {definition.DescriptionProvider()}";
             }
 
-            _searchTargets.Add(new SettingsSearchTarget(displayText, searchText, rootTag, detailPageType, focusElementName));
-        }
-
-        private static string GetSearchResource(string key)
-        {
-            return key switch
-            {
-                "Settings_General_Title" => L10n.Get("Settings_General_Title"),
-                "Settings_General_Language_Title" => L10n.Get("Settings_General_Language_Title"),
-                "Settings_General_Language_Description" => L10n.Get("Settings_General_Language_Description"),
-                "Settings_General_StartupWindowMode_Title" => L10n.Get("Settings_General_StartupWindowMode_Title"),
-                "Settings_General_StartupWindowMode_Description" => L10n.Get("Settings_General_StartupWindowMode_Description"),
-                "Settings_General_EnterScreenAnnotationWhenMinimized_Title" => L10n.Get("Settings_General_EnterScreenAnnotationWhenMinimized_Title"),
-                "Settings_General_EnterScreenAnnotationWhenMinimized_Description" => L10n.Get("Settings_General_EnterScreenAnnotationWhenMinimized_Description"),
-                "Settings_Camouflage_Title" => L10n.Get("Settings_Camouflage_Title"),
-                "Settings_Camouflage_Description" => L10n.Get("Settings_Camouflage_Description"),
-                "Settings_Appearance_Title" => L10n.Get("Settings_Appearance_Title"),
-                "Settings_Background_CanvasBackgroundColor_Title" => L10n.Get("Settings_Background_CanvasBackgroundColor_Title"),
-                "Settings_Background_CanvasBackgroundColor_Description" => L10n.Get("Settings_Background_CanvasBackgroundColor_Description"),
-                "Settings_Appearance_ElementCardTheme_Title" => L10n.Get("Settings_Appearance_ElementCardTheme_Title"),
-                "Settings_Appearance_ElementCardTheme_Description" => L10n.Get("Settings_Appearance_ElementCardTheme_Description"),
-                "Settings_Dock_Title" => L10n.Get("Settings_Dock_Title"),
-                "Settings_Dock_Description" => L10n.Get("Settings_Dock_Description"),
-                "Settings_Writing_Title" => L10n.Get("Settings_Writing_Title"),
-                "Settings_Pen_Title" => L10n.Get("Settings_Pen_Title"),
-                "Settings_Writing_Pen_Description" => L10n.Get("Settings_Writing_Pen_Description"),
-                "Settings_Shortcuts_Title" => L10n.Get("Settings_Shortcuts_Title"),
-                "Settings_Shortcuts_Description" => L10n.Get("Settings_Shortcuts_Description"),
-                "Settings_Shortcuts_ConflictReminder_Header" => L10n.Get("Settings_Shortcuts_ConflictReminder_Header"),
-                "Settings_Shortcuts_Undo_Title" => L10n.Get("Settings_Shortcuts_Undo_Title"),
-                "Settings_Shortcuts_Redo_Title" => L10n.Get("Settings_Shortcuts_Redo_Title"),
-                "Settings_About_Title" => L10n.Get("Settings_About_Title"),
-                "Settings_About_SettingsManagement_SectionTitle" => L10n.Get("Settings_About_SettingsManagement_SectionTitle"),
-                "Settings_About_SettingsManagement_Entry_Description" => L10n.Get("Settings_About_SettingsManagement_Entry_Description"),
-                "Settings_About_AutoCheckUpdates" => L10n.Get("Settings_About_AutoCheckUpdates"),
-                "Updates_DownloadSource_Title" => L10n.Get("Updates_DownloadSource_Title"),
-                "Settings_About_CheckUpdates" => L10n.Get("Settings_About_CheckUpdates"),
-                "Settings_Debug_Title" => L10n.Get("Settings_Debug_Title"),
-                "Settings_Debug_OpenLogDir_Title" => L10n.Get("Settings_Debug_OpenLogDir_Title"),
-                "Settings_Debug_OpenLogDir_Description" => L10n.Get("Settings_Debug_OpenLogDir_Description"),
-                "Settings_Debug_OpenSettingsDir_Title" => L10n.Get("Settings_Debug_OpenSettingsDir_Title"),
-                "Settings_Debug_OpenSettingsDir_Description" => L10n.Get("Settings_Debug_OpenSettingsDir_Description"),
-                "Settings_Debug_SendTestToast_Title" => L10n.Get("Settings_Debug_SendTestToast_Title"),
-                "Settings_Debug_SendTestToast_Description" => L10n.Get("Settings_Debug_SendTestToast_Description"),
-                _ => key,
-            };
+            _searchTargets.Add(new SettingsSearchTarget(displayText, searchText, definition.RootTag, definition.DetailPageType, definition.FocusElementName));
         }
 
         private void OnSettingsSearchTextChanged(AutoSuggestBox sender, AutoSuggestBoxTextChangedEventArgs args)
@@ -561,6 +483,73 @@ namespace WindBoard.Settings
             {
                 targetElement.StartBringIntoView();
             }
+        }
+
+        private static Dictionary<string, SettingsRootDefinition> CreateRootDefinitionsByTag()
+        {
+            Dictionary<string, SettingsRootDefinition> definitions = new(StringComparer.Ordinal);
+            foreach (SettingsRootDefinition definition in RootDefinitions)
+            {
+                definitions.Add(definition.Tag, definition);
+            }
+
+            return definitions;
+        }
+
+        private static Dictionary<Type, Func<string>> CreatePageTitleProviders()
+        {
+            Dictionary<Type, Func<string>> providers = new()
+            {
+                [typeof(CamouflageSettingsPage)] = static () => L10n.Get("Settings_Camouflage_Title"),
+                [typeof(DockSettingsPage)] = static () => L10n.Get("Settings_Dock_Title"),
+                [typeof(PenSettingsPage)] = static () => L10n.Get("Settings_Pen_Title"),
+                [typeof(SettingsManagementPage)] = static () => L10n.Get("Settings_About_SettingsManagement_SectionTitle"),
+            };
+
+            foreach (SettingsRootDefinition definition in RootDefinitions)
+            {
+                providers[definition.PageType] = definition.TitleProvider;
+            }
+
+            return providers;
+        }
+
+        private sealed class SettingsRootDefinition
+        {
+            internal SettingsRootDefinition(string tag, Type pageType, Func<string> titleProvider)
+            {
+                Tag = tag;
+                PageType = pageType;
+                TitleProvider = titleProvider;
+            }
+
+            internal string Tag { get; }
+
+            internal Type PageType { get; }
+
+            internal Func<string> TitleProvider { get; }
+        }
+
+        private sealed class SearchTargetDefinition
+        {
+            internal SearchTargetDefinition(string rootTag, Type? detailPageType, Func<string> titleProvider, Func<string>? descriptionProvider = null, string? focusElementName = null)
+            {
+                RootTag = rootTag;
+                DetailPageType = detailPageType;
+                TitleProvider = titleProvider;
+                DescriptionProvider = descriptionProvider;
+                FocusElementName = focusElementName;
+            }
+
+            internal string RootTag { get; }
+
+            internal Type? DetailPageType { get; }
+
+            internal Func<string> TitleProvider { get; }
+
+            internal Func<string>? DescriptionProvider { get; }
+
+            internal string? FocusElementName { get; }
         }
 
         private sealed class SettingsSearchTarget
