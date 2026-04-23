@@ -13,15 +13,13 @@
         <SolidColorBrush x:Name="CanvasBackgroundPreviewBrush" Color="#2E2F33" />
     </Page.Resources>
 
-    <Grid>
+        <Grid>
         <ScrollViewer>
-            <StackPanel Spacing="16" Padding="24">
-                <TextBlock Text="{l10n:Loc Key=Settings_Appearance_Title}" Style="{ThemeResource TitleTextBlockStyle}" />
-
+            <StackPanel Style="{StaticResource SettingsPageRootStackPanelStyle}">
                 <!--
                     顶层入口建议以“卡片网格”呈现：窗口较宽时左右两列，较窄时自动变为单列，避免右侧留白。
                 -->
-                <Grid x:Name="CardsGrid" ColumnSpacing="12" RowSpacing="12">
+                <Grid x:Name="CardsGrid" Style="{StaticResource SettingsPageCardGridStyle}">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="Auto" />

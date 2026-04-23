@@ -9,11 +9,9 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d">
 
-    <Grid>
+        <Grid>
         <ScrollViewer>
-            <StackPanel Spacing="16" Padding="24">
-                <TextBlock Text="{l10n:Loc Key=Settings_General_Title}" Style="{ThemeResource TitleTextBlockStyle}" />
-
+            <StackPanel Style="{StaticResource SettingsPageRootStackPanelStyle}">
                 <InfoBar
                     x:Name="LanguageRestartInfoBar"
                     IsOpen="False"
@@ -35,7 +33,6 @@
                     <controls:SettingsCard.Content>
                         <ComboBox
                             x:Name="LanguageComboBox"
-                            MinWidth="160"
                             SelectedValuePath="Tag"
                             SelectionChanged="OnLanguageSelectionChanged" />
                     </controls:SettingsCard.Content>
@@ -54,7 +51,6 @@
                     <controls:SettingsCard.Content>
                         <ComboBox
                             x:Name="StartupWindowModeComboBox"
-                            MinWidth="160"
                             SelectedValuePath="Tag"
                             SelectionChanged="OnStartupWindowModeSelectionChanged" />
                     </controls:SettingsCard.Content>

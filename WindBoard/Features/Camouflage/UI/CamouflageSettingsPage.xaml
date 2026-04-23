@@ -9,10 +9,9 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d">
 
-    <Grid>
+        <Grid>
         <ScrollViewer>
-            <StackPanel Spacing="16" Padding="24">
-                <TextBlock Text="{l10n:Loc Key=Settings_Camouflage_Title}" Style="{ThemeResource TitleTextBlockStyle}" />
+            <StackPanel Style="{StaticResource SettingsPageRootStackPanelStyle}">
                 <TextBlock Text="{l10n:Loc Key=Settings_Camouflage_Description}" Opacity="0.75" TextWrapping="WrapWholeWords" />
 
                 <controls:SettingsCard Header="{l10n:Loc Key=Settings_Camouflage_Enabled_Header}">
@@ -25,11 +24,9 @@
                 </controls:SettingsCard>
 
                 <!-- 伪装未启用时，隐藏下方选项，避免误解为“已生效”。 -->
-                <StackPanel x:Name="OptionsPanel" Spacing="16" Visibility="Collapsed">
+                <StackPanel x:Name="OptionsPanel" Style="{StaticResource SettingsPageSectionStackPanelStyle}" Visibility="Collapsed">
                     <controls:SettingsCard
-                        Header="{l10n:Loc Key=Settings_Camouflage_WindowTitle_Header}"
-                        ContentAlignment="Vertical"
-                        HorizontalContentAlignment="Stretch">
+                        Header="{l10n:Loc Key=Settings_Camouflage_WindowTitle_Header}">
                         <controls:SettingsCard.Content>
                             <TextBox
                                 x:Name="TitleTextBox"
@@ -40,9 +37,7 @@
                     </controls:SettingsCard>
 
                     <controls:SettingsCard
-                        Header="{l10n:Loc Key=Settings_Camouflage_Icon_Header}"
-                        ContentAlignment="Vertical"
-                        HorizontalContentAlignment="Stretch">
+                        Header="{l10n:Loc Key=Settings_Camouflage_Icon_Header}">
                         <StackPanel Spacing="8">
                             <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
                                 <TextBox

@@ -9,11 +9,9 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d">
 
-    <Grid>
+        <Grid>
         <ScrollViewer>
-            <StackPanel Spacing="16" Padding="24">
-                <TextBlock Text="{l10n:Loc Key=Settings_About_Title}" Style="{ThemeResource TitleTextBlockStyle}" />
-
+            <StackPanel Style="{StaticResource SettingsPageRootStackPanelStyle}">
                 <InfoBar
                     x:Name="DebugUnlockInfoBar"
                     IsOpen="False"
@@ -70,7 +68,6 @@
                     <controls:SettingsCard.Content>
                         <ComboBox
                             x:Name="AutoCheckUpdatesComboBox"
-                            MinWidth="160"
                             SelectedValuePath="Tag"
                             SelectionChanged="OnAutoCheckUpdatesSelectionChanged">
                             <ComboBoxItem Content="{l10n:Loc Key=Settings_About_Interval_Weekly}" Tag="weekly" />
@@ -91,7 +88,6 @@
                     <controls:SettingsCard.Content>
                         <ComboBox
                             x:Name="DownloadSourceComboBox"
-                            MinWidth="160"
                             SelectedValuePath="Tag"
                             SelectionChanged="OnDownloadSourceSelectionChanged">
                             <ComboBoxItem Content="{l10n:Loc Key=Updates_DownloadSource_Auto}" Tag="auto" />

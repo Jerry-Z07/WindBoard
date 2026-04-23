@@ -13,54 +13,87 @@
         <MicaBackdrop />
     </Window.SystemBackdrop>
 
-    <NavigationView
-        x:Name="NavView"
-        IsBackButtonVisible="Collapsed"
-        BackRequested="OnBackRequested"
-        AlwaysShowHeader="False"
-        IsSettingsVisible="False"
-        PaneDisplayMode="Left"
-        SelectionChanged="OnNavigationSelectionChanged">
-        <NavigationView.MenuItems>
-            <NavigationViewItem Content="{l10n:Loc Key=SettingsWindow_Nav_General}" Tag="general">
-                <NavigationViewItem.Icon>
-                    <SymbolIcon Symbol="Setting" />
-                </NavigationViewItem.Icon>
-            </NavigationViewItem>
-            <NavigationViewItem Content="{l10n:Loc Key=SettingsWindow_Nav_Appearance}" Tag="appearance">
-                <NavigationViewItem.Icon>
-                    <!-- 外观：用“调色板/颜色”语义图标，避免与其它项重复 -->
-                    <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" Glyph="&#xE790;" />
-                </NavigationViewItem.Icon>
-            </NavigationViewItem>
-            <NavigationViewItem Content="{l10n:Loc Key=SettingsWindow_Nav_Writing}" Tag="writing">
-                <NavigationViewItem.Icon>
-                    <SymbolIcon Symbol="Edit" />
-                </NavigationViewItem.Icon>
-            </NavigationViewItem>
-            <NavigationViewItem Content="{l10n:Loc Key=SettingsWindow_Nav_Shortcuts}" Tag="shortcuts">
-                <NavigationViewItem.Icon>
-                    <!-- 快捷键：键盘语义图标 -->
-                    <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" Glyph="&#xE765;" />
-                </NavigationViewItem.Icon>
-            </NavigationViewItem>
-        </NavigationView.MenuItems>
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
 
-        <NavigationView.FooterMenuItems>
-            <NavigationViewItem x:Name="DebugNavItem" Content="{l10n:Loc Key=SettingsWindow_Nav_Debug}" Tag="debug" Visibility="Collapsed">
-                <NavigationViewItem.Icon>
-                    <!-- 调试：工具语义图标 -->
-                    <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" Glyph="&#xE9D9;" />
-                </NavigationViewItem.Icon>
-            </NavigationViewItem>
-            <NavigationViewItem Content="{l10n:Loc Key=SettingsWindow_Nav_About}" Tag="about">
-                <NavigationViewItem.Icon>
-                    <!-- 关于：信息语义图标 -->
-                    <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" Glyph="&#xE946;" />
-                </NavigationViewItem.Icon>
-            </NavigationViewItem>
-        </NavigationView.FooterMenuItems>
+        <TitleBar
+            x:Name="AppTitleBar"
+            Grid.Row="0"
+            IsBackButtonVisible="False"
+            IsBackButtonEnabled="False"
+            IsPaneToggleButtonVisible="True"
+            BackRequested="OnTitleBarBackRequested"
+            PaneToggleRequested="OnTitleBarPaneToggleRequested">
+            <TitleBar.Content>
+                <AutoSuggestBox
+                    x:Name="SettingsSearchBox"
+                    Width="320"
+                    MinWidth="220"
+                    MaxWidth="420"
+                    VerticalAlignment="Center"
+                    PlaceholderText="{l10n:Loc Key=SettingsWindow_Search_Placeholder}"
+                    QueryIcon="Find"
+                    SuggestionChosen="OnSettingsSearchSuggestionChosen"
+                    QuerySubmitted="OnSettingsSearchQuerySubmitted"
+                    TextChanged="OnSettingsSearchTextChanged" />
+            </TitleBar.Content>
+        </TitleBar>
 
-        <Frame x:Name="ContentFrame" Navigated="OnContentFrameNavigated" />
-    </NavigationView>
+        <NavigationView
+            x:Name="NavView"
+            Grid.Row="1"
+            AlwaysShowHeader="False"
+            IsBackButtonVisible="Collapsed"
+            IsPaneOpen="True"
+            IsPaneToggleButtonVisible="False"
+            IsSettingsVisible="False"
+            IsTitleBarAutoPaddingEnabled="False"
+            PaneDisplayMode="Left"
+            SelectionChanged="OnNavigationSelectionChanged">
+            <NavigationView.MenuItems>
+                <NavigationViewItem Content="{l10n:Loc Key=SettingsWindow_Nav_General}" Tag="general">
+                    <NavigationViewItem.Icon>
+                        <SymbolIcon Symbol="Setting" />
+                    </NavigationViewItem.Icon>
+                </NavigationViewItem>
+                <NavigationViewItem Content="{l10n:Loc Key=SettingsWindow_Nav_Appearance}" Tag="appearance">
+                    <NavigationViewItem.Icon>
+                        <!-- 外观：用“调色板/颜色”语义图标，避免与其它项重复 -->
+                        <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" Glyph="&#xE790;" />
+                    </NavigationViewItem.Icon>
+                </NavigationViewItem>
+                <NavigationViewItem Content="{l10n:Loc Key=SettingsWindow_Nav_Writing}" Tag="writing">
+                    <NavigationViewItem.Icon>
+                        <SymbolIcon Symbol="Edit" />
+                    </NavigationViewItem.Icon>
+                </NavigationViewItem>
+                <NavigationViewItem Content="{l10n:Loc Key=SettingsWindow_Nav_Shortcuts}" Tag="shortcuts">
+                    <NavigationViewItem.Icon>
+                        <!-- 快捷键：键盘语义图标 -->
+                        <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" Glyph="&#xE765;" />
+                    </NavigationViewItem.Icon>
+                </NavigationViewItem>
+            </NavigationView.MenuItems>
+
+            <NavigationView.FooterMenuItems>
+                <NavigationViewItem x:Name="DebugNavItem" Content="{l10n:Loc Key=SettingsWindow_Nav_Debug}" Tag="debug" Visibility="Collapsed">
+                    <NavigationViewItem.Icon>
+                        <!-- 调试：工具语义图标 -->
+                        <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" Glyph="&#xE9D9;" />
+                    </NavigationViewItem.Icon>
+                </NavigationViewItem>
+                <NavigationViewItem Content="{l10n:Loc Key=SettingsWindow_Nav_About}" Tag="about">
+                    <NavigationViewItem.Icon>
+                        <!-- 关于：信息语义图标 -->
+                        <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" Glyph="&#xE946;" />
+                    </NavigationViewItem.Icon>
+                </NavigationViewItem>
+            </NavigationView.FooterMenuItems>
+
+            <Frame x:Name="ContentFrame" Navigated="OnContentFrameNavigated" />
+        </NavigationView>
+    </Grid>
 </Window>

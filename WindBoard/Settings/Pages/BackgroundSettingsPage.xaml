@@ -12,12 +12,10 @@
         <SolidColorBrush x:Name="CanvasBackgroundPreviewBrush" Color="#2E2F33" />
     </Page.Resources>
 
-    <Grid>
+        <Grid>
         <ScrollViewer>
-            <StackPanel Spacing="16" Padding="24">
-                <TextBlock Text="{l10n:Loc Key=Settings_Background_Title}" Style="{ThemeResource TitleTextBlockStyle}" />
-
-                <StackPanel Spacing="10">
+            <StackPanel Style="{StaticResource SettingsPageRootStackPanelStyle}">
+                <StackPanel Style="{StaticResource SettingsPageSectionStackPanelStyle}">
                     <TextBlock Text="{l10n:Loc Key=Settings_Background_Canvas_SectionTitle}" Style="{ThemeResource SubtitleTextBlockStyle}" />
 
                     <!-- 入口卡片：点击打开二级弹窗（颜色选择器 + HEX 输入） -->

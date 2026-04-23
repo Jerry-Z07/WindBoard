@@ -103,3 +103,103 @@
 ### Next Steps
 
 - None - task complete
+
+
+## Session 3: 移除导入窗口并改为直接文件选择器导入
+
+**Date**: 2026-04-22
+**Task**: 移除导入窗口并改为直接文件选择器导入
+**Branch**: `develop`
+
+### Summary
+
+移除 ImportDialog、ImportQueueState 与工作区预览服务，导入入口改为 FileOpenPicker 直导；同步 .trellis/spec/frontend 文档，删除过时 ImportDialog 结构与示例。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `6c52be0` | (see git log) |
+| `af5c12d` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
+
+
+## Session 4: 设置窗口标题栏原生化与设置搜索
+
+**Date**: 2026-04-23
+**Task**: 设置窗口标题栏原生化与设置搜索
+**Branch**: `develop`
+
+### Summary
+
+重构设置窗口，使用原生 TitleBar 和 NavigationView 集成侧边栏折叠、返回导航与设置搜索；移除自绘仿原生按钮，清理相关文案，并同步更新 .trellis/spec/frontend，明确组件与 UI 优先使用原生 WinUI 实现。验证通过 dotnet build WindBoard.slnx -c Release 与 dotnet test WindBoard.slnx -c Release。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `e5a01d1` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
+
+
+## Session 5: 统一设置页 SettingsCard 布局资源
+
+**Date**: 2026-04-23
+**Task**: 统一设置页 SettingsCard 布局资源
+**Branch**: `develop`
+
+### Summary
+
+将设置页 SettingsCard 间距统一为 4，抽取 SettingsPageResources 共享资源，并同步前端 spec 约定。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `72a0ac0` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete

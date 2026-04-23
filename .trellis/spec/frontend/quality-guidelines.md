@@ -23,6 +23,7 @@ WindBoard 前端遵循"安全性 = 正确性 > 最小变更 > 可读性 > 一致
 
 - **硬编码颜色值**：必须使用主题感知资源和系统画刷（来自 winui-app skill）
 - **不必要的自定义控件**：优先组合/重样式内置 WinUI 控件（来自 winui-app skill）
+- **自绘仿原生组件**：已有原生 `Button`、`TitleBar`、`NavigationView`、`CommandBar` 等能力时，不要再用自绘方式模拟按钮、返回按钮、折叠按钮等系统交互
 - **双重卡片布局**：避免在已有卡片样式的子元素外再包 Border（来自 winui-app skill）
 - **嵌套 ScrollViewer 冲突**：外层页面已滚动时，嵌套 GridView 等需明确滚动归属（来自 winui-app skill）
 - **单主题输出**：默认支持 Light/Dark 模式（来自 winui-app skill）
@@ -50,6 +51,7 @@ WindBoard 前端遵循"安全性 = 正确性 > 最小变更 > 可读性 > 一致
 - **x:Bind 优先**：页面本地属性用 `x:Bind`，动态 DataContext 用 `Binding`
 - **原子写入**：设置保存使用临时文件替换策略
 - **防抖 Timer**：高频 UI 更新使用 DispatcherQueueTimer 做防抖
+- **原生优先**：先使用 WinUI 原生控件与内建交互能力，再考虑重样式，最后才考虑自定义/自绘实现
 
 ### 性能模式（来自 winui-app skill）
 
@@ -99,6 +101,7 @@ WindBoard 前端遵循"安全性 = 正确性 > 最小变更 > 可读性 > 一致
 
 - [ ] 无不必要的事件订阅泄漏（Dispose 中取消订阅）
 - [ ] 无过度 XAML 嵌套或不必要的 Border 包装
+- [ ] 常规交互按钮、标题栏按钮、导航按钮优先使用原生实现，无自绘仿原生替代
 - [ ] 设置页有 `_isSyncingFromSettings` 防循环
 - [ ] Feature 遵循 Flow + Models + Services + UI 结构
 

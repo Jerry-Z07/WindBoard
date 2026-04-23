@@ -19,12 +19,10 @@
         </Style>
     </Page.Resources>
 
-    <Grid>
+        <Grid>
         <ScrollViewer>
-            <StackPanel Spacing="16" Padding="24">
-                <TextBlock Text="{l10n:Loc Key=Settings_Pen_Title}" Style="{ThemeResource TitleTextBlockStyle}" />
-
-                <StackPanel Spacing="10">
+            <StackPanel Style="{StaticResource SettingsPageRootStackPanelStyle}">
+                <StackPanel Style="{StaticResource SettingsPageSectionStackPanelStyle}">
                     <TextBlock Text="{l10n:Loc Key=Common_Preview}" Style="{ThemeResource SubtitleTextBlockStyle}" />
 
                     <!-- 预览区域固定为浅色主题，保持与主界面“画笔设置 Flyout”一致 -->
@@ -138,7 +136,7 @@
                     </Border>
                 </StackPanel>
 
-                <StackPanel Spacing="10">
+                <StackPanel Style="{StaticResource SettingsPageSectionStackPanelStyle}">
                     <TextBlock Text="{l10n:Loc Key=Common_Color}" Style="{ThemeResource SubtitleTextBlockStyle}" />
 
                     <controls:SettingsCard
@@ -184,7 +182,7 @@
                     </StackPanel>
                 </StackPanel>
 
-                <StackPanel Spacing="10">
+                <StackPanel Style="{StaticResource SettingsPageSectionStackPanelStyle}">
                     <TextBlock Text="{l10n:Loc Key=Common_Thickness}" Style="{ThemeResource SubtitleTextBlockStyle}" />
 
                     <controls:SettingsCard Header="{l10n:Loc Key=Settings_Pen_UseThicknessSlider_Header}">
@@ -198,10 +196,10 @@
                         </controls:SettingsCard.Content>
                     </controls:SettingsCard>
 
-                    <StackPanel x:Name="ThicknessPresetsEditorPanel" Spacing="12">
+                    <StackPanel x:Name="ThicknessPresetsEditorPanel" Style="{StaticResource SettingsPageSectionStackPanelStyle}">
                         <TextBlock Text="{l10n:Loc Key=Settings_Pen_ThicknessPresets_Hint}" Opacity="0.75" TextWrapping="WrapWholeWords" />
 
-                        <Grid ColumnSpacing="12">
+                        <Grid Style="{StaticResource SettingsPageCardGridStyle}">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*" />
                                 <ColumnDefinition Width="*" />
@@ -209,9 +207,7 @@
                             </Grid.ColumnDefinitions>
 
                             <controls:SettingsCard
-                                Header="{l10n:Loc Key=Settings_Pen_ThicknessPreset1_Header}"
-                                ContentAlignment="Vertical"
-                                HorizontalContentAlignment="Stretch">
+                                Header="{l10n:Loc Key=Settings_Pen_ThicknessPreset1_Header}">
                                 <controls:SettingsCard.Content>
                                     <NumberBox
                                         x:Name="ThicknessPreset1NumberBox"
@@ -227,9 +223,7 @@
 
                             <controls:SettingsCard
                                 Grid.Column="1"
-                                Header="{l10n:Loc Key=Settings_Pen_ThicknessPreset2_Header}"
-                                ContentAlignment="Vertical"
-                                HorizontalContentAlignment="Stretch">
+                                Header="{l10n:Loc Key=Settings_Pen_ThicknessPreset2_Header}">
                                 <controls:SettingsCard.Content>
                                     <NumberBox
                                         x:Name="ThicknessPreset2NumberBox"
@@ -245,9 +239,7 @@
 
                             <controls:SettingsCard
                                 Grid.Column="2"
-                                Header="{l10n:Loc Key=Settings_Pen_ThicknessPreset3_Header}"
-                                ContentAlignment="Vertical"
-                                HorizontalContentAlignment="Stretch">
+                                Header="{l10n:Loc Key=Settings_Pen_ThicknessPreset3_Header}">
                                 <controls:SettingsCard.Content>
                                     <NumberBox
                                         x:Name="ThicknessPreset3NumberBox"
