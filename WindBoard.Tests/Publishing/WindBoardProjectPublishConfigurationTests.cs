@@ -81,6 +81,16 @@ public sealed class WindBoardProjectPublishConfigurationTests
         Assert.Contains("BeforeTargets=\"PrepareForBuild\"", text, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void LocalizationMetadataGeneratorScript_ExistsInRepository()
+    {
+        DirectoryInfo? repoRoot = RepoRootLocator.Find();
+        Assert.NotNull(repoRoot);
+
+        string scriptPath = Path.Combine(repoRoot!.FullName, "WindBoard", "Build", "GenerateLocalizationMetadata.ps1");
+        Assert.True(File.Exists(scriptPath), $"未找到本地化元数据生成脚本：{scriptPath}");
+    }
+
     private static int CountOccurrences(string text, string value)
     {
         if (string.IsNullOrEmpty(text) || string.IsNullOrEmpty(value))

@@ -13,6 +13,9 @@
 [Oo]bj/
 build/
 artifacts/
+# 保留主项目构建期脚本（用于生成本地化元数据）
+!WindBoard/Build/
+!WindBoard/Build/GenerateLocalizationMetadata.ps1
 
 # Debug / Release outputs
 Debug/
