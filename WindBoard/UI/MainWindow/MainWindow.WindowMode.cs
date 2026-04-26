@@ -12,15 +12,49 @@ namespace WindBoard
     public sealed partial class MainWindow : Window
     {
         private bool _hasAppliedStartupWindowMode;
+        private bool _isWindowStateSyncAttached;
 
         private void ConfigureTitleBar()
         {
             ExtendsContentIntoTitleBar = true;
             SetTitleBar(MainTitleBar);
 
-            _appWindowTitleBar = AppWindow.TitleBar;
-            _appWindowTitleBar.ButtonBackgroundColor = Colors.Transparent;
-            _appWindowTitleBar.ButtonInactiveBackgroundColor = Colors.Transparent;
+            AppWindowTitleBar titleBar = AppWindow.TitleBar;
+            titleBar.ButtonBackgroundColor = Colors.Transparent;
+            titleBar.ButtonInactiveBackgroundColor = Colors.Transparent;
+
+            AttachWindowStateSync();
+        }
+
+        private void AttachWindowStateSync()
+        {
+            if (_isWindowStateSyncAttached)
+            {
+                return;
+            }
+
+            AppWindow.Changed += OnAppWindowChanged;
+            _isWindowStateSyncAttached = true;
+        }
+
+        private void DetachWindowStateSync()
+        {
+            if (!_isWindowStateSyncAttached)
+            {
+                return;
+            }
+
+            AppWindow.Changed -= OnAppWindowChanged;
+            _isWindowStateSyncAttached = false;
+        }
+
+        private void OnAppWindowChanged(AppWindow sender, AppWindowChangedEventArgs _)
+        {
+            // AppWindow.Changed 可能来自非 UI 线程，这里统一切回 UI 线程更新可见性。
+            if (!DispatcherQueue.TryEnqueue(SyncTitleBarVisibilityFromWindowState))
+            {
+                SyncTitleBarVisibilityFromWindowState();
+            }
         }
 
         private void SyncTitleBarVisibilityFromWindowState()
@@ -115,7 +149,6 @@ namespace WindBoard
             }
 
             _hasAppliedStartupWindowMode = true;
-            SyncTitleBarVisibilityFromWindowState();
         }
 
         private void SyncTemporaryFullScreenMenuItemFromWindowState()
@@ -191,7 +224,6 @@ namespace WindBoard
 
                 // Windowed：回到 Overlapped Presenter（窗口化）；FullScreen：进入全屏 Presenter。
                 appWindow.SetPresenter(fullScreen ? AppWindowPresenterKind.FullScreen : AppWindowPresenterKind.Overlapped);
-                SyncTitleBarVisibilityFromWindowState();
                 return true;
             }
             catch (Exception ex)

@@ -35,7 +35,6 @@ namespace WindBoard
         private readonly BoardWorkspace _workspace = new();
         private readonly ObservableCollection<PageListItem> _pageItems = new();
         private bool _isUpdatingPageSelection;
-        private AppWindowTitleBar? _appWindowTitleBar;
         private SettingsWindow? _settingsWindow;
 
         public MainWindow()
@@ -101,6 +100,7 @@ namespace WindBoard
             {
                 AppLog.Info("App", "主窗口关闭：开始清理资源");
 
+                DetachWindowStateSync();
                 AppSettingsService.Instance.Changed -= OnAppSettingsChanged;
                 StopScreenAnnotationForMainWindowClose();
 
