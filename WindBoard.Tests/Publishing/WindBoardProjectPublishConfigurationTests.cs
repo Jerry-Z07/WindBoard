@@ -36,6 +36,20 @@ public sealed class WindBoardProjectPublishConfigurationTests
     }
 
     [Fact]
+    public void InstallerScript_UsesValidCurStepChangedSignature()
+    {
+        DirectoryInfo? repoRoot = RepoRootLocator.Find();
+        Assert.NotNull(repoRoot);
+
+        string installerFilePath = Path.Combine(repoRoot!.FullName, "installer", "WindBoard.iss");
+        Assert.True(File.Exists(installerFilePath), $"未找到安装脚本文件：{installerFilePath}");
+
+        string text = File.ReadAllText(installerFilePath);
+        Assert.Contains("procedure CurStepChanged(CurStep: TSetupStep);", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("TInstallStep", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void MainProject_BuildsCrashReporterIntoAppOutput_ForLocalBuilds()
     {
         DirectoryInfo? repoRoot = RepoRootLocator.Find();

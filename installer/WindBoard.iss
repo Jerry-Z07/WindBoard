@@ -443,9 +443,10 @@ begin
   end;
 end;
 
-procedure CurInstallStepChanged(CurInstallStep: TInstallStep);
+// Inno Setup 事件签名：CurStepChanged(CurStep: TSetupStep)
+procedure CurStepChanged(CurStep: TSetupStep);
 begin
-  if CurInstallStep = ssInstall then
+  if CurStep = ssInstall then
   begin
     // 在开始复制文件前，检测是否为更新安装
     if IsUpgradeInstallation() then
