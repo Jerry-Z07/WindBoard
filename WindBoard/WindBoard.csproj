@@ -108,7 +108,7 @@
     Inputs="@(PRIResource);$(MSBuildProjectDirectory)\Build\GenerateLocalizationMetadata.ps1"
     Outputs="$(WindBoardLocalizationMetadataFile)">
     <MakeDir Directories="$(WindBoardGeneratedLocalizationDir)" />
-    <Exec Command="pwsh -NoLogo -NoProfile -ExecutionPolicy Bypass -File &quot;$(MSBuildProjectDirectory)\Build\GenerateLocalizationMetadata.ps1&quot; -ProjectDir &quot;$(MSBuildProjectDirectory)&quot; -OutputFile &quot;$(WindBoardLocalizationMetadataFile)&quot;" />
+    <Exec Command="pwsh -NoLogo -NoProfile -Command &quot;&amp; '$(MSBuildProjectDirectory)\Build\GenerateLocalizationMetadata.ps1' -ProjectDir '$(MSBuildProjectDirectory)' -OutputFile '$(WindBoardLocalizationMetadataFile)'&quot;" />
   </Target>
 
   <Target Name="WindBoard_BuildCrashReporterIntoAppOutput" AfterTargets="Build">
