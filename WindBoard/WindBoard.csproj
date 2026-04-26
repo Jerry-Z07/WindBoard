@@ -98,9 +98,13 @@
     <Copy SourceFiles="@(_WindBoardWinUIPri)" DestinationFolder="$(PublishDir)" SkipUnchangedFiles="true" />
   </Target>
 
+  <!--
+    WinUI 的 XAML 编译会在 CoreCompile 之前消费 Compile 列表。
+    本地化元数据文件需要更早生成，避免 CI 冷启动时出现 CS2001（源文件不存在）。
+  -->
   <Target
     Name="WindBoard_GenerateLocalizationMetadata"
-    BeforeTargets="CoreCompile"
+    BeforeTargets="PrepareForBuild"
     Inputs="@(PRIResource);$(MSBuildProjectDirectory)\Build\GenerateLocalizationMetadata.ps1"
     Outputs="$(WindBoardLocalizationMetadataFile)">
     <MakeDir Directories="$(WindBoardGeneratedLocalizationDir)" />

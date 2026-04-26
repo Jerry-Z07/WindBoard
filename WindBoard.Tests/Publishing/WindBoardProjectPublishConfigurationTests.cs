@@ -66,6 +66,21 @@ public sealed class WindBoardProjectPublishConfigurationTests
         Assert.Contains("Condition=\"'$(RuntimeIdentifier)' == 'win-arm64'\"", text, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void MainProject_GeneratesLocalizationMetadata_BeforePrepareForBuild()
+    {
+        DirectoryInfo? repoRoot = RepoRootLocator.Find();
+        Assert.NotNull(repoRoot);
+
+        string projectFilePath = Path.Combine(repoRoot!.FullName, "WindBoard", "WindBoard.csproj");
+        Assert.True(File.Exists(projectFilePath), $"未找到主项目文件：{projectFilePath}");
+
+        string text = File.ReadAllText(projectFilePath);
+        Assert.Contains("<Target", text, StringComparison.Ordinal);
+        Assert.Contains("Name=\"WindBoard_GenerateLocalizationMetadata\"", text, StringComparison.Ordinal);
+        Assert.Contains("BeforeTargets=\"PrepareForBuild\"", text, StringComparison.Ordinal);
+    }
+
     private static int CountOccurrences(string text, string value)
     {
         if (string.IsNullOrEmpty(text) || string.IsNullOrEmpty(value))

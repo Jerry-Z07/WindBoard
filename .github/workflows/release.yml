@@ -37,6 +37,7 @@ jobs:
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
+          $PSNativeCommandUseErrorActionPreference = $true
 
           $tag = '${{ github.ref_name }}'
           if ([string]::IsNullOrWhiteSpace($tag)) { throw 'Missing tag name.' }
