@@ -19,7 +19,7 @@ description: Use when writing or updating release notes for a new version, or wh
 
 ### 1. 确定提交范围
 
-获取用户提到的起始和结束 commit，如果没有就要求用户提供，使用 `git log <start>..<end>` 查看范围内的所有提交。
+获取用户提到的起始和结束 commit，如果没有就要求用户提供范围，不要假设，使用 `git log <start>..<end>` 查看范围内的所有提交。
 
 ### 2. 逐条阅读提交详情
 
@@ -97,7 +97,7 @@ description: Use when writing or updating release notes for a new version, or wh
 
 **英文模板：**
 ```markdown
-# Changelog (v<版本号>)
+# Release Notes (v<版本号>)
 
 - ✨ feat: ...
 - 🐛 fix: ...
