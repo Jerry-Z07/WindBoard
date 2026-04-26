@@ -1,4 +1,5 @@
 using System;
+using Microsoft.UI;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -11,6 +12,63 @@ namespace WindBoard
     public sealed partial class MainWindow : Window
     {
         private bool _hasAppliedStartupWindowMode;
+        private bool _isWindowStateSyncAttached;
+
+        private void ConfigureTitleBar()
+        {
+            ExtendsContentIntoTitleBar = true;
+            SetTitleBar(MainTitleBar);
+
+            AppWindowTitleBar titleBar = AppWindow.TitleBar;
+            titleBar.ButtonBackgroundColor = Colors.Transparent;
+            titleBar.ButtonInactiveBackgroundColor = Colors.Transparent;
+
+            AttachWindowStateSync();
+        }
+
+        private void AttachWindowStateSync()
+        {
+            if (_isWindowStateSyncAttached)
+            {
+                return;
+            }
+
+            AppWindow.Changed += OnAppWindowChanged;
+            _isWindowStateSyncAttached = true;
+        }
+
+        private void DetachWindowStateSync()
+        {
+            if (!_isWindowStateSyncAttached)
+            {
+                return;
+            }
+
+            AppWindow.Changed -= OnAppWindowChanged;
+            _isWindowStateSyncAttached = false;
+        }
+
+        private void OnAppWindowChanged(AppWindow sender, AppWindowChangedEventArgs _)
+        {
+            // AppWindow.Changed 可能来自非 UI 线程，这里统一切回 UI 线程更新可见性。
+            if (!DispatcherQueue.TryEnqueue(SyncTitleBarVisibilityFromWindowState))
+            {
+                SyncTitleBarVisibilityFromWindowState();
+            }
+        }
+
+        private void SyncTitleBarVisibilityFromWindowState()
+        {
+            AppWindow? appWindow = TryGetAppWindow();
+            if (appWindow is null)
+            {
+                return;
+            }
+
+            MainTitleBar.Visibility = appWindow.Presenter.Kind == AppWindowPresenterKind.FullScreen
+                ? Visibility.Collapsed
+                : Visibility.Visible;
+        }
 
         private void OnMoreMenuOpening(object sender, object e)
         {

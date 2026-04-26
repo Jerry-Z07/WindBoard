@@ -40,6 +40,7 @@ namespace WindBoard
         public MainWindow()
         {
             InitializeComponent();
+            ConfigureTitleBar();
             _clearCanvasSlideController = new ClearCanvasSlideController(
                 new ClearCanvasSlideController.UiRefs
                 {
@@ -89,6 +90,7 @@ namespace WindBoard
             Activated += (_, _) =>
             {
                 TryApplyStartupWindowModeIfNeeded();
+                SyncTitleBarVisibilityFromWindowState();
                 ApplyCamouflageSettingsToWindow();
                 TryStartAutoUpdateCheckOnce();
             };
@@ -98,6 +100,7 @@ namespace WindBoard
             {
                 AppLog.Info("App", "主窗口关闭：开始清理资源");
 
+                DetachWindowStateSync();
                 AppSettingsService.Instance.Changed -= OnAppSettingsChanged;
                 StopScreenAnnotationForMainWindowClose();
 

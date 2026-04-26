@@ -34,6 +34,7 @@
 
   <ItemGroup>
     <Content Include="Assets\Eraser.svg" />
+    <Content Include="Assets\icon.ico" />
     <Content Include="Assets\icon.png" />
   </ItemGroup>
 
