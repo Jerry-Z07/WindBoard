@@ -6,7 +6,7 @@
       - AssemblyVersion/FileVersion 用于 Windows 文件属性与程序集版本
       - InformationalVersion 用于 UI 展示（可在 CI 中追加 metadata）
     -->
-    <VersionPrefix>2.7.0</VersionPrefix>
+    <VersionPrefix>2.8.0</VersionPrefix>
     <Version>$(VersionPrefix)</Version>
     <AssemblyVersion>$(VersionPrefix).0</AssemblyVersion>
     <FileVersion>$(VersionPrefix).0</FileVersion>
