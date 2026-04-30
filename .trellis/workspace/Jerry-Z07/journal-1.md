@@ -203,3 +203,36 @@
 ### Next Steps
 
 - None - task complete
+
+
+## Session 6: 修复安装包升级安装时卸载旧版逻辑
+
+**Date**: 2026-05-01
+**Task**: 修复安装包升级安装时卸载旧版逻辑
+**Branch**: `main`
+
+### Summary
+
+修复 install/WindBoard.iss 中更新安装不先卸载旧版的三个 bug：(1) GetUninstallerPath 注册表键名用 AppName 而非 AppId；(2) Exec 错误把完整命令行作为文件名传入；(3) 重装后 unins 文件被 Inno 重命名导致硬编码 unins000.exe 找不到。改为注册表优先 + FindFirst 通配回退查找卸载程序，并为卸载阶段添加界面进度提示。
+
+### Main Changes
+
+(Add details)
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `48f92d5` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
