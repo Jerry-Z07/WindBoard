@@ -1,3 +1,4 @@
+#define MyAppId "{{C0F2F2F5-4A20-4B01-9F75-10A1FDF8E5CE}"
 #define MyAppName "WindBoard"
 #define MyAppPublisher "WindBoard"
 #define MyAppURL "https://github.com/Jerry-Z07/WindBoard"
@@ -53,7 +54,7 @@
 #endif
 
 [Setup]
-AppId={{C0F2F2F5-4A20-4B01-9F75-10A1FDF8E5CE}
+AppId={#MyAppId}
 AppName={cm:AppName}
 AppVersion={#MyAppVersion}
 AppPublisher={#MyAppPublisher}
@@ -94,6 +95,10 @@ english.AppName=WindBoard
 chinesesimplified.AppName=轻风白板
 english.AppShortcutName=WindBoard
 chinesesimplified.AppShortcutName=轻风白板
+
+; 更新安装：卸载旧版时的界面提示
+english.UpgradeUninstallStatus=Uninstalling previous version, please wait...
+chinesesimplified.UpgradeUninstallStatus=正在卸载旧版本，请稍候…
 
 ; 卸载增强：可选删除用户数据（默认不删除）。
 ; 说明：安装版用户数据默认位于 %LocalAppData%\WindBoard（见主程序 AppDataPaths 约定）。
@@ -363,35 +368,55 @@ end;
 function GetUninstallerPath(): string;
 var
   UninstallKey: string;
-  UninstallerPath: string;
+  AppDir: string;
+  FindRec: TFindRec;
+  ParsedPath: string;
 begin
   Result := '';
-  UninstallKey := 'Software\Microsoft\Windows\CurrentVersion\Uninstall\' + '{#MyAppName}' + '_is1';
 
-  // 从注册表读取旧版本卸载程序路径
-  if RegQueryStringValue(HKLM, UninstallKey, 'UninstallString', UninstallerPath) then
+  // 主路径：从注册表读取（64 位安装模式下 Reg* 函数默认访问 64 位视图）
+  UninstallKey := 'Software\Microsoft\Windows\CurrentVersion\Uninstall\' + '{#MyAppId}' + '_is1';
+  Log('Upgrade: Registry lookup - key: ' + UninstallKey);
+  if RegQueryStringValue(HKLM, UninstallKey, 'UninstallString', ParsedPath) then
   begin
-    // UninstallString 通常是: "C:\...\unins000.exe" /S0
-    // 需要提取引号内的路径
-    UninstallerPath := Trim(UninstallerPath);
-    if Pos('"', UninstallerPath) = 1 then
+    Log('Upgrade: Registry returned: ' + ParsedPath);
+    ParsedPath := Trim(ParsedPath);
+    if Pos('"', ParsedPath) = 1 then
     begin
-      // 格式: "path" /params
-      Delete(UninstallerPath, 1, 1);
-      if Pos('"', UninstallerPath) > 0 then
-      begin
-        SetLength(UninstallerPath, Pos('"', UninstallerPath) - 1);
-      end;
+      Delete(ParsedPath, 1, 1);
+      if Pos('"', ParsedPath) > 0 then
+        SetLength(ParsedPath, Pos('"', ParsedPath) - 1);
     end
     else
     begin
-      // 格式: path /params（无引号）
-      if Pos(' ', UninstallerPath) > 0 then
-      begin
-        SetLength(UninstallerPath, Pos(' ', UninstallerPath) - 1);
-      end;
+      if Pos(' ', ParsedPath) > 0 then
+        SetLength(ParsedPath, Pos(' ', ParsedPath) - 1);
     end;
-    Result := Trim(UninstallerPath);
+    ParsedPath := Trim(ParsedPath);
+    if FileExists(ParsedPath) then
+    begin
+      Log('Upgrade: Found uninstaller via registry: ' + ParsedPath);
+      Result := ParsedPath;
+      Exit;
+    end;
+    Log('Upgrade: Registry path does not exist: ' + ParsedPath);
+  end;
+
+  // 回退：在安装目录搜索 unins*.exe（重装后 Inno 会重命名卸载程序，如 unins001.exe）
+  AppDir := ExpandConstant('{app}');
+  Log('Upgrade: Searching for unins*.exe in: ' + AppDir);
+  if FindFirst(AppDir + '\unins*.exe', FindRec) then
+  begin
+    try
+      Result := AppDir + '\' + FindRec.Name;
+      Log('Upgrade: Found uninstaller via search: ' + Result);
+    finally
+      FindClose(FindRec);
+    end;
+  end
+  else
+  begin
+    Log('Upgrade: No uninstaller found');
   end;
 end;
 
@@ -404,7 +429,6 @@ end;
 function PerformSilentUninstallForUpgrade(): Boolean;
 var
   UninstallerPath: string;
-  UninstallCmd: string;
   ResultCode: Integer;
 begin
   Result := False;
@@ -426,12 +450,10 @@ begin
   // 构造静默卸载命令（保留用户数据）
   // /verysilent: 完全静默，无任何界面
   // /deleteuserdata=0: 保留用户数据
-  UninstallCmd := '"' + UninstallerPath + '" /verysilent /deleteuserdata=0';
+  Log('Upgrade: Starting silent uninstall: ' + UninstallerPath);
 
-  Log('Upgrade: Starting silent uninstall: ' + UninstallCmd);
-
-  // 执行静默卸载并等待完成
-  if Exec(UninstallCmd, '', '', SW_HIDE, ewWaitUntilTerminated, ResultCode) then
+  // Exec 签名: Exec(Filename, Params, WorkingDir, ShowCmd, Wait, ResultCode)
+  if Exec(UninstallerPath, '/verysilent /deleteuserdata=0', '', SW_HIDE, ewWaitUntilTerminated, ResultCode) then
   begin
     Log('Upgrade: Silent uninstall completed with exit code: ' + IntToStr(ResultCode));
     Result := (ResultCode = 0);
@@ -452,11 +474,20 @@ begin
     if IsUpgradeInstallation() then
     begin
       Log('Upgrade: Detected existing installation, performing silent uninstall...');
+
+      // 更新安装界面提示
+      WizardForm.StatusLabel.Caption := ExpandConstant('{cm:UpgradeUninstallStatus}');
+      WizardForm.FilenameLabel.Caption := '';
+      WizardForm.ProgressGauge.Style := npbstMarquee;
+
       if not PerformSilentUninstallForUpgrade() then
       begin
         Log('Upgrade: Silent uninstall failed, but continuing installation');
         // 不中止安装，允许覆盖安装
       end;
-    end;
+
+      // 恢复进度条样式
+      WizardForm.ProgressGauge.Style := npbstNormal;
+end;
   end;
 end;
