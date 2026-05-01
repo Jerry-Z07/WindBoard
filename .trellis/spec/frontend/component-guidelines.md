@@ -6,41 +6,41 @@
 
 ## Overview
 
-WindBoard 不使用 MVVM、不使用 DI 容器、不使用 ViewModel 绑定。UI 组件采用 code-behind 直接操控模式——事件处理在 code-behind 中，业务逻辑委托给 Services，状态通过静态单例服务访问。
+WindBoard does not use MVVM, DI containers, or ViewModel binding. UI components use the direct code-behind control pattern - event handling lives in code-behind, business logic is delegated to Services, and state is accessed through static singleton services.
 
 ---
 
 ## Component Structure
 
-### 标准 UserControl 结构
+### Standard UserControl structure
 
 ```
-ControlName.xaml          — XAML 布局
-ControlName.xaml.cs       — 主体：字段、属性、初始化、事件订阅/取消、Dispose
-ControlName.{Feature}.cs  — partial 拆分（按功能域）
+ControlName.xaml          - XAML layout
+ControlName.xaml.cs       - main body: fields, properties, initialization, event subscription/unsubscription, Dispose
+ControlName.{Feature}.cs  - partial split (by feature area)
 ```
 
-**关键约定**：
-- 主文件 `.xaml.cs` 持有所有字段和属性声明
-- partial 文件只包含方法（无独立字段声明，除少量拖拽状态字段）
-- 所有 partial 文件共享 `public sealed partial class` 声明
+**Key conventions**:
+- The main `.xaml.cs` file owns all field and property declarations
+- Partial files contain methods only (no independent field declarations, except for a few drag-state fields)
+- All partial files share the same `public sealed partial class` declaration
 
-### XAML 页面结构
+### XAML page structure
 
 ```
-FeaturePage.xaml          — Page 布局（设置页/内容页）
-FeaturePage.xaml.cs       — code-behind + ViewModel（嵌在同一文件）
-FeatureDialog.xaml        — ContentDialog 布局（弹窗）
-FeatureDialog.xaml.cs     — code-behind + 内部类
-FeatureWindow.xaml        — Window 布局（独立窗口）
-FeatureWindow.xaml.cs     — code-behind
+FeaturePage.xaml          - Page layout (settings page/content page)
+FeaturePage.xaml.cs       - code-behind + ViewModel (embedded in the same file)
+FeatureDialog.xaml        - ContentDialog layout (modal dialog)
+FeatureDialog.xaml.cs     - code-behind + internal classes
+FeatureWindow.xaml        - Window layout (standalone window)
+FeatureWindow.xaml.cs     - code-behind
 ```
 
 ---
 
 ## Event Handling Patterns
 
-### Pattern 1: XAML 声明事件绑定
+### Pattern 1: XAML-declared event binding
 
 ```xml
 <Button Click="OnSelectionBringToFrontClicked" />
@@ -48,25 +48,25 @@ FeatureWindow.xaml.cs     — code-behind
 <TextBox TextChanged="OnTitleTextChanged" />
 ```
 
-### Pattern 2: 代码中动态绑定
+### Pattern 2: Dynamic binding in code
 
 ```csharp
-// MainWindow 构造函数中
+// In the MainWindow constructor
 BoardCanvas.CommandStateChanged += (_, _) => UpdateCommandStates();
 SelectToolToggleButton.Click += (_, _) => ApplyToolSelection(BoardTool.Select);
 ```
 
-### Pattern 3: AddHandler 监听已处理事件
+### Pattern 3: AddHandler for already-handled events
 
 ```csharp
-// 当 InputController 标记 Handled 后仍需接收事件
+// Still receive the event after InputController marks it as Handled
 CanvasPanel.AddHandler(UIElement.PointerMovedEvent, _cursorPointerMovedHandler, true);
 ```
 
-### Pattern 4: _isSyncingFromSettings 防循环
+### Pattern 4: `_isSyncingFromSettings` reentrancy guard
 
 ```csharp
-// 几乎所有设置页都用此模式
+// Almost every settings page uses this pattern
 private bool _isSyncingFromSettings;
 
 private void OnEnabledToggled(object sender, RoutedEventArgs e)
@@ -80,35 +80,35 @@ private void OnEnabledToggled(object sender, RoutedEventArgs e)
 
 ## Control Communication
 
-### 事件驱动（C# 事件）
+### Event-driven (C# events)
 
 ```csharp
-// 状态变更通知
-BoardCanvas.CommandStateChanged → MainWindow 订阅后更新按钮状态
-BoardSession.StateChanged → BoardCanvasControl 订阅后触发重渲染
-AppSettingsService.Instance.Changed → 各设置页订阅以同步 UI
+// State change notifications
+BoardCanvas.CommandStateChanged -> MainWindow subscribes and updates button states
+BoardSession.StateChanged -> BoardCanvasControl subscribes and triggers redraw
+AppSettingsService.Instance.Changed -> each settings page subscribes to sync the UI
 ```
 
-### 直接方法调用
+### Direct method calls
 
 ```csharp
-MainWindow → BoardCanvas.Tool = ... / BoardCanvas.Undo()
-BoardCanvas → _input.CancelActiveToolOperation() / _session.Execute()
+MainWindow -> BoardCanvas.Tool = ... / BoardCanvas.Undo()
+BoardCanvas -> _input.CancelActiveToolOperation() / _session.Execute()
 ```
 
-### 单例服务 + 回调/闭包
+### Singleton service + callback/closure
 
 ```csharp
-// Lambda 写入
+// Lambda write-back
 AppSettingsService.Instance.Update(s => s.Dock.IsUndoRedoVisible = isVisible);
-// Flow 构造时传入闭包
+// Pass a closure when constructing Flow
 new ExportFlow(_workspace, getViewportState: () => BoardCanvas.GetViewportState(...));
 ```
 
-### Host 对象桥接
+### Host object bridge
 
 ```csharp
-// MainWindow 构建 Host，将 UI 元素引用传给 Feature Flow
+// MainWindow builds a Host and passes UI element references to the Feature Flow
 var host = new DockMainWindowHost(this, panel, button);
 _dockFlow = new DockFlow(host, ...);
 ```
@@ -117,7 +117,7 @@ _dockFlow = new DockFlow(host, ...);
 
 ## Localization in Components
 
-### XAML 中
+### In XAML
 
 ```xml
 xmlns:l10n="using:WindBoard.Localization"
@@ -129,53 +129,53 @@ xmlns:l10n="using:WindBoard.Localization"
 <ToolTipService.ToolTip="{l10n:Loc Key=Some_Tooltip}" />
 ```
 
-### C# 中
+### In C#
 
 ```csharp
 L10n.Get("Common_BringToFront")
 L10n.Format("Settings_Camouflage_CreateShortcut_Success_Fmt", shortcutPath)
 ```
 
-**Key 命名约定**：`功能域_子项`（如 `Settings_Dock_Title`、`Common_Delete`、`Import_Failed_Title`）
+**Key naming convention**: `Domain_SubItem` (for example `Settings_Dock_Title`, `Common_Delete`, `Import_Failed_Title`)
 
-**资源存放与构建约定**：
+**Resource storage and build conventions**:
 
-- 资源源文件放在 `WindBoard/Strings/<culture>/<Feature>.resw`
-- `<Feature>` 必须与 key 前缀首段一致；例如 `Settings_Dock_Title` 必须位于 `Strings/<culture>/Settings.resw`
-- 不直接在 XAML 中使用 `x:Uid`；统一保留 `{l10n:Loc Key=...}`，由 `Localization/L10n.cs` 在运行时读取 `WindBoard.pri`
-- 新增语言或新 feature 资源后，构建会通过 `Build/GenerateLocalizationMetadata.ps1` 自动刷新可用语言/feature 元数据
+- Resource source files live under `WindBoard/Strings/<culture>/<Feature>.resw`
+- `<Feature>` must match the first segment of the key prefix; for example `Settings_Dock_Title` must live in `Strings/<culture>/Settings.resw`
+- Do not use `x:Uid` directly in XAML; keep `{l10n:Loc Key=...}` and let `Localization/L10n.cs` read `WindBoard.pri` at runtime
+- After adding a new language or a new feature resource, the build automatically refreshes the available language/feature metadata through `Build/GenerateLocalizationMetadata.ps1`
 
-**验证点**：
+**Validation points**:
 
-- Good：新增 `Strings/ja-JP/Settings.resw` 且包含 `Settings_*` key，设置页语言下拉框自动出现 `ja-JP`
-- Base：新增 `Settings_NewOption_Title` 后，`Settings.resw` 中存在同名 key，`LocalizationKeyAuditTests` 通过
-- Bad：把 `Settings_*` key 放进 `Common.resw`，运行时会按 feature 路由失败并回退到 key/fallback
-- 必跑：`dotnet build WindBoard.slnx -c Release` 与 `dotnet test WindBoard.slnx -c Release`
+- Good: add `Strings/ja-JP/Settings.resw` with `Settings_*` keys, and `ja-JP` appears automatically in the settings-page language picker
+- Base: after adding `Settings_NewOption_Title`, the same key exists in `Settings.resw`, and `LocalizationKeyAuditTests` passes
+- Bad: put `Settings_*` keys into `Common.resw`; runtime routing will fail by feature and fall back to the key/fallback
+- Must run: `dotnet build WindBoard.slnx -c Release` and `dotnet test WindBoard.slnx -c Release`
 
 ---
 
 ## WinUI Best Practices
 
-### 推荐（来自 winui-app skill）
+### Recommended (from winui-app skill)
 
-- 使用原生 `CommandBar` 或其他标准 WinUI 命令表面，不自行发明工具栏
-- 优先组合/重样式内置 WinUI 控件，再考虑 CommunityToolkit，最后才自定义控件
-- 组件和 UI 交互优先使用原生 WinUI 实现，不要为按钮、返回按钮、侧边栏折叠按钮等常规控件做自绘替代
-- 当 `TitleBar`、`NavigationView`、`CommandBar`、`Button` 等原生控件已提供所需能力时，直接使用其内建能力，不在外层再包一层“仿原生”实现
-- 默认支持 Light/Dark 主题，使用主题感知资源和系统画刷
-- 使用 `x:Bind` 提升编译时安全性和性能
-- 保持简洁的可视化树，避免过深的 XAML 嵌套
+- Use native `CommandBar` or other standard WinUI command surfaces instead of inventing a custom toolbar
+- Prefer composing/restyling built-in WinUI controls first, then CommunityToolkit, and only then custom controls
+- Use native WinUI implementations for component and UI interactions; do not build painted substitutes for ordinary controls such as buttons, back buttons, or sidebar toggle buttons
+- When native controls such as `TitleBar`, `NavigationView`, `CommandBar`, or `Button` already provide the required capability, use the built-in capability directly instead of wrapping it in another "native-like" implementation
+- Support Light/Dark themes by default and use theme-aware resources and system brushes
+- Use `x:Bind` to improve compile-time safety and performance
+- Keep the visual tree simple and avoid deep XAML nesting
 
-### 原生控件约定
+### Native control convention
 
-**What**：常规交互组件默认使用 WinUI 原生控件或其内建能力，不使用自绘去模拟已有系统控件。
+**What**: ordinary interaction components should default to WinUI native controls or built-in capabilities and should not use painting to mimic existing system controls.
 
-**Why**：原生控件能自动获得系统交互、主题、可访问性、标题栏集成和平台后续行为更新；自绘“仿原生”按钮容易在尺寸、边框、状态、焦点反馈和可访问性上与系统行为漂移。
+**Why**: native controls automatically get system interactions, theming, accessibility, title-bar integration, and future platform behavior updates; painted "native-like" buttons easily drift from system behavior in size, borders, states, focus feedback, and accessibility.
 
-**Example**：
+**Example**:
 
 ```xaml
-<!-- Wrong: 原生 TitleBar 已有 BackButton/PaneToggleButton，仍自行塞入两个 Button 模拟 -->
+<!-- Wrong: native TitleBar already provides BackButton/PaneToggleButton, but two buttons are still added manually -->
 <TitleBar>
     <TitleBar.LeftHeader>
         <StackPanel Orientation="Horizontal">
@@ -189,7 +189,7 @@ L10n.Format("Settings_Camouflage_CreateShortcut_Success_Fmt", shortcutPath)
     </TitleBar.LeftHeader>
 </TitleBar>
 
-<!-- Correct: 使用 TitleBar 内建按钮，仅处理事件 -->
+<!-- Correct: use the built-in TitleBar buttons and handle only the events -->
 <TitleBar
     IsBackButtonVisible="True"
     IsPaneToggleButtonVisible="True"
@@ -197,26 +197,26 @@ L10n.Format("Settings_Camouflage_CreateShortcut_Success_Fmt", shortcutPath)
     PaneToggleRequested="OnTitleBarPaneToggleRequested" />
 ```
 
-### Convention: 设置页共享 ResourceDictionary
+### Convention: shared ResourceDictionary for settings pages
 
-**What**：当多个设置页需要复用同一套间距、Padding、卡片网格节奏时，把常量和基础容器样式放到 `WindBoard/Settings/SettingsPageResources.xaml`，并由 `WindBoard/App.xaml` 的 `MergedDictionaries` 统一合并。
+**What**: when multiple settings pages need the same spacing, padding, or card-grid rhythm, put the constants and base container styles in `WindBoard/Settings/SettingsPageResources.xaml` and merge them once through `WindBoard/App.xaml`'s `MergedDictionaries`.
 
-**Why**：设置页常量散落在各个 XAML 页面里时，一次视觉收敛会演变成多文件批量修改，容易漏改并造成密度漂移。共享 ResourceDictionary 可以把“单一视觉决策”收敛成单点配置。
+**Why**: when settings-page constants are scattered across XAML pages, one visual adjustment turns into a multi-file edit, which is easy to miss and leads to density drift. A shared ResourceDictionary turns a single visual decision into a single configuration point.
 
-**Current contract**：
+**Current contract**:
 
-- 资源文件路径：`WindBoard/Settings/SettingsPageResources.xaml`
-- 合并入口：`WindBoard/App.xaml`
-- 当前共享键：`SettingsCardGroupSpacing`、`SettingsPagePadding`
-- 当前共享样式：`SettingsPageRootStackPanelStyle`、`SettingsPageSectionStackPanelStyle`、`SettingsPageCardGridStyle`
+- Resource file path: `WindBoard/Settings/SettingsPageResources.xaml`
+- Merge entry: `WindBoard/App.xaml`
+- Current shared keys: `SettingsCardGroupSpacing`, `SettingsPagePadding`
+- Current shared styles: `SettingsPageRootStackPanelStyle`, `SettingsPageSectionStackPanelStyle`, `SettingsPageCardGridStyle`
 
-**Use when**：
+**Use when**:
 
-- 3 个及以上设置页需要同一视觉常量
-- 复用的是布局节奏，不是单页私有表单排版
-- 目标容器是设置页根 `StackPanel`、分组 `StackPanel` 或卡片列表 `Grid`
+- 3 or more settings pages need the same visual constants
+- The reuse is layout rhythm, not single-page private form layout
+- The target containers are the settings-page root `StackPanel`, a grouped `StackPanel`, or a card list `Grid`
 
-**Example**：
+**Example**:
 
 ```xaml
 <!-- WindBoard/App.xaml -->
@@ -239,37 +239,37 @@ L10n.Format("Settings_Camouflage_CreateShortcut_Success_Fmt", shortcutPath)
 </StackPanel>
 ```
 
-**Don't**：
+**Don't**:
 
-- 不要把单页私有的预览区、弹窗内容间距强行抽进这个字典
-- 不要为了一个页面或一个局部控件新建全局键
-- 不要在多个设置页里重复写 `Spacing="4" Padding="24"` 这一类共享布局常量
+- Do not force single-page private preview areas or dialog content spacing into this dictionary
+- Do not create global keys for a single page or a local control
+- Do not repeat shared layout constants such as `Spacing="4" Padding="24"` across multiple settings pages
 
-### 避免（来自 winui-app skill + deslop skill）
+### Avoid (from winui-app skill + deslop skill)
 
-- 散落的主题画刷和样式（应集中到 App.xaml 或共享 ResourceDictionary）
-- 不必要的 `Border` 包装（"双重卡片"反模式）
-- 硬编码颜色值（应使用主题资源）
-- 用自绘 `Button`、`Border`、`Path` 等去模拟已有原生控件的视觉与行为
-- 过度防御性检查（如在已验证的内部调用路径上加 null 检查）
-- AI 生成的多余注释（注释应解释"为什么"，而非重复代码含义）
+- Scattered theme brushes and styles (they should be centralized in App.xaml or a shared ResourceDictionary)
+- Unnecessary `Border` wrapping ("double card" anti-pattern)
+- Hard-coded color values (theme resources should be used)
+- Using painted `Button`, `Border`, `Path`, and similar elements to simulate the look and behavior of existing native controls
+- Overly defensive checks, such as adding null checks on already verified internal call paths
+- Extra AI-generated comments (comments should explain "why", not repeat code meaning)
 
 ---
 
 ## Common Mistakes
 
 ### ❌ DON'T
-- 在 code-behind 中直接写业务逻辑（应委托给 Services/）
-- 使用 MVVM 绑定或 INotifyPropertyChanged 模式
-- 硬编码用户可见字符串（必须使用 `{l10n:Loc Key=...}` 或 `L10n.Get()`)
-- 在 XAML 中使用 `Binding` 当 `x:Bind` 可用时
-- 忘记 `_isSyncingFromSettings` 防循环（设置页几乎都需要）
-- 在已有原生控件能力的场景下，用自绘组件替代系统按钮/标题栏按钮/导航按钮
+- Write business logic directly in code-behind (delegate to Services/)
+- Use MVVM binding or the INotifyPropertyChanged pattern
+- Hard-code user-visible strings (must use `{l10n:Loc Key=...}` or `L10n.Get()`)
+- Use `Binding` in XAML when `x:Bind` is available
+- Forget the `_isSyncingFromSettings` reentrancy guard (almost every settings page needs it)
+- Replace system buttons/title-bar buttons/navigation buttons with painted components when native control capability already exists
 
 ### ✅ DO
-- 事件处理在 code-behind，业务逻辑在 Services
-- 使用 `x:Bind` 优先于 `Binding`
-- 通过 `AppSettingsService.Instance.Update()` 修改设置
-- 新 Feature 遵循 Flow + Models + Services + UI 统一结构
-- 崩溃链路中的 UI 操作必须包裹在 try-catch 中
-- 先确认 WinUI 原生控件是否已满足需求，再决定是否需要重样式或引入额外控件
+- Handle events in code-behind and keep business logic in Services
+- Prefer `x:Bind` over `Binding`
+- Modify settings through `AppSettingsService.Instance.Update()`
+- New Features follow the unified Flow + Models + Services + UI structure
+- UI operations in crash paths must be wrapped in try-catch
+- Confirm whether native WinUI controls already satisfy the requirement before deciding to restyle or add extra controls

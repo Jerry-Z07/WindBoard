@@ -8,30 +8,30 @@
 
 ## Overview
 
-WindBoard 的数据持久化分为三层：
+WindBoard's data persistence is divided into three layers:
 
-1. **工作区持久化**：WBIX 格式（Zip 包含 JSON + 资源），由 `IBoardWorkspaceSerializer` 接口抽象
-2. **应用设置持久化**：JSON 文件，由 `AppSettingsStore` 管理
-3. **运行时数据持久化**：崩溃报告、日志文件、缓存目录，由 `AppDataPaths` 统一路径管理
+1. **Workspace persistence**: WBIX format (a Zip package containing JSON plus assets), abstracted behind the `IBoardWorkspaceSerializer` interface
+2. **Application settings persistence**: JSON files managed by `AppSettingsStore`
+3. **Runtime data persistence**: crash reports, log files, and cache directories, with paths managed centrally by `AppDataPaths`
 
 ---
 
 ## File Format: WBIX
 
-WBIX（`.wbix`）是工作区的持久化格式，本质是 Zip 包：
+WBIX (`.wbix`) is the persistence format for a workspace. It is essentially a Zip package:
 
 ```
 .wbix (Zip)
-├── manifest.json          — 格式/版本/页面索引/视口信息/资源列表
+├── manifest.json          - format/version/page index/viewport info/resource list
 ├── pages/
-│   ├── page-000.json      — 笔迹(strokes) + 元素(elements)
+│   ├── page-000.json      - strokes + elements
 │   └── ...
-└── assets/                — 二进制资源（封面图、内嵌图片等）
+└── assets/                - binary assets (cover images, embedded images, and so on)
 ```
 
-**当前版本**: 2（`WbixWorkspaceSerializer.CurrentVersion`）
+**Current version**: 2 (`WbixWorkspaceSerializer.CurrentVersion`)
 
-**manifest.json** 结构：
+**manifest.json** structure:
 ```csharp
 record WbixManifest(
     string Format,          // "wbix"
@@ -45,24 +45,24 @@ record WbixManifest(
     Vector2? ViewportSizeDip);
 ```
 
-**元素半结构化**：`WbixPageElement(Type, JsonElement)` — Type 为 "text"/"link"/"media"/"file"，Data 使用 JsonElement 不提前锁死 schema。
+**Semi-structured elements**: `WbixPageElement(Type, JsonElement)` - Type is "text"/"link"/"media"/"file", and Data uses `JsonElement` so the schema is not fixed too early.
 
-### 安全防护
+### Safety checks
 
-- **路径校验**：`IsSafeZipPath` 禁止 `..` 路径穿越
-- **资源大小限制**：单条目 32MB、总计 256MB
-- **容错解析**：单个元素解析失败不阻断整个流程（catch 后 Warn 继续）
+- **Path validation**: `IsSafeZipPath` blocks `..` path traversal
+- **Asset size limits**: 32 MB per item, 256 MB total
+- **Fault-tolerant parsing**: a single element parse failure does not stop the whole flow (warn after catch and continue)
 
 ---
 
 ## Serialization Patterns
 
-### 快照-运行态转换
+### Snapshot-runtime conversion
 
-- **运行态 → 快照**：`BoardWorkspaceSnapshotConverter.CreateSnapshot(workspace, viewportCamera, zoom, size)`
-- **快照 → 运行态**：`BoardWorkspaceSnapshotApplier.CreatePages(snapshot)` — 导入直接填充 Document，不污染 Undo/Redo 栈
+- **Runtime state -> snapshot**: `BoardWorkspaceSnapshotConverter.CreateSnapshot(workspace, viewportCamera, zoom, size)`
+- **Snapshot -> runtime state**: `BoardWorkspaceSnapshotApplier.CreatePages(snapshot)` - import fills the Document directly and does not pollute the Undo/Redo stack
 
-### 序列化接口
+### Serialization interface
 
 ```csharp
 internal interface IBoardWorkspaceSerializer
@@ -72,31 +72,31 @@ internal interface IBoardWorkspaceSerializer
 }
 ```
 
-UI 与文件格式解耦：UI 只关心 `BoardWorkspaceSnapshot`，不关心具体序列化实现。
+UI and file format are decoupled: the UI only cares about `BoardWorkspaceSnapshot` and does not care about the concrete serialization implementation.
 
-### JSON 选项
+### JSON options
 
 - `System.Text.Json`
-- `CamelCase` 命名策略
-- 允许注释和尾逗号（`JsonCommentHandling.Skip`、`JsonTrailingCommasHandling.Allow`）
+- `CamelCase` naming policy
+- Comments and trailing commas are allowed (`JsonCommentHandling.Skip`, `JsonTrailingCommasHandling.Allow`)
 
 ---
 
 ## Application Settings Storage
 
-### 存储格式
+### Storage format
 
-- JSON 文件（`settings.json`），路径由 `AppDataPaths.SettingsFilePath` 决定
-- 安装版：`%LocalAppData%\WindBoard\settings.json`
-- 便携版：`{AppDir}\data\settings.json`
+- JSON file (`settings.json`), with path determined by `AppDataPaths.SettingsFilePath`
+- Installed version: `%LocalAppData%\WindBoard\settings.json`
+- Portable version: `{AppDir}\data\settings.json`
 
-### 保存策略
+### Save strategy
 
-- **防抖保存**：350ms Timer，避免高频更新频繁写磁盘
-- **原子写入**：临时文件替换（`.tmp` → `Move overwrite`）
-- **归一化**：加载/更新/保存后执行 `NormalizeInPlace`，补齐 null、修正非法值
-- **读取容错**：读取失败/JSON 损坏时回退默认值，避免影响启动
-- **快照克隆**：`AppSettingsCloner.Clone` 深拷贝，避免外部修改内部状态
+- **Debounced saving**: 350 ms timer to avoid frequent disk writes on high-frequency updates
+- **Atomic write**: replace through a temporary file (`.tmp` -> `Move overwrite`)
+- **Normalization**: run `NormalizeInPlace` after load/update/save to fill nulls and correct invalid values
+- **Read tolerance**: fall back to defaults when reading fails or JSON is corrupted so startup is not affected
+- **Snapshot cloning**: `AppSettingsCloner.Clone` performs a deep copy to prevent external mutation of internal state
 
 ---
 
@@ -104,31 +104,31 @@ UI 与文件格式解耦：UI 只关心 `BoardWorkspaceSnapshot`，不关心具�
 
 ### AppDataPaths
 
-根据 `AppInstallProbe` 判断安装形态：
+Determine the installation type through `AppInstallProbe`:
 
-| 形态 | 根目录 |
-|------|--------|
+| Mode | Root directory |
+|------|----------------|
 | Installer | `%LocalAppData%\WindBoard` |
-| Portable | `{AppDir}\data`（不可写时回退 LocalAppData） |
+| Portable | `{AppDir}\data` (falls back to LocalAppData when not writable) |
 
-提供的路径属性：`RootDirectory`、`SettingsFilePath`、`LogsDirectory`、`CamouflageCacheDirectory`、`DownloadsDirectory`
+Available path properties: `RootDirectory`, `SettingsFilePath`, `LogsDirectory`, `CamouflageCacheDirectory`, `DownloadsDirectory`
 
 ### AppRuntimeLayout
 
-解析产品根目录、运行时目录、便携数据目录、Launcher/CrashReporter 路径。兼容 `shared/` 子目录布局。
+Resolves the product root directory, runtime directory, portable data directory, and Launcher/CrashReporter paths. It is compatible with the `shared/` subdirectory layout.
 
 ---
 
 ## Common Mistakes
 
 ### ❌ DON'T
-- 直接使用硬编码路径（如 `Path.Combine(localAppData, "WindBoard")`），应使用 `AppDataPaths`
-- 修改 `AppSettings.Current` 后不调用 `Update`（变更不会触发事件和保存）
-- 在 WBIX 加载中让单个元素失败阻断整个流程
-- 保存文件时直接 `File.WriteAllText`（应使用原子写入策略）
+- Use hard-coded paths directly (for example `Path.Combine(localAppData, "WindBoard")`); use `AppDataPaths` instead
+- Modify `AppSettings.Current` without calling `Update` (the change will not trigger events or saving)
+- Let a single element failure stop the whole WBIX load flow
+- Use `File.WriteAllText` directly when saving files (atomic write should be used instead)
 
 ### ✅ DO
-- 通过 `AppSettingsService.Update(Action<AppSettings>)` 修改设置
-- WBIX 加载中对非关键元素使用 try-catch + AppLog.Warn 容错
-- 使用 `IBoardWorkspaceSerializer` 接口而非具体实现类
-- 路径相关的值通过 `AppDataPaths` 统一获取
+- Modify settings through `AppSettingsService.Update(Action<AppSettings>)`
+- Use try-catch + `AppLog.Warn` for non-critical elements during WBIX loading
+- Use the `IBoardWorkspaceSerializer` interface instead of a concrete implementation
+- Retrieve path-related values through `AppDataPaths`

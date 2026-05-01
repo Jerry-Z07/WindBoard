@@ -29,13 +29,13 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
-| 7 | 2026-05-02 | 修复导入文字元素尺寸与显示不同步 | `f5c010d` | `main` |
-| 6 | 2026-05-01 | 修复安装包升级安装时卸载旧版逻辑 | `48f92d5` | `main` |
-| 5 | 2026-04-23 | 统一设置页 SettingsCard 布局资源 | `72a0ac0` | `develop` |
-| 4 | 2026-04-23 | 设置窗口标题栏原生化与设置搜索 | `e5a01d1` | `develop` |
-| 3 | 2026-04-22 | 移除导入窗口并改为直接文件选择器导入 | `6c52be0`, `af5c12d` | `develop` |
-| 2 | 2026-04-18 | 改进导入对话框文本与链接输入区 | `f8e9963` | `develop` |
-| 1 | 2026-04-18 | 填充项目开发规范文档 | pending | `develop` |
+| 7 | 2026-05-02 | Fix imported text element size/display mismatch | `f5c010d` | `main` |
+| 6 | 2026-05-01 | Fix uninstall logic during installer upgrade installs | `48f92d5` | `main` |
+| 5 | 2026-04-23 | Unify SettingsCard layout resources for settings pages | `72a0ac0` | `develop` |
+| 4 | 2026-04-23 | Native TitleBar integration and settings search for the settings window | `e5a01d1` | `develop` |
+| 3 | 2026-04-22 | Remove the import window and switch to direct file-picker import | `6c52be0`, `af5c12d` | `develop` |
+| 2 | 2026-04-18 | Improve the import dialog text and link input area | `f8e9963` | `develop` |
+| 1 | 2026-04-18 | Populate project development guideline documents | pending | `develop` |
 <!-- @@@/auto:session-history -->
 
 ---
@@ -43,5 +43,5 @@
 ## Notes
 
 - Sessions are appended to journal files
-- New journal file created when current exceeds 2000 lines
+- A new journal file is created when the current one exceeds 2000 lines
 - Use `add_session.py` to record sessions

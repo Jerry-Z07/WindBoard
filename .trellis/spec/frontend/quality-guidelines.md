@@ -6,107 +6,107 @@
 
 ## Overview
 
-WindBoard 前端遵循"安全性 = 正确性 > 最小变更 > 可读性 > 一致性"原则。项目无 .editorconfig 或 StyleCop，代码质量依赖审查和约定。结合 dotnet-review、winui-app 和 deslop skill 的规则。
+WindBoard frontend follows the principle "safety = correctness > minimal change > readability > consistency." The project has no `.editorconfig` or StyleCop; code quality relies on review and conventions. The rules here combine dotnet-review, winui-app, and deslop skill guidance.
 
 ---
 
 ## Forbidden Patterns
 
-### 代码质量
+### Code quality
 
-- **AI 生成的多余注释**：注释应解释"为什么"而非重复代码含义（来自 deslop skill）
-- **过度防御性检查**：在已验证的内部调用路径上加不必要的 null 检查或 try-catch（来自 deslop skill）
-- **盲目类型转换到 any**：使用 `as` + null 检查或 `is` 模式匹配（来自 deslop skill）
-- **风格不一致**：新增代码必须匹配所在文件的现有风格（来自 deslop skill）
+- **Extra AI-generated comments**: comments should explain "why" rather than repeat what the code already says (from deslop skill)
+- **Overly defensive checks**: unnecessary null checks or try-catch blocks on already verified internal call paths (from deslop skill)
+- **Blind type conversion**: use `as` + null checks or `is` pattern matching (from deslop skill)
+- **Style inconsistency**: new code must match the existing style of the file it lives in (from deslop skill)
 
-### WinUI 特定
+### WinUI-specific
 
-- **硬编码颜色值**：必须使用主题感知资源和系统画刷（来自 winui-app skill）
-- **不必要的自定义控件**：优先组合/重样式内置 WinUI 控件（来自 winui-app skill）
-- **自绘仿原生组件**：已有原生 `Button`、`TitleBar`、`NavigationView`、`CommandBar` 等能力时，不要再用自绘方式模拟按钮、返回按钮、折叠按钮等系统交互
-- **双重卡片布局**：避免在已有卡片样式的子元素外再包 Border（来自 winui-app skill）
-- **嵌套 ScrollViewer 冲突**：外层页面已滚动时，嵌套 GridView 等需明确滚动归属（来自 winui-app skill）
-- **单主题输出**：默认支持 Light/Dark 模式（来自 winui-app skill）
-- **过度 MVVM 仪式**：项目不使用 MVVM，不要引入 ViewModel/INotifyPropertyChanged 绑定模式（来自 winui-app skill）
+- **Hard-coded color values**: theme-aware resources and system brushes must be used (from winui-app skill)
+- **Unnecessary custom controls**: prefer composing/restyling built-in WinUI controls (from winui-app skill)
+- **Painted native lookalikes**: when native `Button`, `TitleBar`, `NavigationView`, `CommandBar`, and similar capabilities already exist, do not paint your own substitutes for buttons, back buttons, fold buttons, and similar system interactions
+- **Double-card layout**: avoid wrapping a Border around elements that are already inside a card style (from winui-app skill)
+- **Nested ScrollViewer conflicts**: when the outer page already scrolls, nested GridView-like controls must have clearly defined scroll ownership (from winui-app skill)
+- **Single-theme output**: Light/Dark mode support is the default (from winui-app skill)
+- **Excessive MVVM ceremony**: the project does not use MVVM, so do not introduce ViewModel/INotifyPropertyChanged binding patterns (from winui-app skill)
 
-### 本地化
+### Localization
 
-- **硬编码用户可见字符串**：必须使用 `{l10n:Loc Key=...}` 或 `L10n.Get/Format`
-- **动态拼接本地化 Key**：`L10n.Get/Format` 的 key 必须是字符串字面量（审计测试会检查）
+- **Hard-coded user-visible strings**: must use `{l10n:Loc Key=...}` or `L10n.Get/Format`
+- **Dynamically concatenated localization keys**: the key passed to `L10n.Get/Format` must be a string literal (the audit test checks this)
 
 ---
 
 ## Required Patterns
 
-### 架构模式
+### Architecture patterns
 
-- **Feature 模块结构**：`*Flow.cs` + `Models/` + `Services/` + `UI/`
-- **MainWindow partial 桥接**：只做 UI 引用到 Flow 的桥接
-- **BoardCanvasControl partial 拆分**：主文件持字段/属性，partial 持方法
-- **防循环标志**：设置页 UI 同步时 `_isSyncingFromSettings = true`
+- **Feature module structure**: `*Flow.cs` + `Models/` + `Services/` + `UI/`
+- **MainWindow partial bridge**: only bridge UI references to Flow
+- **BoardCanvasControl partial split**: the main file owns fields/properties, and partial files own methods
+- **Reentrancy guard**: `_isSyncingFromSettings = true` during settings-page UI sync
 
-### UI 模式
+### UI patterns
 
-- **事件绑定**：XAML 声明 `Click="OnXxx"` 优先，代码动态绑定次之
-- **x:Bind 优先**：页面本地属性用 `x:Bind`，动态 DataContext 用 `Binding`
-- **原子写入**：设置保存使用临时文件替换策略
-- **防抖 Timer**：高频 UI 更新使用 DispatcherQueueTimer 做防抖
-- **原生优先**：先使用 WinUI 原生控件与内建交互能力，再考虑重样式，最后才考虑自定义/自绘实现
+- **Event binding**: XAML-declared `Click="OnXxx"` is preferred, code-based dynamic binding is secondary
+- **Prefer `x:Bind`**: use `x:Bind` for page-local properties and `Binding` for dynamic DataContext
+- **Atomic write**: settings saves use the temporary-file replacement strategy
+- **Debounce timer**: use `DispatcherQueueTimer` for high-frequency UI updates
+- **Native first**: use WinUI native controls and built-in interactions first, then restyling, and only then custom/painted implementations
 
-### 性能模式（来自 winui-app skill）
+### Performance patterns (from winui-app skill)
 
-- **UI 线程保持空闲**：昂贵 I/O/CPU 工作移到后台线程
-- **简洁可视化树**：避免不必要的深层 XAML 嵌套
-- **虚拟化友好控件**：长列表使用虚拟化支持的控件
-- **测量先于优化**：性能问题不明显时先测量再优化
+- **Keep the UI thread free**: move expensive I/O/CPU work to background threads
+- **Keep the visual tree simple**: avoid unnecessary deep XAML nesting
+- **Virtualization-friendly controls**: use controls with virtualization support for long lists
+- **Measure before optimizing**: when performance issues are not obvious, measure first and optimize later
 
 ---
 
 ## Testing Requirements
 
-### 前端测试策略
+### Frontend testing strategy
 
-- **不测试 UI/渲染**：依赖 WinUI 线程与设备环境的测试放到更高层
-- **测试业务逻辑**：Services 中的逻辑应有对应单元测试
-- **测试 ViewModel 逻辑**：嵌在 code-behind 中的 ViewModel 逻辑抽取为可测试的方法
+- **Do not test UI/rendering**: tests that depend on the WinUI thread and device environment belong at a higher level
+- **Test business logic**: logic in Services should have matching unit tests
+- **Test ViewModel logic**: extract ViewModel logic embedded in code-behind into testable methods
 
-### 测试框架
+### Test framework
 
-- xUnit 2.9.3，无 Mock 框架
-- 浮点比较使用 `AssertEx.Equal(expected, actual, tolerance)`
+- xUnit 2.9.3, with no mock framework
+- Use `AssertEx.Equal(expected, actual, tolerance)` for floating-point comparisons
 
-### 审计测试
+### Audit tests
 
-- `LocalizationKeyAuditTests`：本地化 Key 完整性和字面量约束
-- `LogNoiseAuditTests`：日志噪声黑名单
+- `LocalizationKeyAuditTests`: localization key integrity and string-literal constraints
+- `LogNoiseAuditTests`: log-noise blacklist
 
 ---
 
 ## Code Review Checklist
 
-### 功能正确性
+### Functional correctness
 
-- [ ] 文档修改通过 `BoardSession.Execute(command)` 执行
-- [ ] 设置修改通过 `AppSettingsService.Update()` 执行
-- [ ] 异步操作正确使用 `await`，无 `async void`
-- [ ] UI 线程操作通过 `DispatcherQueue.TryEnqueue`
+- [ ] Document changes are executed through `BoardSession.Execute(command)`
+- [ ] Settings changes are executed through `AppSettingsService.Update()`
+- [ ] Async operations use `await` correctly and do not use `async void`
+- [ ] UI-thread operations go through `DispatcherQueue.TryEnqueue`
 
-### 本地化与主题
+### Localization and theme
 
-- [ ] 用户可见字符串使用 `{l10n:Loc Key=...}` 或 `L10n.Get/Format`
-- [ ] 颜色/样式使用主题资源，不硬编码
-- [ ] Light/Dark 模式均正常
+- [ ] User-visible strings use `{l10n:Loc Key=...}` or `L10n.Get/Format`
+- [ ] Colors/styles use theme resources and are not hard-coded
+- [ ] Both Light and Dark modes work correctly
 
-### 性能与可维护性
+### Performance and maintainability
 
-- [ ] 无不必要的事件订阅泄漏（Dispose 中取消订阅）
-- [ ] 无过度 XAML 嵌套或不必要的 Border 包装
-- [ ] 常规交互按钮、标题栏按钮、导航按钮优先使用原生实现，无自绘仿原生替代
-- [ ] 设置页有 `_isSyncingFromSettings` 防循环
-- [ ] Feature 遵循 Flow + Models + Services + UI 结构
+- [ ] No unnecessary event-subscription leaks (unsubscribe in Dispose)
+- [ ] No excessive XAML nesting or unnecessary Border wrapping
+- [ ] Ordinary interaction buttons, title-bar buttons, and navigation buttons use native implementations first, with no painted lookalikes
+- [ ] Settings pages use `_isSyncingFromSettings` to prevent loops
+- [ ] Features follow the Flow + Models + Services + UI structure
 
-### 安全性
+### Security
 
-- [ ] WBIX 加载中有路径校验和大小限制
-- [ ] 崩溃链路中的 try-catch 不抛异常
-- [ ] 文件操作使用原子写入策略
+- [ ] WBIX loading includes path validation and size limits
+- [ ] Try-catch blocks in the crash path do not throw exceptions
+- [ ] File operations use the atomic write strategy

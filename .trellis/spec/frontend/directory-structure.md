@@ -6,7 +6,7 @@
 
 ## Overview
 
-WindBoard 是一个 WinUI 3 桌面应用，不使用 MVVM 模式。UI 代码按功能模块组织，code-behind 直接操控控件，服务通过静态单例访问。
+WindBoard is a WinUI 3 desktop app and does not use the MVVM pattern. UI code is organized by feature module, code-behind manipulates controls directly, and services are accessed through static singletons.
 
 ---
 
@@ -14,33 +14,33 @@ WindBoard 是一个 WinUI 3 桌面应用，不使用 MVVM 模式。UI 代码按�
 
 ```
 WindBoard/
-├── App.xaml(.cs)                    # 应用入口、全局资源、全局异常注册
-├── MainWindow.xaml(.cs)             # 主窗口主体：工具切换、Dock 按钮、Flyout
-├── UI/MainWindow/                   # MainWindow partial 拆分
-│   ├── MainWindow.Pages.cs          # 页面管理
-│   ├── MainWindow.Export.cs         # 导出入口
-│   ├── MainWindow.Import.cs         # 导入口
-│   ├── MainWindow.Dock.cs           # Dock 入口
-│   ├── MainWindow.Shortcuts.cs      # 快捷键入口
-│   ├── MainWindow.Camouflage.cs     # 伪装入口
-│   ├── MainWindow.ScreenAnnotation.cs  # 屏幕批注入口
-│   ├── MainWindow.WindowMode.cs     # 窗口模式
-│   ├── MainWindow.Reminders.cs      # 提醒服务
-│   ├── MainWindow.Updates.cs        # 自动更新
-│   ├── MainWindow.ClearCanvasSlide.cs  # 清空画布动画
-│   └── PageListItem.cs             # 页面列表项数据模型
-├── Controls/                        # 可复用 WinUI UserControl
-│   ├── BoardCanvasControl.xaml(.cs) # 核心画布控件（主体）
-│   ├── BoardCanvasControl.Rendering.cs     # 渲染循环（partial）
-│   ├── BoardCanvasControl.EraserCursor.cs  # 擦除光标（partial）
-│   ├── BoardCanvasControl.SelectionHandles.cs  # 选择手柄（partial）
-│   ├── PageThumbnailControl.xaml(.cs)      # 页面缩略图
-│   └── DialogHelpers.cs            # 对话框辅助方法
-├── Features/                        # 功能模块（每个模块遵循统一结构）
+├── App.xaml(.cs)                    # App entry point, global resources, global exception registration
+├── MainWindow.xaml(.cs)             # Main window shell: tool switching, Dock buttons, Flyouts
+├── UI/MainWindow/                   # MainWindow partial split
+│   ├── MainWindow.Pages.cs          # Page management
+│   ├── MainWindow.Export.cs         # Export entry point
+│   ├── MainWindow.Import.cs         # Import entry point
+│   ├── MainWindow.Dock.cs           # Dock entry point
+│   ├── MainWindow.Shortcuts.cs      # Shortcut entry point
+│   ├── MainWindow.Camouflage.cs     # Camouflage entry point
+│   ├── MainWindow.ScreenAnnotation.cs  # Screen annotation entry point
+│   ├── MainWindow.WindowMode.cs     # Window mode
+│   ├── MainWindow.Reminders.cs      # Reminder service
+│   ├── MainWindow.Updates.cs        # Auto update
+│   ├── MainWindow.ClearCanvasSlide.cs  # Clear-canvas animation
+│   └── PageListItem.cs             # Page list item data model
+├── Controls/                        # Reusable WinUI UserControls
+│   ├── BoardCanvasControl.xaml(.cs) # Core canvas control (main body)
+│   ├── BoardCanvasControl.Rendering.cs     # Render loop (partial)
+│   ├── BoardCanvasControl.EraserCursor.cs  # Eraser cursor (partial)
+│   ├── BoardCanvasControl.SelectionHandles.cs  # Selection handles (partial)
+│   ├── PageThumbnailControl.xaml(.cs)      # Page thumbnail
+│   └── DialogHelpers.cs            # Dialog helper methods
+├── Features/                        # Feature modules (each module follows the same structure)
 │   ├── Camouflage/
-│   │   ├── CamouflageFlow.cs       # 协调器
-│   │   ├── Models/                 # 数据模型
-│   │   ├── Services/               # 业务逻辑
+│   │   ├── CamouflageFlow.cs       # Coordinator
+│   │   ├── Models/                 # Data models
+│   │   ├── Services/               # Business logic
 │   │   └── UI/
 │   │       ├── CamouflageSettingsPage.xaml(.cs)  # Page
 │   │       └── ...
@@ -59,7 +59,7 @@ WindBoard/
 │   │   ├── ImportFlow.cs
 │   │   ├── Models/
 │   │   ├── Services/
-│   │   └── UI/                         # 可选：仅在需要独立 XAML 页面/对话框时创建
+│   │   └── UI/                         # Optional: create only when an independent XAML page/dialog is needed
 │   ├── ScreenAnnotation/
 │   │   ├── ScreenAnnotationFlow.cs
 │   │   ├── Services/
@@ -70,10 +70,10 @@ WindBoard/
 │       ├── Models/
 │       ├── Services/
 │       └── UI/
-├── Localization/                    # L10n 运行时入口 + XAML 标记扩展
-├── Strings/                         # 本地化源文件（Strings/<culture>/<Feature>.resw）
-├── Settings/                        # AppSettingsService、AppSettingsStore、设置页共享资源
-│   ├── SettingsPageResources.xaml   # 设置页共用间距/容器样式，App.xaml 合并后供各 Page 直接引用
+├── Localization/                    # L10n runtime entry + XAML markup extension
+├── Strings/                         # Localization source files (`Strings/<culture>/<Feature>.resw`)
+├── Settings/                        # AppSettingsService, AppSettingsStore, shared resources for settings pages
+│   ├── SettingsPageResources.xaml   # Shared spacing/container styles for settings pages; merged in App.xaml and referenced directly by each page
 ├── Errors/                          # AppErrorService
 ├── Reminders/                       # AppReminderService
 ├── Updates/                         # AppUpdateService
@@ -85,76 +85,76 @@ WindBoard/
 
 ## Module Organization
 
-### Localization 约定
+### Localization conventions
 
-- `Localization/L10n.cs`：运行时本地化入口；继续提供 `L10n.Get/Format/GetSupportedCultureNames`
-- `Localization/LocExtension.cs`：XAML 侧 `{l10n:Loc Key=...}` 入口
-- `Strings/<culture>/<Feature>.resw`：本地化源文件；`<Feature>` 必须与 key 前缀首段一致（例如 `Settings_*` -> `Settings.resw`）
-- `Build/GenerateLocalizationMetadata.ps1`：构建期扫描 `Strings/**/*.resw`，生成 `obj/Generated/Localization/L10nResourceMetadata.g.cs`
+- `Localization/L10n.cs`: runtime localization entry; continues to provide `L10n.Get/Format/GetSupportedCultureNames`
+- `Localization/LocExtension.cs`: XAML-side entry for `{l10n:Loc Key=...}`
+- `Strings/<culture>/<Feature>.resw`: localization source files; `<Feature>` must match the first segment of the key prefix (for example `Settings_*` -> `Settings.resw`)
+- `Build/GenerateLocalizationMetadata.ps1`: scans `Strings/**/*.resw` during build and generates `obj/Generated/Localization/L10nResourceMetadata.g.cs`
 
-验证要求：
+Validation requirements:
 
-- 修改 `.resw` 后，必须运行 `dotnet build WindBoard.slnx -c Release`
-- 修改 `.resw` 或本地化 key 后，必须运行 `dotnet test WindBoard.slnx -c Release`
+- After changing `.resw`, run `dotnet build WindBoard.slnx -c Release`
+- After changing `.resw` or localization keys, run `dotnet test WindBoard.slnx -c Release`
 
-### Feature 模块约定
+### Feature module convention
 
-每个功能模块遵循统一结构：
+Each feature module follows the same structure:
 
 ```
 FeatureName/
-├── FeatureNameFlow.cs         # 协调器/编排器（internal sealed）
-├── Models/                    # 数据模型、快照
-├── Services/                  # 业务逻辑
-└── UI/                        # XAML 页面 + code-behind
+├── FeatureNameFlow.cs         # Coordinator/orchestrator (internal sealed)
+├── Models/                    # Data models, snapshots
+├── Services/                  # Business logic
+└── UI/                        # XAML pages + code-behind
 ```
 
-**UI 类型选择**：
+**UI type selection**:
 
-| 场景 | 基类 | 示例 |
-|------|------|------|
-| 设置页 | `Page` | `DockSettingsPage`、`CamouflageSettingsPage` |
-| 弹窗对话框 | `ContentDialog` | `ImportFlow.ConfirmReplaceCurrentPageRiskAsync` |
-| 独立窗口 | `Window` | `ScreenAnnotationWindow` |
+| Scenario | Base class | Example |
+|----------|------------|---------|
+| Settings page | `Page` | `DockSettingsPage`, `CamouflageSettingsPage` |
+| Modal dialog | `ContentDialog` | `ImportFlow.ConfirmReplaceCurrentPageRiskAsync` |
+| Standalone window | `Window` | `ScreenAnnotationWindow` |
 
-### MainWindow Partial 拆分
+### MainWindow partial split
 
-所有 partial 文件共享 `public sealed partial class MainWindow : Window`。每个 partial 文件是功能模块的**桥接层**——只做"从 MainWindow UI 引用/状态桥接到 Feature Flow"，核心逻辑在 `Features/*Flow.cs` 中。
+All partial files share `public sealed partial class MainWindow : Window`. Each partial file is the feature module's **bridge layer** - it only bridges references/state from MainWindow UI to the Feature Flow, while the core logic lives in `Features/*Flow.cs`.
 
-### 控件 Partial 拆分
+### Control partial split
 
-`BoardCanvasControl` 按功能域拆分：
+`BoardCanvasControl` is split by functional area:
 
-- 主文件 `.xaml.cs`：字段声明、属性、初始化、事件订阅/取消、Dispose
-- `.Rendering.cs`：渲染循环方法
-- `.EraserCursor.cs`：擦除光标逻辑
-- `.SelectionHandles.cs`：选择手柄拖拽
+- Main file `.xaml.cs`: field declarations, properties, initialization, event subscription/unsubscription, Dispose
+- `.Rendering.cs`: render-loop methods
+- `.EraserCursor.cs`: eraser cursor logic
+- `.SelectionHandles.cs`: selection handle dragging
 
-主文件持有所有字段和属性声明，partial 文件只包含方法。
+The main file owns all field and property declarations, and partial files contain methods only.
 
 ---
 
 ## Naming Conventions
 
-### 文件命名
+### File naming
 
-| 类型 | 约定 | 示例 |
-|------|------|------|
-| XAML 页面 | `{Feature}{Purpose}Page.xaml` | `DockSettingsPage.xaml` |
-| XAML 对话框 | `{Feature}Dialog.xaml` | `（按需创建；当前导入流程无独立 XAML 对话框）` |
-| XAML 窗口 | `{Feature}Window.xaml` | `ScreenAnnotationWindow.xaml` |
+| Type | Convention | Example |
+|------|------------|---------|
+| XAML page | `{Feature}{Purpose}Page.xaml` | `DockSettingsPage.xaml` |
+| XAML dialog | `{Feature}Dialog.xaml` | `(create as needed; the current import flow has no standalone XAML dialog)` |
+| XAML window | `{Feature}Window.xaml` | `ScreenAnnotationWindow.xaml` |
 | Partial class | `{ClassName}.{Feature}.cs` | `MainWindow.Pages.cs` |
-| Flow 协调器 | `{Feature}Flow.cs` | `ExportFlow.cs` |
+| Flow coordinator | `{Feature}Flow.cs` | `ExportFlow.cs` |
 | Service | `{Feature}Service.cs` | `CamouflageService.cs` |
-| Host 桥接 | `{Feature}MainWindowHost.cs` | `DockMainWindowHost.cs` |
+| Host bridge | `{Feature}MainWindowHost.cs` | `DockMainWindowHost.cs` |
 
-### 代码元素
+### Code elements
 
-| 元素 | 约定 | 示例 |
-|------|------|------|
-| XAML 命名空间导入 | `xmlns:l10n="using:WindBoard.Localization"` | — |
-| 事件处理方法 | `On{Element}{Event}` | `OnEnabledToggled`、`OnTitleTextChanged` |
-| 同步标志字段 | `_isSyncingFromSettings` | 防止 设置→UI→设置 死循环 |
+| Element | Convention | Example |
+|---------|------------|---------|
+| XAML namespace import | `xmlns:l10n="using:WindBoard.Localization"` | - |
+| Event handler | `On{Element}{Event}` | `OnEnabledToggled`, `OnTitleTextChanged` |
+| Sync-flag field | `_isSyncingFromSettings` | Prevents settings -> UI -> settings loops |
 
 ---
 
@@ -164,19 +164,19 @@ FeatureName/
 
 ```
 Features/Camouflage/
-├── CamouflageFlow.cs                    # 协调窗口标题/图标更新
+├── CamouflageFlow.cs                    # Coordinates window title/icon updates
 ├── Models/
-│   └── CamouflageSettingsSnapshot.cs    # 设置快照
+│   └── CamouflageSettingsSnapshot.cs    # Settings snapshot
 ├── Services/
-│   └── CamouflageService.cs             # 单例服务
+│   └── CamouflageService.cs             # Singleton service
 └── UI/
-    └── CamouflageSettingsPage.xaml(.cs) # 设置页
+    └── CamouflageSettingsPage.xaml(.cs) # Settings page
 ```
 
 ### MainWindow Bridge Pattern
 
 ```csharp
-// MainWindow.Dock.cs — 桥接层
+// MainWindow.Dock.cs - bridge layer
 private DockFlow? _dockFlow;
 
 private void InitializeDock()
@@ -191,14 +191,14 @@ private void InitializeDock()
 ## Anti-Patterns
 
 ### ❌ DON'T
-- 在 MainWindow partial 中写业务逻辑（只做桥接）
-- 创建没有 Flow 协调器的 Feature
-- 在 code-behind 中放业务逻辑（用 Services/）
-- 将 ViewModel 独立为文件（项目约定 ViewModel 嵌在 code-behind 中）
-- 使用 MVVM 绑定模式（项目不使用 INotifyPropertyChanged 绑定）
+- Put business logic in MainWindow partial files (they should only bridge)
+- Create a Feature without a Flow coordinator
+- Put business logic in code-behind (use Services/ instead)
+- Split the ViewModel into a separate file (the project standard embeds ViewModel logic in code-behind)
+- Use MVVM binding patterns (the project does not use INotifyPropertyChanged binding)
 
 ### ✅ DO
-- 使用 `*Flow.cs` 作为功能协调入口
-- MainWindow partial 只桥接 UI 引用到 Flow
-- 业务逻辑放在 `Services/` 子目录
-- 大型控件按功能域拆分为 partial class
+- Use `*Flow.cs` as the feature orchestration entry point
+- Keep MainWindow partials focused on bridging UI references to Flow
+- Put business logic in the `Services/` subdirectory
+- Split large controls into partial classes by functional area

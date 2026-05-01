@@ -47,26 +47,26 @@ git diff --stat origin/main...origin/develop
 
 ### 3) Pre-tag consistency check (version / tag / release notes)
 
-在创建 tag 前执行以下校验，任何一项失败都应停止：
+Before creating a tag, perform the following checks. Stop if any of them fails:
 
 ```powershell
 $tag = 'vX.Y.Z'
 $version = $tag.TrimStart('v','V')
 
-# 1) 项目版本号（Directory.Build.props）必须与 tag 对应版本一致
+# 1) The project version (Directory.Build.props) must match the version in the tag
 [xml]$props = Get-Content 'Directory.Build.props'
 $versionPrefix = $props.Project.PropertyGroup.VersionPrefix
 if ($versionPrefix -ne $version) {
   throw "VersionPrefix mismatch: Directory.Build.props=$versionPrefix, tag=$version"
 }
 
-# 2) release 日志文件名必须与 tag 一致
+# 2) The release note file names must be consistent with the tag
 $zh = "docs/release-notes/$tag.zh-CN.md"
 $en = "docs/release-notes/$tag.en-US.md"
 if (!(Test-Path $zh)) { throw "Missing release note: $zh" }
 if (!(Test-Path $en)) { throw "Missing release note: $en" }
 
-# 3) release 日志内容至少包含版本标识（vX.Y.Z 或 X.Y.Z）
+# 3) The release note content must at least contain the version identifier (vX.Y.Z or X.Y.Z)
 $zhText = Get-Content -Raw -Encoding UTF8 $zh
 $enText = Get-Content -Raw -Encoding UTF8 $en
 if ($zhText -notmatch [regex]::Escape($tag) -and $zhText -notmatch [regex]::Escape($version)) {

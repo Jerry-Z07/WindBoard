@@ -6,96 +6,96 @@
 
 ## Overview
 
-WindBoard 遵循"安全性 = 正确性 > 最小变更 > 可读性 > 一致性"原则。项目无 .editorconfig、StyleCop 或 lint 工具，代码质量依赖代码审查和约定。
+WindBoard follows the principle "safety = correctness > minimal change > readability > consistency." The project does not use `.editorconfig`, StyleCop, or lint tools; code quality depends on code review and conventions.
 
 ---
 
 ## Forbidden Patterns
 
-### 禁止
+### Forbidden
 
-- **静默吞没异常**：主程序中不允许 `catch { }`，必须有日志记录或用户提示（测试 Teardown 中清理临时文件的空 catch 除外）
-- **UI 依赖侵入域层**：`Board/` 层不得引用 WinUI 或任何 UI 命名空间
-- **业务逻辑放在 code-behind**：业务逻辑必须放在 `Services/` 子目录
-- **无 Flow 协调器的 Feature**：每个 Feature 必须有 `*Flow.cs` 作为协调入口
-- **Mock 框架**：不使用 Moq/NSubstitute 等 Mock 框架，直接构造真实对象或手写 Stub
-- **public 字段暴露实现细节**：除 Win32 互操作结构体（P/Invoke struct）外，不使用 public 字段
-- **TODO/HACK/FIXME**：代码中不允许遗留此类注释
-- **盲目 catch(Exception)**：捕获通用异常时必须有日志记录和处理策略
+- **Silently swallowing exceptions**: `catch { }` is not allowed in the main app; logging or a user prompt is required (except for empty catches that clean up temp files in test teardown)
+- **UI dependencies leaking into the domain layer**: the `Board/` layer must not reference WinUI or any UI namespace
+- **Business logic in code-behind**: business logic must live under `Services/`
+- **Features without a Flow coordinator**: every Feature must have a `*Flow.cs` entry point for orchestration
+- **Mock frameworks**: do not use Moq/NSubstitute or similar frameworks; construct real objects directly or hand-write stubs
+- **public fields exposing implementation details**: do not use public fields except for Win32 interop structs (P/Invoke structs)
+- **TODO/HACK/FIXME**: these comments must not remain in code
+- **Blind `catch(Exception)`**: catching a general exception must include logging and a handling strategy
 
 ---
 
 ## Required Patterns
 
-### 必须遵循
+### Required
 
-- **Command 模式**：所有文档修改操作必须实现 `IBoardCommand`（`Do`/`Undo`），通过 `BoardSession.Execute` 执行
-- **Singleton 服务**：应用级服务使用 `internal static XXX Instance { get; } = new(...)` 模式
-- **事件驱动**：服务间状态变更通过 `event Action?` 或 `event EventHandler?` 传播
-- **InternalsVisibleTo**：测试需要访问 internal 类型时通过 `InternalsVisibleTo("WindBoard.Tests")`，不将实现细节改为 public
-- **防循环标志**：设置页 UI 同步时使用 `_isSyncingFromSettings` 防止 写入→事件→写入 死循环
-- **原子写入**：文件保存使用临时文件替换策略（`.tmp` → `Move overwrite`）
+- **Command pattern**: all document modification operations must implement `IBoardCommand` (`Do`/`Undo`) and execute through `BoardSession.Execute`
+- **Singleton services**: application-level services use `internal static XXX Instance { get; } = new(...)`
+- **Event-driven updates**: service state changes are propagated through `event Action?` or `event EventHandler?`
+- **InternalsVisibleTo**: when tests need access to internal types, use `InternalsVisibleTo("WindBoard.Tests")` instead of making implementation details public
+- **Reentrancy guard**: use `_isSyncingFromSettings` during settings-page UI sync to prevent write -> event -> write loops
+- **Atomic write**: file saves use the temporary-file replacement strategy (`.tmp` -> `Move overwrite`)
 
-### 命名约定
+### Naming conventions
 
-| 元素 | 约定 | 示例 |
-|------|------|------|
-| 类型/方法 | `PascalCase` | `BoardSession`、`Execute()` |
-| 私有字段 | `_camelCase` | `_undoStack`、`_fileSink` |
-| 常量 | `PascalCase` | `CurrentVersion` |
-| 接口 | `IPascalCase` 前缀 | `IBoardCommand` |
-| 命名空间 | 匹配目录结构 | `WindBoard.Board.Commands` |
-| 测试类 | `{被测类名}Tests` | `AddStrokeCommandTests` |
-| 测试方法 | `{动作}_{预期结果}` | `Do_Undo_Redo_KeepsOriginalInsertIndex` |
+| Element | Convention | Example |
+|---------|------------|---------|
+| Type/method | `PascalCase` | `BoardSession`, `Execute()` |
+| Private field | `_camelCase` | `_undoStack`, `_fileSink` |
+| Constant | `PascalCase` | `CurrentVersion` |
+| Interface | `IPascalCase` prefix | `IBoardCommand` |
+| Namespace | Match directory structure | `WindBoard.Board.Commands` |
+| Test class | `{Subject}Tests` | `AddStrokeCommandTests` |
+| Test method | `{Action}_{ExpectedResult}` | `Do_Undo_Redo_KeepsOriginalInsertIndex` |
 
-### var 使用
+### `var` usage
 
-- **推荐**：LINQ 查询结果、工厂方法返回值、复杂泛型、Vortice/DirectX 互操作类型
-- **不推荐**：基本类型（`int`、`string`、`bool`）或返回类型不明确时
-- 项目中约 329 处 var 使用，集中在 Features/ 和 Rendering/ 的互操作代码中
+- **Recommended**: LINQ query results, factory method return values, complex generics, Vortice/DirectX interop types
+- **Not recommended**: primitive types (`int`, `string`, `bool`) or when the return type is unclear
+- The project has about 329 `var` usages, concentrated in interop code under `Features/` and `Rendering/`
 
 ---
 
 ## Testing Requirements
 
-### 测试框架
+### Test framework
 
-- xUnit 2.9.3，coverlet.collector 6.0.4
-- 测试目录结构与主项目模块一一对应
+- xUnit 2.9.3, coverlet.collector 6.0.4
+- The test directory structure matches the main project modules one to one
 
-### 需要测试的场景
+### Scenarios that need tests
 
-- 核心业务逻辑（Command 的 Do/Undo/Redo 行为验证）
-- 易回归的边界和错误路径（如笔迹索引变化后的 Undo 正确性）
-- 数据序列化/反序列化（WBIX 格式的加载/保存/损坏容错）
-- 解析器（设置值解析、版本号比较、快捷键手势识别）
+- Core business logic (verifying Command Do/Undo/Redo behavior)
+- Regressive edge cases and error paths (for example Undo correctness after stroke index changes)
+- Data serialization/deserialization (WBIX load/save/corruption tolerance)
+- Parsers (setting value parsing, version comparison, shortcut gesture recognition)
 
-### 不需要测试的场景
+### Scenarios that do not need tests
 
-- UI/渲染集成（依赖 WinUI 线程与设备环境）
-- 为追求覆盖率而忽视逻辑的测试
-- 过度 Mock 导致测试失真的测试
-- 测试实现细节而非行为的测试
+- UI/rendering integration (depends on the WinUI thread and device environment)
+- Tests that chase coverage at the expense of logic
+- Tests distorted by excessive mocking
+- Tests that verify implementation details instead of behavior
 
-### 测试风格
+### Test style
 
-- 不使用 Mock 框架，直接构造真实对象
-- 对不可变/纯逻辑类直接 `new`，对复杂对象使用工厂方法（如 `StrokeTestFactory`）
-- 浮点比较使用 `AssertEx.Equal(expected, actual, tolerance)`
-- 异步测试使用 `async Task` 而非 `async void`
-- 手写 Stub/Delegate 替代外部依赖（如 `DelegateHttpMessageHandler`）
-- 审计测试：`LocalizationKeyAuditTests`（本地化 Key 完整性）和 `LogNoiseAuditTests`（日志噪声黑名单）
+- Do not use mock frameworks; construct real objects directly
+- Use `new` for immutable/pure-logic classes and factory methods for complex objects (for example `StrokeTestFactory`)
+- Use `AssertEx.Equal(expected, actual, tolerance)` for floating-point comparisons
+- Use `async Task` instead of `async void` for async tests
+- Hand-written stubs/delegates replace external dependencies (for example `DelegateHttpMessageHandler`)
+- Audit tests: `LocalizationKeyAuditTests` (localization key integrity) and `LogNoiseAuditTests` (log-noise blacklist)
 
 ---
 
 ## Code Review Checklist
 
-- [ ] Board/ 层无 UI 依赖引用
-- [ ] 异常处理遵循就近处理/fail-fast 原则，无静默吞没
-- [ ] 日志不在高频路径（渲染帧、指针事件、Stroke 操作）中
-- [ ] Command 模式实现正确（Do/Undo 对称，Redo 走 Do）
-- [ ] 设置变更通过 AppSettingsService.Update，不直接修改 Current
-- [ ] 本地化使用 L10n.Get/Format 或 {l10n:Loc Key=...}，无硬编码用户可见字符串
-- [ ] 文件保存使用原子写入策略
-- [ ] 新 Feature 遵循 *Flow.cs + Models/ + Services/ + UI/ 结构
-- [ ] 测试覆盖核心业务逻辑和边界路径
+- [ ] No UI dependency references in the Board/ layer
+- [ ] Error handling follows local-handling/fail-fast principles with no silent swallowing
+- [ ] Logs do not appear in high-frequency paths (render frames, pointer events, Stroke operations)
+- [ ] Command pattern is implemented correctly (Do/Undo symmetry, Redo routes through Do)
+- [ ] Settings changes go through `AppSettingsService.Update` and do not modify Current directly
+- [ ] Localization uses `L10n.Get/Format` or `{l10n:Loc Key=...}` with no hard-coded user-visible strings
+- [ ] File saving uses the atomic write strategy
+- [ ] New Features follow the `*Flow.cs + Models/ + Services/ + UI/` structure
+- [ ] Tests cover core business logic and boundary paths

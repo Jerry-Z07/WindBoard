@@ -1,20 +1,20 @@
-# 修复导入文字元素尺寸与显示不同步
+# Fix imported text element size/display mismatch
 
 ## Goal
-修复导入后的文字元素在画板上的显示问题，让文字内容随元素尺寸变化而重新排版，并保证内容不会绘制到框体外。
+Fix the display issue for imported text elements on the board so that text reflows when the element size changes and the content never draws outside the frame.
 
 ## Requirements
-- 文字元素在放大后应能显示更多文本内容
-- 文字元素在缩小时文本绘制应被限制在元素边界内
-- 保持现有导入模型与元素尺寸数据结构不变
-- 改动范围收敛在当前问题直接相关的渲染与测试代码
+- Text elements should show more text after they are enlarged
+- When text elements are shrunk, text drawing should remain clipped to the element boundary
+- Keep the existing import model and element size data structures unchanged
+- Limit the change scope to rendering and test code directly related to the issue
 
 ## Acceptance Criteria
-- [ ] 导入文字元素后，调整元素尺寸时，文本内容会根据当前框体宽高重新换行/显示
-- [ ] 文字内容不会再超出元素边界绘制
-- [ ] 现有导入相关测试继续通过
-- [ ] 新增回归测试覆盖文字预览不再固定 160 字的行为
+- [ ] After importing a text element, resizing it causes the text to reflow/display based on the current frame width and height
+- [ ] Text content no longer draws outside the element boundary
+- [ ] Existing import-related tests continue to pass
+- [ ] Add a regression test that covers the preview no longer being fixed at 160 characters
 
 ## Technical Notes
-- 导入链路中的 `SizeWorld` 已存在，重点检查 `BoardSceneRenderer`
-- Direct2D 文本默认不裁剪到 layout rect，需要显式启用裁剪
+- `SizeWorld` already exists in the import flow; focus on `BoardSceneRenderer`
+- Direct2D text is not clipped to the layout rect by default and requires explicit clipping

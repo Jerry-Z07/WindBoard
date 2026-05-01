@@ -5,12 +5,10 @@
 
 ---
 
-
-
-## Session 1: 填充项目开发规范文档
+## Session 1: Populate project development guideline documents
 
 **Date**: 2026-04-18
-**Task**: 填充项目开发规范文档
+**Task**: Populate project development guideline documents
 **Branch**: `develop`
 
 ### Summary
@@ -19,39 +17,38 @@
 
 ### Main Changes
 
-## 完成内容
+## Completed Work
 
-填充 `.trellis/spec/` 下所有 11 个开发规范文档，基于代码库实际模式 + skill 规则。
+Filled all 11 development guideline documents under `.trellis/spec/` based on the codebase's actual patterns and skill rules.
 
-### Backend (5 个文档)
+### Backend (5 documents)
 
-| 文档 | 核心内容 |
-|------|----------|
-| `directory-structure.md` | 已有内容更新：目录布局、模块组织、命名约定 |
-| `error-handling.md` | 分层错误策略（崩溃链路/已捕获/Result）、AppErrorService、CrashReporter、防重入 |
-| `logging-guidelines.md` | AppLog 6 级日志、category 模式、禁止高频路径日志、FileLogSink、CrashReporterLog |
-| `quality-guidelines.md` | 禁止模式、命名约定、var 使用、测试策略（xUnit 无 Mock）、审计测试 |
-| `database-guidelines.md` | 重定位为数据持久化：WBIX 格式、AppSettingsStore、AppDataPaths、原子写入 |
+| Document | Core content |
+|----------|--------------|
+| `directory-structure.md` | Existing content updated: directory layout, module organization, naming conventions |
+| `error-handling.md` | Layered error strategy (crash path / captured / Result), AppErrorService, CrashReporter, reentrancy guard |
+| `logging-guidelines.md` | AppLog six-level logging, category pattern, no logging in high-frequency paths, FileLogSink, CrashReporterLog |
+| `quality-guidelines.md` | Forbidden patterns, naming conventions, `var` usage, testing strategy (xUnit without mocks), audit tests |
+| `database-guidelines.md` | Reframed as data persistence: WBIX format, AppSettingsStore, AppDataPaths, atomic writes |
 
-### Frontend (6 个文档)
+### Frontend (6 documents)
 
-| 文档 | 核心内容 |
-|------|----------|
-| `directory-structure.md` | Feature 模块结构、MainWindow partial 拆分、UI 类型选择(Page/ContentDialog/Window) |
-| `component-guidelines.md` | 事件处理 4 种模式、控件通信、本地化(l10n)、WinUI 最佳实践 |
-| `hook-guidelines.md` | 重定位为事件驱动模式：Action/EventHandler、生命周期、DispatcherQueue |
-| `state-management.md` | 域状态/设置状态/UI 状态、Command 模式、数据流图 |
-| `type-safety.md` | Nullable、record、primary constructor、Result 对象、半结构化 JSON |
-| `quality-guidelines.md` | deslop 反模式、winui-app 规则、dotnet-review 约定、审查清单 |
+| Document | Core content |
+|----------|--------------|
+| `directory-structure.md` | Feature module structure, MainWindow partial split, UI type selection (Page/ContentDialog/Window) |
+| `component-guidelines.md` | Four event-handling patterns, control communication, localization (l10n), WinUI best practices |
+| `hook-guidelines.md` | Reframed as event-driven patterns: Action/EventHandler, lifecycle, DispatcherQueue |
+| `state-management.md` | Domain state / settings state / UI state, Command pattern, data-flow diagrams |
+| `type-safety.md` | Nullable, record, primary constructor, Result objects, semi-structured JSON |
+| `quality-guidelines.md` | deslop anti-patterns, winui-app rules, dotnet-review conventions, review checklist |
 
-### Skill 规则补充
+### Skill rule additions
 
-- **dotnet-review**: SOLID、async/await、fail-fast、禁止过度防御
-- **winui-app**: 原生控件优先、主题感知、x:Bind、滚动归属、无 MVVM 仪式
-- **deslop**: 多余注释、盲目 catch、风格一致性
+- **dotnet-review**: SOLID, async/await, fail-fast, no over-defensive checks
+- **winui-app**: native controls first, theme awareness, x:Bind, scroll ownership, no MVVM ceremony
+- **deslop**: redundant comments, blind catch, style consistency
 
-**修改文件**: `.trellis/spec/` 下 11 个 .md 文档 + 2 个 index.md
-
+**Modified files**: 11 `.md` documents under `.trellis/spec/` + 2 `index.md` files
 
 ### Git Commits
 
@@ -72,15 +69,15 @@
 - None - task complete
 
 
-## Session 2: 改进导入对话框文本与链接输入区
+## Session 2: Improve the import dialog text and link input area
 
 **Date**: 2026-04-18
-**Task**: 改进导入对话框文本与链接输入区
+**Task**: Improve the import dialog text and link input area
 **Branch**: `develop`
 
 ### Summary
 
-调整导入对话框中文本和链接输入区域的布局，将粘贴/清空图标嵌入输入框右上角，添加与输入框同宽的添加到队列按钮，并在输入为空时禁用按钮。
+Adjusted the layout of the text and link input areas in the import dialog, embedded the paste/clear icons in the top-right corner of the input box, added an Add to Queue button with the same width as the input box, and disabled the button when the input is empty.
 
 ### Main Changes
 
@@ -105,15 +102,15 @@
 - None - task complete
 
 
-## Session 3: 移除导入窗口并改为直接文件选择器导入
+## Session 3: Remove the import window and switch to direct file-picker import
 
 **Date**: 2026-04-22
-**Task**: 移除导入窗口并改为直接文件选择器导入
+**Task**: Remove the import window and switch to direct file-picker import
 **Branch**: `develop`
 
 ### Summary
 
-移除 ImportDialog、ImportQueueState 与工作区预览服务，导入入口改为 FileOpenPicker 直导；同步 .trellis/spec/frontend 文档，删除过时 ImportDialog 结构与示例。
+Removed ImportDialog, ImportQueueState, and the workspace preview service, and changed the import entry point to direct FileOpenPicker import; synchronized the `.trellis/spec/frontend` documents and removed outdated ImportDialog structures and examples.
 
 ### Main Changes
 
@@ -139,15 +136,15 @@
 - None - task complete
 
 
-## Session 4: 设置窗口标题栏原生化与设置搜索
+## Session 4: Native TitleBar integration and settings search
 
 **Date**: 2026-04-23
-**Task**: 设置窗口标题栏原生化与设置搜索
+**Task**: Native TitleBar integration and settings search
 **Branch**: `develop`
 
 ### Summary
 
-重构设置窗口，使用原生 TitleBar 和 NavigationView 集成侧边栏折叠、返回导航与设置搜索；移除自绘仿原生按钮，清理相关文案，并同步更新 .trellis/spec/frontend，明确组件与 UI 优先使用原生 WinUI 实现。验证通过 dotnet build WindBoard.slnx -c Release 与 dotnet test WindBoard.slnx -c Release。
+Refactored the settings window to use native TitleBar and NavigationView for sidebar collapsing, back navigation, and settings search; removed painted native-lookalike buttons, cleaned up related copy, and updated `.trellis/spec/frontend` to clarify that components and UI should prefer native WinUI implementations. Validation passed with `dotnet build WindBoard.slnx -c Release` and `dotnet test WindBoard.slnx -c Release`.
 
 ### Main Changes
 
@@ -172,15 +169,15 @@
 - None - task complete
 
 
-## Session 5: 统一设置页 SettingsCard 布局资源
+## Session 5: Unify SettingsCard layout resources for settings pages
 
 **Date**: 2026-04-23
-**Task**: 统一设置页 SettingsCard 布局资源
+**Task**: Unify SettingsCard layout resources for settings pages
 **Branch**: `develop`
 
 ### Summary
 
-将设置页 SettingsCard 间距统一为 4，抽取 SettingsPageResources 共享资源，并同步前端 spec 约定。
+Unified SettingsCard spacing to 4 on settings pages, extracted shared `SettingsPageResources`, and synchronized the frontend spec conventions.
 
 ### Main Changes
 
@@ -205,15 +202,15 @@
 - None - task complete
 
 
-## Session 6: 修复安装包升级安装时卸载旧版逻辑
+## Session 6: Fix uninstall logic during installer upgrade installs
 
 **Date**: 2026-05-01
-**Task**: 修复安装包升级安装时卸载旧版逻辑
+**Task**: Fix uninstall logic during installer upgrade installs
 **Branch**: `main`
 
 ### Summary
 
-修复 install/WindBoard.iss 中更新安装不先卸载旧版的三个 bug：(1) GetUninstallerPath 注册表键名用 AppName 而非 AppId；(2) Exec 错误把完整命令行作为文件名传入；(3) 重装后 unins 文件被 Inno 重命名导致硬编码 unins000.exe 找不到。改为注册表优先 + FindFirst 通配回退查找卸载程序，并为卸载阶段添加界面进度提示。
+Fixed three bugs in `install/WindBoard.iss` where upgrade installs did not uninstall the previous version first: (1) `GetUninstallerPath` used `AppName` instead of `AppId` as the registry key name; (2) `Exec` incorrectly passed the full command line as the file name; (3) after reinstall, the `unins` file was renamed by Inno, so the hard-coded `unins000.exe` could not be found. The flow now prefers the registry and falls back to a `FindFirst` wildcard search for the uninstaller, and the uninstall phase now shows UI progress.
 
 ### Main Changes
 
@@ -238,23 +235,23 @@
 - None - task complete
 
 
-## Session 7: 修复导入文字元素尺寸与显示不同步
+## Session 7: Fix imported text element size/display mismatch
 
 **Date**: 2026-05-02
-**Task**: 修复导入文字元素尺寸与显示不同步
+**Task**: Fix imported text element size/display mismatch
 **Branch**: `main`
 
 ### Summary
 
-修复导入文字元素在缩放时的文本越界与预览固定问题
+Fixed text overflow and fixed-preview issues for imported text elements during scaling.
 
 ### Main Changes
 
-| 项目 | 内容 |
-|------|------|
-| 渲染修复 | 文字元素卡片标题与正文绘制改为按元素边界裁剪，缩小时不再越界显示 |
-| 预览逻辑 | 文本预览从固定 160 字改为较长上限预览，让放大后的文字元素能显示更多内容 |
-| 回归验证 | 新增 `BoardSceneRendererTextPreviewTests`，并完成全量 `dotnet test WindBoard.slnx -p:Platform=x64` 与 `dotnet build WindBoard.slnx -c Release -p:Platform=x64` |
+| Item | Content |
+|------|---------|
+| Rendering fix | Text element card title and body drawing now clip to the element boundary, so shrinking no longer renders outside the box |
+| Preview logic | Text previews changed from a fixed 160-character limit to a longer preview cap, allowing enlarged text elements to show more content |
+| Regression validation | Added `BoardSceneRendererTextPreviewTests`, and completed full `dotnet test WindBoard.slnx -p:Platform=x64` and `dotnet build WindBoard.slnx -c Release -p:Platform=x64` |
 
 **Updated Files**:
 - `WindBoard/Rendering/Board/BoardSceneRenderer.cs`

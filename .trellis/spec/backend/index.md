@@ -6,7 +6,7 @@
 
 ## Overview
 
-WindBoard 后端指 Board 域模型层、服务层和持久化层——纯 C# 代码，无 UI 依赖。核心原则：Board 层必须保持纯净，不引用任何 UI 命名空间。
+WindBoard backend refers to the Board domain model layer, service layer, and persistence layer. It is pure C# code with no UI dependencies. Core principle: the Board layer must stay clean and must not reference any UI namespace.
 
 ---
 
@@ -26,6 +26,6 @@ WindBoard 后端指 Board 域模型层、服务层和持久化层——纯 C# �
 
 Before modifying backend code, read:
 
-- [ ] [Directory Structure](./directory-structure.md) — 确认文件放在正确的层
-- [ ] [Error Handling](./error-handling.md) — 确认使用正确的错误处理模式
-- [ ] [Logging Guidelines](./logging-guidelines.md) — 确认不在高频路径添加日志
+- [ ] [Directory Structure](./directory-structure.md) - Confirm files are placed in the correct layer
+- [ ] [Error Handling](./error-handling.md) - Confirm the correct error-handling pattern is used
+- [ ] [Logging Guidelines](./logging-guidelines.md) - Confirm logs are not added in high-frequency paths

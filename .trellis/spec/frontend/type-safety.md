@@ -6,15 +6,15 @@
 
 ## Overview
 
-WindBoard 使用 C# (.NET 10) 的类型系统，启用了 Nullable reference types（`<Nullable>enable</Nullable>`）。项目不使用运行时验证库（如 FluentValidation），依赖编译时类型检查和手动防御性编程。
+WindBoard uses the C# (.NET 10) type system with Nullable reference types enabled (`<Nullable>enable</Nullable>`). The project does not use runtime validation libraries such as FluentValidation; it relies on compile-time type checking and manual defensive programming.
 
 ---
 
 ## Type Organization
 
-### 命名空间与目录映射
+### Namespace and directory mapping
 
-类型所在的命名空间严格匹配目录结构：
+The namespace for a type must strictly match the directory structure:
 
 ```csharp
 // WindBoard/Board/Commands/AddStrokeCommand.cs
@@ -27,47 +27,47 @@ namespace WindBoard.Features.Dock.Services
 namespace WindBoard.Settings
 ```
 
-### 可见性约定
+### Visibility conventions
 
-| 可见性 | 使用场景 |
-|--------|----------|
-| `internal` | 默认可见性，几乎所有类型和方法都是 internal |
-| `public` | 仅 WinUI XAML 需要访问的控件、依赖属性、页面类 |
-| `private` | 类内部实现细节 |
+| Visibility | Use case |
+|------------|----------|
+| `internal` | Default visibility; almost all types and methods are internal |
+| `public` | Only controls, dependency properties, and page classes that WinUI XAML must access |
+| `private` | Class implementation details |
 
-**InternalsVisibleTo**：`WindBoard` 和 `WindBoard.CrashReporter` 都对 `WindBoard.Tests` 开放 internal 访问，避免为测试将实现细节暴露为 public。
+**InternalsVisibleTo**: both `WindBoard` and `WindBoard.CrashReporter` expose internal access to `WindBoard.Tests` so implementation details do not need to be made public for testing.
 
 ---
 
 ## Nullable Reference Types
 
-项目启用了 `<Nullable>enable</Nullable>`，所有引用类型默认不可为 null：
+The project enables `<Nullable>enable</Nullable>`, so all reference types are non-null by default:
 
 ```csharp
-// 不可为 null
+// Non-nullable
 internal sealed class BoardSession
 {
-    public BoardDocument Document { get; } = new();  // 非空，初始化器保证
+    public BoardDocument Document { get; } = new();  // non-null, guaranteed by the initializer
 }
 
-// 可为 null（显式标注）
-private FileLogSink? _fileSink;           // 可能为 null
+// Nullable (explicitly annotated)
+private FileLogSink? _fileSink;           // may be null
 internal static string? CurrentLogFilePath => _fileSink?.CurrentFilePath;
 ```
 
-### 常见模式
+### Common patterns
 
-- **初始化器保证非空**：属性使用 `= new()` 或 `= string.Empty` 初始化
-- **`out` 参数**：`TryWriteCrashReport(..., out AppCrashReport report, out Exception? error)`
-- **`TryParse` 模式**：返回 `bool` + `out` 结果，失败时 out 参数可能为 null
+- **Initializer-guaranteed non-null**: initialize properties with `= new()` or `= string.Empty`
+- **`out` parameters**: `TryWriteCrashReport(..., out AppCrashReport report, out Exception? error)`
+- **`TryParse` pattern**: return `bool` + `out` result; the out parameter may be null on failure
 
 ---
 
 ## Common Patterns
 
-### Record 类型（不可变数据）
+### Record types (immutable data)
 
-用于序列化模型和快照：
+Used for serialization models and snapshots:
 
 ```csharp
 record WbixManifest(
@@ -82,9 +82,9 @@ record WbixManifest(
     Vector2? ViewportSizeDip);
 ```
 
-### Primary Constructor（C# 12）
+### Primary constructor (C# 12)
 
-用于简单命令和轻量类型：
+Used for simple commands and lightweight types:
 
 ```csharp
 internal sealed class AddStrokeCommand(Stroke stroke) : IBoardCommand
@@ -94,16 +94,16 @@ internal sealed class AddStrokeCommand(Stroke stroke) : IBoardCommand
 }
 ```
 
-### 半结构化 JSON
+### Semi-structured JSON
 
-元素数据使用 `JsonElement` 延迟解析：
+Element data is parsed lazily with `JsonElement`:
 
 ```csharp
 record WbixPageElement(string Type, JsonElement Data);
-// Type 有 "text"/"link"/"media"/"file"，Data 动态解析
+// Type is one of "text"/"link"/"media"/"file", and Data is parsed dynamically
 ```
 
-### 枚举代替魔法值
+### Enums instead of magic values
 
 ```csharp
 internal enum AppLogLevel { Trace, Debug, Information, Warning, Error, Critical }
@@ -111,9 +111,9 @@ internal enum AppCrashSource { WinUIUnhandledException, AppDomainUnhandledExcept
 internal enum BoardTool { Pen, Eraser, Select }
 ```
 
-### Result 对象模式
+### Result object pattern
 
-业务操作结果使用 `Success` + `ErrorMessage` 模式，不使用异常控制流程：
+Business operation results use the `Success` + `ErrorMessage` pattern instead of exceptions for flow control:
 
 ```csharp
 internal sealed class DownloadResult
@@ -130,18 +130,18 @@ internal sealed class DownloadResult
 
 ## Forbidden Patterns
 
-### ❌ 禁止
+### ❌ Forbidden
 
-- **`dynamic` 类型**：不允许使用 `dynamic`，使用泛型或 `JsonElement` 代替
-- **盲目类型转换**：不允许 `(SomeType)obj` 除非已检查类型；使用 `as` + null 检查或 `is` 模式匹配
-- **公共字段暴露实现细节**：除 Win32 互操作结构体外，不使用 public 字段
-- **为测试将 internal 改为 public**：使用 InternalsVisibleTo
-- **可变结构体**：除 P/Invoke 互操作外，结构体应为 readonly
+- **`dynamic` type**: `dynamic` is not allowed; use generics or `JsonElement` instead
+- **Blind casts**: `(SomeType)obj` is not allowed unless the type has already been checked; use `as` + null checks or `is` pattern matching
+- **Public fields exposing implementation details**: do not use public fields except for Win32 interop structs
+- **Changing internal to public for tests**: use InternalsVisibleTo
+- **Mutable structs**: structs should be readonly except for P/Invoke interop
 
-### ✅ 推荐
+### ✅ Recommended
 
-- 使用 `is` 模式匹配：`if (obj is string s)`
-- 使用 `as` + null 检查：`ex = e.ExceptionObject as Exception`
-- 使用 record 定义不可变数据
-- 集合使用 `IReadOnlyList<T>` / `IReadOnlyDictionary<TK,TV>` 暴露只读视图
-- 字符串初始化使用 `= string.Empty` 而非 `= null!`
+- Use `is` pattern matching: `if (obj is string s)`
+- Use `as` + null checks: `ex = e.ExceptionObject as Exception`
+- Use record types to define immutable data
+- Expose collections as read-only views with `IReadOnlyList<T>` / `IReadOnlyDictionary<TK,TV>`
+- Initialize strings with `= string.Empty` instead of `= null!`

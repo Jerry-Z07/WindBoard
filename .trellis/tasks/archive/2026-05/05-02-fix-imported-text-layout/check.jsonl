@@ -1,4 +1,4 @@
 {"file": ".opencode/commands/trellis/finish-work.md", "reason": "Finish work checklist"}
 {"file": ".opencode/commands/trellis/check.md", "reason": "Code quality check spec"}
-{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "前端组件与事件约定"}
-{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "前端质量与渲染约束"}
+{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "Frontend component and event conventions"}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "Frontend quality and rendering constraints"}

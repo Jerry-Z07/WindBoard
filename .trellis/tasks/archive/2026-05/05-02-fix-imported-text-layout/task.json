@@ -1,7 +1,7 @@
 {
   "id": "fix-imported-text-layout",
   "name": "fix-imported-text-layout",
-  "title": "修复导入文字元素尺寸与显示不同步",
+  "title": "Fix imported text element size/display mismatch",
   "description": "",
   "status": "completed",
   "dev_type": "frontend",

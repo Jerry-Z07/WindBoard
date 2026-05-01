@@ -8,94 +8,94 @@
 
 ## Overview
 
-WindBoard 不使用 MVVM 或响应式框架，所有状态变更通知通过 C# 事件系统实现。控件间通信基于事件驱动 + 直接方法调用 + 静态单例服务。
+WindBoard does not use MVVM or reactive frameworks; all state-change notifications are implemented through the C# event system. Communication between controls is based on event-driven patterns + direct method calls + static singleton services.
 
 ---
 
 ## Event Patterns
 
-### `event Action?` — 无参数状态变更通知
+### `event Action?` - parameterless state-change notification
 
-最常用的事件模式，用于"某物变了"的简单通知：
+The most common event pattern, used for simple "something changed" notifications:
 
 ```csharp
-// BoardSession — 执行/撤销/重做后触发
+// BoardSession - triggered after execute/undo/redo
 public event Action? StateChanged;
 
-// BoardWorkspace — 页面集合/当前页变化
+// BoardWorkspace - page collection/current page changes
 public event Action? PagesChanged;
 public event Action? CurrentPageChanged;
 
-// 订阅方式
-session.StateChanged += () => { /* 刷新 UI */ };
+// Subscription
+session.StateChanged += () => { /* refresh UI */ };
 ```
 
-### `event EventHandler?` — 带 sender 的事件
+### `event EventHandler?` - event with sender
 
-用于需要区分事件来源的场景：
+Used when the event source needs to be distinguished:
 
 ```csharp
-// AppSettingsService — 设置变更
+// AppSettingsService - settings changes
 internal event EventHandler? Changed;
 
-// 触发方式
+// Invocation
 Changed?.Invoke(this, EventArgs.Empty);
 ```
 
-### `event EventHandler<T>?` — 带数据的事件
+### `event EventHandler<T>?` - event with data
 
-用于需要传递附加信息的事件。
+Used for events that need to carry additional information.
 
 ---
 
 ## Lifecycle Hooks
 
-### App 启动流程
+### App startup flow
 
 ```
-App构造函数 → 注册全局异常 → App.OnLaunched → 创建 MainWindow →
-    初始化 AppErrorService → 加载设置 → 初始化 AppLog →
-    创建 BoardCanvasControl → 绑定 BoardSession → 启动渲染循环
+App constructor -> register global exceptions -> App.OnLaunched -> create MainWindow ->
+    initialize AppErrorService -> load settings -> initialize AppLog ->
+    create BoardCanvasControl -> bind BoardSession -> start render loop
 ```
 
-### 控件生命周期
+### Control lifecycle
 
 ```csharp
 // BoardCanvasControl
-InitializeComponent() → BindSession() → 订阅事件 → [运行中] → UnsubscribeAll() → Dispose()
+InitializeComponent() -> BindSession() -> subscribe events -> [running] -> UnsubscribeAll() -> Dispose()
 ```
 
-### 窗口生命周期
+### Window lifecycle
 
 ```csharp
 // MainWindow
-构造函数 → 注册事件 → OnLaunched 中初始化各 Feature Flow →
-    Closed 事件中 Dispose 各 Flow → AppExit
+constructor -> register events -> initialize each Feature Flow in OnLaunched ->
+    Dispose each Flow in the Closed event -> AppExit
 ```
 
 ---
 
 ## Service Integration Hooks
 
-### 设置变更订阅
+### Settings change subscription
 
 ```csharp
-// 典型模式：订阅设置变更以同步 UI
+// Typical pattern: subscribe to settings changes to sync the UI
 AppSettingsService.Instance.Changed += OnSettingsChanged;
 
 private void OnSettingsChanged(object? sender, EventArgs e)
 {
     var snapshot = AppSettingsService.Instance.GetDockSettingsSnapshot();
     _isSyncingFromSettings = true;
-    // 同步 UI 控件状态
+    // Sync UI control state
     _isSyncingFromSettings = false;
 }
 ```
 
-### 提醒服务集成
+### Reminder service integration
 
 ```csharp
-// 错误提醒（同一签名只弹一次）
+// Error reminder (show only once per signature)
 AppReminderService.Instance.RemindOncePerSignature(
     window, signature,
     new AppReminderMessage { Title = "...", Body = "...", Severity = ... });
@@ -105,19 +105,19 @@ AppReminderService.Instance.RemindOncePerSignature(
 
 ## DispatcherQueue (UI Thread)
 
-所有 UI 操作必须在 UI 线程执行：
+All UI operations must run on the UI thread:
 
 ```csharp
-// 从后台线程切回 UI 线程
+// Switch back to the UI thread from a background thread
 window.DispatcherQueue.TryEnqueue(() =>
 {
-    // 操作 UI 元素
+    // Manipulate UI elements
 });
 
-// AppErrorService 中的典型用法
+// Typical use inside AppErrorService
 if (!window.DispatcherQueue.TryEnqueue(() => { ... }))
 {
-    // DispatcherQueue 不可用：直接忽略提醒，不影响主流程
+    // DispatcherQueue unavailable: ignore the reminder directly without affecting the main flow
 }
 ```
 
@@ -125,25 +125,25 @@ if (!window.DispatcherQueue.TryEnqueue(() => { ... }))
 
 ## Naming Conventions
 
-| 模式 | 约定 | 示例 |
-|------|------|------|
-| 事件处理方法 | `On{Subject}{Event}` | `OnSettingsChanged`、`OnEnabledToggled` |
-| 事件字段 | `event Action?` / `event EventHandler?` | `StateChanged`、`Changed` |
-| 订阅/取消 | 成对出现 | `Subscribe()` / `UnsubscribeAll()` |
-| 防循环标志 | `_isSyncingFromSettings` | 设置→UI 同步时置 true |
+| Pattern | Convention | Example |
+|---------|------------|---------|
+| Event handler method | `On{Subject}{Event}` | `OnSettingsChanged`, `OnEnabledToggled` |
+| Event field | `event Action?` / `event EventHandler?` | `StateChanged`, `Changed` |
+| Subscribe/unsubscribe | Appears as a pair | `Subscribe()` / `UnsubscribeAll()` |
+| Reentrancy flag | `_isSyncingFromSettings` | Set to true during settings -> UI sync |
 
 ---
 
 ## Common Mistakes
 
 ### ❌ DON'T
-- 在后台线程直接访问 UI 元素（必须通过 DispatcherQueue）
-- 忘记取消事件订阅（导致内存泄漏或已 Dispose 对象上的回调）
-- 事件处理中不加 `_isSyncingFromSettings` 导致循环更新
-- 使用 `async void` 事件处理（应使用 `async Task` + FireAndForget 或 try-catch 包裹）
+- Access UI elements directly from a background thread (must go through DispatcherQueue)
+- Forget to cancel event subscriptions (causes memory leaks or callbacks on disposed objects)
+- Omit `_isSyncingFromSettings` in event handling and create update loops
+- Use `async void` for event handlers (use `async Task` + FireAndForget or wrap with try-catch)
 
 ### ✅ DO
-- 在 `Dispose`/`UnsubscribeAll` 中取消所有事件订阅
-- UI 线程操作使用 `DispatcherQueue.TryEnqueue`
-- 事件处理方法中使用 `_isSyncingFromSettings` 防循环
-- 异步事件处理用 `async async` + try-catch 包裹
+- Cancel all event subscriptions in `Dispose`/`UnsubscribeAll`
+- Use `DispatcherQueue.TryEnqueue` for UI-thread operations
+- Use `_isSyncingFromSettings` in event handlers to prevent loops
+- Wrap asynchronous event handling with `async Task` + try-catch

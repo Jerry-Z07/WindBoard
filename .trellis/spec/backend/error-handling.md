@@ -6,50 +6,50 @@
 
 ## Overview
 
-WindBoard 使用分层错误处理策略：
+WindBoard uses a layered error-handling strategy:
 
-- **崩溃链路**（未处理异常）：落盘崩溃报告 → 拉起独立 CrashReporter 进程 → 退出主进程
-- **已捕获异常**：就近处理 + AppLog 记录 + 可选用户提示（RemindOncePerSignature 去重）
-- **业务操作失败**：Result 对象模式返回，不抛异常
+- **Crash path** (unhandled exceptions): write a crash report to disk -> launch a separate CrashReporter process -> exit the main process
+- **Captured exceptions**: handle locally + log with AppLog + optionally show a user prompt (deduplicated by `RemindOncePerSignature`)
+- **Business operation failures**: return through the Result-object pattern without throwing exceptions
 
-核心原则：**可恢复的错误就近处理并记录；不可恢复的错误 fail-fast 向上抛出，禁止静默吞没**。
+Core principle: **recoverable errors should be handled and logged locally; unrecoverable errors should fail fast and bubble up, with no silent swallowing**.
 
 ---
 
 ## Error Types
 
-项目**不使用自定义异常类型**，完全使用 BCL 异常：
+The project **does not use custom exception types** and relies entirely on BCL exceptions:
 
-| 异常类型 | 用途 |
-|----------|------|
-| `ArgumentNullException` | 参数校验 |
-| `InvalidDataException` | WBIX 数据解析失败 |
-| `FileNotFoundException` | 文件不存在 |
-| `UnauthorizedAccessException` | 权限不足 |
-| `OperationCanceledException` | 正常控制流取消，**不当作错误** |
+| Exception type | Purpose |
+|----------------|---------|
+| `ArgumentNullException` | Parameter validation |
+| `InvalidDataException` | WBIX parsing failure |
+| `FileNotFoundException` | File not found |
+| `UnauthorizedAccessException` | Insufficient permissions |
+| `OperationCanceledException` | Normal control-flow cancellation, **not treated as an error** |
 
 ---
 
 ## Error Handling Patterns
 
-### Pattern 1: 全局异常兜底
+### Pattern 1: Global exception fallback
 
-AppErrorService 订阅三层全局异常事件（`App.xaml.cs` 中注册）：
+`AppErrorService` subscribes to three layers of global exception events (registered in `App.xaml.cs`):
 
 ```csharp
-// WinUI UI 线程未处理异常 → 标记 Handled → 写崩溃报告 → CrashReporter → 退出
+// Unhandled exception on the WinUI UI thread -> mark Handled -> write crash report -> CrashReporter -> exit
 UnhandledException += OnAppUnhandledException;
-// AppDomain 未处理异常 → 写崩溃报告 → CrashReporter
+// AppDomain unhandled exception -> write crash report -> CrashReporter
 AppDomain.CurrentDomain.UnhandledException += OnAppDomainUnhandledException;
-// 未观察的 Task 异常 → 记日志 + SetObserved
+// Unobserved Task exception -> log + SetObserved
 TaskScheduler.UnobservedTaskException += OnUnobservedTaskException;
 ```
 
-崩溃链路中的 try-catch **必须吞异常**（注释："兜底：全局异常处理本身不能再抛异常"），使用 `SafeLogCritical/SafeLogWarn` 封装。
+The try-catch blocks in the crash path **must swallow exceptions** (comment: "fallback: global exception handling itself must not throw again"), and should be wrapped with `SafeLogCritical/SafeLogWarn`.
 
-### Pattern 2: 特定异常分别处理
+### Pattern 2: Handle specific exceptions separately
 
-对不同异常类型做差异化用户提示：
+Show different user prompts for different exception types:
 
 ```csharp
 // BoardInputController.Open.cs
@@ -58,78 +58,78 @@ catch (FileNotFoundException) { await ShowOpenFailedDialogAsync(...); }
 catch (UnauthorizedAccessException) { await ShowOpenFailedDialogAsync(...); }
 ```
 
-### Pattern 3: 操作级 try-catch + 日志 + 用户提示
+### Pattern 3: Operation-level try-catch + logging + user prompt
 
-业务操作统一兜底：
+Use a unified fallback for business operations:
 
 ```csharp
 // ImportFlow.cs
 catch (Exception ex)
 {
-    AppLog.Error("WBIX", $"导入失败：'{file.Path}'", ex);
+    AppLog.Error("WBIX", $"Import failed: '{file.Path}'", ex);
     await DialogHelpers.ShowMessageAsync(xamlRoot, ...);
 }
 ```
 
-### Pattern 4: 非关键路径吞异常 + 日志
+### Pattern 4: Swallow exceptions on non-critical paths + log
 
-启动阶段非关键功能失败不阻断启动：
+Failures in non-critical startup features must not block startup:
 
 ```csharp
 // App.xaml.cs
 catch (Exception ex)
 {
-    AppLog.Warn("L10n", "应用语言偏好失败，将继续使用系统语言", ex);
+    AppLog.Warn("L10n", "Failed to apply the application language preference; continuing with the system language", ex);
 }
 ```
 
-### Pattern 5: Result 对象（不抛异常的业务失败）
+### Pattern 5: Result object (business failures without exceptions)
 
 ```csharp
-// DownloadResult.cs — bool Success + ErrorMessage + Error
+// DownloadResult.cs - bool Success + ErrorMessage + Error
 public static DownloadResult Fail(string errorMessage, Exception? error = null)
 
-// TryXXX 模式
+// TryXXX pattern
 internal static bool TryWriteCrashReport(..., out AppCrashReport report, out Exception? error)
 ```
 
-### Pattern 6: AppErrorGuard 安全执行封装
+### Pattern 6: AppErrorGuard safe execution wrapper
 
 ```csharp
-// 同步/异步安全执行，OperationCanceledException 不当作错误
+// Safe synchronous/asynchronous execution; OperationCanceledException is not treated as an error
 AppErrorGuard.Run(category, action, prompt);
 AppErrorGuard.RunAsync(category, action, prompt);
 AppErrorGuard.FireAndForget(category, taskFactory, prompt);
 ```
 
-> 注：AppErrorGuard 目前尚未广泛使用，新代码推荐优先使用。
+> Note: `AppErrorGuard` is not yet widely used; new code should prefer it first.
 
 ---
 
 ## Crash Reporter
 
-崩溃处理流程：
+Crash handling flow:
 
-1. `AppErrorService` 捕获未处理异常
-2. `AppCrashReportStore.TryWriteCrashReport` 落盘到 `Crashes/` 目录（文件名含时间戳+PID+GUID）
-3. `TryLaunchCrashReporter` 以独立进程启动 CrashReporter（WinForms，传 `--report`/`--logs-dir`/`--source`）
-4. 主进程退出（`Application.Current.Exit()` 或 `Environment.Exit(-1)`）
-5. CrashReporter 显示崩溃窗口，用户可查看/复制报告
+1. `AppErrorService` captures the unhandled exception
+2. `AppCrashReportStore.TryWriteCrashReport` writes to the `Crashes/` directory (file name includes timestamp + PID + GUID)
+3. `TryLaunchCrashReporter` starts CrashReporter as a separate process (WinForms, with `--report`/`--logs-dir`/`--source`)
+4. The main process exits (`Application.Current.Exit()` or `Environment.Exit(-1)`)
+5. CrashReporter shows the crash window and the user can view/copy the report
 
-**防重入**：使用 `OneTimeGate`（`Interlocked.CompareExchange`）防止崩溃处理重入和重复拉起 CrashReporter。
+**Reentrancy guard**: use `OneTimeGate` (`Interlocked.CompareExchange`) to prevent crash handling reentry and duplicate CrashReporter launches.
 
 ---
 
 ## Common Mistakes
 
 ### ❌ DON'T
-- 在崩溃链路中抛异常（全局异常处理必须吞异常）
-- 静默吞没异常（主程序中不允许空 `catch { }`）
-- 使用自定义异常类型（项目约定使用 BCL 异常）
-- 在 catch 中记录可变信息作为日志签名（"提醒一次"去重会失效）
+- Throw exceptions in the crash path (global exception handling must swallow exceptions)
+- Silently swallow exceptions (empty `catch { }` is not allowed in the main app)
+- Use custom exception types (the project standard is to use BCL exceptions)
+- Record mutable information as the log signature inside catch blocks (the "remind once" deduplication will fail)
 
 ### ✅ DO
-- 可恢复错误就近处理 + AppLog 记录
-- 不可恢复错误 fail-fast 向上抛出
-- 启动阶段非关键失败用 `AppLog.Warn` + 继续运行
-- 崩溃链路使用 `SafeLog*` 方法（内部吞异常）
+- Handle recoverable errors locally + log with AppLog
+- Fail fast and bubble up unrecoverable errors
+- Use `AppLog.Warn` + continue running for non-critical startup failures
+- Use `SafeLog*` methods in the crash path (they swallow exceptions internally)

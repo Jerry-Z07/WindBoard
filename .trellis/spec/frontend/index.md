@@ -6,7 +6,7 @@
 
 ## Overview
 
-WindBoard 前端指 WinUI 3 XAML 页面、UserControl、MainWindow 和 Feature UI。项目不使用 MVVM，code-behind 直接操控控件，服务通过静态单例访问。
+WindBoard frontend refers to WinUI 3 XAML pages, UserControls, the MainWindow, and Feature UI. The project does not use MVVM; code-behind manipulates controls directly, and services are accessed through static singletons.
 
 ---
 
@@ -27,6 +27,6 @@ WindBoard 前端指 WinUI 3 XAML 页面、UserControl、MainWindow 和 Feature U
 
 Before modifying frontend code, read:
 
-- [ ] [Component Guidelines](./component-guidelines.md) — 确认使用正确的事件处理和通信模式
-- [ ] [State Management](./state-management.md) — 确认通过正确的路径修改状态
-- [ ] [Quality Guidelines](./quality-guidelines.md) — 确认遵循 WinUI 和本地化约定
+- [ ] [Component Guidelines](./component-guidelines.md) - Confirm the correct event-handling and communication pattern is used
+- [ ] [State Management](./state-management.md) - Confirm state is changed through the correct path
+- [ ] [Quality Guidelines](./quality-guidelines.md) - Confirm WinUI and localization conventions are followed
