@@ -8,8 +8,8 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 6
-- **Last Active**: 2026-05-01
+- **Total Sessions**: 7
+- **Last Active**: 2026-05-02
 <!-- @@@/auto:current-status -->
 
 ---
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~238 | Active |
+| `journal-1.md` | ~280 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 7 | 2026-05-02 | 修复导入文字元素尺寸与显示不同步 | `f5c010d` | `main` |
 | 6 | 2026-05-01 | 修复安装包升级安装时卸载旧版逻辑 | `48f92d5` | `main` |
 | 5 | 2026-04-23 | 统一设置页 SettingsCard 布局资源 | `72a0ac0` | `develop` |
 | 4 | 2026-04-23 | 设置窗口标题栏原生化与设置搜索 | `e5a01d1` | `develop` |

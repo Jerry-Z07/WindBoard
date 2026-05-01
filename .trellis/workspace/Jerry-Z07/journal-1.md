@@ -236,3 +236,45 @@
 ### Next Steps
 
 - None - task complete
+
+
+## Session 7: 修复导入文字元素尺寸与显示不同步
+
+**Date**: 2026-05-02
+**Task**: 修复导入文字元素尺寸与显示不同步
+**Branch**: `main`
+
+### Summary
+
+修复导入文字元素在缩放时的文本越界与预览固定问题
+
+### Main Changes
+
+| 项目 | 内容 |
+|------|------|
+| 渲染修复 | 文字元素卡片标题与正文绘制改为按元素边界裁剪，缩小时不再越界显示 |
+| 预览逻辑 | 文本预览从固定 160 字改为较长上限预览，让放大后的文字元素能显示更多内容 |
+| 回归验证 | 新增 `BoardSceneRendererTextPreviewTests`，并完成全量 `dotnet test WindBoard.slnx -p:Platform=x64` 与 `dotnet build WindBoard.slnx -c Release -p:Platform=x64` |
+
+**Updated Files**:
+- `WindBoard/Rendering/Board/BoardSceneRenderer.cs`
+- `WindBoard.Tests/Rendering/BoardSceneRendererTextPreviewTests.cs`
+
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `f5c010d` | (see git log) |
+
+### Testing
+
+- [OK] (Add test results)
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
