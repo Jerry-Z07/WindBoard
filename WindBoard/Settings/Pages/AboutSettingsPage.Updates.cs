@@ -112,6 +112,9 @@ namespace WindBoard.Settings.Pages
             UpdateResultDialogLayoutPlan layoutPlan = UpdateResultDialogLayoutPlanBuilder.Build(result, CultureInfo.CurrentUICulture.Name);
             DownloadSourceId sourceForUrls = result.EffectiveDownloadSourceId;
             string releasePageUrl = result.GetReleasePageUrl();
+            UpdateAssetPick? recommendedAsset = result.State == AppUpdateCheckState.UpdateAvailable
+                ? result.Assets?.Recommended
+                : null;
 
             string title = result.State switch
             {
@@ -130,18 +133,28 @@ namespace WindBoard.Settings.Pages
 
             if (presentationPlan.Kind == DialogPresentationKind.WindowedContentDialog && settingsWindow is not null)
             {
-                await ShowWindowedUpdateResultDialogAsync(settingsWindow, result, layoutPlan, sourceForUrls, releasePageUrl, title, presentationPlan);
+                bool shouldStartUpdate = await ShowWindowedUpdateResultDialogAsync(
+                    settingsWindow,
+                    result,
+                    layoutPlan,
+                    sourceForUrls,
+                    releasePageUrl,
+                    title,
+                    presentationPlan,
+                    recommendedAsset);
+                if (shouldStartUpdate && recommendedAsset is not null)
+                {
+                    await DownloadAssetWithProgressAsync(recommendedAsset, sourceForUrls, releasePageUrl).ConfigureAwait(true);
+                }
+
                 return;
             }
 
-            // 说明：该弹窗内可能触发“下载进度”弹窗。WinUI 限制同一时间只能打开一个 ContentDialog，
-            // 因此需要在开始下载前先关闭当前“检查结果”弹窗。
-            ContentDialog? resultDialog = null;
             UIElement content = layoutPlan.UseTwoColumnLayout
-                ? BuildTwoColumnUpdateResultContent(result, layoutPlan, sourceForUrls, releasePageUrl, () => CloseContentDialogAsync(resultDialog))
-                : BuildSingleColumnUpdateResultContent(result, layoutPlan, sourceForUrls, releasePageUrl, () => CloseContentDialogAsync(resultDialog));
+                ? BuildTwoColumnUpdateResultContent(result, layoutPlan, sourceForUrls, releasePageUrl)
+                : BuildSingleColumnUpdateResultContent(result, layoutPlan, sourceForUrls, releasePageUrl);
 
-            resultDialog = new ContentDialog
+            var resultDialog = new ContentDialog
             {
                 Title = title,
                 Content = content,
@@ -149,30 +162,39 @@ namespace WindBoard.Settings.Pages
                 XamlRoot = XamlRoot,
             };
 
+            if (recommendedAsset is not null)
+            {
+                resultDialog.PrimaryButtonText = L10n.Get("Updates_DownloadButton");
+            }
+
             if (layoutPlan.UseTwoColumnLayout)
             {
                 resultDialog.Resources["ContentDialogMinWidth"] = 980d;
                 resultDialog.Resources["ContentDialogMaxWidth"] = 1240d;
             }
 
-            await resultDialog.ShowAsync();
+            ContentDialogResult dialogResult = await resultDialog.ShowAsync();
+            if (dialogResult == ContentDialogResult.Primary && recommendedAsset is not null)
+            {
+                await DownloadAssetWithProgressAsync(recommendedAsset, sourceForUrls, releasePageUrl).ConfigureAwait(true);
+            }
         }
 
-        private async Task ShowWindowedUpdateResultDialogAsync(
+        private async Task<bool> ShowWindowedUpdateResultDialogAsync(
             Window ownerWindow,
             AppUpdateCheckResult result,
             UpdateResultDialogLayoutPlan layoutPlan,
             DownloadSourceId sourceForUrls,
             string releasePageUrl,
             string title,
-            WindowedDialogPresentationPlan presentationPlan)
+            WindowedDialogPresentationPlan presentationPlan,
+            UpdateAssetPick? recommendedAsset)
         {
-            WindowedContentDialog? resultDialog = null;
             UIElement content = layoutPlan.UseTwoColumnLayout
-                ? BuildTwoColumnUpdateResultContent(result, layoutPlan, sourceForUrls, releasePageUrl, () => CloseWindowedDialogAsync(resultDialog))
-                : BuildSingleColumnUpdateResultContent(result, layoutPlan, sourceForUrls, releasePageUrl, () => CloseWindowedDialogAsync(resultDialog));
+                ? BuildTwoColumnUpdateResultContent(result, layoutPlan, sourceForUrls, releasePageUrl)
+                : BuildSingleColumnUpdateResultContent(result, layoutPlan, sourceForUrls, releasePageUrl);
 
-            resultDialog = new WindowedContentDialog
+            var resultDialog = new WindowedContentDialog
             {
                 Title = title,
                 WindowTitle = title,
@@ -181,12 +203,18 @@ namespace WindBoard.Settings.Pages
                 OwnerWindow = ownerWindow,
                 HasTitleBar = true,
                 CenterInParent = true,
-                IsResizable = false,
+                IsResizable = true,
                 ContentMinWidth = presentationPlan.MinimumWidth,
                 RequestedTheme = ActualTheme,
             };
 
-            await resultDialog.ShowAsync();
+            if (recommendedAsset is not null)
+            {
+                resultDialog.PrimaryButtonText = L10n.Get("Updates_DownloadButton");
+            }
+
+            ContentDialogResult dialogResult = await resultDialog.ShowAsync();
+            return dialogResult == ContentDialogResult.Primary;
         }
 
         private static Border WrapWindowedDialogContent(UIElement content, WindowedDialogPresentationPlan presentationPlan)
@@ -206,50 +234,14 @@ namespace WindBoard.Settings.Pages
             return container;
         }
 
-        private static Task CloseWindowedDialogAsync(WindowedContentDialog? dialog)
-        {
-            dialog?.Close();
-            return Task.CompletedTask;
-        }
-
-        private static async Task CloseContentDialogAsync(ContentDialog? dialog)
-        {
-            if (dialog is null)
-            {
-                return;
-            }
-
-            var closedTcs = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
-
-            void OnClosed(ContentDialog sender, ContentDialogClosedEventArgs args)
-            {
-                sender.Closed -= OnClosed;
-                closedTcs.TrySetResult(null);
-            }
-
-            dialog.Closed += OnClosed;
-            try
-            {
-                dialog.Hide();
-            }
-            catch
-            {
-                dialog.Closed -= OnClosed;
-                throw;
-            }
-
-            await closedTcs.Task.ConfigureAwait(true);
-        }
-
         private UIElement BuildSingleColumnUpdateResultContent(
             AppUpdateCheckResult result,
             UpdateResultDialogLayoutPlan layoutPlan,
             DownloadSourceId sourceForUrls,
-            string releasePageUrl,
-            Func<Task> closeCurrentDialogAsync)
+            string releasePageUrl)
         {
-            var panel = BuildUpdateSummaryPanel(result, sourceForUrls, releasePageUrl, closeCurrentDialogAsync);
-            AppendPlainTextChangelog(panel, layoutPlan);
+            var panel = BuildUpdateSummaryPanel(result, sourceForUrls, releasePageUrl);
+            AppendChangelogSection(panel, layoutPlan, maxHeight: 260);
             return panel;
         }
 
@@ -257,8 +249,7 @@ namespace WindBoard.Settings.Pages
             AppUpdateCheckResult result,
             UpdateResultDialogLayoutPlan layoutPlan,
             DownloadSourceId sourceForUrls,
-            string releasePageUrl,
-            Func<Task> closeCurrentDialogAsync)
+            string releasePageUrl)
         {
             var grid = new Grid
             {
@@ -274,7 +265,7 @@ namespace WindBoard.Settings.Pages
                 MaxHeight = 480,
                 VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
                 HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
-                Content = BuildUpdateSummaryPanel(result, sourceForUrls, releasePageUrl, closeCurrentDialogAsync),
+                Content = BuildUpdateSummaryPanel(result, sourceForUrls, releasePageUrl),
             };
             Grid.SetColumn(leftViewer, 0);
             grid.Children.Add(leftViewer);
@@ -307,8 +298,7 @@ namespace WindBoard.Settings.Pages
         private StackPanel BuildUpdateSummaryPanel(
             AppUpdateCheckResult result,
             DownloadSourceId sourceForUrls,
-            string releasePageUrl,
-            Func<Task> closeCurrentDialogAsync)
+            string releasePageUrl)
         {
             var panel = new StackPanel
             {
@@ -319,7 +309,7 @@ namespace WindBoard.Settings.Pages
             {
                 Text = $"{L10n.Get("Updates_CurrentVersion")}：{AppInfo.DisplayVersion}",
                 Opacity = 0.8,
-                TextWrapping = TextWrapping.WrapWholeWords,
+                TextWrapping = TextWrapping.Wrap,
             });
 
             string latestVersion = result.Latest?.Version ?? string.Empty;
@@ -329,7 +319,7 @@ namespace WindBoard.Settings.Pages
                 {
                     Text = $"{L10n.Get("Updates_LatestVersion")}：v{latestVersion}",
                     FontWeight = Microsoft.UI.Text.FontWeights.SemiBold,
-                    TextWrapping = TextWrapping.WrapWholeWords,
+                    TextWrapping = TextWrapping.Wrap,
                 });
             }
 
@@ -340,7 +330,7 @@ namespace WindBoard.Settings.Pages
                 {
                     Text = $"{L10n.Get("Updates_ReleaseDate")}：{dateText}",
                     Opacity = 0.8,
-                    TextWrapping = TextWrapping.WrapWholeWords,
+                    TextWrapping = TextWrapping.Wrap,
                 });
             }
 
@@ -349,18 +339,18 @@ namespace WindBoard.Settings.Pages
                 panel.Children.Add(new TextBlock
                 {
                     Text = result.Message,
-                    TextWrapping = TextWrapping.WrapWholeWords,
+                    TextWrapping = TextWrapping.Wrap,
                 });
             }
 
-            AppendDownloadSection(panel, result, sourceForUrls, releasePageUrl, closeCurrentDialogAsync);
+            AppendDownloadSection(panel, result, sourceForUrls);
             AppendReleasePageLink(panel, releasePageUrl);
             return panel;
         }
 
-        private void AppendPlainTextChangelog(StackPanel panel, UpdateResultDialogLayoutPlan layoutPlan)
+        private void AppendChangelogSection(StackPanel panel, UpdateResultDialogLayoutPlan layoutPlan, double maxHeight)
         {
-            if (string.IsNullOrWhiteSpace(layoutPlan.ChangelogMarkdown))
+            if (string.IsNullOrWhiteSpace(layoutPlan.ChangelogMarkdown) && !layoutPlan.UseChangelogPlaceholder)
             {
                 return;
             }
@@ -374,15 +364,10 @@ namespace WindBoard.Settings.Pages
 
             panel.Children.Add(new ScrollViewer
             {
-                MaxHeight = 260,
+                MaxHeight = maxHeight,
                 VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
                 HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
-                Content = new TextBlock
-                {
-                    Text = layoutPlan.ChangelogMarkdown,
-                    TextWrapping = TextWrapping.Wrap,
-                    Opacity = 0.95,
-                },
+                Content = BuildMarkdownChangelogContent(layoutPlan),
             });
         }
 
@@ -422,19 +407,17 @@ namespace WindBoard.Settings.Pages
             {
                 Text = L10n.Get("Updates_Changelog_Empty"),
                 Opacity = 0.7,
-                TextWrapping = TextWrapping.WrapWholeWords,
+                TextWrapping = TextWrapping.Wrap,
             };
         }
 
         private void AppendDownloadSection(
             StackPanel panel,
             AppUpdateCheckResult result,
-            DownloadSourceId sourceForUrls,
-            string releasePageUrl,
-            Func<Task> closeCurrentDialogAsync)
+            DownloadSourceId sourceForUrls)
         {
-            bool showDownloads = result.State is AppUpdateCheckState.UpdateAvailable or AppUpdateCheckState.Indeterminate;
-            if (!showDownloads || result.Assets is null || result.Assets.Alternatives.Count == 0)
+            bool showAlternativeDownloads = result.State == AppUpdateCheckState.Indeterminate;
+            if (!showAlternativeDownloads || result.Assets is null || result.Assets.Alternatives.Count == 0)
             {
                 return;
             }
@@ -466,43 +449,6 @@ namespace WindBoard.Settings.Pages
                 link.Click += (_, _) => _ = TryLaunchUrlAsync(rewrittenUrl);
                 panel.Children.Add(link);
             }
-
-            if (result.State != AppUpdateCheckState.UpdateAvailable || result.Assets.Recommended is null)
-            {
-                return;
-            }
-
-            var downloadButton = new Button
-            {
-                Content = L10n.Get("Updates_DownloadButton"),
-                HorizontalAlignment = HorizontalAlignment.Left,
-                Margin = new Thickness(0, 6, 0, 0),
-            };
-
-            UpdateAssetPick recommended = result.Assets.Recommended;
-            downloadButton.Click += async (_, _) =>
-            {
-                // 防止重复点击触发多次关闭/下载流程。
-                downloadButton.IsEnabled = false;
-
-                try
-                {
-                    await closeCurrentDialogAsync().ConfigureAwait(true);
-
-                    await DownloadAssetWithProgressAsync(recommended, sourceForUrls, releasePageUrl).ConfigureAwait(true);
-                }
-                catch (Exception ex)
-                {
-                    AppLog.Warn("Updates", "启动下载失败", ex);
-                }
-                finally
-                {
-                    // 若隐藏弹窗失败则按钮仍可见，需恢复可用；成功隐藏时此操作无副作用。
-                    downloadButton.IsEnabled = true;
-                }
-            };
-
-            panel.Children.Add(downloadButton);
         }
 
         private void AppendReleasePageLink(StackPanel panel, string releasePageUrl)

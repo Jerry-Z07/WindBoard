@@ -51,12 +51,13 @@ namespace WindBoard.Updates
 
         internal static MarkdownViewDocument Build(string markdown)
         {
-            if (string.IsNullOrWhiteSpace(markdown))
+            string normalizedMarkdown = NormalizeMarkdown(markdown);
+            if (string.IsNullOrWhiteSpace(normalizedMarkdown))
             {
                 return new MarkdownViewDocument(Array.Empty<MarkdownViewBlock>());
             }
 
-            MarkdownDocument document = Markdown.Parse(markdown, Pipeline);
+            MarkdownDocument document = Markdown.Parse(normalizedMarkdown, Pipeline);
             var blocks = new List<MarkdownViewBlock>();
 
             foreach (Block block in document)
@@ -65,6 +66,24 @@ namespace WindBoard.Updates
             }
 
             return new MarkdownViewDocument(blocks);
+        }
+
+        private static string NormalizeMarkdown(string markdown)
+        {
+            string normalized = (markdown ?? string.Empty)
+                .Replace("\r\n", "\n", StringComparison.Ordinal)
+                .Replace("\r", "\n", StringComparison.Ordinal);
+
+            if (normalized.Contains('\n'))
+            {
+                return normalized;
+            }
+
+            // release 元数据偶发把换行保留为转义序列；这里仅在原文没有真实换行时做最小纠正。
+            return normalized
+                .Replace("\\r\\n", "\n", StringComparison.Ordinal)
+                .Replace("\\n", "\n", StringComparison.Ordinal)
+                .Replace("\\r", "\n", StringComparison.Ordinal);
         }
 
         private static void AppendBlock(List<MarkdownViewBlock> output, Block block)

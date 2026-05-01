@@ -67,4 +67,20 @@ public sealed class MarkdownViewDocumentBuilderTests
 
         Assert.Empty(document.Blocks);
     }
+
+    [Fact]
+    public void Build_EscapedNewlines_NormalizesBeforeParsing()
+    {
+        const string markdown = "## 更新内容\\n\\n- feat: 支持 **粗体**";
+
+        MarkdownViewDocument document = MarkdownViewDocumentBuilder.Build(markdown);
+
+        Assert.Equal(2, document.Blocks.Count);
+
+        var heading = Assert.IsType<MarkdownHeadingBlock>(document.Blocks[0]);
+        Assert.Equal("更新内容", heading.Text);
+
+        var list = Assert.IsType<MarkdownListBlock>(document.Blocks[1]);
+        Assert.Single(list.Items);
+    }
 }

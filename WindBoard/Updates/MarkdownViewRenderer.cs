@@ -41,7 +41,7 @@ namespace WindBoard.Updates
                 _ => new TextBlock
                 {
                     Text = block.ToString(),
-                    TextWrapping = TextWrapping.WrapWholeWords,
+                    TextWrapping = TextWrapping.Wrap,
                 },
             };
         }
@@ -51,7 +51,7 @@ namespace WindBoard.Updates
             return new TextBlock
             {
                 Text = heading.Text,
-                TextWrapping = TextWrapping.WrapWholeWords,
+                TextWrapping = TextWrapping.Wrap,
                 FontWeight = FontWeights.SemiBold,
                 FontSize = heading.Level switch
                 {
@@ -68,7 +68,7 @@ namespace WindBoard.Updates
         {
             var textBlock = new TextBlock
             {
-                TextWrapping = TextWrapping.WrapWholeWords,
+                TextWrapping = TextWrapping.Wrap,
                 Opacity = 0.95,
             };
 

@@ -54,7 +54,7 @@
     <value>Open release page</value>
   </data>
   <data name="Updates_DownloadButton" xml:space="preserve">
-    <value>Download recommended package</value>
+    <value>Update now</value>
   </data>
   <data name="Updates_DownloadSource_Title" xml:space="preserve">
     <value>Download source</value>
