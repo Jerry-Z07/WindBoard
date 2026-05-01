@@ -1,0 +1,4 @@
+{"file": ".trellis/workflow.md", "reason": "Project workflow and conventions"}
+{"file": ".trellis/spec/frontend/index.md", "reason": "Frontend development guide"}
+{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "前端组件与事件约定"}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "前端质量与渲染约束"}

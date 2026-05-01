@@ -22,6 +22,8 @@ namespace WindBoard.Rendering.Board
 {
     internal sealed class BoardSceneRenderer : IDisposable
     {
+        private const int MaxTextPreviewChars = 4096;
+
         private readonly struct VisibleWorldBounds
         {
             public VisibleWorldBounds(Vector2 min, Vector2 max)
@@ -507,12 +509,14 @@ namespace WindBoard.Rendering.Board
 
             if (!string.IsNullOrWhiteSpace(visual.Title))
             {
-                ctx.DrawText(visual.Title, _elementTitleTextFormat, titleRect, _elementTextBrush, DrawTextOptions.None, MeasuringMode.Natural);
+                // Direct2D 默认不会把文本裁剪到 layout rect；这里显式启用裁剪，避免缩小元素后标题越界。
+                ctx.DrawText(visual.Title, _elementTitleTextFormat, titleRect, _elementTextBrush, DrawTextOptions.Clip, MeasuringMode.Natural);
             }
 
             if (!string.IsNullOrWhiteSpace(visual.Secondary))
             {
-                ctx.DrawText(visual.Secondary, _elementBodyTextFormat, bodyRect, _elementSecondaryTextBrush, DrawTextOptions.None, MeasuringMode.Natural);
+                // 文字元素/附件说明都需要受当前框体约束，缩放时按新的 layout rect 重新排版并裁剪。
+                ctx.DrawText(visual.Secondary, _elementBodyTextFormat, bodyRect, _elementSecondaryTextBrush, DrawTextOptions.Clip, MeasuringMode.Natural);
             }
         }
 
@@ -673,17 +677,24 @@ namespace WindBoard.Rendering.Board
 
             if (element is BoardTextElement text)
             {
-                string preview = (text.Text ?? string.Empty).Trim();
-                if (preview.Length > 160)
-                {
-                    preview = preview.Substring(0, 160) + "…";
-                }
-
+                string preview = BuildTextElementPreview(text.Text);
                 string secondary = string.IsNullOrWhiteSpace(preview) ? string.Empty : preview;
                 return new ElementCardVisual(AccentGray(), GetSymbolGlyph(Symbol.Edit), L10n.Get("ElementCard_Text_Title"), secondary);
             }
 
             return new ElementCardVisual(AccentGray(), TryGetSymbolGlyph("Help", Symbol.More), string.Empty, string.Empty);
+        }
+
+        internal static string BuildTextElementPreview(string? text)
+        {
+            string preview = (text ?? string.Empty).Trim();
+            if (preview.Length <= MaxTextPreviewChars)
+            {
+                return preview;
+            }
+
+            // 渲染时保留足够长的前缀，既让大尺寸文本卡片能显示更多内容，也避免超长文本在每帧排版时带来过高开销。
+            return preview.Substring(0, MaxTextPreviewChars) + "…";
         }
 
         private static string GetBestDisplayName(string? displayName, string? sourcePath)
