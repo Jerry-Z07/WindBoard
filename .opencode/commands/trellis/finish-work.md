@@ -1,140 +1,66 @@
-# Finish Work - Pre-Commit Checklist
+# Finish Work
 
-Before submitting or committing, use this checklist to ensure work completeness.
+Wrap up the current session: archive the active task (and any other completed-but-unarchived tasks the user wants to clean up) and record the session journal. Code commits are NOT done here — those happen in workflow Phase 3.4 before you invoke this command.
 
-**Timing**: After code is written and tested, before commit
-
----
-
-## Checklist
-
-### 1. Code Quality
+## Step 1: Survey current state
 
 ```bash
-# Must pass
-dotnet build WindBoard.slnx -c Release
-dotnet test WindBoard.slnx
+python ./.trellis/scripts/get_context.py --mode record
 ```
 
-- [ ] `dotnet build` passes with 0 errors?
-- [ ] `dotnet test` passes with no failures?
-- [ ] No `Console.WriteLine` statements (use `AppLog`)?
-- [ ] No null-forgiving operator (`x!`) without justification?
-- [ ] No `dynamic` or untyped usage without justification?
+This prints:
 
-### 2. Code-Spec Sync
+- **My active tasks** — review whether any besides the current one are actually done (code merged, AC met) and should be archived this round.
+- **Git status** — quick visual on what's dirty.
+- **Recent commits** — you'll need their hashes in Step 4 for `--commit`.
 
-**Code-Spec Docs**:
-- [ ] Does `.trellis/spec/backend/` need updates?
-  - New patterns, new modules, new conventions
-- [ ] Does `.trellis/spec/frontend/` need updates?
-  - New components, new hooks, new patterns
-- [ ] Does `.trellis/spec/guides/` need updates?
-  - New cross-layer flows, lessons from bugs
+If `--mode record` surfaces other completed tasks not tied to the current session, surface them to the user with a one-shot confirmation: "These N tasks look done — archive them too in this round? [y/N]". Default is no; the current active task is always archived in Step 3 regardless.
 
-**Key Question**: 
-> "If I fixed a bug or discovered something non-obvious, should I document it so future me (or others) won't hit the same issue?"
+## Step 2: Sanity check — classify dirty paths
 
-If YES -> Update the relevant code-spec doc.
-
-### 2.5. Code-Spec Hard Block (Infra/Cross-Layer)
-
-If this change touches infra or cross-layer contracts, this is a blocking checklist:
-
-- [ ] Spec content is executable (real signatures/contracts), not principle-only text
-- [ ] Includes file path + command/API name + payload field names
-- [ ] Includes validation and error matrix
-- [ ] Includes Good/Base/Bad cases
-- [ ] Includes required tests and assertion points
-
-**Block Rule**:
-In pipeline mode, the finish agent will automatically detect and execute spec updates when gaps are found.
-If running this checklist manually, ensure spec sync is complete before committing — run `/trellis:update-spec` if needed.
-
-### 3. Public API Changes
-
-If you modified public interfaces or command signatures:
-
-- [ ] Interface signatures updated?
-- [ ] Callers updated to match?
-- [ ] Tests updated to cover new contract?
-
-### 4. Persistence / Data Format Changes
-
-If you modified file formats, serialization, or persistence:
-
-- [ ] Version compatibility considered?
-- [ ] Related parsers/serializers updated?
-- [ ] Import/export logic updated (if applicable)?
-
-### 5. Cross-Layer Verification
-
-If the change spans multiple layers:
-
-- [ ] Data flows correctly through all layers?
-- [ ] Error handling works at each boundary?
-- [ ] Types are consistent across layers?
-- [ ] Loading states handled?
-
-### 6. Manual Testing
-
-- [ ] Feature works in the app?
-- [ ] Edge cases tested?
-- [ ] Error states tested?
-- [ ] Works after app restart?
-
----
-
-## Quick Check Flow
+Run:
 
 ```bash
-# 1. Code checks
-dotnet build WindBoard.slnx -c Release
-
-# 2. View changes
-git status
-git diff --name-only
-
-# 3. Based on changed files, check relevant items above
+git status --porcelain
 ```
 
----
+Filter out paths under `.trellis/workspace/` and `.trellis/tasks/` — those are managed by `add_session.py` and `task.py archive` auto-commits and will appear dirty as part of this skill's own work.
 
-## Common Oversights
+For each remaining dirty path, decide whether it belongs to **the current task** or to **other parallel work** (e.g., another terminal window editing the same repo). Heuristics:
 
-| Oversight | Consequence | Check |
-|-----------|-------------|-------|
-| Code-spec docs not updated | Others don't know the change | Check .trellis/spec/ |
-| Spec text is abstract only | Easy regressions in infra/cross-layer changes | Require signature/contract/matrix/cases/tests |
-| Migration not created | Schema out of sync | Check db/migrations/ |
-| Types not synced | Runtime errors | Check shared types |
-| Tests not updated | False confidence | Run full test suite |
-| Console.WriteLine left in | Noisy production logs | Search for Console.WriteLine |
+- Paths referenced in the current task's `prd.md` / `implement.jsonl` / `check.jsonl` → current task
+- Paths in code areas matching the task's stated scope, or that you remember editing this session → current task
+- Paths in unrelated areas you have no recollection of touching this session → other parallel work
 
----
+Then route:
 
-## Relationship to Other Commands
+- **Any remaining path looks like current-task work** — bail out with:
+  > "Working tree has uncommitted code changes from this task: `<list>`. Return to workflow Phase 3.4 to commit them before running `/trellis:finish-work`."
 
-```
-Development Flow:
-  Write code -> Test -> /trellis:finish-work -> git commit -> /trellis:record-session
-                          |                              |
-                   Ensure completeness              Record progress
-                   
-Debug Flow:
-  Hit bug -> Fix -> /trellis:break-loop -> Knowledge capture
-                       |
-                  Deep analysis
+  Do NOT run `git commit` here. Do NOT prompt the user to commit. The user goes back to Phase 3.4 and the AI drives the batched commit there.
+- **All remaining paths look unrelated** (other parallel-window work) — report them once and continue to Step 3:
+  > "FYI, dirty files outside this task's scope — leaving them for the other window: `<list>`."
+- **Genuinely unsure** — ask the user once: "Are `<list>` this task's work I forgot to commit, or another window's? (commit / ignore)" — then route per their answer.
+
+## Step 3: Archive task(s)
+
+```bash
+python ./.trellis/scripts/task.py archive <task-name>
 ```
 
-- `/trellis:finish-work` - Check work completeness (this command)
-- `/trellis:record-session` - Record session and commits
-- `/trellis:break-loop` - Deep analysis after debugging
+At minimum: the current active task (if any). Plus any extra tasks the user confirmed in Step 1. Each archive produces a `chore(task): archive ...` commit via the script's auto-commit.
 
----
+If there is no active task and the user did not confirm any cleanup archives, skip this step.
 
-## Core Principle
+## Step 4: Record session journal
 
-> **Delivery includes not just code, but also documentation, verification, and knowledge capture.**
+```bash
+python ./.trellis/scripts/add_session.py \
+  --title "Session Title" \
+  --commit "hash1,hash2" \
+  --summary "Brief summary"
+```
 
-Complete work = Code + Docs + Tests + Verification
+Use the work-commit hashes produced in Phase 3.4 (visible in Step 1's `Recent commits` list, or via `git log --oneline`) for `--commit`. Do not include the archive commit hashes from Step 3. This produces a `chore: record journal` commit.
+
+Final git log order: `<work commits from 3.4>` → `chore(task): archive ...` (one or more) → `chore: record journal`.

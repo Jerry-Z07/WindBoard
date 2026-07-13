@@ -1,3 +1,4 @@
+/* global process */
 /**
  * Trellis Context Injection Plugin
  *
@@ -5,126 +6,86 @@
  * Uses OpenCode's tool.execute.before hook.
  */
 
-import { existsSync, writeFileSync, readdirSync } from "fs"
+import { existsSync, readdirSync } from "fs"
 import { join } from "path"
 import { TrellisContext, debugLog } from "../lib/trellis-context.js"
 
 // Supported subagent types
-const AGENTS_ALL = ["implement", "check", "debug", "research"]
-const AGENTS_REQUIRE_TASK = ["implement", "check", "debug"]
-// Agents that don't update phase (can be called at any time)
-const AGENTS_NO_PHASE_UPDATE = ["debug", "research"]
+const AGENTS_ALL = ["implement", "check", "research"]
+const AGENTS_REQUIRE_TASK = ["implement", "check"]
 
-/**
- * Update current_phase in task.json based on subagent_type
- */
-function updateCurrentPhase(ctx, taskDir, subagentType) {
-  if (AGENTS_NO_PHASE_UPDATE.includes(subagentType)) {
-    return
-  }
+// Match `Active task: <path>` on the first non-empty line of the dispatch
+// prompt. Mirrors the contract in workflow.md's [workflow-state:in_progress]
+// breadcrumb so multi-window users can disambiguate which task is targeted.
+const ACTIVE_TASK_HINT_RE = /^\s*Active task:\s*(\S+)\s*$/m
 
-  const taskJsonPath = join(ctx.directory, taskDir, "task.json")
-  const content = ctx.readFile(taskJsonPath)
-  if (!content) return
-
-  try {
-    const taskData = JSON.parse(content)
-    const currentPhase = taskData.current_phase || 0
-    const nextActions = taskData.next_action || []
-
-    const actionToAgent = {
-      "implement": "implement",
-      "check": "check",
-      "finish": "check"
-    }
-
-    let newPhase = null
-    for (const action of nextActions) {
-      const phaseNum = action.phase || 0
-      const actionName = action.action || ""
-      const expectedAgent = actionToAgent[actionName]
-
-      if (phaseNum > currentPhase && expectedAgent === subagentType) {
-        newPhase = phaseNum
-        break
-      }
-    }
-
-    if (newPhase !== null) {
-      taskData.current_phase = newPhase
-      writeFileSync(taskJsonPath, JSON.stringify(taskData, null, 2))
-      debugLog("inject", "Updated current_phase to:", newPhase)
-    }
-  } catch (e) {
-    debugLog("inject", "Error updating phase:", e.message)
-  }
+function extractActiveTaskHint(prompt) {
+  if (typeof prompt !== "string" || !prompt) return null
+  const match = prompt.match(ACTIVE_TASK_HINT_RE)
+  return match ? match[1].trim() : null
 }
 
 /**
- * Get context for implement agent
+ * Get context for implement agent. `taskDir` may be relative
+ * (`.trellis/tasks/foo`) or absolute; both are resolved via
+ * `ctx.resolveTaskDir`.
  */
 function getImplementContext(ctx, taskDir) {
   const parts = []
+  const taskDirFull = ctx.resolveTaskDir(taskDir)
+  if (!taskDirFull) return ""
 
-  let jsonlPath = join(ctx.directory, taskDir, "implement.jsonl")
-  let entries = ctx.readJsonlWithFiles(jsonlPath)
-
-  if (entries.length === 0) {
-    jsonlPath = join(ctx.directory, taskDir, "spec.jsonl")
-    entries = ctx.readJsonlWithFiles(jsonlPath)
-  }
-
+  const jsonlPath = join(taskDirFull, "implement.jsonl")
+  const entries = ctx.readJsonlWithFiles(jsonlPath)
   if (entries.length > 0) {
     parts.push(ctx.buildContextFromEntries(entries))
   }
 
-  const prd = ctx.readProjectFile(join(taskDir, "prd.md"))
+  const prd = ctx.readFile(join(taskDirFull, "prd.md"))
   if (prd) {
     parts.push(`=== ${taskDir}/prd.md (Requirements) ===\n${prd}`)
   }
 
-  const info = ctx.readProjectFile(join(taskDir, "info.md"))
-  if (info) {
-    parts.push(`=== ${taskDir}/info.md (Technical Design) ===\n${info}`)
+  const design = ctx.readFile(join(taskDirFull, "design.md"))
+  if (design) {
+    parts.push(`=== ${taskDir}/design.md (Technical Design) ===\n${design}`)
+  }
+
+  const implementPlan = ctx.readFile(join(taskDirFull, "implement.md"))
+  if (implementPlan) {
+    parts.push(`=== ${taskDir}/implement.md (Execution Plan) ===\n${implementPlan}`)
   }
 
   return parts.join("\n\n")
 }
 
 /**
- * Get context for check agent
+ * Get context for check agent. `taskDir` may be relative or absolute.
  */
 function getCheckContext(ctx, taskDir) {
   const parts = []
+  const taskDirFull = ctx.resolveTaskDir(taskDir)
+  if (!taskDirFull) return ""
 
-  const jsonlPath = join(ctx.directory, taskDir, "check.jsonl")
+  const jsonlPath = join(taskDirFull, "check.jsonl")
   const entries = ctx.readJsonlWithFiles(jsonlPath)
-
   if (entries.length > 0) {
     parts.push(ctx.buildContextFromEntries(entries))
-  } else {
-    const checkFiles = [
-      [".opencode/commands/trellis/finish-work.md", "Finish work checklist"],
-      [".opencode/commands/trellis/check-cross-layer.md", "Cross-layer check spec"],
-      [".opencode/commands/trellis/check.md", "Check spec"],
-    ]
-    for (const [f, description] of checkFiles) {
-      const content = ctx.readProjectFile(f)
-      if (content) {
-        parts.push(`=== ${f} (${description}) ===\n${content}`)
-      }
-    }
-
-    const specJsonlPath = join(ctx.directory, taskDir, "spec.jsonl")
-    const specEntries = ctx.readJsonlWithFiles(specJsonlPath)
-    for (const entry of specEntries) {
-      parts.push(`=== ${entry.path} (Dev spec) ===\n${entry.content}`)
-    }
   }
 
-  const prd = ctx.readProjectFile(join(taskDir, "prd.md"))
+  const prd = ctx.readFile(join(taskDirFull, "prd.md"))
   if (prd) {
-    parts.push(`=== ${taskDir}/prd.md (Requirements - for understanding intent) ===\n${prd}`)
+    parts.push(`=== ${taskDir}/prd.md (Requirements) ===\n${prd}`)
+  }
+
+  const design = ctx.readFile(join(taskDirFull, "design.md"))
+  if (design) {
+    parts.push(`=== ${taskDir}/design.md (Technical Design) ===\n${design}`)
+  }
+
+  const implementPlan = ctx.readFile(join(taskDirFull, "implement.md"))
+  if (implementPlan) {
+    parts.push(`=== ${taskDir}/implement.md (Execution Plan) ===\n${implementPlan}`)
   }
 
   return parts.join("\n\n")
@@ -134,75 +95,15 @@ function getCheckContext(ctx, taskDir) {
  * Get context for finish phase (final check before PR)
  */
 function getFinishContext(ctx, taskDir) {
-  const parts = []
-
-  const jsonlPath = join(ctx.directory, taskDir, "finish.jsonl")
-  const entries = ctx.readJsonlWithFiles(jsonlPath)
-
-  if (entries.length > 0) {
-    parts.push(ctx.buildContextFromEntries(entries))
-  } else {
-    const finishWork = ctx.readProjectFile(".opencode/commands/trellis/finish-work.md")
-    if (finishWork) {
-      parts.push(`=== .opencode/commands/trellis/finish-work.md (Finish checklist) ===\n${finishWork}`)
-    }
-  }
-
-  const updateSpec = ctx.readProjectFile(".opencode/commands/trellis/update-spec.md")
-  if (updateSpec) {
-    parts.push(`=== .opencode/commands/trellis/update-spec.md (Spec update process) ===\n${updateSpec}`)
-  }
-
-  const prd = ctx.readProjectFile(join(taskDir, "prd.md"))
-  if (prd) {
-    parts.push(`=== ${taskDir}/prd.md (Requirements - verify all met) ===\n${prd}`)
-  }
-
-  return parts.join("\n\n")
+  // Finish reuses check context (same JSONL source)
+  return getCheckContext(ctx, taskDir)
 }
 
-/**
- * Get context for debug agent
- */
-function getDebugContext(ctx, taskDir) {
-  const parts = []
-
-  const jsonlPath = join(ctx.directory, taskDir, "debug.jsonl")
-  const entries = ctx.readJsonlWithFiles(jsonlPath)
-
-  if (entries.length > 0) {
-    parts.push(ctx.buildContextFromEntries(entries))
-  } else {
-    const specJsonlPath = join(ctx.directory, taskDir, "spec.jsonl")
-    const specEntries = ctx.readJsonlWithFiles(specJsonlPath)
-    for (const entry of specEntries) {
-      parts.push(`=== ${entry.path} (Dev spec) ===\n${entry.content}`)
-    }
-
-    const checkFiles = [
-      [".opencode/commands/trellis/check.md", "Check spec"],
-      [".opencode/commands/trellis/check-cross-layer.md", "Cross-layer check spec"],
-    ]
-    for (const [f, description] of checkFiles) {
-      const content = ctx.readProjectFile(f)
-      if (content) {
-        parts.push(`=== ${f} (${description}) ===\n${content}`)
-      }
-    }
-  }
-
-  const codex = ctx.readProjectFile(join(taskDir, "codex-review-output.txt"))
-  if (codex) {
-    parts.push(`=== ${taskDir}/codex-review-output.txt (Codex Review Results) ===\n${codex}`)
-  }
-
-  return parts.join("\n\n")
-}
 
 /**
  * Get context for research agent
  */
-function getResearchContext(ctx, taskDir) {
+function getResearchContext(ctx) {
   const parts = []
 
   // Dynamic project structure (scan actual spec directory)
@@ -251,15 +152,6 @@ function getResearchContext(ctx, taskDir) {
 - Code search: Use Glob and Grep tools
 - Tech solutions: Use mcp__exa__web_search_exa or mcp__exa__get_code_context_exa`)
 
-  if (taskDir) {
-    const jsonlPath = join(ctx.directory, taskDir, "research.jsonl")
-    const researchEntries = ctx.readJsonlWithFiles(jsonlPath)
-    if (researchEntries.length > 0) {
-      parts.push("\n## Additional Search Context\n")
-      parts.push(ctx.buildContextFromEntries(researchEntries))
-    }
-  }
-
   return parts.join("\n\n")
 }
 
@@ -268,7 +160,8 @@ function getResearchContext(ctx, taskDir) {
  */
 function buildPrompt(agentType, originalPrompt, context, isFinish = false) {
   const templates = {
-    implement: `# Implement Agent Task
+    implement: `<!-- trellis-hook-injected -->
+# Implement Agent Task
 
 You are the Implement Agent in the Multi-Agent Pipeline.
 
@@ -287,8 +180,8 @@ ${originalPrompt}
 ## Workflow
 
 1. **Understand specs** - All dev specs are injected above
-2. **Understand requirements** - Read requirements and technical design
-3. **Implement feature** - Follow specs and design
+2. **Understand task artifacts** - Read requirements, technical design if present, and execution plan if present
+3. **Implement feature** - Follow specs and task artifacts
 4. **Self-check** - Ensure code quality
 
 ## Important Constraints
@@ -297,7 +190,8 @@ ${originalPrompt}
 - Follow all dev specs injected above
 - Report list of modified/created files when done`,
 
-    check: isFinish ? `# Finish Agent Task
+    check: isFinish ? `<!-- trellis-hook-injected -->
+# Finish Agent Task
 
 You are performing the final check before creating a PR.
 
@@ -316,7 +210,7 @@ ${originalPrompt}
 ## Workflow
 
 1. **Review changes** - Run \`git diff --name-only\` to see all changed files
-2. **Verify requirements** - Check each requirement in prd.md is implemented
+2. **Verify task artifacts** - Check prd.md and, when present, design.md / implement.md
 3. **Spec sync** - Analyze whether changes introduce new patterns, contracts, or conventions
    - If new pattern/convention found: read target spec file → update it → update index.md if needed
    - If infra/cross-layer change: follow the 7-section mandatory template from update-spec.md
@@ -330,8 +224,10 @@ ${originalPrompt}
 - MUST read the target spec file BEFORE editing (avoid duplicating existing content)
 - Do NOT update specs for trivial changes (typos, formatting, obvious fixes)
 - If critical CODE issues found, report them clearly (fix specs, not code)
-- Verify all acceptance criteria in prd.md are met` :
-      `# Check Agent Task
+- Verify all acceptance criteria in prd.md are met
+- Verify design.md and implement.md constraints when those files are present` :
+      `<!-- trellis-hook-injected -->
+# Check Agent Task
 
 You are the Check Agent in the Multi-Agent Pipeline.
 
@@ -359,35 +255,8 @@ ${originalPrompt}
 - Fix issues yourself, don't just report
 - Must execute complete checklist`,
 
-    debug: `# Debug Agent Task
-
-You are the Debug Agent in the Multi-Agent Pipeline.
-
-## Your Context
-
-${context}
-
----
-
-## Your Task
-
-${originalPrompt}
-
----
-
-## Workflow
-
-1. **Understand issues** - Analyze issues pointed out
-2. **Locate code** - Find positions that need fixing
-3. **Fix against specs** - Fix following dev specs
-4. **Verify fixes** - Run typecheck
-
-## Important Constraints
-
-- Do NOT execute git commit
-- Run typecheck after each fix`,
-
-    research: `# Research Agent Task
+    research: `<!-- trellis-hook-injected -->
+# Research Agent Task
 
 You are the Research Agent in the Multi-Agent Pipeline.
 
@@ -424,18 +293,105 @@ ${originalPrompt}
   return templates[agentType] || originalPrompt
 }
 
-export default {
-  id: "trellis.inject-subagent-context",
-  server: async ({ directory }) => {
-    const ctx = new TrellisContext(directory)
-    debugLog("inject", "Plugin loaded, directory:", directory)
+function shellQuote(value) {
+  return `'${String(value).replace(/'/g, "'\\''")}'`
+}
 
-    return {
+function powershellQuote(value) {
+  return `'${String(value).replace(/'/g, "''")}'`
+}
+
+function envValue(env, key) {
+  const value = env?.[key]
+  return typeof value === "string" && value.trim() ? value.trim() : null
+}
+
+function shellBasename(value) {
+  return value.replace(/\\/g, "/").split("/").pop()?.toLowerCase() || ""
+}
+
+function isWindowsPosixShell(env = process.env) {
+  if (envValue(env, "MSYSTEM")) return true
+  if (envValue(env, "MINGW_PREFIX")) return true
+  if (envValue(env, "OPENCODE_GIT_BASH_PATH")) return true
+
+  const ostype = envValue(env, "OSTYPE")?.toLowerCase() || ""
+  if (/(msys|mingw|cygwin)/.test(ostype)) return true
+
+  const shell = shellBasename(envValue(env, "SHELL") || "")
+  return /^(bash|sh|zsh)(\.exe)?$/.test(shell)
+}
+
+function buildTrellisContextPrefix(contextKey, hostPlatform = process.platform, env = process.env) {
+  if (hostPlatform === "win32" && !isWindowsPosixShell(env)) {
+    return `$env:TRELLIS_CONTEXT_ID = ${powershellQuote(contextKey)}; `
+  }
+
+  return `export TRELLIS_CONTEXT_ID=${shellQuote(contextKey)}; `
+}
+
+function getBashCommandKey(args) {
+  if (!args || typeof args !== "object") return null
+  if (typeof args.command === "string") return "command"
+  if (typeof args.cmd === "string") return "cmd"
+  return null
+}
+
+function commandStartsWithTrellisContext(command) {
+  const firstCommand = command.trimStart().split(/[;&|]/, 1)[0].trimStart()
+  return (
+    /^TRELLIS_CONTEXT_ID\s*=/.test(firstCommand) ||
+    /^export\s+TRELLIS_CONTEXT_ID\s*=/.test(firstCommand) ||
+    /^env\s+(?:(?:-\S+|[A-Za-z_][A-Za-z0-9_]*=\S*)\s+)*TRELLIS_CONTEXT_ID\s*=/.test(firstCommand) ||
+    /^\$env:TRELLIS_CONTEXT_ID\s*=/i.test(firstCommand)
+  )
+}
+
+/**
+ * OpenCode TUI may not expose OPENCODE_RUN_ID to Bash. The plugin hook still
+ * receives session identity, so inject it into Bash commands before execution.
+ */
+function injectTrellisContextIntoBash(ctx, input, output, hostPlatform, env) {
+  const args = output?.args
+  const commandKey = getBashCommandKey(args)
+  if (!commandKey) return false
+
+  const command = args[commandKey]
+  if (!command.trim()) return false
+  if (commandStartsWithTrellisContext(command)) return false
+
+  const contextKey = ctx.getContextKey(input)
+  if (!contextKey) return false
+
+  args[commandKey] = `${buildTrellisContextPrefix(contextKey, hostPlatform, env)}${command}`
+  return true
+}
+
+// OpenCode plugin factory: `export default async (input) => hooks`.
+// OpenCode 1.2.x iterates every module export and invokes it as a function
+// (packages/opencode/src/plugin/index.ts — `for ([_, fn] of Object.entries(mod)) await fn(input)`);
+// the previous `{ id, server }` object shape failed with
+// `TypeError: fn is not a function` in 1.2.x.
+export default async ({ directory, platform: hostPlatform = process.platform, env = process.env }) => {
+  const ctx = new TrellisContext(directory)
+  debugLog("inject", "Plugin loaded, directory:", directory)
+
+  return {
       "tool.execute.before": async (input, output) => {
         try {
+          if (process.env.TRELLIS_HOOKS === "0" || process.env.TRELLIS_DISABLE_HOOKS === "1") {
+            return
+          }
           debugLog("inject", "tool.execute.before called, tool:", input?.tool)
 
           const toolName = input?.tool?.toLowerCase()
+          if (toolName === "bash") {
+            if (injectTrellisContextIntoBash(ctx, input, output, hostPlatform, env)) {
+              debugLog("inject", "Injected TRELLIS_CONTEXT_ID into Bash command")
+            }
+            return
+          }
+
           if (toolName !== "task") {
             return
           }
@@ -443,32 +399,78 @@ export default {
           const args = output?.args
           if (!args) return
 
-          const subagentType = args.subagent_type
+          const rawSubagentType = args.subagent_type
+          // Strip "trellis-" prefix added by v0.5.0-beta.5 agent rename migration
+          const subagentType = (rawSubagentType || "").replace(/^trellis-/, "")
           const originalPrompt = args.prompt || ""
 
-          debugLog("inject", "Task tool called, subagent_type:", subagentType)
+          debugLog("inject", "Task tool called, subagent_type:", rawSubagentType)
 
           if (!AGENTS_ALL.includes(subagentType)) {
             debugLog("inject", "Skipping - unsupported subagent_type")
             return
           }
 
-          // Read current task
-          const taskDir = ctx.getCurrentTask()
+          // Resolve active task in this priority order (only later steps
+          // run when earlier ones miss):
+          //   1. Exact session runtime context lookup for input.sessionID
+          //   2. `Active task: <path>` hint in the dispatch prompt
+          //      (explicit per-dispatch override — beats single-session
+          //      inference so multi-window users can disambiguate)
+          //   3. Single-session fallback — only when exactly 1 session
+          //      runtime file exists locally
+          let taskDir = null
+          let taskSource = null
+
+          const contextKey = ctx.getContextKey(input)
+          if (contextKey) {
+            const context = ctx.readContext(contextKey)
+            const exactRef = ctx.normalizeTaskRef(context?.current_task || "")
+            if (exactRef) {
+              taskDir = exactRef
+              taskSource = `session:${contextKey}`
+            }
+          }
+
+          if (!taskDir) {
+            const hintRef = extractActiveTaskHint(originalPrompt)
+            if (hintRef) {
+              const hintNormalized = ctx.normalizeTaskRef(hintRef)
+              if (hintNormalized) {
+                const hintDir = ctx.resolveTaskDir(hintNormalized)
+                if (hintDir && existsSync(hintDir)) {
+                  taskDir = hintNormalized
+                  taskSource = "prompt-hint"
+                  debugLog("inject", "Resolved task from Active task: hint:", hintNormalized)
+                }
+              }
+            }
+          }
+
+          if (!taskDir) {
+            const fallback = ctx._resolveSingleSessionFallback()
+            if (fallback?.taskPath) {
+              const fallbackDir = ctx.resolveTaskDir(fallback.taskPath)
+              if (fallbackDir && existsSync(fallbackDir)) {
+                taskDir = fallback.taskPath
+                taskSource = fallback.source
+                debugLog("inject", "Resolved task via single-session fallback:", taskDir, "source:", taskSource)
+              }
+            }
+          }
 
           // Agents requiring task directory
           if (AGENTS_REQUIRE_TASK.includes(subagentType)) {
+            // subagentType is already stripped of "trellis-" prefix above
             if (!taskDir) {
               debugLog("inject", "Skipping - no current task")
               return
             }
-            const taskDirFull = join(directory, taskDir)
-            if (!existsSync(taskDirFull)) {
+            const taskDirFull = ctx.resolveTaskDir(taskDir)
+            if (!taskDirFull || !existsSync(taskDirFull)) {
               debugLog("inject", "Skipping - task directory not found")
               return
             }
-
-            updateCurrentPhase(ctx, taskDir, subagentType)
           }
 
           // Check for [finish] marker
@@ -484,9 +486,6 @@ export default {
               context = isFinish
                 ? getFinishContext(ctx, taskDir)
                 : getCheckContext(ctx, taskDir)
-              break
-            case "debug":
-              context = getDebugContext(ctx, taskDir)
               break
             case "research":
               context = getResearchContext(ctx, taskDir)
@@ -511,5 +510,4 @@ export default {
         }
       }
     }
-  }
 }
