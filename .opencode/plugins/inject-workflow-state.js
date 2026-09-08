@@ -4,18 +4,16 @@
  *
  * Per-turn UserPromptSubmit equivalent for OpenCode.
  *
- * On every chat.message, if a Trellis task is active, inject a short
- * <workflow-state> breadcrumb reminding the main AI what task is
- * active and its expected flow. Breadcrumb text is pulled exclusively
+ * On every model request, inject a short <workflow-state> breadcrumb
+ * into the in-memory copy of the latest user message via
+ * `experimental.chat.messages.transform`. Stored history and the TUI
+ * are not modified (issue #553). Breadcrumb text is pulled exclusively
  * from the project's workflow.md [workflow-state:STATUS] tag blocks —
  * workflow.md is the single source of truth. There are no fallback
  * tables in this plugin: when workflow.md is missing or a tag is
  * absent, the breadcrumb degrades to a generic
  * "Refer to workflow.md for current step." line so users see (and fix)
  * the broken state instead of the plugin silently masking it.
- *
- * Unlike session-start, this plugin does NOT dedupe — the breadcrumb
- * should surface on every turn so long conversations don't drift.
  *
  * Silently skips when:
  *   - No .trellis/ directory
@@ -25,11 +23,93 @@
 
 import { existsSync, readFileSync } from "fs"
 import { join } from "path"
+import {
+  MESSAGES_TRANSFORM_HOOK,
+  latestUserPromptText,
+  platformInputFromMessages,
+  prependEphemeralText,
+} from "../lib/context-visibility.js"
 import { TrellisContext, debugLog, isTrellisSubagent } from "../lib/trellis-context.js"
 
 // Supports STATUS values with letters, digits, underscores, hyphens
 // (so "in-review" / "blocked-by-team" work alongside "in_progress").
 const TAG_RE = /\[workflow-state:([A-Za-z0-9_-]+)\]\s*\n([\s\S]*?)\n\s*\[\/workflow-state:\1\]/g
+
+// Escape hatch for the per-turn breadcrumb (issue #427). Mirrors
+// `common.config.get_prompt_injection_config()` / the shared Python hook's
+// `_resolve_skip_keyword()` + `prompt_has_skip_keyword()`.
+const DEFAULT_PROMPT_INJECTION_SKIP_KEYWORD = "no-trellis"
+
+function stripInlineComment(value) {
+  let inQuote = null
+  for (let idx = 0; idx < value.length; idx++) {
+    const ch = value[idx]
+    if (inQuote) {
+      if (ch === inQuote) inQuote = null
+      continue
+    }
+    if (ch === '"' || ch === "'") {
+      inQuote = ch
+      continue
+    }
+    if (ch === "#" && (idx === 0 || /\s/.test(value[idx - 1]))) return value.slice(0, idx)
+  }
+  return value
+}
+
+function unquoteYaml(s) {
+  if (s.length >= 2 && s[0] === s[s.length - 1] && (s[0] === '"' || s[0] === "'")) return s.slice(1, -1)
+  return s
+}
+
+/**
+ * Line-based parser for ONLY the `prompt_injection:` block of
+ * `.trellis/config.yaml`. Not a general YAML parser — mirrors
+ * `common.config.get_prompt_injection_config()` semantics for this section
+ * only (missing key keeps the default; non-string value keeps the default).
+ */
+function readSkipKeyword(directory) {
+  const path = join(directory, ".trellis", "config.yaml")
+  if (!existsSync(path)) return DEFAULT_PROMPT_INJECTION_SKIP_KEYWORD
+  let text
+  try {
+    text = readFileSync(path, "utf-8")
+  } catch {
+    return DEFAULT_PROMPT_INJECTION_SKIP_KEYWORD
+  }
+
+  let inSection = false
+  let sectionIndent = -1
+  for (const rawLine of text.split(/\r?\n/)) {
+    const trimmed = rawLine.trim()
+    if (!inSection) {
+      if (/^prompt_injection\s*:\s*(#.*)?$/.test(trimmed)) {
+        inSection = true
+        sectionIndent = rawLine.length - rawLine.trimStart().length
+      }
+      continue
+    }
+    if (!trimmed || trimmed.startsWith("#")) continue
+    const indent = rawLine.length - rawLine.trimStart().length
+    if (indent <= sectionIndent) break
+    const m = trimmed.match(/^skip_keyword\s*:\s*(.*)$/)
+    if (!m) continue
+    return unquoteYaml(stripInlineComment(m[1]).trim())
+  }
+  return DEFAULT_PROMPT_INJECTION_SKIP_KEYWORD
+}
+
+/**
+ * Case-insensitive, word-boundary match of `keyword` in `text`. Hyphen
+ * counts as a word char so "no-trellisx" / "xno-trellis" don't match, but
+ * punctuation/whitespace boundaries do. Empty keyword never matches.
+ */
+function promptHasSkipKeyword(text, keyword) {
+  if (!keyword || typeof text !== "string") return false
+  const escaped = keyword.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+  const pattern = new RegExp(`(?<![\\w-])${escaped}(?![\\w-])`, "i")
+  return pattern.test(text)
+}
 
 /**
  * Parse workflow.md for [workflow-state:STATUS] blocks.
@@ -104,15 +184,15 @@ export default async ({ directory }) => {
   debugLog("workflow-state", "Plugin loaded, directory:", directory)
 
   return {
-      // chat.message fires on every user message. Inject breadcrumb in-place
-      // so it persists in conversation history.
-      "chat.message": async (input, output) => {
+      [MESSAGES_TRANSFORM_HOOK]: async (_input, output) => {
         try {
+          const messages = output?.messages
+          const platformInput = platformInputFromMessages(messages)
           // Skip Trellis sub-agent turns — the per-turn breadcrumb is for the
           // main session only; sub-agent context comes from the parent's
           // tool.execute.before injection.
-          if (isTrellisSubagent(input)) {
-            debugLog("workflow-state", "Skipping trellis subagent turn:", input?.agent)
+          if (isTrellisSubagent(platformInput)) {
+            debugLog("workflow-state", "Skipping trellis subagent turn:", platformInput?.agent)
             return
           }
           if (process.env.TRELLIS_HOOKS === "0" || process.env.TRELLIS_DISABLE_HOOKS === "1") {
@@ -124,22 +204,23 @@ export default async ({ directory }) => {
           if (!ctx.isTrellisProject()) {
             return
           }
+
+          const originalText = latestUserPromptText(messages)
+
+          // Escape hatch (issue #427): user prompt contains the skip keyword
+          // as a standalone word — emit nothing for this turn only.
+          if (promptHasSkipKeyword(originalText, readSkipKeyword(directory))) {
+            debugLog("workflow-state", "Skipping turn: skip keyword present in prompt")
+            return
+          }
+
           const templates = loadBreadcrumbs(directory)
-          const task = getActiveTask(ctx, input)
+          const task = getActiveTask(ctx, platformInput)
           const breadcrumb = task
             ? buildBreadcrumb(task.id, task.status, templates, task.source)
             : buildBreadcrumb(null, "no_task", templates)
 
-          const parts = output?.parts || []
-          const textPartIndex = parts.findIndex(
-            p => p.type === "text" && p.text !== undefined,
-          )
-          if (textPartIndex !== -1) {
-            const originalText = parts[textPartIndex].text || ""
-            parts[textPartIndex].text = `${breadcrumb}\n\n${originalText}`
-          } else {
-            parts.unshift({ type: "text", text: breadcrumb })
-          }
+          prependEphemeralText(messages, breadcrumb)
           debugLog(
             "workflow-state",
             "Injected breadcrumb for task",
@@ -150,7 +231,7 @@ export default async ({ directory }) => {
         } catch (error) {
           debugLog(
             "workflow-state",
-            "Error in chat.message:",
+            "Error in messages.transform:",
             error instanceof Error ? error.message : String(error),
           )
         }
