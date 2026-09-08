@@ -60,7 +60,8 @@ WindBoard follows the principle "safety = correctness > minimal change > readabi
 
 ### Test framework
 
-- xUnit 2.9.3, coverlet.collector 6.0.4
+- xUnit v2（2.9.3），runner `xunit.runner.visualstudio` 4.0.0（实测兼容 v2），`Microsoft.NET.Test.Sdk` 18.9.0，`coverlet.collector` 10.0.1
+- 升级测试包时保持 xUnit v2 技术栈；v3 迁移属独立任务（详见 `frontend/winui-dependencies.md`）
 - The test directory structure matches the main project modules one to one
 
 ### Scenarios that need tests
