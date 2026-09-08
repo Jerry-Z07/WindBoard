@@ -1,6 +1,6 @@
-# WinUI 平台依赖契约（WinAppSDK / DevWinUI / CommunityToolkit）
+# WinUI 平台依赖契约（WinAppSDK / CommunityToolkit，DevWinUI 已移除）
 
-> 记录 2026-09 依赖大版本升级（WinAppSDK 1.8→2.4.0、DevWinUI 9.9.4→10.4.1）中确认的平台行为契约与迁移约定。升级依赖前必读。
+> 记录 2026-09 依赖大版本升级（WinAppSDK 1.8→2.4.0、DevWinUI 9.9.4→10.4.1，同月彻底移除 DevWinUI）中确认的平台行为契约与迁移约定。升级依赖前必读。
 
 ---
 
@@ -8,8 +8,7 @@
 
 - 版本目标一律以升级当日 `dotnet list package --outdated` 实时结果为准，禁止照搬文档快照
 - **禁用预发布包**（preview/experimental）：CommunityToolkit 8.3 系列仅有 preview，生产保持 8.2 稳定线（当前 8.2.251219）
-- `DevWinUI.Controls` 已被官方弃用并 unlist，v10 起合并进 `DevWinUI` 主包（旧 `DevWinUI` → `DevWinUI.Base`）；不要再引用 `DevWinUI.Controls`
-- `DevWinUI` v10 依赖 `Microsoft.WindowsAppSDK.WinUI >= 2.3.6` 子包：**WinAppSDK 与 DevWinUI 必须同批升级**，拆开会出现中间不一致状态
+- **DevWinUI 已于 2026-09 移除**：唯一使用点 WindowedContentDialog 已被原生 ContentDialog 自适应方案替代（见下文设计决策）；不要再引用 `DevWinUI` / `DevWinUI.Controls`（后者已被官方弃用并 unlist）
 
 ## WinAppSDK 2.x 平台行为契约
 
@@ -35,24 +34,44 @@ bool overwrite = await ConfirmOverwriteFileAsync(xamlRoot, file.Path);  // 已�
 
 > **Warning**：本项目为 `WindowsPackageType=None`（unpackaged）且 CI 发布未设 `WindowsAppSDKSelfContained`。升级 WinAppSDK 主版本后，framework-dependent 变体要求用户机器安装对应大版本的 Windows App Runtime（2.x）——升级主版本时必须单独评估运行时分发策略。
 
-## DevWinUI v10 WindowedContentDialog API 映射
+## 设计决策：更新结果弹窗回归原生 ContentDialog（2026-09 移除 DevWinUI）
 
-v10 完全重写该控件（移植自 SuGarToolkit），本项目唯一使用点在 `AboutSettingsPage.Updates.cs`（关于页"检查更新"弹窗）。属性映射契约：
+**Context**：`ContentDialog` 宿主于 `XamlRoot`，尺寸受窗口约束且模板不自带滚动，默认窗口尺寸下更新日志（两栏布局 MinWidth 980）被截断。曾为此引入 DevWinUI 的 `WindowedContentDialog`（独立窗口承载）。
 
-| v9（旧） | v10（新） | 说明 |
-|---|---|---|
-| `Title` / `WindowTitle` | `Header` | 标题合并为单一属性 |
-| `PrimaryButtonText` | `PrimaryButtonContent` | 类型 object?，语义同 ContentDialog |
-| `CloseButtonText` | `CloseButtonContent` | 同上 |
-| `OwnerWindow` | `Owner`（Window?） | CLR 属性，非 DP |
-| `IsResizable` | `CanResize` | |
-| `ContentMinWidth` | `MinWidth` | 窗口级最小宽度 |
-| `CenterInParent` | （移除） | 窗口默认居中于属主 |
-| `RequestedTheme` | （移除） | 类基类变为 DependencyObject；主题跟随系统 |
-| `ShowAsync()` | `ShowAsync()` | 签名不变，仍返回 `Task<ContentDialogResult>` |
+**Options Considered**：
+1. 独立窗口承载（DevWinUI / 自写）——为单一功能引入整包依赖，模态语义、焦点、DPI 全要自管，DevWinUI v10 还整体重写过属性名
+2. 应用内 overlay 自绘——需自行处理焦点圈闭 / light-dismiss / 无障碍，风险最高
+3. 原生 `ContentDialog` + 内容自适应窗口尺寸 + 内部滚动——模态/焦点/无障碍由原生保证
 
-- `HasTitleBar` 在 v10 仍存在（partial 定义），可继续使用
-- 上游已知问题：`PrimaryButtonTemplate` 属性注册无 PropertyChanged 回调（未转发到内部视图），避免依赖该属性
+**Decision**：选 3。约定：
+- 滚动区 MaxHeight 与两栏决策由纯决策类型 `UpdateResultDialogLayoutPlanBuilder` 产出（两栏阈值 1060 = 内容 MinWidth 980 + 弹窗左右 chrome ~80；高度 = clamp(窗口高 − 180, 布局区间)），UI 层必须复用其静态方法，**禁止在 UI 层另写一套数值**
+- 弹窗内容任何窗口尺寸下不得截断：滚动由内容区 ScrollViewer 承担，单栏外层统一滚动，避免双层滚动条
+
+### Gotcha：XamlRoot 没有 SizeChanged
+
+> **Warning**：WinUI 3 的 `XamlRoot` 不存在 `SizeChanged` 事件（UWP 有）；窗口尺寸变化通知走 `XamlRoot.Changed`。且 `XamlRootChangedEventArgs` 不携带新尺寸（与 UWP 不同）——回调中直接读取 `sender.Size` 当前值即可，非尺寸触发的变更（主题切换等）重算结果幂等。
+
+### Common Mistake：ShowAsync 异常路径的事件订阅泄漏
+
+**Symptom**：弹窗关闭后窗口尺寸变化仍对游离控件回调（COMException / 订阅泄漏）。
+
+**Cause**：`ContentDialog.ShowAsync()` 抛异常（典型：同 XamlRoot 已有其它 ContentDialog 打开）时，`Closed` 事件**不会触发**——仅依赖 `Closed` 退订会悬挂订阅。
+
+**Fix / Prevention**：随弹窗订阅的任何事件（如 `XamlRoot.Changed`）必须在 `finally` 兜底退订，与 `Closed` 路径重复退订是幂等的：
+
+```csharp
+dialog.Closed += OnDialogClosed;          // 正常路径退订
+xamlRoot.Changed += OnXamlRootChanged;
+try
+{
+    await dialog.ShowAsync();
+}
+finally
+{
+    // 兜底：ShowAsync 抛异常时 Closed 不触发
+    xamlRoot.Changed -= OnXamlRootChanged;
+}
+```
 
 ## 构建 Gotcha：XAML 错误可能是 C# 错误的级联
 
