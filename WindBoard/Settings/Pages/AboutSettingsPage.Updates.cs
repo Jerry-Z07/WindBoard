@@ -194,23 +194,25 @@ namespace WindBoard.Settings.Pages
                 ? BuildTwoColumnUpdateResultContent(result, layoutPlan, sourceForUrls, releasePageUrl)
                 : BuildSingleColumnUpdateResultContent(result, layoutPlan, sourceForUrls, releasePageUrl);
 
+            // DevWinUI v10 重写了 WindowedContentDialog（移植自 SuGarToolkit），属性发生更名：
+            // Title/WindowTitle→Header、PrimaryButtonText→PrimaryButtonContent、CloseButtonText→CloseButtonContent、
+            // OwnerWindow→Owner、IsResizable→CanResize、ContentMinWidth→MinWidth。
+            // CenterInParent/RequestedTheme 不再暴露：窗口默认居中于属主窗口，主题跟随系统
+            // （本应用未做应用内主题覆盖，行为与原先一致）。
             var resultDialog = new WindowedContentDialog
             {
-                Title = title,
-                WindowTitle = title,
+                Header = title,
                 Content = WrapWindowedDialogContent(content, presentationPlan),
-                CloseButtonText = L10n.Get("Common_Close"),
-                OwnerWindow = ownerWindow,
+                CloseButtonContent = L10n.Get("Common_Close"),
+                Owner = ownerWindow,
                 HasTitleBar = true,
-                CenterInParent = true,
-                IsResizable = true,
-                ContentMinWidth = presentationPlan.MinimumWidth,
-                RequestedTheme = ActualTheme,
+                CanResize = true,
+                MinWidth = presentationPlan.MinimumWidth,
             };
 
             if (recommendedAsset is not null)
             {
-                resultDialog.PrimaryButtonText = L10n.Get("Updates_DownloadButton");
+                resultDialog.PrimaryButtonContent = L10n.Get("Updates_DownloadButton");
             }
 
             ContentDialogResult dialogResult = await resultDialog.ShowAsync();

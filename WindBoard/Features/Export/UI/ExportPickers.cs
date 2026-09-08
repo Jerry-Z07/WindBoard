@@ -75,23 +75,15 @@ namespace WindBoard.Features.Export.UI
 
             while (true)
             {
-                DateTimeOffset pickStarted = DateTimeOffset.Now;
                 StorageFile? file = await PickSaveFileAsync(xamlRoot, hwnd, format);
                 if (file is null)
                 {
                     return null;
                 }
 
+                // WinAppSDK 2.0 起 FileSavePicker 不再为用户输入的新文件名预创建空文件：
+                // 目标文件不存在即视为新文件直接返回；已存在则弹覆盖确认。
                 if (!File.Exists(file.Path))
-                {
-                    return file;
-                }
-
-                // WinUI 的 FileSavePicker 在某些实现下会“先创建一个空文件再返回 StorageFile”。
-                // 这种情况下 File.Exists 会恒为 true；为避免每次保存都弹覆盖确认，这里用 DateCreated 做一个保守判断：
-                // - 如果文件创建时间明显早于打开对话框的时间，则认为是“已存在文件”，需要二次确认；
-                // - 否则认为是“刚创建的新文件”，直接继续导出。
-                if (file.DateCreated >= pickStarted - TimeSpan.FromSeconds(2))
                 {
                     return file;
                 }

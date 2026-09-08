@@ -263,20 +263,15 @@ namespace WindBoard.Settings.Pages
 
             while (true)
             {
-                DateTimeOffset pickStarted = DateTimeOffset.Now;
                 StorageFile? file = await picker.PickSaveFileAsync();
                 if (file is null)
                 {
                     return null;
                 }
 
+                // WinAppSDK 2.0 起 FileSavePicker 不再为用户输入的新文件名预创建空文件：
+                // 目标文件不存在即视为新文件直接返回；已存在则弹覆盖确认。
                 if (!File.Exists(file.Path))
-                {
-                    return file;
-                }
-
-                // WinUI 的 FileSavePicker 可能先创建一个空文件再返回，这里沿用时间窗口做保守判断，避免每次都误弹“覆盖确认”。
-                if (file.DateCreated >= pickStarted - TimeSpan.FromSeconds(2))
                 {
                     return file;
                 }
