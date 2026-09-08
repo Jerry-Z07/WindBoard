@@ -93,6 +93,7 @@ jobs:
               --self-contained true `
               -o $publishDirScShared `
               -p:PublishReadyToRun=false `
+              -p:WindowsAppSDKSelfContained=true `
               $msbuildProps
 
             dotnet publish $launcherProject `
@@ -132,6 +133,7 @@ jobs:
               --self-contained false `
               -o $publishDirFdShared `
               -p:PublishReadyToRun=false `
+              -p:WindowsAppSDKSelfContained=false `
               $msbuildProps
 
             dotnet publish $launcherProject `
