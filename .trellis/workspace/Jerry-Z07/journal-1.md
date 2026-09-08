@@ -257,6 +257,69 @@ Fixed text overflow and fixed-preview issues for imported text elements during s
 - `WindBoard/Rendering/Board/BoardSceneRenderer.cs`
 - `WindBoard.Tests/Rendering/BoardSceneRendererTextPreviewTests.cs`
 
+---
+
+## Session 8: Upgrade NuGet dependencies to latest stable versions
+
+**Date**: 2026-09-09
+**Task**: 更新项目 NuGet 依赖包到最新稳定版本
+**Branch**: `develop`
+
+### Summary
+
+将主程序与测试工程的 NuGet 依赖升级到当日最新稳定版；完成 DevWinUI v10 包迁移（含 `WindowedContentDialog` API 重写适配）与两处失效 Picker workaround 清理；把平台契约沉淀到 spec。
+
+### Main Changes
+
+## 依赖升级
+
+| 包 | 旧 | 新 |
+|---|---|---|
+| Microsoft.WindowsAppSDK | 1.8.260209005 | 2.4.0 |
+| DevWinUI.Controls（已弃用/unlist） | 9.9.4 | DevWinUI 10.4.1 |
+| Markdig | 1.1.1 | 1.3.2 |
+| System.Drawing.Common | 10.0.3 | 10.0.11 |
+| Vortice.Direct2D1 / Direct3D11 | 3.8.2 | 3.8.3 |
+| Microsoft.Windows.SDK.BuildTools | 10.0.26100.7705 | 10.0.28000.2705 |
+| Microsoft.NET.Test.Sdk | 17.14.1 | 18.9.0 |
+| xunit.runner.visualstudio | 3.1.4 | 4.0.0（实测兼容 xUnit v2） |
+| coverlet.collector | 6.0.4 | 10.0.1 |
+
+CommunityToolkit.WinUI.*（8.2.251219）与 xunit（2.9.3）已是最新稳定版，保持不变；不使用 CommunityToolkit 8.3 preview。
+
+## 代码迁移
+
+- `AboutSettingsPage.Updates.cs`：DevWinUI v10 重写 `WindowedContentDialog`，属性映射 Title/WindowTitle→Header、PrimaryButtonText→PrimaryButtonContent、CloseButtonText→CloseButtonContent、OwnerWindow→Owner、IsResizable→CanResize、ContentMinWidth→MinWidth；CenterInParent / RequestedTheme 不再暴露
+- `ExportPickers.cs` / `SettingsManagementPage.xaml.cs`：WinAppSDK 2.0 起 FileSavePicker 不再预创建空文件，移除两处已不可达的 `DateCreated` 时间窗口 workaround，统一以 `File.Exists` 判断
+- 排查经验：首轮构建 241 个错误中，仅 9 个是真实 API 变更，其余 XAML `WMC0001` 是 C# 失败导致 MarkupCompilePass2 缺 LocalAssembly 的级联噪声
+
+## Spec
+
+新增 `.trellis/spec/frontend/winui-dependencies.md`（WinAppSDK 2.x 行为契约、DevWinUI v10 API 映射、XAML 级联错误 gotcha、测试栈约定）；同步 frontend 索引与 backend 测试框架版本快照。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `4d54c21` | chore(deps): 升级 NuGet 依赖到最新稳定版并清理失效 Picker workaround |
+| `ca852cc` | docs(spec): 记录 WinAppSDK 2.x 与 DevWinUI v10 平台契约 |
+
+### Testing
+
+- [OK] `dotnet build WindBoard.slnx -c Release`：0 警告 0 错误
+- [OK] `dotnet test WindBoard.slnx`：371/371 通过
+- [OK] `dotnet list package --outdated`：无剩余可用稳定版升级项
+- [ ] 人工冒烟（画板渲染 / 设置页 / 导出两条保存路径 / 关于页更新弹窗）——待用户执行
+
+### Status
+
+[OK] **Completed**（自动化验证部分；人工冒烟待执行）
+
+### Next Steps
+
+- 用户执行人工冒烟，如有问题另开任务跟进
+- Windows App Runtime 2.x 分发策略（framework-dependent 变体）需独立决策
+
 
 ### Git Commits
 
