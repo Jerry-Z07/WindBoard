@@ -338,3 +338,44 @@ CommunityToolkit.WinUI.*（8.2.251219）与 xunit（2.9.3）已是最新稳定�
 ### Next Steps
 
 - None - task complete
+
+---
+
+## Session 9: 更新结果弹窗回归原生 ContentDialog 并移除 DevWinUI
+
+**Date**: 2026-09-09
+**Task**: 更新结果弹窗回归原生 ContentDialog 并移除 DevWinUI 依赖（09-09-native-update-dialog）
+**Branch**: `develop`
+
+### Summary
+
+DevWinUI 在主工程的唯一使用点（更新结果弹窗的 WindowedContentDialog 独立窗口承载）被原生方案替代：ContentDialog 内容高度自适应窗口并内部滚动，两栏布局按窗口实际宽度决策（阈值 1060），根治默认窗口尺寸下更新日志被截断的问题；同步移除 DevWinUI 依赖。
+
+### Main Changes
+
+- `UpdateResultDialogLayoutPlan.cs`：决策输入加入窗口尺寸，产出两栏决策与滚动区 MaxHeight（clamp(窗口高 − 180, 布局区间)），UI 层复用其静态方法，避免两套数值
+- `AboutSettingsPage.Updates.cs`：移除 windowed 分支；单栏外层 ScrollViewer 统一滚动（消除双层滚动条）；`XamlRoot.Changed` 响应式调整 + `Closed`/`finally` 双路退订——`ShowAsync` 抛异常时 `Closed` 不触发，纯 `Closed` 退订会泄漏订阅（检查阶段发现并修复）
+- 删除 `WindowedDialogPresentationPlan(.Builder)` 及其测试；`WindBoard.csproj` 移除 DevWinUI 10.4.1
+- Gotcha 沉淀：WinUI 3 `XamlRoot` 无 `SizeChanged`（用 `Changed`；事件参数不携带新尺寸，读 `sender.Size` 幂等重算）
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `0f46f28` | refactor(updates): 更新结果弹窗回归原生 ContentDialog 并移除 DevWinUI 依赖 |
+| `35d6814` | docs(spec): 记录移除 DevWinUI 后的依赖契约与弹窗自适应约定 |
+
+### Testing
+
+- [OK] `dotnet build WindBoard.slnx -c Release`：0 警告 0 错误
+- [OK] `dotnet test WindBoard.slnx`：374/374 通过（含重写的 8 个布局决策用例）
+- [OK] 全仓库代码零 DevWinUI 残留（git grep）
+- [OK] 人工三场景验证（用户执行）：默认窗口尺寸单栏滚动无截断 / 拉宽 ≥1060 两栏 / 弹窗打开期间缩放自适应
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- None - task complete
