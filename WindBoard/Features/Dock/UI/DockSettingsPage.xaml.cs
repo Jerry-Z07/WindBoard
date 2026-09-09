@@ -428,6 +428,7 @@ namespace WindBoard.Features.Dock.UI
                 DockItemIds.ToolSelect => new DockItemViewModel(id, L10n.Get("Tool_Select"), new SymbolIconSource { Symbol = Symbol.TouchPointer }),
                 DockItemIds.ToolPen => new DockItemViewModel(id, L10n.Get("Tool_Pen"), new SymbolIconSource { Symbol = Symbol.Edit }),
                 DockItemIds.ToolEraser => new DockItemViewModel(id, L10n.Get("Tool_Eraser"), new FontIconSource { FontFamily = new FontFamily(SegoeFluentIconsFontLoader.EffectiveIconFontFamilyName), Glyph = "\uE75C" }),
+                DockItemIds.ToolShape => new DockItemViewModel(id, L10n.Get("Tool_Shape"), new FontIconSource { FontFamily = new FontFamily(SegoeFluentIconsFontLoader.EffectiveIconFontFamilyName), Glyph = "\uE714" }),
 
                 DockItemIds.Undo => new DockItemViewModel(id, L10n.Get("Common_Undo"), new SymbolIconSource { Symbol = Symbol.Undo }),
                 DockItemIds.Redo => new DockItemViewModel(id, L10n.Get("Common_Redo"), new SymbolIconSource { Symbol = Symbol.Redo }),

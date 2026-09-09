@@ -16,6 +16,7 @@ namespace WindBoard.Features.Dock.Models
         public const string ToolSelect = "toolSelect";
         public const string ToolPen = "toolPen";
         public const string ToolEraser = "toolEraser";
+        public const string ToolShape = "toolShape";
 
         // 中部 Dock：撤销/重做
         public const string Undo = "undo";
@@ -42,6 +43,7 @@ namespace WindBoard.Features.Dock.Models
             DockItemIds.ToolSelect,
             DockItemIds.ToolPen,
             DockItemIds.ToolEraser,
+            DockItemIds.ToolShape,
         ];
 
         public static readonly IReadOnlyList<string> UndoRedoOrder =
