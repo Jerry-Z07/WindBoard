@@ -498,15 +498,16 @@
                         </FlyoutBase.AttachedFlyout>
 
                         <StackPanel Orientation="Vertical">
-                            <!-- 自绘“形状组合”图标（斜线+矩形+圆），语义与 Flyout 内四项画法同构。
-                                 注：Segoe Fluent Icons 无名为 Shapes 的图标（E714 实为 Video，观感似“录制”），故不用字体图标。 -->
+                            <!-- 自绘“形状组合”图标（矩形+圆对角咬合），语义与 Flyout 内四项画法同构。
+                                 注：Segoe Fluent Icons 无名为 Shapes 的图标（E714 实为 Video，观感似“录制”），故不用字体图标；
+                                 描边 1.8 贴近 20px 字体图标的笔画字重，保持工具栏视觉一致。 -->
                             <Path
                                 Width="20"
                                 Height="20"
                                 HorizontalAlignment="Center"
-                                Data="M2.5,16.5 L8,11 M11,2 H18 V9 H11 Z M2,13.5 A4.5,4.5 0 1 1 11,13.5 A4.5,4.5 0 1 1 2,13.5 Z"
+                                Data="M9,2 H18 V11 H9 Z M1.5,14 A4.5,4.5 0 1 1 10.5,14 A4.5,4.5 0 1 1 1.5,14 Z"
                                 Stroke="{ThemeResource SystemControlForegroundBaseHighBrush}"
-                                StrokeThickness="2"
+                                StrokeThickness="1.8"
                                 StrokeStartLineCap="Round"
                                 StrokeEndLineCap="Round"
                                 StrokeLineJoin="Round" />
