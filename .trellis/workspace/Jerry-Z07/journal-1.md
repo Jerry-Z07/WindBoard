@@ -479,3 +479,50 @@ DevWinUI 在主工程的唯一使用点（更新结果弹窗的 WindowedContentD
 ### Next Steps
 
 - 父任务 `09-09-shape-drawing` 归档前待用户执行最终集成复查（新建形状→撤销/重做→保存→重开→导出，两链路）
+
+---
+
+## Session 12: P0 启用 Roslyn 静态分析（测试自动化体系首项）
+
+**Date**: 2026-09-10
+**Task**: P0 启用 Roslyn 静态分析（09-10-static-analysis，父任务 09-10-test-automation）
+**Branch**: `develop`
+
+### Summary
+
+测试自动化体系建设（P0-P3 四子任务）的首项交付：全解决方案启用 Roslyn 分析器（`AnalysisLevel=latest-recommended` + `EnforceCodeStyleInBuild`），清理存量告警 1218 条（修复约 147 处 + 5 类精确压制），发布构建以 `CodeAnalysisTreatWarningsAsErrors` 建立 CA/IDE 告警回归闸门。
+
+### 关键改动
+
+- `Directory.Build.props`：启用分析器 + 全局 NoWarn（CA1859/CA1822/CA1001，带注释理由）
+- 两个 csproj 精确 NoWarn（Tests: CA1707 测试命名约定；CrashReporter: CA1016）
+- `.github/workflows/release.yml`：全部 publish 加 `-p:CodeAnalysisTreatWarningsAsErrors=true`（仅升 CA/IDE，不误伤 WMC/XAML 平台告警；负向验证注入探针构建失败确认闸门生效）
+- 61 个 .cs 行为等价修复：CA1510×86（ThrowIfNull）、CA1305×22（显式 IFormatProvider）、CA1822、CA2208、CA1068、CA1865 等
+- check 后修复：2 文件行尾混合统一 CRLF、1 文件去 UTF-8 BOM
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `150900d` | chore(build): 启用 Roslyn 静态分析并建立告警回归约束 |
+| `21cdedf` | refactor(analysis): 清理静态分析存量告警（行为等价修复 147 处） |
+| `a0b2679` | docs(spec): 沉淀静态分析与 IFormatProvider 约定 |
+
+### Testing
+
+- [OK] `dotnet build WindBoard.slnx -c Release`：0 警告 0 错误（全量 --no-incremental 复核）
+- [OK] `dotnet test WindBoard.slnx`：499/499 通过
+- [OK] Release 产物冒烟启动正常
+
+### Gotchas（已沉淀 spec）
+
+- **IFormatProvider 语义选择**：用户可见 → CurrentCulture；写文件/机器可读 → InvariantCulture（防 zh-CN 逗号小数破坏 WBIX 往返）→ backend/quality-guidelines
+- **禁用全局 TreatWarningsAsErrors**：会误伤 WinUI XAML 编译器 WMC 系列告警；用 `-p:CodeAnalysisTreatWarningsAsErrors=true`（.NET 9+ SDK，仅 CA/IDE 且保留 NoWarn）→ backend/quality-guidelines
+
+### Status
+
+[OK] **Completed**（check 通过；CA1806 失败路径行为取舍已在任务 prd 实施记录中显式登记）
+
+### Next Steps
+
+- P2 交互桥接单测（09-10-interaction-bridge-tests）→ P1 渲染快照测试 → P3 FlaUI UI 自动化
