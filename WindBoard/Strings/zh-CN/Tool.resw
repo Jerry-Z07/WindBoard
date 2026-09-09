@@ -29,4 +29,19 @@
   <data name="Tool_PassThrough" xml:space="preserve">
     <value>穿透</value>
   </data>
+  <data name="Tool_Shape" xml:space="preserve">
+    <value>形状</value>
+  </data>
+  <data name="Tool_Line" xml:space="preserve">
+    <value>直线</value>
+  </data>
+  <data name="Tool_Rectangle" xml:space="preserve">
+    <value>矩形</value>
+  </data>
+  <data name="Tool_Ellipse" xml:space="preserve">
+    <value>椭圆</value>
+  </data>
+  <data name="Tool_Arrow" xml:space="preserve">
+    <value>箭头</value>
+  </data>
 </root>

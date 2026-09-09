@@ -435,6 +435,74 @@
                             <TextBlock FontSize="11" Margin="0,3,0,0" HorizontalAlignment="Center" Text="{l10n:Loc Key=Tool_Eraser}" />
                         </StackPanel>
                     </ToggleButton>
+
+                    <ToggleButton
+                        x:Name="ShapeToolToggleButton"
+                        MinWidth="60"
+                        MinHeight="52"
+                        Padding="8,6"
+                        Style="{StaticResource DockToggleButtonStyle}"
+                        HorizontalContentAlignment="Center"
+                        VerticalContentAlignment="Center">
+                        <!-- 形状模式二次点击：弹出“直线/矩形/椭圆/箭头”切换面板（仅切换工具，复用画笔颜色/粗细参数）。 -->
+                        <FlyoutBase.AttachedFlyout>
+                            <Flyout Placement="Top" Opened="OnShapeFlyoutOpened" Closed="OnShapeFlyoutClosed">
+                                <Flyout.FlyoutPresenterStyle>
+                                    <StaticResource ResourceKey="CompactFlyoutPresenterStyle" />
+                                </Flyout.FlyoutPresenterStyle>
+
+                                <Border
+                                    CornerRadius="14"
+                                    Background="{ThemeResource SystemControlBackgroundChromeMediumLowBrush}"
+                                    BorderBrush="{ThemeResource SystemControlForegroundBaseMediumLowBrush}"
+                                    BorderThickness="1"
+                                    RequestedTheme="Light">
+                                    <StackPanel x:Name="ShapeKindPanel" Orientation="Horizontal" Spacing="8" Padding="12">
+                                        <!-- 四个形状项复用画笔粗细按钮的共享样式（44×44 圆角），内容用 XAML 自绘图形直观表达。 -->
+                                        <ToggleButton
+                                            Tag="Line"
+                                            Style="{StaticResource SharedPenThicknessToggleButtonStyle}"
+                                            ToolTipService.ToolTip="{l10n:Loc Key=Tool_Line}"
+                                            Click="OnShapeKindClicked">
+                                            <Line X1="6" Y1="26" X2="26" Y2="6" Stroke="Black" StrokeThickness="2.5" StrokeStartLineCap="Round" StrokeEndLineCap="Round" />
+                                        </ToggleButton>
+                                        <ToggleButton
+                                            Tag="Rectangle"
+                                            Style="{StaticResource SharedPenThicknessToggleButtonStyle}"
+                                            ToolTipService.ToolTip="{l10n:Loc Key=Tool_Rectangle}"
+                                            Click="OnShapeKindClicked">
+                                            <Rectangle Width="20" Height="20" Stroke="Black" StrokeThickness="2.5" StrokeStartLineCap="Round" StrokeEndLineCap="Round" />
+                                        </ToggleButton>
+                                        <ToggleButton
+                                            Tag="Ellipse"
+                                            Style="{StaticResource SharedPenThicknessToggleButtonStyle}"
+                                            ToolTipService.ToolTip="{l10n:Loc Key=Tool_Ellipse}"
+                                            Click="OnShapeKindClicked">
+                                            <Ellipse Width="22" Height="22" Stroke="Black" StrokeThickness="2.5" />
+                                        </ToggleButton>
+                                        <ToggleButton
+                                            Tag="Arrow"
+                                            Style="{StaticResource SharedPenThicknessToggleButtonStyle}"
+                                            ToolTipService.ToolTip="{l10n:Loc Key=Tool_Arrow}"
+                                            Click="OnShapeKindClicked">
+                                            <Path
+                                                Data="M6,26 L26,6 M26,6 L15,6 M26,6 L26,17"
+                                                Stroke="Black"
+                                                StrokeThickness="2.5"
+                                                StrokeStartLineCap="Round"
+                                                StrokeEndLineCap="Round" />
+                                        </ToggleButton>
+                                    </StackPanel>
+                                </Border>
+                            </Flyout>
+                        </FlyoutBase.AttachedFlyout>
+
+                        <StackPanel Orientation="Vertical">
+                            <!-- 图标字体：E714 = Shapes -->
+                            <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" FontSize="20" Glyph="&#xE714;" />
+                            <TextBlock FontSize="11" Margin="0,3,0,0" HorizontalAlignment="Center" Text="{l10n:Loc Key=Tool_Shape}" />
+                        </StackPanel>
+                    </ToggleButton>
                     </StackPanel>
 
                     <Rectangle

@@ -208,14 +208,28 @@ namespace WindBoard.Controls
          private void ShowSelectedItemsOverlay(Rect itemsBoundsScreenDip)
          {
              ShowSelectionBoundsOverlay(itemsBoundsScreenDip);
-             ShowSelectionDockOverlay(itemsBoundsScreenDip);
+
+             // 单选形状时显示属性浮层（design F），并把 Dock 排到属性浮层下方。
+             BoardShape? singleShape = TryGetSingleSelectedShape();
+             double dockPreferredTop = itemsBoundsScreenDip.Bottom + 8.0;
+             if (singleShape is not null)
+             {
+                 double panelBottom = ShowShapePropertiesOverlay(itemsBoundsScreenDip, singleShape);
+                 dockPreferredTop = panelBottom + 8.0;
+             }
+             else
+             {
+                 HideShapePropertiesOverlay();
+             }
+
+             ShowSelectionDockOverlay(itemsBoundsScreenDip, dockPreferredTop);
              HideSelectionHandlesOverlay();
          }
 
         private void ShowSelectedElementOverlay(BoardElement element, Rect elementBoundsScreenDip)
         {
             ShowSelectionBoundsOverlay(elementBoundsScreenDip);
-            ShowSelectionDockOverlay(elementBoundsScreenDip);
+            ShowSelectionDockOverlay(elementBoundsScreenDip, elementBoundsScreenDip.Bottom + 8.0);
             ShowSelectionHandlesOverlay(elementBoundsScreenDip);
         }
 
@@ -233,7 +247,7 @@ namespace WindBoard.Controls
             Canvas.SetTop(SelectionBoundsBorder, boundsDip.Top);
         }
 
-        private void ShowSelectionDockOverlay(Rect boundsDip)
+        private void ShowSelectionDockOverlay(Rect boundsDip, double preferredTopDip)
         {
             if (SelectionDockBorder is null)
             {
@@ -290,10 +304,9 @@ namespace WindBoard.Controls
 
             double boundsLeft = boundsDip.Left;
             double boundsWidth = Math.Max(0.0, boundsDip.Width);
-            double boundsBottom = boundsDip.Bottom;
 
             double dockLeft = boundsLeft + boundsWidth / 2.0 - dockW / 2.0;
-            double dockTop = boundsBottom + 8.0;
+            double dockTop = preferredTopDip;
 
             double maxLeft = Math.Max(0.0, CanvasPanel.ActualWidth - dockW);
             double maxTop = Math.Max(0.0, CanvasPanel.ActualHeight - dockH);
@@ -336,15 +349,16 @@ namespace WindBoard.Controls
              if (SelectionBoundsBorder is not null)
              {
                 SelectionBoundsBorder.Visibility = Visibility.Collapsed;
-            }
+             }
 
-            if (SelectionDockBorder is not null)
-            {
-                SelectionDockBorder.Visibility = Visibility.Collapsed;
-            }
+             if (SelectionDockBorder is not null)
+             {
+                 SelectionDockBorder.Visibility = Visibility.Collapsed;
+             }
 
-            HideSelectionHandlesOverlay();
-        }
+             HideShapePropertiesOverlay();
+             HideSelectionHandlesOverlay();
+         }
 
         private void OnSelectionBringToFrontClicked(object sender, RoutedEventArgs e)
         {

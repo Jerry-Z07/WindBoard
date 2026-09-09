@@ -71,6 +71,45 @@
                    DragStarted="OnSelectionHandleDragStarted" DragDelta="OnSelectionHandleDragDelta" DragCompleted="OnSelectionHandleDragCompleted" />
         </Canvas>
 
+        <!-- 形状属性浮层：仅“选中单个形状”时显示（design F；编辑经 NumberBox 提交，走命令栈可撤销）。 -->
+        <Canvas x:Name="ShapePropertiesCanvas">
+            <Border
+                x:Name="ShapePropertiesBorder"
+                Background="{ThemeResource SystemControlBackgroundChromeMediumLowBrush}"
+                CornerRadius="14"
+                Opacity="0.85"
+                Visibility="Collapsed"
+                RequestedTheme="Light">
+                <StackPanel Orientation="Horizontal" Spacing="12" Margin="12,8">
+                    <StackPanel Orientation="Vertical" Spacing="2">
+                        <TextBlock x:Name="ShapeProperty1Label" FontSize="11" Opacity="0.75" />
+                        <NumberBox
+                            x:Name="ShapeProperty1Box"
+                            Width="92"
+                            MinHeight="32"
+                            Padding="6,2"
+                            SpinButtonPlacementMode="Compact"
+                            SmallChange="1"
+                            AcceptsExpression="False"
+                            ValueChanged="OnShapeProperty1ValueChanged" />
+                    </StackPanel>
+
+                    <StackPanel Orientation="Vertical" Spacing="2">
+                        <TextBlock x:Name="ShapeProperty2Label" FontSize="11" Opacity="0.75" />
+                        <NumberBox
+                            x:Name="ShapeProperty2Box"
+                            Width="92"
+                            MinHeight="32"
+                            Padding="6,2"
+                            SpinButtonPlacementMode="Compact"
+                            SmallChange="1"
+                            AcceptsExpression="False"
+                            ValueChanged="OnShapeProperty2ValueChanged" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+        </Canvas>
+
         <!-- 选中项 Dock：悬浮于选择框下方，仅 Dock 本体可点击（Canvas 背景为空，避免遮挡画布交互）。 -->
         <Canvas x:Name="SelectionDockCanvas">
             <Border

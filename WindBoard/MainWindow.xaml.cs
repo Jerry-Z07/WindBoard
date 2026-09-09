@@ -26,7 +26,10 @@ namespace WindBoard
     {
         private bool _isEraserFlyoutOpen;
         private bool _isPenFlyoutOpen;
+        private bool _isShapeFlyoutOpen;
         private bool _isPenThicknessSliderSyncing;
+        // 最近一次使用的形状工具（形状按钮首次点击进入；默认直线）。
+        private BoardTool _lastShapeTool = BoardTool.Line;
         private readonly ClearCanvasSlideController _clearCanvasSlideController;
 
         // 擦除模式：默认像素擦除；整笔擦除作为可选项。
@@ -65,6 +68,7 @@ namespace WindBoard
             SelectToolToggleButton.Click += (_, _) => ApplyToolSelection(BoardTool.Select);
             PenToolToggleButton.Click += OnPenToolClicked;
             EraserToggleButton.Click += OnEraserToolClicked;
+            ShapeToolToggleButton.Click += OnShapeToolClicked;
 
             // 中部 Dock：撤销/重做
             UndoButton.Click += (_, _) => BoardCanvas.Undo();
@@ -169,12 +173,26 @@ namespace WindBoard
             ApplyKeyboardShortcutsToUi();
         }
 
+        /// <summary>是否为形状类工具（形状按钮承载 4 个形状工具的选中态）。</summary>
+        private static bool IsShapeTool(BoardTool tool)
+        {
+            return tool is BoardTool.Line or BoardTool.Rectangle or BoardTool.Ellipse or BoardTool.Arrow;
+        }
+
         private void ApplyToolSelection(BoardTool tool)
         {
             // ToggleButton 默认允许“再次点击取消勾选”，这里强制做成类似单选的行为。
+            // 形状按钮承载 4 个形状工具：任一形状工具激活即视为该按钮选中。
             SelectToolToggleButton.IsChecked = tool == BoardTool.Select;
             PenToolToggleButton.IsChecked = tool == BoardTool.Pen;
             EraserToggleButton.IsChecked = tool == BoardTool.Eraser;
+            ShapeToolToggleButton.IsChecked = IsShapeTool(tool);
+
+            // 记录最近一次使用的形状工具，供形状按钮下次一键回到该形状。
+            if (IsShapeTool(tool))
+            {
+                _lastShapeTool = tool;
+            }
 
             BoardCanvas.Tool = tool;
 
@@ -188,6 +206,12 @@ namespace WindBoard
             if (tool != BoardTool.Pen)
             {
                 TryHidePenFlyout();
+            }
+
+            // 离开形状模式时，收起形状弹出层，避免残留在其它工具状态下。
+            if (!IsShapeTool(tool))
+            {
+                TryHideShapeFlyout();
             }
         }
 
@@ -557,6 +581,86 @@ namespace WindBoard
         private void TryHidePenFlyout()
         {
             FlyoutBase? flyout = FlyoutBase.GetAttachedFlyout(PenToolToggleButton);
+            flyout?.Hide();
+        }
+
+        private void OnShapeToolClicked(object sender, RoutedEventArgs e)
+        {
+            // 逻辑约定：首次点击进入最近使用的形状工具；已在形状模式下再次点击则弹出形状切换面板。
+            bool alreadyShape = IsShapeTool(BoardCanvas.Tool);
+            ApplyToolSelection(_lastShapeTool);
+
+            if (!alreadyShape)
+            {
+                return;
+            }
+
+            if (_isShapeFlyoutOpen)
+            {
+                TryHideShapeFlyout();
+                return;
+            }
+
+            SyncShapeFlyoutFromCanvas();
+            FlyoutBase.ShowAttachedFlyout(ShapeToolToggleButton);
+        }
+
+        private void OnShapeFlyoutOpened(object sender, object e)
+        {
+            _isShapeFlyoutOpen = true;
+            SyncShapeFlyoutFromCanvas();
+        }
+
+        private void OnShapeFlyoutClosed(object sender, object e)
+        {
+            _isShapeFlyoutOpen = false;
+        }
+
+        private void OnShapeKindClicked(object sender, RoutedEventArgs e)
+        {
+            if (sender is not ToggleButton button || button.Tag is not string kind)
+            {
+                return;
+            }
+
+            // 切换具体形状工具（仅切换工具身份；颜色/粗细沿用 ToolOptions 画笔参数，R6）。
+            BoardTool tool = kind switch
+            {
+                "Rectangle" => BoardTool.Rectangle,
+                "Ellipse" => BoardTool.Ellipse,
+                "Arrow" => BoardTool.Arrow,
+                _ => BoardTool.Line,
+            };
+
+            ApplyToolSelection(tool);
+            SetExclusiveToggleChecked(ShapeKindPanel, button);
+
+            // 选定形状后收起面板，让用户立刻开始绘制。
+            TryHideShapeFlyout();
+        }
+
+        private void SyncShapeFlyoutFromCanvas()
+        {
+            // 形状 Flyout 可能在工具切换等场景下被动打开，这里统一以画布当前工具为准同步选中态。
+            BoardTool current = BoardCanvas.Tool;
+            foreach (UIElement element in ShapeKindPanel.Children)
+            {
+                if (element is ToggleButton button && button.Tag is string kind)
+                {
+                    button.IsChecked = kind switch
+                    {
+                        "Rectangle" => current == BoardTool.Rectangle,
+                        "Ellipse" => current == BoardTool.Ellipse,
+                        "Arrow" => current == BoardTool.Arrow,
+                        _ => current == BoardTool.Line,
+                    };
+                }
+            }
+        }
+
+        private void TryHideShapeFlyout()
+        {
+            FlyoutBase? flyout = FlyoutBase.GetAttachedFlyout(ShapeToolToggleButton);
             flyout?.Hide();
         }
 
