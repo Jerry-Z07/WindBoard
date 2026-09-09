@@ -31,6 +31,23 @@ namespace WindBoard.Features.ScreenAnnotation.Services
                 case ScreenAnnotationMode.Eraser:
                     ActiveCanvasTool = BoardTool.Eraser;
                     break;
+
+                // 形状模式映射同名画板工具（design G）：经现有 ActiveCanvasTool 链路下传画布。
+                case ScreenAnnotationMode.Line:
+                    ActiveCanvasTool = BoardTool.Line;
+                    break;
+
+                case ScreenAnnotationMode.Rectangle:
+                    ActiveCanvasTool = BoardTool.Rectangle;
+                    break;
+
+                case ScreenAnnotationMode.Ellipse:
+                    ActiveCanvasTool = BoardTool.Ellipse;
+                    break;
+
+                case ScreenAnnotationMode.Arrow:
+                    ActiveCanvasTool = BoardTool.Arrow;
+                    break;
             }
         }
     }
