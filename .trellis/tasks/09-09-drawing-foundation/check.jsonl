@@ -1,0 +1,6 @@
+{"file": ".trellis/tasks/09-09-drawing-foundation/prd.md", "reason": "验收标准与'行为零回归'硬约束，检查以此为准"}
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "检查后端代码规范与禁止模式遵循情况"}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "检查 UI 侧（BoardCanvasControl/MainWindow/ScreenAnnotation）改动规范"}
+{"file": ".trellis/spec/backend/logging-guidelines.md", "reason": "检查重构未在高频路径（指针事件/渲染循环）引入日志"}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "检查域/输入/渲染/序列化跨层数据流一致性"}
+{"file": ".trellis/tasks/09-09-drawing-foundation/design.md", "reason": "对照设计核对：三个单点分发、工具状态内聚、Codec 收敛是否按设计落地"}

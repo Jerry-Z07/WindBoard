@@ -1,0 +1,29 @@
+{
+  "id": "shape-drawing",
+  "name": "shape-drawing",
+  "title": "图形绘制：可插拔绘制架构与形状工具",
+  "description": "为白板新增直线/曲线/圆等图形绘制能力，先重构绘制架构为可插拔地基（工具策略化、绘制条目抽象、序列化收敛），再在新地基上实现形状工具与参数输入",
+  "status": "planning",
+  "dev_type": null,
+  "scope": null,
+  "package": null,
+  "priority": "P2",
+  "creator": "Jerry-Z07",
+  "assignee": "Jerry-Z07",
+  "createdAt": "2026-09-09",
+  "completedAt": null,
+  "branch": null,
+  "base_branch": "main",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [
+    "09-09-drawing-foundation",
+    "09-09-shape-tools"
+  ],
+  "parent": null,
+  "relatedFiles": [],
+  "notes": "",
+  "meta": {}
+}
