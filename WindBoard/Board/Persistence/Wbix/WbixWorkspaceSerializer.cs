@@ -13,7 +13,8 @@ namespace WindBoard.Board.Persistence.Wbix
     ///
     /// 版本说明：
     /// - v1/v2：strokes 条目为扁平形态（无 Kind）；
-    /// - v3：strokes 条目为 { kind, stroke } 包装形态（InkItemSnapshot），读取兼容 v1/v2。
+    /// - v3：strokes 条目为 { kind, stroke|shape } 包装形态（InkItemSnapshot，kind 含 stroke/line/rect/ellipse/arrow），
+    ///   读取兼容 v1/v2；形状为 v3 格式内的 kind 扩展（版本不升 4）。
     /// </summary>
     internal sealed partial class WbixWorkspaceSerializer : IBoardWorkspaceSerializer
     {

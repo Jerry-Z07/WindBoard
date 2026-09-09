@@ -4,7 +4,7 @@
 
 - 构建：`dotnet build WindBoard.slnx -c Release`
 - 测试全部：`dotnet test WindBoard.slnx`
-- 运行单测：`dotnet test WindBoard.slnx --filter "FullyQualifiedName~WindBoard.Tests.Board.Commands.AddStrokeCommandTests"`
+- 运行单测：`dotnet test WindBoard.slnx --filter "FullyQualifiedName~WindBoard.Tests.Board.Commands.AddInkItemCommandTests"`
 - 平台：默认已映射到 x64；如需显式指定可用 `-p:Platform=x64`
 - 运行时：.NET 10，目标 `net10.0-windows10.0.26100.0`，最低支持 `10.0.19041.0`
 - 打包：Inno Setup（`installer/WindBoard.iss`）
