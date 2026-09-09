@@ -77,13 +77,14 @@ namespace WindBoard.Interaction
         private void HandleActivePointerMoved(PointerRoutedEventArgs e)
         {
             // 工具策略化调度：会话由 Begin 建立（_activePointerId 匹配保证配对），
-            // 画笔/橡皮分别路由到各自策略对象。
+            // 画笔/橡皮/形状统一路由到各自策略对象。
             // 与按下路径统一经 ResolveActiveToolId 解析（Select 回退画笔语义一致）。
-            // e.Handled 语义与原版对齐：橡皮会话始终消费事件；画笔会话在无活动笔迹时
-            // 早退且不置 Handled（原 ActiveStroke == null 分支行为）。
+            // e.Handled 语义与原版对齐：橡皮会话始终消费事件；绘制类会话（画笔/形状）
+            // 在无活动预览条目时早退且不置 Handled（原 ActiveStroke == null 分支行为，
+            // 泛化为 PreviewItem 以同时覆盖形状预览）。
             if (_toolRegistry.TryGetTool(ResolveActiveToolId(), out IBoardTool? tool))
             {
-                if (!_eraserTool.IsErasing && ActiveStroke is null)
+                if (!_eraserTool.IsErasing && _context.PreviewItem is null)
                 {
                     return;
                 }

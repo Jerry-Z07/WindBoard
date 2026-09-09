@@ -8,6 +8,7 @@ using Microsoft.UI.Xaml.Input;
 using WindBoard.Board;
 using WindBoard.Board.Editing;
 using WindBoard.Board.Elements;
+using WindBoard.Board.Items;
 using WindBoard.Board.Viewport;
 using WindBoard.Interaction.Tools;
 using Vortice.Mathematics;
@@ -84,6 +85,12 @@ namespace WindBoard.Interaction
             _toolRegistry.Register(_eraserTool);
             _selectTool = new SelectTool(_context);
             _toolRegistry.Register(_selectTool);
+            // 形状工具（design B）：同一个 ShapeTool 类按形状种类注册 4 个实例，
+            // 控制器调度结构零改动（按下/移动/提交/取消统一经注册表解析）。
+            _toolRegistry.Register(new ShapeTool(BoardShapeKind.Line));
+            _toolRegistry.Register(new ShapeTool(BoardShapeKind.Rectangle));
+            _toolRegistry.Register(new ShapeTool(BoardShapeKind.Ellipse));
+            _toolRegistry.Register(new ShapeTool(BoardShapeKind.Arrow));
             _selectTool.SelectionChanged += () =>
             {
                 FrameInvalidated?.Invoke();
@@ -192,7 +199,7 @@ namespace WindBoard.Interaction
 
         public bool IsWheelZooming => _isWheelZooming;
 
-        private bool HasActiveToolInteraction => ActiveStroke is not null || _eraserTool.IsErasing;
+        private bool HasActiveToolInteraction => _context.PreviewItem is not null || _eraserTool.IsErasing;
 
         private bool HasPointerGesture => _panPointerId is not null || _selectionPointerId is not null || _marqueePointerId is not null;
 
