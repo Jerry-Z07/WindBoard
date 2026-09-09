@@ -167,13 +167,13 @@ namespace WindBoard.Interaction
         }
 
         /// <summary>
-        /// 当前活动笔迹（画笔工具的预览条目）。
+        /// 当前活动预览条目（工具会话进行中的未提交内容：笔迹或形状）。
         /// </summary>
         /// <remarks>
-        /// 预览条目由 <see cref="PenTool"/> 内聚维护，经 <see cref="BoardInputContext.PreviewItem"/>
-        /// 挂载点暴露；此属性保持原公开语义（渲染层/控件读取），避免调用点改动。
+        /// 预览条目由工具内聚维护，经 <see cref="BoardInputContext.PreviewItem"/> 挂载点暴露；
+        /// 渲染层的预览通道（overlay/书写缓存/全分辨率判定）统一按此泛化入口消费。
         /// </remarks>
-        public Stroke? ActiveStroke => _context.PreviewItem as Stroke;
+        public IBoardInkItem? ActiveItem => _context.PreviewItem;
 
         /// <summary>
         /// 当前选中的条目（选择工具）。

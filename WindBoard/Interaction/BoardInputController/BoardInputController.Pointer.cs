@@ -77,10 +77,10 @@ namespace WindBoard.Interaction
 
         private void EndTouchSingleFingerToolOperationForManipulation()
         {
-            if (ActiveStroke is not null && _activeStrokeDeviceType == PointerDeviceType.Touch)
+            if (ActiveItem is Stroke stroke && _activeStrokeDeviceType == PointerDeviceType.Touch)
             {
                 // 两指及以上时视为手势：如果只是按下的“单点”，不要留下点状笔迹。
-                if (ActiveStroke.Points.Count <= 1)
+                if (stroke.Points.Count <= 1)
                 {
                     DiscardActiveToolGesture();
                 }
@@ -89,6 +89,13 @@ namespace WindBoard.Interaction
                     CommitActiveToolGesture();
                 }
 
+                return;
+            }
+
+            if (ActiveItem is not null && _activeStrokeDeviceType == PointerDeviceType.Touch)
+            {
+                // 形状预览被手势打断：半截形状无意义，直接丢弃（不提交）。
+                DiscardActiveToolGesture();
                 return;
             }
 

@@ -26,7 +26,7 @@ namespace WindBoard.Interaction
         /// </remarks>
         private void DiscardActiveToolGesture()
         {
-            if (ActiveStroke is null && _activePointerId is null && _activeStrokeDeviceType is null)
+            if (ActiveItem is null && _activePointerId is null && _activeStrokeDeviceType is null)
             {
                 return;
             }

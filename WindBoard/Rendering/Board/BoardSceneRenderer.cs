@@ -38,7 +38,6 @@ namespace WindBoard.Rendering.Board
             public Vector2 Max { get; }
         }
 
-        private ID2D1Factory1? _factory;
         private ID2D1SolidColorBrush? _strokeBrush;
         private ID2D1StrokeStyle? _strokeStyle;
         private ID2D1InkStyle? _inkStyle;
@@ -1060,8 +1059,6 @@ namespace WindBoard.Rendering.Board
                 return;
             }
 
-            _factory ??= D2D1.D2D1CreateFactory<ID2D1Factory1>(Vortice.Direct2D1.FactoryType.SingleThreaded, DebugLevel.None);
-
             var props = new StrokeStyleProperties
             {
                 StartCap = CapStyle.Round,
@@ -1073,7 +1070,10 @@ namespace WindBoard.Rendering.Board
                 DashOffset = 0.0f,
             };
 
-            _strokeStyle = _factory.CreateStrokeStyle(props);
+            // 必须从渲染目标的所属工厂创建（D2D 约定：资源与渲染目标同工厂）。
+            // 此前用自建工厂创建 _strokeStyle，跨工厂资源使 EndDraw 返回 D2DERR_WRONG_FACTORY，
+            // 整帧呈现失败（画布停留在旧帧）——形状绘制是首个常态携带该样式的路径，故形状全部不可见。
+            _strokeStyle = ctx.Factory.CreateStrokeStyle(props);
         }
 
         private void PruneInkCache(BoardDocument document, IBoardInkItem? activeInkItem)
@@ -1406,9 +1406,6 @@ namespace WindBoard.Rendering.Board
                 entry.Dispose();
             }
             _inkCache.Clear();
-
-            _factory?.Dispose();
-            _factory = null;
         }
     }
 }

@@ -43,7 +43,7 @@ namespace WindBoard.Controls
         private bool _isRenderingLoopActive;
         private bool _isRenderQueued;
         private long _lastRenderingLoopTick;
-        private bool _wasWriting;
+        private bool _wasPreviewing;
         private float _lastRenderedZoom = float.NaN;
 
         // “选中项 Dock - 置顶”支持再次点击撤销：
@@ -197,7 +197,7 @@ namespace WindBoard.Controls
 
         internal bool CanRedo => _session.CanRedo;
 
-        internal bool CanClear => _session.HasStrokes || _input?.ActiveStroke is not null;
+        internal bool CanClear => _session.HasStrokes || _input?.ActiveItem is not null;
 
         internal void Undo()
         {
@@ -275,7 +275,7 @@ namespace WindBoard.Controls
 
             // 避免把旧页面缓存背景“带到”新页面。
             _renderer?.InvalidateCachedBackground();
-            _wasWriting = false;
+            _wasPreviewing = false;
 
             RaiseCommandStateChanged();
             RequestRender();
@@ -532,7 +532,7 @@ namespace WindBoard.Controls
             if (isInteracting)
             {
                 // 书写时保持全分辨率，避免笔迹模糊；仅在平移/捏合缩放等视口操作时降低分辨率以减轻 GPU 压力。
-                if (_input?.ActiveStroke is not null || _input?.IsErasing == true)
+                if (_input?.ActiveItem is not null || _input?.IsErasing == true)
                 {
                     SetRenderingLoopActive(false);
                     _renderer.SetInteractiveMode(false);

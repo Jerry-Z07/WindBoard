@@ -80,21 +80,21 @@ namespace WindBoard.Controls
 
             UpdateSelectionOverlay();
 
-            Stroke? activeStroke = _input?.ActiveStroke;
-            if (activeStroke is not null)
+            IBoardInkItem? activeItem = _input?.ActiveItem;
+            if (activeItem is not null)
             {
                 if (_input?.TryConsumeStrokeDirtyRect(out Rect dirtyRectDip) == true)
                 {
                     _renderer.RenderWithCachedBackgroundDirtyRect(
                         dirtyRectDip,
                         drawBackground: ctx => _sceneRenderer.DrawBackgroundUnderInk(ctx, _session.Document, _viewport),
-                        drawOverlay: ctx => _sceneRenderer.DrawOverlayAboveInk(ctx, _session.Document, activeStroke, _viewport));
+                        drawOverlay: ctx => _sceneRenderer.DrawOverlayAboveInk(ctx, _session.Document, activeItem, _viewport));
                 }
                 else
                 {
                     _renderer.RenderWithCachedBackground(
                         drawBackground: ctx => _sceneRenderer.DrawBackgroundUnderInk(ctx, _session.Document, _viewport),
-                        drawOverlay: ctx => _sceneRenderer.DrawOverlayAboveInk(ctx, _session.Document, activeStroke, _viewport));
+                        drawOverlay: ctx => _sceneRenderer.DrawOverlayAboveInk(ctx, _session.Document, activeItem, _viewport));
                 }
 
                 _lastRenderedZoom = _viewport.Zoom;
@@ -731,20 +731,21 @@ namespace WindBoard.Controls
 
         private void UpdateWritingCacheState()
         {
-            bool isWriting = _input?.ActiveStroke is not null;
-            if (_wasWriting == isWriting)
+            // 预览中（笔迹或形状）都需要失效缓存背景，保证 overlay 路径每帧重建文档背景。
+            bool isPreviewing = _input?.ActiveItem is not null;
+            if (_wasPreviewing == isPreviewing)
             {
                 return;
             }
 
-            _wasWriting = isWriting;
+            _wasPreviewing = isPreviewing;
 
             if (_renderer is null)
             {
                 return;
             }
 
-            if (isWriting)
+            if (isPreviewing)
             {
                 _renderer.InvalidateCachedBackground();
                 return;
