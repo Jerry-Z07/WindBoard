@@ -421,3 +421,55 @@ DevWinUI 在主工程的唯一使用点（更新结果弹窗的 WindowedContentD
 ### Next Steps
 
 - 阶段二 `09-09-shape-tools` 基于本抽象开工（设计已预留注册点）
+
+---
+
+## Session 11: 图形绘制工具（阶段二 shape-tools）
+
+**Date**: 2026-09-09
+**Task**: 阶段二：图形绘制工具（09-09-shape-tools）
+**Branch**: `feature/shape-tools`
+
+### Summary
+
+在阶段一可插拔地基上交付直线/矩形/椭圆/箭头四种两点式形状工具：`BoardShape` 单类 + Kind 枚举接入笔迹层，命令族泛化（Add/Remove/BringToFront → InkItem 版 + UpdateShapeGeometryCommand），渲染/命中/序列化在阶段一注册点补分支（WBIX v3 内扩展 kind，不升版本），SelectTool 选择集泛化到 IBoardInkItem，主白板与屏幕批注两层工具栏接入，属性面板按 Kind 显示字段并经命令栈可撤销。
+
+### Main Changes
+
+- `Board/Items/BoardShape.cs`（新）：BoardShapeKind + 两点式几何；`UpdateShapeGeometryCommand`（新）
+- 命令泛化：AddInkItemCommand/RemoveInkItemCommand/BringInkItemToFrontCommand（编译器驱动替换）
+- `Interaction/Tools/ShapeTool.cs`（新）：一类四实例注册；`SelectTool` 选择集/变换快照泛化（混合选择 CompositeCommand 合并撤销）
+- 渲染 `DrawShape` 单点分支；`InkItemPickTest` 形状分支；`InkItemSnapshot.Shape` + Codec/Converter kind 扩展
+- `BoardCanvasControl.ShapeProperties.cs`（新）+ `ShapePropertyMath` 纯函数（长度/角度、宽高换算）
+- 两层工具栏 UI + 属性浮层 + l10n（Tool_Shape 等 key 双语）
+
+### Git Commits（节选）
+
+| Hash | Message |
+|------|---------|
+| `885cade`~`673da85` | 步骤 1-4（域模型/序列化/渲染命中/工具） |
+| `8417ca1`~`0638f3f` | 步骤 5-7（选择泛化/主白板 UI+属性面板/批注接入） |
+| `0c9afa8` | fix: 属性面板 NumberBox NaN 防御（check 发现） |
+| `4c39017` | fix(dock): 形状按钮注册进 Dock 重排体系修复入口丢失 |
+| `bb036be` | fix(shape): 初始画笔色同步（色板首项，对齐批注层约定）+ 图标语义修正 |
+| `89f4d21` | fix(render): **形状不可见根治**——描边样式改用渲染目标同源工厂并泛化预览通道 |
+| `248b86d`~`4972d30` | 图标视觉与状态三轮打磨（构图/选中态/主题取色/初始时序） |
+
+### Testing
+
+- [OK] `dotnet build WindBoard.slnx -c Release`：0 警告 0 错误
+- [OK] `dotnet test WindBoard.slnx`：499/499 通过（基线 445 + 新增 54）
+- [OK] 手测经用户验收放行（期间修复：Dock 入口丢失、形状跨工厂渲染不可见、初始画笔色、图标状态）
+
+### Gotchas（已沉淀 spec）
+
+- **D2D 跨工厂资源**：描边样式用自建工厂创建 → `EndDraw` 返回 `D2DERR_WRONG_FACTORY`，整帧静默不呈现（形状全灭、笔迹因走 Ink 主路径幸免）→ backend/quality-guidelines Forbidden Patterns
+- **自绘图标前景**：Path 不像 FontIcon 经文本前景链跟随选中视觉状态，需代码三触发点同步（Loaded/ActualThemeChanged/选中切换）；`ActualTheme` 在 x:Bind 初始求值时未解析（返回 Dark）→ frontend/component-guidelines Common Mistakes
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- 父任务 `09-09-shape-drawing` 归档前待用户执行最终集成复查（新建形状→撤销/重做→保存→重开→导出，两链路）

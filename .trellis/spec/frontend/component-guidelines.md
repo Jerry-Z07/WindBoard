@@ -265,6 +265,9 @@ L10n.Format("Settings_Camouflage_CreateShortcut_Success_Fmt", shortcutPath)
 - Use `Binding` in XAML when `x:Bind` is available
 - Forget the `_isSyncingFromSettings` reentrancy guard (almost every settings page needs it)
 - Replace system buttons/title-bar buttons/navigation buttons with painted components when native control capability already exists
+- Expect a hand-drawn `Path` icon inside a ToggleButton to follow checked-state foreground: `FontIcon` inherits the visual-state foreground via the text-element chain, but `Path.Stroke` bound to a fixed theme brush will NOT change on checked/unchecked — drive it from code (see DO below)
+- Trust `ActualTheme` from an `x:Bind` initializer: the theme is not yet resolved at initial binding evaluation (returns Dark), so theme-dependent initial values are wrong until the next property change; evaluate in `Loaded` instead
+- Read theme brushes via `Application.Current.Resources[key]` for element-level theming: it resolves against the app-level theme, while the element may be overridden by an ancestor `RequestedTheme` (toolbar icons can differ from app theme)
 
 ### ✅ DO
 - Handle events in code-behind and keep business logic in Services
@@ -273,3 +276,4 @@ L10n.Format("Settings_Camouflage_CreateShortcut_Success_Fmt", shortcutPath)
 - New Features follow the unified Flow + Models + Services + UI structure
 - UI operations in crash paths must be wrapped in try-catch
 - Confirm whether native WinUI controls already satisfy the requirement before deciding to restyle or add extra controls
+- For hand-drawn icons that must follow selection/theme state, sync in code-behind with three triggers: `Loaded` (initial), `ActualThemeChanged` (theme switch), and the state-changing handler (e.g. `ApplyToolSelection`) — reference `UpdateShapeIconStroke` in `MainWindow.xaml.cs`
