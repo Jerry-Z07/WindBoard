@@ -43,13 +43,14 @@ namespace WindBoard.Interaction
             // 选择模式下，按住修饰键对“选中笔迹集合”做变换（将多笔迹视为整体）：
             // - Ctrl + 滚轮：缩放（以鼠标位置为锚点）
             // - Shift + 滚轮：旋转（以选中集合中心为锚点）
+            // 形状跳过矩阵变换（design D）：纯形状选择时不进入该分支，滚轮透传为视口缩放。
             if (Tool == BoardTool.Select
-                && _selectTool.SelectedStrokes.Count > 0
+                && _selectTool.HasTransformableStrokes
                 && (mods.HasFlag(Windows.System.VirtualKeyModifiers.Control) || mods.HasFlag(Windows.System.VirtualKeyModifiers.Shift)))
             {
                 BeginWheelZoomInteraction();
 
-                _selectTool.BeginSelectionTransformSnapshotForSelectedStrokes();
+                _selectTool.BeginSelectionTransformSnapshotForSelectedItems();
 
                 if (mods.HasFlag(Windows.System.VirtualKeyModifiers.Control))
                 {
@@ -60,7 +61,7 @@ namespace WindBoard.Interaction
                     Matrix3x2 transform = Matrix3x2.CreateTranslation(-anchorWorld)
                         * Matrix3x2.CreateScale(factor)
                         * Matrix3x2.CreateTranslation(anchorWorld);
-                    _selectTool.ApplyTransformToSelectedStrokes(transform);
+                    _selectTool.ApplyMatrixTransformToSelectedStrokes(transform);
                 }
 
                 if (mods.HasFlag(Windows.System.VirtualKeyModifiers.Shift))
@@ -68,8 +69,8 @@ namespace WindBoard.Interaction
                     // 以选中集合中心为锚点旋转（避免滚轮旋转时锚点漂移）。
                     float stepDeg = 5.0f;
                     float rotationRad = stepDeg * (delta / 120.0f) * (float)(Math.PI / 180.0);
-                    Vector2 centerWorld = _selectTool.GetSelectedStrokesCenterWorld();
-                    _selectTool.ApplyTransformToSelectedStrokes(Matrix3x2.CreateRotation(rotationRad, centerWorld));
+                    Vector2 centerWorld = _selectTool.GetSelectedItemsCenterWorld();
+                    _selectTool.ApplyMatrixTransformToSelectedStrokes(Matrix3x2.CreateRotation(rotationRad, centerWorld));
                 }
 
                 e.Handled = true;
@@ -193,15 +194,15 @@ namespace WindBoard.Interaction
             const int minTouchCount = 2;
             if (Tool == BoardTool.Select
                 && _touchManipulationTarget == TouchManipulationTarget.Selection
-                && (_selectTool.SelectedStrokes.Count > 0 || _selectTool.SelectedElement is not null))
+                && (_selectTool.SelectedItems.Count > 0 || _selectTool.SelectedElement is not null))
             {
                 _isManipulating = false;
                 _isManipulatingSelection = _activeTouchPointers.Count >= minTouchCount;
                 if (_isManipulatingSelection)
                 {
-                    if (_selectTool.SelectedStrokes.Count > 0)
+                    if (_selectTool.SelectedItems.Count > 0)
                     {
-                        _selectTool.BeginSelectionTransformSnapshotForSelectedStrokes();
+                        _selectTool.BeginSelectionTransformSnapshotForSelectedItems();
                     }
                     else if (_selectTool.SelectedElement is BoardElement element)
                     {
@@ -249,7 +250,7 @@ namespace WindBoard.Interaction
         {
             if (Tool != BoardTool.Select
                 || _touchManipulationTarget != TouchManipulationTarget.Selection
-                || (_selectTool.SelectedStrokes.Count == 0 && _selectTool.SelectedElement is null))
+                || (_selectTool.SelectedItems.Count == 0 && _selectTool.SelectedElement is null))
             {
                 return false;
             }
@@ -258,9 +259,9 @@ namespace WindBoard.Interaction
             {
                 _isManipulatingSelection = true;
 
-                if (_selectTool.SelectedStrokes.Count > 0)
+                if (_selectTool.SelectedItems.Count > 0)
                 {
-                    _selectTool.BeginSelectionTransformSnapshotForSelectedStrokes();
+                    _selectTool.BeginSelectionTransformSnapshotForSelectedItems();
                 }
                 else if (_selectTool.SelectedElement is BoardElement element)
                 {
@@ -317,7 +318,7 @@ namespace WindBoard.Interaction
                 return true;
             }
 
-            if (_selectTool.SelectedStrokes.Count == 0)
+            if (_selectTool.SelectedItems.Count == 0)
             {
                 return false;
             }
@@ -327,9 +328,23 @@ namespace WindBoard.Interaction
                 return true;
             }
 
+            // 形状跳过矩阵变换（design D）：纯形状选择时，缩放/旋转手势透传视口，
+            // 避免手势被吞掉后视口缩放失效；平移分量仍由选择集处理（形状支持平移）。
+            if (!_selectTool.HasTransformableStrokes && (hasScale || hasRotation))
+            {
+                if (!hasTranslation)
+                {
+                    return false;
+                }
+
+                _selectTool.TranslateSelectedItems(translationWorld);
+                return true;
+            }
+
             if (hasScale || hasRotation)
             {
                 // 注意：这里的增量（Delta）是“逐帧增量”，因此直接对当前点集做增量变换即可。
+                // 混合选择时矩阵变换仅作用于笔迹，形状跳过（design D 已知边界）。
                 Matrix3x2 transform = Matrix3x2.Identity;
 
                 if (hasScale)
@@ -349,17 +364,12 @@ namespace WindBoard.Interaction
                     transform *= Matrix3x2.CreateTranslation(translationWorld);
                 }
 
-                _selectTool.ApplyTransformToSelectedStrokes(transform);
+                _selectTool.ApplyMatrixTransformToSelectedStrokes(transform);
                 return true;
             }
 
-            // 仅平移：走更轻量的 Translate，避免构造矩阵。
-            IReadOnlyList<Stroke> selectedStrokes = _selectTool.SelectedStrokes;
-            for (int i = 0; i < selectedStrokes.Count; i++)
-            {
-                selectedStrokes[i].Translate(translationWorld);
-            }
-            _selectTool.MarkSelectionModified();
+            // 仅平移：走更轻量的 Translate，避免构造矩阵（形状与笔迹都生效）。
+            _selectTool.TranslateSelectedItems(translationWorld);
             return true;
         }
 

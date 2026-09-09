@@ -13,6 +13,7 @@ using WindBoard.Board;
 using WindBoard.Board.Commands;
 using WindBoard.Board.Editing;
 using WindBoard.Board.Elements;
+using WindBoard.Board.Items;
 using WindBoard.Board.Viewport;
 using WindBoard.Interaction;
 using WindBoard.Logging;
@@ -143,9 +144,9 @@ namespace WindBoard.Controls
                  {
                      ShowMarqueeSelectionOverlay(marqueeRectDip);
                  }
-                 else if (TryGetSelectedStrokesScreenRect(out Rect strokeBoundsScreenDip))
+                 else if (TryGetSelectedItemsScreenRect(out Rect inkItemsBoundsScreenDip))
                  {
-                     ShowSelectedStrokesOverlay(strokeBoundsScreenDip);
+                     ShowSelectedItemsOverlay(inkItemsBoundsScreenDip);
                  }
                  else if (TryGetSelectedElementScreenRect(out BoardElement element, out Rect elementBoundsScreenDip))
                  {
@@ -182,32 +183,32 @@ namespace WindBoard.Controls
             HideSelectionHandlesOverlay();
          }
 
-         private bool TryGetSelectedStrokesScreenRect(out Rect strokeBoundsScreenDip)
+         private bool TryGetSelectedItemsScreenRect(out Rect itemsBoundsScreenDip)
          {
-             strokeBoundsScreenDip = default;
+             itemsBoundsScreenDip = default;
 
              if (_input is null)
              {
                  return false;
              }
 
-             IReadOnlyList<Stroke> selectedStrokes = _input.SelectedStrokes;
-             if (selectedStrokes.Count == 0)
+             IReadOnlyList<IBoardInkItem> selectedItems = _input.SelectedItems;
+             if (selectedItems.Count == 0)
              {
                  return false;
              }
 
              Matrix3x2 worldToScreen = _viewport.GetWorldToScreenTransform();
              return InkItemScreenBounds.TryGetInkItemsBoundsScreenDip(
-                 selectedStrokes,
+                 selectedItems,
                  worldToScreen,
-                 out strokeBoundsScreenDip);
+                 out itemsBoundsScreenDip);
          }
 
-         private void ShowSelectedStrokesOverlay(Rect strokeBoundsScreenDip)
+         private void ShowSelectedItemsOverlay(Rect itemsBoundsScreenDip)
          {
-             ShowSelectionBoundsOverlay(strokeBoundsScreenDip);
-             ShowSelectionDockOverlay(strokeBoundsScreenDip);
+             ShowSelectionBoundsOverlay(itemsBoundsScreenDip);
+             ShowSelectionDockOverlay(itemsBoundsScreenDip);
              HideSelectionHandlesOverlay();
          }
 
@@ -250,10 +251,10 @@ namespace WindBoard.Controls
                 bool isTopMost = false;
                 bool canCancelBringToFront = false;
 
-                if (_input?.SelectedStrokes is IReadOnlyList<Stroke> selectedStrokes && selectedStrokes.Count > 0)
+                if (_input?.SelectedItems is IReadOnlyList<IBoardInkItem> selectedItems && selectedItems.Count > 0)
                 {
-                    isTopMost = AreSelectedStrokesTopMost(selectedStrokes);
-                    canCancelBringToFront = isTopMost && CanCancelSelectionDockBringToFront(selectedStrokes);
+                    isTopMost = AreSelectedItemsTopMost(selectedItems);
+                    canCancelBringToFront = isTopMost && CanCancelSelectionDockBringToFront(selectedItems);
                 }
                 else if (_input?.SelectedElement is BoardElement selectedElement)
                 {
@@ -304,24 +305,24 @@ namespace WindBoard.Controls
              Canvas.SetTop(SelectionDockBorder, dockTop);
          }
 
-         private bool AreSelectedStrokesTopMost(IReadOnlyList<Stroke> selectedStrokes)
+         private bool AreSelectedItemsTopMost(IReadOnlyList<IBoardInkItem> selectedItems)
          {
-             if (selectedStrokes is null || selectedStrokes.Count == 0)
+             if (selectedItems is null || selectedItems.Count == 0)
              {
                  return false;
              }
 
              int total = _session.Document.InkItems.Count;
-             if (total <= 0 || selectedStrokes.Count > total)
+             if (total <= 0 || selectedItems.Count > total)
              {
                  return false;
              }
 
-             // 当且仅当“选中集合”恰好是笔迹列表的末尾一段（suffix）时，才认为已经置顶到位。
-             int start = total - selectedStrokes.Count;
-             for (int i = 0; i < selectedStrokes.Count; i++)
+             // 当且仅当“选中集合”恰好是条目列表的末尾一段（suffix）时，才认为已经置顶到位。
+             int start = total - selectedItems.Count;
+             for (int i = 0; i < selectedItems.Count; i++)
              {
-                 if (!ReferenceEquals(_session.Document.InkItems[start + i], selectedStrokes[i]))
+                 if (!ReferenceEquals(_session.Document.InkItems[start + i], selectedItems[i]))
                  {
                      return false;
                  }
@@ -355,12 +356,12 @@ namespace WindBoard.Controls
              // 点击 Dock 时，主动结束输入控制器的连续动作，避免残留捕获/状态。
              _input.CancelActiveToolOperation();
 
-             IReadOnlyList<Stroke>? selectedStrokes = _input.SelectedStrokes;
-             if (selectedStrokes is { Count: > 0 })
+             IReadOnlyList<IBoardInkItem>? selectedItems = _input.SelectedItems;
+             if (selectedItems is { Count: > 0 })
              {
-                 if (AreSelectedStrokesTopMost(selectedStrokes))
+                 if (AreSelectedItemsTopMost(selectedItems))
                  {
-                     if (!TryCancelSelectionDockBringToFront(selectedStrokes))
+                     if (!TryCancelSelectionDockBringToFront(selectedItems))
                      {
                          AppLog.Debug("SelectionDock", "取消置顶忽略：Undo 栈顶不是当前置顶命令或选中已变化。");
                      }
@@ -370,10 +371,10 @@ namespace WindBoard.Controls
                      return;
                  }
 
-                 var commands = new List<IBoardCommand>(selectedStrokes.Count);
-                 for (int i = 0; i < selectedStrokes.Count; i++)
+                 var commands = new List<IBoardCommand>(selectedItems.Count);
+                 for (int i = 0; i < selectedItems.Count; i++)
                  {
-                     commands.Add(new BringInkItemToFrontCommand(selectedStrokes[i]));
+                     commands.Add(new BringInkItemToFrontCommand(selectedItems[i]));
                  }
 
                  IBoardCommand command = commands.Count == 1 ? commands[0] : new CompositeCommand(commands);
@@ -382,7 +383,7 @@ namespace WindBoard.Controls
                  // 记录这次“置顶”对应的命令与目标，供后续再次点击“置顶”时撤销。
                  _lastSelectionDockBringToFrontCommand = command;
                  _lastSelectionDockBringToFrontElement = null;
-                 _lastSelectionDockBringToFrontStrokes = CopySelectedStrokesSnapshot(selectedStrokes);
+                 _lastSelectionDockBringToFrontItems = CopySelectedItemsSnapshot(selectedItems);
              }
              else if (_input?.SelectedElement is BoardElement element)
              {
@@ -405,7 +406,7 @@ namespace WindBoard.Controls
 
                  _lastSelectionDockBringToFrontCommand = command;
                  _lastSelectionDockBringToFrontElement = element;
-                 _lastSelectionDockBringToFrontStrokes = null;
+                 _lastSelectionDockBringToFrontItems = null;
              }
             else
             {
@@ -416,9 +417,9 @@ namespace WindBoard.Controls
             UpdateSelectionOverlay();
         }
 
-        private bool TryCancelSelectionDockBringToFront(IReadOnlyList<Stroke> selectedStrokes)
+        private bool TryCancelSelectionDockBringToFront(IReadOnlyList<IBoardInkItem> selectedItems)
         {
-            if (!CanCancelSelectionDockBringToFront(selectedStrokes))
+            if (!CanCancelSelectionDockBringToFront(selectedItems))
             {
                 return false;
             }
@@ -438,12 +439,12 @@ namespace WindBoard.Controls
             return true;
         }
 
-        private bool CanCancelSelectionDockBringToFront(IReadOnlyList<Stroke> selectedStrokes)
+        private bool CanCancelSelectionDockBringToFront(IReadOnlyList<IBoardInkItem> selectedItems)
         {
             if (_lastSelectionDockBringToFrontCommand is null
-                || _lastSelectionDockBringToFrontStrokes is null
-                || selectedStrokes is null
-                || selectedStrokes.Count == 0)
+                || _lastSelectionDockBringToFrontItems is null
+                || selectedItems is null
+                || selectedItems.Count == 0)
             {
                 return false;
             }
@@ -453,7 +454,7 @@ namespace WindBoard.Controls
                 return false;
             }
 
-            return AreSameStrokeSet(selectedStrokes, _lastSelectionDockBringToFrontStrokes);
+            return AreSameItemSet(selectedItems, _lastSelectionDockBringToFrontItems);
         }
 
         private bool CanCancelSelectionDockBringToFront(BoardElement selectedElement)
@@ -471,21 +472,21 @@ namespace WindBoard.Controls
             return ReferenceEquals(selectedElement, _lastSelectionDockBringToFrontElement);
         }
 
-        private static bool AreSameStrokeSet(IReadOnlyList<Stroke> selectedStrokes, Stroke[] recordedStrokes)
+        private static bool AreSameItemSet(IReadOnlyList<IBoardInkItem> selectedItems, IBoardInkItem[] recordedItems)
         {
-            if (selectedStrokes.Count != recordedStrokes.Length)
+            if (selectedItems.Count != recordedItems.Length)
             {
                 return false;
             }
 
             // 选中集合的顺序可能因实现细节变化而不同，这里仅比较集合内容是否一致。
-            for (int i = 0; i < recordedStrokes.Length; i++)
+            for (int i = 0; i < recordedItems.Length; i++)
             {
-                Stroke stroke = recordedStrokes[i];
+                IBoardInkItem item = recordedItems[i];
                 bool found = false;
-                for (int j = 0; j < selectedStrokes.Count; j++)
+                for (int j = 0; j < selectedItems.Count; j++)
                 {
-                    if (ReferenceEquals(selectedStrokes[j], stroke))
+                    if (ReferenceEquals(selectedItems[j], item))
                     {
                         found = true;
                         break;
@@ -501,12 +502,12 @@ namespace WindBoard.Controls
             return true;
         }
 
-        private static Stroke[] CopySelectedStrokesSnapshot(IReadOnlyList<Stroke> selectedStrokes)
+        private static IBoardInkItem[] CopySelectedItemsSnapshot(IReadOnlyList<IBoardInkItem> selectedItems)
         {
-            var snapshot = new Stroke[selectedStrokes.Count];
-            for (int i = 0; i < selectedStrokes.Count; i++)
+            var snapshot = new IBoardInkItem[selectedItems.Count];
+            for (int i = 0; i < selectedItems.Count; i++)
             {
-                snapshot[i] = selectedStrokes[i];
+                snapshot[i] = selectedItems[i];
             }
 
             return snapshot;
@@ -521,17 +522,17 @@ namespace WindBoard.Controls
 
              _input.CancelActiveToolOperation();
 
-             IReadOnlyList<Stroke>? selectedStrokes = _input.SelectedStrokes;
-             if (selectedStrokes is { Count: > 0 })
+             IReadOnlyList<IBoardInkItem>? selectedItems = _input.SelectedItems;
+             if (selectedItems is { Count: > 0 })
              {
                  float zoom = Math.Max(0.0001f, _viewport.Zoom);
                  Vector2 deltaWorld = new Vector2(12.0f, 12.0f) / zoom;
 
-                 var copies = new List<Stroke>(selectedStrokes.Count);
-                 for (int i = 0; i < selectedStrokes.Count; i++)
+                 var copies = new List<IBoardInkItem>(selectedItems.Count);
+                 for (int i = 0; i < selectedItems.Count; i++)
                  {
-                     Stroke copy = CloneStroke(selectedStrokes[i]);
-                     // 复制后整体做一个轻微偏移，避免与原笔迹完全重叠导致“看不见”。
+                     IBoardInkItem copy = CloneInkItem(selectedItems[i]);
+                     // 复制后整体做一个轻微偏移，避免与原条目完全重叠导致“看不见”。
                      copy.Translate(deltaWorld);
                      copies.Add(copy);
                  }
@@ -543,12 +544,12 @@ namespace WindBoard.Controls
                  }
 
                  _session.Execute(commands.Count == 1 ? commands[0] : new CompositeCommand(commands));
-                 _input.SetSelectionStrokes(copies);
+                 _input.SetSelectionItems(copies);
                  UpdateSelectionOverlay();
                  return;
              }
 
-             if (_input?.SelectedElement is BoardElement element)
+            if (_input?.SelectedElement is BoardElement element)
             {
                 if (!TryCloneElement(element, out BoardElement? copy, out bool aboveInk))
                 {
@@ -573,14 +574,14 @@ namespace WindBoard.Controls
 
              _input.CancelActiveToolOperation();
 
-             IReadOnlyList<Stroke>? selectedStrokes = _input.SelectedStrokes;
-             if (selectedStrokes is { Count: > 0 })
+             IReadOnlyList<IBoardInkItem>? selectedItems = _input.SelectedItems;
+             if (selectedItems is { Count: > 0 })
              {
-                 // 删除多个笔迹：从后往前删除，可减少索引移动对记录的影响。
-                 var commands = new List<IBoardCommand>(selectedStrokes.Count);
-                 for (int i = selectedStrokes.Count - 1; i >= 0; i--)
+                 // 删除多个条目：从后往前删除，可减少索引移动对记录的影响。
+                 var commands = new List<IBoardCommand>(selectedItems.Count);
+                 for (int i = selectedItems.Count - 1; i >= 0; i--)
                  {
-                     commands.Add(new RemoveInkItemCommand(selectedStrokes[i]));
+                     commands.Add(new RemoveInkItemCommand(selectedItems[i]));
                  }
 
                  _session.Execute(commands.Count == 1 ? commands[0] : new CompositeCommand(commands));
@@ -675,6 +676,29 @@ namespace WindBoard.Controls
 
             elementBoundsScreenDip = Rect.FromLTRB(left, top, right, bottom);
             return true;
+        }
+
+        /// <summary>克隆笔迹/形状条目（选择 Dock“复制”路径；形状按 Kind/几何/样式同构克隆）。</summary>
+        private static IBoardInkItem CloneInkItem(IBoardInkItem source)
+        {
+            switch (source)
+            {
+                case Stroke stroke:
+                    return CloneStroke(stroke);
+
+                case BoardShape shape:
+                {
+                    // 形状克隆：同 Kind/几何/颜色/线宽；SetGeometry 单点重算包围盒（与 Codec.BuildShape 对称）。
+                    var clone = new BoardShape(shape.Kind);
+                    clone.SetGeometry(shape.Start, shape.End);
+                    clone.Color = shape.Color;
+                    clone.Width = shape.Width;
+                    return clone;
+                }
+
+                default:
+                    throw new NotSupportedException($"不支持的笔迹条目克隆类型：{source.GetType().Name}");
+            }
         }
 
         private static Stroke CloneStroke(Stroke source)

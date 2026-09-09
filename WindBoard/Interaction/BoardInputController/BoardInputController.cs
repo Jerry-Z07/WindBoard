@@ -176,18 +176,18 @@ namespace WindBoard.Interaction
         public Stroke? ActiveStroke => _context.PreviewItem as Stroke;
 
         /// <summary>
-        /// 当前选中的笔迹（选择工具）。
+        /// 当前选中的条目（选择工具）。
         /// </summary>
         /// <remarks>
-        /// 兼容单选场景：当且仅当选中一条笔迹时返回该笔迹；多选时返回 null。
-        /// 多选请使用 <see cref="SelectedStrokes"/>。选中集由 <see cref="SelectTool"/> 内聚维护。
+        /// 兼容单选场景：当且仅当选中一条条目（笔迹/形状）时返回该条目；多选时返回 null。
+        /// 多选请使用 <see cref="SelectedItems"/>。选中集由 <see cref="SelectTool"/> 内聚维护。
         /// </remarks>
-        public Stroke? SelectedStroke => _selectTool.SelectedStroke;
+        public IBoardInkItem? SelectedItem => _selectTool.SelectedItem;
 
         /// <summary>
-        /// 当前选中的笔迹集合（选择工具）。
+        /// 当前选中的条目集合（选择工具；笔迹与形状）。
         /// </summary>
-        public IReadOnlyList<Stroke> SelectedStrokes => _selectTool.SelectedStrokes;
+        public IReadOnlyList<IBoardInkItem> SelectedItems => _selectTool.SelectedItems;
 
         /// <summary>
         /// 当前选中的元素（选择工具）。
@@ -242,14 +242,16 @@ namespace WindBoard.Interaction
             _selectTool.ClearSelection();
         }
 
-        public void SetSelection(Stroke? stroke)
+        /// <summary>选中指定条目（笔迹/形状；选择工具）。</summary>
+        public void SetSelection(IBoardInkItem? item)
         {
-            _selectTool.SetSelection(stroke);
+            _selectTool.SetSelection(item);
         }
 
-        public void SetSelectionStrokes(IReadOnlyList<Stroke>? strokes)
+        /// <summary>选中指定条目集合（笔迹与形状；选择工具）。</summary>
+        public void SetSelectionItems(IReadOnlyList<IBoardInkItem>? items)
         {
-            _selectTool.SetSelectionStrokes(strokes);
+            _selectTool.SetSelectionItems(items);
         }
 
         public void SetSelection(BoardElement? element)

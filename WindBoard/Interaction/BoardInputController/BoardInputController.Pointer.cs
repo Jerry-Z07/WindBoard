@@ -216,8 +216,8 @@ namespace WindBoard.Interaction
 
         private void BeginSelectionMoveGesture(Pointer pointer, Vector2 screenDip)
         {
-            IReadOnlyList<Stroke> selectedStrokes = _selectTool.SelectedStrokes;
-            bool hasSelection = selectedStrokes.Count > 0 || _selectTool.SelectedElement is not null;
+            IReadOnlyList<IBoardInkItem> selectedItems = _selectTool.SelectedItems;
+            bool hasSelection = selectedItems.Count > 0 || _selectTool.SelectedElement is not null;
             if (!hasSelection)
             {
                 return;
