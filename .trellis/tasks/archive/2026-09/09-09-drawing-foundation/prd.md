@@ -26,10 +26,10 @@
 
 ## Acceptance Criteria
 
-- [ ] `dotnet build WindBoard.slnx -c Release` 无警告新增、`dotnet test WindBoard.slnx` 全量通过（含本地化 Key 审计）。
-- [ ] 手测回归清单通过：画笔绘制（含压感）、荧光笔色、橡皮两种模式、选择/框选/拖拽变换、多页、撤销/重做、保存/加载（旧 v2 文件可打开）、导出 PNG/PDF、屏幕批注全流程。
-- [ ] 代码评审标准：渲染、命中、序列化三处均存在"按绘制条目类型"的单点分发结构；`BoardInputController` 不再持有工具专属运行态字段（工具有状态对象）。
-- [ ] 旧 v1/v2 WBIX 文件在新版可正常打开且内容一致（往返测试：v2 文件 → 读取 → 保存 → 再读取一致）。
+- [x] `dotnet build WindBoard.slnx -c Release` 无警告新增、`dotnet test WindBoard.slnx` 全量通过（含本地化 Key 审计）。
+- [ ] 手测回归清单通过：画笔绘制（含压感）、荧光笔色、橡皮两种模式、选择/框选/拖拽变换、多页、撤销/重做、保存/加载（旧 v2 文件可打开）、导出 PNG/PDF、屏幕批注全流程。（**待用户人工执行**）
+- [x] 代码评审标准：渲染、命中、序列化三处均存在"按绘制条目类型"的单点分发结构；`BoardInputController` 不再持有工具专属运行态字段（工具有状态对象）。（三轮 check 完成）
+- [x] 旧 v1/v2 WBIX 文件在新版可正常打开且内容一致（往返测试：v2 文件 → 读取 → 保存 → 再读取一致）。（单测覆盖：v2 无 Kind/显式 null Kind/读→存→再读逐值一致）
 - [ ] 不出现行为变更：UI 布局、快捷键、设置项均与重构前一致。
 
 ## Out of Scope
