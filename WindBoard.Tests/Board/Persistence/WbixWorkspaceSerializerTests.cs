@@ -1,10 +1,13 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using System.Numerics;
 using System.Text.Json;
 using System.Threading.Tasks;
 using WindBoard.Board.Elements;
+using WindBoard.Board.Editing;
+using WindBoard.Board.Items;
 using WindBoard.Board.Persistence;
 using WindBoard.Board.Persistence.Wbix;
 using Xunit;
@@ -474,6 +477,282 @@ public sealed class WbixWorkspaceSerializerTests
             Assert.Equal(3.25, stroke.GetProperty("baseSize").GetDouble(), precision: 5);
             Assert.True(stroke.GetProperty("enablePressure").GetBoolean());
         }
+    }
+
+    [Fact]
+    public async Task Save_WritesKindDiscriminatedShapeItems()
+    {
+        // v3 写侧格式固定：形状条目输出 { kind, shape } 包装形态（design E，版本保持 3）。
+        Guid pageId = Guid.NewGuid();
+        var page = new BoardPageSnapshot(
+            pageId,
+            Strokes: new[]
+            {
+                new InkItemSnapshot
+                {
+                    Kind = BoardInkItemCodec.LineKind,
+                    Shape = new ShapeSnapshot(
+                        new Vector2(1.0f, 2.0f),
+                        new Vector2(30.0f, 40.0f),
+                        new Vector4(0.1f, 0.2f, 0.3f, 1.0f),
+                        5.0f),
+                },
+            });
+
+        var snapshot = new BoardWorkspaceSnapshot(new[] { page }, CurrentIndex: 0);
+        var serializer = new WbixWorkspaceSerializer();
+
+        using var ms = new MemoryStream();
+        await serializer.SaveAsync(snapshot, ms);
+
+        ms.Position = 0;
+        using var archive = new ZipArchive(ms, ZipArchiveMode.Read, leaveOpen: true);
+        ZipArchiveEntry? pageEntry = archive.GetEntry("pages/page-000.json");
+        Assert.NotNull(pageEntry);
+
+        using (Stream s = pageEntry!.Open())
+        using (var reader = new StreamReader(s))
+        {
+            string json = reader.ReadToEnd();
+            using JsonDocument doc = JsonDocument.Parse(json);
+
+            JsonElement strokes = doc.RootElement.GetProperty("strokes");
+            Assert.Equal(1, strokes.GetArrayLength());
+
+            JsonElement item = strokes[0];
+            Assert.Equal("line", item.GetProperty("kind").GetString());
+
+            JsonElement shape = item.GetProperty("shape");
+            Assert.Equal(1.0, shape.GetProperty("start").GetProperty("x").GetDouble(), precision: 5);
+            Assert.Equal(2.0, shape.GetProperty("start").GetProperty("y").GetDouble(), precision: 5);
+            Assert.Equal(30.0, shape.GetProperty("end").GetProperty("x").GetDouble(), precision: 5);
+            Assert.Equal(40.0, shape.GetProperty("end").GetProperty("y").GetDouble(), precision: 5);
+            Assert.Equal(0.1, shape.GetProperty("colorRgba").GetProperty("x").GetDouble(), precision: 5);
+            Assert.Equal(5.0, shape.GetProperty("width").GetDouble(), precision: 5);
+        }
+    }
+
+    [Fact]
+    public async Task Load_V3File_WithShapeItems_MapsShapePayload()
+    {
+        // v3 读路径：kind ∈ 形状集合 → 解析 shape 包装，数据逐值一致。
+        Guid pageId = Guid.NewGuid();
+
+        using var ms = new MemoryStream();
+        using (var archive = new ZipArchive(ms, ZipArchiveMode.Create, leaveOpen: true))
+        {
+            WriteZipEntry(archive, "manifest.json", $$"""
+                {
+                  "format": "wbix",
+                  "version": 3,
+                  "createdUtc": "2026-01-01T00:00:00Z",
+                  "currentIndex": 0,
+                  "pages": [ { "id": "{{pageId:D}}", "index": 0, "path": "pages/page-000.json" } ],
+                  "resources": []
+                }
+                """);
+
+            WriteZipEntry(archive, "pages/page-000.json", $$"""
+                {
+                  "id": "{{pageId:D}}",
+                  "strokes": [
+                    {
+                      "kind": "rect",
+                      "shape": {
+                        "start": { "x": -5.5, "y": 10.25 },
+                        "end": { "x": 100.0, "y": 60.0 },
+                        "colorRgba": { "x": 0.9, "y": 0.8, "z": 0.7, "w": 0.6 },
+                        "width": 4.5
+                      }
+                    }
+                  ],
+                  "elements": []
+                }
+                """);
+        }
+
+        ms.Position = 0;
+        var serializer = new WbixWorkspaceSerializer();
+        BoardWorkspaceSnapshot loaded = await serializer.LoadAsync(ms);
+
+        BoardPageSnapshot page = Assert.Single(loaded.Pages);
+        InkItemSnapshot item = Assert.Single(page.Strokes);
+        Assert.Equal(BoardInkItemCodec.RectKind, item.Kind);
+        Assert.Null(item.Stroke);
+        Assert.NotNull(item.Shape);
+
+        ShapeSnapshot shape = item.Shape!;
+        AssertEx.Equal(-5.5f, shape.Start.X);
+        AssertEx.Equal(10.25f, shape.Start.Y);
+        AssertEx.Equal(100.0f, shape.End.X);
+        AssertEx.Equal(60.0f, shape.End.Y);
+        Assert.Equal(0.9f, shape.ColorRgba.X, precision: 5);
+        Assert.Equal(0.6f, shape.ColorRgba.W, precision: 5);
+        Assert.Equal(4.5f, shape.Width, precision: 5);
+    }
+
+    [Fact]
+    public async Task SaveThenLoad_ShapeFile_ReadSaveReadContentConsistent()
+    {
+        // PRD 验收：含形状的 v3 文件 → 读取 → 保存 → 再读取，内容逐值一致。
+        Guid pageId = Guid.NewGuid();
+
+        using var ms = new MemoryStream();
+        using (var archive = new ZipArchive(ms, ZipArchiveMode.Create, leaveOpen: true))
+        {
+            WriteZipEntry(archive, "manifest.json", $$"""
+                {
+                  "format": "wbix",
+                  "version": 3,
+                  "createdUtc": "2026-01-01T00:00:00Z",
+                  "currentIndex": 0,
+                  "pages": [ { "id": "{{pageId:D}}", "index": 0, "path": "pages/page-000.json" } ],
+                  "resources": []
+                }
+                """);
+
+            WriteZipEntry(archive, "pages/page-000.json", $$"""
+                {
+                  "id": "{{pageId:D}}",
+                  "strokes": [
+                    {
+                      "kind": "ellipse",
+                      "shape": {
+                        "start": { "x": 0.0, "y": 0.0 },
+                        "end": { "x": 80.0, "y": 50.0 },
+                        "colorRgba": { "x": 0.25, "y": 0.5, "z": 0.75, "w": 1.0 },
+                        "width": 6.0
+                      }
+                    },
+                    {
+                      "kind": "arrow",
+                      "shape": {
+                        "start": { "x": -10.5, "y": 3.25 },
+                        "end": { "x": 42.0, "y": -8.0 },
+                        "colorRgba": { "x": 1.0, "y": 0.0, "z": 0.0, "w": 0.9 },
+                        "width": 2.25
+                      }
+                    },
+                    {
+                      "points": [
+                        { "position": { "x": 1.0, "y": 2.0 }, "pressure": 1.0 }
+                      ],
+                      "colorRgba": { "x": 0.0, "y": 0.0, "z": 0.0, "w": 1.0 },
+                      "baseSize": 3.0,
+                      "enablePressure": false
+                    }
+                  ],
+                  "elements": []
+                }
+                """);
+        }
+
+        ms.Position = 0;
+        var serializer = new WbixWorkspaceSerializer();
+        BoardWorkspaceSnapshot first = await serializer.LoadAsync(ms);
+
+        using var saved = new MemoryStream();
+        await serializer.SaveAsync(first, saved);
+
+        saved.Position = 0;
+        BoardWorkspaceSnapshot second = await serializer.LoadAsync(saved);
+
+        BoardPageSnapshot firstPage = Assert.Single(first.Pages);
+        BoardPageSnapshot secondPage = Assert.Single(second.Pages);
+        Assert.Equal(firstPage.Strokes.Count, secondPage.Strokes.Count);
+
+        for (int i = 0; i < firstPage.Strokes.Count; i++)
+        {
+            InkItemSnapshot expected = firstPage.Strokes[i];
+            InkItemSnapshot actual = secondPage.Strokes[i];
+
+            Assert.Equal(expected.Kind, actual.Kind);
+
+            if (expected.Shape is not null)
+            {
+                Assert.NotNull(actual.Shape);
+                ShapeSnapshot es = expected.Shape;
+                ShapeSnapshot a = actual.Shape!;
+                AssertEx.Equal(es.Start.X, a.Start.X);
+                AssertEx.Equal(es.Start.Y, a.Start.Y);
+                AssertEx.Equal(es.End.X, a.End.X);
+                AssertEx.Equal(es.End.Y, a.End.Y);
+                Assert.Equal(es.ColorRgba.X, a.ColorRgba.X, precision: 5);
+                Assert.Equal(es.ColorRgba.Y, a.ColorRgba.Y, precision: 5);
+                Assert.Equal(es.ColorRgba.Z, a.ColorRgba.Z, precision: 5);
+                Assert.Equal(es.ColorRgba.W, a.ColorRgba.W, precision: 5);
+                Assert.Equal(es.Width, a.Width, precision: 5);
+            }
+            else
+            {
+                Assert.NotNull(actual.Stroke);
+                Assert.NotNull(actual.Stroke!.Points);
+            }
+        }
+    }
+
+    [Fact]
+    public async Task Load_V3File_WithUnknownShapeKind_SkipsSingleItem()
+    {
+        // 未知 kind（未来版本形状）：跳过该条目不阻断加载（容错约定）。
+        Guid pageId = Guid.NewGuid();
+
+        using var ms = new MemoryStream();
+        using (var archive = new ZipArchive(ms, ZipArchiveMode.Create, leaveOpen: true))
+        {
+            WriteZipEntry(archive, "manifest.json", $$"""
+                {
+                  "format": "wbix",
+                  "version": 3,
+                  "createdUtc": "2026-01-01T00:00:00Z",
+                  "currentIndex": 0,
+                  "pages": [ { "id": "{{pageId:D}}", "index": 0, "path": "pages/page-000.json" } ],
+                  "resources": []
+                }
+                """);
+
+            WriteZipEntry(archive, "pages/page-000.json", $$"""
+                {
+                  "id": "{{pageId:D}}",
+                  "strokes": [
+                    {
+                      "kind": "hexagon",
+                      "shape": {
+                        "start": { "x": 0.0, "y": 0.0 },
+                        "end": { "x": 10.0, "y": 10.0 },
+                        "colorRgba": { "x": 0.0, "y": 0.0, "z": 0.0, "w": 1.0 },
+                        "width": 3.0
+                      }
+                    },
+                    {
+                      "kind": "line",
+                      "shape": {
+                        "start": { "x": 0.0, "y": 0.0 },
+                        "end": { "x": 20.0, "y": 0.0 },
+                        "colorRgba": { "x": 0.0, "y": 0.0, "z": 0.0, "w": 1.0 },
+                        "width": 3.0
+                      }
+                    }
+                  ],
+                  "elements": []
+                }
+                """);
+        }
+
+        ms.Position = 0;
+        var serializer = new WbixWorkspaceSerializer();
+        BoardWorkspaceSnapshot loaded = await serializer.LoadAsync(ms);
+
+        // 快照层：转换器容错，未知 kind 条目原样保留（kind 为字符串透传）。
+        BoardPageSnapshot page = Assert.Single(loaded.Pages);
+        Assert.Equal(2, page.Strokes.Count);
+
+        // 域重建层：未知 kind 条目被跳过（Codec 约定），已知形状正常重建。
+        IReadOnlyList<BoardPage> pages = BoardWorkspaceSnapshotApplier.CreatePages(loaded);
+        BoardPage appliedPage = Assert.Single(pages);
+        Assert.Single(appliedPage.Session.Document.InkItems);
+        var shape = Assert.IsType<BoardShape>(appliedPage.Session.Document.InkItems[0]);
+        Assert.Equal(BoardShapeKind.Line, shape.Kind);
     }
 
     private static void WriteZipEntry(ZipArchive archive, string path, string content)

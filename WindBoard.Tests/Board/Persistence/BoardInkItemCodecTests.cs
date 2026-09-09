@@ -194,6 +194,137 @@ public sealed class BoardInkItemCodecTests
     }
 
     [Fact]
+    public void ToSnapshot_FromDomainShape_MapsAllFields()
+    {
+        var shape = new BoardShape(BoardShapeKind.Arrow)
+        {
+            Color = new Color4(0.3f, 0.6f, 0.9f, 0.8f),
+            Width = 7.5f,
+        };
+        shape.SetGeometry(new Vector2(1.0f, -2.0f), new Vector2(30.0f, 40.0f));
+
+        InkItemSnapshot? snapshot = BoardInkItemCodec.ToSnapshot(shape);
+
+        Assert.NotNull(snapshot);
+        Assert.Equal(BoardInkItemCodec.ArrowKind, snapshot!.Kind);
+        Assert.NotNull(snapshot.Shape);
+
+        ShapeSnapshot data = snapshot.Shape!;
+        AssertEx.Equal(1.0f, data.Start.X);
+        AssertEx.Equal(-2.0f, data.Start.Y);
+        AssertEx.Equal(30.0f, data.End.X);
+        AssertEx.Equal(40.0f, data.End.Y);
+        Assert.Equal(0.3f, data.ColorRgba.X, precision: 5);
+        Assert.Equal(0.6f, data.ColorRgba.Y, precision: 5);
+        Assert.Equal(0.9f, data.ColorRgba.Z, precision: 5);
+        Assert.Equal(0.8f, data.ColorRgba.W, precision: 5);
+        Assert.Equal(7.5f, data.Width, precision: 5);
+    }
+
+    [Fact]
+    public void ToSnapshotList_MixedStrokeAndShape_KeepsOrder()
+    {
+        var stroke = CreateStroke(new Vector2(0, 0), new Vector2(10, 0));
+        var shape = new BoardShape(BoardShapeKind.Rectangle);
+        shape.SetGeometry(new Vector2(0, 5), new Vector2(10, 5));
+
+        List<InkItemSnapshot> snapshots = BoardInkItemCodec.ToSnapshotList([stroke, new TestInkItem(Vortice.Mathematics.Rect.Empty), shape]);
+
+        Assert.Equal(2, snapshots.Count);
+        Assert.Equal(BoardInkItemCodec.StrokeKind, snapshots[0].Kind);
+        Assert.Equal(BoardInkItemCodec.RectKind, snapshots[1].Kind);
+    }
+
+    [Theory]
+    [InlineData(BoardInkItemCodec.LineKind, nameof(BoardShapeKind.Line))]
+    [InlineData(BoardInkItemCodec.RectKind, nameof(BoardShapeKind.Rectangle))]
+    [InlineData(BoardInkItemCodec.EllipseKind, nameof(BoardShapeKind.Ellipse))]
+    [InlineData(BoardInkItemCodec.ArrowKind, nameof(BoardShapeKind.Arrow))]
+    public void ToItem_ShapeKinds_BuildShapesWithBounds(string kindText, string expectedKindName)
+    {
+        var snapshot = new InkItemSnapshot
+        {
+            Kind = kindText,
+            Shape = new ShapeSnapshot(
+                new Vector2(0.0f, 0.0f),
+                new Vector2(20.0f, 10.0f),
+                new Vector4(1.0f, 0.5f, 0.0f, 1.0f),
+                6.0f),
+        };
+
+        var shape = Assert.IsType<BoardShape>(BoardInkItemCodec.ToItem(snapshot));
+
+        Assert.Equal(expectedKindName, shape.Kind.ToString());
+        Assert.Equal(6.0f, shape.Width, precision: 5);
+        Assert.Equal(1.0f, shape.Color.R, precision: 5);
+        // Bounds 由 SetGeometry 单点重算：AABB(0,0)-(20,10) 外扩 3 → (-3,-3)-(23,13)。
+        Rect bounds = shape.BoundsWorld;
+        AssertEx.Equal(-3.0f, bounds.Left);
+        AssertEx.Equal(-3.0f, bounds.Top);
+        AssertEx.Equal(23.0f, bounds.Right);
+        AssertEx.Equal(13.0f, bounds.Bottom);
+    }
+
+    [Fact]
+    public void ToItem_ShapeKindWithoutShapeData_Throws()
+    {
+        // 与 Stroke 约定一致：kind 与数据载荷不匹配属于损坏数据，fail-fast 而非静默丢弃。
+        var snapshot = new InkItemSnapshot
+        {
+            Kind = BoardInkItemCodec.LineKind,
+            Shape = null,
+        };
+
+        Assert.Throws<ArgumentException>(() => BoardInkItemCodec.ToItem(snapshot));
+    }
+
+    [Fact]
+    public void ToItem_ShapeKindCaseInsensitive()
+    {
+        var snapshot = new InkItemSnapshot
+        {
+            Kind = "LINE",
+            Shape = new ShapeSnapshot(
+                new Vector2(0.0f, 0.0f),
+                new Vector2(1.0f, 1.0f),
+                new Vector4(0, 0, 0, 1),
+                3.0f),
+        };
+
+        var shape = Assert.IsType<BoardShape>(BoardInkItemCodec.ToItem(snapshot));
+        Assert.Equal(BoardShapeKind.Line, shape.Kind);
+    }
+
+    [Fact]
+    public void RoundTrip_DomainShapeToSnapshotToDomain_KeepsValues()
+    {
+        var original = new BoardShape(BoardShapeKind.Ellipse)
+        {
+            Color = new Color4(0.4f, 0.5f, 0.6f, 0.7f),
+            Width = 9.0f,
+        };
+        original.SetGeometry(new Vector2(-10.0f, 2.5f), new Vector2(60.0f, 80.0f));
+
+        InkItemSnapshot snapshot = BoardInkItemCodec.ToSnapshot(original)!;
+        var restored = Assert.IsType<BoardShape>(BoardInkItemCodec.ToItem(snapshot));
+
+        Assert.Equal(original.Kind, restored.Kind);
+        AssertEx.Equal(original.Start, restored.Start);
+        AssertEx.Equal(original.End, restored.End);
+        Assert.Equal(original.Width, restored.Width, precision: 5);
+        Assert.Equal(original.Color.R, restored.Color.R, precision: 5);
+        Assert.Equal(original.Color.G, restored.Color.G, precision: 5);
+        Assert.Equal(original.Color.B, restored.Color.B, precision: 5);
+        Assert.Equal(original.Color.A, restored.Color.A, precision: 5);
+
+        // Bounds 经重算后一致。
+        AssertEx.Equal(original.BoundsWorld.Left, restored.BoundsWorld.Left);
+        AssertEx.Equal(original.BoundsWorld.Top, restored.BoundsWorld.Top);
+        AssertEx.Equal(original.BoundsWorld.Right, restored.BoundsWorld.Right);
+        AssertEx.Equal(original.BoundsWorld.Bottom, restored.BoundsWorld.Bottom);
+    }
+
+    [Fact]
     public void RoundTrip_DomainToSnapshotToDomain_KeepsValues()
     {
         var original = new Stroke
