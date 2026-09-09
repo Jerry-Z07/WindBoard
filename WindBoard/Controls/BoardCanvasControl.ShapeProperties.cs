@@ -181,7 +181,8 @@ namespace WindBoard.Controls
         private static void SetShapePropertyValue(NumberBox box, double value)
         {
             double rounded = Math.Round(value, 2);
-            if (Math.Abs(box.Value - rounded) > 0.001)
+            // box.Value 为 NaN（用户清空/无效输入）时也写回有效值，保证撤销/重做后的回读刷新生效。
+            if (double.IsNaN(box.Value) || Math.Abs(box.Value - rounded) > 0.001)
             {
                 box.Value = rounded;
             }
@@ -215,6 +216,14 @@ namespace WindBoard.Controls
 
             double value1 = ShapeProperty1Box.Value;
             double value2 = ShapeProperty2Box.Value;
+
+            // NumberBox 清空/无效输入时 Value 可能为 NaN：NaN 会穿透 Min clamp 与“值未变化”比较，
+            // 直接写入会把 NaN 几何带进域模型（渲染/序列化全部失效）。这里仅回读刷新一次对齐显示。
+            if (!double.IsFinite(value1) || !double.IsFinite(value2))
+            {
+                SyncShapePropertyBoxes(shape);
+                return;
+            }
 
             Vector2 newStart;
             Vector2 newEnd;
