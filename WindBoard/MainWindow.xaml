@@ -506,7 +506,7 @@
                                 Height="20"
                                 HorizontalAlignment="Center"
                                 Data="M11,2.5 H17.5 V9.5 H11 Z M2,14 A4,4 0 1 1 10,14 A4,4 0 1 1 2,14 Z"
-                                Stroke="{ThemeResource SystemControlForegroundBaseHighBrush}"
+                                Stroke="{x:Bind GetShapeIconStroke(ShapeToolToggleButton.IsChecked), Mode=OneWay}"
                                 StrokeThickness="1.5"
                                 StrokeStartLineCap="Round"
                                 StrokeEndLineCap="Round"

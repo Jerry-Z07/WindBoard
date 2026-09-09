@@ -331,6 +331,26 @@ namespace WindBoard
         }
 
         /// <summary>
+        /// 形状工具图标的描边笔刷：跟随按钮选中态切换（x:Bind 函数绑定）。
+        /// </summary>
+        /// <remarks>
+        /// 自绘 Path 无法像 FontIcon 那样经内容前景继承跟随选中视觉状态，这里显式对齐：
+        /// 选中=纯白（与选中态字体图标前景一致），非选中=当前主题 BaseHigh（与非选中字体图标一致）。
+        /// 每次触发现取主题资源，保证亮暗主题下均正确（主题切换后下次工具切换即生效）。
+        /// </remarks>
+        public Brush GetShapeIconStroke(bool? isChecked)
+        {
+            if (isChecked == true)
+            {
+                return ShapeIconStrokeCheckedBrush;
+            }
+
+            return (Brush)Application.Current.Resources["SystemControlForegroundBaseHighBrush"];
+        }
+
+        private static readonly SolidColorBrush ShapeIconStrokeCheckedBrush = new(Microsoft.UI.Colors.White);
+
+        /// <summary>
         /// 初始画笔颜色同步：取色板第一个可解析颜色写入 ToolOptions
         /// （与批注层 ScreenAnnotationSessionHost.ResolveDefaultPenColor 同一约定）。
         /// </summary>
