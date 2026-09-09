@@ -49,12 +49,12 @@ record WbixManifest(
 
 ### Ink items: Kind-discriminated snapshots (v3)
 
-Page payload `strokes` entries are `InkItemSnapshot { Kind, Stroke? }` (JSON key stays `strokes` for v2 compat):
+Page payload `strokes` entries are `InkItemSnapshot { Kind, Stroke?, Shape? }` (JSON key stays `strokes` for v2 compat):
 
-- **v3 write shape**: `{ "kind": "stroke", "stroke": { points, colorRgba, baseSize, enablePressure } }` — single form only.
+- **v3 write shape**: `{ "kind": "stroke", "stroke": { points, colorRgba, baseSize, enablePressure } }` for polyline strokes and `{ "kind": "line"|"rect"|"ellipse"|"arrow", "shape": { start, end, colorRgba, width } }` for two-point shapes — single form only. Shape kinds are a v3 in-format kind extension (version stays 3; no v3 files were shipped before the extension).
 - **v1/v2 read compat**: entries are flat (`points/colorRgba/...` directly on the item, no wrapper). `InkItemSnapshotJsonConverter` handles both forms; a missing or explicit-null `kind` normalizes to `"stroke"`.
-- **Unknown kind**: log `Warn("WBIX", ...)` and skip that single item; never fail the whole load.
-- **Snapshot ↔ domain conversion**: all conversions go through `BoardInkItemCodec` (`ToItemList` / `ToStrokeItem`), which owns Bounds recalculation and z-order preservation. Three former duplicate rebuild paths (Converter/Applier, `BoardRasterExporter`, `WbiWorkspaceImporter`) all call it; `WbiWorkspaceImporter` must pass the explicit stroke path (legacy WBI has no kind).
+- **Unknown kind**: log `Warn("WBIX", ...)` and skip that single item; never fail the whole load. Known shape kinds with a missing `shape` payload are corrupt data and fail fast (same as a known `stroke` kind with a missing payload).
+- **Snapshot ↔ domain conversion**: all conversions go through `BoardInkItemCodec` (`ToItemList` / `ToStrokeItem` / `ToItem`), which owns Bounds recalculation and z-order preservation. Shape kind strings (`"line"/"rect"/"ellipse"/"arrow"`) ↔ `BoardShapeKind` mapping lives only in `BoardInkItemCodec` (single point). `WbiWorkspaceImporter` must pass the explicit stroke path (legacy WBI has no kind).
 
 ### Safety checks
 
@@ -136,6 +136,7 @@ Resolves the product root directory, runtime directory, portable data directory,
 - Let a single element failure stop the whole WBIX load flow
 - Use `File.WriteAllText` directly when saving files (atomic write should be used instead)
 - Rebuild domain ink items from snapshots with private `new Stroke { ... }` code — always go through `BoardInkItemCodec` (three duplicates existed before and were converged; keep it single-point)
+- Add new ink item types by scattering `is XxxItem`-style checks across render/pick/serialize/UI/tool dispatch — extend the single registration points only (`BoardSceneRenderer.DrawInkItem` switch, `InkItemPickTest.IsInkItemHitByPoint` switch, `BoardInkItemCodec` kind mapping, `BoardInputController` tool registration)
 - Rely on C# property initializers for snapshot compat: a JSON file may carry explicit `null` for optional fields (e.g. `kind`) — normalize on the read side
 
 ### ✅ DO
