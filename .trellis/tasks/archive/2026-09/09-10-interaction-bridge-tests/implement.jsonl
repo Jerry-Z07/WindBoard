@@ -1,0 +1,3 @@
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "BoardInputController 提取重构与测试需遵循代码质量标准"}
+{"file": ".trellis/spec/backend/directory-structure.md", "reason": "新增测试与可能的提取函数放置位置需符合分层约定"}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "指针事件到域操作的翻译跨越 Interaction/Board 层，数据流需跨层思考"}
