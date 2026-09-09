@@ -498,8 +498,18 @@
                         </FlyoutBase.AttachedFlyout>
 
                         <StackPanel Orientation="Vertical">
-                            <!-- 图标字体：E714 = Shapes -->
-                            <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" FontSize="20" Glyph="&#xE714;" />
+                            <!-- 自绘“形状组合”图标（斜线+矩形+圆），语义与 Flyout 内四项画法同构。
+                                 注：Segoe Fluent Icons 无名为 Shapes 的图标（E714 实为 Video，观感似“录制”），故不用字体图标。 -->
+                            <Path
+                                Width="20"
+                                Height="20"
+                                HorizontalAlignment="Center"
+                                Data="M2.5,16.5 L8,11 M11,2 H18 V9 H11 Z M2,13.5 A4.5,4.5 0 1 1 11,13.5 A4.5,4.5 0 1 1 2,13.5 Z"
+                                Stroke="{ThemeResource SystemControlForegroundBaseHighBrush}"
+                                StrokeThickness="2"
+                                StrokeStartLineCap="Round"
+                                StrokeEndLineCap="Round"
+                                StrokeLineJoin="Round" />
                             <TextBlock FontSize="11" Margin="0,3,0,0" HorizontalAlignment="Center" Text="{l10n:Loc Key=Tool_Shape}" />
                         </StackPanel>
                     </ToggleButton>

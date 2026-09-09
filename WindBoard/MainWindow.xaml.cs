@@ -30,6 +30,10 @@ namespace WindBoard
         private bool _isPenThicknessSliderSyncing;
         // 最近一次使用的形状工具（形状按钮首次点击进入；默认直线）。
         private BoardTool _lastShapeTool = BoardTool.Line;
+
+        // 当前画笔颜色的归一化 hex（ColorHex.ToHexRgb 产物）：
+        // 用于打开笔面板时恢复色板选中标记（当前选中值不持久化，标记跟随实际 ToolOptions）。
+        private string? _currentPenHex;
         private readonly ClearCanvasSlideController _clearCanvasSlideController;
 
         // 擦除模式：默认像素擦除；整笔擦除作为可选项。
@@ -61,6 +65,11 @@ namespace WindBoard
 
             // 与 XAML 默认值对齐：默认像素擦除。
             BoardCanvas.Eraser = _pixelEraser;
+
+            // 初始画笔颜色同步：取色板第一个可解析颜色作为初始色（默认 #FFFFFF 白）。
+            // 与批注层（ScreenAnnotationSessionHost.ResolveDefaultPenColor）保持同一约定；
+            // 缺省画笔参数为黑色，而默认画布为深色（#2E2F33），黑笔在深色画布上不可见（开箱不可画的缺陷）。
+            ApplyInitialPenColor();
 
             BoardCanvas.CommandStateChanged += (_, _) => UpdateCommandStates();
 
@@ -306,6 +315,7 @@ namespace WindBoard
             {
                 PenColor = BoardCanvasControl.ToColor4(color),
             };
+            _currentPenHex = ColorHex.ToHexRgb(color);
             SetExclusiveToggleChecked(PenColorGrid, button);
         }
 
@@ -318,6 +328,33 @@ namespace WindBoard
 
             ApplyPenPaletteToFlyout(snapshot.PaletteHexes);
             ApplyPenThicknessToFlyout(snapshot);
+        }
+
+        /// <summary>
+        /// 初始画笔颜色同步：取色板第一个可解析颜色写入 ToolOptions
+        /// （与批注层 ScreenAnnotationSessionHost.ResolveDefaultPenColor 同一约定）。
+        /// </summary>
+        /// <remarks>
+        /// 仅在启动时执行一次；此后颜色以用户在笔面板的选择为准（当前选中值不持久化约定不变）。
+        /// 调色板全部为空块时保持画布控件默认值（不做兜底扩展）。
+        /// </remarks>
+        private void ApplyInitialPenColor()
+        {
+            PenSettingsSnapshot snapshot = AppSettingsService.Instance.GetPenSettingsSnapshot();
+            foreach (string? hex in snapshot.PaletteHexes)
+            {
+                if (string.IsNullOrWhiteSpace(hex) || !ColorHex.TryParse(hex, out Color color))
+                {
+                    continue;
+                }
+
+                BoardCanvas.ToolOptions = BoardCanvas.ToolOptions with
+                {
+                    PenColor = BoardCanvasControl.ToColor4(color),
+                };
+                _currentPenHex = ColorHex.ToHexRgb(color);
+                return;
+            }
         }
 
         private void ApplyPenPaletteToFlyout(IReadOnlyList<string?> paletteHexes)
@@ -352,6 +389,14 @@ namespace WindBoard
                 int col = i % columns;
                 Grid.SetRow(button, row);
                 Grid.SetColumn(button, col);
+
+                // 恢复“当前选中色”标记：面板每次打开都重建，标记跟随实际 ToolOptions（当前值不持久化）。
+                if (_currentPenHex is not null
+                    && string.Equals(button.Tag as string, _currentPenHex, StringComparison.OrdinalIgnoreCase))
+                {
+                    button.IsChecked = true;
+                }
+
                 PenColorGrid.Children.Add(button);
             }
         }
