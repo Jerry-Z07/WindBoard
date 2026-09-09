@@ -327,8 +327,9 @@ namespace WindBoard.Rendering.Board
         /// 绘制一个笔迹层条目（渲染的“按条目类型单点分发”入口）。
         /// </summary>
         /// <remarks>
-        /// 阶段一仅折线笔迹（Stroke）分支；阶段二新增形状类型时在此 switch 中补充对应分支，
-        /// 不再新增散落式分发。Ink 几何缓存仅用于 Stroke 分支（缓存键保持 Stroke 类型）。
+        /// 阶段二起承载折线笔迹（Stroke）与形状（BoardShape）两个分支，
+        /// 新增条目类型时在此 switch 中补充对应分支，不再新增散落式分发。
+        /// Ink 几何缓存仅用于 Stroke 分支（缓存键保持 Stroke 类型）。
         /// </remarks>
         private void DrawInkItem(ID2D1RenderTarget ctx, ID2D1DeviceContext2? ctx2, IBoardInkItem item)
         {
@@ -338,10 +339,101 @@ namespace WindBoard.Rendering.Board
                     DrawStroke(ctx, ctx2, stroke);
                     break;
 
+                case BoardShape shape:
+                    DrawShape(ctx, shape);
+                    break;
+
                 default:
-                    // 未知条目类型：跳过绘制（阶段一不存在该情况）。
+                    // 未知条目类型：跳过绘制。
                     break;
             }
+        }
+
+        /// <summary>
+        /// 绘制两点式形状（design C：按 Kind 单点分支，统一使用 <see cref="_strokeBrush"/>）。
+        /// </summary>
+        /// <remarks>
+        /// 矩形/椭圆按 Min/Max 规范化读取（域内保留 Start/End 原始方向，读侧规范化）；
+        /// 线宽语义与 Stroke 降级路径一致（最小 0.5）；渲染循环高频路径，禁止日志。
+        /// </remarks>
+        private void DrawShape(ID2D1RenderTarget ctx, BoardShape shape)
+        {
+            if (_strokeBrush is null)
+            {
+                return;
+            }
+
+            _strokeBrush.Color = shape.Color;
+            EnsureStrokeStyle(ctx);
+            float strokeWidth = Math.Max(0.5f, shape.Width);
+
+            switch (shape.Kind)
+            {
+                case BoardShapeKind.Line:
+                    ctx.DrawLine(shape.Start, shape.End, _strokeBrush, strokeWidth, _strokeStyle);
+                    break;
+
+                case BoardShapeKind.Arrow:
+                    // 箭头 = 直线 + End 端点箭头头部（R5）。
+                    ctx.DrawLine(shape.Start, shape.End, _strokeBrush, strokeWidth, _strokeStyle);
+                    DrawArrowHead(ctx, shape.Start, shape.End, strokeWidth);
+                    break;
+
+                case BoardShapeKind.Rectangle:
+                {
+                    float left = Math.Min(shape.Start.X, shape.End.X);
+                    float top = Math.Min(shape.Start.Y, shape.End.Y);
+                    float width = Math.Abs(shape.Start.X - shape.End.X);
+                    float height = Math.Abs(shape.Start.Y - shape.End.Y);
+                    ctx.DrawRectangle(new RectangleF(left, top, width, height), _strokeBrush, strokeWidth, _strokeStyle);
+                    break;
+                }
+
+                case BoardShapeKind.Ellipse:
+                {
+                    float left = Math.Min(shape.Start.X, shape.End.X);
+                    float top = Math.Min(shape.Start.Y, shape.End.Y);
+                    float right = Math.Max(shape.Start.X, shape.End.X);
+                    float bottom = Math.Max(shape.Start.Y, shape.End.Y);
+                    var center = new Vector2((left + right) / 2.0f, (top + bottom) / 2.0f);
+                    ctx.DrawEllipse(new Ellipse(center, (right - left) / 2.0f, (bottom - top) / 2.0f), _strokeBrush, strokeWidth, _strokeStyle);
+                    break;
+                }
+            }
+        }
+
+        /// <summary>
+        /// 绘制箭头头部（End 端点两条后掠翼线）。
+        /// </summary>
+        /// <remarks>
+        /// 头部尺寸（翼长）= 常量系数 × 线宽，取 3 倍：箭头在线宽 1~10 范围内视觉均衡
+        /// （翼长过短不可辨、过长喧宾夺主）；张角取 ±30°（经典箭头外观）。
+        /// 无额外域状态（MVP），未来若需要可调头部再考虑扩展快照。
+        /// </remarks>
+        private void DrawArrowHead(ID2D1RenderTarget ctx, Vector2 start, Vector2 end, float strokeWidth)
+        {
+            const float HeadLengthFactor = 3.0f;
+            const float HalfSpreadAngleRadians = MathF.PI / 6.0f;
+
+            Vector2 delta = end - start;
+            float lengthSquared = delta.LengthSquared();
+            if (lengthSquared <= 0.0000001f)
+            {
+                return;
+            }
+
+            Vector2 back = -delta / MathF.Sqrt(lengthSquared);
+            float headLength = HeadLengthFactor * strokeWidth;
+
+            float cos = MathF.Cos(HalfSpreadAngleRadians) * headLength;
+            float sin = MathF.Sin(HalfSpreadAngleRadians) * headLength;
+
+            // 后掠方向 ±30° 旋转：wing = end + Rotate(back, ±θ) × 翼长。
+            Vector2 wingLeft = end + new Vector2(back.X * cos - back.Y * sin, back.X * sin + back.Y * cos);
+            Vector2 wingRight = end + new Vector2(back.X * cos + back.Y * sin, -back.X * sin + back.Y * cos);
+
+            ctx.DrawLine(end, wingLeft, _strokeBrush!, strokeWidth, _strokeStyle);
+            ctx.DrawLine(end, wingRight, _strokeBrush!, strokeWidth, _strokeStyle);
         }
 
         private void DrawStroke(ID2D1RenderTarget ctx, ID2D1DeviceContext2? ctx2, Stroke stroke)

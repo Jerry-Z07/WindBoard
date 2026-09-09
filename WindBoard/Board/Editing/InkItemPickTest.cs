@@ -55,22 +55,54 @@ namespace WindBoard.Board.Editing
                 case Stroke stroke:
                     return IsStrokeHitByPoint(stroke, pointWorld, toleranceWorld);
 
-                default:
-                {
-                    // 通用路径：条目世界包围盒 + 容差做 AABB 命中；无有效包围盒时不命中。
-                    Rect bounds = item.BoundsWorld;
-                    if (bounds.Width <= 0.0f && bounds.Height <= 0.0f)
-                    {
-                        return false;
-                    }
+                case BoardShape shape:
+                    return IsShapeHitByPoint(shape, pointWorld, toleranceWorld);
 
-                    float pad = Math.Max(0.0f, toleranceWorld);
-                    return pointWorld.X >= bounds.Left - pad
-                        && pointWorld.X <= bounds.Right + pad
-                        && pointWorld.Y >= bounds.Top - pad
-                        && pointWorld.Y <= bounds.Bottom + pad;
-                }
+                default:
+                    return IsBoundsHitByPoint(item.BoundsWorld, pointWorld, toleranceWorld);
             }
+        }
+
+        /// <summary>
+        /// 判断某个形状是否被“点选”命中（BoardShape 分支，design C）。
+        /// </summary>
+        /// <remarks>
+        /// - Line/Arrow：按“点到线段距离 ≤ 容差 + 半宽”判定——Bounds AABB 对斜线误命中区域过多；
+        /// - Rectangle/Ellipse：沿用通用 AABB 路径（内部 + 边界均可点选，符合直觉）。
+        /// </remarks>
+        internal static bool IsShapeHitByPoint(BoardShape shape, Vector2 pointWorld, float toleranceWorld)
+        {
+            if (shape.Kind is BoardShapeKind.Line or BoardShapeKind.Arrow)
+            {
+                float r = Math.Max(0.0f, toleranceWorld) + GetHalfShapeWidthWorld(shape);
+                float d2 = SegmentMath2D.DistanceSquaredPointToSegment(pointWorld, shape.Start, shape.End);
+                return d2 <= r * r;
+            }
+
+            return IsBoundsHitByPoint(shape.BoundsWorld, pointWorld, toleranceWorld);
+        }
+
+        /// <summary>
+        /// 通用 AABB 命中路径：条目世界包围盒 + 容差；无有效包围盒时不命中。
+        /// </summary>
+        private static bool IsBoundsHitByPoint(Rect bounds, Vector2 pointWorld, float toleranceWorld)
+        {
+            if (bounds.Width <= 0.0f && bounds.Height <= 0.0f)
+            {
+                return false;
+            }
+
+            float pad = Math.Max(0.0f, toleranceWorld);
+            return pointWorld.X >= bounds.Left - pad
+                && pointWorld.X <= bounds.Right + pad
+                && pointWorld.Y >= bounds.Top - pad
+                && pointWorld.Y <= bounds.Bottom + pad;
+        }
+
+        private static float GetHalfShapeWidthWorld(BoardShape shape)
+        {
+            // 与渲染/Bounds 语义一致：Width 是直径，且最小半径不小于 0.25。
+            return Math.Max(0.25f, shape.Width / 2.0f);
         }
 
         /// <summary>

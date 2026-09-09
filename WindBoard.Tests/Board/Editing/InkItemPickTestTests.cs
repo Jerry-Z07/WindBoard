@@ -84,4 +84,69 @@ public sealed class InkItemPickTestTests
         Assert.Same(fake, hitOnFake);
         Assert.Same(stroke, hitOnStroke);
     }
+
+    // 形状（Line/Arrow）：按“点到线段距离 ≤ 容差 + 半宽”命中，不落入包围盒误命中区
+    [Fact]
+    public void IsInkItemHitByPoint_ShapeLine_HitsNearSegment_AndMissesBeyond()
+    {
+        // Width=4 → 半宽 2；点到线段距离 2 命中，2.5 不命中。
+        var line = new BoardShape(BoardShapeKind.Line) { Width = 4.0f };
+        line.SetGeometry(new Vector2(0, 0), new Vector2(10, 0));
+
+        Assert.True(InkItemPickTest.IsInkItemHitByPoint(line, new Vector2(5.0f, 2.0f), toleranceWorld: 0.0f));
+        Assert.False(InkItemPickTest.IsInkItemHitByPoint(line, new Vector2(5.0f, 2.5f), toleranceWorld: 0.0f));
+    }
+
+    [Fact]
+    public void IsInkItemHitByPoint_ShapeLine_RespectsTolerance()
+    {
+        // Width=2 → 半宽 1；容差 1 时命中半径 2，容差 0 时为 1。
+        var line = new BoardShape(BoardShapeKind.Line) { Width = 2.0f };
+        line.SetGeometry(new Vector2(0, 0), new Vector2(10, 0));
+
+        Assert.True(InkItemPickTest.IsInkItemHitByPoint(line, new Vector2(5.0f, 1.5f), toleranceWorld: 1.0f));
+        Assert.False(InkItemPickTest.IsInkItemHitByPoint(line, new Vector2(5.0f, 1.5f), toleranceWorld: 0.0f));
+    }
+
+    [Fact]
+    public void IsInkItemHitByPoint_ShapeLine_DiagonalMissesInsideAabbCorner()
+    {
+        // 斜线的 AABB 角部远离线段：即使位于 AABB 内也不命中（走线段距离而非包围盒）。
+        var line = new BoardShape(BoardShapeKind.Line) { Width = 2.0f };
+        line.SetGeometry(new Vector2(0, 0), new Vector2(10, 10));
+
+        Assert.False(InkItemPickTest.IsInkItemHitByPoint(line, new Vector2(9.0f, 0.0f), toleranceWorld: 0.0f));
+        Assert.True(InkItemPickTest.IsInkItemHitByPoint(line, new Vector2(5.0f, 5.0f), toleranceWorld: 0.0f));
+    }
+
+    [Fact]
+    public void IsInkItemHitByPoint_ShapeArrow_FollowsSameSegmentRuleAsLine()
+    {
+        var arrow = new BoardShape(BoardShapeKind.Arrow) { Width = 4.0f };
+        arrow.SetGeometry(new Vector2(0, 0), new Vector2(10, 0));
+
+        Assert.True(InkItemPickTest.IsInkItemHitByPoint(arrow, new Vector2(5.0f, 2.0f), toleranceWorld: 0.0f));
+        Assert.False(InkItemPickTest.IsInkItemHitByPoint(arrow, new Vector2(5.0f, 5.0f), toleranceWorld: 0.0f));
+    }
+
+    // 形状（Rectangle/Ellipse）：沿用 AABB 路径，内部点选命中
+    [Fact]
+    public void IsInkItemHitByPoint_ShapeRectangle_HitsInsideBounds()
+    {
+        var rect = new BoardShape(BoardShapeKind.Rectangle) { Width = 2.0f };
+        rect.SetGeometry(new Vector2(0, 0), new Vector2(10, 10));
+
+        Assert.True(InkItemPickTest.IsInkItemHitByPoint(rect, new Vector2(5.0f, 5.0f), toleranceWorld: 0.0f));
+        Assert.False(InkItemPickTest.IsInkItemHitByPoint(rect, new Vector2(20.0f, 5.0f), toleranceWorld: 0.0f));
+    }
+
+    [Fact]
+    public void IsInkItemHitByPoint_ShapeEllipse_HitsInsideBounds()
+    {
+        var ellipse = new BoardShape(BoardShapeKind.Ellipse) { Width = 2.0f };
+        ellipse.SetGeometry(new Vector2(0, 0), new Vector2(10, 10));
+
+        Assert.True(InkItemPickTest.IsInkItemHitByPoint(ellipse, new Vector2(5.0f, 5.0f), toleranceWorld: 0.0f));
+        Assert.False(InkItemPickTest.IsInkItemHitByPoint(ellipse, new Vector2(50.0f, 5.0f), toleranceWorld: 0.0f));
+    }
 }
