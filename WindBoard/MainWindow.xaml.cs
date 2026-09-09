@@ -79,6 +79,11 @@ namespace WindBoard
             EraserToggleButton.Click += OnEraserToolClicked;
             ShapeToolToggleButton.Click += OnShapeToolClicked;
 
+            // 形状图标描边同步：初始（Loaded 时主题已解析，避免 x:Bind 初始求值早于主题解析的问题）、
+            // 主题切换、选中切换三路触发。
+            ShapeToolToggleButton.Loaded += (_, _) => UpdateShapeIconStroke();
+            ShapeToolToggleButton.ActualThemeChanged += (_, _) => UpdateShapeIconStroke();
+
             // 中部 Dock：撤销/重做
             UndoButton.Click += (_, _) => BoardCanvas.Undo();
             RedoButton.Click += (_, _) => BoardCanvas.Redo();
@@ -202,6 +207,8 @@ namespace WindBoard
             {
                 _lastShapeTool = tool;
             }
+
+            UpdateShapeIconStroke();
 
             BoardCanvas.Tool = tool;
 
@@ -331,28 +338,26 @@ namespace WindBoard
         }
 
         /// <summary>
-        /// 形状工具图标的描边笔刷：跟随按钮选中态与所在区域实际主题（x:Bind 函数绑定）。
+        /// 同步形状工具图标的描边笔刷（自绘 Path 无法像 FontIcon 那样经内容前景继承跟随视觉状态）。
         /// </summary>
         /// <remarks>
-        /// 自绘 Path 无法像 FontIcon 那样经内容前景继承跟随选中视觉状态，这里显式对齐：
+        /// 对齐字体图标的两个行为：
         /// - 选中=纯白（与选中态字体图标前景一致，选中背景为固定的 accent 蓝）；
         /// - 非选中=按按钮 <see cref="FrameworkElement.ActualTheme"/> 取 BaseHigh 值
         ///   （亮主题=黑、暗主题=白）。注意不能从 Application.Current.Resources 取主题笔刷：
         ///   那按应用级主题解析，而图标所在区域可能被元素级 RequestedTheme 覆盖，
         ///   字体图标正是按元素实际主题渲染的。
-        /// 主题切换后下次工具切换即生效（x:Bind 监听 IsChecked 变化触发）。
+        /// 触发点：按钮 Loaded（初始）、ActualThemeChanged（主题切换）、ApplyToolSelection（选中切换）。
         /// </remarks>
-        public Brush GetShapeIconStroke(bool? isChecked)
+        private void UpdateShapeIconStroke()
         {
-            if (isChecked == true)
-            {
-                return ShapeIconStrokeCheckedBrush;
-            }
-
+            bool isChecked = ShapeToolToggleButton.IsChecked == true;
             bool isLightTheme = ShapeToolToggleButton.ActualTheme == ElementTheme.Light;
-            return isLightTheme
-                ? ShapeIconStrokeUncheckedLightThemeBrush
-                : ShapeIconStrokeUncheckedDarkThemeBrush;
+            ShapeToolIconPath.Stroke = isChecked
+                ? ShapeIconStrokeCheckedBrush
+                : isLightTheme
+                    ? ShapeIconStrokeUncheckedLightThemeBrush
+                    : ShapeIconStrokeUncheckedDarkThemeBrush;
         }
 
         private static readonly SolidColorBrush ShapeIconStrokeCheckedBrush = new(Microsoft.UI.Colors.White);

@@ -502,11 +502,12 @@
                                  注：Segoe Fluent Icons 无名为 Shapes 的图标（E714 实为 Video，观感似“录制”），故不用字体图标；
                                  视觉参数对齐字体图标：主体约占画布七成（四周留白）、笔画 1.5、无交叉线，避免观感过重。 -->
                             <Path
+                                x:Name="ShapeToolIconPath"
                                 Width="20"
                                 Height="20"
                                 HorizontalAlignment="Center"
                                 Data="M10.5,1.5 H18.5 V9.5 H10.5 Z M1.5,14.5 A4,4 0 1 1 9.5,14.5 A4,4 0 1 1 1.5,14.5 Z"
-                                Stroke="{x:Bind GetShapeIconStroke(ShapeToolToggleButton.IsChecked), Mode=OneWay}"
+                                Stroke="{ThemeResource SystemControlForegroundBaseHighBrush}"
                                 StrokeThickness="1.7"
                                 StrokeStartLineCap="Round"
                                 StrokeEndLineCap="Round"
