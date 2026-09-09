@@ -505,9 +505,9 @@
                                 Width="20"
                                 Height="20"
                                 HorizontalAlignment="Center"
-                                Data="M11,2.5 H17.5 V9.5 H11 Z M2,14 A4,4 0 1 1 10,14 A4,4 0 1 1 2,14 Z"
+                                Data="M10.5,1.5 H18.5 V9.5 H10.5 Z M1.5,14.5 A4,4 0 1 1 9.5,14.5 A4,4 0 1 1 1.5,14.5 Z"
                                 Stroke="{x:Bind GetShapeIconStroke(ShapeToolToggleButton.IsChecked), Mode=OneWay}"
-                                StrokeThickness="1.5"
+                                StrokeThickness="1.7"
                                 StrokeStartLineCap="Round"
                                 StrokeEndLineCap="Round"
                                 StrokeLineJoin="Round" />
