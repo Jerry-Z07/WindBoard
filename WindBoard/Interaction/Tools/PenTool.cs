@@ -13,7 +13,7 @@ namespace WindBoard.Interaction.Tools
     /// <remarks>
     /// - 预览（活动笔迹）经 <see cref="BoardInputContext.PreviewItem"/> 暴露，渲染路径不变；
     /// - 压感已由控制器归一化，工具直接使用；
-    /// - 提交经 <see cref="BoardSession.Execute"/>（<see cref="AddStrokeCommand"/>），撤销/重做语义不变；
+    /// - 提交经 <see cref="BoardSession.Execute"/>（<see cref="AddInkItemCommand"/>），撤销/重做语义不变；
     /// - 高频路径（指针事件内）禁止日志。
     /// </remarks>
     internal sealed class PenTool : IBoardTool
@@ -72,7 +72,7 @@ namespace WindBoard.Interaction.Tools
             Stroke? stroke = ActiveStroke;
             if (stroke is not null && stroke.Points.Count > 0)
             {
-                input.Context.Session.Execute(new AddStrokeCommand(stroke));
+                input.Context.Session.Execute(new AddInkItemCommand(stroke));
             }
 
             ActiveStroke = null;

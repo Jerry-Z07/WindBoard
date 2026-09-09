@@ -22,8 +22,8 @@ public sealed class CompositeCommandTests
         // 先把 b 置顶，再把 a 置顶：最终应为 [c, b, a]
         var command = new CompositeCommand(new List<IBoardCommand>
         {
-            new BringStrokeToFrontCommand(b),
-            new BringStrokeToFrontCommand(a),
+            new BringInkItemToFrontCommand(b),
+            new BringInkItemToFrontCommand(a),
         });
 
         command.Do(doc);

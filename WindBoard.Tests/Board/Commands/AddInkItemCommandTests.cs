@@ -4,7 +4,7 @@ using Xunit;
 
 namespace WindBoard.Tests.Board.Commands;
 
-public sealed class AddStrokeCommandTests
+public sealed class AddInkItemCommandTests
 {
     // Do/Undo/Redo 会保持首次执行时的插入位置
     [Fact]
@@ -15,7 +15,7 @@ public sealed class AddStrokeCommandTests
         document.InkItems.Add(a);
 
         var b = new Stroke();
-        var command = new AddStrokeCommand(b);
+        var command = new AddInkItemCommand(b);
 
         command.Do(document);
         Assert.Equal(2, document.InkItems.Count);
@@ -46,10 +46,10 @@ public sealed class AddStrokeCommandTests
         document.InkItems.Add(a);
 
         var b = new Stroke();
-        var command = new AddStrokeCommand(b);
+        var command = new AddInkItemCommand(b);
         command.Do(document);
 
-        // 让 b 不再处于其记录的 index=1 的位置，触发 Remove(_stroke) 分支。
+        // 让 b 不再处于其记录的 index=1 的位置，触发 Remove(_item) 分支。
         var x = new Stroke();
         document.InkItems.Insert(0, x);
 

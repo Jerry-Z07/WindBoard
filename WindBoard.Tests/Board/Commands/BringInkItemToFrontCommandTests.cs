@@ -4,11 +4,11 @@ using Xunit;
 
 namespace WindBoard.Tests.Board.Commands;
 
-public sealed class RemoveStrokeCommandTests
+public sealed class BringInkItemToFrontCommandTests
 {
-    // Do/Undo 应能删除并按原索引插回
+    // Do/Undo 应能把指定条目移动到末尾，并可撤销恢复
     [Fact]
-    public void Do_Undo_RemovesAndRestoresAtOriginalIndex()
+    public void Do_Undo_MovesStrokeToEndAndRestores()
     {
         var doc = new BoardDocument();
         var a = new Stroke();
@@ -18,12 +18,13 @@ public sealed class RemoveStrokeCommandTests
         doc.InkItems.Add(b);
         doc.InkItems.Add(c);
 
-        var command = new RemoveStrokeCommand(b);
+        var command = new BringInkItemToFrontCommand(b);
 
         command.Do(doc);
-        Assert.Equal(2, doc.InkItems.Count);
+        Assert.Equal(3, doc.InkItems.Count);
         Assert.Same(a, doc.InkItems[0]);
         Assert.Same(c, doc.InkItems[1]);
+        Assert.Same(b, doc.InkItems[2]);
 
         command.Undo(doc);
         Assert.Equal(3, doc.InkItems.Count);
@@ -32,4 +33,3 @@ public sealed class RemoveStrokeCommandTests
         Assert.Same(c, doc.InkItems[2]);
     }
 }
-

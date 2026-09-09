@@ -373,7 +373,7 @@ namespace WindBoard.Controls
                  var commands = new List<IBoardCommand>(selectedStrokes.Count);
                  for (int i = 0; i < selectedStrokes.Count; i++)
                  {
-                     commands.Add(new BringStrokeToFrontCommand(selectedStrokes[i]));
+                     commands.Add(new BringInkItemToFrontCommand(selectedStrokes[i]));
                  }
 
                  IBoardCommand command = commands.Count == 1 ? commands[0] : new CompositeCommand(commands);
@@ -539,7 +539,7 @@ namespace WindBoard.Controls
                  var commands = new List<IBoardCommand>(copies.Count);
                  for (int i = 0; i < copies.Count; i++)
                  {
-                     commands.Add(new AddStrokeCommand(copies[i]));
+                     commands.Add(new AddInkItemCommand(copies[i]));
                  }
 
                  _session.Execute(commands.Count == 1 ? commands[0] : new CompositeCommand(commands));
@@ -580,7 +580,7 @@ namespace WindBoard.Controls
                  var commands = new List<IBoardCommand>(selectedStrokes.Count);
                  for (int i = selectedStrokes.Count - 1; i >= 0; i--)
                  {
-                     commands.Add(new RemoveStrokeCommand(selectedStrokes[i]));
+                     commands.Add(new RemoveInkItemCommand(selectedStrokes[i]));
                  }
 
                  _session.Execute(commands.Count == 1 ? commands[0] : new CompositeCommand(commands));

@@ -16,7 +16,7 @@ public sealed class BoardSessionTests
         session.StateChanged += () => stateChangedCount++;
 
         var stroke = new Stroke();
-        session.Execute(new AddStrokeCommand(stroke));
+        session.Execute(new AddInkItemCommand(stroke));
 
         Assert.True(session.CanUndo);
         Assert.False(session.CanRedo);
@@ -58,12 +58,12 @@ public sealed class BoardSessionTests
         var session = new BoardSession();
 
         var a = new Stroke();
-        session.Execute(new AddStrokeCommand(a));
+        session.Execute(new AddInkItemCommand(a));
         session.Undo();
         Assert.True(session.CanRedo);
 
         var b = new Stroke();
-        session.Execute(new AddStrokeCommand(b));
+        session.Execute(new AddInkItemCommand(b));
 
         Assert.False(session.CanRedo);
         Assert.Single(session.Document.InkItems);
@@ -77,8 +77,8 @@ public sealed class BoardSessionTests
         var session = new BoardSession();
         var a = new Stroke();
         var b = new Stroke();
-        session.Execute(new AddStrokeCommand(a));
-        session.Execute(new AddStrokeCommand(b));
+        session.Execute(new AddInkItemCommand(a));
+        session.Execute(new AddInkItemCommand(b));
 
         session.ClearAll();
         Assert.Empty(session.Document.InkItems);
