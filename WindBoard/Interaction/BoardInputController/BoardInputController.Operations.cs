@@ -26,7 +26,7 @@ namespace WindBoard.Interaction
         /// </remarks>
         private void DiscardActiveToolGesture()
         {
-            if (ActiveItem is null && _activePointerId is null && _activeStrokeDeviceType is null)
+            if (ActiveItem is null && _routes.ActivePointerId is null && _routes.ActiveStrokeDeviceType is null)
             {
                 return;
             }
@@ -39,8 +39,7 @@ namespace WindBoard.Interaction
 
             _context.PreviewItem = null;
             _context.ClearStrokeDirtyRect();
-            _activePointerId = null;
-            _activeStrokeDeviceType = null;
+            _routes.EndActiveStroke();
             FinalizeGestureState();
         }
 
@@ -59,8 +58,7 @@ namespace WindBoard.Interaction
                 tool.End(CreatePointerlessToolInput());
             }
 
-            _activePointerId = null;
-            _activeStrokeDeviceType = null;
+            _routes.EndActiveStroke();
             FinalizeGestureState();
         }
 
@@ -74,7 +72,7 @@ namespace WindBoard.Interaction
         private ToolInput CreateToolInput(Pointer pointer, PointerPoint point)
         {
             Vector2 screen = new((float)point.Position.X, (float)point.Position.Y);
-            float pressure = GetNormalizedPressure(pointer.PointerDeviceType, point.Properties);
+            float pressure = PointerRoutingDecisions.NormalizePressure(pointer.PointerDeviceType, point.Properties.Pressure);
             return new ToolInput(screen, pressure, pointer.PointerDeviceType, _context);
         }
 
@@ -83,19 +81,19 @@ namespace WindBoard.Interaction
             // 外部操作（例如工具切换/撤销/重做/清空）前，用于安全结束当前工具动作，避免留下捕获/状态。
             // 画笔/橡皮会话互斥性保证不会与 pan/marquee/selection 同时存在，
             // 未命中的分支落到末尾的 DiscardActiveToolGesture（无会话时静默返回，保持原早退语义）。
-            if (_marqueePointerId is not null)
+            if (_routes.MarqueePointerId is not null)
             {
                 CancelMarqueeSelectionGesture(releasePointerCaptures: true);
                 return;
             }
 
-            if (_selectionPointerId is not null || _isManipulatingSelection)
+            if (_routes.SelectionPointerId is not null || _routes.IsManipulatingSelection)
             {
                 CancelSelectionGesture();
                 return;
             }
 
-            if (_panPointerId is not null)
+            if (_routes.PanPointerId is not null)
             {
                 CancelPanGesture();
                 return;
@@ -106,7 +104,7 @@ namespace WindBoard.Interaction
 
         private void CancelPanGesture()
         {
-            _panPointerId = null;
+            _routes.CancelPan();
             _pendingPanScreenDelta = Vector2.Zero;
             FinalizeGestureState();
         }
@@ -114,7 +112,7 @@ namespace WindBoard.Interaction
         private void BeginMarqueeSelectionGesture(Pointer pointer, Vector2 startScreenDip)
         {
             _panel.CapturePointer(pointer);
-            _marqueePointerId = pointer.PointerId;
+            _routes.BeginMarquee(pointer.PointerId);
 
             // 框选几何状态由 SelectTool 内聚；这里只负责捕获与 pointerId 跟踪。
             _selectTool.Begin(new ToolInput(startScreenDip, 1.0f, pointer.PointerDeviceType, _context));
@@ -124,13 +122,13 @@ namespace WindBoard.Interaction
 
         private void CommitMarqueeSelectionGesture(bool releasePointerCaptures)
         {
-            uint? id = _marqueePointerId;
+            uint? id = _routes.MarqueePointerId;
             if (id is null)
             {
                 return;
             }
 
-            _marqueePointerId = null;
+            _routes.EndMarquee();
 
             if (releasePointerCaptures)
             {
@@ -152,12 +150,12 @@ namespace WindBoard.Interaction
 
         private void CancelMarqueeSelectionGesture(bool releasePointerCaptures)
         {
-            if (_marqueePointerId is null)
+            if (_routes.MarqueePointerId is null)
             {
                 return;
             }
 
-            _marqueePointerId = null;
+            _routes.EndMarquee();
 
             if (releasePointerCaptures)
             {
@@ -171,8 +169,7 @@ namespace WindBoard.Interaction
 
         private void CommitSelectionGesture(bool releasePointerCaptures)
         {
-            _selectionPointerId = null;
-            _isManipulatingSelection = false;
+            _routes.EndSelectionMove();
 
             if (releasePointerCaptures)
             {
@@ -190,9 +187,7 @@ namespace WindBoard.Interaction
             // 先恢复快照（由 SelectTool 处理），再清理控制器手势状态。
             _selectTool.CancelSelection();
 
-            _selectionPointerId = null;
-            _isManipulatingSelection = false;
-            _touchManipulationTarget = TouchManipulationTarget.Viewport;
+            _routes.CancelSelectionMove();
 
             if (releasePointerCaptures)
             {
@@ -200,43 +195,6 @@ namespace WindBoard.Interaction
             }
 
             NotifyInteractionUiChanged();
-        }
-
-        private static bool ShouldStartStroke(Pointer pointer, PointerPoint point)
-        {
-            if (pointer.PointerDeviceType == PointerDeviceType.Mouse)
-            {
-                return point.Properties.IsLeftButtonPressed;
-            }
-
-            // 触控笔 / 触摸：默认允许
-            return true;
-        }
-
-        private bool ShouldStartPan(Pointer pointer, PointerPoint point)
-        {
-            if (!_allowViewportManipulation)
-            {
-                return false;
-            }
-
-            if (pointer.PointerDeviceType != PointerDeviceType.Mouse)
-            {
-                return false;
-            }
-
-            return point.Properties.IsRightButtonPressed;
-        }
-
-        private static float GetNormalizedPressure(PointerDeviceType pointerDeviceType, PointerPointProperties props)
-        {
-            if (pointerDeviceType != PointerDeviceType.Pen)
-            {
-                return 1.0f;
-            }
-
-            float p = (float)props.Pressure;
-            return Math.Clamp(p, 0.1f, 1.0f);
         }
 
         private void FinalizeGestureState(bool releasePointerCaptures = true, bool notifyStateChanged = true)

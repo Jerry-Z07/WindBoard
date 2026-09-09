@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Numerics;
 using Microsoft.UI.Dispatching;
-using Microsoft.UI.Input;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
 using WindBoard.Board;
@@ -17,9 +16,6 @@ namespace WindBoard.Interaction
 {
     internal sealed partial class BoardInputController
     {
-        private const int WheelZoomIdleTimeoutMs = 150;
-        private const int WheelZoomTimerIntervalMs = 50;
-
         /// <summary>
         /// 橡皮擦半径（DIP）：X/Y 分量分别表示水平/垂直半径。
         /// </summary>
@@ -43,16 +39,11 @@ namespace WindBoard.Interaction
         private readonly EraserTool _eraserTool;
         private readonly SelectTool _selectTool;
 
-        private uint? _activePointerId;
-        private uint? _panPointerId;
-        private uint? _selectionPointerId;
-        private uint? _marqueePointerId;
+        // 指针路由状态机：pointerId 的分配/互斥/释放与触摸触点集合收敛到纯状态类，
+        // 事件处理器只做转发，便于单元测试覆盖分配、互斥与释放时序。
+        private readonly PointerRouteState _routes = new();
         private Vector2 _lastPanScreen = Vector2.Zero;
         private Vector2 _lastSelectionScreen = Vector2.Zero;
-        private PointerDeviceType? _activeStrokeDeviceType;
-        private readonly HashSet<uint> _activeTouchPointers = new();
-        private bool _isManipulating;
-        private bool _isManipulatingSelection;
         private bool _isInteracting;
         private bool _isWheelZooming;
         private bool _allowViewportManipulation = true;
@@ -60,14 +51,6 @@ namespace WindBoard.Interaction
         private DateTimeOffset _lastWheelZoomAt;
         private DispatcherQueueTimer? _wheelZoomTimer;
         private Vector2 _pendingPanScreenDelta = Vector2.Zero;
-
-        private enum TouchManipulationTarget
-        {
-            Viewport,
-            Selection,
-        }
-
-        private TouchManipulationTarget _touchManipulationTarget = TouchManipulationTarget.Viewport;
 
         public BoardInputController(SwapChainPanel panel, BoardSession session, BoardViewport viewport, IBoardEraser? eraser = null)
         {
@@ -201,11 +184,11 @@ namespace WindBoard.Interaction
 
         private bool HasActiveToolInteraction => _context.PreviewItem is not null || _eraserTool.IsErasing;
 
-        private bool HasPointerGesture => _panPointerId is not null || _selectionPointerId is not null || _marqueePointerId is not null;
+        private bool HasPointerGesture => _routes.HasPointerGesture;
 
-        private bool HasViewportGesture => _panPointerId is not null || _isManipulating;
+        private bool HasViewportGesture => _routes.HasViewportGesture;
 
-        private bool HasSelectionGesture => _selectionPointerId is not null || _isManipulatingSelection || _marqueePointerId is not null;
+        private bool HasSelectionGesture => _routes.HasSelectionGesture;
 
         public bool IsContinuousViewportInteraction => HasViewportGesture;
 

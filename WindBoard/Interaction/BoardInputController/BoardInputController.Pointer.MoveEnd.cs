@@ -19,23 +19,21 @@ namespace WindBoard.Interaction
     {
         private void OnCanvasPointerMoved(object sender, PointerRoutedEventArgs e)
         {
-            uint pointerId = e.Pointer.PointerId;
-
-            if (_panPointerId == pointerId)
+            // 路由优先级收敛到 PointerRouteState.ResolveMoveRoute（pan → selection → marquee → active）。
+            switch (_routes.ResolveMoveRoute(e.Pointer.PointerId))
             {
-                HandlePanPointerMoved(e);
-            }
-            else if (_selectionPointerId == pointerId)
-            {
-                HandleSelectionPointerMoved(e);
-            }
-            else if (_marqueePointerId == pointerId)
-            {
-                HandleMarqueePointerMoved(e);
-            }
-            else if (_activePointerId == pointerId)
-            {
-                HandleActivePointerMoved(e);
+                case PointerMoveRoute.Pan:
+                    HandlePanPointerMoved(e);
+                    break;
+                case PointerMoveRoute.Selection:
+                    HandleSelectionPointerMoved(e);
+                    break;
+                case PointerMoveRoute.Marquee:
+                    HandleMarqueePointerMoved(e);
+                    break;
+                case PointerMoveRoute.Active:
+                    HandleActivePointerMoved(e);
+                    break;
             }
         }
 
@@ -133,7 +131,7 @@ namespace WindBoard.Interaction
 
             uint pointerId = e.Pointer.PointerId;
 
-            if (_marqueePointerId == pointerId)
+            if (_routes.MarqueePointerId == pointerId)
             {
                 if (mode == PointerEndMode.Commit)
                 {
@@ -148,7 +146,7 @@ namespace WindBoard.Interaction
                 return;
             }
 
-            if (_selectionPointerId == pointerId)
+            if (_routes.SelectionPointerId == pointerId)
             {
                 if (mode == PointerEndMode.Commit)
                 {
@@ -175,7 +173,7 @@ namespace WindBoard.Interaction
                 return;
             }
 
-            if (_activePointerId != pointerId)
+            if (_routes.ActivePointerId != pointerId)
             {
                 return;
             }
@@ -200,18 +198,17 @@ namespace WindBoard.Interaction
                 return;
             }
 
-            _activeTouchPointers.Remove(e.Pointer.PointerId);
+            _routes.ActiveTouchPointers.Remove(e.Pointer.PointerId);
             UpdateInteractionState();
         }
 
         private bool TryHandlePanPointerEnded(PointerRoutedEventArgs e, bool releasePointerCaptures)
         {
-            if (_panPointerId != e.Pointer.PointerId)
+            // pointerId 不匹配时不做任何变更（“尝试”语义由状态机承担）。
+            if (!_routes.TryEndPan(e.Pointer.PointerId))
             {
                 return false;
             }
-
-            _panPointerId = null;
 
             e.Handled = true;
             FinalizeGestureState(releasePointerCaptures);

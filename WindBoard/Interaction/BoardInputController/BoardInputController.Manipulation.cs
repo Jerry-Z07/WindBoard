@@ -120,7 +120,7 @@ namespace WindBoard.Interaction
         {
             // 滚轮缩放属于“瞬时交互”，当同时存在其它连续交互（例如画线/擦除/平移/选择变换）时直接忽略，
             // 避免状态互相干扰或导致撤销快照不一致。
-            return HasActiveToolInteraction || HasPointerGesture || _isManipulatingSelection;
+            return HasActiveToolInteraction || HasPointerGesture || _routes.IsManipulatingSelection;
         }
 
         private void BeginWheelZoomInteraction()
@@ -130,7 +130,7 @@ namespace WindBoard.Interaction
             if (_wheelZoomTimer is null)
             {
                 _wheelZoomTimer = _panel.DispatcherQueue.CreateTimer();
-                _wheelZoomTimer.Interval = TimeSpan.FromMilliseconds(WheelZoomTimerIntervalMs);
+                _wheelZoomTimer.Interval = TimeSpan.FromMilliseconds(PointerRoutingDecisions.WheelZoomTimerIntervalMs);
                 _wheelZoomTimer.IsRepeating = true;
                 _wheelZoomTimer.Tick += OnWheelZoomTimerTick;
             }
@@ -151,15 +151,16 @@ namespace WindBoard.Interaction
 
         private void OnWheelZoomTimerTick(DispatcherQueueTimer sender, object args)
         {
-            if (!_isWheelZooming)
+            // tick 决策（空闲合并/结束判定）收敛到 PointerRoutingDecisions.EvaluateWheelZoomTick。
+            switch (PointerRoutingDecisions.EvaluateWheelZoomTick(_isWheelZooming, DateTimeOffset.UtcNow, _lastWheelZoomAt))
             {
-                sender.Stop();
-                return;
-            }
-
-            if ((DateTimeOffset.UtcNow - _lastWheelZoomAt).TotalMilliseconds < WheelZoomIdleTimeoutMs)
-            {
-                return;
+                case WheelZoomTickDecision.StopIdle:
+                    sender.Stop();
+                    return;
+                case WheelZoomTickDecision.Wait:
+                    return;
+                case WheelZoomTickDecision.End:
+                    break;
             }
 
             _isWheelZooming = false;
@@ -193,12 +194,12 @@ namespace WindBoard.Interaction
             // 默认：双指/多指才进入手势模式（选择工具也不使用单指平移，避免与后续“框选”冲突）。
             const int minTouchCount = 2;
             if (Tool == BoardTool.Select
-                && _touchManipulationTarget == TouchManipulationTarget.Selection
+                && _routes.TouchManipulationTarget == TouchManipulationTarget.Selection
                 && (_selectTool.SelectedItems.Count > 0 || _selectTool.SelectedElement is not null))
             {
-                _isManipulating = false;
-                _isManipulatingSelection = _activeTouchPointers.Count >= minTouchCount;
-                if (_isManipulatingSelection)
+                _routes.IsManipulating = false;
+                _routes.IsManipulatingSelection = _routes.ActiveTouchPointers.Count >= minTouchCount;
+                if (_routes.IsManipulatingSelection)
                 {
                     if (_selectTool.SelectedItems.Count > 0)
                     {
@@ -212,9 +213,9 @@ namespace WindBoard.Interaction
             }
             else
             {
-                _touchManipulationTarget = TouchManipulationTarget.Viewport;
-                _isManipulatingSelection = false;
-                _isManipulating = _activeTouchPointers.Count >= minTouchCount;
+                _routes.TouchManipulationTarget = TouchManipulationTarget.Viewport;
+                _routes.IsManipulatingSelection = false;
+                _routes.IsManipulating = _routes.ActiveTouchPointers.Count >= minTouchCount;
             }
 
             UpdateInteractionState();
@@ -232,7 +233,7 @@ namespace WindBoard.Interaction
 
             // 触摸：多指拖动 + 捏合缩放（以手势中心为缩放锚点）
             const int minTouchCount = 2;
-            bool canHandle = !HasBlockingInteractionForManipulation() && _activeTouchPointers.Count >= minTouchCount;
+            bool canHandle = !HasBlockingInteractionForManipulation() && _routes.ActiveTouchPointers.Count >= minTouchCount;
             if (canHandle)
             {
                 if (!TryHandleSelectionManipulationDelta(e))
@@ -249,15 +250,15 @@ namespace WindBoard.Interaction
         private bool TryHandleSelectionManipulationDelta(ManipulationDeltaRoutedEventArgs e)
         {
             if (Tool != BoardTool.Select
-                || _touchManipulationTarget != TouchManipulationTarget.Selection
+                || _routes.TouchManipulationTarget != TouchManipulationTarget.Selection
                 || (_selectTool.SelectedItems.Count == 0 && _selectTool.SelectedElement is null))
             {
                 return false;
             }
 
-            if (!_isManipulatingSelection)
+            if (!_routes.IsManipulatingSelection)
             {
-                _isManipulatingSelection = true;
+                _routes.IsManipulatingSelection = true;
 
                 if (_selectTool.SelectedItems.Count > 0)
                 {
@@ -375,9 +376,9 @@ namespace WindBoard.Interaction
 
         private void HandleViewportManipulationDelta(ManipulationDeltaRoutedEventArgs e)
         {
-            if (!_isManipulating)
+            if (!_routes.IsManipulating)
             {
-                _isManipulating = true;
+                _routes.IsManipulating = true;
                 UpdateInteractionState();
             }
 
@@ -409,26 +410,26 @@ namespace WindBoard.Interaction
         {
             if (!_allowViewportManipulation)
             {
-                _activeTouchPointers.Clear();
-                _touchManipulationTarget = TouchManipulationTarget.Viewport;
+                _routes.ActiveTouchPointers.Clear();
+                _routes.TouchManipulationTarget = TouchManipulationTarget.Viewport;
                 e.Handled = true;
                 return;
             }
 
             // 在三指及以上的复杂触摸手势下，系统可能不会为每个触点都完整触发 PointerReleased/PointerCanceled。
             // 为避免触点残留导致始终被判定为“多指”，这里在手势结束时强制清空触摸状态。
-            _activeTouchPointers.Clear();
-            _touchManipulationTarget = TouchManipulationTarget.Viewport;
+            _routes.ActiveTouchPointers.Clear();
+            _routes.TouchManipulationTarget = TouchManipulationTarget.Viewport;
 
-            if (_isManipulatingSelection)
+            if (_routes.IsManipulatingSelection)
             {
-                _isManipulating = false;
+                _routes.IsManipulating = false;
                 CommitSelectionGesture(releasePointerCaptures: false);
                 e.Handled = true;
                 return;
             }
 
-            _isManipulating = false;
+            _routes.IsManipulating = false;
             NotifyInteractionUiChanged(notifyStateChanged: false);
             e.Handled = true;
         }

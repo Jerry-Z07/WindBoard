@@ -36,76 +36,74 @@ namespace WindBoard.Interaction
 
         private void HandleTouchPointerPressed(PointerRoutedEventArgs e, PointerPoint point)
         {
-            _activeTouchPointers.Add(e.Pointer.PointerId);
+            _routes.ActiveTouchPointers.Add(e.Pointer.PointerId);
             UpdateInteractionState();
 
-            // 多指触摸：交给 Manipulation 处理缩放/拖动；如果正在用“触摸单指画线/擦除”，则先结束。
-            if (_activeTouchPointers.Count >= 2)
+            // 路由决策收敛到 PointerRoutingDecisions.ResolveTouchPressRoute（分支顺序保持一致）。
+            switch (PointerRoutingDecisions.ResolveTouchPressRoute(
+                _routes.ActiveTouchPointers.Count,
+                Tool == BoardTool.Select,
+                _allowSelectionInteractions,
+                _routes.HasActivePointerCapture))
             {
-                if (_allowViewportManipulation)
+                case TouchPressRoute.MultiFinger:
+                    // 多指触摸：交给 Manipulation 处理缩放/拖动；如果正在用“触摸单指画线/擦除”，则先结束。
+                    if (_allowViewportManipulation)
+                    {
+                        EndTouchSingleFingerToolOperationForManipulation();
+                    }
+
+                    e.Handled = true;
+                    FrameInvalidated?.Invoke();
+                    return;
+                case TouchPressRoute.SelectGesture:
                 {
-                    EndTouchSingleFingerToolOperationForManipulation();
+                    // 选择模式：单指用于“框选”；双指/多指用于视口手势或对已选中笔迹做变换。
+                    Vector2 screen = new((float)point.Position.X, (float)point.Position.Y);
+                    _routes.TouchManipulationTarget = _selectTool.IsScreenPointInsideSelectedBounds(screen)
+                        ? TouchManipulationTarget.Selection
+                        : TouchManipulationTarget.Viewport;
+                    BeginMarqueeSelectionGesture(e.Pointer, screen);
+                    e.Handled = true;
+                    return;
                 }
-
-                e.Handled = true;
-                FrameInvalidated?.Invoke();
-                return;
+                case TouchPressRoute.Ignore:
+                    // 已有会话/手势：忽略本次按下。
+                    return;
+                default:
+                    // 单指触摸：画线 / 擦除
+                    BeginPenOrEraserGesture(e.Pointer, point);
+                    e.Handled = true;
+                    StateChanged?.Invoke();
+                    return;
             }
-
-            if (Tool == BoardTool.Select && _allowSelectionInteractions)
-            {
-                // 选择模式：单指用于“框选”；双指/多指用于视口手势或对已选中笔迹做变换。
-                Vector2 screen = new((float)point.Position.X, (float)point.Position.Y);
-                _touchManipulationTarget = _selectTool.IsScreenPointInsideSelectedBounds(screen)
-                    ? TouchManipulationTarget.Selection
-                    : TouchManipulationTarget.Viewport;
-                BeginMarqueeSelectionGesture(e.Pointer, screen);
-                e.Handled = true;
-                return;
-            }
-
-            // 单指触摸：画线 / 擦除
-            if (HasActivePointerCapture)
-            {
-                return;
-            }
-
-            BeginPenOrEraserGesture(e.Pointer, point);
-            e.Handled = true;
-            StateChanged?.Invoke();
         }
 
         private void EndTouchSingleFingerToolOperationForManipulation()
         {
-            if (ActiveItem is Stroke stroke && _activeStrokeDeviceType == PointerDeviceType.Touch)
+            // 打断处置决策收敛到 PointerRoutingDecisions.ResolveTouchGestureEnd（分支顺序保持一致）。
+            switch (PointerRoutingDecisions.ResolveTouchGestureEnd(
+                isStrokeActiveItem: ActiveItem is Stroke,
+                strokePointCount: ActiveItem is Stroke stroke ? stroke.Points.Count : 0,
+                hasOtherActiveItem: ActiveItem is not null && ActiveItem is not Stroke,
+                isErasing: IsErasing,
+                isTouchOrigin: _routes.ActiveStrokeDeviceType == PointerDeviceType.Touch))
             {
-                // 两指及以上时视为手势：如果只是按下的“单点”，不要留下点状笔迹。
-                if (stroke.Points.Count <= 1)
-                {
+                case TouchGestureEndAction.DiscardDotStroke:
+                case TouchGestureEndAction.DiscardShape:
                     DiscardActiveToolGesture();
-                }
-                else
-                {
+                    return;
+                case TouchGestureEndAction.CommitStroke:
                     CommitActiveToolGesture();
-                }
-
-                return;
-            }
-
-            if (ActiveItem is not null && _activeStrokeDeviceType == PointerDeviceType.Touch)
-            {
-                // 形状预览被手势打断：半截形状无意义，直接丢弃（不提交）。
-                DiscardActiveToolGesture();
-                return;
-            }
-
-            if (IsErasing && _activeStrokeDeviceType == PointerDeviceType.Touch)
-            {
-                CommitActiveToolGesture();
+                    return;
+                case TouchGestureEndAction.CommitEraser:
+                    // 与原实现一致：擦除提交后不提前返回，继续落到下方的框选取消检查。
+                    CommitActiveToolGesture();
+                    break;
             }
 
             // 选择框选：当用户从单指切换为双指/多指时，取消框选，交给 Manipulation 处理缩放/拖动。
-            if (_marqueePointerId is not null)
+            if (_routes.MarqueePointerId is not null)
             {
                 CancelMarqueeSelectionGesture(releasePointerCaptures: true);
             }
@@ -135,7 +133,7 @@ namespace WindBoard.Interaction
             }
         }
 
-        private bool HasActivePointerCapture => _activePointerId is not null || HasPointerGesture;
+        private bool HasActivePointerCapture => _routes.HasActivePointerCapture;
 
         private bool TryBeginSelectGesture(PointerRoutedEventArgs e, PointerPoint point)
         {
@@ -147,13 +145,13 @@ namespace WindBoard.Interaction
             // 选择模式（框选）：
             // - 鼠标右键：平移视口
             // - 其它：单指/鼠标左键/触控笔拖拽 → 框选；在已选中笔迹范围内拖拽 → 移动选中笔迹
-            if (ShouldStartPan(e.Pointer, point))
+            if (PointerRoutingDecisions.ShouldStartPan(_allowViewportManipulation, e.Pointer.PointerDeviceType, point.Properties.IsRightButtonPressed))
             {
                 BeginPanGesture(e.Pointer, point);
                 return true;
             }
 
-            if (!ShouldStartStroke(e.Pointer, point))
+            if (!PointerRoutingDecisions.ShouldStartStroke(e.Pointer.PointerDeviceType, point.Properties.IsLeftButtonPressed))
             {
                 return false;
             }
@@ -175,13 +173,13 @@ namespace WindBoard.Interaction
         {
             notifyStateChanged = false;
 
-            if (ShouldStartPan(e.Pointer, point))
+            if (PointerRoutingDecisions.ShouldStartPan(_allowViewportManipulation, e.Pointer.PointerDeviceType, point.Properties.IsRightButtonPressed))
             {
                 BeginPanGesture(e.Pointer, point);
                 return true;
             }
 
-            if (!ShouldStartStroke(e.Pointer, point))
+            if (!PointerRoutingDecisions.ShouldStartStroke(e.Pointer.PointerDeviceType, point.Properties.IsLeftButtonPressed))
             {
                 return false;
             }
@@ -208,15 +206,14 @@ namespace WindBoard.Interaction
         private void CaptureStrokePointer(Pointer pointer)
         {
             _panel.CapturePointer(pointer);
-            _activePointerId = pointer.PointerId;
-            _activeStrokeDeviceType = pointer.PointerDeviceType;
+            _routes.BeginActiveStroke(pointer.PointerId, pointer.PointerDeviceType);
             _context.ClearStrokeDirtyRect();
         }
 
         private void BeginPanGesture(Pointer pointer, PointerPoint point)
         {
             _panel.CapturePointer(pointer);
-            _panPointerId = pointer.PointerId;
+            _routes.BeginPan(pointer.PointerId);
             _lastPanScreen = new Vector2((float)point.Position.X, (float)point.Position.Y);
             NotifyInteractionUiChanged();
         }
@@ -231,7 +228,7 @@ namespace WindBoard.Interaction
             }
 
             _panel.CapturePointer(pointer);
-            _selectionPointerId = pointer.PointerId;
+            _routes.BeginSelectionMove(pointer.PointerId);
             _lastSelectionScreen = screenDip;
 
             _selectTool.BeginSelectionMove();
