@@ -331,12 +331,16 @@ namespace WindBoard
         }
 
         /// <summary>
-        /// 形状工具图标的描边笔刷：跟随按钮选中态切换（x:Bind 函数绑定）。
+        /// 形状工具图标的描边笔刷：跟随按钮选中态与所在区域实际主题（x:Bind 函数绑定）。
         /// </summary>
         /// <remarks>
         /// 自绘 Path 无法像 FontIcon 那样经内容前景继承跟随选中视觉状态，这里显式对齐：
-        /// 选中=纯白（与选中态字体图标前景一致），非选中=当前主题 BaseHigh（与非选中字体图标一致）。
-        /// 每次触发现取主题资源，保证亮暗主题下均正确（主题切换后下次工具切换即生效）。
+        /// - 选中=纯白（与选中态字体图标前景一致，选中背景为固定的 accent 蓝）；
+        /// - 非选中=按按钮 <see cref="FrameworkElement.ActualTheme"/> 取 BaseHigh 值
+        ///   （亮主题=黑、暗主题=白）。注意不能从 Application.Current.Resources 取主题笔刷：
+        ///   那按应用级主题解析，而图标所在区域可能被元素级 RequestedTheme 覆盖，
+        ///   字体图标正是按元素实际主题渲染的。
+        /// 主题切换后下次工具切换即生效（x:Bind 监听 IsChecked 变化触发）。
         /// </remarks>
         public Brush GetShapeIconStroke(bool? isChecked)
         {
@@ -345,10 +349,17 @@ namespace WindBoard
                 return ShapeIconStrokeCheckedBrush;
             }
 
-            return (Brush)Application.Current.Resources["SystemControlForegroundBaseHighBrush"];
+            bool isLightTheme = ShapeToolToggleButton.ActualTheme == ElementTheme.Light;
+            return isLightTheme
+                ? ShapeIconStrokeUncheckedLightThemeBrush
+                : ShapeIconStrokeUncheckedDarkThemeBrush;
         }
 
         private static readonly SolidColorBrush ShapeIconStrokeCheckedBrush = new(Microsoft.UI.Colors.White);
+
+        // BaseHigh 的主题值：亮主题=黑（90% 不透明），暗主题=白（100%）。
+        private static readonly SolidColorBrush ShapeIconStrokeUncheckedLightThemeBrush = new(Color.FromArgb(0xE6, 0, 0, 0));
+        private static readonly SolidColorBrush ShapeIconStrokeUncheckedDarkThemeBrush = new(Color.FromArgb(0xFF, 255, 255, 255));
 
         /// <summary>
         /// 初始画笔颜色同步：取色板第一个可解析颜色写入 ToolOptions
