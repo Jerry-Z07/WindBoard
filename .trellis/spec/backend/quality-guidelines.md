@@ -23,6 +23,7 @@ WindBoard follows the principle "safety = correctness > minimal change > readabi
 - **TODO/HACK/FIXME**: these comments must not remain in code
 - **Blind `catch(Exception)`**: catching a general exception must include logging and a handling strategy
 - **Cross-factory D2D resources**: all Direct2D resources (brush/stroke style/ink style/geometry) must be created from the same factory/device as the render target. Creating one from a self-built factory (e.g. `D2D1.D2D1CreateFactory` in a renderer) makes `EndDraw` fail with `D2DERR_WRONG_FACTORY` and the whole frame silently never presents (canvas stays on a stale frame — no exception surfaces to the user). Correct pattern: `ctx.Factory.CreateStrokeStyle(props)` / `ctx2.CreateInkStyle(props)`
+- **Cached-background overlay on transparent canvases**: `DrawBitmap(cachedBackground)` is premultiplied blending, NOT overwrite — on a transparent clear color (screen annotation passthrough) the previous frame's overlay bleeds through and accumulates (replace-style previews like shapes leave trailing trails). Any code path that "restores background then draws overlay" must `ctx.Clear(_clearColor)` first when `_clearColor.A < 1.0f` (append-style previews like pen strokes hide this bug because old frames are a subset of the new frame)
 
 ---
 

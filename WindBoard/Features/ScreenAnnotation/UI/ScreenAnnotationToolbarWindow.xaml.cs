@@ -71,7 +71,35 @@ namespace WindBoard.Features.ScreenAnnotation.UI
                 });
             Activated += OnWindowActivated;
             Closed += OnWindowClosed;
+
+            // 形状图标描边同步：初始（Loaded）与选中切换（SetSelectedMode）两路触发。
+            ShapeButton.Loaded += (_, _) => UpdateShapeIconStroke();
         }
+
+        /// <summary>
+        /// 同步形状工具图标的描边笔刷（自绘 Path 不像 FontIcon 经内容前景继承跟随选中视觉状态）。
+        /// </summary>
+        /// <remarks>
+        /// 工具栏为恒亮主题（根 Grid RequestedTheme=Light）：非选中=BaseHigh（黑），选中=纯白。
+        /// 与主白板 <c>MainWindow.UpdateShapeIconStroke</c> 同构；触发点：ShapeButton.Loaded 与
+        /// <see cref="SetSelectedMode"/>（选中切换）。
+        /// </remarks>
+        private void UpdateShapeIconStroke()
+        {
+            bool isChecked = ShapeButton.IsChecked == true;
+            bool isLightTheme = ShapeButton.ActualTheme == ElementTheme.Light;
+            ShapeIconPath.Stroke = isChecked
+                ? ShapeIconStrokeCheckedBrush
+                : isLightTheme
+                    ? ShapeIconStrokeUncheckedLightThemeBrush
+                    : ShapeIconStrokeUncheckedDarkThemeBrush;
+        }
+
+        private static readonly SolidColorBrush ShapeIconStrokeCheckedBrush = new(Microsoft.UI.Colors.White);
+
+        // BaseHigh 的主题值：亮主题=黑（90% 不透明），暗主题=白（100%）。工具栏恒亮，实际恒取亮值。
+        private static readonly SolidColorBrush ShapeIconStrokeUncheckedLightThemeBrush = new(Color.FromArgb(0xE6, 0, 0, 0));
+        private static readonly SolidColorBrush ShapeIconStrokeUncheckedDarkThemeBrush = new(Color.FromArgb(0xFF, 255, 255, 255));
 
         internal event EventHandler<ScreenAnnotationMode>? ModeRequested;
 
@@ -92,6 +120,7 @@ namespace WindBoard.Features.ScreenAnnotation.UI
             PenButton.IsChecked = mode == ScreenAnnotationMode.Pen;
             EraserButton.IsChecked = mode == ScreenAnnotationMode.Eraser;
             ShapeButton.IsChecked = mode.IsShapeMode();
+            UpdateShapeIconStroke();
 
             // 记录最近一次使用的形状模式，供形状按钮下次一键回到该形状。
             if (mode.IsShapeMode())

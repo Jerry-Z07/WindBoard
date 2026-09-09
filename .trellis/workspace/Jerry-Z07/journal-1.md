@@ -464,7 +464,13 @@ DevWinUI 在主工程的唯一使用点（更新结果弹窗的 WindowedContentD
 ### Gotchas（已沉淀 spec）
 
 - **D2D 跨工厂资源**：描边样式用自建工厂创建 → `EndDraw` 返回 `D2DERR_WRONG_FACTORY`，整帧静默不呈现（形状全灭、笔迹因走 Ink 主路径幸免）→ backend/quality-guidelines Forbidden Patterns
-- **自绘图标前景**：Path 不像 FontIcon 经文本前景链跟随选中视觉状态，需代码三触发点同步（Loaded/ActualThemeChanged/选中切换）；`ActualTheme` 在 x:Bind 初始求值时未解析（返回 Dark）→ frontend/component-guidelines Common Mistakes
+- **D2D 透明画布缓存背景**：`DrawBitmap(cached)` 是预乘叠加非覆盖——批注层透明清屏色下替换型预览（形状）逐帧残影叠加成同心圆轨迹；叠加型预览（笔迹追加）掩盖此 bug → 需 `_clearColor.A < 1` 时先 `Clear` → backend/quality-guidelines Forbidden Patterns
+- **自绘图标前景**：Path 不像 FontIcon 经文本前景链跟随选中视觉状态，需代码触发点同步（Loaded/ActualThemeChanged/选中切换）；`ActualTheme` 在 x:Bind 初始求值时未解析（返回 Dark）；批注工具栏恒亮主题同构实现 → frontend/component-guidelines Common Mistakes
+
+### 验收后修复记录（用户批注层反馈，2026-09-09）
+
+- 批注工具栏形状图标未同步主白板更改（仍为 E714）→ 换自绘同款 + 选中态跟随
+- 批注层形状绘制预览残影（同心圆轨迹）→ 渲染器两条缓存背景路径透明背景下先 Clear
 
 ### Status
 

@@ -322,8 +322,19 @@
                             </Flyout>
                         </FlyoutBase.AttachedFlyout>
 
-                        <!-- 图标字体：E714 = Shapes -->
-                        <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" Glyph="&#xE714;" />
+                        <!-- 自绘“形状组合”图标（与主白板工具栏同款）：Segoe Fluent Icons 无 Shapes 语义图标（E714 实为 Video）。
+                             工具栏为恒亮主题，非选中描边即 BaseHigh（黑），选中白由代码切换。 -->
+                        <Path
+                            x:Name="ShapeIconPath"
+                            Width="20"
+                            Height="20"
+                            HorizontalAlignment="Center"
+                            Data="M10.5,1.5 H18.5 V9.5 H10.5 Z M1.5,14.5 A4,4 0 1 1 9.5,14.5 A4,4 0 1 1 1.5,14.5 Z"
+                            Stroke="{ThemeResource SystemControlForegroundBaseHighBrush}"
+                            StrokeThickness="1.7"
+                            StrokeStartLineCap="Round"
+                            StrokeEndLineCap="Round"
+                            StrokeLineJoin="Round" />
                     </ToggleButton>
 
                     <Button

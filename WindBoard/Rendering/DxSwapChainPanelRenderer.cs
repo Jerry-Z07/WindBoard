@@ -211,6 +211,14 @@ namespace WindBoard.Rendering
                 ctx.Transform = Matrix3x2.Identity;
 
                 ctx.PushAxisAlignedClip(clipDip, AntialiasMode.Aliased);
+                // 透明/半透明背景（如屏幕批注穿透桌面）：DrawBitmap 是预乘叠加而非覆盖，
+                // 透明区域会保留上一帧内容（形状预览为整体几何替换，逐帧叠加即残影轨迹）。
+                // 先清除裁剪区恢复干净底再叠加缓存背景与 overlay；不透明背景跳过（保持免 Clear 优化）。
+                if (_clearColor.A < 1.0f)
+                {
+                    ctx.Clear(_clearColor);
+                }
+
                 ctx.DrawBitmap(_cachedBackgroundBitmap, 1.0f, BitmapInterpolationMode.Linear);
                 drawOverlay(ctx);
                 ctx.PopAxisAlignedClip();
@@ -276,7 +284,13 @@ namespace WindBoard.Rendering
                 ctx.BeginDraw();
                 ctx.Transform = Matrix3x2.Identity;
 
-                // 背景缓存是全屏不透明（白底），这里无需 Clear，减少一次全屏填充。
+                // 背景缓存不透明时 DrawBitmap 直接覆盖前台（无需 Clear，减少一次全屏填充）；
+                // 透明/半透明背景（屏幕批注穿透桌面）则必须先 Clear，否则上一帧 overlay 经预乘叠加残留。
+                if (_clearColor.A < 1.0f)
+                {
+                    ctx.Clear(_clearColor);
+                }
+
                 ctx.DrawBitmap(_cachedBackgroundBitmap, 1.0f, BitmapInterpolationMode.Linear);
                 drawOverlay(ctx);
 
