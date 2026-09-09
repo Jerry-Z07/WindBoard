@@ -1,0 +1,1 @@
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "检查构建配置改动是否符合代码质量规范，NoWarn 压制是否带注释理由"}

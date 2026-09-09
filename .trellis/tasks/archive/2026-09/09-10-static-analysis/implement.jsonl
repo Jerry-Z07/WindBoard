@@ -1,0 +1,2 @@
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "P0 涉及全解决方案构建配置，需遵循代码质量标准与禁止模式约定"}
+{"file": ".trellis/spec/guides/code-reuse-thinking-guide.md", "reason": "修改 Directory.Build.props 配置项，按规范须先检索既有配置避免重复"}
