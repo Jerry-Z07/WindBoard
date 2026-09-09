@@ -5,6 +5,7 @@ using System.IO.Compression;
 using System.Runtime.InteropServices.WindowsRuntime;
 using System.Text.Json;
 using System.Threading.Tasks;
+using WindBoard.Board;
 using WindBoard.Board.Elements;
 using WindBoard.Features.Import.Wbi;
 using Windows.Foundation;
@@ -311,8 +312,8 @@ public sealed class WbiWorkspaceImporterTests : IDisposable
 
         Assert.True(result.Success);
         Assert.Single(result.Pages);
-        Assert.True(result.Pages[0].Session.Document.Strokes.Count > 0);
-        Assert.True(result.Pages[0].Session.Document.Strokes[0].Points.Count >= 2);
+        Assert.True(result.Pages[0].Session.Document.InkItems.Count > 0);
+        Assert.True(((Stroke)result.Pages[0].Session.Document.InkItems[0]).Points.Count >= 2);
     }
 
     private static async Task<byte[]> CreateIsfBytesAsync()

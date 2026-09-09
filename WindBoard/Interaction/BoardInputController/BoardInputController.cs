@@ -6,10 +6,10 @@ using Microsoft.UI.Input;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
 using WindBoard.Board;
-using WindBoard.Board.Commands;
 using WindBoard.Board.Editing;
 using WindBoard.Board.Elements;
 using WindBoard.Board.Viewport;
+using WindBoard.Interaction.Tools;
 using Vortice.Mathematics;
 
 namespace WindBoard.Interaction
@@ -18,23 +18,29 @@ namespace WindBoard.Interaction
     {
         private const int WheelZoomIdleTimeoutMs = 150;
         private const int WheelZoomTimerIntervalMs = 50;
-        private const float DirtyRectExtraDip = 2.0f;
-        private const float SelectHitToleranceDip = 8.0f;
-        private const float MarqueeClickThresholdDip = 6.0f;
 
         /// <summary>
         /// 橡皮擦半径（DIP）：X/Y 分量分别表示水平/垂直半径。
-        /// 
-        /// 说明：
-        /// - 该值需要与擦除光标的视觉尺寸保持一致，避免出现“擦除范围与光标不一致”。
-        /// - 默认值与当前 SVG 光标（48×72 DIP）对齐：半径为 (24, 36)。
         /// </summary>
-        public Vector2 EraserRadiusDip { get; set; } = new(24.0f, 36.0f);
+        /// <remarks>
+        /// 该值需要与擦除光标的视觉尺寸保持一致（由控件从光标尺寸同步），经 <see cref="EraserTool"/> 消费。
+        /// </remarks>
+        public Vector2 EraserRadiusDip
+        {
+            get => _eraserTool.RadiusDip;
+            set => _eraserTool.RadiusDip = value;
+        }
 
         private readonly SwapChainPanel _panel;
         private readonly BoardSession _session;
         private readonly BoardViewport _viewport;
-        private IBoardEraser _eraser;
+
+        // 工具策略化（design B）：工具经注册表解析，运行态由各工具对象内聚；
+        // 控制器只负责指针事件路由、活动 pointerId 跟踪与工具调度。
+        private readonly BoardInputContext _context;
+        private readonly BoardToolRegistry _toolRegistry = new();
+        private readonly EraserTool _eraserTool;
+        private readonly SelectTool _selectTool;
 
         private uint? _activePointerId;
         private uint? _panPointerId;
@@ -42,8 +48,6 @@ namespace WindBoard.Interaction
         private uint? _marqueePointerId;
         private Vector2 _lastPanScreen = Vector2.Zero;
         private Vector2 _lastSelectionScreen = Vector2.Zero;
-        private Vector2 _marqueeStartScreen = Vector2.Zero;
-        private Vector2 _marqueeCurrentScreen = Vector2.Zero;
         private PointerDeviceType? _activeStrokeDeviceType;
         private readonly HashSet<uint> _activeTouchPointers = new();
         private bool _isManipulating;
@@ -55,35 +59,6 @@ namespace WindBoard.Interaction
         private DateTimeOffset _lastWheelZoomAt;
         private DispatcherQueueTimer? _wheelZoomTimer;
         private Vector2 _pendingPanScreenDelta = Vector2.Zero;
-        private Rect? _pendingStrokeDirtyRect;
-        private bool _isErasing;
-        private Vector2? _lastEraserWorld;
-        private List<Stroke>? _eraseBeforeSnapshot;
-
-        // 选择工具：支持“单笔迹”与“多笔迹框选”两种形态。
-        // 约定：框选命中多个笔迹时，把它们视为一个整体进行移动/缩放/旋转等操作。
-        private readonly List<Stroke> _selectedStrokes = new();
-        private BoardElement? _selectedElement;
-
-        // 选择变换：对“选中的笔迹集合”做快照，提交时写入撤销记录。
-        private List<StrokeTransformSnapshot>? _selectionStrokeBeforeSnapshots;
-        private BoardElement? _selectionTransformElement;
-        private Vector2? _selectionElementBeforePositionWorld;
-        private Vector2? _selectionElementBeforeSizeWorld;
-        private bool _selectionModified;
-
-        private sealed class StrokeTransformSnapshot
-        {
-            public StrokeTransformSnapshot(Stroke stroke)
-            {
-                Stroke = stroke ?? throw new ArgumentNullException(nameof(stroke));
-                BeforePoints = new List<StrokePoint>(stroke.Points);
-            }
-
-            public Stroke Stroke { get; }
-
-            public List<StrokePoint> BeforePoints { get; }
-        }
 
         private enum TouchManipulationTarget
         {
@@ -98,26 +73,55 @@ namespace WindBoard.Interaction
             _panel = panel;
             _session = session;
             _viewport = viewport;
-            // 默认使用“像素级擦除”（局部擦除），更符合常见橡皮擦体验。
-            _eraser = eraser ?? new PixelStrokeEraser();
+
+            // 工具上下文与注册表：随控制器生命周期创建。
+            // 注册动作发生在画布初始化时序内（控制器由 BoardCanvasControl 创建），
+            // 集中在构造函数注册内置工具可避免多处创建点遗漏注册导致工具静默失效。
+            _context = new BoardInputContext(viewport, session);
+            _context.FrameInvalidated += () => FrameInvalidated?.Invoke();
+            _toolRegistry.Register(new PenTool());
+            _eraserTool = new EraserTool(eraser);
+            _toolRegistry.Register(_eraserTool);
+            _selectTool = new SelectTool(_context);
+            _toolRegistry.Register(_selectTool);
+            _selectTool.SelectionChanged += () =>
+            {
+                FrameInvalidated?.Invoke();
+                StateChanged?.Invoke();
+            };
         }
 
-        public BoardTool Tool { get; set; } = BoardTool.Pen;
+        /// <summary>
+        /// 绘制参数（工具/颜色/粗细/压感），转发到 <see cref="BoardInputContext"/>。
+        /// </summary>
+        /// <remarks>
+        /// 参数仅影响后续新建笔迹：工具在 Begin 时读取一次值拷贝快照，Move 不重读。
+        /// </remarks>
+        public ToolOptions ToolOptions
+        {
+            get => _context.ToolOptions;
+            set => _context.ToolOptions = value;
+        }
+
+        /// <summary>当前工具（<see cref="ToolOptions"/> 的便捷读写口，语义不变）。</summary>
+        public BoardTool Tool
+        {
+            get => _context.ToolOptions.Tool;
+            set => _context.ToolOptions = _context.ToolOptions with { Tool = value };
+        }
 
         /// <summary>
-        /// 画笔颜色（仅影响后续新建笔迹）。
+        /// 解析当前活动会话应使用的工具 id（注册表查询前的统一入口）。
         /// </summary>
-        public Color4 PenColor { get; set; } = new(0, 0, 0, 1);
-
-        /// <summary>
-        /// 画笔粗细（世界坐标下的“笔迹直径”，仅影响后续新建笔迹）。
-        /// </summary>
-        public float PenBaseSize { get; set; } = 3.0f;
-
-        /// <summary>
-        /// 是否启用压感（会影响笔迹宽度随压力变化），仅影响后续新建笔迹。
-        /// </summary>
-        public bool PenEnablePressure { get; set; } = true;
+        /// <remarks>
+        /// 既有回退行为：Select 工具在"禁用选择"场景按画笔处理。按下/移动/提交/取消
+        /// 四条调度路径统一经此解析，保证"Select 回退画笔"在会话全程一致（否则
+        /// Begin 以画笔建立、Commit 却解析到 SelectTool，笔迹会被静默丢弃）。
+        /// </remarks>
+        private BoardTool ResolveActiveToolId()
+        {
+            return Tool == BoardTool.Select ? BoardTool.Pen : Tool;
+        }
 
         /// <summary>
         /// 是否允许视口类交互（右键平移、滚轮缩放、双指拖动/捏合）。
@@ -146,38 +150,49 @@ namespace WindBoard.Interaction
             set => _allowSelectionInteractions = value;
         }
 
+        /// <summary>
+        /// 擦除策略（整笔/像素擦除），转发到 <see cref="EraserTool"/>。
+        /// </summary>
         public IBoardEraser Eraser
         {
-            get => _eraser;
-            set => _eraser = value ?? throw new ArgumentNullException(nameof(value));
+            get => _eraserTool.Eraser;
+            set => _eraserTool.Eraser = value;
         }
 
-        public Stroke? ActiveStroke { get; private set; }
+        /// <summary>
+        /// 当前活动笔迹（画笔工具的预览条目）。
+        /// </summary>
+        /// <remarks>
+        /// 预览条目由 <see cref="PenTool"/> 内聚维护，经 <see cref="BoardInputContext.PreviewItem"/>
+        /// 挂载点暴露；此属性保持原公开语义（渲染层/控件读取），避免调用点改动。
+        /// </remarks>
+        public Stroke? ActiveStroke => _context.PreviewItem as Stroke;
 
         /// <summary>
         /// 当前选中的笔迹（选择工具）。
         /// </summary>
         /// <remarks>
         /// 兼容单选场景：当且仅当选中一条笔迹时返回该笔迹；多选时返回 null。
-        /// 多选请使用 <see cref="SelectedStrokes"/>。
+        /// 多选请使用 <see cref="SelectedStrokes"/>。选中集由 <see cref="SelectTool"/> 内聚维护。
         /// </remarks>
-        public Stroke? SelectedStroke => _selectedStrokes.Count == 1 ? _selectedStrokes[0] : null;
+        public Stroke? SelectedStroke => _selectTool.SelectedStroke;
 
         /// <summary>
         /// 当前选中的笔迹集合（选择工具）。
         /// </summary>
-        public IReadOnlyList<Stroke> SelectedStrokes => _selectedStrokes;
+        public IReadOnlyList<Stroke> SelectedStrokes => _selectTool.SelectedStrokes;
 
         /// <summary>
         /// 当前选中的元素（选择工具）。
         /// </summary>
-        public BoardElement? SelectedElement => _selectedElement;
+        public BoardElement? SelectedElement => _selectTool.SelectedElement;
 
-        public bool IsErasing => _isErasing;
+        /// <summary>是否正在进行擦除（转发到 <see cref="EraserTool"/> 运行态）。</summary>
+        public bool IsErasing => _eraserTool.IsErasing;
 
         public bool IsWheelZooming => _isWheelZooming;
 
-        private bool HasActiveToolInteraction => ActiveStroke is not null || _isErasing;
+        private bool HasActiveToolInteraction => ActiveStroke is not null || _eraserTool.IsErasing;
 
         private bool HasPointerGesture => _panPointerId is not null || _selectionPointerId is not null || _marqueePointerId is not null;
 
@@ -189,16 +204,10 @@ namespace WindBoard.Interaction
 
         public bool IsContinuousSelectionInteraction => HasSelectionGesture;
 
+        /// <summary>渲染层读取框选矩形（转发到 <see cref="SelectTool"/>）。</summary>
         public bool TryGetSelectionMarqueeRectDip(out Rect marqueeRectDip)
         {
-            if (_marqueePointerId is null)
-            {
-                marqueeRectDip = default;
-                return false;
-            }
-
-            marqueeRectDip = CreateRectFromTwoPoints(_marqueeStartScreen, _marqueeCurrentScreen);
-            return true;
+            return _selectTool.TryGetMarqueeRectDip(out marqueeRectDip);
         }
 
         public Vector2 ConsumePanScreenDelta()
@@ -210,15 +219,7 @@ namespace WindBoard.Interaction
 
         public bool TryConsumeStrokeDirtyRect(out Rect dirtyRectDip)
         {
-            if (_pendingStrokeDirtyRect is Rect rect)
-            {
-                _pendingStrokeDirtyRect = null;
-                dirtyRectDip = rect;
-                return true;
-            }
-
-            dirtyRectDip = default;
-            return false;
+            return _context.TryConsumeStrokeDirtyRect(out dirtyRectDip);
         }
 
         /// <summary>
@@ -226,64 +227,27 @@ namespace WindBoard.Interaction
         /// </summary>
         public void ValidateSelection()
         {
-            if (_selectedStrokes.Count > 0)
-            {
-                // 选择笔迹集合：按文档当前顺序重新归一化，避免撤销/重做或重排后出现“顺序错乱/包含失效对象”。
-                var set = new HashSet<Stroke>(_selectedStrokes);
-                var normalized = new List<Stroke>(_selectedStrokes.Count);
-                for (int i = 0; i < _session.Document.Strokes.Count; i++)
-                {
-                    Stroke s = _session.Document.Strokes[i];
-                    if (set.Contains(s))
-                    {
-                        normalized.Add(s);
-                    }
-                }
-
-                if (IsSameStrokeList(_selectedStrokes, normalized))
-                {
-                    return;
-                }
-
-                _selectedStrokes.Clear();
-                _selectedStrokes.AddRange(normalized);
-                FrameInvalidated?.Invoke();
-                StateChanged?.Invoke();
-                return;
-            }
-
-            if (_selectedElement is BoardElement element)
-            {
-                if (_session.Document.ElementsAboveInk.Contains(element) || _session.Document.ElementsBelowInk.Contains(element))
-                {
-                    return;
-                }
-
-                _selectedElement = null;
-                FrameInvalidated?.Invoke();
-                StateChanged?.Invoke();
-            }
+            _selectTool.ValidateSelection();
         }
 
         public void ClearSelection()
         {
-            SetSelectedStroke(null);
-            SetSelectedElement(null);
+            _selectTool.ClearSelection();
         }
 
         public void SetSelection(Stroke? stroke)
         {
-            SetSelectedStroke(stroke);
+            _selectTool.SetSelection(stroke);
         }
 
         public void SetSelectionStrokes(IReadOnlyList<Stroke>? strokes)
         {
-            SetSelectedStrokes(strokes);
+            _selectTool.SetSelectionStrokes(strokes);
         }
 
         public void SetSelection(BoardElement? element)
         {
-            SetSelectedElement(element);
+            _selectTool.SetSelection(element);
         }
 
         public event Action? StateChanged;

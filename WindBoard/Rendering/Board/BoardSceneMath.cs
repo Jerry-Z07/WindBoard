@@ -1,6 +1,8 @@
 using System;
 using System.Numerics;
+using Vortice.Mathematics;
 using WindBoard.Board;
+using WindBoard.Board.Items;
 
 namespace WindBoard.Rendering.Board
 {
@@ -31,6 +33,39 @@ namespace WindBoard.Rendering.Board
         internal static float GetStrokeWidthFactor(float normalizedPressure)
         {
             return Math.Clamp(normalizedPressure, 0.1f, 1.0f);
+        }
+
+        /// <summary>
+        /// 判断笔迹层条目是否与可见区域相交（按条目类型单点分发的可见性入口）。
+        /// </summary>
+        /// <remarks>
+        /// 折线笔迹（Stroke）沿用既有折线可见性算法；其它条目类型走通用 Bounds 路径，
+        /// 后续形状类型接入时无需改动调用方。
+        /// </remarks>
+        internal static bool IsInkItemVisible(IBoardInkItem item, Vector2 visibleMinWorld, Vector2 visibleMaxWorld)
+        {
+            switch (item)
+            {
+                case Stroke stroke:
+                    return IsStrokeVisible(stroke, visibleMinWorld, visibleMaxWorld);
+
+                default:
+                {
+                    // 通用路径：按条目世界包围盒（AABB）判断。
+                    // 无有效包围盒（空矩形，宽高均为 0）时默认可见，避免误删绘制。
+                    Rect bounds = item.BoundsWorld;
+                    if (bounds.Width <= 0.0f && bounds.Height <= 0.0f)
+                    {
+                        return true;
+                    }
+
+                    return IntersectsAabb(
+                        new Vector2(bounds.Left, bounds.Top),
+                        new Vector2(bounds.Right, bounds.Bottom),
+                        visibleMinWorld,
+                        visibleMaxWorld);
+                }
+            }
         }
 
         internal static bool IsStrokeVisible(Stroke stroke, Vector2 visibleMinWorld, Vector2 visibleMaxWorld)

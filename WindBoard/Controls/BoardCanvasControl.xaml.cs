@@ -29,12 +29,12 @@ namespace WindBoard.Controls
         private readonly BoardViewport _viewport = new();
         private readonly BoardSceneRenderer _sceneRenderer = new();
         private BoardInputController? _input;
-        private BoardTool _tool = BoardTool.Pen;
+        // 绘制参数（design C 节）：工具/颜色/粗细/压感收敛为单一值对象，替代逐跳属性复制链。
+        private ToolOptions _toolOptions = new(
+            BoardTool.Pen, new Color4(0f, 0f, 0f, 1f), 3.0f, true);
         // 默认使用“像素级擦除”（局部擦除），用户可在 UI 中切换为整笔擦除。
         private IBoardEraser _eraser = new PixelStrokeEraser();
         private UiColor _canvasBackgroundColor = UiColor.FromArgb(0xFF, 0x2E, 0x2F, 0x33);
-        private UiColor _penColor = UiColor.FromArgb(0xFF, 0x00, 0x00, 0x00);
-        private float _penBaseSize = 3.0f;
         private bool _allowViewportManipulation = true;
         private bool _allowSelectionInteraction = true;
         private ElementCardTheme _elementCardTheme = ElementCardTheme.Dark;
@@ -113,17 +113,20 @@ namespace WindBoard.Controls
             }
         }
 
+        /// <summary>
+        /// 当前工具（<see cref="ToolOptions"/> 的便捷读写口，沿用现有 UI 调用习惯）。
+        /// </summary>
         internal BoardTool Tool
         {
-            get => _tool;
+            get => _toolOptions.Tool;
             set
             {
-                if (_tool == value)
+                if (_toolOptions.Tool == value)
                 {
                     return;
                 }
 
-                BoardTool previousTool = _tool;
+                BoardTool previousTool = _toolOptions.Tool;
 
                 // 切换工具前结束当前动作，避免遗留捕获/状态。
                 _input?.CancelActiveToolOperation();
@@ -134,11 +137,11 @@ namespace WindBoard.Controls
                     _input?.ClearSelection();
                 }
 
-                _tool = value;
+                _toolOptions = _toolOptions with { Tool = value };
 
                 if (_input is not null)
                 {
-                    _input.Tool = _tool;
+                    _input.ToolOptions = _toolOptions;
                 }
 
                 RaiseCommandStateChanged();
@@ -148,45 +151,29 @@ namespace WindBoard.Controls
         }
 
         /// <summary>
-        /// 当前画笔颜色（仅影响后续新建笔迹）。
+        /// 绘制参数（工具/颜色/粗细/压感）。
         /// </summary>
-        internal UiColor PenColor
+        /// <remarks>
+        /// - Tool 分量变化沿用原 Tool 切换语义（结束当前动作/清除选择/通知 UI）；
+        ///   颜色/粗细/压感分量变化仅做值同步（仅影响后续新建笔迹），不触碰活动会话；
+        /// - 不做整体相等短路：record struct 相等含 Color4 浮点位级比较，
+        ///   不应作为副作用同步的依据（值同步本身无副作用，可安全重复执行）。
+        /// </remarks>
+        internal ToolOptions ToolOptions
         {
-            get => _penColor;
+            get => _toolOptions;
             set
             {
-                if (_penColor == value)
+                if (_toolOptions.Tool != value.Tool)
                 {
-                    return;
+                    Tool = value.Tool;
                 }
 
-                _penColor = value;
+                _toolOptions = value;
 
                 if (_input is not null)
                 {
-                    _input.PenColor = ToColor4(_penColor);
-                }
-            }
-        }
-
-        /// <summary>
-        /// 当前画笔粗细（世界坐标下的“笔迹直径”，仅影响后续新建笔迹）。
-        /// </summary>
-        internal float PenBaseSize
-        {
-            get => _penBaseSize;
-            set
-            {
-                if (_penBaseSize.Equals(value))
-                {
-                    return;
-                }
-
-                _penBaseSize = value;
-
-                if (_input is not null)
-                {
-                    _input.PenBaseSize = _penBaseSize;
+                    _input.ToolOptions = _toolOptions;
                 }
             }
         }
@@ -274,9 +261,7 @@ namespace WindBoard.Controls
 
             _input = new BoardInputController(CanvasPanel, _session, _viewport, _eraser)
             {
-                Tool = _tool,
-                PenColor = ToColor4(_penColor),
-                PenBaseSize = _penBaseSize,
+                ToolOptions = _toolOptions,
                 Eraser = _eraser,
                 EraserRadiusDip = GetEraserRadiusDipFromCursor(),
                 AllowViewportManipulation = _allowViewportManipulation,
@@ -361,9 +346,7 @@ namespace WindBoard.Controls
             _sceneRenderer.ElementCardTheme = _elementCardTheme;
 
             _input = new BoardInputController(CanvasPanel, _session, _viewport, _eraser);
-            _input.Tool = _tool;
-            _input.PenColor = ToColor4(_penColor);
-            _input.PenBaseSize = _penBaseSize;
+            _input.ToolOptions = _toolOptions;
             _input.Eraser = _eraser;
             _input.EraserRadiusDip = GetEraserRadiusDipFromCursor();
             _input.AllowViewportManipulation = _allowViewportManipulation;
@@ -434,13 +417,24 @@ namespace WindBoard.Controls
             _renderer.InvalidateCachedBackground();
         }
 
-        private static Color4 ToColor4(UiColor color)
+        /// <summary>Windows.UI.Color → Color4（UI 侧组合 ToolOptions 时复用）。</summary>
+        internal static Color4 ToColor4(UiColor color)
         {
             return new Color4(
                 color.R / 255.0f,
                 color.G / 255.0f,
                 color.B / 255.0f,
                 color.A / 255.0f);
+        }
+
+        /// <summary>Color4 → Windows.UI.Color（UI 侧读取 ToolOptions 做同步时复用；与 ToColor4 精确互逆）。</summary>
+        internal static UiColor ToUiColor(Color4 color)
+        {
+            return UiColor.FromArgb(
+                (byte)Math.Round(color.A * 255f),
+                (byte)Math.Round(color.R * 255f),
+                (byte)Math.Round(color.G * 255f),
+                (byte)Math.Round(color.B * 255f));
         }
 
         private void OnXamlRootChanged(Microsoft.UI.Xaml.XamlRoot sender, XamlRootChangedEventArgs args)

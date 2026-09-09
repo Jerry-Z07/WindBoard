@@ -1,15 +1,54 @@
 using System;
 using System.Numerics;
+using WindBoard.Board.Items;
+using Vortice.Mathematics;
 
 namespace WindBoard.Board.Editing
 {
     /// <summary>
-    /// 与“笔迹/橡皮擦”相关的命中检测算法（纯计算逻辑，便于单元测试与后续扩展）。
+    /// 绘制条目的“橡皮擦轨迹线段”命中检测（按条目类型单点分发，纯计算逻辑）。
     /// </summary>
-    internal static class StrokeHitTest
+    /// <remarks>
+    /// 由原 <c>StrokeHitTest</c> 泛化而来：折线笔迹的线段距离算法保留为 Stroke 分支，
+    /// 其它条目类型走“世界包围盒 + 擦除轨迹 AABB 相交”的通用保守路径。
+    /// </remarks>
+    internal static class InkItemHitTest
     {
         /// <summary>
-        /// 判断某条笔迹是否被“橡皮擦轨迹线段”命中。
+        /// 判断某个绘制条目是否被“橡皮擦轨迹线段”命中（按条目类型分发）。
+        /// </summary>
+        internal static bool IsInkItemHitByEraserSegment(IBoardInkItem item, Vector2 eraserFromWorld, Vector2 eraserToWorld, Vector2 eraserRadiusWorld)
+        {
+            if (item is null)
+            {
+                throw new ArgumentNullException(nameof(item));
+            }
+
+            switch (item)
+            {
+                case Stroke stroke:
+                    return IsStrokeHitByEraserSegment(stroke, eraserFromWorld, eraserToWorld, eraserRadiusWorld);
+
+                default:
+                {
+                    // 通用路径（用于“整笔删除”擦除语义）：
+                    // 条目无有效包围盒时不命中；否则用擦除轨迹的 AABB（扩展半径）与条目包围盒做保守相交判断。
+                    Rect bounds = item.BoundsWorld;
+                    if (bounds.Width <= 0.0f && bounds.Height <= 0.0f)
+                    {
+                        return false;
+                    }
+
+                    Vector2 itemMin = new(bounds.Left, bounds.Top);
+                    Vector2 itemMax = new(bounds.Right, bounds.Bottom);
+                    GetEraserSegmentAabb(eraserFromWorld, eraserToWorld, eraserRadiusWorld, out Vector2 eraserMin, out Vector2 eraserMax);
+                    return IntersectsAabb(itemMin, itemMax, eraserMin, eraserMax);
+                }
+            }
+        }
+
+        /// <summary>
+        /// 判断某条折线笔迹是否被“橡皮擦轨迹线段”命中（Stroke 分支，折线算法原样保留）。
         /// </summary>
         internal static bool IsStrokeHitByEraserSegment(Stroke stroke, Vector2 eraserFromWorld, Vector2 eraserToWorld, Vector2 eraserRadiusWorld)
         {
@@ -21,13 +60,7 @@ namespace WindBoard.Board.Editing
             // 快速过滤：若笔迹有 Bounds，则只需判断橡皮擦的 AABB（扩展半径）是否与笔迹 AABB 相交。
             if (stroke.HasBounds)
             {
-                Vector2 eraserMin = new(
-                    Math.Min(eraserFromWorld.X, eraserToWorld.X) - eraserRadiusWorld.X,
-                    Math.Min(eraserFromWorld.Y, eraserToWorld.Y) - eraserRadiusWorld.Y);
-
-                Vector2 eraserMax = new(
-                    Math.Max(eraserFromWorld.X, eraserToWorld.X) + eraserRadiusWorld.X,
-                    Math.Max(eraserFromWorld.Y, eraserToWorld.Y) + eraserRadiusWorld.Y);
+                GetEraserSegmentAabb(eraserFromWorld, eraserToWorld, eraserRadiusWorld, out Vector2 eraserMin, out Vector2 eraserMax);
 
                 if (!IntersectsAabb(stroke.BoundsMin, stroke.BoundsMax, eraserMin, eraserMax))
                 {
@@ -82,6 +115,20 @@ namespace WindBoard.Board.Editing
             }
 
             return false;
+        }
+
+        /// <summary>
+        /// 计算橡皮擦轨迹线段的 AABB（按 X/Y 半径向外扩展）。
+        /// </summary>
+        private static void GetEraserSegmentAabb(Vector2 eraserFromWorld, Vector2 eraserToWorld, Vector2 eraserRadiusWorld, out Vector2 eraserMin, out Vector2 eraserMax)
+        {
+            eraserMin = new Vector2(
+                Math.Min(eraserFromWorld.X, eraserToWorld.X) - eraserRadiusWorld.X,
+                Math.Min(eraserFromWorld.Y, eraserToWorld.Y) - eraserRadiusWorld.Y);
+
+            eraserMax = new Vector2(
+                Math.Max(eraserFromWorld.X, eraserToWorld.X) + eraserRadiusWorld.X,
+                Math.Max(eraserFromWorld.Y, eraserToWorld.Y) + eraserRadiusWorld.Y);
         }
 
         private static float GetHalfStrokeWidthWorld(Stroke stroke, float pressure0, float pressure1)

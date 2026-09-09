@@ -1,6 +1,8 @@
 using System.Numerics;
 using WindBoard.Board;
 using WindBoard.Board.Editing;
+using WindBoard.Board.Items;
+using Vortice.Mathematics;
 using Xunit;
 
 namespace WindBoard.Tests.Board.Editing;
@@ -21,8 +23,8 @@ public sealed class WholeStrokeEraserTests
             new Vector2(100.0f, 100.0f),
             new Vector2(110.0f, 100.0f));
 
-        document.Strokes.Add(hitStroke);
-        document.Strokes.Add(keepStroke);
+        document.InkItems.Add(hitStroke);
+        document.InkItems.Add(keepStroke);
 
         var eraser = new WholeStrokeEraser();
         bool changed = eraser.Erase(
@@ -32,8 +34,8 @@ public sealed class WholeStrokeEraserTests
             radiusWorld: Vector2.Zero);
 
         Assert.True(changed);
-        Assert.Single(document.Strokes);
-        Assert.Same(keepStroke, document.Strokes[0]);
+        Assert.Single(document.InkItems);
+        Assert.Same(keepStroke, document.InkItems[0]);
     }
 
     // 未命中时不会修改文档
@@ -46,7 +48,7 @@ public sealed class WholeStrokeEraserTests
             new Vector2(0.0f, 0.0f),
             new Vector2(10.0f, 0.0f));
 
-        document.Strokes.Add(stroke);
+        document.InkItems.Add(stroke);
 
         var eraser = new WholeStrokeEraser();
         bool changed = eraser.Erase(
@@ -56,8 +58,28 @@ public sealed class WholeStrokeEraserTests
             radiusWorld: new Vector2(1.0f, 1.0f));
 
         Assert.False(changed);
-        Assert.Single(document.Strokes);
-        Assert.Same(stroke, document.Strokes[0]);
+        Assert.Single(document.InkItems);
+        Assert.Same(stroke, document.InkItems[0]);
+    }
+
+    // 擦除路由按条目类型分流：非 Stroke 条目（不可分割）命中即整笔删除
+    [Fact]
+    public void Erase_RemovesNonStrokeItem_WhenHit()
+    {
+        var document = new BoardDocument();
+
+        var fake = new TestInkItem(Rect.FromLTRB(0.0f, 0.0f, 10.0f, 10.0f));
+        document.InkItems.Add(fake);
+
+        var eraser = new WholeStrokeEraser();
+        bool changed = eraser.Erase(
+            document,
+            fromWorld: new Vector2(5.0f, -5.0f),
+            toWorld: new Vector2(5.0f, 5.0f),
+            radiusWorld: Vector2.Zero);
+
+        Assert.True(changed);
+        Assert.Empty(document.InkItems);
     }
 
 }

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Numerics;
+using WindBoard.Board.Items;
 
 namespace WindBoard.Board.Editing
 {
@@ -42,32 +43,42 @@ namespace WindBoard.Board.Editing
 
         public bool Erase(BoardDocument document, Vector2 fromWorld, Vector2 toWorld, Vector2 radiusWorld)
         {
-            if (document.Strokes.Count == 0)
+            if (document.InkItems.Count == 0)
             {
                 return false;
             }
 
             bool changed = false;
-            var rebuilt = new List<Stroke>(document.Strokes.Count);
+            var rebuilt = new List<IBoardInkItem>(document.InkItems.Count);
 
-            foreach (Stroke stroke in document.Strokes)
+            foreach (IBoardInkItem item in document.InkItems)
             {
-                // 先用现有命中测试做快速过滤，避免对所有笔迹都做采样裁剪。
-                if (!StrokeHitTest.IsStrokeHitByEraserSegment(stroke, fromWorld, toWorld, radiusWorld))
+                // 命中判断按条目类型分发，先用它做快速过滤，避免对所有条目都做采样裁剪。
+                if (!InkItemHitTest.IsInkItemHitByEraserSegment(item, fromWorld, toWorld, radiusWorld))
                 {
-                    rebuilt.Add(stroke);
+                    rebuilt.Add(item);
                     continue;
                 }
 
-                List<Stroke> keptSegments = EraseSingleStroke(stroke, fromWorld, toWorld, radiusWorld);
-                if (keptSegments.Count == 1 && ReferenceEquals(keptSegments[0], stroke))
+                // 擦除路由按条目类型分流：
+                // - 折线笔迹可分割 → 像素级裁剪，生成若干保留段；
+                // - 其它条目（阶段二形状等）不可分割 → 命中即整笔删除。
+                if (item is Stroke stroke)
                 {
-                    rebuilt.Add(stroke);
-                    continue;
-                }
+                    List<Stroke> keptSegments = EraseSingleStroke(stroke, fromWorld, toWorld, radiusWorld);
+                    if (keptSegments.Count == 1 && ReferenceEquals(keptSegments[0], stroke))
+                    {
+                        rebuilt.Add(stroke);
+                        continue;
+                    }
 
-                changed = true;
-                rebuilt.AddRange(keptSegments);
+                    changed = true;
+                    rebuilt.AddRange(keptSegments);
+                }
+                else
+                {
+                    changed = true;
+                }
             }
 
             if (!changed)
@@ -75,8 +86,8 @@ namespace WindBoard.Board.Editing
                 return false;
             }
 
-            document.Strokes.Clear();
-            document.Strokes.AddRange(rebuilt);
+            document.InkItems.Clear();
+            document.InkItems.AddRange(rebuilt);
             return true;
         }
 

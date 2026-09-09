@@ -2,36 +2,38 @@ using System;
 using System.Collections.Generic;
 using System.Numerics;
 using WindBoard.Board;
+using WindBoard.Board.Items;
+using Vortice.Mathematics;
 
 namespace WindBoard.Board.Editing
 {
     /// <summary>
-    /// 笔迹“点选”命中测试（纯计算逻辑）。
+    /// 绘制条目“点选”命中测试（按条目类型单点分发，纯计算逻辑）。
     ///
     /// 设计目标：
     /// - 选择工具需要在“点击/触摸”位置命中最上层对象；
     /// - 逻辑独立于 UI/渲染，便于单元测试；
-    /// - 未来接入“导入内容/元素”时，可复用同样的模式扩展（例如新增 ElementPickTest）。
+    /// - 折线笔迹的折线段距离算法保留为 Stroke 分支，其它条目类型走 Bounds 通用路径。
     /// </summary>
-    internal static class StrokePickTest
+    internal static class InkItemPickTest
     {
         /// <summary>
-        /// 在给定世界坐标位置命中“最上层”笔迹（按列表顺序：越靠后越靠上）。
+        /// 在给定世界坐标位置命中“最上层”条目（按列表顺序：越靠后越靠上）。
         /// </summary>
-        internal static Stroke? HitTestTopMostStroke(IReadOnlyList<Stroke> strokes, Vector2 pointWorld, float toleranceWorld)
+        internal static IBoardInkItem? HitTestTopMostInkItem(IReadOnlyList<IBoardInkItem> items, Vector2 pointWorld, float toleranceWorld)
         {
-            if (strokes is null)
+            if (items is null)
             {
-                throw new ArgumentNullException(nameof(strokes));
+                throw new ArgumentNullException(nameof(items));
             }
 
-            // 反向遍历：后绘制的笔迹在视觉上更靠上，应优先被选中。
-            for (int i = strokes.Count - 1; i >= 0; i--)
+            // 反向遍历：后绘制的条目在视觉上更靠上，应优先被选中。
+            for (int i = items.Count - 1; i >= 0; i--)
             {
-                Stroke stroke = strokes[i];
-                if (IsStrokeHitByPoint(stroke, pointWorld, toleranceWorld))
+                IBoardInkItem item = items[i];
+                if (IsInkItemHitByPoint(item, pointWorld, toleranceWorld))
                 {
-                    return stroke;
+                    return item;
                 }
             }
 
@@ -39,7 +41,40 @@ namespace WindBoard.Board.Editing
         }
 
         /// <summary>
-        /// 判断某条笔迹是否被“点选”命中。
+        /// 判断某个绘制条目是否被“点选”命中（按条目类型分发）。
+        /// </summary>
+        internal static bool IsInkItemHitByPoint(IBoardInkItem item, Vector2 pointWorld, float toleranceWorld)
+        {
+            if (item is null)
+            {
+                throw new ArgumentNullException(nameof(item));
+            }
+
+            switch (item)
+            {
+                case Stroke stroke:
+                    return IsStrokeHitByPoint(stroke, pointWorld, toleranceWorld);
+
+                default:
+                {
+                    // 通用路径：条目世界包围盒 + 容差做 AABB 命中；无有效包围盒时不命中。
+                    Rect bounds = item.BoundsWorld;
+                    if (bounds.Width <= 0.0f && bounds.Height <= 0.0f)
+                    {
+                        return false;
+                    }
+
+                    float pad = Math.Max(0.0f, toleranceWorld);
+                    return pointWorld.X >= bounds.Left - pad
+                        && pointWorld.X <= bounds.Right + pad
+                        && pointWorld.Y >= bounds.Top - pad
+                        && pointWorld.Y <= bounds.Bottom + pad;
+                }
+            }
+        }
+
+        /// <summary>
+        /// 判断某条折线笔迹是否被“点选”命中（Stroke 分支，折线算法原样保留）。
         /// </summary>
         internal static bool IsStrokeHitByPoint(Stroke stroke, Vector2 pointWorld, float toleranceWorld)
         {
@@ -110,4 +145,3 @@ namespace WindBoard.Board.Editing
         }
     }
 }
-

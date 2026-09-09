@@ -136,7 +136,7 @@ namespace WindBoard.Controls
             }
 
             // 仅在“选择工具”下展示选择框与悬浮 Dock，避免干扰书写/擦除。
-            if (_tool == BoardTool.Select)
+            if (_toolOptions.Tool == BoardTool.Select)
             {
                 // 正在框选时：展示框选矩形，隐藏 Dock。
                  if (_input.TryGetSelectionMarqueeRectDip(out Rect marqueeRectDip))
@@ -198,7 +198,7 @@ namespace WindBoard.Controls
              }
 
              Matrix3x2 worldToScreen = _viewport.GetWorldToScreenTransform();
-             return StrokeScreenBounds.TryGetStrokesBoundsScreenDip(
+             return InkItemScreenBounds.TryGetInkItemsBoundsScreenDip(
                  selectedStrokes,
                  worldToScreen,
                  out strokeBoundsScreenDip);
@@ -311,7 +311,7 @@ namespace WindBoard.Controls
                  return false;
              }
 
-             int total = _session.Document.Strokes.Count;
+             int total = _session.Document.InkItems.Count;
              if (total <= 0 || selectedStrokes.Count > total)
              {
                  return false;
@@ -321,7 +321,7 @@ namespace WindBoard.Controls
              int start = total - selectedStrokes.Count;
              for (int i = 0; i < selectedStrokes.Count; i++)
              {
-                 if (!ReferenceEquals(_session.Document.Strokes[start + i], selectedStrokes[i]))
+                 if (!ReferenceEquals(_session.Document.InkItems[start + i], selectedStrokes[i]))
                  {
                      return false;
                  }

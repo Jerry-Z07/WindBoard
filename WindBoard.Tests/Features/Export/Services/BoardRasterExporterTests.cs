@@ -19,15 +19,18 @@ public sealed class BoardRasterExporterTests
             Id: Guid.NewGuid(),
             Strokes:
             [
-                new StrokeSnapshot(
-                    Points:
-                    [
-                        new StrokePointSnapshot(new Vector2(0.0f, 0.0f), 1.0f),
-                        new StrokePointSnapshot(new Vector2(200.0f, 0.0f), 1.0f),
-                    ],
-                    ColorRgba: new Vector4(0.0f, 0.0f, 0.0f, 1.0f),
-                    BaseSize: 12.0f,
-                    EnablePressure: false),
+                new InkItemSnapshot
+                {
+                    Stroke = new StrokeSnapshot(
+                        Points:
+                        [
+                            new StrokePointSnapshot(new Vector2(0.0f, 0.0f), 1.0f),
+                            new StrokePointSnapshot(new Vector2(200.0f, 0.0f), 1.0f),
+                        ],
+                        ColorRgba: new Vector4(0.0f, 0.0f, 0.0f, 1.0f),
+                        BaseSize: 12.0f,
+                        EnablePressure: false),
+                },
             ]);
 
         var options = new BoardRasterExportOptions(
@@ -69,15 +72,18 @@ public sealed class BoardRasterExporterTests
             Id: Guid.NewGuid(),
             Strokes:
             [
-                new StrokeSnapshot(
-                    Points:
-                    [
-                        new StrokePointSnapshot(new Vector2(0.0f, 0.0f), 1.0f),
-                        new StrokePointSnapshot(new Vector2(10.0f, 0.0f), 1.0f),
-                    ],
-                    ColorRgba: new Vector4(0.0f, 0.0f, 0.0f, 1.0f),
-                    BaseSize: 2.0f,
-                    EnablePressure: false),
+                new InkItemSnapshot
+                {
+                    Stroke = new StrokeSnapshot(
+                        Points:
+                        [
+                            new StrokePointSnapshot(new Vector2(0.0f, 0.0f), 1.0f),
+                            new StrokePointSnapshot(new Vector2(10.0f, 0.0f), 1.0f),
+                        ],
+                        ColorRgba: new Vector4(0.0f, 0.0f, 0.0f, 1.0f),
+                        BaseSize: 2.0f,
+                        EnablePressure: false),
+                },
             ]);
 
         var options = new BoardRasterExportOptions(

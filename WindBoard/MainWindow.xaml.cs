@@ -13,6 +13,7 @@ using Microsoft.UI.Xaml.Media.Animation;
 using Microsoft.UI.Xaml.Shapes;
 using Windows.UI;
 using WindBoard.Board.Editing;
+using WindBoard.Controls;
 using WindBoard.Interaction;
 using WindBoard.Logging;
 using WindBoard.Localization;
@@ -243,7 +244,8 @@ namespace WindBoard
                 return;
             }
 
-            BoardCanvas.PenBaseSize = size;
+            // 组合 ToolOptions（design C）：粗细仅影响后续新建笔迹。
+            BoardCanvas.ToolOptions = BoardCanvas.ToolOptions with { PenBaseSize = size };
             SetExclusiveToggleChecked(PenThicknessPanel, button);
         }
 
@@ -259,7 +261,8 @@ namespace WindBoard
                 return;
             }
 
-            BoardCanvas.PenBaseSize = (float)e.NewValue;
+            // 组合 ToolOptions（design C）：粗细仅影响后续新建笔迹。
+            BoardCanvas.ToolOptions = BoardCanvas.ToolOptions with { PenBaseSize = (float)e.NewValue };
         }
 
         private void OnPenColorClicked(object sender, RoutedEventArgs e)
@@ -274,7 +277,11 @@ namespace WindBoard
                 return;
             }
 
-            BoardCanvas.PenColor = color;
+            // 组合 ToolOptions（design C）：颜色仅影响后续新建笔迹。
+            BoardCanvas.ToolOptions = BoardCanvas.ToolOptions with
+            {
+                PenColor = BoardCanvasControl.ToColor4(color),
+            };
             SetExclusiveToggleChecked(PenColorGrid, button);
         }
 
@@ -412,7 +419,8 @@ namespace WindBoard
         private void SyncPenFlyoutFromCanvas()
         {
             // 书写 Flyout 可能在工具切换/设置恢复等场景下被动打开，这里统一以画布当前值为准做一次同步。
-            Color currentColor = BoardCanvas.PenColor;
+            // 画布参数经 ToolOptions（Color4）承载，读侧转回 byte 语义的 UI 颜色做色板比对。
+            Color currentColor = BoardCanvasControl.ToUiColor(BoardCanvas.ToolOptions.PenColor);
             foreach (UIElement element in PenColorGrid.Children)
             {
                 if (element is ToggleButton button
@@ -426,7 +434,7 @@ namespace WindBoard
                  }
              }
 
-            float currentSize = BoardCanvas.PenBaseSize;
+            float currentSize = BoardCanvas.ToolOptions.PenBaseSize;
 
             if (PenThicknessSliderPanel.Visibility == Visibility.Visible)
             {

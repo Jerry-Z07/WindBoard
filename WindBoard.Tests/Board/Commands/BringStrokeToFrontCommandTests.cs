@@ -14,23 +14,23 @@ public sealed class BringStrokeToFrontCommandTests
         var a = new Stroke();
         var b = new Stroke();
         var c = new Stroke();
-        doc.Strokes.Add(a);
-        doc.Strokes.Add(b);
-        doc.Strokes.Add(c);
+        doc.InkItems.Add(a);
+        doc.InkItems.Add(b);
+        doc.InkItems.Add(c);
 
         var command = new BringStrokeToFrontCommand(b);
 
         command.Do(doc);
-        Assert.Equal(3, doc.Strokes.Count);
-        Assert.Same(a, doc.Strokes[0]);
-        Assert.Same(c, doc.Strokes[1]);
-        Assert.Same(b, doc.Strokes[2]);
+        Assert.Equal(3, doc.InkItems.Count);
+        Assert.Same(a, doc.InkItems[0]);
+        Assert.Same(c, doc.InkItems[1]);
+        Assert.Same(b, doc.InkItems[2]);
 
         command.Undo(doc);
-        Assert.Equal(3, doc.Strokes.Count);
-        Assert.Same(a, doc.Strokes[0]);
-        Assert.Same(b, doc.Strokes[1]);
-        Assert.Same(c, doc.Strokes[2]);
+        Assert.Equal(3, doc.InkItems.Count);
+        Assert.Same(a, doc.InkItems[0]);
+        Assert.Same(b, doc.InkItems[1]);
+        Assert.Same(c, doc.InkItems[2]);
     }
 }
 

@@ -15,30 +15,30 @@ namespace WindBoard.Board.Commands
         {
             if (_index is null)
             {
-                int idx = document.Strokes.IndexOf(_stroke);
+                int idx = document.InkItems.IndexOf(_stroke);
                 if (idx < 0)
                 {
                     return;
                 }
 
                 _index = idx;
-                document.Strokes.RemoveAt(idx);
+                document.InkItems.RemoveAt(idx);
                 return;
             }
 
             int recorded = _index.Value;
-            if (recorded >= 0 && recorded < document.Strokes.Count && ReferenceEquals(document.Strokes[recorded], _stroke))
+            if (recorded >= 0 && recorded < document.InkItems.Count && ReferenceEquals(document.InkItems[recorded], _stroke))
             {
-                document.Strokes.RemoveAt(recorded);
+                document.InkItems.RemoveAt(recorded);
                 return;
             }
 
-            document.Strokes.Remove(_stroke);
+            document.InkItems.Remove(_stroke);
         }
 
         public void Undo(BoardDocument document)
         {
-            if (document.Strokes.Contains(_stroke))
+            if (document.InkItems.Contains(_stroke))
             {
                 return;
             }
@@ -48,8 +48,8 @@ namespace WindBoard.Board.Commands
                 return;
             }
 
-            int insertIndex = Math.Clamp(index, 0, document.Strokes.Count);
-            document.Strokes.Insert(insertIndex, _stroke);
+            int insertIndex = Math.Clamp(index, 0, document.InkItems.Count);
+            document.InkItems.Insert(insertIndex, _stroke);
         }
     }
 }

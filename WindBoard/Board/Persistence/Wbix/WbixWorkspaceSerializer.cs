@@ -9,12 +9,16 @@ namespace WindBoard.Board.Persistence.Wbix
     /// - manifest.json
     /// - pages/page-000.json
     /// - pages/page-001.json
-    /// - assets/（资源目录，可为空；v2 导出会尝试生成 assets/cover.png 封面图）
+    /// - assets/（资源目录，可为空；导出会尝试生成 assets/cover.png 封面图）
+    ///
+    /// 版本说明：
+    /// - v1/v2：strokes 条目为扁平形态（无 Kind）；
+    /// - v3：strokes 条目为 { kind, stroke } 包装形态（InkItemSnapshot），读取兼容 v1/v2。
     /// </summary>
     internal sealed partial class WbixWorkspaceSerializer : IBoardWorkspaceSerializer
     {
         internal const string FormatName = "wbix";
-        internal const int CurrentVersion = 2;
+        internal const int CurrentVersion = 3;
 
         private const string ManifestEntryName = "manifest.json";
         private const string PagesFolder = "pages";

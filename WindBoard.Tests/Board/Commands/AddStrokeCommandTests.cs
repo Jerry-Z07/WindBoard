@@ -12,29 +12,29 @@ public sealed class AddStrokeCommandTests
     {
         var document = new BoardDocument();
         var a = new Stroke();
-        document.Strokes.Add(a);
+        document.InkItems.Add(a);
 
         var b = new Stroke();
         var command = new AddStrokeCommand(b);
 
         command.Do(document);
-        Assert.Equal(2, document.Strokes.Count);
-        Assert.Same(a, document.Strokes[0]);
-        Assert.Same(b, document.Strokes[1]);
+        Assert.Equal(2, document.InkItems.Count);
+        Assert.Same(a, document.InkItems[0]);
+        Assert.Same(b, document.InkItems[1]);
 
         command.Undo(document);
-        Assert.Single(document.Strokes);
-        Assert.Same(a, document.Strokes[0]);
+        Assert.Single(document.InkItems);
+        Assert.Same(a, document.InkItems[0]);
 
         // 中途插入一个其它笔迹，再 redo：b 应插回原来的 index=1
         var x = new Stroke();
-        document.Strokes.Add(x);
+        document.InkItems.Add(x);
 
         command.Do(document);
-        Assert.Equal(3, document.Strokes.Count);
-        Assert.Same(a, document.Strokes[0]);
-        Assert.Same(b, document.Strokes[1]);
-        Assert.Same(x, document.Strokes[2]);
+        Assert.Equal(3, document.InkItems.Count);
+        Assert.Same(a, document.InkItems[0]);
+        Assert.Same(b, document.InkItems[1]);
+        Assert.Same(x, document.InkItems[2]);
     }
 
     // Undo：当索引位置已变化时仍能移除对应笔迹
@@ -43,7 +43,7 @@ public sealed class AddStrokeCommandTests
     {
         var document = new BoardDocument();
         var a = new Stroke();
-        document.Strokes.Add(a);
+        document.InkItems.Add(a);
 
         var b = new Stroke();
         var command = new AddStrokeCommand(b);
@@ -51,13 +51,13 @@ public sealed class AddStrokeCommandTests
 
         // 让 b 不再处于其记录的 index=1 的位置，触发 Remove(_stroke) 分支。
         var x = new Stroke();
-        document.Strokes.Insert(0, x);
+        document.InkItems.Insert(0, x);
 
         command.Undo(document);
 
-        Assert.DoesNotContain(b, document.Strokes);
-        Assert.Equal(2, document.Strokes.Count);
-        Assert.Same(x, document.Strokes[0]);
-        Assert.Same(a, document.Strokes[1]);
+        Assert.DoesNotContain(b, document.InkItems);
+        Assert.Equal(2, document.InkItems.Count);
+        Assert.Same(x, document.InkItems[0]);
+        Assert.Same(a, document.InkItems[1]);
     }
 }

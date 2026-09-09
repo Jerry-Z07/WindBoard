@@ -44,12 +44,12 @@ namespace WindBoard.Interaction
             // - Ctrl + 滚轮：缩放（以鼠标位置为锚点）
             // - Shift + 滚轮：旋转（以选中集合中心为锚点）
             if (Tool == BoardTool.Select
-                && _selectedStrokes.Count > 0
+                && _selectTool.SelectedStrokes.Count > 0
                 && (mods.HasFlag(Windows.System.VirtualKeyModifiers.Control) || mods.HasFlag(Windows.System.VirtualKeyModifiers.Shift)))
             {
                 BeginWheelZoomInteraction();
 
-                BeginSelectionTransformSnapshot(_selectedStrokes);
+                _selectTool.BeginSelectionTransformSnapshotForSelectedStrokes();
 
                 if (mods.HasFlag(Windows.System.VirtualKeyModifiers.Control))
                 {
@@ -60,8 +60,7 @@ namespace WindBoard.Interaction
                     Matrix3x2 transform = Matrix3x2.CreateTranslation(-anchorWorld)
                         * Matrix3x2.CreateScale(factor)
                         * Matrix3x2.CreateTranslation(anchorWorld);
-                    ApplyTransformToSelectedStrokes(transform);
-                    _selectionModified = true;
+                    _selectTool.ApplyTransformToSelectedStrokes(transform);
                 }
 
                 if (mods.HasFlag(Windows.System.VirtualKeyModifiers.Shift))
@@ -69,9 +68,8 @@ namespace WindBoard.Interaction
                     // 以选中集合中心为锚点旋转（避免滚轮旋转时锚点漂移）。
                     float stepDeg = 5.0f;
                     float rotationRad = stepDeg * (delta / 120.0f) * (float)(Math.PI / 180.0);
-                    Vector2 centerWorld = GetSelectedStrokesCenterWorld();
-                    ApplyTransformToSelectedStrokes(Matrix3x2.CreateRotation(rotationRad, centerWorld));
-                    _selectionModified = true;
+                    Vector2 centerWorld = _selectTool.GetSelectedStrokesCenterWorld();
+                    _selectTool.ApplyTransformToSelectedStrokes(Matrix3x2.CreateRotation(rotationRad, centerWorld));
                 }
 
                 e.Handled = true;
@@ -84,13 +82,10 @@ namespace WindBoard.Interaction
             // 以鼠标所在位置为锚点缩放，避免缩放时“跳动”
             // 选中元素：Ctrl + 滚轮缩放（与笔迹一致的交互方式）。
             if (Tool == BoardTool.Select
-                && _selectedElement is BoardElement element
+                && _selectTool.SelectedElement is BoardElement element
                 && mods.HasFlag(Windows.System.VirtualKeyModifiers.Control))
             {
-                if (_selectionElementBeforePositionWorld is null || !ReferenceEquals(_selectionTransformElement, element))
-                {
-                    BeginSelectionTransformSnapshot(element);
-                }
+                _selectTool.EnsureElementTransformSnapshot(element);
 
                 // 以鼠标所在位置为锚点缩放，避免缩放时“跳动”。
                 float factor = (float)Math.Pow(1.1, delta / 120.0);
@@ -107,7 +102,7 @@ namespace WindBoard.Interaction
 
                 element.PositionWorld = afterPos;
                 element.SizeWorld = afterSize;
-                _selectionModified = true;
+                _selectTool.MarkSelectionModified();
 
                 e.Handled = true;
                 FrameInvalidated?.Invoke();
@@ -170,68 +165,13 @@ namespace WindBoard.Interaction
             sender.Stop();
 
             // Wheel 交互结束时，如果期间对选中笔迹做了变换，则在此一次性写入撤销记录。
-            if (_selectionModified
-                && ((_selectionStrokeBeforeSnapshots is { Count: > 0 })
-                    || (_selectionTransformElement is not null
-                        && _selectionElementBeforePositionWorld is not null
-                        && _selectionElementBeforeSizeWorld is not null)))
+            if (_selectTool.HasPendingSelectionChanges)
             {
                 CommitSelectionGesture(releasePointerCaptures: false);
                 return;
             }
 
             UpdateInteractionState();
-        }
-
-        private Vector2 GetSelectedStrokesCenterWorld()
-        {
-            // 单笔迹：沿用既有中心逻辑（Bounds 优先，否则点集平均）。
-            if (_selectedStrokes.Count == 1)
-            {
-                return GetStrokeCenterWorld(_selectedStrokes[0]);
-            }
-
-            // 多笔迹：以“包围盒中心”为整体中心，更符合用户对“作为整体旋转”的直觉。
-            Vector2 min = new(float.PositiveInfinity, float.PositiveInfinity);
-            Vector2 max = new(float.NegativeInfinity, float.NegativeInfinity);
-            bool hasAny = false;
-
-            for (int i = 0; i < _selectedStrokes.Count; i++)
-            {
-                Stroke stroke = _selectedStrokes[i];
-                if (stroke.Points.Count == 0)
-                {
-                    continue;
-                }
-
-                if (!stroke.HasBounds)
-                {
-                    stroke.RecalculateBoundsFromPoints();
-                }
-
-                if (!stroke.HasBounds)
-                {
-                    continue;
-                }
-
-                min = new Vector2(
-                    Math.Min(min.X, stroke.BoundsMin.X),
-                    Math.Min(min.Y, stroke.BoundsMin.Y));
-                max = new Vector2(
-                    Math.Max(max.X, stroke.BoundsMax.X),
-                    Math.Max(max.Y, stroke.BoundsMax.Y));
-                hasAny = true;
-            }
-
-            return hasAny ? (min + max) / 2.0f : Vector2.Zero;
-        }
-
-        private void ApplyTransformToSelectedStrokes(Matrix3x2 transform)
-        {
-            for (int i = 0; i < _selectedStrokes.Count; i++)
-            {
-                _selectedStrokes[i].Transform(transform);
-            }
         }
 
         private void OnCanvasManipulationStarting(object sender, ManipulationStartingRoutedEventArgs e)
@@ -253,19 +193,19 @@ namespace WindBoard.Interaction
             const int minTouchCount = 2;
             if (Tool == BoardTool.Select
                 && _touchManipulationTarget == TouchManipulationTarget.Selection
-                && (_selectedStrokes.Count > 0 || _selectedElement is not null))
+                && (_selectTool.SelectedStrokes.Count > 0 || _selectTool.SelectedElement is not null))
             {
                 _isManipulating = false;
                 _isManipulatingSelection = _activeTouchPointers.Count >= minTouchCount;
                 if (_isManipulatingSelection)
                 {
-                    if (_selectedStrokes.Count > 0)
+                    if (_selectTool.SelectedStrokes.Count > 0)
                     {
-                        BeginSelectionTransformSnapshot(_selectedStrokes);
+                        _selectTool.BeginSelectionTransformSnapshotForSelectedStrokes();
                     }
-                    else if (_selectedElement is BoardElement element)
+                    else if (_selectTool.SelectedElement is BoardElement element)
                     {
-                        BeginSelectionTransformSnapshot(element);
+                        _selectTool.EnsureElementTransformSnapshot(element);
                     }
                 }
             }
@@ -309,7 +249,7 @@ namespace WindBoard.Interaction
         {
             if (Tool != BoardTool.Select
                 || _touchManipulationTarget != TouchManipulationTarget.Selection
-                || (_selectedStrokes.Count == 0 && _selectedElement is null))
+                || (_selectTool.SelectedStrokes.Count == 0 && _selectTool.SelectedElement is null))
             {
                 return false;
             }
@@ -318,13 +258,13 @@ namespace WindBoard.Interaction
             {
                 _isManipulatingSelection = true;
 
-                if (_selectedStrokes.Count > 0)
+                if (_selectTool.SelectedStrokes.Count > 0)
                 {
-                    BeginSelectionTransformSnapshot(_selectedStrokes);
+                    _selectTool.BeginSelectionTransformSnapshotForSelectedStrokes();
                 }
-                else if (_selectedElement is BoardElement element)
+                else if (_selectTool.SelectedElement is BoardElement element)
                 {
-                    BeginSelectionTransformSnapshot(element);
+                    _selectTool.EnsureElementTransformSnapshot(element);
                 }
 
                 UpdateInteractionState();
@@ -344,7 +284,7 @@ namespace WindBoard.Interaction
             bool hasRotation = Math.Abs(rotationRad) > 0.0001f;
             bool hasTranslation = translationWorld.LengthSquared() > 0.0001f;
 
-            if (_selectedElement is BoardElement selectedElement)
+            if (_selectTool.SelectedElement is BoardElement selectedElement)
             {
                 // 元素：支持平移 + 缩放（暂不支持旋转）。
                 if (!hasScale && !hasTranslation)
@@ -365,19 +305,19 @@ namespace WindBoard.Interaction
 
                     selectedElement.PositionWorld = afterPos;
                     selectedElement.SizeWorld = afterSize;
-                    _selectionModified = true;
+                    _selectTool.MarkSelectionModified();
                 }
 
                 if (hasTranslation)
                 {
                     selectedElement.PositionWorld += translationWorld;
-                    _selectionModified = true;
+                    _selectTool.MarkSelectionModified();
                 }
 
                 return true;
             }
 
-            if (_selectedStrokes.Count == 0)
+            if (_selectTool.SelectedStrokes.Count == 0)
             {
                 return false;
             }
@@ -409,17 +349,17 @@ namespace WindBoard.Interaction
                     transform *= Matrix3x2.CreateTranslation(translationWorld);
                 }
 
-                ApplyTransformToSelectedStrokes(transform);
-                _selectionModified = true;
+                _selectTool.ApplyTransformToSelectedStrokes(transform);
                 return true;
             }
 
             // 仅平移：走更轻量的 Translate，避免构造矩阵。
-            for (int i = 0; i < _selectedStrokes.Count; i++)
+            IReadOnlyList<Stroke> selectedStrokes = _selectTool.SelectedStrokes;
+            for (int i = 0; i < selectedStrokes.Count; i++)
             {
-                _selectedStrokes[i].Translate(translationWorld);
+                selectedStrokes[i].Translate(translationWorld);
             }
-            _selectionModified = true;
+            _selectTool.MarkSelectionModified();
             return true;
         }
 

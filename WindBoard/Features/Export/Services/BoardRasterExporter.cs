@@ -8,6 +8,7 @@ using Vortice.Direct2D1;
 using Vortice.Mathematics;
 using Vortice.WIC;
 using WindBoard.Board;
+using WindBoard.Board.Items;
 using WindBoard.Board.Persistence;
 using WindBoard.Board.Viewport;
 using WindBoard.Features.Export.Models;
@@ -227,29 +228,10 @@ namespace WindBoard.Features.Export.Services
         {
             var document = new BoardDocument();
 
-            foreach (StrokeSnapshot strokeSnapshot in page.Strokes)
-            {
-                var stroke = new Stroke
-                {
-                    Color = new Vortice.Mathematics.Color4(
-                        strokeSnapshot.ColorRgba.X,
-                        strokeSnapshot.ColorRgba.Y,
-                        strokeSnapshot.ColorRgba.Z,
-                        strokeSnapshot.ColorRgba.W),
-                    BaseSize = strokeSnapshot.BaseSize,
-                    EnablePressure = strokeSnapshot.EnablePressure,
-                };
-
-                foreach (StrokePointSnapshot pointSnapshot in strokeSnapshot.Points)
-                {
-                    stroke.Points.Add(new StrokePoint(pointSnapshot.Position, pointSnapshot.Pressure));
-                }
-
-                // 离屏导出依赖 Bounds 做可见裁剪，这里统一重建一次，保证数据来自快照时也能稳定渲染。
-                stroke.RecalculateBoundsFromPoints();
-
-                document.Strokes.Add(stroke);
-            }
+            // 快照 → 域重建（含 Bounds 重算）收敛于 BoardInkItemCodec 单点：
+            // 离屏导出依赖 Bounds 做可见裁剪，重建语义与主链路（Applier）保持一致；
+            // 条目按快照顺序填充，保持 z-order 与文件一致。
+            document.InkItems.AddRange(BoardInkItemCodec.ToItemList(page.Strokes));
 
             return document;
         }
@@ -261,8 +243,13 @@ namespace WindBoard.Features.Export.Services
             maxX = float.NegativeInfinity;
             maxY = float.NegativeInfinity;
 
-            foreach (Stroke stroke in document.Strokes)
+            foreach (IBoardInkItem item in document.InkItems)
             {
+                if (item is not Stroke stroke)
+                {
+                    continue;
+                }
+
                 if (!stroke.HasBounds)
                 {
                     continue;

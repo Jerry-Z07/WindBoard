@@ -9,19 +9,19 @@ namespace WindBoard.Board.Commands
 
         public void Do(BoardDocument document)
         {
-            _index ??= document.Strokes.Count;
-            document.Strokes.Insert(_index.Value, _stroke);
+            _index ??= document.InkItems.Count;
+            document.InkItems.Insert(_index.Value, _stroke);
         }
 
         public void Undo(BoardDocument document)
         {
-            if (_index is int index && index >= 0 && index < document.Strokes.Count && ReferenceEquals(document.Strokes[index], _stroke))
+            if (_index is int index && index >= 0 && index < document.InkItems.Count && ReferenceEquals(document.InkItems[index], _stroke))
             {
-                document.Strokes.RemoveAt(index);
+                document.InkItems.RemoveAt(index);
                 return;
             }
 
-            document.Strokes.Remove(_stroke);
+            document.InkItems.Remove(_stroke);
         }
     }
 }

@@ -12,6 +12,7 @@ using Vortice.DXGI;
 using Vortice.Mathematics;
 using WindBoard.Board;
 using WindBoard.Board.Elements;
+using WindBoard.Board.Items;
 using WindBoard.Board.Viewport;
 using WindBoard.Fonts;
 using WindBoard.Localization;
@@ -92,19 +93,19 @@ namespace WindBoard.Rendering.Board
             return ElementCardTheme == ElementCardTheme.Light ? LightPalette : DarkPalette;
         }
 
-        public void Draw(ID2D1RenderTarget ctx, BoardDocument document, Stroke? activeStroke, BoardViewport viewport)
+        public void Draw(ID2D1RenderTarget ctx, BoardDocument document, IBoardInkItem? activeInkItem, BoardViewport viewport)
         {
             EnsureStrokeBrush(ctx);
 
             WithOptionalDeviceContext2(ctx, ctx2 =>
             {
-                PruneInkCache(document, activeStroke);
+                PruneInkCache(document, activeInkItem);
                 PruneElementCache(document);
 
                 WithWorldTransform(ctx, viewport, () =>
                 {
                     viewport.GetVisibleWorldBounds(out Vector2 visibleMinWorld, out Vector2 visibleMaxWorld);
-                    DrawSceneInWorldBounds(ctx, ctx2, document, activeStroke, new VisibleWorldBounds(visibleMinWorld, visibleMaxWorld));
+                    DrawSceneInWorldBounds(ctx, ctx2, document, activeInkItem, new VisibleWorldBounds(visibleMinWorld, visibleMaxWorld));
                 });
             });
         }
@@ -175,7 +176,7 @@ namespace WindBoard.Rendering.Board
             });
         }
 
-        public void DrawActiveStroke(ID2D1RenderTarget ctx, Stroke activeStroke, BoardViewport viewport)
+        public void DrawActiveStroke(ID2D1RenderTarget ctx, IBoardInkItem activeInkItem, BoardViewport viewport)
         {
             EnsureStrokeBrush(ctx);
 
@@ -184,7 +185,7 @@ namespace WindBoard.Rendering.Board
                 WithWorldTransform(ctx, viewport, () =>
                 {
                     viewport.GetVisibleWorldBounds(out Vector2 visibleMinWorld, out Vector2 visibleMaxWorld);
-                    DrawStrokeIfVisible(ctx, ctx2, activeStroke, visibleMinWorld, visibleMaxWorld);
+                    DrawInkItemIfVisible(ctx, ctx2, activeInkItem, visibleMinWorld, visibleMaxWorld);
                 });
             });
         }
@@ -192,22 +193,22 @@ namespace WindBoard.Rendering.Board
         /// <summary>
         /// 绘制活动笔迹 + 上层元素（用于叠加渲染）。
         /// </summary>
-        public void DrawOverlayAboveInk(ID2D1RenderTarget ctx, BoardDocument document, Stroke? activeStroke, BoardViewport viewport)
+        public void DrawOverlayAboveInk(ID2D1RenderTarget ctx, BoardDocument document, IBoardInkItem? activeInkItem, BoardViewport viewport)
         {
             EnsureStrokeBrush(ctx);
 
             WithOptionalDeviceContext2(ctx, ctx2 =>
             {
-                PruneInkCache(document, activeStroke);
+                PruneInkCache(document, activeInkItem);
                 PruneElementCache(document);
 
                 WithWorldTransform(ctx, viewport, () =>
                 {
                     viewport.GetVisibleWorldBounds(out Vector2 visibleMinWorld, out Vector2 visibleMaxWorld);
 
-                    if (activeStroke is not null)
+                    if (activeInkItem is not null)
                     {
-                        DrawStrokeIfVisible(ctx, ctx2, activeStroke, visibleMinWorld, visibleMaxWorld);
+                        DrawInkItemIfVisible(ctx, ctx2, activeInkItem, visibleMinWorld, visibleMaxWorld);
                     }
 
                     DrawElementsIfVisible(ctx, document.ElementsAboveInk, visibleMinWorld, visibleMaxWorld);
@@ -261,35 +262,35 @@ namespace WindBoard.Rendering.Board
             ID2D1RenderTarget ctx,
             ID2D1DeviceContext2? ctx2,
             BoardDocument document,
-            Stroke? activeStroke,
+            IBoardInkItem? activeInkItem,
             VisibleWorldBounds visibleWorldBounds)
         {
             // 绘制顺序：
             // 1) 元素（笔迹下层）
-            // 2) 笔迹
+            // 2) 笔迹（按条目类型单点分发）
             // 3) 元素（笔迹上层）
             // 4) 活动笔迹（可选）
 
             DrawElementsIfVisible(ctx, document.ElementsBelowInk, visibleWorldBounds.Min, visibleWorldBounds.Max);
 
-            foreach (var stroke in document.Strokes)
+            foreach (var item in document.InkItems)
             {
-                if (!BoardSceneMath.IsStrokeVisible(stroke, visibleWorldBounds.Min, visibleWorldBounds.Max))
+                if (!BoardSceneMath.IsInkItemVisible(item, visibleWorldBounds.Min, visibleWorldBounds.Max))
                 {
                     continue;
                 }
 
-                DrawStroke(ctx, ctx2, stroke);
+                DrawInkItem(ctx, ctx2, item);
             }
 
             DrawElementsIfVisible(ctx, document.ElementsAboveInk, visibleWorldBounds.Min, visibleWorldBounds.Max);
 
-            if (activeStroke is null)
+            if (activeInkItem is null)
             {
                 return;
             }
 
-            DrawStrokeIfVisible(ctx, ctx2, activeStroke, visibleWorldBounds.Min, visibleWorldBounds.Max);
+            DrawInkItemIfVisible(ctx, ctx2, activeInkItem, visibleWorldBounds.Min, visibleWorldBounds.Max);
         }
 
         private void DrawSceneUnderInkInWorldBounds(
@@ -301,25 +302,46 @@ namespace WindBoard.Rendering.Board
             // 仅绘制“活动笔迹下方”的内容：下层元素 + 文档笔迹。
             DrawElementsIfVisible(ctx, document.ElementsBelowInk, visibleWorldBounds.Min, visibleWorldBounds.Max);
 
-            foreach (var stroke in document.Strokes)
+            foreach (var item in document.InkItems)
             {
-                if (!BoardSceneMath.IsStrokeVisible(stroke, visibleWorldBounds.Min, visibleWorldBounds.Max))
+                if (!BoardSceneMath.IsInkItemVisible(item, visibleWorldBounds.Min, visibleWorldBounds.Max))
                 {
                     continue;
                 }
 
-                DrawStroke(ctx, ctx2, stroke);
+                DrawInkItem(ctx, ctx2, item);
             }
         }
 
-        private void DrawStrokeIfVisible(ID2D1RenderTarget ctx, ID2D1DeviceContext2? ctx2, Stroke stroke, Vector2 visibleMinWorld, Vector2 visibleMaxWorld)
+        private void DrawInkItemIfVisible(ID2D1RenderTarget ctx, ID2D1DeviceContext2? ctx2, IBoardInkItem item, Vector2 visibleMinWorld, Vector2 visibleMaxWorld)
         {
-            if (!BoardSceneMath.IsStrokeVisible(stroke, visibleMinWorld, visibleMaxWorld))
+            if (!BoardSceneMath.IsInkItemVisible(item, visibleMinWorld, visibleMaxWorld))
             {
                 return;
             }
 
-            DrawStroke(ctx, ctx2, stroke);
+            DrawInkItem(ctx, ctx2, item);
+        }
+
+        /// <summary>
+        /// 绘制一个笔迹层条目（渲染的“按条目类型单点分发”入口）。
+        /// </summary>
+        /// <remarks>
+        /// 阶段一仅折线笔迹（Stroke）分支；阶段二新增形状类型时在此 switch 中补充对应分支，
+        /// 不再新增散落式分发。Ink 几何缓存仅用于 Stroke 分支（缓存键保持 Stroke 类型）。
+        /// </remarks>
+        private void DrawInkItem(ID2D1RenderTarget ctx, ID2D1DeviceContext2? ctx2, IBoardInkItem item)
+        {
+            switch (item)
+            {
+                case Stroke stroke:
+                    DrawStroke(ctx, ctx2, stroke);
+                    break;
+
+                default:
+                    // 未知条目类型：跳过绘制（阶段一不存在该情况）。
+                    break;
+            }
         }
 
         private void DrawStroke(ID2D1RenderTarget ctx, ID2D1DeviceContext2? ctx2, Stroke stroke)
@@ -962,15 +984,25 @@ namespace WindBoard.Rendering.Board
             _strokeStyle = _factory.CreateStrokeStyle(props);
         }
 
-        private void PruneInkCache(BoardDocument document, Stroke? activeStroke)
+        private void PruneInkCache(BoardDocument document, IBoardInkItem? activeInkItem)
         {
             if (_inkCache.Count == 0)
             {
                 return;
             }
 
-            var live = new HashSet<Stroke>(document.Strokes);
-            if (activeStroke is not null)
+            // Ink 几何缓存仅针对折线笔迹（键保持 Stroke 类型）：
+            // 从条目集合中收集 Stroke 条目作为存活键，其余条目类型不参与该缓存。
+            var live = new HashSet<Stroke>();
+            foreach (var item in document.InkItems)
+            {
+                if (item is Stroke stroke)
+                {
+                    live.Add(stroke);
+                }
+            }
+
+            if (activeInkItem is Stroke activeStroke)
             {
                 live.Add(activeStroke);
             }

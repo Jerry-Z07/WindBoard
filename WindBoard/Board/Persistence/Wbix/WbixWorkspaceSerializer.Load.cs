@@ -82,7 +82,7 @@ namespace WindBoard.Board.Persistence.Wbix
                         ?? throw new InvalidDataException(L10n.Format("Wbix_PageParseFailed_Fmt", pagePath));
                 }
 
-                IReadOnlyList<StrokeSnapshot> strokes = payload.Strokes ?? Array.Empty<StrokeSnapshot>();
+                IReadOnlyList<InkItemSnapshot> strokes = payload.Strokes ?? Array.Empty<InkItemSnapshot>();
                 (IReadOnlyList<BoardElementSnapshot> below, IReadOnlyList<BoardElementSnapshot> above) = loadContext.ParseElements(payload.Elements);
 
                 pages.Add(new BoardPageSnapshot(payload.Id, strokes, below, above));

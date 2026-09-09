@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Numerics;
 using WindBoard.Board.Editing;
 using WindBoard.Board.Elements;
-using Vortice.Mathematics;
 
 namespace WindBoard.Board.Persistence
 {
@@ -28,10 +27,9 @@ namespace WindBoard.Board.Persistence
 
                 // 导入属于“重建初始状态”，这里直接填充 Document，
                 // 避免污染撤销/重做栈（导入后应视为新的起点）。
-                foreach (StrokeSnapshot strokeSnap in page.Strokes)
-                {
-                    session.Document.Strokes.Add(CreateStroke(strokeSnap));
-                }
+                // 快照 → 域重建（含 Kind 分发与 Bounds 重算）收敛于 BoardInkItemCodec：
+                // 条目按快照顺序填充，保持 z-order 与文件一致。
+                session.Document.InkItems.AddRange(BoardInkItemCodec.ToItemList(page.Strokes));
 
                 // 导入页面元素（文本/链接/媒体/文件等）。
                 ApplyElements(session, page.ElementsBelowInk, aboveInk: false);
@@ -127,29 +125,6 @@ namespace WindBoard.Board.Persistence
             }
 
             return value;
-        }
-
-        private static Stroke CreateStroke(StrokeSnapshot snapshot)
-        {
-            var stroke = new Stroke
-            {
-                Color = FromVector4(snapshot.ColorRgba),
-                BaseSize = snapshot.BaseSize,
-                EnablePressure = snapshot.EnablePressure,
-            };
-
-            foreach (StrokePointSnapshot p in snapshot.Points)
-            {
-                stroke.Points.Add(new StrokePoint(p.Position, p.Pressure));
-            }
-
-            stroke.RecalculateBoundsFromPoints();
-            return stroke;
-        }
-
-        private static Color4 FromVector4(Vector4 color)
-        {
-            return new Color4(color.X, color.Y, color.Z, color.W);
         }
     }
 }

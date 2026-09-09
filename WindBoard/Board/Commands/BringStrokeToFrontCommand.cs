@@ -13,7 +13,7 @@ namespace WindBoard.Board.Commands
 
         public void Do(BoardDocument document)
         {
-            int count = document.Strokes.Count;
+            int count = document.InkItems.Count;
             if (count <= 1)
             {
                 return;
@@ -21,29 +21,29 @@ namespace WindBoard.Board.Commands
 
             if (_fromIndex is null)
             {
-                int idx = document.Strokes.IndexOf(_stroke);
+                int idx = document.InkItems.IndexOf(_stroke);
                 if (idx < 0 || idx == count - 1)
                 {
                     return;
                 }
 
                 _fromIndex = idx;
-                document.Strokes.RemoveAt(idx);
-                document.Strokes.Add(_stroke);
+                document.InkItems.RemoveAt(idx);
+                document.InkItems.Add(_stroke);
                 return;
             }
 
             int recorded = _fromIndex.Value;
-            if (recorded >= 0 && recorded < document.Strokes.Count && ReferenceEquals(document.Strokes[recorded], _stroke))
+            if (recorded >= 0 && recorded < document.InkItems.Count && ReferenceEquals(document.InkItems[recorded], _stroke))
             {
-                document.Strokes.RemoveAt(recorded);
+                document.InkItems.RemoveAt(recorded);
             }
             else
             {
-                document.Strokes.Remove(_stroke);
+                document.InkItems.Remove(_stroke);
             }
 
-            document.Strokes.Add(_stroke);
+            document.InkItems.Add(_stroke);
         }
 
         public void Undo(BoardDocument document)
@@ -53,15 +53,15 @@ namespace WindBoard.Board.Commands
                 return;
             }
 
-            int idx = document.Strokes.IndexOf(_stroke);
+            int idx = document.InkItems.IndexOf(_stroke);
             if (idx < 0)
             {
                 return;
             }
 
-            document.Strokes.RemoveAt(idx);
-            int insertIndex = Math.Clamp(fromIndex, 0, document.Strokes.Count);
-            document.Strokes.Insert(insertIndex, _stroke);
+            document.InkItems.RemoveAt(idx);
+            int insertIndex = Math.Clamp(fromIndex, 0, document.InkItems.Count);
+            document.InkItems.Insert(insertIndex, _stroke);
         }
     }
 }

@@ -2,39 +2,42 @@ using System;
 using System.Collections.Generic;
 using System.Numerics;
 using WindBoard.Board;
+using WindBoard.Board.Items;
+using Vortice.Mathematics;
 
 namespace WindBoard.Board.Editing
 {
     /// <summary>
-    /// 笔迹“框选”命中测试（纯计算逻辑）。
+    /// 绘制条目“框选”命中测试（按条目类型单点分发，纯计算逻辑）。
     ///
     /// 设计目标：
     /// - 选择工具使用矩形框选命中最上层对象；
     /// - 逻辑不依赖 UI/渲染，便于单元测试；
-    /// - 与 Bounds 逻辑保持一致（包含笔宽 padding）。
+    /// - 折线笔迹的“线段/端点与矩形真实距离”算法保留为 Stroke 分支，
+    ///   其它条目类型走“世界包围盒 AABB 相交”通用路径。
     /// </summary>
-    internal static class StrokeRectSelectTest
+    internal static class InkItemRectSelectTest
     {
         /// <summary>
-        /// 在给定世界坐标矩形范围内命中“所有相交”的笔迹（按列表顺序：越靠后越靠上）。
+        /// 在给定世界坐标矩形范围内命中“所有相交”的条目（按列表顺序：越靠后越靠上）。
         /// </summary>
         /// <remarks>
-        /// 用途：框选多个笔迹并作为整体进行移动/缩放/旋转等操作。
+        /// 用途：框选多个条目并作为整体进行移动/缩放/旋转等操作。
         /// </remarks>
-        internal static List<Stroke> HitTestStrokesInWorldRect(IReadOnlyList<Stroke> strokes, Vector2 minWorld, Vector2 maxWorld)
+        internal static List<IBoardInkItem> HitTestInkItemsInWorldRect(IReadOnlyList<IBoardInkItem> items, Vector2 minWorld, Vector2 maxWorld)
         {
-            if (strokes is null)
+            if (items is null)
             {
-                throw new ArgumentNullException(nameof(strokes));
+                throw new ArgumentNullException(nameof(items));
             }
 
-            var hits = new List<Stroke>();
-            for (int i = 0; i < strokes.Count; i++)
+            var hits = new List<IBoardInkItem>();
+            for (int i = 0; i < items.Count; i++)
             {
-                Stroke stroke = strokes[i];
-                if (IsStrokeIntersectWorldRect(stroke, minWorld, maxWorld))
+                IBoardInkItem item = items[i];
+                if (IsInkItemIntersectWorldRect(item, minWorld, maxWorld))
                 {
-                    hits.Add(stroke);
+                    hits.Add(item);
                 }
             }
 
@@ -42,28 +45,64 @@ namespace WindBoard.Board.Editing
         }
 
         /// <summary>
-        /// 在给定世界坐标矩形范围内命中“最上层”笔迹（按列表顺序：越靠后越靠上）。
+        /// 在给定世界坐标矩形范围内命中“最上层”条目（按列表顺序：越靠后越靠上）。
         /// </summary>
-        internal static Stroke? HitTestTopMostStrokeInWorldRect(IReadOnlyList<Stroke> strokes, Vector2 minWorld, Vector2 maxWorld)
+        internal static IBoardInkItem? HitTestTopMostInkItemInWorldRect(IReadOnlyList<IBoardInkItem> items, Vector2 minWorld, Vector2 maxWorld)
         {
-            if (strokes is null)
+            if (items is null)
             {
-                throw new ArgumentNullException(nameof(strokes));
+                throw new ArgumentNullException(nameof(items));
             }
 
-            // 反向遍历：后绘制的笔迹在视觉上更靠上，应优先被选中。
-            for (int i = strokes.Count - 1; i >= 0; i--)
+            // 反向遍历：后绘制的条目在视觉上更靠上，应优先被选中。
+            for (int i = items.Count - 1; i >= 0; i--)
             {
-                Stroke stroke = strokes[i];
-                if (IsStrokeIntersectWorldRect(stroke, minWorld, maxWorld))
+                IBoardInkItem item = items[i];
+                if (IsInkItemIntersectWorldRect(item, minWorld, maxWorld))
                 {
-                    return stroke;
+                    return item;
                 }
             }
 
             return null;
         }
 
+        /// <summary>
+        /// 判断某个绘制条目是否与给定世界坐标矩形相交（按条目类型分发）。
+        /// </summary>
+        internal static bool IsInkItemIntersectWorldRect(IBoardInkItem item, Vector2 minWorld, Vector2 maxWorld)
+        {
+            if (item is null)
+            {
+                throw new ArgumentNullException(nameof(item));
+            }
+
+            switch (item)
+            {
+                case Stroke stroke:
+                    return IsStrokeIntersectWorldRect(stroke, minWorld, maxWorld);
+
+                default:
+                {
+                    // 通用路径：条目世界包围盒（AABB）与选择矩形相交；无有效包围盒时不命中。
+                    Rect bounds = item.BoundsWorld;
+                    if (bounds.Width <= 0.0f && bounds.Height <= 0.0f)
+                    {
+                        return false;
+                    }
+
+                    return IntersectsAabb(
+                        new Vector2(bounds.Left, bounds.Top),
+                        new Vector2(bounds.Right, bounds.Bottom),
+                        minWorld,
+                        maxWorld);
+                }
+            }
+        }
+
+        /// <summary>
+        /// 判断某条折线笔迹是否与给定世界坐标矩形相交（Stroke 分支，折线算法原样保留）。
+        /// </summary>
         internal static bool IsStrokeIntersectWorldRect(Stroke stroke, Vector2 minWorld, Vector2 maxWorld)
         {
             if (stroke is null)
