@@ -29,13 +29,13 @@ WBIX (`.wbix`) is the persistence format for a workspace. It is essentially a Zi
 └── assets/                - binary assets (cover images, embedded images, and so on)
 ```
 
-**Current version**: 2 (`WbixWorkspaceSerializer.CurrentVersion`)
+**Current version**: 3 (`WbixWorkspaceSerializer.CurrentVersion`). Write side always emits the current version; read side gates `0 < Version <= CurrentVersion`. Older apps refuse to open newer files (by design, no downgrade writing / no per-version migration code).
 
 **manifest.json** structure:
 ```csharp
 record WbixManifest(
     string Format,          // "wbix"
-    int Version,            // 2
+    int Version,            // 3
     DateTimeOffset CreatedUtc,
     int CurrentIndex,
     IReadOnlyList<WbixManifestPage> Pages,
@@ -46,6 +46,15 @@ record WbixManifest(
 ```
 
 **Semi-structured elements**: `WbixPageElement(Type, JsonElement)` - Type is "text"/"link"/"media"/"file", and Data uses `JsonElement` so the schema is not fixed too early.
+
+### Ink items: Kind-discriminated snapshots (v3)
+
+Page payload `strokes` entries are `InkItemSnapshot { Kind, Stroke? }` (JSON key stays `strokes` for v2 compat):
+
+- **v3 write shape**: `{ "kind": "stroke", "stroke": { points, colorRgba, baseSize, enablePressure } }` — single form only.
+- **v1/v2 read compat**: entries are flat (`points/colorRgba/...` directly on the item, no wrapper). `InkItemSnapshotJsonConverter` handles both forms; a missing or explicit-null `kind` normalizes to `"stroke"`.
+- **Unknown kind**: log `Warn("WBIX", ...)` and skip that single item; never fail the whole load.
+- **Snapshot ↔ domain conversion**: all conversions go through `BoardInkItemCodec` (`ToItemList` / `ToStrokeItem`), which owns Bounds recalculation and z-order preservation. Three former duplicate rebuild paths (Converter/Applier, `BoardRasterExporter`, `WbiWorkspaceImporter`) all call it; `WbiWorkspaceImporter` must pass the explicit stroke path (legacy WBI has no kind).
 
 ### Safety checks
 
@@ -126,6 +135,8 @@ Resolves the product root directory, runtime directory, portable data directory,
 - Modify `AppSettings.Current` without calling `Update` (the change will not trigger events or saving)
 - Let a single element failure stop the whole WBIX load flow
 - Use `File.WriteAllText` directly when saving files (atomic write should be used instead)
+- Rebuild domain ink items from snapshots with private `new Stroke { ... }` code — always go through `BoardInkItemCodec` (three duplicates existed before and were converged; keep it single-point)
+- Rely on C# property initializers for snapshot compat: a JSON file may carry explicit `null` for optional fields (e.g. `kind`) — normalize on the read side
 
 ### ✅ DO
 - Modify settings through `AppSettingsService.Update(Action<AppSettings>)`
