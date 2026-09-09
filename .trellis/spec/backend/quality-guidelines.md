@@ -6,7 +6,7 @@
 
 ## Overview
 
-WindBoard follows the principle "safety = correctness > minimal change > readability > consistency." The project does not use `.editorconfig`, StyleCop, or lint tools; code quality depends on code review and conventions.
+WindBoard follows the principle "safety = correctness > minimal change > readability > consistency." Roslyn analyzers are enforced at build time since 2026-09 (see Static Analysis below); `.editorconfig`/StyleCop are not used, and code quality depends on analyzers, code review, and conventions.
 
 ---
 
@@ -58,6 +58,48 @@ WindBoard follows the principle "safety = correctness > minimal change > readabi
 
 ---
 
+## Static Analysis (Analyzer Enforced)
+
+Since 2026-09, `Directory.Build.props` sets `<AnalysisLevel>latest-recommended</AnalysisLevel>` and `<EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>` for all four projects. Analyzer warnings (CA/IDE) are treated as build failures in publish builds.
+
+### Convention: Analyzer warnings are zero-tolerance
+
+**What**: New CA/IDE warnings must not be introduced. Fix the warning directly; suppression is a last resort.
+
+**Why**: Build-time analyzers are the first gate for catching quality issues before tests and review.
+
+**Suppression rules** (in order of preference):
+1. Fix the root cause.
+2. Method-level `[SuppressMessage(ruleId, Justification = "...")]` for one-off conflicts that cannot be resolved structurally (e.g., `out` parameter must be last vs. CA1068).
+3. `<NoWarn>` listed **per rule ID** with a Chinese comment explaining why, scoped to the narrowest target (a single csproj preferred; `Directory.Build.props` only for cross-project patterns).
+
+**Never**: suppress by namespace/project-wide, or use bare `NoWarn` without a reason comment.
+
+### Convention: IFormatProvider selection
+
+**What**: Every culture-sensitive string operation must pass an explicit `IFormatProvider`:
+
+| Scenario | Provider |
+|---|---|
+| Text shown to the user (dialogs, summaries, UI formatting) | `CultureInfo.CurrentCulture` |
+| Machine-readable file content / serialization (WBIX metadata, logs parsed by tools, PDF numeric values) | `CultureInfo.InvariantCulture` |
+
+**Why**: CA1305 requires explicitness; the choice is semantic. Invariant for machine-readable output guarantees `.` decimal separators regardless of the user's OS locale (e.g., a `zh-CN` machine writing `3,5` into WBIX would corrupt round-tripping).
+
+**Example**:
+```csharp
+// 用户可见摘要：CurrentCulture（行为与旧插值默认一致）
+string summary = string.Format(CultureInfo.CurrentCulture, "{0} 项", count);
+// WBIX 机器可读元数据：InvariantCulture
+writer.WriteLine(string.Format(CultureInfo.InvariantCulture, "pixelWidth:{0}", w));
+```
+
+### Gotcha: Never enable global TreatWarningsAsErrors
+
+> **Warning**: Do not set `<TreatWarningsAsErrors>true</TreatWarningsAsErrors>` globally. WinUI XAML compiler emits non-CA warnings (WMC series) that must not fail the build. Publish workflows use `-p:CodeAnalysisTreatWarningsAsErrors=true` instead — this .NET 9+ SDK property promotes only CA/IDE warnings to errors and keeps `NoWarn` suppressions effective.
+
+---
+
 ## Testing Requirements
 
 ### Test framework
@@ -93,6 +135,8 @@ WindBoard follows the principle "safety = correctness > minimal change > readabi
 
 ## Code Review Checklist
 
+- [ ] Build produces zero CA/IDE warnings; any suppression follows the Static Analysis suppression rules
+- [ ] Culture-sensitive string operations pass explicit IFormatProvider (CurrentCulture for user-facing, InvariantCulture for machine-readable)
 - [ ] No UI dependency references in the Board/ layer
 - [ ] Error handling follows local-handling/fail-fast principles with no silent swallowing
 - [ ] Logs do not appear in high-frequency paths (render frames, pointer events, Stroke operations)
