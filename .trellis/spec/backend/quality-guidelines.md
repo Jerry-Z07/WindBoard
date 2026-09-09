@@ -131,6 +131,12 @@ writer.WriteLine(string.Format(CultureInfo.InvariantCulture, "pixelWidth:{0}", w
 - Hand-written stubs/delegates replace external dependencies (for example `DelegateHttpMessageHandler`)
 - Audit tests: `LocalizationKeyAuditTests` (localization key integrity) and `LogNoiseAuditTests` (log-noise blacklist)
 
+### Interaction 层可测性约定
+
+- `BoardInputController` 依赖 `SwapChainPanel`（测试中不可构造），事件参数为 WinUI 类型（不可构造）：可测逻辑必须收敛为"接收原始数据的纯状态/纯函数"，控制器事件处理器仅负责提取原始数据并转发。
+- 现有载体：`PointerRouteState`（pointerId 分配/互斥/释放状态机与触摸触点集合，`Interaction/BoardInputController/`）与 `PointerRoutingDecisions`（按键/压感/触摸路由/滚轮节流纯决策函数）；对应测试位于 `WindBoard.Tests/Interaction/`。
+- 新增控制器行为时：决策逻辑放进上述纯状态/纯函数并补充单测；禁止在事件处理器内继续扩展不可内测的内联逻辑。
+
 ---
 
 ## Code Review Checklist
