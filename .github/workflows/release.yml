@@ -60,8 +60,12 @@ jobs:
           $versionPrefix = $versionPrefixMatch.Groups['prefix'].Value
           $informationalVersion = "$version+$shortSha"
 
+          # 分析告警回归约束：CodeAnalysisTreatWarningsAsErrors 仅把分析器告警（CA/IDE）
+          # 升级为错误，普通编译器与平台（WinUI/XAML）告警不受影响；Directory.Build.props
+          # 中已按规则 ID 带注释豁免的规则保持豁免。发布构建作为新增分析告警的最后把关闸。
           $msbuildProps = @(
             '-p:PublishProfile='
+            '-p:CodeAnalysisTreatWarningsAsErrors=true'
             "-p:Version=$version"
             "-p:VersionPrefix=$versionPrefix"
             "-p:AssemblyVersion=$versionPrefix.0"
