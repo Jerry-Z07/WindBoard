@@ -72,10 +72,7 @@ namespace WindBoard.Settings
 
         internal void Save(AppSettings settings)
         {
-            if (settings is null)
-            {
-                throw new ArgumentNullException(nameof(settings));
-            }
+            ArgumentNullException.ThrowIfNull(settings);
 
             string json = Serialize(settings);
 
@@ -92,10 +89,7 @@ namespace WindBoard.Settings
 
         internal static AppSettings Deserialize(string json, SettingsNormalizationReport? report = null)
         {
-            if (json is null)
-            {
-                throw new ArgumentNullException(nameof(json));
-            }
+            ArgumentNullException.ThrowIfNull(json);
 
             AppSettings? settings = JsonSerializer.Deserialize<AppSettings>(json, JsonOptions);
             return NormalizeInPlace(settings ?? new AppSettings(), report);
@@ -103,10 +97,7 @@ namespace WindBoard.Settings
 
         internal static string Serialize(AppSettings settings)
         {
-            if (settings is null)
-            {
-                throw new ArgumentNullException(nameof(settings));
-            }
+            ArgumentNullException.ThrowIfNull(settings);
 
             AppSettings snapshot = CloneAndNormalize(settings);
             return JsonSerializer.Serialize(snapshot, JsonOptions);
@@ -125,10 +116,7 @@ namespace WindBoard.Settings
         /// </summary>
         internal static AppSettings NormalizeInPlace(AppSettings settings, SettingsNormalizationReport? report)
         {
-            if (settings is null)
-            {
-                throw new ArgumentNullException(nameof(settings));
-            }
+            ArgumentNullException.ThrowIfNull(settings);
 
             settings.General ??= new GeneralSettings();
             settings.General.LanguagePreference = NormalizeLanguagePreferenceOrDefault(settings.General.LanguagePreference);

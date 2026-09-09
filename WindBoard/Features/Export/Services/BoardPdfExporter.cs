@@ -18,15 +18,9 @@ namespace WindBoard.Features.Export.Services
     {
         public static void Export(IReadOnlyList<BoardPageSnapshot> pages, string filePath, BoardPdfExportOptions options, CancellationToken cancellationToken = default)
         {
-            if (pages is null)
-            {
-                throw new ArgumentNullException(nameof(pages));
-            }
+            ArgumentNullException.ThrowIfNull(pages);
 
-            if (options is null)
-            {
-                throw new ArgumentNullException(nameof(options));
-            }
+            ArgumentNullException.ThrowIfNull(options);
 
             if (string.IsNullOrWhiteSpace(filePath))
             {

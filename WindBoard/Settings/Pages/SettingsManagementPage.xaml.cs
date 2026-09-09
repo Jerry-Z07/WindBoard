@@ -284,7 +284,7 @@ namespace WindBoard.Settings.Pages
             }
         }
 
-        private async Task<StorageFile?> PickImportSettingsFileAsync(IntPtr hwnd)
+        private static async Task<StorageFile?> PickImportSettingsFileAsync(IntPtr hwnd)
         {
             if (hwnd == IntPtr.Zero)
             {

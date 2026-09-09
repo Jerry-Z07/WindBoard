@@ -226,10 +226,7 @@ namespace WindBoard.Controls
         /// </summary>
         internal void BindSession(BoardSession session)
         {
-            if (session is null)
-            {
-                throw new ArgumentNullException(nameof(session));
-            }
+            ArgumentNullException.ThrowIfNull(session);
 
             if (ReferenceEquals(_session, session))
             {

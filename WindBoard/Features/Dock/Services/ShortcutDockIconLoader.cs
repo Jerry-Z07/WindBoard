@@ -42,10 +42,7 @@ namespace WindBoard.Features.Dock.Services
 
         public static async Task<ImageSource?> TryLoadIconAsync(ShortcutDockItemSettings item)
         {
-            if (item is null)
-            {
-                throw new ArgumentNullException(nameof(item));
-            }
+            ArgumentNullException.ThrowIfNull(item);
 
             // 自定义图标优先：允许用户覆盖默认逻辑。
             if (string.Equals(item.IconSource, ShortcutDockIconSources.Icon, StringComparison.Ordinal)

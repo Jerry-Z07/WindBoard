@@ -357,7 +357,7 @@ namespace WindBoard.Features.Dock.UI
             AddShortcutDockItemButton.IsEnabled = ShortcutDocksVisibleToggleSwitch.IsOn && ShortcutDockItems.Count < 5;
         }
 
-        private IntPtr TryGetHostWindowHandle()
+        private static IntPtr TryGetHostWindowHandle()
         {
             try
             {

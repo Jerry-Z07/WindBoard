@@ -22,10 +22,7 @@ namespace WindBoard.Board.Editing
         /// </summary>
         internal static IBoardInkItem? HitTestTopMostInkItem(IReadOnlyList<IBoardInkItem> items, Vector2 pointWorld, float toleranceWorld)
         {
-            if (items is null)
-            {
-                throw new ArgumentNullException(nameof(items));
-            }
+            ArgumentNullException.ThrowIfNull(items);
 
             // 反向遍历：后绘制的条目在视觉上更靠上，应优先被选中。
             for (int i = items.Count - 1; i >= 0; i--)
@@ -45,10 +42,7 @@ namespace WindBoard.Board.Editing
         /// </summary>
         internal static bool IsInkItemHitByPoint(IBoardInkItem item, Vector2 pointWorld, float toleranceWorld)
         {
-            if (item is null)
-            {
-                throw new ArgumentNullException(nameof(item));
-            }
+            ArgumentNullException.ThrowIfNull(item);
 
             switch (item)
             {
@@ -110,10 +104,7 @@ namespace WindBoard.Board.Editing
         /// </summary>
         internal static bool IsStrokeHitByPoint(Stroke stroke, Vector2 pointWorld, float toleranceWorld)
         {
-            if (stroke is null)
-            {
-                throw new ArgumentNullException(nameof(stroke));
-            }
+            ArgumentNullException.ThrowIfNull(stroke);
 
             if (stroke.Points.Count == 0)
             {

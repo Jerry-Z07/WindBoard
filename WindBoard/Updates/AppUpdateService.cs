@@ -176,10 +176,7 @@ namespace WindBoard.Updates
 
         internal async Task TryAutoCheckAndRemindAsync(Window window, CancellationToken cancellationToken = default)
         {
-            if (window is null)
-            {
-                throw new ArgumentNullException(nameof(window));
-            }
+            ArgumentNullException.ThrowIfNull(window);
 
             UpdatePreferencesSnapshot prefs = GetUpdatePreferencesSnapshot();
             DateTimeOffset nowUtc = DateTimeOffset.UtcNow;
@@ -231,20 +228,11 @@ namespace WindBoard.Updates
             AppReminderMessage message,
             Func<Window, string, AppReminderMessage, bool> remindOncePerSignature)
         {
-            if (window is null)
-            {
-                throw new ArgumentNullException(nameof(window));
-            }
+            ArgumentNullException.ThrowIfNull(window);
 
-            if (message is null)
-            {
-                throw new ArgumentNullException(nameof(message));
-            }
+            ArgumentNullException.ThrowIfNull(message);
 
-            if (remindOncePerSignature is null)
-            {
-                throw new ArgumentNullException(nameof(remindOncePerSignature));
-            }
+            ArgumentNullException.ThrowIfNull(remindOncePerSignature);
 
             if (string.IsNullOrWhiteSpace(latestVersion))
             {

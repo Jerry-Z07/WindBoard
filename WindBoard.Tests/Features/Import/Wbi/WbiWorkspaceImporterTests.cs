@@ -18,6 +18,9 @@ namespace WindBoard.Tests.Features.Import.Wbi;
 
 public sealed class WbiWorkspaceImporterTests : IDisposable
 {
+    // CA1869：JsonSerializerOptions 构造成本高，应跨调用复用同一实例。
+    private static readonly JsonSerializerOptions IndentedJsonOptions = new() { WriteIndented = true };
+
     private readonly List<string> _tempFiles = new();
 
     public void Dispose()
@@ -39,14 +42,15 @@ public sealed class WbiWorkspaceImporterTests : IDisposable
     {
         ZipArchiveEntry entry = archive.CreateEntry(entryName, CompressionLevel.Optimal);
         await using Stream s = entry.Open();
-        await JsonSerializer.SerializeAsync(s, value, new JsonSerializerOptions { WriteIndented = true });
+        await JsonSerializer.SerializeAsync(s, value, IndentedJsonOptions);
     }
 
     private static async Task WriteBytesEntryAsync(ZipArchive archive, string entryName, byte[] bytes)
     {
         ZipArchiveEntry entry = archive.CreateEntry(entryName, CompressionLevel.Optimal);
         await using Stream s = entry.Open();
-        await s.WriteAsync(bytes, 0, bytes.Length);
+        // CA1835：使用 ReadOnlyMemory<byte> 重载，避免逐段参数校验与额外分配。
+        await s.WriteAsync(bytes);
     }
 
     private async Task<string> CreateWbiFileAsync(WbiManifest manifest, IReadOnlyDictionary<string, WbiPageData> pages, IReadOnlyDictionary<string, byte[]>? extraEntries = null)

@@ -17,10 +17,7 @@ namespace WindBoard.Settings
     {
         internal static AppSettings Clone(AppSettings settings)
         {
-            if (settings is null)
-            {
-                throw new ArgumentNullException(nameof(settings));
-            }
+            ArgumentNullException.ThrowIfNull(settings);
 
             return new AppSettings
             {

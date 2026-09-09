@@ -13,10 +13,7 @@ namespace WindBoard.Board.Persistence
     {
         public static List<BoardPage> CreatePages(BoardWorkspaceSnapshot snapshot)
         {
-            if (snapshot is null)
-            {
-                throw new ArgumentNullException(nameof(snapshot));
-            }
+            ArgumentNullException.ThrowIfNull(snapshot);
 
             var pages = new List<BoardPage>(snapshot.Pages.Count);
 

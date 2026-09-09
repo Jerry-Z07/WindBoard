@@ -71,10 +71,7 @@ namespace WindBoard.Board.Editing
         /// </summary>
         public void ReplaceAllPages(IReadOnlyList<BoardPage> pages, int currentIndex)
         {
-            if (pages is null)
-            {
-                throw new ArgumentNullException(nameof(pages));
-            }
+            ArgumentNullException.ThrowIfNull(pages);
 
             _pages.Clear();
 
@@ -117,10 +114,7 @@ namespace WindBoard.Board.Editing
         /// <returns>追加的起始索引。</returns>
         public int AppendPages(IReadOnlyList<BoardPage> pages, bool switchToFirstAppendedPage = true)
         {
-            if (pages is null)
-            {
-                throw new ArgumentNullException(nameof(pages));
-            }
+            ArgumentNullException.ThrowIfNull(pages);
 
             if (pages.Count == 0)
             {
@@ -160,10 +154,7 @@ namespace WindBoard.Board.Editing
         /// <returns>插入的起始索引。</returns>
         public int InsertPages(int insertIndex, IReadOnlyList<BoardPage> pages, bool switchToFirstInsertedPage = true)
         {
-            if (pages is null)
-            {
-                throw new ArgumentNullException(nameof(pages));
-            }
+            ArgumentNullException.ThrowIfNull(pages);
 
             int startIndex = Math.Clamp(insertIndex, 0, _pages.Count);
             if (pages.Count == 0)
@@ -227,10 +218,7 @@ namespace WindBoard.Board.Editing
         /// </remarks>
         public void ReplacePageAt(int index, BoardPage page)
         {
-            if (page is null)
-            {
-                throw new ArgumentNullException(nameof(page));
-            }
+            ArgumentNullException.ThrowIfNull(page);
 
             if (index < 0 || index >= _pages.Count)
             {
@@ -253,10 +241,7 @@ namespace WindBoard.Board.Editing
         /// </summary>
         public bool RemovePage(BoardPage page)
         {
-            if (page is null)
-            {
-                throw new ArgumentNullException(nameof(page));
-            }
+            ArgumentNullException.ThrowIfNull(page);
 
             int index = _pages.IndexOf(page);
             if (index < 0)

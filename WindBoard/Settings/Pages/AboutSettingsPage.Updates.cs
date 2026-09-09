@@ -352,7 +352,7 @@ namespace WindBoard.Settings.Pages
             panel.Children.Add(BuildMarkdownChangelogContent(layoutPlan));
         }
 
-        private UIElement BuildMarkdownChangelogContent(UpdateResultDialogLayoutPlan layoutPlan)
+        private static UIElement BuildMarkdownChangelogContent(UpdateResultDialogLayoutPlan layoutPlan)
         {
             if (layoutPlan.UseChangelogPlaceholder)
             {
@@ -392,7 +392,7 @@ namespace WindBoard.Settings.Pages
             };
         }
 
-        private void AppendDownloadSection(
+        private static void AppendDownloadSection(
             StackPanel panel,
             AppUpdateCheckResult result,
             DownloadSourceId sourceForUrls)
@@ -432,7 +432,7 @@ namespace WindBoard.Settings.Pages
             }
         }
 
-        private void AppendReleasePageLink(StackPanel panel, string releasePageUrl)
+        private static void AppendReleasePageLink(StackPanel panel, string releasePageUrl)
         {
             var releaseLink = new HyperlinkButton
             {

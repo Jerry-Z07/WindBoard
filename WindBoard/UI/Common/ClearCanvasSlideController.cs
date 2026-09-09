@@ -38,14 +38,17 @@ namespace WindBoard.UI.Common
 
         internal ClearCanvasSlideController(UiRefs ui, Func<bool> canCompleteClear, Action onCompleted)
         {
-            if (ui is null)
-            {
-                throw new ArgumentNullException(nameof(ui));
-            }
+            ArgumentNullException.ThrowIfNull(ui);
 
-            _host = ui.Host ?? throw new ArgumentNullException(nameof(ui.Host));
-            _thumb = ui.Thumb ?? throw new ArgumentNullException(nameof(ui.Thumb));
-            _thumbTransform = ui.ThumbTransform ?? throw new ArgumentNullException(nameof(ui.ThumbTransform));
+            // CA2208：paramName 须为方法真实参数。ArgumentNullException.ThrowIfNull 以
+            // CallerArgumentExpression（如 "ui.Host"）作为参数名，能准确标识哪个 UI 引用为空。
+            // UiRefs 为 init-only 自动属性，重复访问幂等，先校验后赋值等价于原 ?? throw 写法。
+            ArgumentNullException.ThrowIfNull(ui.Host);
+            ArgumentNullException.ThrowIfNull(ui.Thumb);
+            ArgumentNullException.ThrowIfNull(ui.ThumbTransform);
+            _host = ui.Host;
+            _thumb = ui.Thumb;
+            _thumbTransform = ui.ThumbTransform;
             _canCompleteClear = canCompleteClear ?? throw new ArgumentNullException(nameof(canCompleteClear));
             _onCompleted = onCompleted ?? throw new ArgumentNullException(nameof(onCompleted));
         }

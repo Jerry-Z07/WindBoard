@@ -89,7 +89,8 @@ namespace WindBoard.Updates
                 return string.Empty;
             }
 
-            return prefix.EndsWith("/", StringComparison.Ordinal) ? prefix : prefix + "/";
+            // CA1865：单字符后缀检查使用 char 重载（ordinal 语义一致），避免字符串分配。
+            return prefix.EndsWith('/') ? prefix : prefix + "/";
         }
     }
 }

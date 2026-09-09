@@ -35,15 +35,9 @@ namespace WindBoard.Features.Export.Services
 
         public void ExportPng(BoardPageSnapshot page, string filePath, BoardRasterExportOptions options, CancellationToken cancellationToken = default)
         {
-            if (page is null)
-            {
-                throw new ArgumentNullException(nameof(page));
-            }
+            ArgumentNullException.ThrowIfNull(page);
 
-            if (options is null)
-            {
-                throw new ArgumentNullException(nameof(options));
-            }
+            ArgumentNullException.ThrowIfNull(options);
 
             if (string.IsNullOrWhiteSpace(filePath))
             {
@@ -58,15 +52,9 @@ namespace WindBoard.Features.Export.Services
 
         public RasterizedRgbPage RenderRgbPage(BoardPageSnapshot page, BoardRasterExportOptions options, CancellationToken cancellationToken = default)
         {
-            if (page is null)
-            {
-                throw new ArgumentNullException(nameof(page));
-            }
+            ArgumentNullException.ThrowIfNull(page);
 
-            if (options is null)
-            {
-                throw new ArgumentNullException(nameof(options));
-            }
+            ArgumentNullException.ThrowIfNull(options);
 
             cancellationToken.ThrowIfCancellationRequested();
 

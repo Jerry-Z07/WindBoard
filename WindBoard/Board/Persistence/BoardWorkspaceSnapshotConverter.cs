@@ -17,10 +17,7 @@ namespace WindBoard.Board.Persistence
             float? viewportZoom = null,
             Vector2? viewportSizeDip = null)
         {
-            if (workspace is null)
-            {
-                throw new ArgumentNullException(nameof(workspace));
-            }
+            ArgumentNullException.ThrowIfNull(workspace);
 
             var pages = new List<BoardPageSnapshot>(workspace.Pages.Count);
             for (int i = 0; i < workspace.Pages.Count; i++)

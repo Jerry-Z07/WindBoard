@@ -20,10 +20,7 @@ namespace WindBoard.Features.Export.UI
     {
         public static async Task<StorageFile?> PickSaveFileAsync(XamlRoot xamlRoot, IntPtr hwnd, ExportFormat format)
         {
-            if (xamlRoot is null)
-            {
-                throw new ArgumentNullException(nameof(xamlRoot));
-            }
+            ArgumentNullException.ThrowIfNull(xamlRoot);
 
             if (hwnd == IntPtr.Zero)
             {
@@ -68,10 +65,7 @@ namespace WindBoard.Features.Export.UI
 
         public static async Task<StorageFile?> PickSaveFileWithOverwriteConfirmAsync(XamlRoot xamlRoot, IntPtr hwnd, ExportFormat format)
         {
-            if (xamlRoot is null)
-            {
-                throw new ArgumentNullException(nameof(xamlRoot));
-            }
+            ArgumentNullException.ThrowIfNull(xamlRoot);
 
             while (true)
             {
@@ -98,10 +92,7 @@ namespace WindBoard.Features.Export.UI
 
         public static async Task<StorageFolder?> PickFolderAsync(XamlRoot xamlRoot, IntPtr hwnd)
         {
-            if (xamlRoot is null)
-            {
-                throw new ArgumentNullException(nameof(xamlRoot));
-            }
+            ArgumentNullException.ThrowIfNull(xamlRoot);
 
             if (hwnd == IntPtr.Zero)
             {

@@ -9,10 +9,10 @@ using Windows.UI;
 namespace WindBoard.Settings.Pages
 {
     /// <summary>
-    /// “画布背景颜色”设置的 UI 协调器：
+    /// "画布背景颜色"设置的 UI 协调器：
     /// - 负责预览区与弹窗（ColorPicker ⇄ HEX）的同步；
     /// - 订阅设置变更并刷新 UI；
-    /// - 处理“可预览但可撤销”：取消弹窗时回退到打开前的颜色。
+    /// - 处理"可预览但可撤销"：取消弹窗时回退到打开前的颜色。
     /// </summary>
     internal sealed class CanvasBackgroundColorSettingsController
     {
@@ -40,7 +40,7 @@ namespace WindBoard.Settings.Pages
         // 弹窗内控件需要相互同步（ColorPicker ⇄ HEX 输入），用此标记避免递归触发事件。
         private bool _isDialogSyncing;
 
-        // 弹窗打开时记录原始颜色，便于点击“取消”时回退。
+        // 弹窗打开时记录原始颜色，便于点击"取消"时回退。
         private Color _dialogOriginalColor;
 
         // 标记弹窗是否处于显示期，用于外部设置变更时同步弹窗 UI。
@@ -48,19 +48,27 @@ namespace WindBoard.Settings.Pages
 
         internal CanvasBackgroundColorSettingsController(UiRefs ui)
         {
-            if (ui is null)
-            {
-                throw new ArgumentNullException(nameof(ui));
-            }
+            ArgumentNullException.ThrowIfNull(ui);
 
-            _dispatcherQueue = ui.DispatcherQueue ?? throw new ArgumentNullException(nameof(ui.DispatcherQueue));
-            _getXamlRoot = ui.GetXamlRoot ?? throw new ArgumentNullException(nameof(ui.GetXamlRoot));
-            _dialog = ui.Dialog ?? throw new ArgumentNullException(nameof(ui.Dialog));
-            _dialogColorPicker = ui.DialogColorPicker ?? throw new ArgumentNullException(nameof(ui.DialogColorPicker));
-            _dialogHexTextBox = ui.DialogHexTextBox ?? throw new ArgumentNullException(nameof(ui.DialogHexTextBox));
-            _dialogHexErrorBar = ui.DialogHexErrorBar ?? throw new ArgumentNullException(nameof(ui.DialogHexErrorBar));
-            _previewBrush = ui.PreviewBrush ?? throw new ArgumentNullException(nameof(ui.PreviewBrush));
-            _currentHexTextBlock = ui.CurrentHexTextBlock ?? throw new ArgumentNullException(nameof(ui.CurrentHexTextBlock));
+            // CA2208：paramName 须为方法真实参数。ArgumentNullException.ThrowIfNull 以
+            // CallerArgumentExpression（如 "ui.DispatcherQueue"）作为参数名，能准确标识哪个 UI 引用为空。
+            // UiRefs 为 init-only 自动属性，重复访问幂等，先校验后赋值等价于原 ?? throw 写法。
+            ArgumentNullException.ThrowIfNull(ui.DispatcherQueue);
+            ArgumentNullException.ThrowIfNull(ui.GetXamlRoot);
+            ArgumentNullException.ThrowIfNull(ui.Dialog);
+            ArgumentNullException.ThrowIfNull(ui.DialogColorPicker);
+            ArgumentNullException.ThrowIfNull(ui.DialogHexTextBox);
+            ArgumentNullException.ThrowIfNull(ui.DialogHexErrorBar);
+            ArgumentNullException.ThrowIfNull(ui.PreviewBrush);
+            ArgumentNullException.ThrowIfNull(ui.CurrentHexTextBlock);
+            _dispatcherQueue = ui.DispatcherQueue;
+            _getXamlRoot = ui.GetXamlRoot;
+            _dialog = ui.Dialog;
+            _dialogColorPicker = ui.DialogColorPicker;
+            _dialogHexTextBox = ui.DialogHexTextBox;
+            _dialogHexErrorBar = ui.DialogHexErrorBar;
+            _previewBrush = ui.PreviewBrush;
+            _currentHexTextBlock = ui.CurrentHexTextBlock;
         }
 
         internal void OnLoaded()
@@ -91,7 +99,7 @@ namespace WindBoard.Settings.Pages
                 return;
             }
 
-            // 点击“取消”则回退到打开弹窗前的颜色（提供可预览但可撤销的体验）。
+            // 点击"取消"则回退到打开弹窗前的颜色（提供可预览但可撤销的体验）。
             string originalHex = ColorHex.ToHexRgb(_dialogOriginalColor);
             AppSettingsService.Instance.Update(s => s.Appearance.CanvasBackgroundHex = originalHex);
         }
@@ -130,7 +138,7 @@ namespace WindBoard.Settings.Pages
 
             if (!ColorHex.TryParse(text, out Color color))
             {
-                // 允许输入过程中的“中间态”（例如只输入了 # 或不满 6 位），但给出错误提示。
+                // 允许输入过程中的"中间态"（例如只输入了 # 或不满 6 位），但给出错误提示。
                 _dialogHexErrorBar.IsOpen = !string.IsNullOrWhiteSpace(text);
                 return;
             }

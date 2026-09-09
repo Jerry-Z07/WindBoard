@@ -56,8 +56,8 @@ public sealed class BackgroundDownloadServiceTests
             DownloadResult result = await BackgroundDownloadService.DownloadWithFailoverAsync(
                     request,
                     progress: null,
-                    cancellationToken: CancellationToken.None,
-                    httpClient);
+                    httpClient,
+                    cancellationToken: CancellationToken.None);
 
             Assert.True(result.Success);
             Assert.Equal(destinationPath, result.FilePath);
@@ -122,8 +122,8 @@ public sealed class BackgroundDownloadServiceTests
             DownloadResult result = await BackgroundDownloadService.DownloadWithFailoverAsync(
                     request,
                     progress: null,
-                    cancellationToken: CancellationToken.None,
-                    httpClient);
+                    httpClient,
+                    cancellationToken: CancellationToken.None);
 
             Assert.True(result.Success);
             Assert.True(sawRangeRequest);
@@ -171,8 +171,8 @@ public sealed class BackgroundDownloadServiceTests
             DownloadResult result = await BackgroundDownloadService.DownloadWithFailoverAsync(
                     request,
                     progress: null,
-                    cancellationToken: cts.Token,
-                    httpClient);
+                    httpClient,
+                    cancellationToken: cts.Token);
 
             Assert.False(result.Success);
             Assert.NotEmpty(result.AttemptErrors);
@@ -198,14 +198,14 @@ public sealed class BackgroundDownloadServiceTests
         DownloadResult missingUrl = await BackgroundDownloadService.DownloadWithFailoverAsync(
                 new DownloadRequest { OriginalUrl = "", DestinationPath = "C:\\temp\\a.bin" },
                 progress: null,
-                cancellationToken: CancellationToken.None,
-                httpClient);
+                httpClient,
+                cancellationToken: CancellationToken.None);
 
         DownloadResult missingPath = await BackgroundDownloadService.DownloadWithFailoverAsync(
                 new DownloadRequest { OriginalUrl = "https://github.com/windboard/test/asset.bin", DestinationPath = "" },
                 progress: null,
-                cancellationToken: CancellationToken.None,
-                httpClient);
+                httpClient,
+                cancellationToken: CancellationToken.None);
 
         Assert.False(missingUrl.Success);
         Assert.False(missingPath.Success);

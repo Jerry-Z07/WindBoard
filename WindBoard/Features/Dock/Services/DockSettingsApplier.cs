@@ -23,15 +23,9 @@ namespace WindBoard.Features.Dock.Services
 
         internal void ApplyToMainWindow(DockMainWindowHost host, DockSettings dock, Func<XamlRoot?> tryGetDialogXamlRoot)
         {
-            if (host is null)
-            {
-                throw new ArgumentNullException(nameof(host));
-            }
+            ArgumentNullException.ThrowIfNull(host);
 
-            if (dock is null)
-            {
-                throw new ArgumentNullException(nameof(dock));
-            }
+            ArgumentNullException.ThrowIfNull(dock);
 
             _tryGetDialogXamlRoot = tryGetDialogXamlRoot ?? throw new ArgumentNullException(nameof(tryGetDialogXamlRoot));
 
@@ -267,7 +261,8 @@ namespace WindBoard.Features.Dock.Services
                 return false;
             }
 
-            if (!Enum.IsDefined(typeof(Symbol), parsed))
+            // CA2263：优先使用泛型重载 Enum.IsDefined<TEnum>(TEnum)，避免 typeof 装箱开销。
+            if (!Enum.IsDefined(parsed))
             {
                 return false;
             }

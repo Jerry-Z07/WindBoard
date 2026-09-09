@@ -690,7 +690,7 @@ namespace WindBoard.Features.ScreenAnnotation.UI
             return _displayTarget.GetInitialToolbarBounds(width, height, margin);
         }
 
-        private uint ResolveWindowDpi(IntPtr hwnd)
+        private static uint ResolveWindowDpi(IntPtr hwnd)
         {
             if (ScreenAnnotationWindowInterop.TryGetWindowDpi(hwnd, out uint dpi, out string? error))
             {

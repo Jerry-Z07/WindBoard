@@ -18,10 +18,7 @@ namespace WindBoard.Board.Persistence.Wbix
     {
         public async Task<BoardWorkspaceSnapshot> LoadAsync(Stream input, CancellationToken cancellationToken = default)
         {
-            if (input is null)
-            {
-                throw new ArgumentNullException(nameof(input));
-            }
+            ArgumentNullException.ThrowIfNull(input);
 
             cancellationToken.ThrowIfCancellationRequested();
 

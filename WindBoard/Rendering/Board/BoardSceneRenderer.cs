@@ -807,7 +807,8 @@ namespace WindBoard.Rendering.Board
             }
 
             // 渲染时保留足够长的前缀，既让大尺寸文本卡片能显示更多内容，也避免超长文本在每帧排版时带来过高开销。
-            return preview.Substring(0, MaxTextPreviewChars) + "…";
+            // CA1845：基于 span 的 Concat 避免中间字符串分配（渲染路径高频调用）。
+            return string.Concat(preview.AsSpan(0, MaxTextPreviewChars), "…");
         }
 
         private static string GetBestDisplayName(string? displayName, string? sourcePath)

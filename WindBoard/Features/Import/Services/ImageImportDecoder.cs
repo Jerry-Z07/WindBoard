@@ -20,15 +20,10 @@ namespace WindBoard.Features.Import.Services
         /// <returns>成功返回像素与尺寸；失败返回 null。</returns>
         public static async Task<(byte[] pixels, int w, int h)?> TryDecodeToBgra8PremulAsync(StorageFile file, int maxPixelEdge)
         {
-            if (file is null)
-            {
-                throw new ArgumentNullException(nameof(file));
-            }
+            ArgumentNullException.ThrowIfNull(file);
 
-            if (maxPixelEdge <= 0)
-            {
-                throw new ArgumentOutOfRangeException(nameof(maxPixelEdge));
-            }
+            // CA1512：等价的内置校验方法，避免显式抛出异常实例。
+            ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxPixelEdge);
 
             try
             {

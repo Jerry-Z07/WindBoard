@@ -23,10 +23,7 @@ namespace WindBoard.Features.Dock
 
         internal void ApplyToMainWindow(DockMainWindowHost host)
         {
-            if (host is null)
-            {
-                throw new ArgumentNullException(nameof(host));
-            }
+            ArgumentNullException.ThrowIfNull(host);
 
             DockSettings dock;
             try

@@ -69,7 +69,8 @@ namespace WindBoard.Board.Persistence.Wbix
             }
 
             // Zip entry 以相对路径为主，避免绝对路径。
-            if (path.StartsWith("/", StringComparison.Ordinal) || path.StartsWith("\\", StringComparison.Ordinal))
+            // CA1865：单字符前缀检查使用 char 重载（默认 ordinal 语义一致），避免字符串分配。
+            if (path.StartsWith('/') || path.StartsWith('\\'))
             {
                 return false;
             }

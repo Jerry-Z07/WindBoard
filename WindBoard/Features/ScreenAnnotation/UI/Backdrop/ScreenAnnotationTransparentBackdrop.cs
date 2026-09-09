@@ -127,7 +127,7 @@ namespace WindBoard.Features.ScreenAnnotation.UI.Backdrop
             WindowMessageObserved?.Invoke(this, e);
         }
 
-        private void ConfigureDwm(IntPtr hwnd)
+        private static void ConfigureDwm(IntPtr hwnd)
         {
             var margins = new Margins();
             int extendResult = DwmExtendFrameIntoClientArea(hwnd, ref margins);

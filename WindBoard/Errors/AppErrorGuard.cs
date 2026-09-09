@@ -14,10 +14,7 @@ namespace WindBoard.Errors
     {
         internal static void Run(string category, Action action, AppErrorUserPrompt? prompt = null)
         {
-            if (action is null)
-            {
-                throw new ArgumentNullException(nameof(action));
-            }
+            ArgumentNullException.ThrowIfNull(action);
 
             try
             {
@@ -35,10 +32,7 @@ namespace WindBoard.Errors
 
         internal static async Task RunAsync(string category, Func<Task> action, AppErrorUserPrompt? prompt = null)
         {
-            if (action is null)
-            {
-                throw new ArgumentNullException(nameof(action));
-            }
+            ArgumentNullException.ThrowIfNull(action);
 
             try
             {
@@ -56,10 +50,7 @@ namespace WindBoard.Errors
 
         internal static void FireAndForget(string category, Func<Task> taskFactory, AppErrorUserPrompt? prompt = null)
         {
-            if (taskFactory is null)
-            {
-                throw new ArgumentNullException(nameof(taskFactory));
-            }
+            ArgumentNullException.ThrowIfNull(taskFactory);
 
             _ = FireAndForgetCoreAsync(category, taskFactory, prompt);
         }

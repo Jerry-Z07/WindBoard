@@ -18,10 +18,7 @@ namespace WindBoard.Board.Commands
 
         public CompositeCommand(IEnumerable<IBoardCommand> commands)
         {
-            if (commands is null)
-            {
-                throw new ArgumentNullException(nameof(commands));
-            }
+            ArgumentNullException.ThrowIfNull(commands);
 
             _commands = new List<IBoardCommand>();
             foreach (IBoardCommand cmd in commands)

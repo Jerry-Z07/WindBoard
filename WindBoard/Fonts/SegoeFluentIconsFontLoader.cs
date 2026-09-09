@@ -61,10 +61,7 @@ namespace WindBoard.Fonts
         /// </summary>
         internal static void ApplyToResources(ResourceDictionary resources)
         {
-            if (resources is null)
-            {
-                throw new ArgumentNullException(nameof(resources));
-            }
+            ArgumentNullException.ThrowIfNull(resources);
 
             EnsureInitialized();
 

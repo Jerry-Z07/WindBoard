@@ -28,10 +28,7 @@ namespace WindBoard.Features.ScreenAnnotation.Services
 
         internal async Task<bool> StartAsync(ScreenAnnotationStartOptions options)
         {
-            if (options is null)
-            {
-                throw new ArgumentNullException(nameof(options));
-            }
+            ArgumentNullException.ThrowIfNull(options);
 
             if (IsRunning)
             {

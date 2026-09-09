@@ -19,10 +19,7 @@ namespace WindBoard.Board.Editing
         /// </summary>
         internal static bool IsInkItemHitByEraserSegment(IBoardInkItem item, Vector2 eraserFromWorld, Vector2 eraserToWorld, Vector2 eraserRadiusWorld)
         {
-            if (item is null)
-            {
-                throw new ArgumentNullException(nameof(item));
-            }
+            ArgumentNullException.ThrowIfNull(item);
 
             switch (item)
             {

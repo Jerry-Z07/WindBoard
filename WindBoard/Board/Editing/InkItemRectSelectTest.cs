@@ -26,10 +26,7 @@ namespace WindBoard.Board.Editing
         /// </remarks>
         internal static List<IBoardInkItem> HitTestInkItemsInWorldRect(IReadOnlyList<IBoardInkItem> items, Vector2 minWorld, Vector2 maxWorld)
         {
-            if (items is null)
-            {
-                throw new ArgumentNullException(nameof(items));
-            }
+            ArgumentNullException.ThrowIfNull(items);
 
             var hits = new List<IBoardInkItem>();
             for (int i = 0; i < items.Count; i++)
@@ -49,10 +46,7 @@ namespace WindBoard.Board.Editing
         /// </summary>
         internal static IBoardInkItem? HitTestTopMostInkItemInWorldRect(IReadOnlyList<IBoardInkItem> items, Vector2 minWorld, Vector2 maxWorld)
         {
-            if (items is null)
-            {
-                throw new ArgumentNullException(nameof(items));
-            }
+            ArgumentNullException.ThrowIfNull(items);
 
             // 反向遍历：后绘制的条目在视觉上更靠上，应优先被选中。
             for (int i = items.Count - 1; i >= 0; i--)
@@ -72,10 +66,7 @@ namespace WindBoard.Board.Editing
         /// </summary>
         internal static bool IsInkItemIntersectWorldRect(IBoardInkItem item, Vector2 minWorld, Vector2 maxWorld)
         {
-            if (item is null)
-            {
-                throw new ArgumentNullException(nameof(item));
-            }
+            ArgumentNullException.ThrowIfNull(item);
 
             switch (item)
             {
@@ -105,10 +96,7 @@ namespace WindBoard.Board.Editing
         /// </summary>
         internal static bool IsStrokeIntersectWorldRect(Stroke stroke, Vector2 minWorld, Vector2 maxWorld)
         {
-            if (stroke is null)
-            {
-                throw new ArgumentNullException(nameof(stroke));
-            }
+            ArgumentNullException.ThrowIfNull(stroke);
 
             if (stroke.Points.Count == 0)
             {

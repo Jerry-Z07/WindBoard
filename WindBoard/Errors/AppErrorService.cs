@@ -37,10 +37,7 @@ namespace WindBoard.Errors
 
         internal void Initialize(global::WindBoard.MainWindow mainWindow)
         {
-            if (mainWindow is null)
-            {
-                throw new ArgumentNullException(nameof(mainWindow));
-            }
+            ArgumentNullException.ThrowIfNull(mainWindow);
 
             lock (_gate)
             {
@@ -215,7 +212,7 @@ namespace WindBoard.Errors
             TryEnqueueHandledErrorPrompt(window, signature, prompt);
         }
 
-        private void TryEnqueueHandledErrorPrompt(global::WindBoard.MainWindow window, string signature, AppErrorUserPrompt prompt)
+        private static void TryEnqueueHandledErrorPrompt(global::WindBoard.MainWindow window, string signature, AppErrorUserPrompt prompt)
         {
             // 统一切回 UI 线程走提醒服务，避免在后台线程访问视觉树/窗口状态。
             if (!window.DispatcherQueue.TryEnqueue(() =>

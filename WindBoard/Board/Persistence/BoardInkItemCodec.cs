@@ -211,10 +211,7 @@ namespace WindBoard.Board.Persistence
         /// </remarks>
         public static Stroke ToStrokeItem(StrokeSnapshot snapshot)
         {
-            if (snapshot is null)
-            {
-                throw new ArgumentNullException(nameof(snapshot));
-            }
+            ArgumentNullException.ThrowIfNull(snapshot);
 
             Color4 color = new(snapshot.ColorRgba.X, snapshot.ColorRgba.Y, snapshot.ColorRgba.Z, snapshot.ColorRgba.W);
             return BuildStroke(snapshot.Points, color, snapshot.BaseSize, snapshot.EnablePressure);

@@ -42,10 +42,7 @@ namespace WindBoard.Features.Export
 
         public async Task StartAsync(XamlRoot xamlRoot, IntPtr hwnd)
         {
-            if (xamlRoot is null)
-            {
-                throw new ArgumentNullException(nameof(xamlRoot));
-            }
+            ArgumentNullException.ThrowIfNull(xamlRoot);
 
             if (hwnd == IntPtr.Zero)
             {

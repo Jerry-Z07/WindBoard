@@ -11,6 +11,9 @@ namespace WindBoard.Tests.Features.Import.Wbix;
 
 public sealed class WbixPreviewReaderTests : IDisposable
 {
+    // CA1869：JsonSerializerOptions 构造成本高，应跨调用复用同一实例。
+    private static readonly JsonSerializerOptions IndentedJsonOptions = new() { WriteIndented = true };
+
     private readonly List<string> _tempFiles = new();
 
     public void Dispose()
@@ -32,7 +35,7 @@ public sealed class WbixPreviewReaderTests : IDisposable
     {
         ZipArchiveEntry entry = archive.CreateEntry(entryName, CompressionLevel.Optimal);
         await using Stream s = entry.Open();
-        await JsonSerializer.SerializeAsync(s, value, new JsonSerializerOptions { WriteIndented = true });
+        await JsonSerializer.SerializeAsync(s, value, IndentedJsonOptions);
     }
 
     [Fact]
