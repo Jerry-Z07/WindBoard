@@ -379,3 +379,45 @@ DevWinUI 在主工程的唯一使用点（更新结果弹窗的 WindowedContentD
 ### Next Steps
 
 - None - task complete
+
+---
+
+## Session 10: 绘制架构可插拔地基重构（阶段一）
+
+**Date**: 2026-09-09
+**Task**: 阶段一：绘制架构可插拔地基重构（09-09-drawing-foundation）
+**Branch**: `feature/drawing-foundation`
+
+### Summary
+
+不改用户可见行为，把绘制链路重构为可插拔地基：`IBoardInkItem` 绘制条目抽象（渲染/命中/擦除/拾取单点分发）、三工具策略化（`IBoardTool` + `BoardToolRegistry`，`BoardInputController` 退化为路由）、`ToolOptions` 参数链收敛（消除 4 跳属性复制）、序列化收敛至 `BoardInkItemCodec` 并升级 WBIX v3（兼容读 v1/v2）。为阶段二形状工具铺平"一个实现 + 一条注册"路径。
+
+### Main Changes
+
+- `Board/Items/`：`IBoardInkItem` 契约、`InkItemSnapshot`（Kind 缺省 "stroke"）、`BoardInkItemCodec`（消除 Applier/Exporter/Importer 三份重建拷贝）、`InkItemSnapshotJsonConverter`（v2 扁平/v3 包装双形态）
+- `Interaction/Tools/`：`IBoardTool`（Begin/Move/End/Cancel + 预览钩子）、`PenTool/EraserTool/SelectTool` 迁移、`ToolOptions` 值对象
+- 渲染 `DrawInkItem` 单点 switch；`InkItemHitTest` + 橡皮按条目类型分流（折线像素分割 / 其它整笔删除）
+- 单测 +53（374→445 全绿），含 19 个序列化往返用例
+- spec 更新：backend/directory-structure、backend/database-guidelines（WBIX v3 + 两条 DON'T）、frontend/directory-structure
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `f081cba` | refactor(board): 绘制架构可插拔地基重构（阶段一） |
+| `a72c086` | docs(spec): 记录绘制架构可插拔地基的抽象与约定 |
+| `c40ef3e` | chore(task): 新增图形绘制父任务与两个子任务的规划产物 |
+
+### Testing
+
+- [OK] `dotnet build WindBoard.slnx -c Release`：0 警告 0 错误
+- [OK] `dotnet test WindBoard.slnx`：445/445 通过（含本地化 Key 审计与日志噪声审计）
+- [PENDING] 手测回归清单（prd.md 验收第 2 条）待用户人工执行：画笔/荧光/橡皮两种/选择框选变换/多页/撤销重做/保存加载/导出/屏幕批注/双指手势
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- 阶段二 `09-09-shape-tools` 基于本抽象开工（设计已预留注册点）

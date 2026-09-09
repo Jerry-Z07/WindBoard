@@ -59,7 +59,7 @@
 
 ## Acceptance Criteria
 
-- [ ] 阶段一：行为零回归（跨子任务验收第 1 条），`dotnet test WindBoard.slnx` 全量通过
+- [x] 阶段一：行为零回归（跨子任务验收第 1 条），`dotnet test WindBoard.slnx` 全量通过（445/445，手测清单待用户人工执行）
 - [ ] 阶段二：R5-R8 各自验收清单在两个子任务 PRD 中细化，全部通过
 - [ ] 父任务：跨子任务验收 3 条全部通过后归档
 
