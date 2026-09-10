@@ -29,13 +29,15 @@ WindBoard/
 │   ├── MainWindow.Updates.cs        # Auto update
 │   ├── MainWindow.ClearCanvasSlide.cs  # Clear-canvas animation
 │   └── PageListItem.cs             # Page list item data model
+├── UI/Common/                       # Shared UI helpers (used across features)
+│   ├── DialogHelpers.cs            # Dialog helper methods
+│   └── SaveFilePickerPlaceholder.cs # FileSavePicker placeholder-file judgment (overwrite-confirm basis)
 ├── Controls/                        # Reusable WinUI UserControls
 │   ├── BoardCanvasControl.xaml(.cs) # Core canvas control (main body)
 │   ├── BoardCanvasControl.Rendering.cs     # Render loop (partial)
 │   ├── BoardCanvasControl.EraserCursor.cs  # Eraser cursor (partial)
 │   ├── BoardCanvasControl.SelectionHandles.cs  # Selection handles (partial)
-│   ├── PageThumbnailControl.xaml(.cs)      # Page thumbnail
-│   └── DialogHelpers.cs            # Dialog helper methods
+│   └── PageThumbnailControl.xaml(.cs)      # Page thumbnail
 ├── Interaction/                     # Input handling (pointer routing + tool strategy)
 │   ├── ToolOptions.cs               # Drawing-parameter value object (tool/color/size/pressure)
 │   ├── BoardInputController/        # Pointer routing; partial split (Manipulation = touch gestures)

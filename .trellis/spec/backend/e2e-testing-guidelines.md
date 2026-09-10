@@ -58,7 +58,7 @@ E2E 启动真实应用进程，必须与默认单测口径隔离。xUnit v2 无�
 | FileSavePicker/OpenPicker | 对话框由 Shell 侧进程承载（pid ≠ 被测应用），需在桌面范围找 | `EnumWindows` + 对话框类名/标题定位，再按文件名 Edit（ValuePattern）+ 确认按钮驱动 |
 | ContentDialog 按钮激活 | `InvokePattern.Invoke()` 不触发应用事件处理逻辑 | 一律 `ClickCenter` 鼠标点击（先确保目标窗口前置） |
 | 弹层出现时机 | 覆盖确认等弹层可延迟 8–15 秒才出现在 UIA 树 | 等待窗 ≥ 20s；可选步骤（如覆盖确认）超时即跳过，不视为失败 |
-| 文件对话框覆盖确认 | IFileDialog 是否预创建 0 字节目标文件**依环境而异**（实测不一致）：出现则命中应用侧 `File.Exists` 判重弹确认，未出现则直接写入 | 用例必须兼容两条路径（出现即点到消失，未出现不视为失败），不得假设弹窗必现 |
+| 文件对话框覆盖确认 | IFileDialog 是否预创建 0 字节目标文件**依环境而异**（实测不一致）；应用侧已用 `SaveFilePickerPlaceholder`（0 字节 + 创建时间落在本次 Picker 调用窗口内）识别占位文件，**唯一文件名不再触发覆盖确认** | 用例仍须兼容弹窗出现/不出现两条路径（出现即点到消失，未出现不视为失败），不得假设弹窗必现 |
 | WinUI SendKeys | WinUI 3 下 post-message 键盘注入静默失效（官方已知问题） | 键盘输入走 FlaUI UIA SendKeys / ValuePattern.SetValue |
 
 ## 断言基元约定

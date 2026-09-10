@@ -13,24 +13,38 @@
 ## WinAppSDK 2.x 平台行为契约
 
 - 版本方案 SemVer 化：NuGet 包版本 = SDK 版本（如 2.4.0）；破坏性变更只允许发生在主版本之间
-- **FileSavePicker 不再预创建空文件**（2.0 起）：用户新输入文件名时 `File.Exists(file.Path)` 为 false
 
-### Don't: 保留 FileSavePicker 预创建 workaround
+### FileSavePicker 会预创建 0 字节占位文件（2026-09 在 2.4.0 实测；「2.0 起不再预创建」的说法已证伪）
+
+**Symptom**：导出到新文件名时，点完系统“保存”后目标路径先出现一个 0 字节文件，紧接着弹出应用内“发现同名文件，是否覆盖？”，确认后才写入真实内容。
+
+**Cause**：`PickSaveFileAsync()` 在返回 `StorageFile` 之前就先把目标文件创建到磁盘（0 字节占位文件），因此返回时 `File.Exists(file.Path)` **恒为 true**；用“路径上是否已有文件”判重会把每一次新建都误判为覆盖。
+
+- 旧 API（`Windows.Storage.Pickers`）：官方文档明确返回的是 "created to represent the saved file" 且 "the file has no content" 的占位文件。
+- 新 API（`Microsoft.Windows.Storage.Pickers`）：同一行为（microsoft/WindowsAppSDK#5976，1.8.2 实测），换 API 不能规避。
+- 该行为**依环境而异**（本仓库 E2E 实测记录：部分环境不预创建），因此判重逻辑必须同时兼容两种环境。
+
+**Fix / Prevention**：判重必须用 `SaveFilePickerPlaceholder`（`UI/Common/`），禁止只看 `File.Exists`：
 
 ```csharp
-// Don't：WinAppSDK 1.x 时代的 DateCreated 时间窗口判断，2.0 下分支不可达（死代码）
-DateTimeOffset pickStarted = DateTimeOffset.Now;
+// Correct：先判存在（未预创建的环境直接放行），再用「0 字节 + 创建时间落在调用窗口内」识别占位文件
+DateTimeOffset pickStarted = DateTimeOffset.Now;   // 必须在调用 Picker 之前记录
 StorageFile? file = await picker.PickSaveFileAsync();
-if (file.DateCreated >= pickStarted - TimeSpan.FromSeconds(2)) { return file; }
+if (file is null) { return null; }
+if (!File.Exists(file.Path) || SaveFilePickerPlaceholder.IsCreatedByPicker(file, pickStarted))
+{
+    return file;                                   // 新文件：直接返回，不弹覆盖确认
+}
+
+// 其余情况 = 用户选中的已存在文件：弹应用内覆盖确认
 ```
 
 ```csharp
-// Correct：以 File.Exists 为唯一权威判断（本项目约定写法，见 ExportPickers.PickSaveFileWithOverwriteConfirmAsync）
-StorageFile? file = await PickSaveFileAsync(xamlRoot, hwnd, format);
-if (file is null) { return null; }
-if (!File.Exists(file.Path)) { return file; }   // 新文件直接返回
-bool overwrite = await ConfirmOverwriteFileAsync(xamlRoot, file.Path);  // 已存在弹覆盖确认
+// Don't：假设 FileSavePicker 不预创建空文件（2026-09 证伪，会造成每次新建都误弹覆盖确认）
+if (!File.Exists(file.Path)) { return file; }
 ```
+
+> **Warning**：时间窗判据不可删除。依据是“占位文件必为 0 字节”＋“Windows 只在文件被创建时写入创建时间，后续写入/截断不刷新该时间”，2s 容差覆盖秒级精度的卷（FAT/exFAT）与系统时钟回拨。提交 `4d54c21` 曾因删除该判据引入回归（详见 `WindBoard/UI/Common/SaveFilePickerPlaceholder.cs` 的类注释）。
 
 > **Warning**：本项目为 `WindowsPackageType=None`（unpackaged）且 CI 发布未设 `WindowsAppSDKSelfContained`。升级 WinAppSDK 主版本后，framework-dependent 变体要求用户机器安装对应大版本的 Windows App Runtime（2.x）——升级主版本时必须单独评估运行时分发策略。
 

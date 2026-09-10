@@ -69,15 +69,19 @@ namespace WindBoard.Features.Export.UI
 
             while (true)
             {
+                // FileSavePicker 会先为用户输入的新文件名预创建 0 字节文件再返回，
+                // 故需记录调用时刻，用于把该占位文件与用户选中的既有文件区分开（见 SaveFilePickerPlaceholder）。
+                DateTimeOffset pickStarted = DateTimeOffset.Now;
+
                 StorageFile? file = await PickSaveFileAsync(xamlRoot, hwnd, format);
                 if (file is null)
                 {
                     return null;
                 }
 
-                // WinAppSDK 2.0 起 FileSavePicker 不再为用户输入的新文件名预创建空文件：
-                // 目标文件不存在即视为新文件直接返回；已存在则弹覆盖确认。
-                if (!File.Exists(file.Path))
+                // 文件不存在（环境不预创建占位文件）或存在但属于本次 Picker 预创建的占位文件 → 新文件，直接返回；
+                // 其余情况为用户选中的已存在文件 → 覆盖确认。
+                if (!File.Exists(file.Path) || SaveFilePickerPlaceholder.IsCreatedByPicker(file, pickStarted))
                 {
                     return file;
                 }

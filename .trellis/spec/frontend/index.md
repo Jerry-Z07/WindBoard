@@ -20,7 +20,7 @@ WindBoard frontend refers to WinUI 3 XAML pages, UserControls, the MainWindow, a
 | [State Management](./state-management.md) | Domain state, settings state, UI local state | Filled |
 | [Quality Guidelines](./quality-guidelines.md) | Forbidden patterns, WinUI best practices, review checklist | Filled |
 | [Type Safety](./type-safety.md) | Nullable types, record patterns, Result objects | Filled |
-| [WinUI Dependencies](./winui-dependencies.md) | WinAppSDK/CommunityToolkit 版本契约、弹窗内容自适应约定（DevWinUI 已移除） | Filled |
+| [WinUI Dependencies](./winui-dependencies.md) | WinAppSDK/CommunityToolkit 版本契约、FileSavePicker 占位文件判重、弹窗内容自适应约定（DevWinUI 已移除） | Filled |
 
 ---
 
