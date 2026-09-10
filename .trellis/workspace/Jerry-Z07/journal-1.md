@@ -526,3 +526,55 @@ DevWinUI 在主工程的唯一使用点（更新结果弹窗的 WindowedContentD
 ### Next Steps
 
 - P2 交互桥接单测（09-10-interaction-bridge-tests）→ P1 渲染快照测试 → P3 FlaUI UI 自动化
+
+---
+
+## Session 14: P1/P3 总体审查与收尾（测试自动化体系完成）
+
+**Date**: 2026-09-10
+**Task**: 09-10-test-automation（P1 渲染快照 + P3 FlaUI E2E 审查收尾，父任务收口）
+**Branch**: `develop`
+
+### Summary
+
+P1/P3 并行完成后做整体质量审查：定位并修复 E2E 导出用例的测试侧 bug（弹窗按钮文案预期错误，历史重跑 30+ 次未过），清理两个子任务引入的 14 个构建告警，重跑验证全绿后归档 P1/P3 与父任务。
+
+### 关键修复
+
+- **E2E 导出 PNG 用例稳定失败**：`UiText.MessageBoxOkButton` 误假设单按钮弹窗文案为 Common_OK（"确定"），实际 `DialogHelpers.ShowMessageAsync` 默认取 `Common_Close`（"关闭"）；失败截图证实弹窗存在仅文案不匹配。更名为 `MessageBoxCloseButton = { "关闭", "Close" }` 并修正注释。
+- **构建告警 14 个**（破坏 P0 建立的零告警基线）：CA1838×2（P/Invoke 改 `char[]`）、CA1806（丢弃返回值）、CA1305×6（`AppendLine` 传 `InvariantCulture`）、CA1512（`ThrowIfNegativeOrZero`）、CS8600/8602（`ValueOrDefault` 空值防护）、xUnit2013×2（`Assert.Single`，P2 遗留）。
+- **文档与实现不一致**：`frontend/component-guidelines.md` 的 AutomationId 示例写作 `Settings_Camouflage_EnabledToggle`，实际为 `Camouflage_EnabledToggle`，已修正。
+
+### Testing
+
+- [OK] `dotnet build WindBoard.slnx -c Release`：0 警告 0 错误
+- [OK] `dotnet test WindBoard.slnx --filter "Category!=E2E"`：538/538 通过（1s，含 8 个快照用例）
+- [OK] E2E 冒烟（`-p:RunUITests=true --filter "Category=E2E"`）：连续 3 轮 6/6 全绿，幂等无环境残留
+
+### Gotchas（已沉淀 spec）
+
+- **应用内单按钮弹窗按钮文案是 `Common_Close`（"关闭"）而非 OK**：按按钮语义猜文案会导致 E2E 断言超时，须核对 L10n key → backend/e2e-testing-guidelines
+- **E2E 工程同样受静态分析约束**：新增代码须零告警，常见陷阱 CA1305（插值 AppendLine）与 CA1838（P/Invoke StringBuilder）→ backend/e2e-testing-guidelines
+- **本地化内容快照必须同时固定两类进程级语言状态**（`CurrentUICulture` + MRT `PrimaryLanguageOverride`；unpackaged 下赋空串清除会抛异常）→ backend/quality-guidelines
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `7280d79` | test(snapshot): 新增渲染快照测试（P1 WARP 离屏 + golden image 回归） |
+| `03f855b` | test(e2e): 新增 FlaUI E2E 冒烟套件（P3）+ 主工程 AutomationId 标注 |
+| `65a6886` | fix(test): 修复 E2E 导出弹窗文案预期与构建分析告警 |
+| `893c775` | docs(spec): 沉淀测试分层、渲染快照与 E2E 自动化约定 |
+| `b9c7738` | chore(task): 新增测试自动化任务文档（P0-P3 规划与验收） |
+| `0f5787c` | chore(task): archive 09-10-render-snapshot-tests |
+| `1a8099a` | chore(task): archive 09-10-flaui-ui-tests |
+| `8624326` | chore(task): archive 09-10-test-automation |
+
+### Status
+
+[OK] **Completed**（P0-P3 四子任务全部归档；跨子任务验收标准全部满足，未 push）
+
+### Next Steps
+
+- 分支领先 origin/develop 50 个提交，待用户确认后 push
+- E2E 接入 CI（windows runner）作为可选后续步骤（P3 design 已注明不阻塞验收）
