@@ -1,0 +1,4 @@
+{"file": ".trellis/spec/backend/index.md", "reason": "渲染快照测试新增测试模块，先确认分层与目录归属"}
+{"file": ".trellis/spec/backend/directory-structure.md", "reason": "测试文件放置位置（WindBoard.Tests/Rendering/Snapshot/）需符合目录约定"}
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "测试代码质量标准与测试分层建议"}
+{"file": ".trellis/spec/backend/logging-guidelines.md", "reason": "harness 失败诊断输出需遵循日志策略（不入高频路径）"}

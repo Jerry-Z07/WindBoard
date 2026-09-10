@@ -1,0 +1,4 @@
+{"file": ".trellis/spec/frontend/index.md", "reason": "P3 需在 XAML 控件上补 AutomationId，先读前端规范总览"}
+{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "UserControl/控件模式与事件约定，AutomationId 标注须不破坏既有模式"}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "XAML 改动的 WinUI 最佳实践与评审清单"}
+{"file": ".trellis/spec/backend/database-guidelines.md", "reason": "settings.json 持久化路径与存储约定，E2E 环境隔离设计依赖此文档"}
