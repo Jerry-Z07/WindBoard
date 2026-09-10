@@ -10,6 +10,7 @@ using Xunit;
 
 namespace WindBoard.Tests.Settings;
 
+[Collection(ProcessGlobalLanguageState.CollectionName)]
 public sealed class AppSettingsServiceTests
 {
     [Fact]
@@ -47,7 +48,7 @@ public sealed class AppSettingsServiceTests
     public async Task ImportFromFileAsync_ReplacesCurrentSettingsAndPersistsNormalizedValues()
     {
         string root = CreateTempDirectory();
-        CultureSnapshot cultureSnapshot = CaptureCultureSnapshot();
+        TestLanguageState.Snapshot cultureSnapshot = TestLanguageState.Capture();
         try
         {
             string defaultSettingsPath = Path.Combine(root, "data", "settings.json");
@@ -93,7 +94,7 @@ public sealed class AppSettingsServiceTests
         }
         finally
         {
-            RestoreCultureSnapshot(cultureSnapshot);
+            TestLanguageState.Restore(cultureSnapshot);
             DeleteDirectory(root);
         }
     }
@@ -102,7 +103,7 @@ public sealed class AppSettingsServiceTests
     public async Task ResetToDefaultsAsync_RestoresDefaultSettingsAndPersists()
     {
         string root = CreateTempDirectory();
-        CultureSnapshot cultureSnapshot = CaptureCultureSnapshot();
+        TestLanguageState.Snapshot cultureSnapshot = TestLanguageState.Capture();
         try
         {
             string defaultSettingsPath = Path.Combine(root, "data", "settings.json");
@@ -135,7 +136,7 @@ public sealed class AppSettingsServiceTests
         }
         finally
         {
-            RestoreCultureSnapshot(cultureSnapshot);
+            TestLanguageState.Restore(cultureSnapshot);
             DeleteDirectory(root);
         }
     }
@@ -144,7 +145,7 @@ public sealed class AppSettingsServiceTests
     public async Task ImportFromFileAsync_DoesNotPostBackToCapturedSynchronizationContext()
     {
         string root = CreateTempDirectory();
-        CultureSnapshot cultureSnapshot = CaptureCultureSnapshot();
+        TestLanguageState.Snapshot cultureSnapshot = TestLanguageState.Capture();
         SynchronizationContext? originalContext = SynchronizationContext.Current;
         var trackingContext = new TrackingSynchronizationContext();
         try
@@ -164,7 +165,7 @@ public sealed class AppSettingsServiceTests
         }
         finally
         {
-            RestoreCultureSnapshot(cultureSnapshot);
+            TestLanguageState.Restore(cultureSnapshot);
             DeleteDirectory(root);
         }
     }
@@ -173,7 +174,7 @@ public sealed class AppSettingsServiceTests
     public async Task ResetToDefaultsAsync_DoesNotPostBackToCapturedSynchronizationContext()
     {
         string root = CreateTempDirectory();
-        CultureSnapshot cultureSnapshot = CaptureCultureSnapshot();
+        TestLanguageState.Snapshot cultureSnapshot = TestLanguageState.Capture();
         SynchronizationContext? originalContext = SynchronizationContext.Current;
         var trackingContext = new TrackingSynchronizationContext();
         try
@@ -189,7 +190,7 @@ public sealed class AppSettingsServiceTests
         }
         finally
         {
-            RestoreCultureSnapshot(cultureSnapshot);
+            TestLanguageState.Restore(cultureSnapshot);
             DeleteDirectory(root);
         }
     }
@@ -227,23 +228,6 @@ public sealed class AppSettingsServiceTests
         return new AppSettingsService(store);
     }
 
-    private static CultureSnapshot CaptureCultureSnapshot()
-    {
-        return new CultureSnapshot(
-            CultureInfo.CurrentCulture,
-            CultureInfo.CurrentUICulture,
-            CultureInfo.DefaultThreadCurrentCulture,
-            CultureInfo.DefaultThreadCurrentUICulture);
-    }
-
-    private static void RestoreCultureSnapshot(CultureSnapshot snapshot)
-    {
-        CultureInfo.CurrentCulture = snapshot.CurrentCulture;
-        CultureInfo.CurrentUICulture = snapshot.CurrentUICulture;
-        CultureInfo.DefaultThreadCurrentCulture = snapshot.DefaultThreadCurrentCulture;
-        CultureInfo.DefaultThreadCurrentUICulture = snapshot.DefaultThreadCurrentUICulture;
-    }
-
     private static string CreateTempDirectory()
     {
         string path = Path.Combine(Path.GetTempPath(), "WindBoard.Tests", Guid.NewGuid().ToString("N"));
@@ -258,12 +242,6 @@ public sealed class AppSettingsServiceTests
             Directory.Delete(path, recursive: true);
         }
     }
-
-    private sealed record CultureSnapshot(
-        CultureInfo CurrentCulture,
-        CultureInfo CurrentUICulture,
-        CultureInfo? DefaultThreadCurrentCulture,
-        CultureInfo? DefaultThreadCurrentUICulture);
 
     private static SemaphoreSlim GetIoGate(AppSettingsService service)
     {

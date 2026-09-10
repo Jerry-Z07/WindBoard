@@ -69,10 +69,12 @@
   - `WindBoard.CrashReporter/InternalsVisibleTo.cs`
   允许测试访问 `internal` 类型。
 - 运行测试：`dotnet test WindBoard.slnx`（默认平台已映射到 x64；如需显式指定可用 `dotnet test WindBoard.slnx -p:Platform=x64`）。
+- CI：`.github/workflows/ci.yml`（push/PR）执行零告警构建（`-p:CodeAnalysisTreatWarningsAsErrors=true`）与全量单测（含渲染快照）；E2E 依赖交互桌面，不进 CI。
 - 本地化 Key 审计：`WindBoard.Tests/Localization/LocalizationKeyAuditTests.cs`（要求 C# 中 `L10n.Get/Format` 的 key 为字符串字面量；XAML 使用 `{l10n:Loc Key=...}`）。
 - 测试分层建议：
-  - D2D 渲染层可用离屏快照测试覆盖（`WindBoard.Tests/Rendering/Snapshot/`，WARP 软件路径，不依赖真实 GPU/显示器）；基准重建用 `WINDBOARD_REGEN_SNAPSHOTS=1`，基准变更须在提交说明中给出理由。
-  - WinUI/XAML 合成层（UI 线程与可视化树）不放单测，归入 E2E（FlaUI）。测试程序集已关闭跨类并行（`TestAssemblyConfig.cs`），新增测试涉及进程级全局状态（如 MRT `PrimaryLanguageOverride`、`CultureInfo`）时须自行清理还原。
+  - D2D 渲染层可用离屏快照测试覆盖（`WindBoard.Tests/Rendering/Snapshot/`，WARP 软件路径，不依赖真实 GPU/显示器）；基准缺失即测试失败，重建用 `WINDBOARD_REGEN_SNAPSHOTS=1`，基准变更须在提交说明中给出理由。
+  - WinUI/XAML 合成层（UI 线程与可视化树）不放单测，归入 E2E（FlaUI，`WindBoard.UITests/`，需交互桌面：`dotnet test WindBoard.slnx -c Release -p:RunUITests=true --filter Category=E2E`）。
+  - 涉进程/线程级语言状态的测试类（`AppSettingsServiceTests`、渲染快照文本场景）同属 `ProcessGlobalLanguageState` 集合串行执行，状态捕获/还原统一走 `TestLanguageState`；新增测试涉及进程级全局状态（如 MRT `PrimaryLanguageOverride`、`CultureInfo`）时须自行清理还原。
 
 ## 相关文档（Docs）
 

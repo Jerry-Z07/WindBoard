@@ -98,6 +98,32 @@ public sealed class PointerRouteStateTests
     }
 
     [Fact]
+    public void ResolveMoveRoute_SamePointerId_PanBeatsSelectionBeatsMarqueeBeatsActive()
+    {
+        // 用同一个 pointerId 注册全部四类手势：重排 ResolveMoveRoute 的 if 顺序会使本用例失败，
+        // 从而把“优先级与原分支顺序一致”从人工核对变为测试锁定（上一个用例用不同 ID，无法区分顺序）。
+        var routes = new PointerRouteState();
+        routes.BeginPan(1);
+        routes.BeginSelectionMove(1);
+        routes.BeginMarquee(1);
+        routes.BeginActiveStroke(1, PointerDeviceType.Touch);
+
+        Assert.Equal(PointerMoveRoute.Pan, routes.ResolveMoveRoute(1));
+
+        routes.CancelPan();
+        Assert.Equal(PointerMoveRoute.Selection, routes.ResolveMoveRoute(1));
+
+        routes.EndSelectionMove();
+        Assert.Equal(PointerMoveRoute.Marquee, routes.ResolveMoveRoute(1));
+
+        routes.EndMarquee();
+        Assert.Equal(PointerMoveRoute.Active, routes.ResolveMoveRoute(1));
+
+        routes.EndActiveStroke();
+        Assert.Equal(PointerMoveRoute.None, routes.ResolveMoveRoute(1));
+    }
+
+    [Fact]
     public void HasActivePointerCapture_BlocksWhileAnyGestureActive()
     {
         var routes = new PointerRouteState();

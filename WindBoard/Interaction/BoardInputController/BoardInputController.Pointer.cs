@@ -70,7 +70,7 @@ namespace WindBoard.Interaction
                 case TouchPressRoute.Ignore:
                     // 已有会话/手势：忽略本次按下。
                     return;
-                default:
+                case TouchPressRoute.PenOrEraser:
                     // 单指触摸：画线 / 擦除
                     BeginPenOrEraserGesture(e.Pointer, point);
                     e.Handled = true;
@@ -99,6 +99,9 @@ namespace WindBoard.Interaction
                 case TouchGestureEndAction.CommitEraser:
                     // 与原实现一致：擦除提交后不提前返回，继续落到下方的框选取消检查。
                     CommitActiveToolGesture();
+                    break;
+                case TouchGestureEndAction.None:
+                    // 无触摸来源操作需要处置：落到下方的框选取消检查。
                     break;
             }
 

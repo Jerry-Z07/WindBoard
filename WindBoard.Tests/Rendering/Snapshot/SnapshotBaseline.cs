@@ -9,9 +9,9 @@ namespace WindBoard.Tests.Rendering.Snapshot;
 /// </summary>
 /// <remarks>
 /// 基准（重新）生成机制：
-/// - 基准缺失时自动写入并跳过断言（首次生成/新场景）；
-/// - 环境变量 <c>WINDBOARD_REGEN_SNAPSHOTS=1</c> 时强制用本次渲染结果覆盖基准并跳过断言，
-///   用于渲染行为有意变更后重建基准。基准变更须在提交说明中说明理由。
+/// - 基准缺失视为测试失败（防止新增场景忘提交基准、基准被误删等情况被静默放过）；
+/// - 环境变量 <c>WINDBOARD_REGEN_SNAPSHOTS=1</c> 时用本次渲染结果覆盖基准并跳过断言，
+///   用于首次生成或渲染行为有意变更后重建基准。基准变更须在提交说明中说明理由。
 ///
 /// 基准生成环境约定（保证跨机器可比）：
 /// - WARP 软件渲染 + 96 DPI（1 DIP = 1 像素），无 GPU/显示器依赖；
@@ -42,25 +42,35 @@ internal static class SnapshotBaseline
     }
 
     /// <summary>
-    /// 加载基准；基准缺失或要求重新生成时，写入 actual 并返回 false（调用方跳过断言）。
+    /// 加载基准供比对；仅当显式请求重建（<c>WINDBOARD_REGEN_SNAPSHOTS=1</c>）时写入基准并返回
+    /// false（调用方跳过断言）。基准缺失视为失败。
     /// </summary>
+    /// <exception cref="InvalidOperationException">基准缺失且未显式请求重建。</exception>
     internal static bool TryLoadOrRegenerate(
         string snapshotName, byte[] actual, int width, int height, out byte[] expected)
     {
         string path = ResolveSnapshotPath(snapshotName);
-        if (!RegenerateRequested && File.Exists(path))
+
+        if (RegenerateRequested)
         {
-            expected = SnapshotComparer.LoadPng(path, width, height);
-            return true;
+            Save(snapshotName, actual, width, height);
+            expected = [];
+            return false;
         }
 
-        Save(snapshotName, actual, width, height);
-        expected = [];
-        return false;
-    }
+        if (!File.Exists(path))
+        {
+            throw new InvalidOperationException(
+                string.Format(
+                    CultureInfo.InvariantCulture,
+                    "渲染基准缺失：{0}。新增场景或基准缺库时，请设置环境变量 {1}=1 重新生成基准并提交（基准变更须在提交说明中说明理由）。",
+                    path,
+                    RegenerateEnvVarName));
+        }
 
-    /// <summary>判断基准是否存在（供测试跳过逻辑判断，不触发写入）。</summary>
-    internal static bool Exists(string snapshotName) => File.Exists(ResolveSnapshotPath(snapshotName));
+        expected = SnapshotComparer.LoadPng(path, width, height);
+        return true;
+    }
 
     /// <summary>写入基准 PNG（目录不存在时自动创建）。</summary>
     internal static void Save(string snapshotName, byte[] bgra, int width, int height)

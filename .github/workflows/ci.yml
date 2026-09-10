@@ -1,0 +1,51 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch: {}
+
+# 同一分支的旧运行被新提交取代时自动取消，避免排队浪费。
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-test:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Restore
+        run: dotnet restore
+
+      # 分析告警回归闸门：CodeAnalysisTreatWarningsAsErrors 仅把 CA/IDE 告警升级为错误，
+      # 普通编译器与 WinUI/XAML 平台告警（WMC 系列）不受影响；逐规则 NoWarn 豁免保持生效
+      # （与发布构建 release.yml 同一口径，见 .trellis/spec/backend/quality-guidelines.md）。
+      - name: Build (analyzer warnings as errors)
+        run: dotnet build WindBoard.slnx -c Release --no-restore -p:CodeAnalysisTreatWarningsAsErrors=true
+
+      # 单测口径：WindBoard.Tests（含渲染快照，WARP 软件路径无需 GPU/显示器）。
+      # WindBoard.UITests 默认 IsTestProject=false（构建开关），E2E 需要交互式桌面，不进 CI。
+      - name: Test (unit + rendering snapshots)
+        run: dotnet test WindBoard.slnx -c Release --no-build --logger "trx;LogFileName=test-results.trx"
+
+      # 快照失败时的 expected/actual/diff 三件套留在 WindBoard.Tests/artifacts/ 下（已 gitignore）。
+      - name: Upload test diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-diagnostics
+          path: |
+            WindBoard.Tests/artifacts/**
+            **/TestResults/**
+          if-no-files-found: ignore

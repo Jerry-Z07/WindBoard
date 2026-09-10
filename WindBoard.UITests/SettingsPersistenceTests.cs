@@ -15,17 +15,18 @@ namespace WindBoard.UITests
         [Fact]
         public void ToggleGeneralSwitch_PersistsAcrossAppRestart()
         {
+            Window? settings = null;
+
             RunStep("打开设置窗口并进入常规页", () =>
             {
-                OpenGeneralSettings();
+                settings = OpenGeneralSettings();
             });
 
             bool targetState = false;
 
             RunStep("切换“最小化进入屏幕批注”开关到相反状态", () =>
             {
-                Window settings = OpenGeneralSettings();
-                AutomationElement toggle = ScenarioSteps.WaitForInWindow(App, settings, ToggleId);
+                AutomationElement toggle = ScenarioSteps.WaitForInWindow(App, settings!, ToggleId);
 
                 targetState = !UiInteraction.GetToggleState(toggle);
                 UiInteraction.SetToggle(toggle, targetState);

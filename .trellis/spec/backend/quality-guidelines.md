@@ -108,12 +108,14 @@ writer.WriteLine(string.Format(CultureInfo.InvariantCulture, "pixelWidth:{0}", w
 - 升级测试包时保持 xUnit v2 技术栈；v3 迁移属独立任务（详见 `frontend/winui-dependencies.md`）
 - The test directory structure matches the main project modules one to one
 
-> **Warning**: 测试中渲染本地化内容（如 `BoardSceneRenderer` 的元素卡片走 `L10n.Get`）时，必须同时固定两类进程级语言状态，否则全量并行跑会随机失败：
+> **Warning**: 测试中渲染本地化内容（如 `BoardSceneRenderer` 的元素卡片走 `L10n.Get`）时，必须同时固定两类进程级语言状态：
 >
 > 1. `CultureInfo.CurrentUICulture`（线程级）固定为 `zh-CN`，并在 finally 还原；
-> 2. `Microsoft.Windows.Globalization.ApplicationLanguages.PrimaryLanguageOverride`（**进程级** MRT 全局状态）覆写为目标语言。部分测试（`AppSettingsServiceTests` 经 `AppLanguageService.Apply`）会设置该值且清理时只还原 CultureInfo；残留 override（如 en-US）会让 MRT 在 zh-CN 上下文下返回 en-US 候选，L10n 判定语言不匹配而回退输出 key 字符串。
+> 2. `Microsoft.Windows.Globalization.ApplicationLanguages.PrimaryLanguageOverride`（**进程级** MRT 全局状态）固定为目标语言。MRT 候选语言会受该 override 影响，与显式设置的语言上下文不一致时，L10n 判定语言不匹配而回退输出 key 字符串。
 >
-> 注意：unpackaged 环境下把 override 赋值为**空串**清除会抛“未指定的错误”（实测，`AppLanguageService.ApplyPrimaryLanguageOverride` 的注释同样预警），无法用它还原；应覆写为目标语言并在 finally 尽力还原原值。此外测试程序集已在 `TestAssemblyConfig.cs` 以 `[assembly: CollectionBehavior(DisableTestParallelization = true)]` 关闭跨类并行（进程级全局状态与并行类存在竞态，实测复现；全量串行 < 2s）。
+> 语言状态的捕获/还原统一走 `WindBoard.Tests/TestLanguageState.cs`（**不要自行写一套**）：unpackaged 环境下把 override 赋值为**空串**清除会抛“未指定的错误”（实测，与 `AppLanguageService.ApplyPrimaryLanguageOverride` 的降级逻辑一致），因此还原空值时需降级为系统 UI 语言，否则会把测试期间的 override（如 en-US）残留在进程里。
+>
+> 并发隔离：`AppSettingsServiceTests`（写方）与 `Rendering/Snapshot`（读方）同属 `ProcessGlobalLanguageState` 集合（`ProcessGlobalLanguageState.cs`），由 xUnit 串行执行。**不要重新引入程序集级 `DisableTestParallelization`**——xUnit 官方做法是用 test collection 隔离共享状态，全局关闭会牺牲全部并行收益。
 
 ### Scenarios that need tests
 
@@ -137,7 +139,7 @@ writer.WriteLine(string.Format(CultureInfo.InvariantCulture, "pixelWidth:{0}", w
 - Use `async Task` instead of `async void` for async tests
 - Hand-written stubs/delegates replace external dependencies (for example `DelegateHttpMessageHandler`)
 - Audit tests: `LocalizationKeyAuditTests` (localization key integrity) and `LogNoiseAuditTests` (log-noise blacklist)
-- Rendering snapshot tests: `WindBoard.Tests/Rendering/Snapshot/` (WARP offscreen harness + golden image compare); baseline regeneration via `WINDBOARD_REGEN_SNAPSHOTS=1`, baseline changes must be justified in the commit message
+- Rendering snapshot tests: `WindBoard.Tests/Rendering/Snapshot/` (WARP offscreen harness + golden image compare); baseline regeneration via `WINDBOARD_REGEN_SNAPSHOTS=1`, baseline changes must be justified in the commit message; a **missing baseline fails the test** (only the explicit env var writes new baselines)
 
 > **Warning**: 扩展离屏渲染快照测试（`OffscreenRenderHarness`）时的两个实测约束：
 >

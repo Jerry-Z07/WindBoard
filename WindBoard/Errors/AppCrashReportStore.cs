@@ -89,8 +89,9 @@ namespace WindBoard.Errors
 
         private static int TryGetProcessId()
         {
-            // CA1837：Environment.ProcessId 是 SDK 提供的零开销只读属性（内部即 GetCurrentProcess().Id），
-            // 不会抛异常，原实现中的 Process.GetCurrentProcess() 兜底为不可达代码，直接移除。
+            // CA1837：Environment.ProcessId 由运行时直接取当前进程 id（不经 Process 对象、不抛异常）；
+            // 原实现的两层 try/catch（Process.GetCurrentProcess() 兜底 → 0）为不可达代码，故直接移除。
+            // 调用点仍有外层 try/catch 兜底（见上方 TryWrite 的 catch），崩溃链路不会因此新增异常出口。
             return Environment.ProcessId;
         }
 

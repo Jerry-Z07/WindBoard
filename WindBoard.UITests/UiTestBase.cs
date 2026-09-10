@@ -28,11 +28,24 @@ namespace WindBoard.UITests
             Artifacts.Step("环境隔离：备份并移除 settings.json");
             SettingsBackup.SaveAndClear();
 
-            Temp = new TempWorkspace();
-            Artifacts.Step($"被测程序：{RepoRootLocator.TryFindAppExe()}");
-            Artifacts.Step($"启动应用（临时目录：{Temp.RootDirectory}）");
-            App = WindBoardApp.Start();
-            Artifacts.Step("应用已启动，主窗口就绪");
+            try
+            {
+                Temp = new TempWorkspace();
+                Artifacts.Step($"被测程序：{RepoRootLocator.TryFindAppExe()}");
+                Artifacts.Step($"启动应用（临时目录：{Temp.RootDirectory}）");
+                App = WindBoardApp.Start();
+                Artifacts.Step("应用已启动，主窗口就绪");
+            }
+            catch (Exception ex)
+            {
+                // 关键：xUnit v2 在 InitializeAsync 抛出时不会调用 DisposeAsync（实测确认），
+                // 必须在此立即恢复设置与临时目录，否则用户真实 settings.json 会保持“已删除”状态。
+                Artifacts.Step($"初始化失败，回滚环境：{ex.Message}");
+                SettingsBackup.Restore();
+                Temp?.Dispose();
+                throw;
+            }
+
             return Task.CompletedTask;
         }
 

@@ -18,7 +18,8 @@
       Roslyn 静态分析（SDK 内置，无第三方分析器包）：
       - AnalysisLevel=latest-recommended：启用 .NET 推荐 CA 规则集（含最新 SDK 引入的规则）
       - EnforceCodeStyleInBuild：构建时执行 IDE 代码风格规则（IDE00xx）
-      作用于解决方案全部 4 个项目。个别规则的豁免统一放在本文件的 NoWarn 中，
+      作用于解决方案全部项目（主程序 + CrashReporter + Launcher + Tests + UITests）。
+      个别规则的豁免统一放在本文件的 NoWarn 中，
       按规则 ID 精确列出并附注释理由，禁止按项目/命名空间一刀切。
     -->
     <AnalysisLevel>latest-recommended</AnalysisLevel>
