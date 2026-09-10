@@ -179,7 +179,7 @@ public sealed class PointerRouteStateTests
         var routes = new PointerRouteState();
 
         routes.ActiveTouchPointers.Add(10);
-        Assert.Equal(1, routes.ActiveTouchPointers.Count);
+        Assert.Single(routes.ActiveTouchPointers);
 
         // 多指边界：第 2 个触点加入后进入 Manipulation 通道（≥2）。
         routes.ActiveTouchPointers.Add(11);
@@ -187,7 +187,7 @@ public sealed class PointerRouteStateTests
 
         // 单指抬起后回落到单指。
         routes.ActiveTouchPointers.Remove(10);
-        Assert.Equal(1, routes.ActiveTouchPointers.Count);
+        Assert.Single(routes.ActiveTouchPointers);
 
         // 三指以上手势结束可能收不到逐指释放事件，手势完成时统一清空。
         routes.ActiveTouchPointers.Clear();
