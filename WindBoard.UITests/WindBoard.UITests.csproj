@@ -1,0 +1,45 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows10.0.26100.0</TargetFramework>
+    <TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <Platforms>x86;x64;ARM64</Platforms>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+    <!--
+      E2E 与单测隔离（xUnit v2 无运行时 Skip，故用构建开关）：
+      - 默认 IsTestProject=false：`dotnet test WindBoard.slnx` 不发现/不运行 E2E（单测口径零干扰）
+      - 显式运行 E2E：dotnet test WindBoard.slnx -p:RunUITests=true（配合 -t Category=E2E 过滤）
+    -->
+    <IsTestProject>false</IsTestProject>
+    <IsTestProject Condition="'$(RunUITests)' == 'true'">true</IsTestProject>
+    <!--
+      CA1707（标识符不应包含下划线）：与 WindBoard.Tests 一致，
+      测试方法命名遵循 {Action}_{ExpectedResult} 约定，仅对测试项目豁免。
+    -->
+    <NoWarn>$(NoWarn);CA1707</NoWarn>
+    <!--
+      CA1416（平台调用 API 仅限 Windows）：E2E 用例启动 Windows 桌面应用并使用
+      GDI 截图/Win32 消息等待，目标框架本身限定 windows TFM，运行环境即 Windows。
+    -->
+    <NoWarn>$(NoWarn);CA1416</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- FlaUI（UIA3）：通过 Windows UI Automation 驱动主程序，不引用主工程程序集，
+         避免把 WinUI 运行时依赖拖进 testhost 进程。 -->
+    <PackageReference Include="FlaUI.UIA3" Version="5.0.0" />
+    <!-- FlaUI 截图（Capture.Screen → System.Drawing.Bitmap）在 .NET 6+ 需要 System.Drawing.Common。 -->
+    <PackageReference Include="System.Drawing.Common" Version="10.0.11" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.9.0" />
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="4.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+</Project>

@@ -69,12 +69,14 @@
                     <controls:SettingsCard.Content>
                         <ToggleSwitch
                             x:Name="EnterScreenAnnotationWhenMinimizedToggleSwitch"
+                            AutomationProperties.AutomationId="SettingsPage_EnterScreenAnnotationToggle"
                             Toggled="OnEnterScreenAnnotationWhenMinimizedToggled" />
                     </controls:SettingsCard.Content>
                 </controls:SettingsCard>
 
                 <controls:SettingsCard
                     x:Name="CamouflageSettingsCard"
+                    AutomationProperties.AutomationId="SettingsPage_CamouflageCard"
                     IsClickEnabled="True"
                     Click="OnCamouflageSettingsClicked"
                     Header="{l10n:Loc Key=Settings_Camouflage_Title}"

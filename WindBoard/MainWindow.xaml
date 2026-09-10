@@ -81,6 +81,7 @@
                 <StackPanel x:Name="LeftDockPanel" Orientation="Horizontal" Spacing="4" Margin="5">
                     <Button
                         x:Name="MoreButton"
+                        AutomationProperties.AutomationId="Dock_MoreButton"
                         MinWidth="60"
                         MinHeight="52"
                         Padding="8,6"
@@ -89,13 +90,13 @@
                         VerticalContentAlignment="Center">
                     <Button.Flyout>
                             <MenuFlyout Opening="OnMoreMenuOpening">
-                                <MenuFlyoutItem Text="{l10n:Loc Key=Common_Settings}" Click="OnSettingsClicked">
+                                <MenuFlyoutItem Text="{l10n:Loc Key=Common_Settings}" AutomationProperties.AutomationId="Dock_SettingsMenuItem" Click="OnSettingsClicked">
                                     <MenuFlyoutItem.Icon>
                                         <SymbolIcon Symbol="Setting" />
                                     </MenuFlyoutItem.Icon>
                                 </MenuFlyoutItem>
                                 <MenuFlyoutSeparator />
-                                 <MenuFlyoutItem Text="{l10n:Loc Key=Common_Export}" Click="OnExportClicked">
+                                 <MenuFlyoutItem Text="{l10n:Loc Key=Common_Export}" AutomationProperties.AutomationId="Dock_ExportMenuItem" Click="OnExportClicked">
                                      <MenuFlyoutItem.Icon>
                                          <SymbolIcon Symbol="OpenFile" />
                                      </MenuFlyoutItem.Icon>
@@ -145,6 +146,7 @@
 
                     <Button
                         x:Name="ImportButton"
+                        AutomationProperties.AutomationId="Dock_ImportButton"
                         MinWidth="60"
                         MinHeight="52"
                         Padding="8,6"
@@ -527,6 +529,7 @@
                     <StackPanel x:Name="UndoRedoDockPanel" Orientation="Horizontal" Spacing="4">
                         <Button
                             x:Name="UndoButton"
+                            AutomationProperties.AutomationId="Dock_UndoButton"
                             MinWidth="60"
                             MinHeight="52"
                             Padding="8,6"
@@ -682,6 +685,7 @@
                 <StackPanel x:Name="PagesDockPanel" Orientation="Horizontal" Spacing="4" Margin="5">
                     <Button
                         x:Name="PagePrevButton"
+                        AutomationProperties.AutomationId="Pages_PrevButton"
                         MinWidth="52"
                         MinHeight="52"
                         Padding="0"
@@ -693,6 +697,7 @@
 
                     <Button
                         x:Name="PageIndicatorButton"
+                        AutomationProperties.AutomationId="Pages_IndicatorButton"
                         MinWidth="84"
                         MinHeight="52"
                         Padding="8,0"
@@ -701,6 +706,7 @@
                         VerticalContentAlignment="Center">
                         <TextBlock
                             x:Name="PageIndicatorText"
+                            AutomationProperties.AutomationId="Pages_IndicatorText"
                             FontSize="12"
                             FontWeight="SemiBold"
                             Text="{l10n:Loc Key=MainWindow_PageIndicator_Default}" />
@@ -708,6 +714,7 @@
 
                     <Button
                         x:Name="PageNextButton"
+                        AutomationProperties.AutomationId="Pages_NextButton"
                         MinWidth="52"
                         MinHeight="52"
                         Padding="0"
