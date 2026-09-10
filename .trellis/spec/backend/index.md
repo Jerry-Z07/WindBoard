@@ -19,6 +19,7 @@ WindBoard backend refers to the Board domain model layer, service layer, and per
 | [Error Handling](./error-handling.md) | Error types, crash reporter, Result patterns | Filled |
 | [Quality Guidelines](./quality-guidelines.md) | Code standards, forbidden patterns, testing | Filled |
 | [Logging Guidelines](./logging-guidelines.md) | AppLog, log levels, what to log/not log | Filled |
+| [E2E Testing](./e2e-testing-guidelines.md) | WindBoard.UITests 工程隔离、用例结构、WinUI 3 UIA 实测契约 | Filled |
 
 ---
 

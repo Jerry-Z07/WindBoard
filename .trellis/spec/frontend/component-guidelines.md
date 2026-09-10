@@ -154,6 +154,27 @@ L10n.Format("Settings_Camouflage_CreateShortcut_Success_Fmt", shortcutPath)
 
 ---
 
+## AutomationId Convention
+
+**What**: 为 E2E（FlaUI/UIA3）触达的控件标注 `AutomationProperties.AutomationId`，格式 `<区域>_<控件语义名>`（PascalCase + 下划线）。
+
+**Example**:
+
+```xml
+<Button x:Name="MoreButton" AutomationProperties.AutomationId="Dock_MoreButton" />
+<ToggleSwitch x:Name="EnabledToggleSwitch" AutomationProperties.AutomationId="Camouflage_EnabledToggle" />
+```
+
+**Rules**:
+
+- 仅 E2E 场景触达路径上的控件补充，不做全量铺开；已有稳定 `x:Name` 的控件 Id 与 Name 保持同语义（如 `Dock_MoreButton` 对应 `MoreButton`）。
+- 同类多实例（如 Dock 每个工具按钮）加功能后缀：`Dock_Tool_Pen`。
+- 动态构建的控件在 C# 中赋值 `AutomationProperties.SetAutomationId(element, id)`。
+- 标注是纯附加属性，不改变绑定/事件/视觉行为；E2E 消费约定见 [E2E Testing](../backend/e2e-testing-guidelines.md)。
+
+---
+
+
 ## WinUI Best Practices
 
 ### Recommended (from winui-app skill)

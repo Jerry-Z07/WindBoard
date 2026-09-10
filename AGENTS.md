@@ -71,7 +71,8 @@
 - 运行测试：`dotnet test WindBoard.slnx`（默认平台已映射到 x64；如需显式指定可用 `dotnet test WindBoard.slnx -p:Platform=x64`）。
 - 本地化 Key 审计：`WindBoard.Tests/Localization/LocalizationKeyAuditTests.cs`（要求 C# 中 `L10n.Get/Format` 的 key 为字符串字面量；XAML 使用 `{l10n:Loc Key=...}`）。
 - 测试分层建议：
-  - UI/渲染集成验证放到更高层（后续可考虑 UI 自动化/端到端 smoke），避免单测依赖 WinUI 线程与设备环境。
+  - D2D 渲染层可用离屏快照测试覆盖（`WindBoard.Tests/Rendering/Snapshot/`，WARP 软件路径，不依赖真实 GPU/显示器）；基准重建用 `WINDBOARD_REGEN_SNAPSHOTS=1`，基准变更须在提交说明中给出理由。
+  - WinUI/XAML 合成层（UI 线程与可视化树）不放单测，归入 E2E（FlaUI）。测试程序集已关闭跨类并行（`TestAssemblyConfig.cs`），新增测试涉及进程级全局状态（如 MRT `PrimaryLanguageOverride`、`CultureInfo`）时须自行清理还原。
 
 ## 相关文档（Docs）
 

@@ -108,6 +108,13 @@ writer.WriteLine(string.Format(CultureInfo.InvariantCulture, "pixelWidth:{0}", w
 - 升级测试包时保持 xUnit v2 技术栈；v3 迁移属独立任务（详见 `frontend/winui-dependencies.md`）
 - The test directory structure matches the main project modules one to one
 
+> **Warning**: 测试中渲染本地化内容（如 `BoardSceneRenderer` 的元素卡片走 `L10n.Get`）时，必须同时固定两类进程级语言状态，否则全量并行跑会随机失败：
+>
+> 1. `CultureInfo.CurrentUICulture`（线程级）固定为 `zh-CN`，并在 finally 还原；
+> 2. `Microsoft.Windows.Globalization.ApplicationLanguages.PrimaryLanguageOverride`（**进程级** MRT 全局状态）覆写为目标语言。部分测试（`AppSettingsServiceTests` 经 `AppLanguageService.Apply`）会设置该值且清理时只还原 CultureInfo；残留 override（如 en-US）会让 MRT 在 zh-CN 上下文下返回 en-US 候选，L10n 判定语言不匹配而回退输出 key 字符串。
+>
+> 注意：unpackaged 环境下把 override 赋值为**空串**清除会抛“未指定的错误”（实测，`AppLanguageService.ApplyPrimaryLanguageOverride` 的注释同样预警），无法用它还原；应覆写为目标语言并在 finally 尽力还原原值。此外测试程序集已在 `TestAssemblyConfig.cs` 以 `[assembly: CollectionBehavior(DisableTestParallelization = true)]` 关闭跨类并行（进程级全局状态与并行类存在竞态，实测复现；全量串行 < 2s）。
+
 ### Scenarios that need tests
 
 - Core business logic (verifying Command Do/Undo/Redo behavior)
@@ -117,7 +124,7 @@ writer.WriteLine(string.Format(CultureInfo.InvariantCulture, "pixelWidth:{0}", w
 
 ### Scenarios that do not need tests
 
-- UI/rendering integration (depends on the WinUI thread and device environment)
+- WinUI 合成层集成（依赖 WinUI 线程与 XAML 元素，如选中 overlay/框选 marquee 这类 XAML 层元素）——归入 E2E（FlaUI）覆盖
 - Tests that chase coverage at the expense of logic
 - Tests distorted by excessive mocking
 - Tests that verify implementation details instead of behavior
@@ -130,12 +137,43 @@ writer.WriteLine(string.Format(CultureInfo.InvariantCulture, "pixelWidth:{0}", w
 - Use `async Task` instead of `async void` for async tests
 - Hand-written stubs/delegates replace external dependencies (for example `DelegateHttpMessageHandler`)
 - Audit tests: `LocalizationKeyAuditTests` (localization key integrity) and `LogNoiseAuditTests` (log-noise blacklist)
+- Rendering snapshot tests: `WindBoard.Tests/Rendering/Snapshot/` (WARP offscreen harness + golden image compare); baseline regeneration via `WINDBOARD_REGEN_SNAPSHOTS=1`, baseline changes must be justified in the commit message
+
+> **Warning**: 扩展离屏渲染快照测试（`OffscreenRenderHarness`）时的两个实测约束：
+>
+> 1. `ID2D1DeviceContext.CreateBitmapFromDxgiSurface` 显式传入 `BitmapProperties1`（含 `BitmapOptions.Target`）在 WARP 路径实测触发 E_INVALIDARG；应传 `null`（D2D 从 DXGI surface 推断像素格式、DPI 取默认 96），DXGI surface 支撑的位图可直接 `SetTarget`。
+> 2. 像素导出用主工程既有依赖 System.Drawing.Common（BGRA 缓冲与 `Format32bppArgb` 内存序逐字节对应）；不要为此引入 WIC/Vortice.WIC 新包（违反“优先使用已有依赖”约定）。
 
 ### Interaction 层可测性约定
 
-- `BoardInputController` 依赖 `SwapChainPanel`（测试中不可构造），事件参数为 WinUI 类型（不可构造）：可测逻辑必须收敛为"接收原始数据的纯状态/纯函数"，控制器事件处理器仅负责提取原始数据并转发。
-- 现有载体：`PointerRouteState`（pointerId 分配/互斥/释放状态机与触摸触点集合，`Interaction/BoardInputController/`）与 `PointerRoutingDecisions`（按键/压感/触摸路由/滚轮节流纯决策函数）；对应测试位于 `WindBoard.Tests/Interaction/`。
-- 新增控制器行为时：决策逻辑放进上述纯状态/纯函数并补充单测；禁止在事件处理器内继续扩展不可内测的内联逻辑。
+**Trigger**：`BoardInputController` 构造依赖 `SwapChainPanel`（测试中不可创建），事件参数为 WinUI 运行时类型（`PointerRoutedEventArgs`/`PointerPoint`/`ManipulationDeltaRoutedEventArgs` 均不可构造）。可测逻辑必须收敛为"接收原始数据的纯状态/纯函数"，控制器事件处理器仅负责从 WinUI 类型提取原始数据并转发。`PointerDeviceType` 等纯枚举可在测试中直接使用。
+
+**载体与契约**（`WindBoard/Interaction/BoardInputController/`，测试在 `WindBoard.Tests/Interaction/`）：
+
+| 类型 | 形态 | 关键成员 | 边界行为 |
+|---|---|---|---|
+| `PointerRouteState` | 纯状态类（sealed） | `BeginActiveStroke(uint, PointerDeviceType)` / `EndActiveStroke()` / `BeginPan/TryEndPan/CancelPan(uint)` / `BeginSelectionMove(uint)` / `EndSelectionMove()` / `CancelSelectionMove()` / `BeginMarquee/EndMarquee(uint)` / `ResolveMoveRoute(uint)` | 互斥由控制器经 `HasActivePointerCapture` 闸门保证，Begin* 不自行校验（保持原行为）；`TryEndPan` 不匹配时返回 false 且状态不变；`ResolveMoveRoute` 优先级 pan → selection → marquee → active；`CancelSelectionMove` 额外复位 `TouchManipulationTarget` 为 Viewport |
+| `PointerRoutingDecisions` | 纯静态函数 | `ShouldStartStroke(deviceType, isLeft)` / `ShouldStartPan(allow, deviceType, isRight)` / `NormalizePressure(deviceType, pressure)` / `ResolveTouchPressRoute(count, isSelect, allowSel, hasCapture)` / `ResolveTouchGestureEnd(isStroke, pointCount, hasOther, isErasing, isTouchOrigin)` / `EvaluateWheelZoomTick(isZooming, now, lastAt)` | 鼠标落笔须左键、平移须右键且仅鼠标；压感仅触控笔钳位 [0.1, 1]；触摸多指阈值 ≥2；滚轮空闲判定为 `elapsed < 150ms 则等待`（达到 150ms 即结束）；`ResolveTouchGestureEnd` 的 CommitEraser 由调用方继续落到框选取消检查（原 fall-through 语义） |
+
+**Why**：不收敛则 controller 层是测试盲区（构造即需 XAML 环境）；逐行搬移到纯状态/纯函数后，分配/互斥/释放时序与各决策分支可在 CI 直接驱动。
+
+#### Wrong vs Correct
+
+```csharp
+// Wrong：在事件处理器内联新增判定逻辑 —— 无法单测，且与既有闸门/路由顺序脱节
+private void OnCanvasPointerPressed(object s, PointerRoutedEventArgs e)
+{
+    if (someNewCondition(e.GetCurrentPoint(_panel).Properties)) { /* ... */ }
+}
+
+// Correct：决策收敛到纯函数（仅原始数据入参），事件处理器提取后转发
+// PointerRoutingDecisions.cs
+internal static bool SomeNewDecision(PointerDeviceType deviceType, bool isXPressed) { /* ... */ }
+// BoardInputController.Pointer.cs（事件处理器只做提取+转发）
+if (PointerRoutingDecisions.SomeNewDecision(e.Pointer.PointerDeviceType, point.Properties.IsXPressed)) { /* ... */ }
+```
+
+**Tests Required**：新增纯状态转移/决策分支须在 `WindBoard.Tests/Interaction/` 补单测，断言点覆盖关键边界（触摸 ≥2、空闲 150ms 达到即结束、压感钳位端点 0.1/1.0、pointerId 不匹配不改状态）；浮点断言用 `AssertEx.Equal`。
 
 ---
 
