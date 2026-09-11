@@ -18,18 +18,32 @@ concurrency:
 jobs:
   build-and-test:
     runs-on: windows-latest
+    # 兜底闸门：测试若再次挂起，最迟在此时间点终止，避免空转到默认 6 小时上限。
+    # 正常路径下由测试步骤的 --blame-hang-timeout 更早（约 3 分钟内）判挂并失败。
+    timeout-minutes: 15
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v4
+      # NuGet 全局包缓存：原先冷缓存下 restore 约 82s，缓存命中后仅需十几秒。
+      # 缓存键跟随项目文件/解决方案文件的内容哈希，依赖变化时自动换键重建。
+      - name: Cache NuGet packages
+        uses: actions/cache@v6
         with:
-          dotnet-version: "10.0.x"
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj', 'Directory.Build.props', 'WindBoard.slnx') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
 
+      # 已移除 actions/setup-dotnet：windows-latest（Windows Server 2025，镜像 20260907.255.1）
+      # 已预装 .NET 10.0.x SDK（10.0.111/204/303/400），与 setup-dotnet 解析 dotnet-version
+      # "10.0.x" 得到的版本一致，而该步骤的下载安装耗时约 44s。若未来镜像移除 .NET 10，
+      # restore 会以“找不到 SDK”显式失败，不会静默降级；届时恢复 Setup .NET 步骤即可。
       - name: Restore
-        run: dotnet restore
+        run: |
+          dotnet --version
+          dotnet restore
 
       # 分析告警回归闸门：CodeAnalysisTreatWarningsAsErrors 仅把 CA/IDE 告警升级为错误，
       # 普通编译器与 WinUI/XAML 平台告警（WMC 系列）不受影响；逐规则 NoWarn 豁免保持生效
@@ -39,16 +53,29 @@ jobs:
 
       # 单测口径：WindBoard.Tests（含渲染快照，WARP 软件路径无需 GPU/显示器）。
       # WindBoard.UITests 默认 IsTestProject=false（构建开关），E2E 需要交互式桌面，不进 CI。
+      #
+      # 挂起诊断：本地同一套用例（545 个）约 3s，而 CI 上该步骤曾长时间无任何输出直至 job 超时。
+      # - --blame-hang-timeout 3m 隐式开启 --blame/--blame-hang：单个用例超过 3 分钟即判定挂起
+      #   并终止测试宿主；默认超时为 1 小时，故必须显式收紧。
+      #   --blame-hang-dump-type none：只终止宿主、不产几百 MB 的转储（序列文件照常产出）。
+      # - --logger "console;verbosity=detailed"：逐条输出用例结果，日志中最后一条完成记录之后的
+      #   用例即为挂起用例。
+      # - --diag：输出 VSTest 与测试宿主的分进程日志，用于区分“某个用例挂起”与“测试宿主启动
+      #   阶段即挂起”（后者控制台不会新增输出，只能靠该日志判断）；tracelevel=info 避免 verbose
+      #   级别产生过大的日志。
       - name: Test (unit + rendering snapshots)
-        run: dotnet test WindBoard.slnx -c Release --no-build --logger "trx;LogFileName=test-results.trx"
+        run: dotnet test WindBoard.slnx -c Release --no-build --logger "trx;LogFileName=test-results.trx" --logger "console;verbosity=detailed" --blame-hang --blame-hang-timeout 3m --blame-hang-dump-type none --diag "TestResults/diag.txt;tracelevel=info"
 
-      # 快照失败时的 expected/actual/diff 三件套留在 WindBoard.Tests/artifacts/ 下（已 gitignore）。
+      # 快照失败时的 expected/actual/diff 三件套留在 WindBoard.Tests/artifacts/ 下（已 gitignore）；
+      # TestResults/ 下有 TRX、blame 序列文件与 --diag 日志。挂起诊断依赖这些产物，
+      # 因此由“仅 failure 上传”改为 always 上传。
       - name: Upload test diagnostics
-        if: failure()
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: test-diagnostics
           path: |
             WindBoard.Tests/artifacts/**
+            TestResults/**
             **/TestResults/**
           if-no-files-found: ignore
