@@ -24,8 +24,9 @@ namespace WindBoard.Features.ScreenAnnotation.UI
     /// </summary>
     public sealed partial class ScreenAnnotationToolbarWindow : Window, IScreenAnnotationModeToolbar
     {
-        private const double ExpandedToolbarWidthDip = 330;
-        private const double ToolbarHeightDip = 60;
+        // 展开态宽度构成：内容 Margin 6×2 + 拖拽把手 44 + 间距 4 + 分组分隔线 1 + 间距 4 + 按钮区 236（5×44 + 4×4）= 301；高度 = 元素 44 + Margin 6×2 = 56。
+        private const double ExpandedToolbarWidthDip = 301;
+        private const double ToolbarHeightDip = 56;
         private const uint DefaultWindowDpi = 96;
 
         private readonly ScreenAnnotationDisplayTarget _displayTarget;
@@ -850,7 +851,9 @@ namespace WindBoard.Features.ScreenAnnotation.UI
         private void ToggleCollapsed()
         {
             _isCollapsed = !_isCollapsed;
-            ToolButtonsPanel.Visibility = _isCollapsed ? Visibility.Collapsed : Visibility.Visible;
+            Visibility toolAreaVisibility = _isCollapsed ? Visibility.Collapsed : Visibility.Visible;
+            ToolGroupDivider.Visibility = toolAreaVisibility;
+            ToolButtonsPanel.Visibility = toolAreaVisibility;
         }
 
         private void OnBackdropWindowMessageObserved(object? sender, ScreenAnnotationWindowMessageEventArgs e)
