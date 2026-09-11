@@ -266,6 +266,33 @@ L10n.Format("Settings_Camouflage_CreateShortcut_Success_Fmt", shortcutPath)
 - Do not create global keys for a single page or a local control
 - Do not repeat shared layout constants such as `Spacing="4" Padding="24"` across multiple settings pages
 
+### Convention: 浮层工具条的视觉语言（Dock / 屏幕批注栏）
+
+**What**: 悬浮在内容之上的工具条（主白板底部 Dock、屏幕批注工具栏）共用同一套视觉语言；新增浮层工具条必须复用，而不是各自定义圆角与配色。
+
+**Why**: 浮层工具条由「容器底板 + 内部图标按钮」构成。若各处自行定义，同一产品会出现多套视觉语言——屏幕批注栏曾同时存在 `18` / `14` / `4` 三种圆角与两种材质（白色实体卡 vs 半透明默认填充）。
+
+**契约**:
+
+- 圆角：容器底板 `14`，容器内控件 `10`（`DockButtonStyle` / `DockToggleButtonStyle` / `SharedPen*ToggleButtonStyle`）。官方两级为 `ControlCornerRadius`=4 / `OverlayCornerRadius`=8，本项目在其之上统一放大。
+- 结构：底板 `Border` **填满**容器，内容 `StackPanel` 用 `Margin` 内缩（主 Dock `Margin="5"`，屏幕批注栏 `Margin="6"`）。
+- 尺寸与间距：屏幕批注栏的把手与功能按钮统一 `44×44`、元素间距 `4`、分组分隔线 `1×24`（与主 Dock 的 `Spacing="4"`、共享样式 `SharedPenThicknessToggleButtonStyle` 的 `44` 一致）。
+
+```xaml
+<!-- 正确：底板填满容器，内容以 Margin 内缩，Opacity 只作用于底板 -->
+<Grid>
+    <Border Background="{ThemeResource SystemControlBackgroundChromeMediumLowBrush}"
+            CornerRadius="14" Opacity="0.85" />
+    <StackPanel Orientation="Horizontal" Spacing="4" Margin="6"> ... </StackPanel>
+</Grid>
+```
+
+- 交互态配色：`ToggleButtonBackground*` / `ButtonBackground*` 等主题资源**只允许在浮层根节点以 `<Grid.Resources>` 局部覆盖**，取值与主白板 Dock 一致（未选中透明、PointerOver `#14FFFFFF`、Pressed `#22FFFFFF`、Checked `#1976D2`）；**禁止**放进 `App.xaml` 全局覆盖（会波及全应用的所有 Button/ToggleButton）。
+
+**Gotcha — 圆角嵌套**: 底板圆角必须大于内部控件圆角，且内部控件要有内缩间距。若把 `Padding` 留在容器上、使底板宽度等于内容宽度，内部控件（r=10）的不透明圆角会沿对角线溢出底板（r=14）轮廓约 1.7 DIP。
+
+**Gotcha — 窗口尺寸联动**: 屏幕批注工具栏的窗口尺寸是 code-behind 硬编码常量（`ScreenAnnotationToolbarWindow.ExpandedToolbarWidthDip` / `ToolbarHeightDip`），其值必须等于 XAML 内容宽高之和。在 XAML 中增删元素或修改间距后必须同步该常量，否则展开态最右侧按钮会被窗口裁剪。
+
 ### Avoid (from winui-app skill + deslop skill)
 
 - Scattered theme brushes and styles (they should be centralized in App.xaml or a shared ResourceDictionary)
@@ -289,6 +316,8 @@ L10n.Format("Settings_Camouflage_CreateShortcut_Success_Fmt", shortcutPath)
 - Expect a hand-drawn `Path` icon inside a ToggleButton to follow checked-state foreground: `FontIcon` inherits the visual-state foreground via the text-element chain, but `Path.Stroke` bound to a fixed theme brush will NOT change on checked/unchecked — drive it from code (see DO below)
 - Trust `ActualTheme` from an `x:Bind` initializer: the theme is not yet resolved at initial binding evaluation (returns Dark), so theme-dependent initial values are wrong until the next property change; evaluate in `Loaded` instead
 - Read theme brushes via `Application.Current.Resources[key]` for element-level theming: it resolves against the app-level theme, while the element may be overridden by an ancestor `RequestedTheme` (toolbar icons can differ from app theme)
+- Leave `Padding` on a floating toolbar container so the backplate equals the content size: inner controls (r=10) then overflow the backplate corner (r=14) — put the inset on the content `Margin` instead
+- Add/remove/resize elements in the screen-annotation toolbar XAML without updating `ExpandedToolbarWidthDip` / `ToolbarHeightDip`: the expanded toolbar gets clipped
 
 ### ✅ DO
 - Handle events in code-behind and keep business logic in Services
