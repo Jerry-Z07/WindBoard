@@ -578,3 +578,67 @@ P1/P3 并行完成后做整体质量审查：定位并修复 E2E 导出用例的
 
 - 分支领先 origin/develop 50 个提交，待用户确认后 push
 - E2E 接入 CI（windows runner）作为可选后续步骤（P3 design 已注明不阻塞验收）
+
+---
+
+## Session 15: 屏幕批注栏工具条视觉统一
+
+**Date**: 2026-09-11
+**Task**: 09-11-screen-annotation-toolbar-visual
+**Branch**: `develop`
+
+### Summary
+
+消除屏幕批注栏「logo 拖拽把手」与「功能按钮」的视觉割裂：把并存的 18 / 14 / 4 三套圆角与两种材质语言统一为项目既有约定（容器 14 / 控件 10），复用主白板 Dock 的共享按钮样式与交互态配色，随后按要求将元素收紧为 44×44、间距 4。
+
+### 主要变更
+
+- 根节点新增局部 `Grid.Resources`，覆盖 10 个交互态配色键，与 `MainWindow.xaml` 底部 Dock 逐值一致（未选中透明 / PointerOver `#14FFFFFF` / Pressed `#22FFFFFF` / Checked `#1976D2`）。
+- `RootBorder` 18 → 14 并移除 `Padding`；新增底板 `Border`（`SystemControlBackgroundChromeMediumLowBrush` / r14 / `Opacity=0.85`）填满容器，内容以 `Margin=6` 内缩。
+- logo 把手 r14 → 10、硬编码 `#FFF8F8F8` / `#22000000` → 主题资源、尺寸与按钮同步 44×44。
+- 新增 `ToolGroupDivider`（1×24），折叠时与工具区一同隐藏。
+- 5 个按钮改用共享 `DockToggleButtonStyle` / `DockButtonStyle`；元素 44×44、间距 4。
+- 窗口常量联动：宽度 337 → 301（Margin 12 + 把手 44 + 间距 4 + 分隔线 1 + 间距 4 + 按钮区 236）、高度 60 → 56。
+
+### 三轮同类调研（办公 / 教育 / 开源）
+
+调研结论直接影响了方案取舍：
+
+- 「工具属性收进 Flyout、二次点击唤出属性」在办公、教育、开源三类中均为主流范式 → 保留现有做法。
+- 分组分隔线在开源同类有同构先例：Excalidraw `.App-toolbar__divider` = `1×24`，与本项目数值完全相同。此前「业界无先例」的判断，源于前两轮只检索了闭源厂商的用户文档（厂商不写实现细节）。
+- 开源同类底板一律纯 alpha（ppInk ≈78%、gInk ≈47%），11 个仓库零 blur / 零 Acrylic → `Opacity=0.85` 属同类常态，无需改用 Acrylic。
+- 容器圆角 `14` 超出全部被调研同类（最大 12；Fluent 2 容器 token 亦为 12）→ 登记为可选后续议题（须连同主 Dock 一起评估）。
+
+### Gotchas（已沉淀 spec）
+
+- **浮层容器圆角嵌套**：内缩必须放在内容侧（`Margin`），若把 `Padding` 留在容器上，内部控件（r=10）的不透明圆角会沿对角线溢出底板（r=14）约 1.7 DIP → frontend/component-guidelines
+- **窗口尺寸常量联动**：屏幕批注工具栏窗口尺寸是 code-behind 硬编码常量，XAML 增删元素或改间距后必须同步，否则展开态裁剪或出现透明可点击死区 → frontend/component-guidelines
+
+### Testing
+
+- [OK] `dotnet build WindBoard.slnx -c Release -p:CodeAnalysisTreatWarningsAsErrors=true`：0 警告 0 错误
+- [OK] `dotnet test WindBoard.slnx -c Release`：545/545 通过
+- 视觉项（展开/折叠、四态配色、DPI、Flyout）归 E2E，需人工截图确认
+
+### 已知问题
+
+- **三轮调研的原始报告（3 份 .md）在归档时丢失**：归档后 `research/` 为空；工作区全盘搜索、IDE 会话历史、local history 均无副本，无法恢复。核心结论已保留在会话回复与 `frontend/component-guidelines.md`，但带来源链接的完整正文丢失。
+- 归档脚本的 git 自动提交在任务目录此前为 untracked 时失败（`pathspec ... did not match`），已手动补提交。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `24093fe` | style(screen-annotation): 统一工具栏视觉语言并收紧尺寸 |
+| `232ae4b` | docs(spec): 沉淀浮层工具条视觉语言约定与圆角/尺寸陷阱 |
+| `ba9730e` | chore(task): archive 09-11-screen-annotation-toolbar-visual |
+
+### Status
+
+[OK] **Completed**（代码与规范已提交；调研报告丢失已登记；未 push）
+
+### Next Steps
+
+- 可选：重新生成三份同类调研报告并补入归档目录
+- 可选（需另立任务）：全产品容器圆角 14 → 12（主 Dock + Flyout 一并）；Flyout 内常驻少量常用色
+- 分支领先 origin/develop，待用户确认后 push
