@@ -87,6 +87,7 @@
                     <controls:SettingsCard
                         x:Name="DockSettingsCard"
                         Grid.Row="1"
+                        AutomationProperties.AutomationId="Appearance_DockSettingsCard"
                         IsClickEnabled="True"
                         Click="OnDockSettingsClicked"
                         Header="{l10n:Loc Key=Settings_Dock_Title}"

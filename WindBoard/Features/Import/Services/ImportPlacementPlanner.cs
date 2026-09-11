@@ -17,10 +17,7 @@ namespace WindBoard.Features.Import.Services
 
         internal static void PlaceElementAtViewportCenterGrid(BoardElement element, Vector2 sizeDip, int index, Vector2 cameraWorld, float zoom)
         {
-            if (element is null)
-            {
-                throw new ArgumentNullException(nameof(element));
-            }
+            ArgumentNullException.ThrowIfNull(element);
 
             float z = Math.Max(0.0001f, zoom);
 

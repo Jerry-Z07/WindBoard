@@ -4,6 +4,9 @@ namespace WindBoard.Tests.Errors;
 
 public sealed class CrashReporterArgsTests
 {
+    // CA1861：常量数组提为 static readonly，避免重复分配。
+    private static readonly string[] MissingValueArgs = { "--report" };
+
     [Fact]
     public void Parse_WithKnownArgs_ParsesValues_AndIgnoresUnknown()
     {
@@ -25,7 +28,7 @@ public sealed class CrashReporterArgsTests
     [Fact]
     public void Parse_WithMissingValue_DoesNotThrow_AndKeepsDefaults()
     {
-        CrashReporterArgs parsed = CrashReporterArgs.Parse(new[] { "--report" });
+        CrashReporterArgs parsed = CrashReporterArgs.Parse(MissingValueArgs);
 
         Assert.NotNull(parsed);
         Assert.Equal(string.Empty, parsed.ReportPath);

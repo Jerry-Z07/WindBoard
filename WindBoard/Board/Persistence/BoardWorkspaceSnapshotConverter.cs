@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Numerics;
 using WindBoard.Board.Elements;
 using WindBoard.Board.Editing;
-using Vortice.Mathematics;
 
 namespace WindBoard.Board.Persistence
 {
@@ -18,10 +17,7 @@ namespace WindBoard.Board.Persistence
             float? viewportZoom = null,
             Vector2? viewportSizeDip = null)
         {
-            if (workspace is null)
-            {
-                throw new ArgumentNullException(nameof(workspace));
-            }
+            ArgumentNullException.ThrowIfNull(workspace);
 
             var pages = new List<BoardPageSnapshot>(workspace.Pages.Count);
             for (int i = 0; i < workspace.Pages.Count; i++)
@@ -40,11 +36,9 @@ namespace WindBoard.Board.Persistence
 
         private static BoardPageSnapshot CreatePageSnapshot(BoardPage page)
         {
-            var strokes = new List<StrokeSnapshot>(page.Session.Document.Strokes.Count);
-            foreach (Stroke stroke in page.Session.Document.Strokes)
-            {
-                strokes.Add(CreateStrokeSnapshot(stroke));
-            }
+            // 域 → 快照转换（含 Kind 标识）收敛于 BoardInkItemCodec：
+            // 快照格式当前仅承载折线笔迹；非 Stroke 条目（阶段二起引入）由 Codec 跳过。
+            List<InkItemSnapshot> strokes = BoardInkItemCodec.ToSnapshotList(page.Session.Document.InkItems);
 
             IReadOnlyList<BoardElementSnapshot> below = CreateElementSnapshots(page.Session.Document.ElementsBelowInk);
             IReadOnlyList<BoardElementSnapshot> above = CreateElementSnapshots(page.Session.Document.ElementsAboveInk);
@@ -119,23 +113,6 @@ namespace WindBoard.Board.Persistence
             };
 
             return snapshot is not null;
-        }
-
-        private static StrokeSnapshot CreateStrokeSnapshot(Stroke stroke)
-        {
-            var points = new List<StrokePointSnapshot>(stroke.Points.Count);
-            foreach (StrokePoint point in stroke.Points)
-            {
-                points.Add(new StrokePointSnapshot(point.Position, point.Pressure));
-            }
-
-            Vector4 color = ToVector4(stroke.Color);
-            return new StrokeSnapshot(points, color, stroke.BaseSize, stroke.EnablePressure);
-        }
-
-        private static Vector4 ToVector4(Color4 color)
-        {
-            return new Vector4(color.R, color.G, color.B, color.A);
         }
     }
 }

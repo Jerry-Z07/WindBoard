@@ -1,0 +1,9 @@
+{"file": ".trellis/tasks/09-09-shape-drawing/prd.md", "reason": "父任务需求全集、已收敛决策与代码库证据锚点（阶段一需求 R1-R4 的定义源）"}
+{"file": ".trellis/spec/backend/directory-structure.md", "reason": "Board 域层模块组织与文件放置约定（新建 Board/Items/ 目录需遵循）"}
+{"file": ".trellis/spec/backend/database-guidelines.md", "reason": "WBIX 持久化格式与版本约定，序列化收敛与 v3 升级（R3）的依据"}
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "后端代码规范、禁止模式与测试要求"}
+{"file": ".trellis/spec/backend/logging-guidelines.md", "reason": "AppLog 日志策略：关键路径记录、高频调用（指针事件/渲染循环）禁止日志"}
+{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "BoardCanvasControl 与 MainWindow 侧改动的 UserControl/事件约定"}
+{"file": ".trellis/spec/frontend/state-management.md", "reason": "ToolOptions 参数链收敛（R4）需遵循的域状态/设置状态/UI 状态分层约定"}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "重构横跨域/输入/渲染/序列化/导出多层，数据流检查参考"}
+{"file": ".trellis/spec/guides/code-reuse-thinking-guide.md", "reason": "三份快照重建拷贝收敛为 Codec（R3）属于重复代码消除，参考该指南"}

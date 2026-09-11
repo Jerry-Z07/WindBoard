@@ -2,51 +2,41 @@
 /**
  * Trellis Session Start Plugin
  *
- * Injects context when user sends the first message in a session.
- * Uses OpenCode's chat.message hook directly so the context persists in history.
+ * Injects compact SessionStart context into the copy of the latest user
+ * message that OpenCode sends to the model. Uses
+ * `experimental.chat.messages.transform` so TUI / Web / SQLite history
+ * stay untouched (issue #553).
  */
 
-import { TrellisContext, contextCollector, debugLog, isTrellisSubagent } from "../lib/trellis-context.js"
+import { TrellisContext, debugLog, isTrellisSubagent } from "../lib/trellis-context.js"
 import {
-  buildSessionContext,
-  hasPersistedInjectedContext,
-  markContextInjected,
-} from "../lib/session-utils.js"
+  MESSAGES_TRANSFORM_HOOK,
+  platformInputFromMessages,
+  prependEphemeralText,
+  transcriptHasAssistantMessage,
+} from "../lib/context-visibility.js"
+import { buildSessionContext } from "../lib/session-utils.js"
+
+const FIRST_REPLY_NOTICE_RE = /<first-reply-notice>[\s\S]*?<\/first-reply-notice>\s*/g
+
+function stripFirstReplyNotice(context) {
+  return context.replace(FIRST_REPLY_NOTICE_RE, "")
+}
 
 // OpenCode 1.2.x expects plugins to be factory functions (see inject-subagent-context.js comment).
-export default async ({ directory, client }) => {
+export default async ({ directory }) => {
   const ctx = new TrellisContext(directory)
   debugLog("session", "Plugin loaded, directory:", directory)
 
   return {
-    event: ({ event }) => {
+    [MESSAGES_TRANSFORM_HOOK]: async (_input, output) => {
       try {
-        if (event?.type === "session.compacted" && event?.properties?.sessionID) {
-          const sessionID = event.properties.sessionID
-          contextCollector.clear(sessionID)
-          debugLog("session", "Cleared processed flag after compaction for session:", sessionID)
-        }
-      } catch (error) {
-        debugLog(
-          "session",
-          "Error in event hook:",
-          error instanceof Error ? error.message : String(error),
-        )
-      }
-    },
+        const messages = output?.messages
+        const platformInput = platformInputFromMessages(messages)
+        const agent = platformInput?.agent || "unknown"
+        debugLog("session", "messages.transform called, agent:", agent)
 
-    // chat.message - triggered when user sends a message.
-    // Modify the message in-place so the context is persisted with updateMessage/updatePart.
-    "chat.message": async (input, output) => {
-      try {
-        const sessionID = input.sessionID
-        const agent = input.agent || "unknown"
-        debugLog("session", "chat.message called, sessionID:", sessionID, "agent:", agent)
-
-        // Skip Trellis sub-agent turns — sub-agent context is injected by
-        // `inject-subagent-context.js` on the parent's tool.execute.before;
-        // re-injecting the main-session SessionStart here would drown that.
-        if (isTrellisSubagent(input)) {
+        if (isTrellisSubagent(platformInput)) {
           debugLog("session", "Skipping trellis subagent turn:", agent)
           return
         }
@@ -61,40 +51,14 @@ export default async ({ directory, client }) => {
           return
         }
 
-        if (contextCollector.isProcessed(sessionID)) {
-          debugLog("session", "Skipping - session already processed")
-          return
+        let context = buildSessionContext(ctx, platformInput)
+        if (transcriptHasAssistantMessage(messages)) {
+          context = stripFirstReplyNotice(context)
         }
-
-        if (await hasPersistedInjectedContext(client, ctx.directory, sessionID)) {
-          contextCollector.markProcessed(sessionID)
-          debugLog("session", "Skipping - session already contains persisted Trellis context")
-          return
-        }
-
-        const context = buildSessionContext(ctx, input)
         debugLog("session", "Built context, length:", context.length)
-
-        const parts = output?.parts || []
-        const textPartIndex = parts.findIndex(
-          p => p.type === "text" && p.text !== undefined
-        )
-
-        if (textPartIndex !== -1) {
-          const originalText = parts[textPartIndex].text || ""
-          parts[textPartIndex].text = `${context}\n\n---\n\n${originalText}`
-          markContextInjected(parts[textPartIndex])
-          debugLog("session", "Injected context into chat.message text part, length:", context.length)
-        } else {
-          const injectedPart = { type: "text", text: context }
-          markContextInjected(injectedPart)
-          parts.unshift(injectedPart)
-          debugLog("session", "Prepended new text part with context, length:", context.length)
-        }
-
-        contextCollector.markProcessed(sessionID)
+        prependEphemeralText(messages, context)
       } catch (error) {
-        debugLog("session", "Error in chat.message:", error.message, error.stack)
+        debugLog("session", "Error in messages.transform:", error.message, error.stack)
       }
     },
   }

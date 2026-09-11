@@ -226,7 +226,7 @@ namespace WindBoard.Features.Shortcuts.UI
             ApplyShortcutSetting(slot, candidate);
         }
 
-        private bool TryGetConflict(ShortcutSlot currentSlot, string candidate, out ShortcutSlot conflictSlot)
+        private static bool TryGetConflict(ShortcutSlot currentSlot, string candidate, out ShortcutSlot conflictSlot)
         {
             conflictSlot = default;
 
@@ -270,7 +270,7 @@ namespace WindBoard.Features.Shortcuts.UI
             ShowDialogError(EditShortcutErrorBar, message);
         }
 
-        private void ApplyShortcutSetting(ShortcutSlot slot, string value)
+        private static void ApplyShortcutSetting(ShortcutSlot slot, string value)
         {
             try
             {

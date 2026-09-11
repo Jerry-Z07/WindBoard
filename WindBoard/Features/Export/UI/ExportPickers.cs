@@ -20,10 +20,7 @@ namespace WindBoard.Features.Export.UI
     {
         public static async Task<StorageFile?> PickSaveFileAsync(XamlRoot xamlRoot, IntPtr hwnd, ExportFormat format)
         {
-            if (xamlRoot is null)
-            {
-                throw new ArgumentNullException(nameof(xamlRoot));
-            }
+            ArgumentNullException.ThrowIfNull(xamlRoot);
 
             if (hwnd == IntPtr.Zero)
             {
@@ -68,30 +65,23 @@ namespace WindBoard.Features.Export.UI
 
         public static async Task<StorageFile?> PickSaveFileWithOverwriteConfirmAsync(XamlRoot xamlRoot, IntPtr hwnd, ExportFormat format)
         {
-            if (xamlRoot is null)
-            {
-                throw new ArgumentNullException(nameof(xamlRoot));
-            }
+            ArgumentNullException.ThrowIfNull(xamlRoot);
 
             while (true)
             {
+                // FileSavePicker 会先为用户输入的新文件名预创建 0 字节文件再返回，
+                // 故需记录调用时刻，用于把该占位文件与用户选中的既有文件区分开（见 SaveFilePickerPlaceholder）。
                 DateTimeOffset pickStarted = DateTimeOffset.Now;
+
                 StorageFile? file = await PickSaveFileAsync(xamlRoot, hwnd, format);
                 if (file is null)
                 {
                     return null;
                 }
 
-                if (!File.Exists(file.Path))
-                {
-                    return file;
-                }
-
-                // WinUI 的 FileSavePicker 在某些实现下会“先创建一个空文件再返回 StorageFile”。
-                // 这种情况下 File.Exists 会恒为 true；为避免每次保存都弹覆盖确认，这里用 DateCreated 做一个保守判断：
-                // - 如果文件创建时间明显早于打开对话框的时间，则认为是“已存在文件”，需要二次确认；
-                // - 否则认为是“刚创建的新文件”，直接继续导出。
-                if (file.DateCreated >= pickStarted - TimeSpan.FromSeconds(2))
+                // 文件不存在（环境不预创建占位文件）或存在但属于本次 Picker 预创建的占位文件 → 新文件，直接返回；
+                // 其余情况为用户选中的已存在文件 → 覆盖确认。
+                if (!File.Exists(file.Path) || SaveFilePickerPlaceholder.IsCreatedByPicker(file, pickStarted))
                 {
                     return file;
                 }
@@ -106,10 +96,7 @@ namespace WindBoard.Features.Export.UI
 
         public static async Task<StorageFolder?> PickFolderAsync(XamlRoot xamlRoot, IntPtr hwnd)
         {
-            if (xamlRoot is null)
-            {
-                throw new ArgumentNullException(nameof(xamlRoot));
-            }
+            ArgumentNullException.ThrowIfNull(xamlRoot);
 
             if (hwnd == IntPtr.Zero)
             {

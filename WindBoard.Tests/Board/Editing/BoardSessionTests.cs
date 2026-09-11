@@ -16,12 +16,12 @@ public sealed class BoardSessionTests
         session.StateChanged += () => stateChangedCount++;
 
         var stroke = new Stroke();
-        session.Execute(new AddStrokeCommand(stroke));
+        session.Execute(new AddInkItemCommand(stroke));
 
         Assert.True(session.CanUndo);
         Assert.False(session.CanRedo);
         Assert.True(session.HasStrokes);
-        Assert.Single(session.Document.Strokes);
+        Assert.Single(session.Document.InkItems);
         Assert.Equal(1, stateChangedCount);
 
         session.Undo();
@@ -58,16 +58,16 @@ public sealed class BoardSessionTests
         var session = new BoardSession();
 
         var a = new Stroke();
-        session.Execute(new AddStrokeCommand(a));
+        session.Execute(new AddInkItemCommand(a));
         session.Undo();
         Assert.True(session.CanRedo);
 
         var b = new Stroke();
-        session.Execute(new AddStrokeCommand(b));
+        session.Execute(new AddInkItemCommand(b));
 
         Assert.False(session.CanRedo);
-        Assert.Single(session.Document.Strokes);
-        Assert.Same(b, session.Document.Strokes[0]);
+        Assert.Single(session.Document.InkItems);
+        Assert.Same(b, session.Document.InkItems[0]);
     }
 
     // ClearAll 有笔迹时会清空并可撤销
@@ -77,17 +77,17 @@ public sealed class BoardSessionTests
         var session = new BoardSession();
         var a = new Stroke();
         var b = new Stroke();
-        session.Execute(new AddStrokeCommand(a));
-        session.Execute(new AddStrokeCommand(b));
+        session.Execute(new AddInkItemCommand(a));
+        session.Execute(new AddInkItemCommand(b));
 
         session.ClearAll();
-        Assert.Empty(session.Document.Strokes);
+        Assert.Empty(session.Document.InkItems);
         Assert.True(session.CanUndo);
 
         session.Undo();
-        Assert.Equal(2, session.Document.Strokes.Count);
-        Assert.Same(a, session.Document.Strokes[0]);
-        Assert.Same(b, session.Document.Strokes[1]);
+        Assert.Equal(2, session.Document.InkItems.Count);
+        Assert.Same(a, session.Document.InkItems[0]);
+        Assert.Same(b, session.Document.InkItems[1]);
     }
 
     // ClearAll 无笔迹时不会产生撤销记录

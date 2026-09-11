@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using WindBoard.Board;
 using WindBoard.Board.Commands;
+using WindBoard.Board.Items;
 using Xunit;
 
 namespace WindBoard.Tests.Board.Commands;
@@ -14,18 +15,18 @@ public sealed class ClearCommandTests
         var document = new BoardDocument();
         var a = new Stroke();
         var b = new Stroke();
-        document.Strokes.Add(a);
-        document.Strokes.Add(b);
+        document.InkItems.Add(a);
+        document.InkItems.Add(b);
 
-        var snapshot = new List<Stroke>(document.Strokes);
+        var snapshot = new List<IBoardInkItem>(document.InkItems);
         var command = new ClearCommand(snapshot);
 
         command.Do(document);
-        Assert.Empty(document.Strokes);
+        Assert.Empty(document.InkItems);
 
         command.Undo(document);
-        Assert.Equal(2, document.Strokes.Count);
-        Assert.Same(a, document.Strokes[0]);
-        Assert.Same(b, document.Strokes[1]);
+        Assert.Equal(2, document.InkItems.Count);
+        Assert.Same(a, document.InkItems[0]);
+        Assert.Same(b, document.InkItems[1]);
     }
 }

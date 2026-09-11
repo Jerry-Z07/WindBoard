@@ -1,0 +1,2 @@
+{"file": ".trellis/tasks/09-09-update-nuget-packages/research.md", "reason": "依赖包版本调研结论、破坏性变更清单与官方来源链接"}
+{"file": ".trellis/tasks/09-09-update-nuget-packages/design.md", "reason": "目标版本矩阵、WinAppSDK 2.x 影响分析、DevWinUI 迁移方案与执行顺序"}

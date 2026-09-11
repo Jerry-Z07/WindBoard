@@ -60,10 +60,7 @@ namespace WindBoard.Features.Camouflage.Services
 
         internal string GetCamouflageShortcutSettingsSignature(CamouflageSettingsSnapshot snapshot)
         {
-            if (snapshot is null)
-            {
-                throw new ArgumentNullException(nameof(snapshot));
-            }
+            ArgumentNullException.ThrowIfNull(snapshot);
 
             return ComputeCamouflageShortcutSettingsSignature(
                 snapshot.Enabled,
@@ -74,10 +71,7 @@ namespace WindBoard.Features.Camouflage.Services
 
         internal CamouflageResult BuildResult(CamouflageSettingsSnapshot snapshot, string defaultTitle)
         {
-            if (snapshot is null)
-            {
-                throw new ArgumentNullException(nameof(snapshot));
-            }
+            ArgumentNullException.ThrowIfNull(snapshot);
 
             var result = new CamouflageResult
             {

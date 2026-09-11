@@ -1,0 +1,31 @@
+{
+  "id": "test-automation",
+  "name": "test-automation",
+  "title": "测试自动化体系建设 P0-P3",
+  "description": "建立覆盖静态分析、渲染快照、交互桥接单测、FlaUI UI 自动化的分层测试体系，减少人工测试量并提升问题发现与调试效率",
+  "status": "completed",
+  "dev_type": null,
+  "scope": null,
+  "package": null,
+  "priority": "P2",
+  "creator": "Jerry-Z07",
+  "assignee": "Jerry-Z07",
+  "createdAt": "2026-09-10",
+  "completedAt": "2026-09-10",
+  "branch": null,
+  "base_branch": "main",
+  "worktree_path": null,
+  "commit": null,
+  "pr_url": null,
+  "subtasks": [],
+  "children": [
+    "09-10-static-analysis",
+    "09-10-render-snapshot-tests",
+    "09-10-interaction-bridge-tests",
+    "09-10-flaui-ui-tests"
+  ],
+  "parent": null,
+  "relatedFiles": [],
+  "notes": "",
+  "meta": {}
+}

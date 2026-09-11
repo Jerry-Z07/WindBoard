@@ -24,8 +24,9 @@ namespace WindBoard.Features.ScreenAnnotation.UI
     /// </summary>
     public sealed partial class ScreenAnnotationToolbarWindow : Window, IScreenAnnotationModeToolbar
     {
-        private const double ExpandedToolbarWidthDip = 276;
-        private const double ToolbarHeightDip = 60;
+        // 展开态宽度构成：内容 Margin 6×2 + 拖拽把手 44 + 间距 4 + 分组分隔线 1 + 间距 4 + 按钮区 236（5×44 + 4×4）= 301；高度 = 元素 44 + Margin 6×2 = 56。
+        private const double ExpandedToolbarWidthDip = 301;
+        private const double ToolbarHeightDip = 56;
         private const uint DefaultWindowDpi = 96;
 
         private readonly ScreenAnnotationDisplayTarget _displayTarget;
@@ -35,7 +36,10 @@ namespace WindBoard.Features.ScreenAnnotation.UI
         private bool _isCollapsed;
         private bool _isPenFlyoutOpen;
         private bool _isEraserFlyoutOpen;
+        private bool _isShapeFlyoutOpen;
         private bool _isPenThicknessSliderSyncing;
+        // 最近一次使用的形状模式（形状按钮首次点击进入；默认直线）。
+        private ScreenAnnotationMode _lastShapeMode = ScreenAnnotationMode.Line;
         private bool _isEraserModeSyncing;
         private uint? _dragPointerId;
         private PointInt32 _dragStartCursor;
@@ -68,7 +72,35 @@ namespace WindBoard.Features.ScreenAnnotation.UI
                 });
             Activated += OnWindowActivated;
             Closed += OnWindowClosed;
+
+            // 形状图标描边同步：初始（Loaded）与选中切换（SetSelectedMode）两路触发。
+            ShapeButton.Loaded += (_, _) => UpdateShapeIconStroke();
         }
+
+        /// <summary>
+        /// 同步形状工具图标的描边笔刷（自绘 Path 不像 FontIcon 经内容前景继承跟随选中视觉状态）。
+        /// </summary>
+        /// <remarks>
+        /// 工具栏为恒亮主题（根 Grid RequestedTheme=Light）：非选中=BaseHigh（黑），选中=纯白。
+        /// 与主白板 <c>MainWindow.UpdateShapeIconStroke</c> 同构；触发点：ShapeButton.Loaded 与
+        /// <see cref="SetSelectedMode"/>（选中切换）。
+        /// </remarks>
+        private void UpdateShapeIconStroke()
+        {
+            bool isChecked = ShapeButton.IsChecked == true;
+            bool isLightTheme = ShapeButton.ActualTheme == ElementTheme.Light;
+            ShapeIconPath.Stroke = isChecked
+                ? ShapeIconStrokeCheckedBrush
+                : isLightTheme
+                    ? ShapeIconStrokeUncheckedLightThemeBrush
+                    : ShapeIconStrokeUncheckedDarkThemeBrush;
+        }
+
+        private static readonly SolidColorBrush ShapeIconStrokeCheckedBrush = new(Microsoft.UI.Colors.White);
+
+        // BaseHigh 的主题值：亮主题=黑（90% 不透明），暗主题=白（100%）。工具栏恒亮，实际恒取亮值。
+        private static readonly SolidColorBrush ShapeIconStrokeUncheckedLightThemeBrush = new(Color.FromArgb(0xE6, 0, 0, 0));
+        private static readonly SolidColorBrush ShapeIconStrokeUncheckedDarkThemeBrush = new(Color.FromArgb(0xFF, 255, 255, 255));
 
         internal event EventHandler<ScreenAnnotationMode>? ModeRequested;
 
@@ -88,6 +120,14 @@ namespace WindBoard.Features.ScreenAnnotation.UI
             PassThroughButton.IsChecked = mode == ScreenAnnotationMode.PassThrough;
             PenButton.IsChecked = mode == ScreenAnnotationMode.Pen;
             EraserButton.IsChecked = mode == ScreenAnnotationMode.Eraser;
+            ShapeButton.IsChecked = mode.IsShapeMode();
+            UpdateShapeIconStroke();
+
+            // 记录最近一次使用的形状模式，供形状按钮下次一键回到该形状。
+            if (mode.IsShapeMode())
+            {
+                _lastShapeMode = mode;
+            }
 
             if (mode != ScreenAnnotationMode.Pen)
             {
@@ -97,6 +137,11 @@ namespace WindBoard.Features.ScreenAnnotation.UI
             if (mode != ScreenAnnotationMode.Eraser)
             {
                 TryHideEraserFlyout();
+            }
+
+            if (!mode.IsShapeMode())
+            {
+                TryHideShapeFlyout();
             }
         }
 
@@ -544,6 +589,86 @@ namespace WindBoard.Features.ScreenAnnotation.UI
             flyout?.Hide();
         }
 
+        private void OnShapeButtonClicked(object sender, RoutedEventArgs e)
+        {
+            // 逻辑约定：首次点击进入最近使用的形状工具；已在形状模式下再次点击则弹出形状切换面板。
+            bool alreadyShape = _selectedMode.IsShapeMode();
+            ModeRequested?.Invoke(this, _lastShapeMode);
+
+            if (!alreadyShape)
+            {
+                return;
+            }
+
+            if (_isShapeFlyoutOpen)
+            {
+                TryHideShapeFlyout();
+                return;
+            }
+
+            SyncShapeFlyoutFromMode();
+            FlyoutBase.ShowAttachedFlyout(ShapeButton);
+        }
+
+        private void OnShapeFlyoutOpened(object sender, object e)
+        {
+            _isShapeFlyoutOpen = true;
+            SyncShapeFlyoutFromMode();
+        }
+
+        private void OnShapeFlyoutClosed(object sender, object e)
+        {
+            _isShapeFlyoutOpen = false;
+        }
+
+        private void OnShapeKindClicked(object sender, RoutedEventArgs e)
+        {
+            if (sender is not ToggleButton button || button.Tag is not string kind)
+            {
+                return;
+            }
+
+            // 切换具体形状模式（经 Flow 链路映射为同名 BoardTool；颜色/粗细沿用批注画笔参数）。
+            ScreenAnnotationMode mode = kind switch
+            {
+                "Rectangle" => ScreenAnnotationMode.Rectangle,
+                "Ellipse" => ScreenAnnotationMode.Ellipse,
+                "Arrow" => ScreenAnnotationMode.Arrow,
+                _ => ScreenAnnotationMode.Line,
+            };
+
+            ModeRequested?.Invoke(this, mode);
+            SetExclusiveToggleChecked(ShapeKindPanel, button);
+
+            // 选定形状后收起面板，让用户立刻开始批注。
+            TryHideShapeFlyout();
+        }
+
+        private void SyncShapeFlyoutFromMode()
+        {
+            // 形状 Flyout 可能在模式切换等场景下被动打开，这里统一以当前选中模式为准同步选中态。
+            ScreenAnnotationMode current = _selectedMode;
+            foreach (UIElement element in ShapeKindPanel.Children)
+            {
+                if (element is ToggleButton button && button.Tag is string kind)
+                {
+                    button.IsChecked = kind switch
+                    {
+                        "Rectangle" => current == ScreenAnnotationMode.Rectangle,
+                        "Ellipse" => current == ScreenAnnotationMode.Ellipse,
+                        "Arrow" => current == ScreenAnnotationMode.Arrow,
+                        _ => current == ScreenAnnotationMode.Line,
+                    };
+                }
+            }
+        }
+
+        private void TryHideShapeFlyout()
+        {
+            FlyoutBase? flyout = FlyoutBase.GetAttachedFlyout(ShapeButton);
+            flyout?.Hide();
+        }
+
         private void TryHidePenFlyout()
         {
             FlyoutBase? flyout = FlyoutBase.GetAttachedFlyout(PenButton);
@@ -566,7 +691,7 @@ namespace WindBoard.Features.ScreenAnnotation.UI
             return _displayTarget.GetInitialToolbarBounds(width, height, margin);
         }
 
-        private uint ResolveWindowDpi(IntPtr hwnd)
+        private static uint ResolveWindowDpi(IntPtr hwnd)
         {
             if (ScreenAnnotationWindowInterop.TryGetWindowDpi(hwnd, out uint dpi, out string? error))
             {
@@ -726,7 +851,9 @@ namespace WindBoard.Features.ScreenAnnotation.UI
         private void ToggleCollapsed()
         {
             _isCollapsed = !_isCollapsed;
-            ToolButtonsPanel.Visibility = _isCollapsed ? Visibility.Collapsed : Visibility.Visible;
+            Visibility toolAreaVisibility = _isCollapsed ? Visibility.Collapsed : Visibility.Visible;
+            ToolGroupDivider.Visibility = toolAreaVisibility;
+            ToolButtonsPanel.Visibility = toolAreaVisibility;
         }
 
         private void OnBackdropWindowMessageObserved(object? sender, ScreenAnnotationWindowMessageEventArgs e)

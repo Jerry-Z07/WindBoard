@@ -2,6 +2,7 @@ using System;
 using System.Numerics;
 using Microsoft.UI.Xaml;
 using WindBoard.Board.Editing;
+using WindBoard.Controls;
 using WindBoard.Features.ScreenAnnotation.Interop;
 using WindBoard.Features.ScreenAnnotation.Models;
 using WindBoard.Features.ScreenAnnotation.Services;
@@ -91,7 +92,11 @@ namespace WindBoard.Features.ScreenAnnotation.UI
 
             if (_isCanvasConfigured)
             {
-                BoardCanvas.PenColor = _currentPenColor;
+                // 组合 ToolOptions（design C）：颜色仅影响后续新建笔迹。
+                BoardCanvas.ToolOptions = BoardCanvas.ToolOptions with
+                {
+                    PenColor = BoardCanvasControl.ToColor4(_currentPenColor),
+                };
             }
 
             RaiseDrawingStateChanged();
@@ -108,7 +113,11 @@ namespace WindBoard.Features.ScreenAnnotation.UI
 
             if (_isCanvasConfigured)
             {
-                BoardCanvas.PenBaseSize = _currentPenBaseSize;
+                // 组合 ToolOptions（design C）：粗细仅影响后续新建笔迹。
+                BoardCanvas.ToolOptions = BoardCanvas.ToolOptions with
+                {
+                    PenBaseSize = _currentPenBaseSize,
+                };
             }
 
             RaiseDrawingStateChanged();
@@ -206,8 +215,12 @@ namespace WindBoard.Features.ScreenAnnotation.UI
             // 批注层复用现有画布控件，但关闭视口手势与选择交互，只保留书写/擦除。
             BoardCanvas.BindSession(_sessionHost.Session);
             BoardCanvas.CanvasBackgroundColor = _sessionHost.CanvasBackgroundColor;
-            BoardCanvas.PenColor = _currentPenColor;
-            BoardCanvas.PenBaseSize = _currentPenBaseSize;
+            // 组合 ToolOptions（design C）：一次写入颜色与粗细（仅影响后续新建笔迹）。
+            BoardCanvas.ToolOptions = BoardCanvas.ToolOptions with
+            {
+                PenColor = BoardCanvasControl.ToColor4(_currentPenColor),
+                PenBaseSize = _currentPenBaseSize,
+            };
             BoardCanvas.Eraser = ResolveEraser(_currentEraserMode);
             BoardCanvas.SetInteractionOptions(allowViewportManipulation: false, allowSelectionInteraction: false);
             BoardCanvas.CommandStateChanged += OnBoardCanvasCommandStateChanged;

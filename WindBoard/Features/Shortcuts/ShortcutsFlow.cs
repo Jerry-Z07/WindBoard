@@ -33,10 +33,7 @@ namespace WindBoard.Features.Shortcuts
 
         internal void ApplyToMainWindow(ShortcutsMainWindowHost host)
         {
-            if (host is null)
-            {
-                throw new ArgumentNullException(nameof(host));
-            }
+            ArgumentNullException.ThrowIfNull(host);
 
             try
             {
@@ -54,7 +51,7 @@ namespace WindBoard.Features.Shortcuts
             TryRemindKeyboardShortcutIssuesIfNeeded(host);
         }
 
-        private void ApplyKeyboardAccelerators(ShortcutsMainWindowHost host, KeyboardShortcutsSnapshot shortcuts)
+        private static void ApplyKeyboardAccelerators(ShortcutsMainWindowHost host, KeyboardShortcutsSnapshot shortcuts)
         {
             // KeyboardAccelerator 绑定到根 Grid，确保在不同控件聚焦时仍可响应（但文本输入控件内会被显式拦截）。
             if (host.Root is null)

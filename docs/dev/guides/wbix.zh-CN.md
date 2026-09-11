@@ -1,4 +1,4 @@
-﻿# WBIX（WindBoard Interchange）格式说明（v2）
+﻿# WBIX（WindBoard Interchange）格式说明（v3）
 
 本文档用于说明 WindBoard 的私有交换格式 `.wbix`，便于后续开发、适配与扩展（例如导出/导入图片、视频等页面内容）。
 
@@ -28,7 +28,7 @@ pages/
   page-001.json
   ...
 assets/
-  cover.png              （可选：封面图，v2 导出会尝试生成）
+  cover.png              （可选：封面图，导出会尝试生成）
   elements/
     <elementId>.png      （可选：页面图片元素内嵌资源）
   ...                    （预留：后续可存放视频/音频等资源）
@@ -37,8 +37,8 @@ assets/
 说明：
 
 - `manifest.json`：清单与索引（版本、页列表、资源列表、当前页等）。
-- `pages/page-XXX.json`：每页数据（v1/v2 仅包含笔迹 strokes，elements 预留）。
-- `assets/`：资源二进制文件目录（v2 主要用于 `cover.png`）。
+- `pages/page-XXX.json`：每页数据（笔迹 strokes + 页面元素 elements；v1/v2 的 strokes 为扁平形态，v3 起为带 Kind 的包装形态）。
+- `assets/`：资源二进制文件目录（主要用于 `cover.png` 与页面图片内嵌资源）。
 
 ## 3. manifest.json
 
@@ -47,7 +47,7 @@ assets/
 `manifest.json` 对应代码中的 `WbixManifest`：
 
 - `format`：固定为 `"wbix"`。
-- `version`：格式版本号（当前导出为 `2`；读取兼容 `1~2`）。
+- `version`：格式版本号（当前导出为 `3`；读取兼容 `1~3`）。
 - `createdUtc`：创建时间（UTC，ISO 8601）。
 - `currentIndex`：当前页索引（0 基）。
 - `pages`：页面列表（包含页 `id`、`index`、`path`）。
@@ -70,7 +70,7 @@ assets/
 - `contentType`：MIME（例如 `image/png`）。
 - `meta`：可选元数据（键值对字符串字典，例如尺寸、时长、校验和、用途等）。
 
-### 3.2 v2 的封面图资源（assets/cover.png）
+### 3.2 封面图资源（assets/cover.png）
 
 当前导出会尝试生成首页封面图：
 
@@ -91,7 +91,7 @@ assets/
 ```json
 {
   "format": "wbix",
-  "version": 2,
+  "version": 3,
   "createdUtc": "2026-02-05T12:34:56.789+00:00",
   "currentIndex": 0,
   "pages": [
@@ -114,17 +114,24 @@ assets/
 页面文件对应 `WbixPagePayload`：
 
 - `id`：页面 ID（与 manifest 中 pages 条目一致）。
-- `strokes`：笔迹列表（v1/v2 主体数据）。
+- `strokes`：笔迹层条目列表（主体数据；v3 起每个条目带 Kind 标识，读取兼容 v1/v2 的扁平形态）。
 - `elements`：页面元素列表（文本/链接/媒体/文件等；导入端应忽略未知 `type` 保持前向兼容）。
 
-### 4.1 strokes（笔迹）结构（v1/v2）
+### 4.1 strokes（笔迹层条目）结构（v3）
 
-`strokes` 的每个条目对应 `StrokeSnapshot`：
+`strokes` 的每个条目对应 `InkItemSnapshot`（扁平 + Kind 判别，与 elements 的 `{type, data}` 模式一致）：
+
+- `kind`：条目类型标识（当前取值 `stroke`；缺省/为 null 时按 `stroke` 处理）。
+- `stroke`：折线笔迹数据（`StrokeSnapshot`，`kind=stroke` 时的载荷）。
+
+`stroke`（`StrokeSnapshot`）字段：
 
 - `points`：点列表（`StrokePointSnapshot`）。
 - `colorRgba`：颜色（`Vector4`：`x/y/z/w` 分别表示 `R/G/B/A`，范围一般为 0~1）。
 - `baseSize`：笔迹基础尺寸（世界坐标下的直径，单位与页面坐标一致）。
 - `enablePressure`：是否启用压感（若为 true，会根据 `pressure` 调整笔宽）。
+
+> v1/v2 兼容说明：旧文件的 `strokes` 条目为"扁平"形态（`points`/`colorRgba`/`baseSize`/`enablePressure` 直接位于条目对象上，无 `kind`/`stroke` 包装）。读取端会将扁平条目视为 `kind=stroke` 处理；v3 写侧固定输出包装形态。
 
 `points` 的每个条目对应 `StrokePointSnapshot`：
 
@@ -176,13 +183,16 @@ assets/
   "id": "2f6b35f7-9a6f-4c76-9a5d-2e9d0c5c3b7f",
   "strokes": [
     {
-      "points": [
-        { "position": { "x": 10.5, "y": 20.25 }, "pressure": 0.5 },
-        { "position": { "x": 12.0, "y": 24.0 }, "pressure": 0.8 }
-      ],
-      "colorRgba": { "x": 0.1, "y": 0.2, "z": 0.3, "w": 1.0 },
-      "baseSize": 3.25,
-      "enablePressure": true
+      "kind": "stroke",
+      "stroke": {
+        "points": [
+          { "position": { "x": 10.5, "y": 20.25 }, "pressure": 0.5 },
+          { "position": { "x": 12.0, "y": 24.0 }, "pressure": 0.8 }
+        ],
+        "colorRgba": { "x": 0.1, "y": 0.2, "z": 0.3, "w": 1.0 },
+        "baseSize": 3.25,
+        "enablePressure": true
+      }
     }
   ],
   "elements": [
@@ -217,11 +227,12 @@ assets/
 
 ## 5. 约束
 
-当前读取逻辑约束（v2）：
+当前读取逻辑约束（v3）：
 
 - `format` 必须为 `"wbix"`（不区分大小写）。
-- `version` 必须为 `1~2`（大于 2 视为不支持）。
+- `version` 必须为 `1~3`（大于 3 视为不支持）。
 - 页面按 `manifest.pages[].index` 排序后加载，保证顺序稳定。
+- `strokes` 条目同时接受 v3 包装形态与 v1/v2 扁平形态（缺省按 `stroke` 处理）；未知 `kind` 的条目跳过并记录 Warn 日志。
 
 
 ## 6. 安全与健壮性建议（导入端）
@@ -239,3 +250,5 @@ WBIX 属于外部输入，导入端建议：
 - 清单模型：`WindBoard/Board/Persistence/Wbix/WbixManifest.cs`
 - 页面模型：`WindBoard/Board/Persistence/Wbix/WbixPagePayload.cs`
 - 资源写入模型：`WindBoard/Board/Persistence/Wbix/WbixResourceFile.cs`
+- 绘制条目快照与 JSON 兼容（v2/v3 形态）：`WindBoard/Board/Persistence/BoardWorkspaceSnapshot.cs`、`WindBoard/Board/Persistence/InkItemSnapshotJsonConverter.cs`
+- 快照 ↔ 域转换单点（Kind 分发 + Bounds 重算）：`WindBoard/Board/Persistence/BoardInkItemCodec.cs`

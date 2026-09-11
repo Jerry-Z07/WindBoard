@@ -167,7 +167,7 @@ namespace WindBoard.Controls
                 return;
             }
 
-            bool shouldShow = _tool == BoardTool.Eraser && _lastPointerDeviceType is not null;
+            bool shouldShow = _toolOptions.Tool == BoardTool.Eraser && _lastPointerDeviceType is not null;
 
             // 触摸/鼠标：只有按下（接触）时才显示；触控笔：悬停时显示。
             if (_lastPointerDeviceType == PointerDeviceType.Touch || _lastPointerDeviceType == PointerDeviceType.Mouse)

@@ -11,6 +11,7 @@ using Windows.Storage;
 using Windows.Storage.Pickers;
 using WindBoard.Localization;
 using WindBoard.Logging;
+using WindBoard.UI.Common;
 
 namespace WindBoard.Settings.Pages
 {
@@ -263,20 +264,19 @@ namespace WindBoard.Settings.Pages
 
             while (true)
             {
+                // FileSavePicker 会先为用户输入的新文件名预创建 0 字节文件再返回，
+                // 故需记录调用时刻，用于把该占位文件与用户选中的既有文件区分开（见 SaveFilePickerPlaceholder）。
                 DateTimeOffset pickStarted = DateTimeOffset.Now;
+
                 StorageFile? file = await picker.PickSaveFileAsync();
                 if (file is null)
                 {
                     return null;
                 }
 
-                if (!File.Exists(file.Path))
-                {
-                    return file;
-                }
-
-                // WinUI 的 FileSavePicker 可能先创建一个空文件再返回，这里沿用时间窗口做保守判断，避免每次都误弹“覆盖确认”。
-                if (file.DateCreated >= pickStarted - TimeSpan.FromSeconds(2))
+                // 文件不存在（环境不预创建占位文件）或存在但属于本次 Picker 预创建的占位文件 → 新文件，直接返回；
+                // 其余情况为用户选中的已存在文件 → 覆盖确认。
+                if (!File.Exists(file.Path) || SaveFilePickerPlaceholder.IsCreatedByPicker(file, pickStarted))
                 {
                     return file;
                 }
@@ -289,7 +289,7 @@ namespace WindBoard.Settings.Pages
             }
         }
 
-        private async Task<StorageFile?> PickImportSettingsFileAsync(IntPtr hwnd)
+        private static async Task<StorageFile?> PickImportSettingsFileAsync(IntPtr hwnd)
         {
             if (hwnd == IntPtr.Zero)
             {

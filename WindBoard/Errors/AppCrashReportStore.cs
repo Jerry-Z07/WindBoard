@@ -1,5 +1,4 @@
 using System;
-using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Runtime.InteropServices;
@@ -90,21 +89,10 @@ namespace WindBoard.Errors
 
         private static int TryGetProcessId()
         {
-            try
-            {
-                return Environment.ProcessId;
-            }
-            catch
-            {
-                try
-                {
-                    return Process.GetCurrentProcess().Id;
-                }
-                catch
-                {
-                    return 0;
-                }
-            }
+            // CA1837：Environment.ProcessId 由运行时直接取当前进程 id（不经 Process 对象、不抛异常）；
+            // 原实现的两层 try/catch（Process.GetCurrentProcess() 兜底 → 0）为不可达代码，故直接移除。
+            // 调用点仍有外层 try/catch 兜底（见上方 TryWrite 的 catch），崩溃链路不会因此新增异常出口。
+            return Environment.ProcessId;
         }
 
         private static string GetCrashDirectory(string? logDirectoryOverride)
@@ -154,37 +142,38 @@ namespace WindBoard.Errors
             string crashDirectory)
         {
             // 说明：报告内容应稳定、可读、可复制；避免依赖 JSON 以降低出错概率。
+            // CA1305：显式传入 CurrentCulture，与默认插值行为完全一致（报告值多为字符串/整数）。
             var sb = new StringBuilder(capacity: 4096);
 
             sb.AppendLine("WindBoard Crash Report");
             sb.AppendLine("======================");
             sb.AppendLine();
 
-            sb.AppendLine($"OccurredAtUtc: {occurredAtUtc:O}");
-            sb.AppendLine($"OccurredAtLocal: {occurredAtUtc.ToLocalTime():O}");
-            sb.AppendLine($"Source: {source}");
+            sb.AppendLine(CultureInfo.CurrentCulture, $"OccurredAtUtc: {occurredAtUtc:O}");
+            sb.AppendLine(CultureInfo.CurrentCulture, $"OccurredAtLocal: {occurredAtUtc.ToLocalTime():O}");
+            sb.AppendLine(CultureInfo.CurrentCulture, $"Source: {source}");
             if (isTerminating.HasValue)
             {
-                sb.AppendLine($"IsTerminating: {isTerminating.Value}");
+                sb.AppendLine(CultureInfo.CurrentCulture, $"IsTerminating: {isTerminating.Value}");
             }
 
             sb.AppendLine();
 
-            sb.AppendLine($"AppVersion: {SafeGet(() => AppInfo.Version)}");
-            sb.AppendLine($"ProcessId: {processId}");
-            sb.AppendLine($"Architecture: {SafeGet(() => RuntimeInformation.ProcessArchitecture.ToString())}");
-            sb.AppendLine($"Framework: {SafeGet(() => RuntimeInformation.FrameworkDescription)}");
-            sb.AppendLine($"OS: {SafeGet(() => RuntimeInformation.OSDescription)}");
+            sb.AppendLine(CultureInfo.CurrentCulture, $"AppVersion: {SafeGet(() => AppInfo.Version)}");
+            sb.AppendLine(CultureInfo.CurrentCulture, $"ProcessId: {processId}");
+            sb.AppendLine(CultureInfo.CurrentCulture, $"Architecture: {SafeGet(() => RuntimeInformation.ProcessArchitecture.ToString())}");
+            sb.AppendLine(CultureInfo.CurrentCulture, $"Framework: {SafeGet(() => RuntimeInformation.FrameworkDescription)}");
+            sb.AppendLine(CultureInfo.CurrentCulture, $"OS: {SafeGet(() => RuntimeInformation.OSDescription)}");
 
             sb.AppendLine();
 
-            sb.AppendLine($"InstallKind: {SafeGet(() => AppDataPaths.InstallKind.ToString())}");
-            sb.AppendLine($"InstallDir: {SafeGet(() => AppDataPaths.InstallDir)}");
-            sb.AppendLine($"DataRoot: {SafeGet(() => AppDataPaths.RootDirectory)}");
-            sb.AppendLine($"LogDirectory: {SafeGet(() => AppLog.LogDirectory)}");
-            sb.AppendLine($"CurrentLogFile: {SafeGet(() => AppLog.CurrentLogFilePath ?? string.Empty)}");
-            sb.AppendLine($"CrashDirectory: {crashDirectory}");
-            sb.AppendLine($"ReportFilePath: {reportFilePath}");
+            sb.AppendLine(CultureInfo.CurrentCulture, $"InstallKind: {SafeGet(() => AppDataPaths.InstallKind.ToString())}");
+            sb.AppendLine(CultureInfo.CurrentCulture, $"InstallDir: {SafeGet(() => AppDataPaths.InstallDir)}");
+            sb.AppendLine(CultureInfo.CurrentCulture, $"DataRoot: {SafeGet(() => AppDataPaths.RootDirectory)}");
+            sb.AppendLine(CultureInfo.CurrentCulture, $"LogDirectory: {SafeGet(() => AppLog.LogDirectory)}");
+            sb.AppendLine(CultureInfo.CurrentCulture, $"CurrentLogFile: {SafeGet(() => AppLog.CurrentLogFilePath ?? string.Empty)}");
+            sb.AppendLine(CultureInfo.CurrentCulture, $"CrashDirectory: {crashDirectory}");
+            sb.AppendLine(CultureInfo.CurrentCulture, $"ReportFilePath: {reportFilePath}");
 
             sb.AppendLine();
             AppendExceptionSection(sb, exception, exceptionObject);
@@ -201,8 +190,8 @@ namespace WindBoard.Errors
 
             if (exception is not null)
             {
-                sb.AppendLine($"ExceptionType: {exception.GetType().FullName}");
-                sb.AppendLine($"ExceptionMessage: {exception.Message}");
+                sb.AppendLine(CultureInfo.CurrentCulture, $"ExceptionType: {exception.GetType().FullName}");
+                sb.AppendLine(CultureInfo.CurrentCulture, $"ExceptionMessage: {exception.Message}");
                 sb.AppendLine();
                 sb.AppendLine(exception.ToString());
                 return;
@@ -211,7 +200,7 @@ namespace WindBoard.Errors
             if (exceptionObject is not null)
             {
                 // AppDomain.UnhandledException 允许抛出非 Exception 对象。
-                sb.AppendLine($"ExceptionObjectType: {exceptionObject.GetType().FullName}");
+                sb.AppendLine(CultureInfo.CurrentCulture, $"ExceptionObjectType: {exceptionObject.GetType().FullName}");
                 sb.AppendLine();
                 try
                 {

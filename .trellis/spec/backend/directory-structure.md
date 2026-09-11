@@ -18,7 +18,8 @@ WindBoard/
 │   ├── Commands/               # Command pattern implementations (IBoardCommand)
 │   ├── Editing/                # Workspace, session, viewport logic
 │   ├── Elements/               # Board elements (text, media, link, file)
-│   ├── Persistence/            # Workspace serialization (WBIX format)
+│   ├── Items/                  # Ink item abstraction (IBoardInkItem: strokes & shapes)
+│   ├── Persistence/            # Workspace serialization (WBIX format, BoardInkItemCodec)
 │   └── Viewport/               # Viewport math (zoom, pan)
 ├── Rendering/                  # DirectX rendering layer (Vortice)
 │   ├── Board/                  # Board scene rendering
@@ -61,11 +62,29 @@ WindBoard.Tests/                # xUnit tests
 
 ### Domain Layer (Board/)
 **Purpose**: Core business logic, pure C# with no UI dependencies
-- `BoardDocument`: Document model (strokes + elements)
+- `BoardDocument`: Document model (`InkItems: List<IBoardInkItem>` + elements below/above ink)
 - `BoardSession`: Undo/Redo stack management
 - `BoardWorkspace`: Multi-page workspace
 - `BoardViewport`: Zoom/pan math
 - **No UI references allowed in this layer**
+
+### Ink Item Abstraction & Single-Point Dispatch
+
+All drawable ink content (strokes today; shapes from Phase 2) implements `Board/Items/IBoardInkItem`
+(`Id` / `BoundsWorld` (Vortice `Rect`, `Rect.Empty` sentinel = no valid bounds) / `Translate`). Type-based
+dispatch must stay **single-point** — do not scatter `is Stroke` / `switch` across the codebase:
+
+| Concern | Single dispatch point | Note |
+|---|---|---|
+| Rendering | `BoardSceneRenderer.DrawInkItem` | Ink geometry cache is keyed by `Stroke` (stroke branch only) |
+| Visibility | `BoardSceneMath.IsInkItemVisible` | |
+| Eraser hit | `InkItemHitTest` | |
+| Pick / rect-select / screen bounds | `InkItemPickTest` / `InkItemRectSelectTest` / `InkItemScreenBounds` | |
+| Erasing | `PixelStrokeEraser` type routing | Pixel-split erase only for polyline strokes; other items → whole-item delete (`WholeStrokeEraser` semantics) |
+| Snapshot ↔ domain | `BoardInkItemCodec` | Kind-discriminated; see database-guidelines |
+
+**Wrong**: adding a new `IBoardInkItem` implementation and extending `if (item is Stroke)` checks in renderer/hit-test/serializer individually.
+**Correct**: implementing the item + extending only the single dispatch switches listed above.
 
 ### Rendering Layer (Rendering/)
 **Purpose**: DirectX rendering using Vortice (D3D11/D2D1)

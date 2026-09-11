@@ -37,10 +37,7 @@ namespace WindBoard.Reminders
 
         internal bool RemindOncePerSignature(Window window, string signature, AppReminderMessage message)
         {
-            if (window is null)
-            {
-                throw new ArgumentNullException(nameof(window));
-            }
+            ArgumentNullException.ThrowIfNull(window);
 
             if (string.IsNullOrWhiteSpace(signature))
             {

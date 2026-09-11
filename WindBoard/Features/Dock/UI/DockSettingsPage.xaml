@@ -235,6 +235,7 @@
                         <controls:SettingsCard.Content>
                             <ToggleSwitch
                                 x:Name="UndoRedoVisibleToggleSwitch"
+                                AutomationProperties.AutomationId="Dock_UndoRedoVisibleToggle"
                                 Header="{x:Null}"
                                 OffContent="{l10n:Loc Key=Common_Hide}"
                                 OnContent="{l10n:Loc Key=Common_Show}"

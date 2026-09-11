@@ -6,10 +6,8 @@ using Microsoft.UI.Input;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
 using WindBoard.Board;
-using WindBoard.Board.Commands;
-using WindBoard.Board.Editing;
 using WindBoard.Board.Elements;
-using WindBoard.Board.Viewport;
+using WindBoard.Interaction.Tools;
 using Vortice.Mathematics;
 
 namespace WindBoard.Interaction
@@ -21,23 +19,21 @@ namespace WindBoard.Interaction
     {
         private void OnCanvasPointerMoved(object sender, PointerRoutedEventArgs e)
         {
-            uint pointerId = e.Pointer.PointerId;
-
-            if (_panPointerId == pointerId)
+            // 路由优先级收敛到 PointerRouteState.ResolveMoveRoute（pan → selection → marquee → active）。
+            switch (_routes.ResolveMoveRoute(e.Pointer.PointerId))
             {
-                HandlePanPointerMoved(e);
-            }
-            else if (_selectionPointerId == pointerId)
-            {
-                HandleSelectionPointerMoved(e);
-            }
-            else if (_marqueePointerId == pointerId)
-            {
-                HandleMarqueePointerMoved(e);
-            }
-            else if (_activePointerId == pointerId)
-            {
-                HandleActivePointerMoved(e);
+                case PointerMoveRoute.Pan:
+                    HandlePanPointerMoved(e);
+                    break;
+                case PointerMoveRoute.Selection:
+                    HandleSelectionPointerMoved(e);
+                    break;
+                case PointerMoveRoute.Marquee:
+                    HandleMarqueePointerMoved(e);
+                    break;
+                case PointerMoveRoute.Active:
+                    HandleActivePointerMoved(e);
+                    break;
             }
         }
 
@@ -60,24 +56,7 @@ namespace WindBoard.Interaction
             Vector2 deltaScreen = current - _lastSelectionScreen;
             _lastSelectionScreen = current;
 
-            if (_selectionStrokeBeforeSnapshots is not null && _selectedStrokes.Count > 0)
-            {
-                Vector2 deltaWorld = deltaScreen / Math.Max(0.0001f, _viewport.Zoom);
-                for (int i = 0; i < _selectedStrokes.Count; i++)
-                {
-                    _selectedStrokes[i].Translate(deltaWorld);
-                }
-            }
-            else if (_selectionTransformElement is not null)
-            {
-                Vector2 deltaWorld = deltaScreen / Math.Max(0.0001f, _viewport.Zoom);
-                _selectionTransformElement.PositionWorld += deltaWorld;
-            }
-
-            if (deltaScreen.LengthSquared() > 0.0001f)
-            {
-                _selectionModified = true;
-            }
+            _selectTool.MoveSelectionByScreenDelta(deltaScreen);
 
             e.Handled = true;
             FrameInvalidated?.Invoke();
@@ -86,33 +65,32 @@ namespace WindBoard.Interaction
         private void HandleMarqueePointerMoved(PointerRoutedEventArgs e)
         {
             PointerPoint point = e.GetCurrentPoint(_panel);
-            _marqueeCurrentScreen = new Vector2((float)point.Position.X, (float)point.Position.Y);
+            // 框选几何状态由 SelectTool 内聚，这里只做输入转发。
+            Vector2 screen = new((float)point.Position.X, (float)point.Position.Y);
+            _selectTool.Move(new ToolInput(screen, 1.0f, e.Pointer.PointerDeviceType, _context));
             e.Handled = true;
             FrameInvalidated?.Invoke();
         }
 
         private void HandleActivePointerMoved(PointerRoutedEventArgs e)
         {
-            if (_isErasing)
+            // 工具策略化调度：会话由 Begin 建立（_activePointerId 匹配保证配对），
+            // 画笔/橡皮/形状统一路由到各自策略对象。
+            // 与按下路径统一经 ResolveActiveToolId 解析（Select 回退画笔语义一致）。
+            // e.Handled 语义与原版对齐：橡皮会话始终消费事件；绘制类会话（画笔/形状）
+            // 在无活动预览条目时早退且不置 Handled（原 ActiveStroke == null 分支行为，
+            // 泛化为 PreviewItem 以同时覆盖形状预览）。
+            if (_toolRegistry.TryGetTool(ResolveActiveToolId(), out IBoardTool? tool))
             {
-                PointerPoint erasePoint = e.GetCurrentPoint(_panel);
-                UpdateEraserGesture(e.Pointer, erasePoint);
+                if (!_eraserTool.IsErasing && _context.PreviewItem is null)
+                {
+                    return;
+                }
+
+                PointerPoint point = e.GetCurrentPoint(_panel);
+                tool.Move(CreateToolInput(e.Pointer, point));
                 e.Handled = true;
-                return;
             }
-
-            if (ActiveStroke is null)
-            {
-                return;
-            }
-
-            PointerPoint point = e.GetCurrentPoint(_panel);
-            if (AppendPoint(ActiveStroke, e.Pointer, point))
-            {
-                FrameInvalidated?.Invoke();
-            }
-
-            e.Handled = true;
         }
 
         private void OnCanvasPointerReleased(object sender, PointerRoutedEventArgs e)
@@ -153,7 +131,7 @@ namespace WindBoard.Interaction
 
             uint pointerId = e.Pointer.PointerId;
 
-            if (_marqueePointerId == pointerId)
+            if (_routes.MarqueePointerId == pointerId)
             {
                 if (mode == PointerEndMode.Commit)
                 {
@@ -168,7 +146,7 @@ namespace WindBoard.Interaction
                 return;
             }
 
-            if (_selectionPointerId == pointerId)
+            if (_routes.SelectionPointerId == pointerId)
             {
                 if (mode == PointerEndMode.Commit)
                 {
@@ -176,8 +154,8 @@ namespace WindBoard.Interaction
                     Vector2 screenDip = new((float)point.Position.X, (float)point.Position.Y);
 
                     // 选择拖拽未发生任何变换时，将其视为一次“点击”用于双击外部打开。
-                    bool shouldHandleElementClick = !_selectionModified && _selectedElement is not null;
-                    BoardElement? clickedElement = _selectedElement;
+                    bool shouldHandleElementClick = !_selectTool.SelectionModified && _selectTool.SelectedElement is not null;
+                    BoardElement? clickedElement = _selectTool.SelectedElement;
 
                     CommitSelectionGesture(releasePointerCaptures);
 
@@ -195,33 +173,19 @@ namespace WindBoard.Interaction
                 return;
             }
 
-            if (_activePointerId != pointerId)
+            if (_routes.ActivePointerId != pointerId)
             {
                 return;
             }
 
-            if (_isErasing)
-            {
-                if (mode == PointerEndMode.Commit)
-                {
-                    CommitEraserGesture();
-                }
-                else
-                {
-                    CancelEraserGesture();
-                }
-
-                e.Handled = true;
-                return;
-            }
-
+            // 工具策略化调度：画笔/橡皮会话的提交/取消经策略对象完成。
             if (mode == PointerEndMode.Commit)
             {
-                CommitActiveStroke();
+                CommitActiveToolGesture();
             }
             else
             {
-                DiscardActiveStroke();
+                DiscardActiveToolGesture();
             }
 
             e.Handled = true;
@@ -234,18 +198,17 @@ namespace WindBoard.Interaction
                 return;
             }
 
-            _activeTouchPointers.Remove(e.Pointer.PointerId);
+            _routes.ActiveTouchPointers.Remove(e.Pointer.PointerId);
             UpdateInteractionState();
         }
 
         private bool TryHandlePanPointerEnded(PointerRoutedEventArgs e, bool releasePointerCaptures)
         {
-            if (_panPointerId != e.Pointer.PointerId)
+            // pointerId 不匹配时不做任何变更（“尝试”语义由状态机承担）。
+            if (!_routes.TryEndPan(e.Pointer.PointerId))
             {
                 return false;
             }
-
-            _panPointerId = null;
 
             e.Handled = true;
             FinalizeGestureState(releasePointerCaptures);

@@ -1,0 +1,2 @@
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "核对是否残留硬编码颜色、是否复用主题资源与共享样式、是否引入未要求的改动"}
+{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "核对组件结构与事件绑定、本地化 key、AutomationId 等约定未被破坏"}

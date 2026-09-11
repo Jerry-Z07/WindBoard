@@ -1,0 +1,4 @@
+{"file": ".trellis/spec/frontend/winui-dependencies.md", "reason": "DevWinUI 依赖契约、WindowedContentDialog v10 API 映射与 XAML 级联编译 gotcha，移除依赖时必读"}
+{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "WinUI 控件/事件处理模式约定，弹窗构建代码需遵循"}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "WinUI 质量红线与本地化约定，改动需符合"}
+{"file": ".trellis/spec/frontend/type-safety.md", "reason": "record/nullable 决策类型写法约定（布局决策扩展涉及）"}

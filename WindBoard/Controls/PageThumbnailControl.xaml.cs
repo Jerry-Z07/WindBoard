@@ -7,6 +7,7 @@ using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Shapes;
 using WindBoard.Board;
 using WindBoard.Board.Editing;
+using WindBoard.Board.Items;
 using Windows.Foundation;
 using Windows.UI;
 
@@ -142,13 +143,13 @@ namespace WindBoard.Controls
             StrokeCanvas.Children.Clear();
 
             BoardDocument? document = _page?.Session.Document;
-            if (document is null || document.Strokes.Count == 0)
+            if (document is null || document.InkItems.Count == 0)
             {
                 StrokeCanvas.Clip = new RectangleGeometry { Rect = new Rect(0, 0, width, height) };
                 return;
             }
 
-            if (!TryGetDocumentBounds(document.Strokes, out float minX, out float minY, out float maxX, out float maxY))
+            if (!TryGetDocumentBounds(document.InkItems, out float minX, out float minY, out float maxX, out float maxY))
             {
                 StrokeCanvas.Clip = new RectangleGeometry { Rect = new Rect(0, 0, width, height) };
                 return;
@@ -172,8 +173,14 @@ namespace WindBoard.Controls
             double baseY = CanvasPadding + offsetY;
 
             // 轻量渲染：每条笔迹用一条 Polyline 近似。
-            foreach (Stroke stroke in document.Strokes)
+            // 笔迹层已统一为 IBoardInkItem；缩略图当前仅近似折线笔迹，其余条目类型跳过。
+            foreach (IBoardInkItem item in document.InkItems)
             {
+                if (item is not Stroke stroke)
+                {
+                    continue;
+                }
+
                 if (stroke.Points.Count < 2)
                 {
                     continue;
@@ -207,15 +214,20 @@ namespace WindBoard.Controls
             StrokeCanvas.Clip = new RectangleGeometry { Rect = new Rect(0, 0, width, height) };
         }
 
-        private static bool TryGetDocumentBounds(IReadOnlyList<Stroke> strokes, out float minX, out float minY, out float maxX, out float maxY)
+        private static bool TryGetDocumentBounds(IReadOnlyList<IBoardInkItem> items, out float minX, out float minY, out float maxX, out float maxY)
         {
             minX = float.PositiveInfinity;
             minY = float.PositiveInfinity;
             maxX = float.NegativeInfinity;
             maxY = float.NegativeInfinity;
 
-            foreach (Stroke stroke in strokes)
+            foreach (IBoardInkItem item in items)
             {
+                if (item is not Stroke stroke)
+                {
+                    continue;
+                }
+
                 if (!stroke.HasBounds)
                 {
                     continue;

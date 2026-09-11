@@ -415,10 +415,7 @@ namespace WindBoard.Settings
 
         internal void Update(Action<AppSettings> update)
         {
-            if (update is null)
-            {
-                throw new ArgumentNullException(nameof(update));
-            }
+            ArgumentNullException.ThrowIfNull(update);
 
             var report = new SettingsNormalizationReport();
             lock (_gate)
@@ -527,15 +524,9 @@ namespace WindBoard.Settings
 
         private void ReplaceAllCore(AppSettings settings, SettingsNormalizationReport report, bool requestSaveDebounced)
         {
-            if (settings is null)
-            {
-                throw new ArgumentNullException(nameof(settings));
-            }
+            ArgumentNullException.ThrowIfNull(settings);
 
-            if (report is null)
-            {
-                throw new ArgumentNullException(nameof(report));
-            }
+            ArgumentNullException.ThrowIfNull(report);
 
             // 先复制再归一化，避免外部继续持有引用并修改内部状态。
             AppSettings next = AppSettingsCloner.Clone(settings);

@@ -43,13 +43,14 @@ namespace WindBoard.Interaction
             // 选择模式下，按住修饰键对“选中笔迹集合”做变换（将多笔迹视为整体）：
             // - Ctrl + 滚轮：缩放（以鼠标位置为锚点）
             // - Shift + 滚轮：旋转（以选中集合中心为锚点）
+            // 形状跳过矩阵变换（design D）：纯形状选择时不进入该分支，滚轮透传为视口缩放。
             if (Tool == BoardTool.Select
-                && _selectedStrokes.Count > 0
+                && _selectTool.HasTransformableStrokes
                 && (mods.HasFlag(Windows.System.VirtualKeyModifiers.Control) || mods.HasFlag(Windows.System.VirtualKeyModifiers.Shift)))
             {
                 BeginWheelZoomInteraction();
 
-                BeginSelectionTransformSnapshot(_selectedStrokes);
+                _selectTool.BeginSelectionTransformSnapshotForSelectedItems();
 
                 if (mods.HasFlag(Windows.System.VirtualKeyModifiers.Control))
                 {
@@ -60,8 +61,7 @@ namespace WindBoard.Interaction
                     Matrix3x2 transform = Matrix3x2.CreateTranslation(-anchorWorld)
                         * Matrix3x2.CreateScale(factor)
                         * Matrix3x2.CreateTranslation(anchorWorld);
-                    ApplyTransformToSelectedStrokes(transform);
-                    _selectionModified = true;
+                    _selectTool.ApplyMatrixTransformToSelectedStrokes(transform);
                 }
 
                 if (mods.HasFlag(Windows.System.VirtualKeyModifiers.Shift))
@@ -69,9 +69,8 @@ namespace WindBoard.Interaction
                     // 以选中集合中心为锚点旋转（避免滚轮旋转时锚点漂移）。
                     float stepDeg = 5.0f;
                     float rotationRad = stepDeg * (delta / 120.0f) * (float)(Math.PI / 180.0);
-                    Vector2 centerWorld = GetSelectedStrokesCenterWorld();
-                    ApplyTransformToSelectedStrokes(Matrix3x2.CreateRotation(rotationRad, centerWorld));
-                    _selectionModified = true;
+                    Vector2 centerWorld = _selectTool.GetSelectedItemsCenterWorld();
+                    _selectTool.ApplyMatrixTransformToSelectedStrokes(Matrix3x2.CreateRotation(rotationRad, centerWorld));
                 }
 
                 e.Handled = true;
@@ -84,13 +83,10 @@ namespace WindBoard.Interaction
             // 以鼠标所在位置为锚点缩放，避免缩放时“跳动”
             // 选中元素：Ctrl + 滚轮缩放（与笔迹一致的交互方式）。
             if (Tool == BoardTool.Select
-                && _selectedElement is BoardElement element
+                && _selectTool.SelectedElement is BoardElement element
                 && mods.HasFlag(Windows.System.VirtualKeyModifiers.Control))
             {
-                if (_selectionElementBeforePositionWorld is null || !ReferenceEquals(_selectionTransformElement, element))
-                {
-                    BeginSelectionTransformSnapshot(element);
-                }
+                _selectTool.EnsureElementTransformSnapshot(element);
 
                 // 以鼠标所在位置为锚点缩放，避免缩放时“跳动”。
                 float factor = (float)Math.Pow(1.1, delta / 120.0);
@@ -107,7 +103,7 @@ namespace WindBoard.Interaction
 
                 element.PositionWorld = afterPos;
                 element.SizeWorld = afterSize;
-                _selectionModified = true;
+                _selectTool.MarkSelectionModified();
 
                 e.Handled = true;
                 FrameInvalidated?.Invoke();
@@ -124,7 +120,7 @@ namespace WindBoard.Interaction
         {
             // 滚轮缩放属于“瞬时交互”，当同时存在其它连续交互（例如画线/擦除/平移/选择变换）时直接忽略，
             // 避免状态互相干扰或导致撤销快照不一致。
-            return HasActiveToolInteraction || HasPointerGesture || _isManipulatingSelection;
+            return HasActiveToolInteraction || HasPointerGesture || _routes.IsManipulatingSelection;
         }
 
         private void BeginWheelZoomInteraction()
@@ -134,7 +130,7 @@ namespace WindBoard.Interaction
             if (_wheelZoomTimer is null)
             {
                 _wheelZoomTimer = _panel.DispatcherQueue.CreateTimer();
-                _wheelZoomTimer.Interval = TimeSpan.FromMilliseconds(WheelZoomTimerIntervalMs);
+                _wheelZoomTimer.Interval = TimeSpan.FromMilliseconds(PointerRoutingDecisions.WheelZoomTimerIntervalMs);
                 _wheelZoomTimer.IsRepeating = true;
                 _wheelZoomTimer.Tick += OnWheelZoomTimerTick;
             }
@@ -155,83 +151,29 @@ namespace WindBoard.Interaction
 
         private void OnWheelZoomTimerTick(DispatcherQueueTimer sender, object args)
         {
-            if (!_isWheelZooming)
+            // tick 决策（空闲合并/结束判定）收敛到 PointerRoutingDecisions.EvaluateWheelZoomTick。
+            switch (PointerRoutingDecisions.EvaluateWheelZoomTick(_isWheelZooming, DateTimeOffset.UtcNow, _lastWheelZoomAt))
             {
-                sender.Stop();
-                return;
-            }
-
-            if ((DateTimeOffset.UtcNow - _lastWheelZoomAt).TotalMilliseconds < WheelZoomIdleTimeoutMs)
-            {
-                return;
+                case WheelZoomTickDecision.StopIdle:
+                    sender.Stop();
+                    return;
+                case WheelZoomTickDecision.Wait:
+                    return;
+                case WheelZoomTickDecision.End:
+                    break;
             }
 
             _isWheelZooming = false;
             sender.Stop();
 
             // Wheel 交互结束时，如果期间对选中笔迹做了变换，则在此一次性写入撤销记录。
-            if (_selectionModified
-                && ((_selectionStrokeBeforeSnapshots is { Count: > 0 })
-                    || (_selectionTransformElement is not null
-                        && _selectionElementBeforePositionWorld is not null
-                        && _selectionElementBeforeSizeWorld is not null)))
+            if (_selectTool.HasPendingSelectionChanges)
             {
                 CommitSelectionGesture(releasePointerCaptures: false);
                 return;
             }
 
             UpdateInteractionState();
-        }
-
-        private Vector2 GetSelectedStrokesCenterWorld()
-        {
-            // 单笔迹：沿用既有中心逻辑（Bounds 优先，否则点集平均）。
-            if (_selectedStrokes.Count == 1)
-            {
-                return GetStrokeCenterWorld(_selectedStrokes[0]);
-            }
-
-            // 多笔迹：以“包围盒中心”为整体中心，更符合用户对“作为整体旋转”的直觉。
-            Vector2 min = new(float.PositiveInfinity, float.PositiveInfinity);
-            Vector2 max = new(float.NegativeInfinity, float.NegativeInfinity);
-            bool hasAny = false;
-
-            for (int i = 0; i < _selectedStrokes.Count; i++)
-            {
-                Stroke stroke = _selectedStrokes[i];
-                if (stroke.Points.Count == 0)
-                {
-                    continue;
-                }
-
-                if (!stroke.HasBounds)
-                {
-                    stroke.RecalculateBoundsFromPoints();
-                }
-
-                if (!stroke.HasBounds)
-                {
-                    continue;
-                }
-
-                min = new Vector2(
-                    Math.Min(min.X, stroke.BoundsMin.X),
-                    Math.Min(min.Y, stroke.BoundsMin.Y));
-                max = new Vector2(
-                    Math.Max(max.X, stroke.BoundsMax.X),
-                    Math.Max(max.Y, stroke.BoundsMax.Y));
-                hasAny = true;
-            }
-
-            return hasAny ? (min + max) / 2.0f : Vector2.Zero;
-        }
-
-        private void ApplyTransformToSelectedStrokes(Matrix3x2 transform)
-        {
-            for (int i = 0; i < _selectedStrokes.Count; i++)
-            {
-                _selectedStrokes[i].Transform(transform);
-            }
         }
 
         private void OnCanvasManipulationStarting(object sender, ManipulationStartingRoutedEventArgs e)
@@ -252,28 +194,28 @@ namespace WindBoard.Interaction
             // 默认：双指/多指才进入手势模式（选择工具也不使用单指平移，避免与后续“框选”冲突）。
             const int minTouchCount = 2;
             if (Tool == BoardTool.Select
-                && _touchManipulationTarget == TouchManipulationTarget.Selection
-                && (_selectedStrokes.Count > 0 || _selectedElement is not null))
+                && _routes.TouchManipulationTarget == TouchManipulationTarget.Selection
+                && (_selectTool.SelectedItems.Count > 0 || _selectTool.SelectedElement is not null))
             {
-                _isManipulating = false;
-                _isManipulatingSelection = _activeTouchPointers.Count >= minTouchCount;
-                if (_isManipulatingSelection)
+                _routes.IsManipulating = false;
+                _routes.IsManipulatingSelection = _routes.ActiveTouchPointers.Count >= minTouchCount;
+                if (_routes.IsManipulatingSelection)
                 {
-                    if (_selectedStrokes.Count > 0)
+                    if (_selectTool.SelectedItems.Count > 0)
                     {
-                        BeginSelectionTransformSnapshot(_selectedStrokes);
+                        _selectTool.BeginSelectionTransformSnapshotForSelectedItems();
                     }
-                    else if (_selectedElement is BoardElement element)
+                    else if (_selectTool.SelectedElement is BoardElement element)
                     {
-                        BeginSelectionTransformSnapshot(element);
+                        _selectTool.EnsureElementTransformSnapshot(element);
                     }
                 }
             }
             else
             {
-                _touchManipulationTarget = TouchManipulationTarget.Viewport;
-                _isManipulatingSelection = false;
-                _isManipulating = _activeTouchPointers.Count >= minTouchCount;
+                _routes.TouchManipulationTarget = TouchManipulationTarget.Viewport;
+                _routes.IsManipulatingSelection = false;
+                _routes.IsManipulating = _routes.ActiveTouchPointers.Count >= minTouchCount;
             }
 
             UpdateInteractionState();
@@ -291,7 +233,7 @@ namespace WindBoard.Interaction
 
             // 触摸：多指拖动 + 捏合缩放（以手势中心为缩放锚点）
             const int minTouchCount = 2;
-            bool canHandle = !HasBlockingInteractionForManipulation() && _activeTouchPointers.Count >= minTouchCount;
+            bool canHandle = !HasBlockingInteractionForManipulation() && _routes.ActiveTouchPointers.Count >= minTouchCount;
             if (canHandle)
             {
                 if (!TryHandleSelectionManipulationDelta(e))
@@ -308,23 +250,23 @@ namespace WindBoard.Interaction
         private bool TryHandleSelectionManipulationDelta(ManipulationDeltaRoutedEventArgs e)
         {
             if (Tool != BoardTool.Select
-                || _touchManipulationTarget != TouchManipulationTarget.Selection
-                || (_selectedStrokes.Count == 0 && _selectedElement is null))
+                || _routes.TouchManipulationTarget != TouchManipulationTarget.Selection
+                || (_selectTool.SelectedItems.Count == 0 && _selectTool.SelectedElement is null))
             {
                 return false;
             }
 
-            if (!_isManipulatingSelection)
+            if (!_routes.IsManipulatingSelection)
             {
-                _isManipulatingSelection = true;
+                _routes.IsManipulatingSelection = true;
 
-                if (_selectedStrokes.Count > 0)
+                if (_selectTool.SelectedItems.Count > 0)
                 {
-                    BeginSelectionTransformSnapshot(_selectedStrokes);
+                    _selectTool.BeginSelectionTransformSnapshotForSelectedItems();
                 }
-                else if (_selectedElement is BoardElement element)
+                else if (_selectTool.SelectedElement is BoardElement element)
                 {
-                    BeginSelectionTransformSnapshot(element);
+                    _selectTool.EnsureElementTransformSnapshot(element);
                 }
 
                 UpdateInteractionState();
@@ -344,7 +286,7 @@ namespace WindBoard.Interaction
             bool hasRotation = Math.Abs(rotationRad) > 0.0001f;
             bool hasTranslation = translationWorld.LengthSquared() > 0.0001f;
 
-            if (_selectedElement is BoardElement selectedElement)
+            if (_selectTool.SelectedElement is BoardElement selectedElement)
             {
                 // 元素：支持平移 + 缩放（暂不支持旋转）。
                 if (!hasScale && !hasTranslation)
@@ -365,19 +307,19 @@ namespace WindBoard.Interaction
 
                     selectedElement.PositionWorld = afterPos;
                     selectedElement.SizeWorld = afterSize;
-                    _selectionModified = true;
+                    _selectTool.MarkSelectionModified();
                 }
 
                 if (hasTranslation)
                 {
                     selectedElement.PositionWorld += translationWorld;
-                    _selectionModified = true;
+                    _selectTool.MarkSelectionModified();
                 }
 
                 return true;
             }
 
-            if (_selectedStrokes.Count == 0)
+            if (_selectTool.SelectedItems.Count == 0)
             {
                 return false;
             }
@@ -387,9 +329,23 @@ namespace WindBoard.Interaction
                 return true;
             }
 
+            // 形状跳过矩阵变换（design D）：纯形状选择时，缩放/旋转手势透传视口，
+            // 避免手势被吞掉后视口缩放失效；平移分量仍由选择集处理（形状支持平移）。
+            if (!_selectTool.HasTransformableStrokes && (hasScale || hasRotation))
+            {
+                if (!hasTranslation)
+                {
+                    return false;
+                }
+
+                _selectTool.TranslateSelectedItems(translationWorld);
+                return true;
+            }
+
             if (hasScale || hasRotation)
             {
                 // 注意：这里的增量（Delta）是“逐帧增量”，因此直接对当前点集做增量变换即可。
+                // 混合选择时矩阵变换仅作用于笔迹，形状跳过（design D 已知边界）。
                 Matrix3x2 transform = Matrix3x2.Identity;
 
                 if (hasScale)
@@ -409,25 +365,20 @@ namespace WindBoard.Interaction
                     transform *= Matrix3x2.CreateTranslation(translationWorld);
                 }
 
-                ApplyTransformToSelectedStrokes(transform);
-                _selectionModified = true;
+                _selectTool.ApplyMatrixTransformToSelectedStrokes(transform);
                 return true;
             }
 
-            // 仅平移：走更轻量的 Translate，避免构造矩阵。
-            for (int i = 0; i < _selectedStrokes.Count; i++)
-            {
-                _selectedStrokes[i].Translate(translationWorld);
-            }
-            _selectionModified = true;
+            // 仅平移：走更轻量的 Translate，避免构造矩阵（形状与笔迹都生效）。
+            _selectTool.TranslateSelectedItems(translationWorld);
             return true;
         }
 
         private void HandleViewportManipulationDelta(ManipulationDeltaRoutedEventArgs e)
         {
-            if (!_isManipulating)
+            if (!_routes.IsManipulating)
             {
-                _isManipulating = true;
+                _routes.IsManipulating = true;
                 UpdateInteractionState();
             }
 
@@ -459,26 +410,26 @@ namespace WindBoard.Interaction
         {
             if (!_allowViewportManipulation)
             {
-                _activeTouchPointers.Clear();
-                _touchManipulationTarget = TouchManipulationTarget.Viewport;
+                _routes.ActiveTouchPointers.Clear();
+                _routes.TouchManipulationTarget = TouchManipulationTarget.Viewport;
                 e.Handled = true;
                 return;
             }
 
             // 在三指及以上的复杂触摸手势下，系统可能不会为每个触点都完整触发 PointerReleased/PointerCanceled。
             // 为避免触点残留导致始终被判定为“多指”，这里在手势结束时强制清空触摸状态。
-            _activeTouchPointers.Clear();
-            _touchManipulationTarget = TouchManipulationTarget.Viewport;
+            _routes.ActiveTouchPointers.Clear();
+            _routes.TouchManipulationTarget = TouchManipulationTarget.Viewport;
 
-            if (_isManipulatingSelection)
+            if (_routes.IsManipulatingSelection)
             {
-                _isManipulating = false;
+                _routes.IsManipulating = false;
                 CommitSelectionGesture(releasePointerCaptures: false);
                 e.Handled = true;
                 return;
             }
 
-            _isManipulating = false;
+            _routes.IsManipulating = false;
             NotifyInteractionUiChanged(notifyStateChanged: false);
             e.Handled = true;
         }

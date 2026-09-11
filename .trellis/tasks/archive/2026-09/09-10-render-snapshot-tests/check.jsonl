@@ -1,0 +1,2 @@
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "检查测试代码质量、主工程零改动约束是否守住"}
+{"file": ".trellis/spec/backend/directory-structure.md", "reason": "检查新增测试文件目录归属"}

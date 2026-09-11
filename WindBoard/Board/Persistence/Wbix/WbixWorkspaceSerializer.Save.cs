@@ -20,15 +20,9 @@ namespace WindBoard.Board.Persistence.Wbix
 
         public async Task SaveAsync(BoardWorkspaceSnapshot snapshot, Stream output, IReadOnlyList<WbixResourceFile>? resourceFiles, CancellationToken cancellationToken = default)
         {
-            if (snapshot is null)
-            {
-                throw new ArgumentNullException(nameof(snapshot));
-            }
+            ArgumentNullException.ThrowIfNull(snapshot);
 
-            if (output is null)
-            {
-                throw new ArgumentNullException(nameof(output));
-            }
+            ArgumentNullException.ThrowIfNull(output);
 
             cancellationToken.ThrowIfCancellationRequested();
 
@@ -93,7 +87,8 @@ namespace WindBoard.Board.Persistence.Wbix
                 ZipArchiveEntry entry = archive.CreateEntry(file.Path, CompressionLevel.Optimal);
                 await using (Stream resourceStream = entry.Open())
                 {
-                    await resourceStream.WriteAsync(file.Bytes, 0, file.Bytes.Length, cancellationToken).ConfigureAwait(false);
+                    // CA1835：使用 ReadOnlyMemory<byte> 重载，byte[] 隐式转换且参数校验在框架内完成。
+                    await resourceStream.WriteAsync((ReadOnlyMemory<byte>)file.Bytes, cancellationToken).ConfigureAwait(false);
                 }
 
                 list.Add(new WbixResourceEntry(

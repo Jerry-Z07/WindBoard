@@ -1,0 +1,6 @@
+{"file": ".trellis/tasks/09-09-shape-tools/prd.md", "reason": "验收清单核对源（尤其第 8 条：单点注册复核、无散落 if/else 复活）"}
+{"file": ".trellis/tasks/09-09-shape-tools/design.md", "reason": "关键决策（单类 BoardShape+Kind、命令泛化、滚轮变换跳过形状、v3 不升版本）是否被实现忠实遵循"}
+{"file": ".trellis/spec/backend/database-guidelines.md", "reason": "WBIX v3/Codec 约定符合性检查"}
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "代码规范与测试完备性检查"}
+{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "UI 层改动（工具栏/属性面板/批注工具栏）约定检查"}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "形状数据在域/序列化/渲染/命中四层解释一致性检查"}

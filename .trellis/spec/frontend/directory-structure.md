@@ -29,13 +29,19 @@ WindBoard/
 │   ├── MainWindow.Updates.cs        # Auto update
 │   ├── MainWindow.ClearCanvasSlide.cs  # Clear-canvas animation
 │   └── PageListItem.cs             # Page list item data model
+├── UI/Common/                       # Shared UI helpers (used across features)
+│   ├── DialogHelpers.cs            # Dialog helper methods
+│   └── SaveFilePickerPlaceholder.cs # FileSavePicker placeholder-file judgment (overwrite-confirm basis)
 ├── Controls/                        # Reusable WinUI UserControls
 │   ├── BoardCanvasControl.xaml(.cs) # Core canvas control (main body)
 │   ├── BoardCanvasControl.Rendering.cs     # Render loop (partial)
 │   ├── BoardCanvasControl.EraserCursor.cs  # Eraser cursor (partial)
 │   ├── BoardCanvasControl.SelectionHandles.cs  # Selection handles (partial)
-│   ├── PageThumbnailControl.xaml(.cs)      # Page thumbnail
-│   └── DialogHelpers.cs            # Dialog helper methods
+│   └── PageThumbnailControl.xaml(.cs)      # Page thumbnail
+├── Interaction/                     # Input handling (pointer routing + tool strategy)
+│   ├── ToolOptions.cs               # Drawing-parameter value object (tool/color/size/pressure)
+│   ├── BoardInputController/        # Pointer routing; partial split (Manipulation = touch gestures)
+│   └── Tools/                       # IBoardTool strategy implementations + BoardToolRegistry
 ├── Features/                        # Feature modules (each module follows the same structure)
 │   ├── Camouflage/
 │   │   ├── CamouflageFlow.cs       # Coordinator
@@ -131,6 +137,16 @@ All partial files share `public sealed partial class MainWindow : Window`. Each 
 - `.SelectionHandles.cs`: selection handle dragging
 
 The main file owns all field and property declarations, and partial files contain methods only.
+
+### Input tool strategy (Interaction/Tools)
+
+Tools are strategy objects, not if/else branches in the controller:
+
+- `IBoardTool { Id, Begin/Move/End/Cancel }` — each tool owns its run-state (Pen: active stroke; Eraser: snapshot; Select: marquee/selection/transform). `BoardInputController` keeps only pointer routing, pointer-id tracking, and gesture arbitration (touch two-finger Manipulation stays in the controller, orthogonal to tools).
+- `BoardToolRegistry` resolves `BoardTool` enum → tool instance; built-in tools register in the controller constructor. Adding a tool = new enum value + registry entry + tool class; do not add tool branches to the controller. (Worked example: the four two-point shape tools share one `ShapeTool` class registered as 4 instances — `new ShapeTool(BoardShapeKind.Xxx)` — with kind↔tool-id mapping single-pointed in the `ShapeTool` constructor.)
+- `ToolOptions` value object (`Tool, PenColor, PenBaseSize, PenEnablePressure`) flows `UI → BoardCanvasControl.ToolOptions → controller/context → ToolInput`; `Tool` is a convenience property (`with` on ToolOptions). Parameters are read **once** in `PenTool.Begin` (mid-gesture changes only affect future strokes); `EraserRadiusDip` is a separate channel, not part of ToolOptions.
+- `Select → Pen` fallback mapping ("select tool with selection interactions disabled behaves as pen") must be resolved through one helper (`ResolveActiveToolId`) in **all four** dispatch paths (Begin/Move/Commit/Discard) — half-mapped fallbacks silently drop strokes.
+- Pointer-event paths are high-frequency: no logging, no LINQ/allocation additions inside Begin/Move/End.
 
 ---
 

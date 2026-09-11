@@ -55,15 +55,9 @@ namespace WindBoard.Persistence
             string localAppDataDirectory,
             Func<string, (bool ok, string? errorMessage)> tryEnsureWritable)
         {
-            if (install is null)
-            {
-                throw new ArgumentNullException(nameof(install));
-            }
+            ArgumentNullException.ThrowIfNull(install);
 
-            if (tryEnsureWritable is null)
-            {
-                throw new ArgumentNullException(nameof(tryEnsureWritable));
-            }
+            ArgumentNullException.ThrowIfNull(tryEnsureWritable);
 
             string baseDir = NormalizeDir(appBaseDirectory);
             string localAppData = NormalizeDir(localAppDataDirectory);

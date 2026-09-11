@@ -14,10 +14,7 @@ namespace WindBoard.Features.Export.UI
     {
         public static async Task<ExportDialogSelection?> ShowAsync(XamlRoot xamlRoot)
         {
-            if (xamlRoot is null)
-            {
-                throw new ArgumentNullException(nameof(xamlRoot));
-            }
+            ArgumentNullException.ThrowIfNull(xamlRoot);
 
             var formatCombo = new ComboBox
             {

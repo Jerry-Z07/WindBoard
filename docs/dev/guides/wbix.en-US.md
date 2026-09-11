@@ -1,4 +1,4 @@
-# WBIX (WindBoard Interchange) Format Specification (v2)
+# WBIX (WindBoard Interchange) Format Specification (v3)
 
 This document describes WindBoard's private exchange format `.wbix` to facilitate subsequent development, adaptation, and extension (e.g., export/import of page content like images, videos).
 
@@ -28,7 +28,7 @@ pages/
   page-001.json
   ...
 assets/
-  cover.png              (Optional: cover image, v2 export will attempt to generate)
+  cover.png              (Optional: cover image, export will attempt to generate)
   elements/
     <elementId>.png      (Optional: embedded image resources for page elements)
   ...                    (Reserved: may store video/audio resources in the future)
@@ -37,8 +37,8 @@ assets/
 Explanation:
 
 - `manifest.json`: Manifest and index (version, page list, resource list, current page, etc.).
-- `pages/page-XXX.json`: Data for each page (strokes + elements; unknown element types should be ignored for forward compatibility).
-- `assets/`: Directory for resource binary files (v2 uses `cover.png` and embedded element images under `assets/elements/`).
+- `pages/page-XXX.json`: Data for each page (strokes + elements; v1/v2 strokes use a flat shape, v3 uses Kind-tagged wrapper items).
+- `assets/`: Directory for resource binary files (mainly `cover.png` and embedded element images under `assets/elements/`).
 
 ## 3. manifest.json
 
@@ -47,11 +47,11 @@ Explanation:
 `manifest.json` corresponds to `WbixManifest` in code:
 
 - `format`: Fixed as `"wbix"`.
-- `version`: Format version number (currently exported as `2`; reading is compatible with `1~2`).
+- `version`: Format version number (currently exported as `3`; reading is compatible with `1~3`).
 - `createdUtc`: Creation time (UTC, ISO 8601).
 - `currentIndex`: Current page index (0-based).
 - `pages`: Page list (includes page `id`, `index`, `path`).
-- `resources`: Resource list (reserved extension point, can be empty for v1/v2; v2 export will attempt to add a cover image resource entry).
+- `resources`: Resource list (reserved extension point, can be empty; export will attempt to add a cover image resource entry).
 - `viewportCameraWorld`: Optional. Records viewport camera world position on export (record-only; import does not force-apply).
 - `viewportZoom`: Optional. Records viewport zoom on export (record-only).
 - `viewportSizeDip`: Optional. Records viewport size in DIP (useful for future view restore / preview).
@@ -70,7 +70,7 @@ Each entry in `resources` corresponds to `WbixResourceEntry`:
 - `contentType`: MIME (e.g., `image/png`).
 - `meta`: Optional metadata (key-value string dictionary, e.g., dimensions, duration, checksum, purpose, etc.).
 
-### 3.2 v2 Cover Image Resource (assets/cover.png)
+### 3.2 Cover Image Resource (assets/cover.png)
 
 The current export attempts to generate a cover image of the first page:
 
@@ -91,7 +91,7 @@ The following example is for illustrating the field structure (IDs/times will va
 ```json
 {
   "format": "wbix",
-  "version": 2,
+  "version": 3,
   "createdUtc": "2026-02-05T12:34:56.789+00:00",
   "currentIndex": 0,
   "pages": [
@@ -114,17 +114,24 @@ The following example is for illustrating the field structure (IDs/times will va
 Page files correspond to `WbixPagePayload`:
 
 - `id`: Page ID (consistent with the `pages` entry in the manifest).
-- `strokes`: Stroke list (main data for v1/v2).
+- `strokes`: Ink item list (main data; each entry carries a Kind tag since v3, reading is compatible with the flat shape of v1/v2).
 - `elements`: Page element list (text/link/media/file; import should ignore unknown `type` for forward compatibility).
 
-### 4.1 strokes (Stroke) Structure (v1/v2)
+### 4.1 strokes (Ink Items) Structure (v3)
 
-Each entry in `strokes` corresponds to `StrokeSnapshot`:
+Each entry in `strokes` corresponds to `InkItemSnapshot` (flat + Kind discriminator, consistent with the `{type, data}` pattern of elements):
+
+- `kind`: Item type tag (current value `stroke`; missing/null is treated as `stroke`).
+- `stroke`: Stroke data (`StrokeSnapshot`, the payload when `kind=stroke`).
+
+`stroke` (`StrokeSnapshot`) fields:
 
 - `points`: Point list (`StrokePointSnapshot`).
 - `colorRgba`: Color (`Vector4`: `x/y/z/w` representing `R/G/B/A` respectively, range typically 0~1).
 - `baseSize`: Base size of the stroke (diameter in world coordinates, unit consistent with page coordinates).
 - `enablePressure`: Whether pressure sensitivity is enabled (if true, pen width adjusts based on `pressure`).
+
+> v1/v2 compatibility note: strokes entries in old files use a "flat" shape (`points`/`colorRgba`/`baseSize`/`enablePressure` located directly on the entry object, without the `kind`/`stroke` wrapper). The reader treats flat entries as `kind=stroke`; the v3 writer always outputs the wrapper shape.
 
 Each entry in `points` corresponds to `StrokePointSnapshot`:
 
@@ -176,13 +183,16 @@ Each item in `elements` corresponds to `WbixPageElement`:
   "id": "2f6b35f7-9a6f-4c76-9a5d-2e9d0c5c3b7f",
   "strokes": [
     {
-      "points": [
-        { "position": { "x": 10.5, "y": 20.25 }, "pressure": 0.5 },
-        { "position": { "x": 12.0, "y": 24.0 }, "pressure": 0.8 }
-      ],
-      "colorRgba": { "x": 0.1, "y": 0.2, "z": 0.3, "w": 1.0 },
-      "baseSize": 3.25,
-      "enablePressure": true
+      "kind": "stroke",
+      "stroke": {
+        "points": [
+          { "position": { "x": 10.5, "y": 20.25 }, "pressure": 0.5 },
+          { "position": { "x": 12.0, "y": 24.0 }, "pressure": 0.8 }
+        ],
+        "colorRgba": { "x": 0.1, "y": 0.2, "z": 0.3, "w": 1.0 },
+        "baseSize": 3.25,
+        "enablePressure": true
+      }
     }
   ],
   "elements": [
@@ -217,11 +227,12 @@ Each item in `elements` corresponds to `WbixPageElement`:
 
 ## 5. Constraints
 
-Current reading logic constraints (v2):
+Current reading logic constraints (v3):
 
 - `format` must be `"wbix"` (case-insensitive).
-- `version` must be between `1~2` (greater than 2 is considered unsupported).
+- `version` must be between `1~3` (greater than 3 is considered unsupported).
 - Pages are loaded in the order sorted by `manifest.pages[].index` to ensure stable order.
+- `strokes` entries accept both the v3 wrapper shape and the v1/v2 flat shape (missing kind is treated as `stroke`); entries with unknown `kind` are skipped with a Warn log.
 
 ## 6. Security and Robustness Suggestions (Import Side)
 
@@ -238,3 +249,5 @@ WBIX is external input, so the import side is advised to:
 - Manifest model: `WindBoard/Board/Persistence/Wbix/WbixManifest.cs`
 - Page model: `WindBoard/Board/Persistence/Wbix/WbixPagePayload.cs`
 - Resource writing model: `WindBoard/Board/Persistence/Wbix/WbixResourceFile.cs`
+- Ink item snapshot & JSON compatibility (v2/v3 shapes): `WindBoard/Board/Persistence/BoardWorkspaceSnapshot.cs`, `WindBoard/Board/Persistence/InkItemSnapshotJsonConverter.cs`
+- Snapshot ↔ domain conversion single point (Kind dispatch + bounds recalculation): `WindBoard/Board/Persistence/BoardInkItemCodec.cs`

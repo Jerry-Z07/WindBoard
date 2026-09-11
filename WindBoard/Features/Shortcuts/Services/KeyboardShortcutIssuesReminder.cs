@@ -16,10 +16,7 @@ namespace WindBoard.Features.Shortcuts.Services
     {
         internal void TryRemindIfNeeded(Window window, IReadOnlyList<KeyboardShortcutNormalizationIssue> issues, bool enabled)
         {
-            if (window is null)
-            {
-                throw new ArgumentNullException(nameof(window));
-            }
+            ArgumentNullException.ThrowIfNull(window);
 
             if (issues is null || issues.Count == 0)
             {

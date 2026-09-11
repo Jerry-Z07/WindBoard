@@ -18,6 +18,13 @@
     -->
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
     <GenerateTargetFrameworkAttribute>false</GenerateTargetFrameworkAttribute>
+    <!--
+      CA1016（用程序集版本标记程序集）：本工程 GenerateAssemblyInfo=false（见上，修复 CS0579
+      的既定决策），MSBuild 的 AssemblyVersion 属性在此配置下不会生成特性；若手工维护
+      [assembly: AssemblyVersion] 会与 Directory.Build.props 及 release.yml 的版本注入脱节。
+      崩溃报告中的版本信息由主进程传入，不依赖本程序集版本特性，故按规则 ID 豁免。
+    -->
+    <NoWarn>$(NoWarn);CA1016</NoWarn>
   </PropertyGroup>
 </Project>
 

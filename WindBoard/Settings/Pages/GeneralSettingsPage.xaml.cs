@@ -141,8 +141,12 @@ namespace WindBoard.Settings.Pages
                     value = item.Tag as string;
                 }
 
-                StartupWindowModeParser.TryParse(value, out StartupWindowMode mode);
-                AppSettingsService.Instance.SetStartupWindowMode(mode);
+                // CA1806：解析失败时 out 值为 Windowed 默认值，不能把并非用户选择的默认形态写入设置，
+                // 直接忽略本次选择（UI 仍停留在当前项，由 SyncUiFromSettings 回显真实状态）。
+                if (StartupWindowModeParser.TryParse(value, out StartupWindowMode mode))
+                {
+                    AppSettingsService.Instance.SetStartupWindowMode(mode);
+                }
             }
             catch (Exception ex)
             {

@@ -428,7 +428,7 @@ namespace WindBoard.Features.Camouflage.UI
             SetIconPreview(preview, displayName: null, showError: false, message: null);
         }
 
-        private async Task<ImageSource?> TryDecodeImageSourceAsync(byte[] bytes)
+        private static async Task<ImageSource?> TryDecodeImageSourceAsync(byte[] bytes)
         {
             try
             {

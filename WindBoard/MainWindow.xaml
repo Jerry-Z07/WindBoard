@@ -81,6 +81,7 @@
                 <StackPanel x:Name="LeftDockPanel" Orientation="Horizontal" Spacing="4" Margin="5">
                     <Button
                         x:Name="MoreButton"
+                        AutomationProperties.AutomationId="Dock_MoreButton"
                         MinWidth="60"
                         MinHeight="52"
                         Padding="8,6"
@@ -89,13 +90,13 @@
                         VerticalContentAlignment="Center">
                     <Button.Flyout>
                             <MenuFlyout Opening="OnMoreMenuOpening">
-                                <MenuFlyoutItem Text="{l10n:Loc Key=Common_Settings}" Click="OnSettingsClicked">
+                                <MenuFlyoutItem Text="{l10n:Loc Key=Common_Settings}" AutomationProperties.AutomationId="Dock_SettingsMenuItem" Click="OnSettingsClicked">
                                     <MenuFlyoutItem.Icon>
                                         <SymbolIcon Symbol="Setting" />
                                     </MenuFlyoutItem.Icon>
                                 </MenuFlyoutItem>
                                 <MenuFlyoutSeparator />
-                                 <MenuFlyoutItem Text="{l10n:Loc Key=Common_Export}" Click="OnExportClicked">
+                                 <MenuFlyoutItem Text="{l10n:Loc Key=Common_Export}" AutomationProperties.AutomationId="Dock_ExportMenuItem" Click="OnExportClicked">
                                      <MenuFlyoutItem.Icon>
                                          <SymbolIcon Symbol="OpenFile" />
                                      </MenuFlyoutItem.Icon>
@@ -145,6 +146,7 @@
 
                     <Button
                         x:Name="ImportButton"
+                        AutomationProperties.AutomationId="Dock_ImportButton"
                         MinWidth="60"
                         MinHeight="52"
                         Padding="8,6"
@@ -435,6 +437,86 @@
                             <TextBlock FontSize="11" Margin="0,3,0,0" HorizontalAlignment="Center" Text="{l10n:Loc Key=Tool_Eraser}" />
                         </StackPanel>
                     </ToggleButton>
+
+                    <ToggleButton
+                        x:Name="ShapeToolToggleButton"
+                        MinWidth="60"
+                        MinHeight="52"
+                        Padding="8,6"
+                        Style="{StaticResource DockToggleButtonStyle}"
+                        HorizontalContentAlignment="Center"
+                        VerticalContentAlignment="Center">
+                        <!-- 形状模式二次点击：弹出“直线/矩形/椭圆/箭头”切换面板（仅切换工具，复用画笔颜色/粗细参数）。 -->
+                        <FlyoutBase.AttachedFlyout>
+                            <Flyout Placement="Top" Opened="OnShapeFlyoutOpened" Closed="OnShapeFlyoutClosed">
+                                <Flyout.FlyoutPresenterStyle>
+                                    <StaticResource ResourceKey="CompactFlyoutPresenterStyle" />
+                                </Flyout.FlyoutPresenterStyle>
+
+                                <Border
+                                    CornerRadius="14"
+                                    Background="{ThemeResource SystemControlBackgroundChromeMediumLowBrush}"
+                                    BorderBrush="{ThemeResource SystemControlForegroundBaseMediumLowBrush}"
+                                    BorderThickness="1"
+                                    RequestedTheme="Light">
+                                    <StackPanel x:Name="ShapeKindPanel" Orientation="Horizontal" Spacing="8" Padding="12">
+                                        <!-- 四个形状项复用画笔粗细按钮的共享样式（44×44 圆角），内容用 XAML 自绘图形直观表达。 -->
+                                        <ToggleButton
+                                            Tag="Line"
+                                            Style="{StaticResource SharedPenThicknessToggleButtonStyle}"
+                                            ToolTipService.ToolTip="{l10n:Loc Key=Tool_Line}"
+                                            Click="OnShapeKindClicked">
+                                            <Line X1="6" Y1="26" X2="26" Y2="6" Stroke="Black" StrokeThickness="2.5" StrokeStartLineCap="Round" StrokeEndLineCap="Round" />
+                                        </ToggleButton>
+                                        <ToggleButton
+                                            Tag="Rectangle"
+                                            Style="{StaticResource SharedPenThicknessToggleButtonStyle}"
+                                            ToolTipService.ToolTip="{l10n:Loc Key=Tool_Rectangle}"
+                                            Click="OnShapeKindClicked">
+                                            <Rectangle Width="20" Height="20" Stroke="Black" StrokeThickness="2.5" StrokeStartLineCap="Round" StrokeEndLineCap="Round" />
+                                        </ToggleButton>
+                                        <ToggleButton
+                                            Tag="Ellipse"
+                                            Style="{StaticResource SharedPenThicknessToggleButtonStyle}"
+                                            ToolTipService.ToolTip="{l10n:Loc Key=Tool_Ellipse}"
+                                            Click="OnShapeKindClicked">
+                                            <Ellipse Width="22" Height="22" Stroke="Black" StrokeThickness="2.5" />
+                                        </ToggleButton>
+                                        <ToggleButton
+                                            Tag="Arrow"
+                                            Style="{StaticResource SharedPenThicknessToggleButtonStyle}"
+                                            ToolTipService.ToolTip="{l10n:Loc Key=Tool_Arrow}"
+                                            Click="OnShapeKindClicked">
+                                            <Path
+                                                Data="M6,26 L26,6 M26,6 L15,6 M26,6 L26,17"
+                                                Stroke="Black"
+                                                StrokeThickness="2.5"
+                                                StrokeStartLineCap="Round"
+                                                StrokeEndLineCap="Round" />
+                                        </ToggleButton>
+                                    </StackPanel>
+                                </Border>
+                            </Flyout>
+                        </FlyoutBase.AttachedFlyout>
+
+                        <StackPanel Orientation="Vertical">
+                            <!-- 自绘“形状组合”图标（矩形+圆沿对角线排列、互不重叠），语义与 Flyout 内四项画法同构。
+                                 注：Segoe Fluent Icons 无名为 Shapes 的图标（E714 实为 Video，观感似“录制”），故不用字体图标；
+                                 视觉参数对齐字体图标：主体约占画布七成（四周留白）、笔画 1.5、无交叉线，避免观感过重。 -->
+                            <Path
+                                x:Name="ShapeToolIconPath"
+                                Width="20"
+                                Height="20"
+                                HorizontalAlignment="Center"
+                                Data="M10.5,1.5 H18.5 V9.5 H10.5 Z M1.5,14.5 A4,4 0 1 1 9.5,14.5 A4,4 0 1 1 1.5,14.5 Z"
+                                Stroke="{ThemeResource SystemControlForegroundBaseHighBrush}"
+                                StrokeThickness="1.7"
+                                StrokeStartLineCap="Round"
+                                StrokeEndLineCap="Round"
+                                StrokeLineJoin="Round" />
+                            <TextBlock FontSize="11" Margin="0,3,0,0" HorizontalAlignment="Center" Text="{l10n:Loc Key=Tool_Shape}" />
+                        </StackPanel>
+                    </ToggleButton>
                     </StackPanel>
 
                     <Rectangle
@@ -447,6 +529,7 @@
                     <StackPanel x:Name="UndoRedoDockPanel" Orientation="Horizontal" Spacing="4">
                         <Button
                             x:Name="UndoButton"
+                            AutomationProperties.AutomationId="Dock_UndoButton"
                             MinWidth="60"
                             MinHeight="52"
                             Padding="8,6"
@@ -602,6 +685,7 @@
                 <StackPanel x:Name="PagesDockPanel" Orientation="Horizontal" Spacing="4" Margin="5">
                     <Button
                         x:Name="PagePrevButton"
+                        AutomationProperties.AutomationId="Pages_PrevButton"
                         MinWidth="52"
                         MinHeight="52"
                         Padding="0"
@@ -613,6 +697,7 @@
 
                     <Button
                         x:Name="PageIndicatorButton"
+                        AutomationProperties.AutomationId="Pages_IndicatorButton"
                         MinWidth="84"
                         MinHeight="52"
                         Padding="8,0"
@@ -621,6 +706,7 @@
                         VerticalContentAlignment="Center">
                         <TextBlock
                             x:Name="PageIndicatorText"
+                            AutomationProperties.AutomationId="Pages_IndicatorText"
                             FontSize="12"
                             FontWeight="SemiBold"
                             Text="{l10n:Loc Key=MainWindow_PageIndicator_Default}" />
@@ -628,6 +714,7 @@
 
                     <Button
                         x:Name="PageNextButton"
+                        AutomationProperties.AutomationId="Pages_NextButton"
                         MinWidth="52"
                         MinHeight="52"
                         Padding="0"

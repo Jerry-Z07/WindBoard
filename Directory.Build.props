@@ -12,4 +12,40 @@
     <FileVersion>$(VersionPrefix).0</FileVersion>
     <InformationalVersion>$(VersionPrefix)</InformationalVersion>
   </PropertyGroup>
+
+  <PropertyGroup>
+    <!--
+      Roslyn 静态分析（SDK 内置，无第三方分析器包）：
+      - AnalysisLevel=latest-recommended：启用 .NET 推荐 CA 规则集（含最新 SDK 引入的规则）
+      - EnforceCodeStyleInBuild：构建时执行 IDE 代码风格规则（IDE00xx）
+      作用于解决方案全部项目（主程序 + CrashReporter + Launcher + Tests + UITests）。
+      个别规则的豁免统一放在本文件的 NoWarn 中，
+      按规则 ID 精确列出并附注释理由，禁止按项目/命名空间一刀切。
+    -->
+    <AnalysisLevel>latest-recommended</AnalysisLevel>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+
+    <!--
+      全局压制豁免（按规则 ID 精确列出，新增豁免必须先补充注释理由）：
+      - CA1001（含可释放字段的类型应可释放）：
+        仅涉及 5 个框架托管生命周期类型——ScreenAnnotationTransparentBackdrop（由 WinUI
+        OnTargetDisconnected 回调释放）、MainWindow（Window 由 WinUI/App 生命周期管理）、
+        AppSettingsService / AppUpdateService（进程级单例服务）、AboutSettingsPage（页面随
+        导航回收）。为这些类型实现 IDisposable 只会制造无人调用的 API；若未来新增类型命中
+        该规则且生命周期确实由代码管理，应实现 IDisposable 而不是依赖本豁免。
+      - CA1822（成员不访问实例数据可声明为 static）：
+        不访问实例数据的 private 辅助方法已全部改为 static；以下成员保留实例形态并豁免——
+        单例服务的实例方法（AppErrorService/AppUpdateService/CamouflageService/
+        KeyboardShortcutIssuesReminder/CanvasBackgroundColorSettingsController，遵循 spec
+        规定的 internal static Instance 服务模式，实例调用语义保持服务 API 一致性）、
+        公共序列化 API（WbixWorkspaceSerializer.SaveAsync/WbiWorkspaceImporter.ImportAsync，
+        实例形态为"序列化器对象"的 API 设计，改 static 波及 20+ 调用点）、
+        ScreenAnnotationSessionHost 的查询属性/方法（实例 host 对象的状态接口，被 UI 与
+        测试通过实例引用）。
+      - CA1859（尽可能使用具体类型提升性能）：接口/基类参数与返回值是 Board 命令、渲染、
+        序列化层有意为之的抽象边界；收紧为具体类型会波及 override 与全部调用方签名，
+        与"抽象稳定、最小改动"原则冲突，收益（微优化）在桌面 UI 路径上不显著。
+    -->
+    <NoWarn>$(NoWarn);CA1001;CA1822;CA1859</NoWarn>
+  </PropertyGroup>
 </Project>

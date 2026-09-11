@@ -1,0 +1,2 @@
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "检查 XAML/AutomationId 改动与 E2E 代码是否符合前端质量规范"}
+{"file": ".trellis/spec/backend/logging-guidelines.md", "reason": "E2E 失败诊断日志与截图策略检查"}

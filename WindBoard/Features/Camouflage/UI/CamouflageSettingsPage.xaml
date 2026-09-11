@@ -18,6 +18,7 @@
                     <controls:SettingsCard.Content>
                         <ToggleSwitch
                             x:Name="EnabledToggleSwitch"
+                            AutomationProperties.AutomationId="Camouflage_EnabledToggle"
                             Header="{x:Null}"
                             Toggled="OnEnabledToggled" />
                     </controls:SettingsCard.Content>
@@ -30,6 +31,7 @@
                         <controls:SettingsCard.Content>
                             <TextBox
                                 x:Name="TitleTextBox"
+                                AutomationProperties.AutomationId="Camouflage_TitleTextBox"
                                 Header="{x:Null}"
                                 PlaceholderText="{l10n:Loc Key=Settings_Camouflage_WindowTitle_Placeholder}"
                                 TextChanged="OnTitleTextChanged" />

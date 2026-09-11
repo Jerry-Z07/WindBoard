@@ -25,29 +25,24 @@ namespace WindBoard.Updates
             IProgress<DownloadProgress>? progress,
             CancellationToken cancellationToken)
         {
-            return DownloadWithFailoverAsync(request, progress, cancellationToken, DownloadClient);
+            return DownloadWithFailoverAsync(request, progress, DownloadClient, cancellationToken);
         }
 
         /// <summary>
         /// 带可注入 HttpClient 的下载入口（主要用于单元测试）。
         /// </summary>
+        // CA1068：CancellationToken 参数必须排在参数列表最后。
         internal static async Task<DownloadResult> DownloadWithFailoverAsync(
             DownloadRequest request,
             IProgress<DownloadProgress>? progress,
-            CancellationToken cancellationToken,
-            HttpClient httpClient)
+            HttpClient httpClient,
+            CancellationToken cancellationToken)
         {
-            if (request is null)
-            {
-                throw new ArgumentNullException(nameof(request));
-            }
+            ArgumentNullException.ThrowIfNull(request);
 
-            if (httpClient is null)
-            {
-                throw new ArgumentNullException(nameof(httpClient));
-            }
+            ArgumentNullException.ThrowIfNull(httpClient);
 
-            DownloadResult? failure = TryCreateContext(request, progress, cancellationToken, httpClient, out DownloadContext context);
+            DownloadResult? failure = TryCreateContext(request, progress, httpClient, cancellationToken, out DownloadContext context);
             if (failure is not null)
             {
                 return failure;
@@ -56,11 +51,14 @@ namespace WindBoard.Updates
             return await DownloadWithFailoverCoreAsync(context).ConfigureAwait(false);
         }
 
+        // CA1068：C# 语言规则要求 out 参数位于签名最后，与"ct 必须最后"不可同时满足；
+        // 构造型 Try 方法保留 out 在最后，ct 紧随其后，此处为该方法级精确豁免。
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Reliability", "CA1068:CancellationToken parameters must come last", Justification = "out 参数必须位于签名最后，语言规则与 CA1068 冲突")]
         private static DownloadResult? TryCreateContext(
             DownloadRequest request,
             IProgress<DownloadProgress>? progress,
-            CancellationToken cancellationToken,
             HttpClient httpClient,
+            CancellationToken cancellationToken,
             out DownloadContext context)
         {
             context = null!;

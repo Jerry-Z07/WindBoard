@@ -12,20 +12,11 @@ namespace WindBoard.Features.Dock.Services
     {
         internal static void Apply(StackPanel panel, IReadOnlyList<string> order, IReadOnlyDictionary<string, UIElement> elementsById)
         {
-            if (panel is null)
-            {
-                throw new ArgumentNullException(nameof(panel));
-            }
+            ArgumentNullException.ThrowIfNull(panel);
 
-            if (order is null)
-            {
-                throw new ArgumentNullException(nameof(order));
-            }
+            ArgumentNullException.ThrowIfNull(order);
 
-            if (elementsById is null)
-            {
-                throw new ArgumentNullException(nameof(elementsById));
-            }
+            ArgumentNullException.ThrowIfNull(elementsById);
 
             // 归一化已保证 order 只包含合法项并补齐缺失项，这里按 order 进行重排即可。
             panel.Children.Clear();

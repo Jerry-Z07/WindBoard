@@ -25,10 +25,7 @@ namespace WindBoard.Features.ScreenAnnotation.Services
 
         internal ScreenAnnotationSessionHost(PenSettingsSnapshot penSettingsSnapshot)
         {
-            if (penSettingsSnapshot is null)
-            {
-                throw new ArgumentNullException(nameof(penSettingsSnapshot));
-            }
+            ArgumentNullException.ThrowIfNull(penSettingsSnapshot);
 
             _defaultPenColor = ResolveDefaultPenColor(penSettingsSnapshot);
             _defaultPenBaseSize = ResolveDefaultPenBaseSize(penSettingsSnapshot);

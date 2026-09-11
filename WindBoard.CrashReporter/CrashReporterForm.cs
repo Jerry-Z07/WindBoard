@@ -1,6 +1,7 @@
 using System;
 using System.Diagnostics;
 using System.Drawing;
+using System.Globalization;
 using System.IO;
 using System.Text;
 using System.Windows.Forms;
@@ -285,9 +286,10 @@ namespace WindBoard.CrashReporter
             var sb = new StringBuilder(capacity: 512);
             sb.AppendLine("请将以下信息发送给开发者以协助定位问题：");
             sb.AppendLine();
-            sb.AppendLine($"来源：{(string.IsNullOrWhiteSpace(args.Source) ? "(unknown)" : args.Source)}");
-            sb.AppendLine($"崩溃报告：{(string.IsNullOrWhiteSpace(args.ReportPath) ? "(none)" : args.ReportPath)}");
-            sb.AppendLine($"日志目录：{(string.IsNullOrWhiteSpace(args.LogsDirectory) ? "(none)" : args.LogsDirectory)}");
+            // CA1305：显式传入 CurrentCulture（与默认行为一致），值均为字符串无格式化差异。
+            sb.AppendLine(CultureInfo.CurrentCulture, $"来源：{(string.IsNullOrWhiteSpace(args.Source) ? "(unknown)" : args.Source)}");
+            sb.AppendLine(CultureInfo.CurrentCulture, $"崩溃报告：{(string.IsNullOrWhiteSpace(args.ReportPath) ? "(none)" : args.ReportPath)}");
+            sb.AppendLine(CultureInfo.CurrentCulture, $"日志目录：{(string.IsNullOrWhiteSpace(args.LogsDirectory) ? "(none)" : args.LogsDirectory)}");
             return sb.ToString();
         }
 

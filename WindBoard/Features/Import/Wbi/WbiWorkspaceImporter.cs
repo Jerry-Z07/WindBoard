@@ -11,10 +11,10 @@ using System.Threading.Tasks;
 using WindBoard.Board;
 using WindBoard.Board.Editing;
 using WindBoard.Board.Elements;
+using WindBoard.Board.Persistence;
 using WindBoard.Features.Import.Services;
 using WindBoard.Localization;
 using WindBoard.Logging;
-using Vortice.Mathematics;
 using Windows.Storage;
 using Windows.UI.Input.Inking;
 
@@ -244,7 +244,7 @@ namespace WindBoard.Features.Import.Wbi
             IReadOnlyList<Stroke> strokes = await TryLoadIsfStrokesAsync(isfEntry, context.CancellationToken);
             for (int i = 0; i < strokes.Count; i++)
             {
-                session.Document.Strokes.Add(strokes[i]);
+                session.Document.InkItems.Add(strokes[i]);
             }
         }
 
@@ -479,22 +479,18 @@ namespace WindBoard.Features.Import.Wbi
             float baseSize = (float)Math.Max(0.25, size);
             bool enablePressure = !attr.IgnorePressure;
 
-            var stroke = new Stroke
+            var points = new List<StrokePointSnapshot>();
+            IReadOnlyList<InkPoint> inkPoints = inkStroke.GetInkPoints();
+            for (int i = 0; i < inkPoints.Count; i++)
             {
-                Color = new Color4(r, g, b, a),
-                BaseSize = baseSize,
-                EnablePressure = enablePressure,
-            };
-
-            IReadOnlyList<InkPoint> points = inkStroke.GetInkPoints();
-            for (int i = 0; i < points.Count; i++)
-            {
-                InkPoint p = points[i];
-                stroke.Points.Add(new StrokePoint(ToVector2(p.Position), p.Pressure));
+                InkPoint p = inkPoints[i];
+                points.Add(new StrokePointSnapshot(ToVector2(p.Position), p.Pressure));
             }
 
-            stroke.RecalculateBoundsFromPoints();
-            return stroke;
+            // 旧 Wbi 格式无 Kind 概念：先组装折线快照，再显式走 Codec 的 stroke 路径重建域对象，
+            // 使 Stroke 构造与 Bounds 重算与主链路（Applier/导出器）收敛为同一实现。
+            var snapshot = new StrokeSnapshot(points, new Vector4(r, g, b, a), baseSize, enablePressure);
+            return BoardInkItemCodec.ToStrokeItem(snapshot);
         }
 
         private static Vector2 ToVector2(Windows.Foundation.Point p)

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Numerics;
 using System.Threading;
@@ -30,10 +31,7 @@ namespace WindBoard.Features.Export.Services
 
         public Task ExportWbixAsync(BoardWorkspaceSnapshot snapshot, string filePath, CancellationToken cancellationToken = default)
         {
-            if (snapshot is null)
-            {
-                throw new ArgumentNullException(nameof(snapshot));
-            }
+            ArgumentNullException.ThrowIfNull(snapshot);
 
             if (string.IsNullOrWhiteSpace(filePath))
             {
@@ -64,15 +62,9 @@ namespace WindBoard.Features.Export.Services
 
         public Task ExportPngAsync(BoardWorkspaceSnapshot snapshot, int pageIndex, string filePath, BoardRasterExportOptions options, CancellationToken cancellationToken = default)
         {
-            if (snapshot is null)
-            {
-                throw new ArgumentNullException(nameof(snapshot));
-            }
+            ArgumentNullException.ThrowIfNull(snapshot);
 
-            if (options is null)
-            {
-                throw new ArgumentNullException(nameof(options));
-            }
+            ArgumentNullException.ThrowIfNull(options);
 
             if ((uint)pageIndex >= (uint)snapshot.Pages.Count)
             {
@@ -97,20 +89,11 @@ namespace WindBoard.Features.Export.Services
 
         public Task ExportPngPagesToFolderAsync(BoardWorkspaceSnapshot snapshot, IReadOnlyList<int> pageIndices, string folderPath, string datePrefix, BoardRasterExportOptions options, CancellationToken cancellationToken = default)
         {
-            if (snapshot is null)
-            {
-                throw new ArgumentNullException(nameof(snapshot));
-            }
+            ArgumentNullException.ThrowIfNull(snapshot);
 
-            if (pageIndices is null)
-            {
-                throw new ArgumentNullException(nameof(pageIndices));
-            }
+            ArgumentNullException.ThrowIfNull(pageIndices);
 
-            if (options is null)
-            {
-                throw new ArgumentNullException(nameof(options));
-            }
+            ArgumentNullException.ThrowIfNull(options);
 
             if (string.IsNullOrWhiteSpace(folderPath))
             {
@@ -150,20 +133,11 @@ namespace WindBoard.Features.Export.Services
 
         public Task ExportPdfAsync(BoardWorkspaceSnapshot snapshot, IReadOnlyList<int> pageIndices, string filePath, BoardPdfExportOptions options, CancellationToken cancellationToken = default)
         {
-            if (snapshot is null)
-            {
-                throw new ArgumentNullException(nameof(snapshot));
-            }
+            ArgumentNullException.ThrowIfNull(snapshot);
 
-            if (pageIndices is null)
-            {
-                throw new ArgumentNullException(nameof(pageIndices));
-            }
+            ArgumentNullException.ThrowIfNull(pageIndices);
 
-            if (options is null)
-            {
-                throw new ArgumentNullException(nameof(options));
-            }
+            ArgumentNullException.ThrowIfNull(options);
 
             if (string.IsNullOrWhiteSpace(filePath))
             {
@@ -229,8 +203,9 @@ namespace WindBoard.Features.Export.Services
                     {
                         ["role"] = "cover",
                         ["pageIndex"] = "0",
-                        ["pixelWidth"] = coverSize.ToString(),
-                        ["pixelHeight"] = coverSize.ToString(),
+                        // CA1305：写入 WBIX 的机器可读元数据统一使用 InvariantCulture，保证跨区域稳定可解析。
+                        ["pixelWidth"] = coverSize.ToString(CultureInfo.InvariantCulture),
+                        ["pixelHeight"] = coverSize.ToString(CultureInfo.InvariantCulture),
                     };
 
                     coverResource = new WbixResourceFile(
@@ -345,7 +320,8 @@ namespace WindBoard.Features.Export.Services
                             ["role"] = "elementImage",
                             ["elementId"] = img.Id.ToString("D"),
                             ["pageId"] = pageId.ToString("D"),
-                            ["pageIndex"] = pageIndex.ToString(),
+                            // CA1305：写入 WBIX 的机器可读元数据统一使用 InvariantCulture。
+                            ["pageIndex"] = pageIndex.ToString(CultureInfo.InvariantCulture),
                         };
 
                         resources.Add(new WbixResourceFile(

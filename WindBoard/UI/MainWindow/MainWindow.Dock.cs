@@ -72,6 +72,7 @@ namespace WindBoard
                     [DockItemIds.ToolSelect] = SelectToolToggleButton,
                     [DockItemIds.ToolPen] = PenToolToggleButton,
                     [DockItemIds.ToolEraser] = EraserToggleButton,
+                    [DockItemIds.ToolShape] = ShapeToolToggleButton,
                 },
 
                 UndoRedoDockPanel = UndoRedoDockPanel,

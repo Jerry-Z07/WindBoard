@@ -357,7 +357,7 @@ namespace WindBoard.Features.Dock.UI
             AddShortcutDockItemButton.IsEnabled = ShortcutDocksVisibleToggleSwitch.IsOn && ShortcutDockItems.Count < 5;
         }
 
-        private IntPtr TryGetHostWindowHandle()
+        private static IntPtr TryGetHostWindowHandle()
         {
             try
             {
@@ -428,6 +428,9 @@ namespace WindBoard.Features.Dock.UI
                 DockItemIds.ToolSelect => new DockItemViewModel(id, L10n.Get("Tool_Select"), new SymbolIconSource { Symbol = Symbol.TouchPointer }),
                 DockItemIds.ToolPen => new DockItemViewModel(id, L10n.Get("Tool_Pen"), new SymbolIconSource { Symbol = Symbol.Edit }),
                 DockItemIds.ToolEraser => new DockItemViewModel(id, L10n.Get("Tool_Eraser"), new FontIconSource { FontFamily = new FontFamily(SegoeFluentIconsFontLoader.EffectiveIconFontFamilyName), Glyph = "\uE75C" }),
+                // 设置页用字体图标近似语义（EC87 = Draw“绘制”）；主工具栏为自绘几何组合图标，
+                // Segoe Fluent Icons 无名为 Shapes 的图标（E714 实为 Video），且 IconSource 体系不便承载描边几何。
+                DockItemIds.ToolShape => new DockItemViewModel(id, L10n.Get("Tool_Shape"), new FontIconSource { FontFamily = new FontFamily(SegoeFluentIconsFontLoader.EffectiveIconFontFamilyName), Glyph = "\uEC87" }),
 
                 DockItemIds.Undo => new DockItemViewModel(id, L10n.Get("Common_Undo"), new SymbolIconSource { Symbol = Symbol.Undo }),
                 DockItemIds.Redo => new DockItemViewModel(id, L10n.Get("Common_Redo"), new SymbolIconSource { Symbol = Symbol.Redo }),

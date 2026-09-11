@@ -34,12 +34,22 @@
     ],
     "PreToolUse": [
       {
-        "matcher": "Task",
+        "matcher": "task|Task",
         "hooks": [
           {
             "type": "command",
             "command": "python .codebuddy/hooks/inject-subagent-context.py",
             "timeout": 30
+          }
+        ]
+      },
+      {
+        "matcher": "execute_command|Bash|PowerShell",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python .codebuddy/hooks/inject-shell-session-context.py",
+            "timeout": 5
           }
         ]
       }

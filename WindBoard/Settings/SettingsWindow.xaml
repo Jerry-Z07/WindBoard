@@ -54,12 +54,12 @@
             PaneDisplayMode="Left"
             SelectionChanged="OnNavigationSelectionChanged">
             <NavigationView.MenuItems>
-                <NavigationViewItem Content="{l10n:Loc Key=SettingsWindow_Nav_General}" Tag="general">
+                <NavigationViewItem Content="{l10n:Loc Key=SettingsWindow_Nav_General}" AutomationProperties.AutomationId="SettingsWindow_Nav_General" Tag="general">
                     <NavigationViewItem.Icon>
                         <SymbolIcon Symbol="Setting" />
                     </NavigationViewItem.Icon>
                 </NavigationViewItem>
-                <NavigationViewItem Content="{l10n:Loc Key=SettingsWindow_Nav_Appearance}" Tag="appearance">
+                <NavigationViewItem Content="{l10n:Loc Key=SettingsWindow_Nav_Appearance}" AutomationProperties.AutomationId="SettingsWindow_Nav_Appearance" Tag="appearance">
                     <NavigationViewItem.Icon>
                         <!-- 外观：用“调色板/颜色”语义图标，避免与其它项重复 -->
                         <FontIcon FontFamily="{ThemeResource SymbolThemeFontFamily}" Glyph="&#xE790;" />

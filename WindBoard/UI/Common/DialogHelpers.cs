@@ -25,10 +25,7 @@ namespace WindBoard.UI.Common
         /// </summary>
         internal static async Task ShowMessageAsync(XamlRoot xamlRoot, string title, string message, string? closeButtonText)
         {
-            if (xamlRoot is null)
-            {
-                throw new ArgumentNullException(nameof(xamlRoot));
-            }
+            ArgumentNullException.ThrowIfNull(xamlRoot);
 
             string buttonText = string.IsNullOrWhiteSpace(closeButtonText)
                 ? L10n.Get("Common_Close")
@@ -55,15 +52,9 @@ namespace WindBoard.UI.Common
         /// </remarks>
         internal static async Task RunBusyAsync(XamlRoot xamlRoot, string title, string message, Func<Task> action, string logTag)
         {
-            if (xamlRoot is null)
-            {
-                throw new ArgumentNullException(nameof(xamlRoot));
-            }
+            ArgumentNullException.ThrowIfNull(xamlRoot);
 
-            if (action is null)
-            {
-                throw new ArgumentNullException(nameof(action));
-            }
+            ArgumentNullException.ThrowIfNull(action);
 
             string safeTag = string.IsNullOrWhiteSpace(logTag) ? "UI" : logTag;
 

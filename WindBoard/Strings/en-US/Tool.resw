@@ -29,4 +29,19 @@
   <data name="Tool_PassThrough" xml:space="preserve">
     <value>Pass-through</value>
   </data>
+  <data name="Tool_Shape" xml:space="preserve">
+    <value>Shapes</value>
+  </data>
+  <data name="Tool_Line" xml:space="preserve">
+    <value>Line</value>
+  </data>
+  <data name="Tool_Rectangle" xml:space="preserve">
+    <value>Rectangle</value>
+  </data>
+  <data name="Tool_Ellipse" xml:space="preserve">
+    <value>Ellipse</value>
+  </data>
+  <data name="Tool_Arrow" xml:space="preserve">
+    <value>Arrow</value>
+  </data>
 </root>

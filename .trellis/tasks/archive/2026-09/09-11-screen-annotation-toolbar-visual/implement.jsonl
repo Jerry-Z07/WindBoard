@@ -1,0 +1,2 @@
+{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "XAML 组件与样式约定：共享 ResourceDictionary 复用、原生控件优先、自绘 Path 图标需 code-behind 同步选中态"}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "前端质量规范：禁止硬编码颜色、必须使用主题资源与共享样式、避免与既有风格不一致"}

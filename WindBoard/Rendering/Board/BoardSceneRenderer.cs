@@ -12,6 +12,7 @@ using Vortice.DXGI;
 using Vortice.Mathematics;
 using WindBoard.Board;
 using WindBoard.Board.Elements;
+using WindBoard.Board.Items;
 using WindBoard.Board.Viewport;
 using WindBoard.Fonts;
 using WindBoard.Localization;
@@ -37,7 +38,6 @@ namespace WindBoard.Rendering.Board
             public Vector2 Max { get; }
         }
 
-        private ID2D1Factory1? _factory;
         private ID2D1SolidColorBrush? _strokeBrush;
         private ID2D1StrokeStyle? _strokeStyle;
         private ID2D1InkStyle? _inkStyle;
@@ -92,19 +92,19 @@ namespace WindBoard.Rendering.Board
             return ElementCardTheme == ElementCardTheme.Light ? LightPalette : DarkPalette;
         }
 
-        public void Draw(ID2D1RenderTarget ctx, BoardDocument document, Stroke? activeStroke, BoardViewport viewport)
+        public void Draw(ID2D1RenderTarget ctx, BoardDocument document, IBoardInkItem? activeInkItem, BoardViewport viewport)
         {
             EnsureStrokeBrush(ctx);
 
             WithOptionalDeviceContext2(ctx, ctx2 =>
             {
-                PruneInkCache(document, activeStroke);
+                PruneInkCache(document, activeInkItem);
                 PruneElementCache(document);
 
                 WithWorldTransform(ctx, viewport, () =>
                 {
                     viewport.GetVisibleWorldBounds(out Vector2 visibleMinWorld, out Vector2 visibleMaxWorld);
-                    DrawSceneInWorldBounds(ctx, ctx2, document, activeStroke, new VisibleWorldBounds(visibleMinWorld, visibleMaxWorld));
+                    DrawSceneInWorldBounds(ctx, ctx2, document, activeInkItem, new VisibleWorldBounds(visibleMinWorld, visibleMaxWorld));
                 });
             });
         }
@@ -175,7 +175,7 @@ namespace WindBoard.Rendering.Board
             });
         }
 
-        public void DrawActiveStroke(ID2D1RenderTarget ctx, Stroke activeStroke, BoardViewport viewport)
+        public void DrawActiveStroke(ID2D1RenderTarget ctx, IBoardInkItem activeInkItem, BoardViewport viewport)
         {
             EnsureStrokeBrush(ctx);
 
@@ -184,7 +184,7 @@ namespace WindBoard.Rendering.Board
                 WithWorldTransform(ctx, viewport, () =>
                 {
                     viewport.GetVisibleWorldBounds(out Vector2 visibleMinWorld, out Vector2 visibleMaxWorld);
-                    DrawStrokeIfVisible(ctx, ctx2, activeStroke, visibleMinWorld, visibleMaxWorld);
+                    DrawInkItemIfVisible(ctx, ctx2, activeInkItem, visibleMinWorld, visibleMaxWorld);
                 });
             });
         }
@@ -192,22 +192,22 @@ namespace WindBoard.Rendering.Board
         /// <summary>
         /// 绘制活动笔迹 + 上层元素（用于叠加渲染）。
         /// </summary>
-        public void DrawOverlayAboveInk(ID2D1RenderTarget ctx, BoardDocument document, Stroke? activeStroke, BoardViewport viewport)
+        public void DrawOverlayAboveInk(ID2D1RenderTarget ctx, BoardDocument document, IBoardInkItem? activeInkItem, BoardViewport viewport)
         {
             EnsureStrokeBrush(ctx);
 
             WithOptionalDeviceContext2(ctx, ctx2 =>
             {
-                PruneInkCache(document, activeStroke);
+                PruneInkCache(document, activeInkItem);
                 PruneElementCache(document);
 
                 WithWorldTransform(ctx, viewport, () =>
                 {
                     viewport.GetVisibleWorldBounds(out Vector2 visibleMinWorld, out Vector2 visibleMaxWorld);
 
-                    if (activeStroke is not null)
+                    if (activeInkItem is not null)
                     {
-                        DrawStrokeIfVisible(ctx, ctx2, activeStroke, visibleMinWorld, visibleMaxWorld);
+                        DrawInkItemIfVisible(ctx, ctx2, activeInkItem, visibleMinWorld, visibleMaxWorld);
                     }
 
                     DrawElementsIfVisible(ctx, document.ElementsAboveInk, visibleMinWorld, visibleMaxWorld);
@@ -261,35 +261,35 @@ namespace WindBoard.Rendering.Board
             ID2D1RenderTarget ctx,
             ID2D1DeviceContext2? ctx2,
             BoardDocument document,
-            Stroke? activeStroke,
+            IBoardInkItem? activeInkItem,
             VisibleWorldBounds visibleWorldBounds)
         {
             // 绘制顺序：
             // 1) 元素（笔迹下层）
-            // 2) 笔迹
+            // 2) 笔迹（按条目类型单点分发）
             // 3) 元素（笔迹上层）
             // 4) 活动笔迹（可选）
 
             DrawElementsIfVisible(ctx, document.ElementsBelowInk, visibleWorldBounds.Min, visibleWorldBounds.Max);
 
-            foreach (var stroke in document.Strokes)
+            foreach (var item in document.InkItems)
             {
-                if (!BoardSceneMath.IsStrokeVisible(stroke, visibleWorldBounds.Min, visibleWorldBounds.Max))
+                if (!BoardSceneMath.IsInkItemVisible(item, visibleWorldBounds.Min, visibleWorldBounds.Max))
                 {
                     continue;
                 }
 
-                DrawStroke(ctx, ctx2, stroke);
+                DrawInkItem(ctx, ctx2, item);
             }
 
             DrawElementsIfVisible(ctx, document.ElementsAboveInk, visibleWorldBounds.Min, visibleWorldBounds.Max);
 
-            if (activeStroke is null)
+            if (activeInkItem is null)
             {
                 return;
             }
 
-            DrawStrokeIfVisible(ctx, ctx2, activeStroke, visibleWorldBounds.Min, visibleWorldBounds.Max);
+            DrawInkItemIfVisible(ctx, ctx2, activeInkItem, visibleWorldBounds.Min, visibleWorldBounds.Max);
         }
 
         private void DrawSceneUnderInkInWorldBounds(
@@ -301,25 +301,138 @@ namespace WindBoard.Rendering.Board
             // 仅绘制“活动笔迹下方”的内容：下层元素 + 文档笔迹。
             DrawElementsIfVisible(ctx, document.ElementsBelowInk, visibleWorldBounds.Min, visibleWorldBounds.Max);
 
-            foreach (var stroke in document.Strokes)
+            foreach (var item in document.InkItems)
             {
-                if (!BoardSceneMath.IsStrokeVisible(stroke, visibleWorldBounds.Min, visibleWorldBounds.Max))
+                if (!BoardSceneMath.IsInkItemVisible(item, visibleWorldBounds.Min, visibleWorldBounds.Max))
                 {
                     continue;
                 }
 
-                DrawStroke(ctx, ctx2, stroke);
+                DrawInkItem(ctx, ctx2, item);
             }
         }
 
-        private void DrawStrokeIfVisible(ID2D1RenderTarget ctx, ID2D1DeviceContext2? ctx2, Stroke stroke, Vector2 visibleMinWorld, Vector2 visibleMaxWorld)
+        private void DrawInkItemIfVisible(ID2D1RenderTarget ctx, ID2D1DeviceContext2? ctx2, IBoardInkItem item, Vector2 visibleMinWorld, Vector2 visibleMaxWorld)
         {
-            if (!BoardSceneMath.IsStrokeVisible(stroke, visibleMinWorld, visibleMaxWorld))
+            if (!BoardSceneMath.IsInkItemVisible(item, visibleMinWorld, visibleMaxWorld))
             {
                 return;
             }
 
-            DrawStroke(ctx, ctx2, stroke);
+            DrawInkItem(ctx, ctx2, item);
+        }
+
+        /// <summary>
+        /// 绘制一个笔迹层条目（渲染的“按条目类型单点分发”入口）。
+        /// </summary>
+        /// <remarks>
+        /// 阶段二起承载折线笔迹（Stroke）与形状（BoardShape）两个分支，
+        /// 新增条目类型时在此 switch 中补充对应分支，不再新增散落式分发。
+        /// Ink 几何缓存仅用于 Stroke 分支（缓存键保持 Stroke 类型）。
+        /// </remarks>
+        private void DrawInkItem(ID2D1RenderTarget ctx, ID2D1DeviceContext2? ctx2, IBoardInkItem item)
+        {
+            switch (item)
+            {
+                case Stroke stroke:
+                    DrawStroke(ctx, ctx2, stroke);
+                    break;
+
+                case BoardShape shape:
+                    DrawShape(ctx, shape);
+                    break;
+
+                default:
+                    // 未知条目类型：跳过绘制。
+                    break;
+            }
+        }
+
+        /// <summary>
+        /// 绘制两点式形状（design C：按 Kind 单点分支，统一使用 <see cref="_strokeBrush"/>）。
+        /// </summary>
+        /// <remarks>
+        /// 矩形/椭圆按 Min/Max 规范化读取（域内保留 Start/End 原始方向，读侧规范化）；
+        /// 线宽语义与 Stroke 降级路径一致（最小 0.5）；渲染循环高频路径，禁止日志。
+        /// </remarks>
+        private void DrawShape(ID2D1RenderTarget ctx, BoardShape shape)
+        {
+            if (_strokeBrush is null)
+            {
+                return;
+            }
+
+            _strokeBrush.Color = shape.Color;
+            EnsureStrokeStyle(ctx);
+            float strokeWidth = Math.Max(0.5f, shape.Width);
+
+            switch (shape.Kind)
+            {
+                case BoardShapeKind.Line:
+                    ctx.DrawLine(shape.Start, shape.End, _strokeBrush, strokeWidth, _strokeStyle);
+                    break;
+
+                case BoardShapeKind.Arrow:
+                    // 箭头 = 直线 + End 端点箭头头部（R5）。
+                    ctx.DrawLine(shape.Start, shape.End, _strokeBrush, strokeWidth, _strokeStyle);
+                    DrawArrowHead(ctx, shape.Start, shape.End, strokeWidth);
+                    break;
+
+                case BoardShapeKind.Rectangle:
+                {
+                    float left = Math.Min(shape.Start.X, shape.End.X);
+                    float top = Math.Min(shape.Start.Y, shape.End.Y);
+                    float width = Math.Abs(shape.Start.X - shape.End.X);
+                    float height = Math.Abs(shape.Start.Y - shape.End.Y);
+                    ctx.DrawRectangle(new RectangleF(left, top, width, height), _strokeBrush, strokeWidth, _strokeStyle);
+                    break;
+                }
+
+                case BoardShapeKind.Ellipse:
+                {
+                    float left = Math.Min(shape.Start.X, shape.End.X);
+                    float top = Math.Min(shape.Start.Y, shape.End.Y);
+                    float right = Math.Max(shape.Start.X, shape.End.X);
+                    float bottom = Math.Max(shape.Start.Y, shape.End.Y);
+                    var center = new Vector2((left + right) / 2.0f, (top + bottom) / 2.0f);
+                    ctx.DrawEllipse(new Ellipse(center, (right - left) / 2.0f, (bottom - top) / 2.0f), _strokeBrush, strokeWidth, _strokeStyle);
+                    break;
+                }
+            }
+        }
+
+        /// <summary>
+        /// 绘制箭头头部（End 端点两条后掠翼线）。
+        /// </summary>
+        /// <remarks>
+        /// 头部尺寸（翼长）= 常量系数 × 线宽，取 3 倍：箭头在线宽 1~10 范围内视觉均衡
+        /// （翼长过短不可辨、过长喧宾夺主）；张角取 ±30°（经典箭头外观）。
+        /// 无额外域状态（MVP），未来若需要可调头部再考虑扩展快照。
+        /// </remarks>
+        private void DrawArrowHead(ID2D1RenderTarget ctx, Vector2 start, Vector2 end, float strokeWidth)
+        {
+            const float HeadLengthFactor = 3.0f;
+            const float HalfSpreadAngleRadians = MathF.PI / 6.0f;
+
+            Vector2 delta = end - start;
+            float lengthSquared = delta.LengthSquared();
+            if (lengthSquared <= 0.0000001f)
+            {
+                return;
+            }
+
+            Vector2 back = -delta / MathF.Sqrt(lengthSquared);
+            float headLength = HeadLengthFactor * strokeWidth;
+
+            float cos = MathF.Cos(HalfSpreadAngleRadians) * headLength;
+            float sin = MathF.Sin(HalfSpreadAngleRadians) * headLength;
+
+            // 后掠方向 ±30° 旋转：wing = end + Rotate(back, ±θ) × 翼长。
+            Vector2 wingLeft = end + new Vector2(back.X * cos - back.Y * sin, back.X * sin + back.Y * cos);
+            Vector2 wingRight = end + new Vector2(back.X * cos + back.Y * sin, -back.X * sin + back.Y * cos);
+
+            ctx.DrawLine(end, wingLeft, _strokeBrush!, strokeWidth, _strokeStyle);
+            ctx.DrawLine(end, wingRight, _strokeBrush!, strokeWidth, _strokeStyle);
         }
 
         private void DrawStroke(ID2D1RenderTarget ctx, ID2D1DeviceContext2? ctx2, Stroke stroke)
@@ -694,7 +807,8 @@ namespace WindBoard.Rendering.Board
             }
 
             // 渲染时保留足够长的前缀，既让大尺寸文本卡片能显示更多内容，也避免超长文本在每帧排版时带来过高开销。
-            return preview.Substring(0, MaxTextPreviewChars) + "…";
+            // CA1845：基于 span 的 Concat 避免中间字符串分配（渲染路径高频调用）。
+            return string.Concat(preview.AsSpan(0, MaxTextPreviewChars), "…");
         }
 
         private static string GetBestDisplayName(string? displayName, string? sourcePath)
@@ -946,8 +1060,6 @@ namespace WindBoard.Rendering.Board
                 return;
             }
 
-            _factory ??= D2D1.D2D1CreateFactory<ID2D1Factory1>(Vortice.Direct2D1.FactoryType.SingleThreaded, DebugLevel.None);
-
             var props = new StrokeStyleProperties
             {
                 StartCap = CapStyle.Round,
@@ -959,18 +1071,31 @@ namespace WindBoard.Rendering.Board
                 DashOffset = 0.0f,
             };
 
-            _strokeStyle = _factory.CreateStrokeStyle(props);
+            // 必须从渲染目标的所属工厂创建（D2D 约定：资源与渲染目标同工厂）。
+            // 此前用自建工厂创建 _strokeStyle，跨工厂资源使 EndDraw 返回 D2DERR_WRONG_FACTORY，
+            // 整帧呈现失败（画布停留在旧帧）——形状绘制是首个常态携带该样式的路径，故形状全部不可见。
+            _strokeStyle = ctx.Factory.CreateStrokeStyle(props);
         }
 
-        private void PruneInkCache(BoardDocument document, Stroke? activeStroke)
+        private void PruneInkCache(BoardDocument document, IBoardInkItem? activeInkItem)
         {
             if (_inkCache.Count == 0)
             {
                 return;
             }
 
-            var live = new HashSet<Stroke>(document.Strokes);
-            if (activeStroke is not null)
+            // Ink 几何缓存仅针对折线笔迹（键保持 Stroke 类型）：
+            // 从条目集合中收集 Stroke 条目作为存活键，其余条目类型不参与该缓存。
+            var live = new HashSet<Stroke>();
+            foreach (var item in document.InkItems)
+            {
+                if (item is Stroke stroke)
+                {
+                    live.Add(stroke);
+                }
+            }
+
+            if (activeInkItem is Stroke activeStroke)
             {
                 live.Add(activeStroke);
             }
@@ -1282,9 +1407,6 @@ namespace WindBoard.Rendering.Board
                 entry.Dispose();
             }
             _inkCache.Clear();
-
-            _factory?.Dispose();
-            _factory = null;
         }
     }
 }

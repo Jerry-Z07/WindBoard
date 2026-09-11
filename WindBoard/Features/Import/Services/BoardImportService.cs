@@ -29,15 +29,9 @@ namespace WindBoard.Features.Import.Services
             float zoom,
             ImportElementsRequest request)
         {
-            if (workspace is null)
-            {
-                throw new ArgumentNullException(nameof(workspace));
-            }
+            ArgumentNullException.ThrowIfNull(workspace);
 
-            if (request is null)
-            {
-                throw new ArgumentNullException(nameof(request));
-            }
+            ArgumentNullException.ThrowIfNull(request);
 
             IReadOnlyList<string> links = ImportUrlNormalizer.ParseAndNormalizeLinkLines(request.LinkLines);
 

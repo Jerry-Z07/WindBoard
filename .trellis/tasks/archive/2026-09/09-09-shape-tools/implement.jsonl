@@ -1,0 +1,10 @@
+{"file": ".trellis/tasks/09-09-shape-tools/prd.md", "reason": "阶段二需求 R5-R8、UX 概览与验收清单（实现的直接依据）"}
+{"file": ".trellis/tasks/09-09-shape-drawing/prd.md", "reason": "父任务已收敛决策表（形状清单/编辑语义/批注层范围/兼容语义）与跨子任务验收标准"}
+{"file": ".trellis/spec/backend/directory-structure.md", "reason": "Board 域层与 Board/Items、Interaction/Tools 的模块组织约定（新文件放置需遵循）"}
+{"file": ".trellis/spec/backend/database-guidelines.md", "reason": "WBIX v3 格式与 Codec 约定（阶段一沉淀，形状 kind 扩展必须遵循其两条 DON'T）"}
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "后端代码规范、禁止模式与测试要求"}
+{"file": ".trellis/spec/backend/logging-guidelines.md", "reason": "AppLog 日志策略：关键路径记录、高频调用（指针事件/渲染循环/Move）禁止日志"}
+{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "BoardCanvasControl partial 与 MainWindow/工具栏 XAML 改动的控件约定"}
+{"file": ".trellis/spec/frontend/state-management.md", "reason": "ToolOptions 参数链与 UI 状态分层约定（形状工具读参与属性面板提交需遵循）"}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "形状横跨域/输入/渲染/序列化/导出多层，数据流一致性检查参考"}
+{"file": ".trellis/spec/guides/code-reuse-thinking-guide.md", "reason": "命令泛化/克隆/属性面板字段机制涉及复用判断，参考该指南"}

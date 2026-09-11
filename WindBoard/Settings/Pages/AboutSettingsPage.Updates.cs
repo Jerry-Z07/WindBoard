@@ -1,17 +1,16 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Runtime.InteropServices.WindowsRuntime;
 using System.Threading;
 using System.Threading.Tasks;
-using DevWinUI;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using WindBoard.Localization;
 using WindBoard.Logging;
 using WindBoard.Persistence;
-using WindBoard.UI.Common;
 using WindBoard.Updates;
 
 namespace WindBoard.Settings.Pages
@@ -109,7 +108,12 @@ namespace WindBoard.Settings.Pages
                 return;
             }
 
-            UpdateResultDialogLayoutPlan layoutPlan = UpdateResultDialogLayoutPlanBuilder.Build(result, CultureInfo.CurrentUICulture.Name);
+            var xamlRoot = XamlRoot;
+            UpdateResultDialogLayoutPlan layoutPlan = UpdateResultDialogLayoutPlanBuilder.Build(
+                result,
+                CultureInfo.CurrentUICulture.Name,
+                xamlRoot.Size.Width,
+                xamlRoot.Size.Height);
             DownloadSourceId sourceForUrls = result.EffectiveDownloadSourceId;
             string releasePageUrl = result.GetReleasePageUrl();
             UpdateAssetPick? recommendedAsset = result.State == AppUpdateCheckState.UpdateAvailable
@@ -124,42 +128,18 @@ namespace WindBoard.Settings.Pages
                 _ => L10n.Get("Updates_CheckResult_Error_Title"),
             };
 
-            SettingsWindow? settingsWindow = SettingsWindow.Active;
-            IntPtr ownerHwnd = settingsWindow?.Hwnd ?? IntPtr.Zero;
-            WindowedDialogPresentationPlan presentationPlan = WindowedDialogPresentationPlanBuilder.BuildUpdateResult(
-                settingsWindow is not null,
-                ownerHwnd,
-                layoutPlan.UseTwoColumnLayout);
-
-            if (presentationPlan.Kind == DialogPresentationKind.WindowedContentDialog && settingsWindow is not null)
-            {
-                bool shouldStartUpdate = await ShowWindowedUpdateResultDialogAsync(
-                    settingsWindow,
-                    result,
-                    layoutPlan,
-                    sourceForUrls,
-                    releasePageUrl,
-                    title,
-                    presentationPlan,
-                    recommendedAsset);
-                if (shouldStartUpdate && recommendedAsset is not null)
-                {
-                    await DownloadAssetWithProgressAsync(recommendedAsset, sourceForUrls, releasePageUrl).ConfigureAwait(true);
-                }
-
-                return;
-            }
-
+            // 弹窗打开期间窗口仍可缩放：记录滚动区引用，XamlRoot.Changed 时按新窗口高度重算 MaxHeight。
+            var scrollViewers = new List<ScrollViewer>();
             UIElement content = layoutPlan.UseTwoColumnLayout
-                ? BuildTwoColumnUpdateResultContent(result, layoutPlan, sourceForUrls, releasePageUrl)
-                : BuildSingleColumnUpdateResultContent(result, layoutPlan, sourceForUrls, releasePageUrl);
+                ? BuildTwoColumnUpdateResultContent(result, layoutPlan, sourceForUrls, releasePageUrl, scrollViewers)
+                : BuildSingleColumnUpdateResultContent(result, layoutPlan, sourceForUrls, releasePageUrl, scrollViewers);
 
             var resultDialog = new ContentDialog
             {
                 Title = title,
                 Content = content,
                 CloseButtonText = L10n.Get("Common_Close"),
-                XamlRoot = XamlRoot,
+                XamlRoot = xamlRoot,
             };
 
             if (recommendedAsset is not null)
@@ -167,89 +147,91 @@ namespace WindBoard.Settings.Pages
                 resultDialog.PrimaryButtonText = L10n.Get("Updates_DownloadButton");
             }
 
+            // 两栏仅在窗口宽度达到阈值时启用（决策见 UpdateResultDialogLayoutPlanBuilder），
+            // 此时弹窗可以安全地放大，不会再被默认窗口尺寸截断。
             if (layoutPlan.UseTwoColumnLayout)
             {
                 resultDialog.Resources["ContentDialogMinWidth"] = 980d;
                 resultDialog.Resources["ContentDialogMaxWidth"] = 1240d;
             }
 
-            ContentDialogResult dialogResult = await resultDialog.ShowAsync();
+            // 响应式高度：弹窗打开后缩窗时重算 MaxHeight，避免内容再次被截断；Closed 时退订避免悬挂订阅。
+            // 注意：XamlRoot 没有 SizeChanged 事件，尺寸变化通知走 Changed；
+            // 且 WinUI 3 的 XamlRootChangedEventArgs 不携带新尺寸（仅 IsAvailable/Theme 等标志），
+            // 这里直接读取当前 XamlRoot.Size，非尺寸变化触发时重算结果相同，无副作用。
+            void OnXamlRootChanged(XamlRoot sender, XamlRootChangedEventArgs args)
+            {
+                UpdateScrollAreaMaxHeight(scrollViewers, layoutPlan.UseTwoColumnLayout, sender.Size.Height);
+            }
+
+            void OnResultDialogClosed(ContentDialog sender, ContentDialogClosedEventArgs args)
+            {
+                xamlRoot.Changed -= OnXamlRootChanged;
+            }
+
+            xamlRoot.Changed += OnXamlRootChanged;
+            resultDialog.Closed += OnResultDialogClosed;
+
+            ContentDialogResult dialogResult;
+            try
+            {
+                dialogResult = await resultDialog.ShowAsync();
+            }
+            finally
+            {
+                // ShowAsync 抛异常（如已有其它弹窗打开）时 Closed 不会触发，这里兜底退订；
+                // 正常关闭路径 Closed 已退订，重复退订幂等无害。
+                xamlRoot.Changed -= OnXamlRootChanged;
+            }
+
             if (dialogResult == ContentDialogResult.Primary && recommendedAsset is not null)
             {
                 await DownloadAssetWithProgressAsync(recommendedAsset, sourceForUrls, releasePageUrl).ConfigureAwait(true);
             }
         }
 
-        private async Task<bool> ShowWindowedUpdateResultDialogAsync(
-            Window ownerWindow,
-            AppUpdateCheckResult result,
-            UpdateResultDialogLayoutPlan layoutPlan,
-            DownloadSourceId sourceForUrls,
-            string releasePageUrl,
-            string title,
-            WindowedDialogPresentationPlan presentationPlan,
-            UpdateAssetPick? recommendedAsset)
+        private static void UpdateScrollAreaMaxHeight(
+            IEnumerable<ScrollViewer> scrollViewers,
+            bool useTwoColumnLayout,
+            double windowHeight)
         {
-            UIElement content = layoutPlan.UseTwoColumnLayout
-                ? BuildTwoColumnUpdateResultContent(result, layoutPlan, sourceForUrls, releasePageUrl)
-                : BuildSingleColumnUpdateResultContent(result, layoutPlan, sourceForUrls, releasePageUrl);
-
-            var resultDialog = new WindowedContentDialog
+            // clamp 决策统一走 plan builder，保证 UI 层与单测是同一套逻辑。
+            double maxHeight = UpdateResultDialogLayoutPlanBuilder.ComputeScrollAreaMaxHeight(useTwoColumnLayout, windowHeight);
+            foreach (ScrollViewer viewer in scrollViewers)
             {
-                Title = title,
-                WindowTitle = title,
-                Content = WrapWindowedDialogContent(content, presentationPlan),
-                CloseButtonText = L10n.Get("Common_Close"),
-                OwnerWindow = ownerWindow,
-                HasTitleBar = true,
-                CenterInParent = true,
-                IsResizable = true,
-                ContentMinWidth = presentationPlan.MinimumWidth,
-                RequestedTheme = ActualTheme,
-            };
-
-            if (recommendedAsset is not null)
-            {
-                resultDialog.PrimaryButtonText = L10n.Get("Updates_DownloadButton");
+                viewer.MaxHeight = maxHeight;
             }
-
-            ContentDialogResult dialogResult = await resultDialog.ShowAsync();
-            return dialogResult == ContentDialogResult.Primary;
-        }
-
-        private static Border WrapWindowedDialogContent(UIElement content, WindowedDialogPresentationPlan presentationPlan)
-        {
-            var container = new Border
-            {
-                Child = content,
-                Width = presentationPlan.InitialWidth,
-                MinWidth = presentationPlan.MinimumWidth,
-            };
-
-            if (presentationPlan.MinimumHeight > 0)
-            {
-                container.MinHeight = presentationPlan.MinimumHeight;
-            }
-
-            return container;
         }
 
         private UIElement BuildSingleColumnUpdateResultContent(
             AppUpdateCheckResult result,
             UpdateResultDialogLayoutPlan layoutPlan,
             DownloadSourceId sourceForUrls,
-            string releasePageUrl)
+            string releasePageUrl,
+            List<ScrollViewer> scrollViewers)
         {
             var panel = BuildUpdateSummaryPanel(result, sourceForUrls, releasePageUrl);
-            AppendChangelogSection(panel, layoutPlan, maxHeight: 260);
-            return panel;
+            AppendChangelogSection(panel, layoutPlan);
+
+            // 单栏：外层 ScrollViewer 统一滚动（摘要 + 更新日志一起滚），
+            // changelog 不再包内层 ScrollViewer，避免出现双层滚动条。
+            var viewer = new ScrollViewer
+            {
+                MaxHeight = layoutPlan.ScrollAreaMaxHeight,
+                VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+                HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
+                Content = panel,
+            };
+            scrollViewers.Add(viewer);
+            return viewer;
         }
 
         private UIElement BuildTwoColumnUpdateResultContent(
             AppUpdateCheckResult result,
             UpdateResultDialogLayoutPlan layoutPlan,
             DownloadSourceId sourceForUrls,
-            string releasePageUrl)
+            string releasePageUrl,
+            List<ScrollViewer> scrollViewers)
         {
             var grid = new Grid
             {
@@ -262,11 +244,12 @@ namespace WindBoard.Settings.Pages
             var leftViewer = new ScrollViewer
             {
                 MinWidth = 420,
-                MaxHeight = 480,
+                MaxHeight = layoutPlan.ScrollAreaMaxHeight,
                 VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
                 HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
                 Content = BuildUpdateSummaryPanel(result, sourceForUrls, releasePageUrl),
             };
+            scrollViewers.Add(leftViewer);
             Grid.SetColumn(leftViewer, 0);
             grid.Children.Add(leftViewer);
 
@@ -282,13 +265,16 @@ namespace WindBoard.Settings.Pages
                 Margin = new Thickness(0, 0, 0, 2),
             });
 
-            rightPanel.Children.Add(new ScrollViewer
+            // 两栏：左右各自独立滚动，高度 clamp 见 UpdateResultDialogLayoutPlanBuilder。
+            var rightViewer = new ScrollViewer
             {
-                MaxHeight = 480,
+                MaxHeight = layoutPlan.ScrollAreaMaxHeight,
                 VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
                 HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
                 Content = BuildMarkdownChangelogContent(layoutPlan),
-            });
+            };
+            scrollViewers.Add(rightViewer);
+            rightPanel.Children.Add(rightViewer);
 
             Grid.SetColumn(rightPanel, 1);
             grid.Children.Add(rightPanel);
@@ -348,7 +334,7 @@ namespace WindBoard.Settings.Pages
             return panel;
         }
 
-        private void AppendChangelogSection(StackPanel panel, UpdateResultDialogLayoutPlan layoutPlan, double maxHeight)
+        private void AppendChangelogSection(StackPanel panel, UpdateResultDialogLayoutPlan layoutPlan)
         {
             if (string.IsNullOrWhiteSpace(layoutPlan.ChangelogMarkdown) && !layoutPlan.UseChangelogPlaceholder)
             {
@@ -362,16 +348,11 @@ namespace WindBoard.Settings.Pages
                 Margin = new Thickness(0, 6, 0, 0),
             });
 
-            panel.Children.Add(new ScrollViewer
-            {
-                MaxHeight = maxHeight,
-                VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
-                HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
-                Content = BuildMarkdownChangelogContent(layoutPlan),
-            });
+            // 单栏布局下滚动由外层 ScrollViewer 统一负责，这里只放渲染结果，避免双层滚动条。
+            panel.Children.Add(BuildMarkdownChangelogContent(layoutPlan));
         }
 
-        private UIElement BuildMarkdownChangelogContent(UpdateResultDialogLayoutPlan layoutPlan)
+        private static UIElement BuildMarkdownChangelogContent(UpdateResultDialogLayoutPlan layoutPlan)
         {
             if (layoutPlan.UseChangelogPlaceholder)
             {
@@ -411,7 +392,7 @@ namespace WindBoard.Settings.Pages
             };
         }
 
-        private void AppendDownloadSection(
+        private static void AppendDownloadSection(
             StackPanel panel,
             AppUpdateCheckResult result,
             DownloadSourceId sourceForUrls)
@@ -451,7 +432,7 @@ namespace WindBoard.Settings.Pages
             }
         }
 
-        private void AppendReleasePageLink(StackPanel panel, string releasePageUrl)
+        private static void AppendReleasePageLink(StackPanel panel, string releasePageUrl)
         {
             var releaseLink = new HyperlinkButton
             {

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using WindBoard.Board.Commands;
+using WindBoard.Board.Items;
 
 namespace WindBoard.Board.Editing
 {
@@ -17,7 +18,7 @@ namespace WindBoard.Board.Editing
 
         public bool CanRedo => _redoStack.Count > 0;
 
-        public bool HasStrokes => Document.Strokes.Count > 0;
+        public bool HasStrokes => Document.InkItems.Count > 0;
 
         /// <summary>
         /// 判断指定命令是否位于撤销栈栈顶。
@@ -69,12 +70,12 @@ namespace WindBoard.Board.Editing
 
         public void ClearAll()
         {
-            if (Document.Strokes.Count == 0)
+            if (Document.InkItems.Count == 0)
             {
                 return;
             }
 
-            Execute(new ClearCommand(new List<Stroke>(Document.Strokes)));
+            Execute(new ClearCommand(new List<IBoardInkItem>(Document.InkItems)));
         }
     }
 }

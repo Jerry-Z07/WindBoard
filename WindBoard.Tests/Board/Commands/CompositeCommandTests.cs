@@ -15,28 +15,28 @@ public sealed class CompositeCommandTests
         var a = new Stroke();
         var b = new Stroke();
         var c = new Stroke();
-        doc.Strokes.Add(a);
-        doc.Strokes.Add(b);
-        doc.Strokes.Add(c);
+        doc.InkItems.Add(a);
+        doc.InkItems.Add(b);
+        doc.InkItems.Add(c);
 
         // 先把 b 置顶，再把 a 置顶：最终应为 [c, b, a]
         var command = new CompositeCommand(new List<IBoardCommand>
         {
-            new BringStrokeToFrontCommand(b),
-            new BringStrokeToFrontCommand(a),
+            new BringInkItemToFrontCommand(b),
+            new BringInkItemToFrontCommand(a),
         });
 
         command.Do(doc);
-        Assert.Equal(3, doc.Strokes.Count);
-        Assert.Same(c, doc.Strokes[0]);
-        Assert.Same(b, doc.Strokes[1]);
-        Assert.Same(a, doc.Strokes[2]);
+        Assert.Equal(3, doc.InkItems.Count);
+        Assert.Same(c, doc.InkItems[0]);
+        Assert.Same(b, doc.InkItems[1]);
+        Assert.Same(a, doc.InkItems[2]);
 
         command.Undo(doc);
-        Assert.Equal(3, doc.Strokes.Count);
-        Assert.Same(a, doc.Strokes[0]);
-        Assert.Same(b, doc.Strokes[1]);
-        Assert.Same(c, doc.Strokes[2]);
+        Assert.Equal(3, doc.InkItems.Count);
+        Assert.Same(a, doc.InkItems[0]);
+        Assert.Same(b, doc.InkItems[1]);
+        Assert.Same(c, doc.InkItems[2]);
     }
 }
 
