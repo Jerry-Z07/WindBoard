@@ -15,7 +15,8 @@ WindBoard backend refers to the Board domain model layer, service layer, and per
 | Guide | Description | Status |
 |-------|-------------|--------|
 | [Directory Structure](./directory-structure.md) | Module organization and file layout | Filled |
-| [Data Persistence](./database-guidelines.md) | WBIX format, settings storage, path infrastructure | Filled |
+| [Data Persistence](./database-guidelines.md) | WBIX format, settings storage, path infrastructure, installation-form contract | Filled |
+| [Packaging & Distribution](./packaging-guidelines.md) | MSIX 打包契约、产包管线顺序、常见报错矩阵、待真机验证项 | Filled |
 | [Error Handling](./error-handling.md) | Error types, crash reporter, Result patterns | Filled |
 | [Quality Guidelines](./quality-guidelines.md) | Code standards, forbidden patterns, testing | Filled |
 | [Logging Guidelines](./logging-guidelines.md) | AppLog, log levels, what to log/not log | Filled |
@@ -30,3 +31,4 @@ Before modifying backend code, read:
 - [ ] [Directory Structure](./directory-structure.md) - Confirm files are placed in the correct layer
 - [ ] [Error Handling](./error-handling.md) - Confirm the correct error-handling pattern is used
 - [ ] [Logging Guidelines](./logging-guidelines.md) - Confirm logs are not added in high-frequency paths
+- [ ] [Packaging & Distribution](./packaging-guidelines.md) - Read before touching packaging, `release.yml`, or runtime form (`AppInstallKind`) branches

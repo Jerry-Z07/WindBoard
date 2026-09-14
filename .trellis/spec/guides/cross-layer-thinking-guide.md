@@ -85,6 +85,14 @@ After implementation:
 
 ---
 
+## Project-Specific Triggers
+
+- **Adding or changing a runtime form / installation form (`AppInstallKind`)** → read `spec/backend/database-guidelines.md` §Installation Form Contract and walk its consumption checklist. A form change silently affects data paths, the update channel, font loading, crash reports, and UI branches.
+- **Touching packaging or distribution** (`Package.appxmanifest`, packaging properties, `release.yml`) → read `spec/backend/packaging-guidelines.md`. The MSIX pipeline has ordering and item-flow contracts (payload is derived only from `@(PackagingOutputs)`) that **fail silently** instead of erroring.
+- **Changing how user data crosses forms** → confirm the approved plan's stance first (`prd.md` decisions + `spec/backend/database-guidelines.md` §Path Infrastructure): this project shares data through **exported files**, not through a shared runtime data directory.
+
+---
+
 ## When to Create Flow Documentation
 
 Create detailed flow docs when:
