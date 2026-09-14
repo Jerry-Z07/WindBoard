@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!--
+    说明：
+    - 本文件为 zh-CN 语言资源（按功能拆分）。
+    - Key 前缀：Migration_*
+  -->
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Migration_Dialog_Title" xml:space="preserve">
+    <value>发现旧版的 WindBoard 设置</value>
+  </data>
+  <data name="Migration_Dialog_Body_Fmt" xml:space="preserve">
+    <value>检测到之前安装的 WindBoard 留下的设置：{0}。是否将这些设置导入当前版本？</value>
+  </data>
+  <data name="Migration_Dialog_LegacyInstallDir_Fmt" xml:space="preserve">
+    <value>旧版安装位置：{0}</value>
+  </data>
+  <data name="Migration_Dialog_UninstallHint" xml:space="preserve">
+    <value>旧版与本版本是两个独立安装：导入设置不会删除旧版，建议在“已安装的应用”中卸载旧版。</value>
+  </data>
+  <data name="Migration_Dialog_OpenInstalledApps" xml:space="preserve">
+    <value>打开“已安装的应用”</value>
+  </data>
+  <data name="Migration_Dialog_ImportButton" xml:space="preserve">
+    <value>导入旧版设置</value>
+  </data>
+  <data name="Migration_Dialog_SkipButton" xml:space="preserve">
+    <value>暂不导入</value>
+  </data>
+</root>
