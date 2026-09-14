@@ -8,8 +8,8 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 7
-- **Last Active**: 2026-05-02
+- **Total Sessions**: 16
+- **Last Active**: 2026-09-14
 <!-- @@@/auto:current-status -->
 
 ---
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~280 | Active |
+| `journal-1.md` | ~690 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 16 | 2026-09-14 | MSIX 打包迁移：安装版转 MSIX、保留便携版、数据互通与平滑迁移 | `084963a`, `2480f90`, `51935f8`, `6085093`, `329e95a`, `61fcf98` | `develop` |
 | 7 | 2026-05-02 | Fix imported text element size/display mismatch | `f5c010d` | `main` |
 | 6 | 2026-05-01 | Fix uninstall logic during installer upgrade installs | `48f92d5` | `main` |
 | 5 | 2026-04-23 | Unify SettingsCard layout resources for settings pages | `72a0ac0` | `develop` |

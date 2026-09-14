@@ -642,3 +642,49 @@ P1/P3 并行完成后做整体质量审查：定位并修复 E2E 导出用例的
 - 可选：重新生成三份同类调研报告并补入归档目录
 - 可选（需另立任务）：全产品容器圆角 14 → 12（主 Dock + Flyout 一并）；Flyout 内常驻少量常用色
 - 分支领先 origin/develop，待用户确认后 push
+
+
+## Session 16: MSIX 打包迁移：安装版转 MSIX、保留便携版、数据互通与平滑迁移
+<!-- trellis-session: v=2 fp=60d25372be1e8e94 -->
+
+**Date**: 2026-09-14
+**Task**: MSIX 打包迁移：安装版转 MSIX、保留便携版、数据互通与平滑迁移
+**Branch**: `develop`
+
+### Summary
+
+把安装版从 Inno Setup 切换为 Microsoft Store 上的 MSIX：完成 single-project MSIX 打包工程化、CI 收敛为便携 zip+Store 上传包、运行时新增 Msix 形态与旧版设置迁移引导。数据互通按用户定义落在文件格式层（设置导出 JSON / .wbix），不使用虚拟化退出。
+
+### Main Changes
+
+- 新增 single-project MSIX 打包：-p:WindBoardPackage=Msix 条件属性、CrashReporter(self-contained) payload 注入、Identity/@Version 注入、未签名测试开关
+- CI 收敛：停发 Inno 安装包，MSIX 改走 upload-artifact，latest.json 仅保留便携 zip，changelog 注入 Store 迁移提示
+- 运行时新增 Msix 安装形态：数据目录与 LegacyInstallerDataDirectory、更新通道改为 Store 托管、字体私有加载日志语义修正
+- 新增旧安装版设置迁移：首次运行弹窗确认后复用 AppSettingsService.ImportFromFileAsync 导入，并引导卸载旧版
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `084963a` | feat(packaging): 支持 single-project MSIX 打包（条件属性/payload 注入/清单改写） |
+| `2480f90` | ci: 发布改为 MSIX 上架产物并停发 Inno 安装包 |
+| `51935f8` | feat: 运行时安装形态适配（Msix 形态与 Store 托管更新） |
+| `6085093` | feat: 旧安装版设置迁移与卸载引导 |
+| `329e95a` | docs: 新增 MSIX 打包指南并更新分发说明 |
+| `61fcf98` | docs(spec): 记录安装形态契约与 MSIX 打包规范 |
+
+### Testing
+
+- [OK] dotnet build -c Release -p:CodeAnalysisTreatWarningsAsErrors=true：0 警告 0 错误
+- [OK] dotnet test WindBoard.slnx：568 例全通过（新增迁移纯逻辑 16 例、形态判定与目录选择用例）
+- [OK] 本地 msbuild 产包 + makeappx unpack 核对：包内含 self-contained CrashReporter、清单 Version=2.9.0.0、23 个图标资产
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- 打 tag 跑一次 release workflow，确认 CI 能产出 .msixupload
+- 管理员环境用 -p:WindBoardUnsignedTest=true 配合 Add-AppxPackage -AllowUnsigned 补测 design.md §6 的 V4–V7
+- Partner Center 保留应用名后替换占位值：Package.appxmanifest 的 Identity、UpdateConstants.StoreProductId、release.yml 变量、两份 README 的 Store 链接
