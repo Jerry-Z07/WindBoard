@@ -7,7 +7,7 @@
 - 运行单测：`dotnet test WindBoard.slnx --filter "FullyQualifiedName~WindBoard.Tests.Board.Commands.AddInkItemCommandTests"`
 - 平台：默认已映射到 x64；如需显式指定可用 `-p:Platform=x64`
 - 运行时：.NET 10，目标 `net10.0-windows10.0.26100.0`，最低支持 `10.0.19041.0`
-- 打包：Inno Setup（`installer/WindBoard.iss`）
+- 打包：便携版 zip（`dotnet publish`）+ Microsoft Store 的 MSIX（`-p:WindBoardPackage=Msix`，须用 VS `MSBuild.exe` 产包）；Inno 安装包已停发（`installer/WindBoard.iss` 保留用于回滚）。详见 `docs/dev/guides/msix-packaging.zh-CN.md`
 
 ## 解决方案结构（Solution Structure）
 
@@ -18,7 +18,7 @@
 | `WindBoard.Launcher` | Native AOT | 小型启动器，解析 `shared/` 下主程序路径并启动 |
 | `WindBoard.Tests` | xUnit | 单元测试，引用以上三个项目 |
 
-- 无 MSIX 打包（`WindowsPackageType=None`），为 unpackaged 桌面应用
+- 默认为 unpackaged 桌面应用（`WindowsPackageType=None`、`EnableMsixTooling=false`）；MSIX 打包仅在显式传 `-p:WindBoardPackage=Msix` 时启用
 - `WindBoard.Launcher` 完全独立，无项目引用
 
 ## 架构概述（Architecture）
@@ -80,6 +80,7 @@
 
 - `docs/dev/guides/localization.zh-CN.md`：本地化约定。
 - `docs/dev/guides/wbix.zh-CN.md`：WBIX（`.wbix`）格式说明。
+- `docs/dev/guides/msix-packaging.zh-CN.md`：MSIX 打包与 Store 发布（条件属性、产包命令、payload 注入、版本号注入）。
 - 不要阅读 `docs/release-notes/` 和 `docs/dev/archive/` 中的内容。
 
 <!-- TRELLIS:START -->

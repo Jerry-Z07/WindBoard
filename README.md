@@ -55,11 +55,20 @@
 - 运行时：.NET 10（`net10.0-windows`）
 - 序列化：System.Text.Json + 自定义工作区格式（WBIX）
 - 测试：xUnit（`WindBoard.Tests`）
-- 打包：Inno Setup（`installer/`）
+- 打包：MSIX（经 Microsoft Store 分发）+ 便携版 zip（Inno Setup 已停发，脚本保留于 `installer/` 仅供回滚）
 
 ## 快速开始
 
-可跳转 [Releases](https://github.com/Jerry-Z07/WindBoard/releases/latest) 获取软件。
+- 安装版：前往 [Microsoft Store](https://apps.microsoft.com/detail/REPLACE_WITH_STORE_PRODUCT_ID) 安装
+- 便携版：前往 [Releases](https://github.com/Jerry-Z07/WindBoard/releases/latest) 下载 zip 解压即用
+
+<!--
+  待办：上架后把上面的 REPLACE_WITH_STORE_PRODUCT_ID 替换为正式 Product ID。
+  同一占位值出现在三处，需一并替换：
+    - 本 README 与 README_EN.md
+    - WindBoard/Updates/UpdateConstants.cs（StoreProductId）
+    - .github/workflows/release.yml（vars.MSIX_STORE_PRODUCT_ID）
+-->
 
 ## 贡献
 
