@@ -122,6 +122,15 @@
   <data name="Updates_CheckResult_Error_Title" xml:space="preserve">
     <value>检查更新失败</value>
   </data>
+  <data name="Updates_CheckResult_ManagedByStore_Title" xml:space="preserve">
+    <value>更新由 Microsoft Store 托管</value>
+  </data>
+  <data name="Updates_StoreManaged_Description" xml:space="preserve">
+    <value>当前版本通过 Microsoft Store 安装，更新由商店统一管理，应用内不再提供下载与安装。</value>
+  </data>
+  <data name="Updates_StoreManaged_OpenStorePage" xml:space="preserve">
+    <value>打开 Store 页面</value>
+  </data>
   <data name="Updates_CheckFailed_Timeout" xml:space="preserve">
     <value>检查更新超时，请稍后重试。</value>
   </data>

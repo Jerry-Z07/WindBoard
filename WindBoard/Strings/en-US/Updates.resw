@@ -122,6 +122,15 @@
   <data name="Updates_CheckResult_Error_Title" xml:space="preserve">
     <value>Failed to check for updates</value>
   </data>
+  <data name="Updates_CheckResult_ManagedByStore_Title" xml:space="preserve">
+    <value>Updates are managed by the Microsoft Store</value>
+  </data>
+  <data name="Updates_StoreManaged_Description" xml:space="preserve">
+    <value>This version was installed from the Microsoft Store. Updates are delivered by the Store, so the app no longer downloads or installs them itself.</value>
+  </data>
+  <data name="Updates_StoreManaged_OpenStorePage" xml:space="preserve">
+    <value>Open Store page</value>
+  </data>
   <data name="Updates_CheckFailed_Timeout" xml:space="preserve">
     <value>Update check timed out. Please try again later.</value>
   </data>

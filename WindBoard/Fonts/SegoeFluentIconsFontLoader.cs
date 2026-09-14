@@ -12,7 +12,7 @@ namespace WindBoard.Fonts
     /// <summary>
     /// Segoe Fluent Icons 字体可用性处理：
     /// - Win11（Build >= 22000）：系统自带字体，直接使用。
-    /// - Win10：安装版由安装器写入系统字体；便携版使用 AddFontResourceEx 进行“进程私有加载”。
+    /// - Win10：安装版由安装器写入系统字体；便携版与 MSIX（Store）版使用 AddFontResourceEx 进行“进程私有加载”。
     ///
     /// 重要：
     /// - 本类只负责“让字体可用 + 统一设置 SymbolThemeFontFamily 资源”，不负责具体 Glyph 映射。
@@ -137,14 +137,12 @@ namespace WindBoard.Fonts
             }
 
             // Win10：系统未安装 Fluent 图标字体。
-            // - 便携版：按需求“加载内置 ttf”（进程私有，不写系统）
-            // - 安装版：理论上安装器已处理；若仍缺失，这里也尝试私有加载做兜底，避免 UI 变成方块
-            if (_installKind == AppInstallKind.Installer)
-            {
-                AppLog.Warn(
-                    "Fonts",
-                    $"Win10 安装版检测到系统未安装 '{FluentFontFamilyName}'，将尝试从 Assets 私有加载做兜底：build={_windowsBuildNumber}, installDir='{install.InstallDir}'");
-            }
+            // 各形态统一尝试“从 Assets 私有加载”（进程私有，不写系统字体目录）：
+            // - 便携版/打包版（MSIX）不能写系统字体目录，只能私有加载
+            // - 安装版理论上由安装器写入系统字体；若仍缺失，这里同样私有加载做兜底，避免 UI 变成方块
+            AppLog.Warn(
+                "Fonts",
+                $"Win10 检测到系统未安装 '{FluentFontFamilyName}'，将尝试从 Assets 私有加载：build={_windowsBuildNumber}, installKind={_installKind}, installDir='{install.InstallDir}'");
 
             if (TryLoadPrivateFontFromAssets(out string? error))
             {

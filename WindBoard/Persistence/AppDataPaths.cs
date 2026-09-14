@@ -5,10 +5,10 @@ using WindBoard.Updates;
 namespace WindBoard.Persistence
 {
     /// <summary>
-    /// 应用数据路径入口：根据安装形态（安装版/便携版）决定数据落盘目录。
+    /// 应用数据路径入口：根据安装形态（MSIX/安装版/便携版）决定数据落盘目录。
     ///
     /// 约定：
-    /// - 安装版：%LocalAppData%\WindBoard
+    /// - MSIX（Store）版与安装版：%LocalAppData%\WindBoard（MSIX 下的“包私有重定向”由系统虚拟化处理，路径表达式不变）
     /// - 便携版：{AppContext.BaseDirectory}\data
     /// - 便携版但 data 目录不可写：自动回退到 %LocalAppData%\WindBoard（避免启动失败）
     /// </summary>
@@ -18,6 +18,8 @@ namespace WindBoard.Persistence
         private static AppDataPathsSnapshot? _cached;
 
         internal static string RootDirectory => GetSnapshot().RootDirectory;
+        internal static string OwnDataDirectory => GetSnapshot().OwnDataDirectory;
+        internal static string LegacyInstallerDataDirectory => GetSnapshot().LegacyInstallerDataDirectory;
         internal static string SettingsFilePath => GetSnapshot().SettingsFilePath;
         internal static string LogsDirectory => GetSnapshot().LogsDirectory;
         internal static string CamouflageCacheDirectory => GetSnapshot().CamouflageCacheDirectory;
@@ -40,6 +42,7 @@ namespace WindBoard.Persistence
                     install: AppInstallProbe.ProbeNoLog(),
                     appBaseDirectory: AppContext.BaseDirectory,
                     localAppDataDirectory: Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                    localAppDataEnvironmentValue: Environment.GetEnvironmentVariable("LOCALAPPDATA"),
                     tryEnsureWritable: TryEnsureDirectoryWritable);
 
                 return _cached;
@@ -49,10 +52,16 @@ namespace WindBoard.Persistence
         /// <summary>
         /// 计算数据目录快照（便于单元测试注入 install/baseDir/localAppData 与可写性探测）。
         /// </summary>
+        /// <param name="localAppDataDirectory"><c>SpecialFolder.LocalApplicationData</c> 的取值（自身读写落点用）。</param>
+        /// <param name="localAppDataEnvironmentValue">
+        /// 环境变量 <c>LOCALAPPDATA</c> 的原始取值，仅用于计算“旧安装版数据目录”（迁移只读来源）。
+        /// 打包进程内 <c>GetFolderPath</c> 的返回值不确定（design.md §1.2 需实测项 V5），因此优先信任环境变量。
+        /// </param>
         internal static AppDataPathsSnapshot ComputeSnapshot(
             AppInstallProbeResult install,
             string appBaseDirectory,
             string localAppDataDirectory,
+            string? localAppDataEnvironmentValue,
             Func<string, (bool ok, string? errorMessage)> tryEnsureWritable)
         {
             ArgumentNullException.ThrowIfNull(install);
@@ -63,8 +72,18 @@ namespace WindBoard.Persistence
             string localAppData = NormalizeDir(localAppDataDirectory);
             AppRuntimeLayout layout = AppRuntimeLayout.Resolve(baseDir);
 
-            // 安装版默认使用 LocalAppData；便携版优先尝试产品根目录下的 data。
+            // “自身读写落点”的路径表达式：安装版与 MSIX 版同为 %LocalAppData%\WindBoard。
+            // MSIX 下新建文件由系统重定向到包私有位置、读取先私有后回落，这里不引入 opt-out、不改写路径算法。
             string localRoot = Path.Combine(localAppData, "WindBoard");
+
+            // 旧 Inno 安装版的真实数据目录（仅迁移时读取，不写回）：
+            // 优先用环境变量 LOCALAPPDATA 计算（打包进程内 GetFolderPath 的返回值不确定），取不到时回退注入值。
+            string legacyLocalAppData = NormalizeDir(
+                string.IsNullOrWhiteSpace(localAppDataEnvironmentValue) ? localAppData : localAppDataEnvironmentValue);
+            string legacyLocalRoot = string.IsNullOrWhiteSpace(legacyLocalAppData)
+                ? string.Empty
+                : Path.Combine(legacyLocalAppData, "WindBoard");
+
             string portableRoot = layout.PortableDataDirectory;
 
             bool attemptedPortable = install.Kind == AppInstallKind.Portable;
@@ -72,7 +91,7 @@ namespace WindBoard.Persistence
             string? portableError = null;
 
             string root;
-            if (install.Kind == AppInstallKind.Installer)
+            if (install.Kind == AppInstallKind.Installer || install.Kind == AppInstallKind.Msix)
             {
                 root = localRoot;
             }
@@ -112,6 +131,9 @@ namespace WindBoard.Persistence
 
                 LocalAppDataRootDirectory = localRoot,
                 LocalAppDataSettingsFilePath = Path.Combine(localRoot, "settings.json"),
+
+                OwnDataDirectory = root,
+                LegacyInstallerDataDirectory = legacyLocalRoot,
 
                 PortableDataDirectory = portableRoot,
                 PortableDataDirectoryAttempted = attemptedPortable,
@@ -214,6 +236,16 @@ namespace WindBoard.Persistence
 
         internal string LocalAppDataRootDirectory { get; init; } = string.Empty;
         internal string LocalAppDataSettingsFilePath { get; init; } = string.Empty;
+
+        /// <summary>
+        /// 自身读写落点（= <see cref="AppDataPaths.RootDirectory"/>，语义化别名，供迁移/诊断对照）。
+        /// </summary>
+        internal string OwnDataDirectory { get; init; } = string.Empty;
+
+        /// <summary>
+        /// 旧 Inno 安装版的真实数据目录（真实 %LOCALAPPDATA%\WindBoard）；仅迁移时读取，不写回。
+        /// </summary>
+        internal string LegacyInstallerDataDirectory { get; init; } = string.Empty;
 
         internal string PortableDataDirectory { get; init; } = string.Empty;
         internal bool PortableDataDirectoryAttempted { get; init; }

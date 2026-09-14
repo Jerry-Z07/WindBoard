@@ -77,6 +77,26 @@ public sealed class UpdateAssetSelectorTests
         Assert.Equal(UpdateAssetKind.PortableZip, rec.Alternatives[2].Kind);
     }
 
+    [Fact]
+    public void Select_Should_Not_Recommend_Any_Asset_For_Msix()
+    {
+        var assets = CreateAssets();
+
+        var install = new AppInstallProbeResult
+        {
+            Kind = AppInstallKind.Msix,
+            Variant = AppInstallVariant.Unknown,
+        };
+
+        UpdateAssetRecommendation rec = UpdateAssetSelector.Select(assets, "x64", install);
+
+        // MSIX 形态由 Microsoft Store 托管更新：不产生推荐资产（也不应推荐 zip/安装包）。
+        Assert.Null(rec.Recommended);
+        Assert.All(rec.Alternatives, pick => Assert.NotEqual(UpdateAssetKind.Unknown, pick.Kind));
+        Assert.Equal(UpdateAssetKind.InstallerSelfContained, rec.Alternatives[0].Kind);
+        Assert.Equal(UpdateAssetKind.PortableZip, rec.Alternatives[2].Kind);
+    }
+
     private static List<LatestReleaseAsset> CreateAssets()
     {
         // 仅构造用于选择逻辑的最小字段：Arch + FileName + DownloadUrl。

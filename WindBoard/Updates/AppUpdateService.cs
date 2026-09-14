@@ -116,6 +116,21 @@ namespace WindBoard.Updates
             try
             {
                 AppInstallProbeResult install = AppInstallProbe.Probe();
+
+                // MSIX（Microsoft Store）形态：更新由商店托管，应用内不发起自研 HTTP 检查，
+                // 也不参与资产选择/下载（便携版与旧安装版行为保持不变）。
+                if (install.Kind == AppInstallKind.Msix)
+                {
+                    AppLog.Info("Updates", $"MSIX 形态由 Microsoft Store 托管更新，跳过更新检查：mode={mode}");
+
+                    return new AppUpdateCheckResult
+                    {
+                        State = AppUpdateCheckState.ManagedByStore,
+                        CurrentVersion = currentVersion,
+                        Duration = sw.Elapsed,
+                    };
+                }
+
                 string arch = GetCurrentArch();
 
                 DownloadSourceId preferredSource = await ResolvePreferredDownloadSourceIdAsync(mode, install, cancellationToken)
@@ -447,6 +462,11 @@ namespace WindBoard.Updates
         UpdateAvailable,
         Indeterminate,
         Error,
+
+        /// <summary>
+        /// 更新由 Microsoft Store 托管（MSIX 打包形态）：应用内不检查、不下载、不安装。
+        /// </summary>
+        ManagedByStore,
     }
 
     internal sealed class AppUpdateCheckResult
