@@ -1,0 +1,7 @@
+{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "设置窗口是 XAML 页面 + code-behind 直控模式；公告位需按既有 XAML 声明事件、partial 拆分与导航约定实现"}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "禁用模式清单：硬编码文案/颜色、多余自定义控件、双卡片布局；以及代码审查清单（零 CA/IDE 告警、本地化要求）"}
+{"file": ".trellis/spec/frontend/state-management.md", "reason": "设置状态必须经 AppSettingsService.Update 修改，并说明设置变更流（归一化 → Changed → 350ms 防抖落盘）"}
+{"file": ".trellis/spec/frontend/type-safety.md", "reason": "可空性与集合字段的返回约定（服务对外返回快照副本而非内部引用）"}
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "零分析告警约束、IFormatProvider 约定、错误处理与本地化要求，发版构建据此把关"}
+{"file": ".trellis/spec/guides/code-reuse-thinking-guide.md", "reason": "复用既有机制：滚入视野（_pendingBringIntoView*）与 Func<string> 文案提供器，避免重复造导航/本地化通道"}
+{"file": ".trellis/tasks/archive/2026-09/09-12-msix-packaging-migration/prd.md", "reason": "界定被排除的 9 个 MSIX 提交涉及的范围（打包、CI 停发 Inno、运行时形态适配、旧数据迁移引导），确保并入时不夹带 MSIX 内容"}
