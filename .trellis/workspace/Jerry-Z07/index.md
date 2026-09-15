@@ -8,8 +8,8 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 7
-- **Last Active**: 2026-05-02
+- **Total Sessions**: 17
+- **Last Active**: 2026-09-15
 <!-- @@@/auto:current-status -->
 
 ---
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~280 | Active |
+| `journal-1.md` | ~672 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 17 | 2026-09-15 | v2.9.5 过渡版本：设置公告位与选择性并发版 | `338580f`, `84f6d32`, `50f410e`, `6d46b4c`, `7a1cfcd`, `baf6f98`, `7934003` | `main` |
 | 7 | 2026-05-02 | Fix imported text element size/display mismatch | `f5c010d` | `main` |
 | 6 | 2026-05-01 | Fix uninstall logic during installer upgrade installs | `48f92d5` | `main` |
 | 5 | 2026-04-23 | Unify SettingsCard layout resources for settings pages | `72a0ac0` | `develop` |

@@ -642,3 +642,31 @@ P1/P3 并行完成后做整体质量审查：定位并修复 E2E 导出用例的
 - 可选：重新生成三份同类调研报告并补入归档目录
 - 可选（需另立任务）：全产品容器圆角 14 → 12（主 Dock + Flyout 一并）；Flyout 内常驻少量常用色
 - 分支领先 origin/develop，待用户确认后 push
+
+
+## Session 17: v2.9.5 过渡版本：设置公告位与选择性并发版
+<!-- trellis-session: v=2 fp=8338966d37920219 -->
+
+**Date**: 2026-09-15
+**Task**: v2.9.5 过渡版本：设置公告位与选择性并发版
+**Branch**: `main`
+
+### Summary
+
+在 main 分支实现设置窗口壳层可关闭 warning 公告位（迁移提醒 + 去备份设置跳转，关闭后跨会话不再提醒）；main 快进到 origin/main 并入除 MSIX 外的全部更新；版本号 2.9.5，撰写中英更新日志。用变异验证确认新增 5 条用例能捕获对应缺陷；最终 562 单测通过、Release 零告警；tag v2.9.5 发版成功（10 个资产，latest.json 的 changelog 含过渡版提示）。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `338580f` | feat(settings): 设置窗口新增可关闭公告位并展示安装版分发调整提醒 |
+| `84f6d32` | docs(spec): 沉淀设置窗口壳层公告位约定 |
+| `50f410e` | chore(release): v2.9.5 |
+| `6d46b4c` | chore(task): 记录 v2.9.5 过渡版本规划产物 |
+| `7a1cfcd` | test(settings): 补齐公告位测试覆盖缺口（大小写、截断顺序、选择顺序、快照副本） |
+| `baf6f98` | docs: 取消 docs/release-notes 的阅读限制 |
+| `7934003` | chore: 忽略 Appx/MSIX 产包中间产物目录 BundleArtifacts |
+
+### Status
+
+[OK] **Completed**
