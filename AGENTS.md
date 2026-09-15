@@ -80,6 +80,7 @@
 
 - `docs/dev/guides/localization.zh-CN.md`：本地化约定。
 - `docs/dev/guides/wbix.zh-CN.md`：WBIX（`.wbix`）格式说明。
+- `.agents/skills/writing-release-notes/SKILL.md`：更新日志编写约定。发版前必须加载并遵循：逐条读提交 diff（不能只看 commit message）、只记录 feat/fix/perf/可感知 refactor、并按模板保留 `# 已知问题` / `# Known Issues` 章节（无新增则沿用上一版）。该文档已进入 Release 正文与 `latest.json` 的 changelog，旧客户端会读取。
 - 不要阅读 `docs/dev/archive/` 中的内容。
 
 <!-- TRELLIS:START -->
