@@ -80,7 +80,7 @@
 
 - `docs/dev/guides/localization.zh-CN.md`：本地化约定。
 - `docs/dev/guides/wbix.zh-CN.md`：WBIX（`.wbix`）格式说明。
-- 不要阅读 `docs/release-notes/` 和 `docs/dev/archive/` 中的内容。
+- 不要阅读 `docs/dev/archive/` 中的内容。
 
 <!-- TRELLIS:START -->
 # Trellis Instructions
