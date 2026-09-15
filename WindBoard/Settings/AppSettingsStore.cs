@@ -19,6 +19,11 @@ namespace WindBoard.Settings
     /// </summary>
     internal sealed class AppSettingsStore
     {
+        /// <summary>
+        /// 已关闭公告 Id 的保留上限：公告随版本更替累积，这里做容量兜底避免列表无界增长。
+        /// </summary>
+        private const int MaxDismissedAnnouncementCount = 32;
+
         private static readonly JsonSerializerOptions JsonOptions = new()
         {
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
@@ -174,6 +179,9 @@ namespace WindBoard.Settings
             settings.Diagnostics ??= new DiagnosticsSettings();
             settings.Diagnostics.Logging ??= new LoggingSettings();
             NormalizeLoggingSettingsInPlace(settings.Diagnostics.Logging);
+
+            settings.Announcements ??= new AnnouncementsSettings();
+            NormalizeAnnouncementsSettingsInPlace(settings.Announcements);
             return settings;
         }
 
@@ -434,6 +442,36 @@ namespace WindBoard.Settings
             {
                 settings.RetentionDays = 365;
             }
+        }
+
+        private static void NormalizeAnnouncementsSettingsInPlace(AnnouncementsSettings settings)
+        {
+            // 公告 Id 由程序内部定义，这里不做“已知 Id”白名单过滤：旧版本写入、或手工编辑的 Id
+            // 都必须保留，否则会被误判为“未关闭”而让公告复现。
+            settings.DismissedIds ??= new List<string>();
+
+            var normalized = new List<string>();
+            HashSet<string> seen = new(StringComparer.Ordinal);
+            foreach (string? id in settings.DismissedIds)
+            {
+                if (normalized.Count >= MaxDismissedAnnouncementCount)
+                {
+                    break;
+                }
+
+                if (string.IsNullOrWhiteSpace(id))
+                {
+                    continue;
+                }
+
+                string trimmed = id.Trim();
+                if (seen.Add(trimmed))
+                {
+                    normalized.Add(trimmed);
+                }
+            }
+
+            settings.DismissedIds = normalized;
         }
 
         private static List<string> NormalizeOrder(IEnumerable<string>? order, IReadOnlyList<string> defaults)

@@ -222,6 +222,54 @@ public sealed class AppSettingsServiceTests
         }
     }
 
+    [Fact]
+    public void DismissAnnouncement_MakesIdVisibleAndDoesNotDuplicate()
+    {
+        string root = CreateTempDirectory();
+        try
+        {
+            string defaultSettingsPath = Path.Combine(root, "data", "settings.json");
+            AppSettingsService service = CreateService(defaultSettingsPath);
+            Assert.Empty(service.GetDismissedAnnouncementIds());
+
+            service.DismissAnnouncement("  installer-distribution-changed  ");
+            service.DismissAnnouncement("installer-distribution-changed");
+
+            string[] expected = ["installer-distribution-changed"];
+            Assert.Equal(expected, service.GetDismissedAnnouncementIds());
+        }
+        finally
+        {
+            DeleteDirectory(root);
+        }
+    }
+
+    [Fact]
+    public async Task ResetToDefaultsAsync_ClearsDismissedAnnouncementIds()
+    {
+        string root = CreateTempDirectory();
+        TestLanguageState.Snapshot cultureSnapshot = TestLanguageState.Capture();
+        try
+        {
+            string defaultSettingsPath = Path.Combine(root, "data", "settings.json");
+            AppSettingsService service = CreateService(defaultSettingsPath);
+            service.DismissAnnouncement("installer-distribution-changed");
+            Assert.Single(service.GetDismissedAnnouncementIds());
+
+            await service.ResetToDefaultsAsync(CancellationToken.None);
+
+            Assert.Empty(service.GetDismissedAnnouncementIds());
+
+            AppSettings persisted = new AppSettingsStore(defaultSettingsPath).LoadOrDefault();
+            Assert.Empty(persisted.Announcements.DismissedIds);
+        }
+        finally
+        {
+            TestLanguageState.Restore(cultureSnapshot);
+            DeleteDirectory(root);
+        }
+    }
+
     private static AppSettingsService CreateService(string settingsPath)
     {
         var store = new AppSettingsStore(settingsPath);

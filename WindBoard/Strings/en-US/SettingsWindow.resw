@@ -38,4 +38,13 @@
   <data name="SettingsWindow_Search_Placeholder" xml:space="preserve">
     <value>Search settings</value>
   </data>
+  <data name="SettingsWindow_Announcement_InstallerDistribution_Title" xml:space="preserve">
+    <value>Installer distribution is changing</value>
+  </data>
+  <data name="SettingsWindow_Announcement_InstallerDistribution_Message" xml:space="preserve">
+    <value>The installer-based distribution will be adjusted. Back up your settings first so you can import them after migrating.</value>
+  </data>
+  <data name="SettingsWindow_Announcement_InstallerDistribution_Action" xml:space="preserve">
+    <value>Back up settings</value>
+  </data>
 </root>

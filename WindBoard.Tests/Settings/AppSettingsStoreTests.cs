@@ -529,4 +529,99 @@ public sealed class AppSettingsStoreTests
         Assert.Equal("Warning", settings.Diagnostics.Logging.MinimumLevel);
         Assert.Equal(365, settings.Diagnostics.Logging.RetentionDays);
     }
+
+    [Fact]
+    public void NormalizeInPlace_CreatesAnnouncementDefaults_WhenAnnouncementsIsNull()
+    {
+        var settings = new AppSettings
+        {
+            Announcements = null!,
+        };
+
+        AppSettingsStore.NormalizeInPlace(settings);
+
+        Assert.NotNull(settings.Announcements);
+        Assert.NotNull(settings.Announcements.DismissedIds);
+        Assert.Empty(settings.Announcements.DismissedIds);
+    }
+
+    [Fact]
+    public void NormalizeInPlace_CreatesDismissedIds_WhenDismissedIdsIsNull()
+    {
+        var settings = new AppSettings
+        {
+            Announcements = new AnnouncementsSettings
+            {
+                DismissedIds = null!,
+            },
+        };
+
+        AppSettingsStore.NormalizeInPlace(settings);
+
+        Assert.NotNull(settings.Announcements.DismissedIds);
+        Assert.Empty(settings.Announcements.DismissedIds);
+    }
+
+    [Fact]
+    public void NormalizeInPlace_NormalizesDismissedIds_TrimDropBlankAndDedupeKeepOrder()
+    {
+        var settings = new AppSettings
+        {
+            Announcements = new AnnouncementsSettings
+            {
+                DismissedIds =
+                [
+                    "  installer-a  ",
+                    "   ",
+                    "installer-b",
+                    "installer-a",
+                    "",
+                    "installer-c  ",
+                ],
+            },
+        };
+
+        AppSettingsStore.NormalizeInPlace(settings);
+
+        string[] expected = ["installer-a", "installer-b", "installer-c"];
+        Assert.Equal(expected, settings.Announcements.DismissedIds);
+    }
+
+    [Fact]
+    public void NormalizeInPlace_LimitsDismissedIds_To32Items()
+    {
+        var dismissedIds = new List<string>();
+        for (int i = 0; i < 40; i++)
+        {
+            dismissedIds.Add($"announcement-{i:D2}");
+        }
+
+        var settings = new AppSettings
+        {
+            Announcements = new AnnouncementsSettings
+            {
+                DismissedIds = dismissedIds,
+            },
+        };
+
+        AppSettingsStore.NormalizeInPlace(settings);
+
+        Assert.Equal(32, settings.Announcements.DismissedIds.Count);
+        Assert.Equal("announcement-00", settings.Announcements.DismissedIds[0]);
+        Assert.Equal("announcement-31", settings.Announcements.DismissedIds[31]);
+    }
+
+    [Fact]
+    public void Serialize_RoundTripsDismissedIds_AsCamelCase()
+    {
+        var settings = new AppSettings();
+        settings.Announcements.DismissedIds.Add("installer-distribution-changed");
+
+        string json = AppSettingsStore.Serialize(settings);
+        AppSettings restored = AppSettingsStore.Deserialize(json);
+
+        string[] expected = ["installer-distribution-changed"];
+        Assert.Contains("\"dismissedIds\"", json, StringComparison.Ordinal);
+        Assert.Equal(expected, restored.Announcements.DismissedIds);
+    }
 }
