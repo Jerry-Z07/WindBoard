@@ -293,6 +293,22 @@ L10n.Format("Settings_Camouflage_CreateShortcut_Success_Fmt", shortcutPath)
 
 **Gotcha — 窗口尺寸联动**: 屏幕批注工具栏的窗口尺寸是 code-behind 硬编码常量（`ScreenAnnotationToolbarWindow.ExpandedToolbarWidthDip` / `ToolbarHeightDip`），其值必须等于 XAML 内容宽高之和。在 XAML 中增删元素或修改间距后必须同步该常量，否则展开态最右侧按钮会被窗口裁剪。
 
+### Convention: 设置窗口壳层公告位
+
+**What**: 设置窗口壳层（`SettingsWindow`）在 `NavigationView` 之上有一个公告位（内置 `InfoBar`，AutomationId `SettingsWindow_AnnouncementBar`），承载面向用户的版本/分发类通知。新增公告只改公告目录与本地化文案，壳层渲染逻辑不动。
+
+**契约**:
+
+- 公告定义：`WindBoard/Settings/AppAnnouncementCatalog.cs` 的 `All`（`AppAnnouncement` = `Id` + `Severity` + Title/Message/ActionButton 文案提供器 + `AppAnnouncementAction`）。
+- 选择逻辑：`AppAnnouncementCatalog.SelectNext(announcements, dismissedIds)` 是**纯函数**——按 `All` 顺序返回第一条 `Id` 未被关闭的公告，全部已关闭返回 `null`；Id 是程序内部标识，比较用 `StringComparer.Ordinal`。UI 判断逻辑放在这里而不是 code-behind，才能被单测覆盖。
+- 关闭状态：`AppSettings.Announcements.DismissedIds`（落盘 `announcements.dismissedIds`），经 `AppSettingsService.DismissAnnouncement` → `Update()` 写入；归一化在 `AppSettingsStore.NormalizeInPlace`（`Trim` / 丢空白 / `Ordinal` 去重保序 / 上限 32）。
+- 语义：**关闭即永久不再提醒该条**，只有出现新 `Id` 才重新展示 ⇒ `Id` 一经发布不得改写，改写等于重新打扰已关闭该公告的用户。
+- 事件：只订阅 `InfoBar.CloseButtonClick` 写"已关闭"状态。**禁止**在 `IsOpen` 变更回调里写状态——程序化关闭（如把 `IsOpen` 置 false）会被误记为"用户已关闭"。
+
+**Gotcha — 文案必须用「字面量 key 的提供器」**: `LocalizationKeyAuditTests` 禁止 `L10n.Get/Format` 传入非字面量 key，因此公告文案不能设计成"目录里存 key 字符串、渲染时 `L10n.Get(key)`"。正确做法是目录里存 `Func<string>` 提供器，lambda 内保留字面量 key（与 `SettingsWindow` 页面标题提供器同一模式）。
+
+**Gotcha — 壳层行结构**: 公告位是根 `Grid` 的第 2 行：`TitleBar`=row0、公告位=row1、`NavigationView`=row2。无公告时 `IsOpen=false`，该行高度为 0，窗口外观与无公告版本一致。
+
 ### Avoid (from winui-app skill + deslop skill)
 
 - Scattered theme brushes and styles (they should be centralized in App.xaml or a shared ResourceDictionary)
