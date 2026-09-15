@@ -90,9 +90,6 @@ description: Use when writing or updating release notes for a new version, or wh
 - ⚡ perf: ...
 - ♻️ refactor: ...
 
-# 已知问题
-
-- 位于v1.x版本的用户直接覆盖安装可能会有未知兼容性问题，建议完全卸载旧版并重装。
 ```
 
 **英文模板：**
@@ -104,9 +101,6 @@ description: Use when writing or updating release notes for a new version, or wh
 - ⚡ perf: ...
 - ♻️ refactor: ...
 
-# Known Issues
-
-- Users upgrading directly from v1.x by overwriting the installation may encounter unknown compatibility issues. It is recommended to completely uninstall the old version and reinstall the new one.
 ```
 
 ## 常见错误
@@ -116,4 +110,3 @@ description: Use when writing or updating release notes for a new version, or wh
 | 直接复制 commit message 作为条目 | 转化为面向用户的描述 |
 | 记录所有 refactor 提交 | 仅记录用户可感知的重构 |
 | 将一个 commit 的多个修复混为一条 | 拆分为独立条目，方便用户检索 |
-| 遗漏已知问题章节 | 保留已知问题，如无新增则沿用上一版 |
