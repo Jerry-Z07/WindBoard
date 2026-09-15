@@ -64,6 +64,34 @@ public sealed class AppAnnouncementCatalogTests
         Assert.Same(AppAnnouncementCatalog.All[0], selected);
     }
 
+    [Fact]
+    public void SelectNext_ReturnsEarliestNotDismissed_WhenMultipleCandidatesRemain()
+    {
+        AppAnnouncement first = CreateAnnouncement("first");
+        AppAnnouncement second = CreateAnnouncement("second");
+        AppAnnouncement third = CreateAnnouncement("third");
+        AppAnnouncement[] announcements = [first, second, third];
+        string[] dismissedIds = ["second"];
+
+        AppAnnouncement? selected = AppAnnouncementCatalog.SelectNext(announcements, dismissedIds);
+
+        // 多条候选时取顺序最靠前的一条；反向遍历会误返回 third。
+        Assert.Same(first, selected);
+    }
+
+    [Fact]
+    public void SelectNext_TreatsDifferentCaseId_AsNotDismissed()
+    {
+        AppAnnouncement announcement = CreateAnnouncement("installer-distribution-changed");
+        AppAnnouncement[] announcements = [announcement];
+        string[] dismissedIds = ["INSTALLER-DISTRIBUTION-CHANGED"];
+
+        AppAnnouncement? selected = AppAnnouncementCatalog.SelectNext(announcements, dismissedIds);
+
+        // Id 是程序内部标识，大小写不同即不同项；改用 OrdinalIgnoreCase 会误判为已关闭。
+        Assert.Same(announcement, selected);
+    }
+
     private static AppAnnouncement CreateAnnouncement(string id)
     {
         return new AppAnnouncement(

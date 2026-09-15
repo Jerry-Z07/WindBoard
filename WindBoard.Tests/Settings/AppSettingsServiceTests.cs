@@ -270,6 +270,32 @@ public sealed class AppSettingsServiceTests
         }
     }
 
+    [Fact]
+    public void GetDismissedAnnouncementIds_ReturnsSnapshotCopy()
+    {
+        string root = CreateTempDirectory();
+        try
+        {
+            string defaultSettingsPath = Path.Combine(root, "data", "settings.json");
+            AppSettingsService service = CreateService(defaultSettingsPath);
+            service.DismissAnnouncement("installer-distribution-changed");
+
+            IReadOnlyCollection<string> ids = service.GetDismissedAnnouncementIds();
+            if (ids is List<string> mutable)
+            {
+                mutable.Add("injected-by-caller");
+            }
+
+            // 必须是快照副本：调用方对返回集合的改动不得影响服务内部状态。
+            string[] expected = ["installer-distribution-changed"];
+            Assert.Equal(expected, service.GetDismissedAnnouncementIds());
+        }
+        finally
+        {
+            DeleteDirectory(root);
+        }
+    }
+
     private static AppSettingsService CreateService(string settingsPath)
     {
         var store = new AppSettingsStore(settingsPath);

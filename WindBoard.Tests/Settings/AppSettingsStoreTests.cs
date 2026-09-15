@@ -612,6 +612,50 @@ public sealed class AppSettingsStoreTests
     }
 
     [Fact]
+    public void NormalizeInPlace_KeepsCaseDistinctDismissedIds()
+    {
+        var settings = new AppSettings
+        {
+            Announcements = new AnnouncementsSettings
+            {
+                DismissedIds = ["Installer-A", "installer-a"],
+            },
+        };
+
+        AppSettingsStore.NormalizeInPlace(settings);
+
+        // Ordinal 比较下大小写不同的 Id 是不同项；改用 OrdinalIgnoreCase 会误删第二项。
+        string[] expected = ["Installer-A", "installer-a"];
+        Assert.Equal(expected, settings.Announcements.DismissedIds);
+    }
+
+    [Fact]
+    public void NormalizeInPlace_LimitsDismissedIds_AfterDedupe()
+    {
+        // 前两项重复：先去重再截断会保留到 x31；先按原始项截断再去重则只剩 31 项且末尾为 x30。
+        var dismissedIds = new List<string> { "dup", "dup" };
+        for (int i = 1; i <= 31; i++)
+        {
+            dismissedIds.Add($"x{i:D2}");
+        }
+
+        var settings = new AppSettings
+        {
+            Announcements = new AnnouncementsSettings
+            {
+                DismissedIds = dismissedIds,
+            },
+        };
+
+        AppSettingsStore.NormalizeInPlace(settings);
+
+        Assert.Equal(32, settings.Announcements.DismissedIds.Count);
+        Assert.Equal("dup", settings.Announcements.DismissedIds[0]);
+        Assert.Equal("x01", settings.Announcements.DismissedIds[1]);
+        Assert.Equal("x31", settings.Announcements.DismissedIds[31]);
+    }
+
+    [Fact]
     public void Serialize_RoundTripsDismissedIds_AsCamelCase()
     {
         var settings = new AppSettings();
