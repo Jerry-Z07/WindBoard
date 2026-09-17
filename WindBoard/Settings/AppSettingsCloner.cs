@@ -99,6 +99,10 @@ namespace WindBoard.Settings
                         RetentionDays = settings.Diagnostics?.Logging?.RetentionDays ?? 14,
                     },
                 },
+                Announcements = new AnnouncementsSettings
+                {
+                    DismissedIds = new List<string>(settings.Announcements?.DismissedIds ?? new List<string>()),
+                },
             };
         }
     }

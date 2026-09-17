@@ -16,6 +16,7 @@
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
@@ -42,9 +43,26 @@
             </TitleBar.Content>
         </TitleBar>
 
+        <!--
+            壳层公告位：文案/Severity/动作按钮均由 code-behind 按公告定义赋值，这里只声明展示结构。
+            无公告时 IsOpen=false，该行高度为 0，不影响设置页原有布局。
+        -->
+        <InfoBar
+            x:Name="AnnouncementBar"
+            Grid.Row="1"
+            IsOpen="False"
+            IsClosable="True"
+            IsIconVisible="True"
+            AutomationProperties.AutomationId="SettingsWindow_AnnouncementBar"
+            CloseButtonClick="OnAnnouncementCloseButtonClick">
+            <InfoBar.ActionButton>
+                <Button x:Name="AnnouncementActionButton" Click="OnAnnouncementActionClicked" />
+            </InfoBar.ActionButton>
+        </InfoBar>
+
         <NavigationView
             x:Name="NavView"
-            Grid.Row="1"
+            Grid.Row="2"
             AlwaysShowHeader="False"
             IsBackButtonVisible="Collapsed"
             IsPaneOpen="True"

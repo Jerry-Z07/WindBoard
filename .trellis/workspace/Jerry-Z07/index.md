@@ -8,8 +8,8 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 16
-- **Last Active**: 2026-09-14
+- **Total Sessions**: 17
+- **Last Active**: 2026-09-15
 <!-- @@@/auto:current-status -->
 
 ---
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~690 | Active |
+| `journal-1.md` | ~718 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 17 | 2026-09-15 | v2.9.5 过渡版本：设置公告位与选择性并发版 | `338580f`, `84f6d32`, `50f410e`, `6d46b4c`, `7a1cfcd`, `baf6f98`, `7934003` | `main` |
 | 16 | 2026-09-14 | MSIX 打包迁移：安装版转 MSIX、保留便携版、数据互通与平滑迁移 | `084963a`, `2480f90`, `51935f8`, `6085093`, `329e95a`, `61fcf98` | `develop` |
 | 7 | 2026-05-02 | Fix imported text element size/display mismatch | `f5c010d` | `main` |
 | 6 | 2026-05-01 | Fix uninstall logic during installer upgrade installs | `48f92d5` | `main` |

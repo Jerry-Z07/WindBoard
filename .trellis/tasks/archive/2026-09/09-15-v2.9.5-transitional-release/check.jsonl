@@ -1,0 +1,6 @@
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "核对公告位实现未引入硬编码文案/颜色、未新增不必要自定义控件，且本地化走 L10n/{l10n:Loc}"}
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "核对零 CA/IDE 告警、Culture 相关字符串操作、错误处理与日志约定"}
+{"file": ".trellis/spec/backend/e2e-testing-guidelines.md", "reason": "核对测试分层：XAML 合成层归 E2E，本任务不新增 E2E 的理由与纯函数单测覆盖范围需与此规范一致"}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "核对设置模型 → 服务 → 壳层 UI 的跨层数据流没有绕过 Update、没有在错误层写状态"}
+{"file": ".agents/skills/release-main-tag/SKILL.md", "reason": "发版一致性校验（VersionPrefix/tag/更新日志）与预期资产清单的核对依据"}
+{"file": "docs/dev/guides/localization.zh-CN.md", "reason": "核对新增 resw key 的命名、双语齐备与默认语言约定"}

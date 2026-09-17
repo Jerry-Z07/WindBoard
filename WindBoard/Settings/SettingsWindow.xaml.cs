@@ -68,6 +68,7 @@ namespace WindBoard.Settings
         private AppWindowTitleBar? _appWindowTitleBar;
         private string? _pendingBringIntoViewElementName;
         private Type? _pendingBringIntoViewPageType;
+        private AppAnnouncement? _currentAnnouncement;
 
         internal static SettingsWindow? Active { get; private set; }
 
@@ -93,6 +94,7 @@ namespace WindBoard.Settings
             ConfigureTitleBar();
             RebuildSearchTargets();
             UpdateCurrentPageTitle();
+            UpdateAnnouncementBar();
 
             Active = this;
             Closed += (_, _) =>
@@ -483,6 +485,80 @@ namespace WindBoard.Settings
             {
                 targetElement.StartBringIntoView();
             }
+        }
+
+        private void UpdateAnnouncementBar()
+        {
+            AppAnnouncement? announcement = AppAnnouncementCatalog.SelectNext(
+                AppAnnouncementCatalog.All,
+                AppSettingsService.Instance.GetDismissedAnnouncementIds());
+
+            if (announcement is null)
+            {
+                _currentAnnouncement = null;
+                AnnouncementBar.IsOpen = false;
+                return;
+            }
+
+            _currentAnnouncement = announcement;
+            AnnouncementBar.Severity = announcement.Severity;
+            AnnouncementBar.Title = announcement.TitleProvider();
+            AnnouncementBar.Message = announcement.MessageProvider();
+
+            Func<string>? actionButtonProvider = announcement.ActionButtonProvider;
+            AnnouncementActionButton.Content = actionButtonProvider is null ? string.Empty : actionButtonProvider();
+            AnnouncementActionButton.Visibility = actionButtonProvider is null
+                ? Visibility.Collapsed
+                : Visibility.Visible;
+
+            AnnouncementBar.IsOpen = true;
+        }
+
+        private void OnAnnouncementCloseButtonClick(InfoBar sender, object args)
+        {
+            // 只有用户点击关闭按钮才会触发该事件（程序化设置 IsOpen 不会），
+            // 因此这里可以安全地把它记为“该公告不再提醒”。
+            if (_currentAnnouncement is null)
+            {
+                return;
+            }
+
+            AppSettingsService.Instance.DismissAnnouncement(_currentAnnouncement.Id);
+        }
+
+        private void OnAnnouncementActionClicked(object sender, RoutedEventArgs e)
+        {
+            if (_currentAnnouncement is null)
+            {
+                return;
+            }
+
+            switch (_currentAnnouncement.Action)
+            {
+                case AppAnnouncementAction.OpenBackupSettings:
+                    NavigateToBackupSettings();
+                    break;
+
+                default:
+                    break;
+            }
+        }
+
+        private void NavigateToBackupSettings()
+        {
+            // 与 NavigateToSearchTarget 同构：复用既有的“跳页 + 把目标元素滚入视野”机制。
+            _pendingBringIntoViewPageType = typeof(SettingsManagementPage);
+            _pendingBringIntoViewElementName = "ExportSettingsCard";
+
+            // 选中“关于”根节点会清空二级返回栈，随后压入的设置管理页即可用返回键回到“关于”。
+            NavView.SelectedItem = FindNavigationItemByTag("about") ?? NavView.SelectedItem;
+
+            if (ContentFrame.CurrentSourcePageType != typeof(SettingsManagementPage))
+            {
+                ContentFrame.Navigate(typeof(SettingsManagementPage));
+            }
+
+            TryBringPendingElementIntoView();
         }
 
         private static Dictionary<string, SettingsRootDefinition> CreateRootDefinitionsByTag()

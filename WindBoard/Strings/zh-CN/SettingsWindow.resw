@@ -38,4 +38,13 @@
   <data name="SettingsWindow_Search_Placeholder" xml:space="preserve">
     <value>搜索设置</value>
   </data>
+  <data name="SettingsWindow_Announcement_InstallerDistribution_Title" xml:space="preserve">
+    <value>安装方式调整提醒</value>
+  </data>
+  <data name="SettingsWindow_Announcement_InstallerDistribution_Message" xml:space="preserve">
+    <value>安装版（安装包）分发方式将调整，建议先备份设置，以便迁移后导入。</value>
+  </data>
+  <data name="SettingsWindow_Announcement_InstallerDistribution_Action" xml:space="preserve">
+    <value>去备份设置</value>
+  </data>
 </root>

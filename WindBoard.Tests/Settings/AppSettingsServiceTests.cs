@@ -222,6 +222,80 @@ public sealed class AppSettingsServiceTests
         }
     }
 
+    [Fact]
+    public void DismissAnnouncement_MakesIdVisibleAndDoesNotDuplicate()
+    {
+        string root = CreateTempDirectory();
+        try
+        {
+            string defaultSettingsPath = Path.Combine(root, "data", "settings.json");
+            AppSettingsService service = CreateService(defaultSettingsPath);
+            Assert.Empty(service.GetDismissedAnnouncementIds());
+
+            service.DismissAnnouncement("  installer-distribution-changed  ");
+            service.DismissAnnouncement("installer-distribution-changed");
+
+            string[] expected = ["installer-distribution-changed"];
+            Assert.Equal(expected, service.GetDismissedAnnouncementIds());
+        }
+        finally
+        {
+            DeleteDirectory(root);
+        }
+    }
+
+    [Fact]
+    public async Task ResetToDefaultsAsync_ClearsDismissedAnnouncementIds()
+    {
+        string root = CreateTempDirectory();
+        TestLanguageState.Snapshot cultureSnapshot = TestLanguageState.Capture();
+        try
+        {
+            string defaultSettingsPath = Path.Combine(root, "data", "settings.json");
+            AppSettingsService service = CreateService(defaultSettingsPath);
+            service.DismissAnnouncement("installer-distribution-changed");
+            Assert.Single(service.GetDismissedAnnouncementIds());
+
+            await service.ResetToDefaultsAsync(CancellationToken.None);
+
+            Assert.Empty(service.GetDismissedAnnouncementIds());
+
+            AppSettings persisted = new AppSettingsStore(defaultSettingsPath).LoadOrDefault();
+            Assert.Empty(persisted.Announcements.DismissedIds);
+        }
+        finally
+        {
+            TestLanguageState.Restore(cultureSnapshot);
+            DeleteDirectory(root);
+        }
+    }
+
+    [Fact]
+    public void GetDismissedAnnouncementIds_ReturnsSnapshotCopy()
+    {
+        string root = CreateTempDirectory();
+        try
+        {
+            string defaultSettingsPath = Path.Combine(root, "data", "settings.json");
+            AppSettingsService service = CreateService(defaultSettingsPath);
+            service.DismissAnnouncement("installer-distribution-changed");
+
+            IReadOnlyCollection<string> ids = service.GetDismissedAnnouncementIds();
+            if (ids is List<string> mutable)
+            {
+                mutable.Add("injected-by-caller");
+            }
+
+            // 必须是快照副本：调用方对返回集合的改动不得影响服务内部状态。
+            string[] expected = ["installer-distribution-changed"];
+            Assert.Equal(expected, service.GetDismissedAnnouncementIds());
+        }
+        finally
+        {
+            DeleteDirectory(root);
+        }
+    }
+
     private static AppSettingsService CreateService(string settingsPath)
     {
         var store = new AppSettingsStore(settingsPath);

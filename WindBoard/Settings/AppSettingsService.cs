@@ -413,6 +413,27 @@ namespace WindBoard.Settings
             }
         }
 
+        internal IReadOnlyCollection<string> GetDismissedAnnouncementIds()
+        {
+            lock (_gate)
+            {
+                // 返回快照副本：调用方（设置窗口）只做“是否已关闭”的判读，不应持有内部列表引用。
+                List<string>? dismissedIds = Current.Announcements?.DismissedIds;
+                return dismissedIds is null ? Array.Empty<string>() : new List<string>(dismissedIds);
+            }
+        }
+
+        internal void DismissAnnouncement(string id)
+        {
+            string dismissedId = (id ?? string.Empty).Trim();
+            Update(s =>
+            {
+                s.Announcements ??= new AnnouncementsSettings();
+                s.Announcements.DismissedIds ??= new List<string>();
+                s.Announcements.DismissedIds.Add(dismissedId);
+            });
+        }
+
         internal void Update(Action<AppSettings> update)
         {
             ArgumentNullException.ThrowIfNull(update);

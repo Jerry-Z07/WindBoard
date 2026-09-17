@@ -81,7 +81,8 @@
 - `docs/dev/guides/localization.zh-CN.md`：本地化约定。
 - `docs/dev/guides/wbix.zh-CN.md`：WBIX（`.wbix`）格式说明。
 - `docs/dev/guides/msix-packaging.zh-CN.md`：MSIX 打包与 Store 发布（条件属性、产包命令、payload 注入、版本号注入）。
-- 不要阅读 `docs/release-notes/` 和 `docs/dev/archive/` 中的内容。
+- `.agents/skills/writing-release-notes/SKILL.md`：更新日志编写约定。发版前必须加载并遵循
+- 不要阅读 `docs/dev/archive/` 中的内容。
 
 <!-- TRELLIS:START -->
 # Trellis Instructions

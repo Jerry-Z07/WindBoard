@@ -21,6 +21,8 @@ namespace WindBoard.Settings
         public KeyboardShortcutsSettings KeyboardShortcuts { get; set; } = new();
 
         public DiagnosticsSettings Diagnostics { get; set; } = new();
+
+        public AnnouncementsSettings Announcements { get; set; } = new();
     }
 
     internal sealed class GeneralSettings
@@ -196,5 +198,16 @@ namespace WindBoard.Settings
         /// 日志文件保留天数（<=0 表示不清理）。
         /// </summary>
         public int RetentionDays { get; set; } = 14;
+    }
+
+    /// <summary>
+    /// 公告设置：记录用户已关闭的公告，避免同一条公告反复出现。
+    /// </summary>
+    internal sealed class AnnouncementsSettings
+    {
+        /// <summary>
+        /// 已被用户关闭、不再提醒的公告 Id。
+        /// </summary>
+        public List<string> DismissedIds { get; set; } = new();
     }
 }
