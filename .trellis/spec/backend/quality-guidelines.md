@@ -6,7 +6,7 @@
 
 ## Overview
 
-WindBoard follows the principle "safety = correctness > minimal change > readability > consistency." Roslyn analyzers are enforced at build time since 2026-09 (see Static Analysis below); `.editorconfig`/StyleCop are not used, and code quality depends on analyzers, code review, and conventions.
+WindBoard follows the principle "safety = correctness > minimal change > readability > consistency." Roslyn analyzers are enforced at build time since 2026-09 (see Static Analysis below). Code style is enforced by the repository-root `.editorconfig` (read by `EnforceCodeStyleInBuild` at build time and by `dotnet format`), which encodes the existing conventions with zero tolerance for pre-existing violations; StyleCop is not used, and code quality otherwise depends on analyzers, code review, and conventions.
 
 ---
 
@@ -61,6 +61,18 @@ WindBoard follows the principle "safety = correctness > minimal change > readabi
 ## Static Analysis (Analyzer Enforced)
 
 Since 2026-09, `Directory.Build.props` sets `<AnalysisLevel>latest-recommended</AnalysisLevel>` and `<EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>` for all four projects. Analyzer warnings (CA/IDE) are treated as build failures in publish builds.
+
+The repository-root `.editorconfig` is the style baseline read by `EnforceCodeStyleInBuild` and `dotnet format`. Every rule there was derived from a census of the existing code and is annotated with its rationale and violation count, so it adds zero warnings to the current tree — the intent is to freeze existing conventions, not to introduce new ones. Two constraints when extending it:
+
+- A rule that already has pre-existing violations must be set to `suggestion`. Only `warning`/`error` rules reach the build (`EnforceCodeStyleInBuild`), so a higher severity would break the zero-warning gate for code that was never cleaned up.
+- A project-scoped override needs both `Project/*.cs` and `Project/**/*.cs`. In EditorConfig path matching `**` consumes **at least one** directory level, so `Project/**/*.cs` alone does NOT match files sitting directly under `Project/`. Verified empirically: omitting the single-level pattern silently missed 7 files and produced IDE0160 warnings for them.
+
+Line endings are governed by two layers that both resolve to CRLF for this Windows-only project (WinUI 3, CI on `windows-latest`):
+
+- `.gitattributes` (`* text=auto`, GitHub's recommended default): the index stores LF and checkout follows the platform, which yields CRLF on Windows. It deliberately does **not** use `* text=auto eol=crlf` — the GitHub docs advise against that form unless every platform must see CRLF — and only pins `eol=crlf` on the file types the Windows toolchain requires (`.sln`, `.slnx`, `.props`, `.iss`, `.isl`, ...).
+- `.editorconfig` (`end_of_line = crlf`): what editors and tools write.
+
+Because a repo-level `.gitattributes` overrides each contributor's local `core.autocrlf`, this no longer depends on personal configuration — which is what caused the original drift (643 CRLF / 185 LF / 3 internally-mixed files, the LF ones being files created locally that Git never re-checked-out). The tree was normalized once, then `git add --renormalize .` was run; without that step Git keeps reporting roughly 190 untouched files as modified.
 
 ### Convention: Analyzer warnings are zero-tolerance
 
