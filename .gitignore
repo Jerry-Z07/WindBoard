@@ -77,10 +77,11 @@ publish/
 **/publish/
 *.vsix
 
-# Appx/MSIX 打包在源码树生成的中间产物
-# 说明：main 分支不支持 MSIX 打包、不会产出该目录，但本地切到 develop 做打包后会残留，
-# 这里一并忽略，避免这些中间产物被误提交。
+# Appx/MSIX 打包在源码树生成的中间产物（single-project MSIX 构建副作用）
 WindBoard/BundleArtifacts/
+# MSIX 产包输出目录（只匹配仓库根的 msix/，必须写成 /msix/：
+# 不加前导斜杠会在 Windows 的大小写不敏感匹配下把 WindBoard/Assets/Msix/ 视觉资产一起忽略掉）
+/msix/
 
 # NuGet packages and cache
 package.lock.json

@@ -113,18 +113,52 @@ UI and file format are decoupled: the UI only cares about `BoardWorkspaceSnapsho
 
 ### AppDataPaths
 
-Determine the installation type through `AppInstallProbe`:
+Determine the installation type through `AppInstallProbe` (`AppInstallKind`):
+
+Probe priority (first match wins):
+1. **Package identity** — Win32 `GetCurrentPackageFullName` (P/Invoke) returns `APPMODEL_ERROR_NO_PACKAGE (15700)` for unpackaged processes → `Msix`, `Evidence = "package-identity"`. Result is cached.
+2. Registry `HKLM\SOFTWARE\WindBoard` (`InstallKind`/`InstallVariant`/`InstallDir`, written by the Inno installer).
+3. `unins*.exe` in the product root.
+4. Fallback → `Portable`.
+
+> **Warning**: use the **Win32** `GetCurrentPackageFullName` for the packaged check, **not** `Windows.ApplicationModel.Package.Current`. `AppDataPaths.GetSnapshot()` calls `AppInstallProbe.ProbeNoLog()` extremely early (before `AppLog` is configured), where bringing up WinRT activation is risky; the Win32 call is cheap and side-effect free.
 
 | Mode | Root directory |
 |------|----------------|
 | Installer | `%LocalAppData%\WindBoard` |
+| Msix | `%LocalAppData%\WindBoard` (the OS redirects **newly created** files to the package-private location; reads fall back to the real directory — see `docs/dev/guides/msix-packaging.zh-CN.md`) |
 | Portable | `{AppDir}\data` (falls back to LocalAppData when not writable) |
 
-Available path properties: `RootDirectory`, `SettingsFilePath`, `LogsDirectory`, `CamouflageCacheDirectory`, `DownloadsDirectory`
+Available path properties: `RootDirectory`, `SettingsFilePath`, `LogsDirectory`, `CamouflageCacheDirectory`, `DownloadsDirectory`, plus `OwnDataDirectory` (= `RootDirectory`) and `LegacyInstallerDataDirectory` (real `%LocalAppData%\WindBoard`, used **only** as a read source for the legacy-installer migration; computed from the `LOCALAPPDATA` environment variable, falling back to `GetFolderPath`).
+
+> **Important**: MSIX must **not** declare `unvirtualizedResources` / `desktop6:*WriteVirtualization` in this project. Cross-form data sharing is by **exported files** (settings JSON, `.wbix`), not by sharing a runtime data directory — see `prd.md` D2 and `docs/dev/guides/msix-packaging.zh-CN.md`.
 
 ### AppRuntimeLayout
 
 Resolves the product root directory, runtime directory, portable data directory, and Launcher/CrashReporter paths. It is compatible with the `shared/` subdirectory layout.
+
+---
+
+## Installation Form Contract (`AppInstallKind`)
+
+`AppInstallKind` is a **cross-layer contract**: `Unknown | Installer | Portable | Msix`. Runtime behavior branches on it, so adding or changing a form has a fixed checklist of consumption points.
+
+### Checklist when adding/changing an installation form
+
+- [ ] `Updates/AppInstallProbe.cs` — probe + `ComputeProbeResult` (keep it injectable for tests)
+- [ ] `Persistence/AppDataPaths.cs` — data root selection and the fallback chain
+- [ ] `Updates/AppUpdateService.cs` / `UpdateAssetSelector` — whether an update channel exists for this form
+- [ ] `Updates/DownloadSourceSpeedTestPolicy.cs` — speed-test policy input
+- [ ] `Fonts/SegoeFluentIconsFontLoader.cs` — whether the system font is expected to be pre-installed
+- [ ] `Errors/AppCrashReportStore.cs` — the `InstallKind` field written into crash reports
+- [ ] Any `switch` over the enum (`AboutSettingsPage.Updates.cs` state/title mapping) — keep exhaustive, no silent default
+
+### Migration marker contract (legacy installer → MSIX)
+
+- The marker file lives in the app's **own** data directory (`migrated-from-installer.flag`); never in the registry.
+- Marker is written when the user **confirms and the import succeeds**, and when the user **declines**. It is **not** written when the legacy JSON is corrupt or unreadable — otherwise a user who later fixes the file could never migrate.
+- The legacy `settings.json` is only **read**; the app never writes back into the legacy directory.
+- When the own data directory and the legacy directory resolve to the **same path** (possible under MSIX virtualization), do **not** treat "own settings.json exists" as "already an old user" — that would silently skip exactly the users the migration targets. Prompt instead.
 
 ---
 

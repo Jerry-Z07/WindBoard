@@ -24,14 +24,16 @@ jobs:
         with:
           dotnet-version: "10.0.x"
 
+      # MSIX 产包必须用 Visual Studio 的 MSBuild.exe（runner 已预装 VS，本 Action 只是把它放进 PATH）：
+      # 打包任务程序集（tools/net6.0）依赖 System.Security.Permissions.dll，该程序集只在
+      # Microsoft.WindowsDesktop.App 共享框架中；dotnet msbuild 宿主跑在 Microsoft.NETCore.App 上，
+      # 会在 Appx 产包阶段以 MSB4018 / FileNotFoundException 失败（design.md §2.2 实测结论 V2）。
+      # 版本 tag 沿用 single-project MSIX 官方文档所引示例仓库的写法，后续可整体升级。
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v1.0.2
+
       - name: Restore
         run: dotnet restore
-
-      - name: Install Inno Setup
-        shell: pwsh
-        run: |
-          $ErrorActionPreference = 'Stop'
-          choco install innosetup -y --no-progress
 
       - name: Publish + Package + latest.json
         shell: pwsh
@@ -49,6 +51,13 @@ jobs:
           $launcherProject = Join-Path $PWD 'WindBoard.Launcher/WindBoard.Launcher.csproj'
           if (!(Test-Path $project)) { throw "Project file not found: $project" }
           if (!(Test-Path $launcherProject)) { throw "Launcher project file not found: $launcherProject" }
+
+          # Microsoft Store 产品 ID：从发布流程变量 vars.MSIX_STORE_PRODUCT_ID 注入；
+          # 未配置时退化为占位符 —— 说明文档/最新版 changelog 中的商店链接会指向占位地址，
+          # 取得 Partner Center 分配的真实 Product ID 后请配置该仓库变量（或直接替换本占位常量）。
+          $storeProductId = '${{ vars.MSIX_STORE_PRODUCT_ID }}'
+          if ([string]::IsNullOrWhiteSpace($storeProductId)) { $storeProductId = 'REPLACE_WITH_STORE_PRODUCT_ID' }
+          $storeUrl = "https://apps.microsoft.com/detail/$storeProductId"
 
           # 版本号写入到程序集/文件属性中，便于 About 页与日志展示一致，并方便定位构建来源。
           $sha = '${{ github.sha }}'
@@ -77,9 +86,9 @@ jobs:
           New-Item -ItemType Directory -Force -Path $dist | Out-Null
 
           $variants = @(
-            @{ Rid = 'win-x86';   Arch = 'x86'  }
-            @{ Rid = 'win-x64';   Arch = 'x64'  }
-            @{ Rid = 'win-arm64'; Arch = 'arm64' }
+            @{ Rid = 'win-x86';   Arch = 'x86';   Platform = 'x86'  }
+            @{ Rid = 'win-x64';   Arch = 'x64';   Platform = 'x64'  }
+            @{ Rid = 'win-arm64'; Arch = 'arm64'; Platform = 'ARM64' }
           )
 
           $assets = @()
@@ -128,100 +137,40 @@ jobs:
               sha256 = $portableSha256
             }
 
-            # --- 安装包（不带运行库，依赖运行时）---
-            $publishDirFd = Join-Path $PWD ("publish/{0}/fd" -f $rid)
-            $publishDirFdShared = Join-Path $publishDirFd 'shared'
-            dotnet publish $project `
-              -c Release `
-              -r $rid `
-              --self-contained false `
-              -o $publishDirFdShared `
-              -p:PublishReadyToRun=false `
-              -p:WindowsAppSDKSelfContained=false `
+            # --- Microsoft Store 上传包（MSIX，自包含）---
+            # 必须使用 MSBuild.exe（见上方 Setup MSBuild 步骤的说明），不能用 dotnet msbuild。
+            # PublishDir 必须显式传绝对路径：pubxml 内的 PublishDir 是相对路径，传给 CrashReporter
+            # 子项目时会被其按自身目录解析（design.md §6 记录的顺序/相对路径坑）。
+            # 三架构各产出一个 .msixupload（内含单架构 bundle）：Partner Center 允许同一提交上传多个包，
+            # 因此这里不额外拼多架构 bundle（design.md §2.2：Store 接受同提交多个单架构包）。
+            $msixOutDir = Join-Path $PWD ("msix/{0}" -f $rid)
+            $msixPublishDir = Join-Path $PWD ("publish/{0}/msix" -f $rid)
+            msbuild $project `
+              /t:Publish `
+              /restore `
+              "/p:Configuration=Release" `
+              "/p:Platform=$($v.Platform)" `
+              "/p:RuntimeIdentifier=$rid" `
+              "/p:WindBoardPackage=Msix" `
+              "/p:GenerateAppxPackageOnBuild=true" `
+              "/p:AppxPackageDir=$msixOutDir\" `
+              "/p:PublishDir=$msixPublishDir\" `
+              "/p:UapAppxPackageBuildMode=StoreUpload" `
+              "/p:AppxPackageSigningEnabled=false" `
+              "/p:WindowsAppSDKSelfContained=true" `
+              "/p:SelfContained=true" `
               $msbuildProps
 
-            dotnet publish $launcherProject `
-              -c Release `
-              -r $rid `
-              -o $publishDirFd `
-              -p:AssemblyName=WindBoard `
-              -p:TargetName=WindBoard `
-              -p:DebugSymbols=false `
-              -p:DebugType=None `
-              $msbuildProps
+            $msixUpload = Get-ChildItem -Path $msixOutDir -Recurse -Filter '*_bundle.msixupload' -File -ErrorAction SilentlyContinue |
+              Select-Object -First 1
+            if ($null -eq $msixUpload) { throw "MSIX upload package not produced: $msixOutDir" }
 
-            # --- 生成安装包（带/不带运行库）---
-            $publishDirSc = Join-Path $PWD ("publish/{0}/sc" -f $rid)
-            $issPath = Join-Path $PWD 'installer/WindBoard.iss'
-            $publishDirScForIss = Join-Path '..' ("publish\\{0}\\sc" -f $rid)
-            $publishDirFdForIss = Join-Path '..' ("publish\\{0}\\fd" -f $rid)
-            $distForIss = Join-Path '..' 'dist'
+            $msixAssetName = "WindBoard-$version-$rid.msixupload"
+            $msixAssetPath = Join-Path $dist $msixAssetName
+            Copy-Item -Path $msixUpload.FullName -Destination $msixAssetPath -Force
+            if (!(Test-Path $msixAssetPath)) { throw "MSIX upload asset not found: $msixAssetPath" }
 
-            $iscc = (Get-Command iscc -ErrorAction SilentlyContinue)?.Source
-            if ([string]::IsNullOrWhiteSpace($iscc)) {
-              $fallback = Join-Path ${env:ProgramFiles(x86)} 'Inno Setup 6\ISCC.exe'
-              if (Test-Path $fallback) { $iscc = $fallback }
-            }
-            if ([string]::IsNullOrWhiteSpace($iscc) -or !(Test-Path $iscc)) {
-              throw 'ISCC.exe not found in PATH or default install location.'
-            }
-
-            # 安装包：带运行库（自包含）
-            $setupFileNameSc = "WindBoardSetup-$version-$rid.exe"
-            $setupPathSc = Join-Path $dist $setupFileNameSc
-            if (Test-Path $setupPathSc) { Remove-Item -Force $setupPathSc }
-
-            & $iscc `
-              "/DMyAppVersion=$version" `
-              "/DMySourceDir=$publishDirScForIss" `
-              "/DMyOutputDir=$distForIss" `
-              "/DMyArch=$arch" `
-              "/DMyRid=$rid" `
-              $issPath
-
-            if (!(Test-Path $setupPathSc)) { throw "Installer not produced: $setupPathSc" }
-
-            $setupSha256Sc = (Get-FileHash -Path $setupPathSc -Algorithm SHA256).Hash.ToLowerInvariant()
-            $setupSizeSc = (Get-Item $setupPathSc).Length
-            $setupDownloadUrlSc = "https://github.com/$repo/releases/download/$tag/$setupFileNameSc"
-
-            $assets += [pscustomobject]@{
-              arch = $arch
-              runtime = 'installer'
-              fileName = $setupFileNameSc
-              downloadUrl = $setupDownloadUrlSc
-              size = $setupSizeSc
-              sha256 = $setupSha256Sc
-            }
-
-            # 安装包：不带运行库（framework-dependent）
-            $setupFileNameFd = "WindBoardSetup-$version-$rid-fd.exe"
-            $setupPathFd = Join-Path $dist $setupFileNameFd
-            if (Test-Path $setupPathFd) { Remove-Item -Force $setupPathFd }
-
-            & $iscc `
-              "/DMyAppVersion=$version" `
-              "/DMySourceDir=$publishDirFdForIss" `
-              "/DMyOutputDir=$distForIss" `
-              "/DMyArch=$arch" `
-              "/DMyRid=$rid" `
-              "/DMyVariantSuffix=-fd" `
-              $issPath
-
-            if (!(Test-Path $setupPathFd)) { throw "Installer not produced: $setupPathFd" }
-
-            $setupSha256Fd = (Get-FileHash -Path $setupPathFd -Algorithm SHA256).Hash.ToLowerInvariant()
-            $setupSizeFd = (Get-Item $setupPathFd).Length
-            $setupDownloadUrlFd = "https://github.com/$repo/releases/download/$tag/$setupFileNameFd"
-
-            $assets += [pscustomobject]@{
-              arch = $arch
-              runtime = 'installer'
-              fileName = $setupFileNameFd
-              downloadUrl = $setupDownloadUrlFd
-              size = $setupSizeFd
-              sha256 = $setupSha256Fd
-            }
+            Write-Host ("MSIX upload ready: {0} ({1} MB)" -f $msixAssetName, [math]::Round((Get-Item $msixAssetPath).Length / 1MB, 1))
           }
 
           $prevTag = $null
@@ -257,6 +206,23 @@ jobs:
             ) -join "`n"
           }
 
+          # 迁移提示：置顶写入 changelog，从而同时进入 Release 正文与 latest.json 的 changelog
+          # （旧 Inno 安装版客户端会读取 changelog 展示；其下载按钮仍只识别便携版 zip 资产）。
+          $migrationNoticeZh = @(
+            '> **重要：安装版分发方式已变更**'
+            "> 安装版（Inno Setup）已停止发布，改为通过 Microsoft Store 分发 MSIX 版本：[在 Microsoft Store 获取 WindBoard]($storeUrl)"
+            '> GitHub Releases 仅提供便携版 zip。已安装旧安装版的用户可继续使用原版本，或从 Store 安装新版后首次启动时导入旧设置（设置导出文件与 .wbix 在两种形态间互通）。'
+          ) -join "`n"
+
+          $migrationNoticeEn = @(
+            '> **Important: installer distribution changed**'
+            "> The Inno Setup installer is discontinued. The installable version is now distributed as MSIX through the Microsoft Store: [Get WindBoard from the Microsoft Store]($storeUrl)"
+            '> GitHub Releases only provides the portable zip. Users on the old installer can keep using it, or install the Store version and import their settings on first launch (exported settings files and .wbix files are interchangeable between the two forms).'
+          ) -join "`n"
+
+          $changelogZh = "$migrationNoticeZh`n`n$changelogZh"
+          $changelogEn = "$migrationNoticeEn`n`n$changelogEn"
+
           $releaseDate = (Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ')
 
           $latest = [ordered]@{
@@ -273,24 +239,23 @@ jobs:
           $latestJsonPath = Join-Path $dist 'latest.json'
           ($latest | ConvertTo-Json -Depth 10) | Set-Content -Path $latestJsonPath -Encoding UTF8
 
-          # GitHub Release 正文顶部追加下载表格，便于直接选择对应架构和包类型。
+          # GitHub Release 正文顶部追加下载表格：GitHub 只发布便携版 zip，
+          # 安装版（MSIX）经 Microsoft Store 分发，链接在下方 changelog 顶部的迁移提示中。
           $releaseAssetRows = foreach ($arch in @('x64', 'x86', 'arm64')) {
-            $recommendedInstaller = $assets | Where-Object { $_.arch -eq $arch -and $_.runtime -eq 'installer' -and $_.fileName -notlike '*-fd.exe' } | Select-Object -First 1
-            $runtimeFreeInstaller = $assets | Where-Object { $_.arch -eq $arch -and $_.runtime -eq 'installer' -and $_.fileName -like '*-fd.exe' } | Select-Object -First 1
             $portablePackage = $assets | Where-Object { $_.arch -eq $arch -and $_.runtime -eq 'self-contained' } | Select-Object -First 1
 
-            if ($null -eq $recommendedInstaller -or $null -eq $runtimeFreeInstaller -or $null -eq $portablePackage) {
+            if ($null -eq $portablePackage) {
               throw "Missing release asset for architecture: $arch"
             }
 
-            "| $arch | [安装版（推荐）]($($recommendedInstaller.downloadUrl)) | [安装版（无运行库）]($($runtimeFreeInstaller.downloadUrl)) | [便携版]($($portablePackage.downloadUrl)) |"
+            "| $arch | [便携版]($($portablePackage.downloadUrl)) |"
           }
 
           $releaseAssetTable = @(
             '## 下载'
             ''
-            '| 架构 | 安装版 | 安装版（无运行库） | 便携版 |'
-            '| --- | --- | --- | --- |'
+            '| 架构 | 便携版 |'
+            '| --- | --- |'
             $releaseAssetRows
           ) -join "`n"
 
@@ -308,12 +273,21 @@ jobs:
           $releaseNotesPath = Join-Path $dist 'release-notes.md'
           $releaseNotes.Trim() | Set-Content -Path $releaseNotesPath -Encoding UTF8
 
+      # MSIX 产物是「未签名的 Store 提交容器」，用户无法直接安装，不构成侧载渠道：
+      # 按 D3「GitHub 只发便携版 zip」的约定，它不作为 Release 资产，只作为 workflow artifact
+      # 供维护者下载后提交 Partner Center（design.md §2.2）。
+      - name: Upload MSIX packages (Store submission)
+        uses: actions/upload-artifact@v4
+        with:
+          name: msix-packages
+          path: dist/*.msixupload
+          if-no-files-found: error
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           files: |
             dist/*.zip
-            dist/*.exe
             dist/latest.json
           body_path: dist/release-notes.md
           generate_release_notes: false

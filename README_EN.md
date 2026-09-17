@@ -49,11 +49,18 @@
 - Runtime: .NET 10 (`net10.0-windows`)
 - Serialization: System.Text.Json + custom workspace format (WBIX)
 - Tests: xUnit (`WindBoard.Tests`)
-- Packaging: Inno Setup (`installer/`)
+- Packaging: MSIX (distributed via Microsoft Store) + portable zip (Inno Setup is discontinued; its script is kept in `installer/` for rollback only)
 
 ## Quick start
 
-You can download the software from [Releases](https://github.com/Jerry-Z07/WindBoard/releases/latest).
+- Installer version: install from the [Microsoft Store](https://apps.microsoft.com/detail/REPLACE_WITH_STORE_PRODUCT_ID)
+- Portable version: download the zip from [Releases](https://github.com/Jerry-Z07/WindBoard/releases/latest) and extract it
+
+<!--
+  TODO: replace REPLACE_WITH_STORE_PRODUCT_ID above with the real Product ID after publishing.
+  The same placeholder appears in: README.md, WindBoard/Updates/UpdateConstants.cs (StoreProductId),
+  and .github/workflows/release.yml (vars.MSIX_STORE_PRODUCT_ID).
+-->
 
 ## Contributing
 Issues and PRs are welcome. Thanks for your support!

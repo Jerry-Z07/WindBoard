@@ -1,3 +1,10 @@
+; ==============================================================================
+; 【已停发】Inno Setup 安装包自 2026-09 起不再由 CI 发布：面向终端用户的安装形态
+; 改为 Microsoft Store 的 MSIX，GitHub Releases 只提供便携版 zip
+; （见 docs/dev/guides/msix-packaging.zh-CN.md）。
+; 本脚本保留用于回滚：如需临时恢复发布安装包，恢复 .github/workflows/release.yml 中
+; 调用 iscc 的步骤即可（该文件 git 历史中保留了停发前的完整调用方式）。
+; ==============================================================================
 #define MyAppId "{{C0F2F2F5-4A20-4B01-9F75-10A1FDF8E5CE}"
 #define MyAppName "WindBoard"
 #define MyAppPublisher "WindBoard"

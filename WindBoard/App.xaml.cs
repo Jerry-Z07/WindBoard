@@ -25,6 +25,7 @@ using WindBoard.Localization;
 using WindBoard.Persistence;
 using WindBoard.Reminders;
 using WindBoard.Settings;
+using WindBoard.UI.Common;
 using WindBoard.Updates;
 using Microsoft.Windows.AppNotifications;
 
@@ -181,6 +182,9 @@ namespace WindBoard
 
             // 启动完成后再弹提醒：避免窗口尚未就绪时应用内弹条控件未挂载，导致提醒丢失。
             TryRemindAppDataIssuesIfNeeded(_window);
+
+            // 旧 Inno 安装版数据迁移（仅 MSIX 形态介入）：放在主窗口就绪之后，且不阻塞设置加载与启动流程。
+            TryRunInstallerMigration(_window);
         }
 
         private static void TryRemindAppDataIssuesIfNeeded(Window window)
@@ -205,6 +209,39 @@ namespace WindBoard
             {
                 // 提醒失败不应影响启动：记录日志便于排查。
                 AppLog.Warn("Reminders", "启动阶段数据目录提醒失败", ex);
+            }
+        }
+
+        /// <summary>
+        /// 旧 Inno 安装版数据迁移（MSIX 形态首次运行）：
+        /// - 决策在 <see cref="InstallerMigrationService"/>（非 MSIX 形态直接跳过，零 I/O）；
+        /// - 命中才弹窗（需要主窗口 XamlRoot），确认后复用既有导入链路；
+        /// - 任何失败都只记录日志，绝不阻断启动。
+        /// </summary>
+        private static void TryRunInstallerMigration(Window window)
+        {
+            try
+            {
+                InstallerMigrationEvaluation evaluation = InstallerMigrationService.Instance.Evaluate();
+                if (!evaluation.ShouldPrompt)
+                {
+                    return;
+                }
+
+                XamlRoot? xamlRoot = (window as MainWindow)?.TryGetDialogXamlRoot();
+                if (xamlRoot is null)
+                {
+                    // 弹窗需要 XamlRoot：拿不到时本次不提示（不写 marker，下次启动会重试）。
+                    AppLog.Warn("Migration", "跳过旧安装版数据迁移提示：主窗口 XamlRoot 尚未就绪");
+                    return;
+                }
+
+                AppErrorGuard.FireAndForget("Migration", () => InstallerMigrationDialog.RunAsync(xamlRoot, evaluation));
+            }
+            catch (Exception ex)
+            {
+                // 迁移属于启动期增强能力：任何失败都不得影响启动。
+                AppLog.Warn("Migration", "启动阶段旧安装版数据迁移失败", ex);
             }
         }
 

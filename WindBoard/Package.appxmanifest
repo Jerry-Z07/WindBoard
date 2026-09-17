@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--
+  【占位，待 Partner Center 分配后替换】
+  Identity 的 Name / Publisher 必须与 Partner Center「Product identity」页分配的字符串
+  **逐字符一致**（大小写、空格、标点均敏感），Store 只接受一致身份的包并由微软重签名。
+  下面的 WindBoard.SpikePlaceholder / CN=WindBoard Spike Placeholder 是阶段 0 可行性验证用的
+  占位值，取得正式分配值后整体替换；在此之前不可用于提交 Store。
+
+  该文件仅在显式传入 -p:WindBoardPackage=Msix 时参与打包（见 WindBoard.csproj），
+  默认的 unpackaged 构建（dotnet build WindBoard.slnx）不会读取本文件。
+-->
+<Package
+  xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
+  xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10"
+  xmlns:uap10="http://schemas.microsoft.com/appx/manifest/uap/windows10/10"
+  xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"
+  IgnorableNamespaces="uap uap10 rescap">
+
+  <!-- 占位 Identity（Name/Publisher 待 Partner Center 分配后替换） -->
+  <Identity
+    Name="WindBoard.SpikePlaceholder"
+    Publisher="CN=WindBoard Spike Placeholder"
+    Version="1.0.0.0" />
+
+  <Properties>
+    <DisplayName>WindBoard</DisplayName>
+    <PublisherDisplayName>WindBoard Spike Placeholder</PublisherDisplayName>
+    <!--
+      视觉资产统一引用 Assets\Msix\ 下的按尺寸派生图：
+      该目录由 WindBoard\Build\GenerateMsixVisualAssets.ps1 从 Assets\icon.png 派生（含 targetsize 变体），
+      WACK / Partner Center 会校验尺寸，不能直接引用 1080x1080 的 icon.png。
+    -->
+    <Logo>Assets\Msix\StoreLogo.png</Logo>
+  </Properties>
+
+  <Resources>
+    <!-- x-generate：语言列表由打包 targets 从项目 PRI 资源（Strings\*.resw）推导 -->
+    <Resource Language="x-generate" />
+  </Resources>
+
+  <Dependencies>
+    <!-- 与 csproj 的 TargetPlatformMinVersion / TargetFramework 对齐 -->
+    <TargetDeviceFamily Name="Windows.Desktop" MinVersion="10.0.19041.0" MaxVersionTested="10.0.26100.0" />
+  </Dependencies>
+
+  <Applications>
+    <!--
+      MinVersion >= 10.0.19041.0 时官方推荐使用 uap10:RuntimeBehavior / uap10:TrustLevel
+      表达中等完整性级别的桌面应用（等价于旧的 EntryPoint="windows.fullTrustApplication"）。
+    -->
+    <Application
+      Id="App"
+      Executable="$targetnametoken$.exe"
+      uap10:RuntimeBehavior="packagedClassicApp"
+      uap10:TrustLevel="mediumIL">
+      <uap:VisualElements
+        DisplayName="WindBoard"
+        Description="WindBoard"
+        BackgroundColor="transparent"
+        Square150x150Logo="Assets\Msix\Square150x150Logo.png"
+        Square44x44Logo="Assets\Msix\Square44x44Logo.png" />
+    </Application>
+  </Applications>
+
+  <Capabilities>
+    <!-- mediumIL 桌面应用必需（受限能力，Store 提交流程中审批） -->
+    <rescap:Capability Name="runFullTrust" />
+  </Capabilities>
+</Package>

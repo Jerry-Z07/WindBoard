@@ -1,0 +1,14 @@
+{"file": ".trellis/spec/backend/index.md", "reason": "后端分层与 Pre-Development Checklist 入口，改动 Persistence/Updates/Errors 层前必读"}
+{"file": ".trellis/spec/backend/database-guidelines.md", "reason": "settings 存储、数据目录与路径基础设施约定；本任务要改 AppDataPaths 与迁移导入，直接相关"}
+{"file": ".trellis/spec/backend/error-handling.md", "reason": "错误处理与 CrashReporter 约定；涉及 AppInstallKind 扩展与崩溃报告形态字段"}
+{"file": ".trellis/spec/backend/logging-guidelines.md", "reason": "AppLog 用法与高频路径禁日志；修改 AppInstallProbe/FontLoader 日志时需要"}
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "代码规范、禁用模式与测试要求"}
+{"file": ".trellis/spec/backend/directory-structure.md", "reason": "新增 InstallerMigrationService 等文件需按层归位"}
+{"file": ".trellis/spec/frontend/index.md", "reason": "前端（WinUI）规范入口；涉及 AboutSettingsPage 更新卡片与迁移弹窗"}
+{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "UserControl/事件处理/本地化约定；新增 Store 托管卡片与迁移 ContentDialog 需要"}
+{"file": ".trellis/spec/frontend/winui-dependencies.md", "reason": "含 FileSavePicker 占位文件判重与弹窗内容自适应约定；R2 文件选择器在 packaged 形态的风险面"}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "WinUI 最佳实践、本地化约定与 review checklist"}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "本任务跨 打包/CI/数据/更新/UI 多层，需按跨层数据流思考"}
+{"file": ".trellis/tasks/09-12-msix-packaging-migration/research/msix-facts.md", "reason": "MSIX 虚拟化、opt-out、更新、签名、功能限制与 14 项需实测清单（V1–V14）"}
+{"file": ".trellis/tasks/09-12-msix-packaging-migration/research/msix-store-vs-sideload.md", "reason": "Store 与侧载的身份/签名/数据共享约束，以及 Store 场景下虚拟化不可退出的依据"}
+{"file": ".trellis/tasks/09-12-msix-packaging-migration/research/msix-packaging-project.md", "reason": "single-project MSIX 单 exe 限制、CI 产包命令、Store 提交形态、依赖策略、WAP 可用性、manifest 要求"}

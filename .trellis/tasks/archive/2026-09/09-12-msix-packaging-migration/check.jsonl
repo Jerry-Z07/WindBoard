@@ -1,0 +1,10 @@
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "后端质量与禁用模式检查基准"}
+{"file": ".trellis/spec/backend/error-handling.md", "reason": "检查错误处理是否符合既有模式（含崩溃报告）"}
+{"file": ".trellis/spec/backend/logging-guidelines.md", "reason": "检查日志是否出现在高频路径、级别是否恰当"}
+{"file": ".trellis/spec/backend/database-guidelines.md", "reason": "检查数据目录/设置存储改动是否符合路径基础设施约定"}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "WinUI 最佳实践与本地化约定检查基准"}
+{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "检查新增 UI（更新卡片、迁移弹窗）是否符合组件与本地化模式"}
+{"file": ".trellis/spec/guides/code-reuse-thinking-guide.md", "reason": "迁移逻辑需复用 AppSettingsStore 反序列化/归一化，检查是否重复造轮子"}
+{"file": ".trellis/tasks/09-12-msix-packaging-migration/research/msix-facts.md", "reason": "核对实现是否误用官方已弃用写法（如 Enabled=\"false\"）、是否满足需实测清单前置"}
+{"file": ".trellis/tasks/09-12-msix-packaging-migration/research/msix-packaging-project.md", "reason": "核对 CI 产包命令与 manifest 是否与官方要求一致（含 makepri 版本校验风险）"}
+{"file": ".trellis/tasks/09-12-msix-packaging-migration/research/msix-store-vs-sideload.md", "reason": "核对是否误引入侧载/自签名或 opt-out 虚拟化等已被否决的方案"}

@@ -125,6 +125,7 @@ namespace WindBoard.Settings.Pages
                 AppUpdateCheckState.UpToDate => L10n.Get("Updates_CheckResult_UpToDate_Title"),
                 AppUpdateCheckState.UpdateAvailable => L10n.Get("Updates_CheckResult_UpdateAvailable_Title"),
                 AppUpdateCheckState.Indeterminate => L10n.Get("Updates_CheckResult_Indeterminate_Title"),
+                AppUpdateCheckState.ManagedByStore => L10n.Get("Updates_CheckResult_ManagedByStore_Title"),
                 _ => L10n.Get("Updates_CheckResult_Error_Title"),
             };
 
@@ -329,9 +330,58 @@ namespace WindBoard.Settings.Pages
                 });
             }
 
+            // MSIX（Store）形态：更新由商店托管，既不提供资产下载，也不应给出 GitHub Releases 链接
+            // （GitHub 侧只发布便携版 zip，对 MSIX 用户没有可用的安装包）。
+            if (result.State == AppUpdateCheckState.ManagedByStore)
+            {
+                AppendStoreManagedSection(panel);
+                return panel;
+            }
+
             AppendDownloadSection(panel, result, sourceForUrls);
             AppendReleasePageLink(panel, releasePageUrl);
             return panel;
+        }
+
+        /// <summary>
+        /// “更新由 Microsoft Store 托管”说明与 Store 页面入口（仅 MSIX 形态展示）。
+        /// </summary>
+        private static void AppendStoreManagedSection(StackPanel panel)
+        {
+            panel.Children.Add(new TextBlock
+            {
+                Text = L10n.Get("Updates_StoreManaged_Description"),
+                TextWrapping = TextWrapping.Wrap,
+                Opacity = 0.9,
+            });
+
+            var storeLink = new HyperlinkButton
+            {
+                Content = L10n.Get("Updates_StoreManaged_OpenStorePage"),
+                HorizontalAlignment = HorizontalAlignment.Left,
+                Padding = new Thickness(0),
+                Margin = new Thickness(0, 8, 0, 0),
+            };
+            string productId = UpdateConstants.StoreProductId;
+            storeLink.Click += (_, _) => _ = TryOpenStorePageAsync(productId);
+            panel.Children.Add(storeLink);
+        }
+
+        private static async Task TryOpenStorePageAsync(string productId)
+        {
+            if (string.IsNullOrWhiteSpace(productId))
+            {
+                return;
+            }
+
+            // 优先用 Store 应用协议直接打开产品页；协议被系统策略禁用等情况下降级为网页链接。
+            bool opened = await TryLaunchUrlAsync(UpdateConstants.GetStoreProductProtocolUrl(productId)).ConfigureAwait(true);
+            if (opened)
+            {
+                return;
+            }
+
+            await TryLaunchUrlAsync(UpdateConstants.GetStoreProductWebUrl(productId)).ConfigureAwait(true);
         }
 
         private void AppendChangelogSection(StackPanel panel, UpdateResultDialogLayoutPlan layoutPlan)
@@ -456,11 +506,12 @@ namespace WindBoard.Settings.Pages
             };
         }
 
-        private static async Task TryLaunchUrlAsync(string url)
+        /// <returns>是否已成功交给系统打开（供调用方决定是否降级到备用链接）。</returns>
+        private static async Task<bool> TryLaunchUrlAsync(string url)
         {
             if (string.IsNullOrWhiteSpace(url))
             {
-                return;
+                return false;
             }
 
             try
@@ -470,10 +521,13 @@ namespace WindBoard.Settings.Pages
                 {
                     AppLog.Warn("Updates", $"打开链接失败（LaunchUriAsync 返回 false）：url='{url}'");
                 }
+
+                return launched;
             }
             catch (Exception ex)
             {
                 AppLog.Warn("Updates", $"打开链接失败：url='{url}'", ex);
+                return false;
             }
         }
 

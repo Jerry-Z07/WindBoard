@@ -834,7 +834,11 @@ namespace WindBoard
             await dialog.ShowAsync();
         }
 
-        private XamlRoot? TryGetDialogXamlRoot()
+        /// <summary>
+        /// 取得用于展示 ContentDialog 的 XamlRoot（WinUI 3 中 ContentDialog 必须指定 XamlRoot）。
+        /// 说明：供主窗口内部与启动阶段的应用级流程（如旧安装版数据迁移）共用，避免各调用点各写一套回退逻辑。
+        /// </summary>
+        internal XamlRoot? TryGetDialogXamlRoot()
         {
             // ContentDialog 在 WinUI 3 中必须指定 XamlRoot。
             if (Content is FrameworkElement root && root.XamlRoot is not null)

@@ -36,6 +36,16 @@
     <Content Include="Assets\Eraser.svg" />
     <Content Include="Assets\icon.ico" />
     <Content Include="Assets\icon.png" />
+    <!--
+      MSIX 视觉资产（由 WindBoard\Build\GenerateMsixVisualAssets.ps1 从 Assets\icon.png 派生，
+      含 Square44x44Logo / Square150x150Logo / StoreLogo 及 targetsize、scale 变体）。
+
+      这些文件本来就会被 Microsoft.WinUI.props 的 `Assets/**/*.*` 与 SDK 默认图片 glob
+      收进 Content 并随输出/发布目录复制，manifest 也只能这样拿到资源（资源必须进输出目录才进 Appx payload）。
+      但它们只在打包形态有意义，因此在非打包形态显式排除，
+      保证 `dotnet build WindBoard.slnx` / 便携版 zip 的内容与引入本目录前完全一致。
+    -->
+    <Content Remove="Assets\Msix\**\*.png" Condition="'$(WindBoardPackage)' != 'Msix'" />
   </ItemGroup>
 
   <ItemGroup>
@@ -79,6 +89,41 @@
     <WindowsPackageType>None</WindowsPackageType>
     <PlatformTarget>AnyCPU</PlatformTarget>
   </PropertyGroup>
+
+  <!--
+    MSIX（single-project）打包开关（条件属性）：
+    - 默认（未传 -p:WindBoardPackage=Msix）：完全沿用上面的 unpackaged 配置
+      （WindowsPackageType=None + EnableMsixTooling=false），
+      `dotnet build WindBoard.slnx`、便携版发布与现有测试路径行为不变；
+      包根目录的 Package.appxmanifest 在默认路径下不参与构建。
+    - 显式传入 -p:WindBoardPackage=Msix：切换为 packaged 形态。
+      注意 WindowsPackageType 必须置为 MSIX 而不是保持 None：
+      打包 targets 在 WindowsPackageType=None 且 GenerateAppxPackageOnBuild=true 时直接报
+      "Improper project configuration" 错误；同时 WindowsPackageType=MSIX 才会启用 PRI 生成。
+      产包命令见 .trellis/tasks/09-12-msix-packaging-migration/design.md §2.2。
+  -->
+  <PropertyGroup Condition="'$(WindBoardPackage)' == 'Msix'">
+    <EnableMsixTooling>true</EnableMsixTooling>
+    <WindowsPackageType>MSIX</WindowsPackageType>
+    <AppxPackage>true</AppxPackage>
+    <!--
+      另一个可选开关 -p:WindBoardUnsignedTest=true（默认关闭，**仅本机验证用**）：
+      在 Msix 打包时把「未签名测试安装」要求的特殊 OID 追加到清单 Identity/@Publisher，
+      使产物可用 Add-AppxPackage -AllowUnsigned 在本机安装；带该 OID 的包不得提交 Store。
+      生效条件与完整说明见下方 Target WindBoard_InjectMsixManifestIdentity。
+    -->
+    <!--
+      打包 targets（Microsoft.Windows.SDK.BuildTools.MSIX.Pri.targets）默认 EnableDefaultPriItems=true，
+      会隐式包含 **/*.resw，与本项目上方显式声明的 PRIResource Include="Strings\**\*.resw" 冲突，
+      触发 NETSDK1022（重复的 PRIResource 项）。本项目已显式声明全部 resw，此处关闭隐式包含即可消除重复。
+    -->
+    <EnableDefaultPriItems>false</EnableDefaultPriItems>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(WindBoardPackage)' == 'Msix'">
+    <!-- 打包形态专用清单；仅在 -p:WindBoardPackage=Msix 时纳入项目 -->
+    <AppxManifest Include="Package.appxmanifest" />
+  </ItemGroup>
 
   <Target Name="WindBoard_CopyWinUIResourcesToPublishDirectory" AfterTargets="Publish">
     <!--
@@ -143,5 +188,172 @@
     <Message Importance="High" Text="发布 CrashReporter：project='$(_WindBoardCrashReporterProject)'，publishDir='$(PublishDir)'，rid='$(RuntimeIdentifier)'，selfContained='$(_WindBoardCrashReporterSelfContained)'" />
 
     <MSBuild Projects="$(_WindBoardCrashReporterProject)" Targets="Restore;Publish" Properties="Configuration=$(Configuration);RuntimeIdentifier=$(RuntimeIdentifier);SelfContained=$(_WindBoardCrashReporterSelfContained);PublishDir=$(PublishDir)" />
+  </Target>
+
+  <!--
+    仅打包形态（-p:WindBoardPackage=Msix）：改写 MSIX 清单的 Identity —— ①写入发布版本号，②可选追加未签名测试 OID，③清理 Upload 上传中间目录（避免上一次的清单产物被 bundle/upload 复用）。
+
+    ① 版本号注入（Identity/@Version）
+    为什么需要：Package.appxmanifest 的 Identity/@Version 是字面常量，打包 targets **不提供**覆写它的
+    输入属性（AppxManifestIdentityVersion 只是 WinAppSdkValidateAppxManifestItems 的输出，见
+    Microsoft.Windows.SDK.BuildTools.MSIX.Packaging.targets:3045）→ 固定版本号会让 Store 第二次提交
+    因版本未递增被拒。
+    做法：用 $(VersionPrefix)（2.9.0 → 2.9.0.0）改写该属性。
+    回退：$(VersionPrefix) 不是 3 段或 4 段全数字版本时（例如显式传了非法值），不改写、直接沿用源
+    manifest 的既有版本号，避免生成 Store 不接受的非法版本号。
+
+    ② 未签名测试 OID 注入（Identity/@Publisher，开关 -p:WindBoardUnsignedTest=true）
+    生效条件：**同时**满足 '$(WindBoardPackage)' == 'Msix' 且 '$(WindBoardUnsignedTest)' == 'true'。
+    不传该参数时 Publisher 完全不被改写 → 默认构建与普通 MSIX 打包的行为/输出与引入本开关前一致。
+    用途：让产物能用「完全不签名」的方式在本机安装验证（Windows 11 起支持）：
+      Add-AppxPackage -Path <pkg>.msix -AllowUnsigned
+    原理：微软官方文档（https://learn.microsoft.com/en-us/windows/msix/package/unsigned-package）
+    要求这类测试包的 Identity/@Publisher 追加特殊 OID，本 Target 把该 OID 追加到**从源清单读到的
+    Publisher 原值**之后（不硬编码 Publisher 值）。
+    必须移除：官方明确「准备分发前移除该 OID」，且带该 OID 的包**不能提交 Microsoft Store**
+    （Store 要求 Publisher 逐字符等于 Partner Center 分配值，否则拒收）。因此正式打包**绝不**传
+    -p:WindBoardUnsignedTest=true；开关生效时构建日志会打印醒目中文提示。
+
+    做法（①②共用一次改写）：改写结果写入 $(IntermediateOutputPath) 下的中间 manifest，并在本 Target 内
+    替换 AppxManifest 项（后续 _ValidatePresenceOfAppxManifestItems 会把它快照进 SourceAppxManifest 供
+    Appx 管线消费）。源文件 Package.appxmanifest 不被就地覆写，仍可手工编辑；非打包路径不执行本 Target。
+    注意：不要在源清单里手写下面那个 OID —— 本 Target 只负责追加（源清单已含该 OID 时按幂等护栏跳过）。
+
+    注意：$(IntermediateOutputPath) 在项目体（PropertyGroup/ItemGroup）求值阶段可能尚未定义，
+    因此必须在 Target 内计算，否则会退化成相对路径、把中间产物落进源码树。
+
+    ③ 增量构建护栏（清理 Upload 上传中间目录）
+    打包 targets 把 Upload 用的 msix/appxsym/单架构 bundle 暂存在 $(OutDir)Upload\ 下
+    （含 $(AppxPackageDirName) 子目录），并对其做「文件是否存在/时间戳」式增量判断；
+    而开关 -p:WindBoardUnsignedTest 只改变清单**内容**、不改变产物文件名 → 实测可复现：
+    先用该开关产过包、再不带开关产包时，Upload 下的旧 msix 不会被刷新，
+    最终 `.msixbundle` / `.msixupload` 仍会带上未签名测试 OID（构建日志无任何提示）。
+    因此在打包管线开始前清掉该中间目录，强制按当前清单重建；目录不存在（例如 CI 的干净工作区）时是无操作。
+    注意：必须用 $(OutDir)Upload（运行时实际落点），不能用 $(AppxPackageUploadDir) —— 后者在求值阶段
+    由默认 AppxPackageDirName（"AppPackages"）拼出，与实际产物目录不一致，删不到目标。
+  -->
+  <Target
+    Name="WindBoard_InjectMsixManifestIdentity"
+    Condition="'$(WindBoardPackage)' == 'Msix'"
+    BeforeTargets="_ValidatePresenceOfAppxManifestItems">
+    <PropertyGroup>
+      <_WindBoardMsixManifestSource>$(MSBuildProjectDirectory)\Package.appxmanifest</_WindBoardMsixManifestSource>
+      <_WindBoardMsixIntermediateDir>$([MSBuild]::NormalizeDirectory('$(MSBuildProjectDirectory)', '$(IntermediateOutputPath)'))</_WindBoardMsixIntermediateDir>
+      <_WindBoardMsixManifestGenerated>$([System.IO.Path]::Combine('$(_WindBoardMsixIntermediateDir)', 'Package.appxmanifest'))</_WindBoardMsixManifestGenerated>
+
+      <_WindBoardMsixVersion Condition="$([System.Text.RegularExpressions.Regex]::IsMatch('$(VersionPrefix)', '^\d+\.\d+\.\d+$'))">$(VersionPrefix).0</_WindBoardMsixVersion>
+      <_WindBoardMsixVersion Condition="'$(_WindBoardMsixVersion)' == '' and $([System.Text.RegularExpressions.Regex]::IsMatch('$(VersionPrefix)', '^\d+\.\d+\.\d+\.\d+$'))">$(VersionPrefix)</_WindBoardMsixVersion>
+
+      <!-- 未签名测试包专用 OID：取值由官方文档固定，不可修改（来源与必须移除的原因见上方注释） -->
+      <_WindBoardMsixUnsignedTestOid>OID.2.25.311729368913984317654407730594956997722=1</_WindBoardMsixUnsignedTestOid>
+
+      <!-- 只替换 Identity 元素内的 Version 属性，清单其余内容（注释、缩进）逐字符保留 -->
+      <_WindBoardMsixManifestText>$([System.IO.File]::ReadAllText('$(_WindBoardMsixManifestSource)'))</_WindBoardMsixManifestText>
+      <_WindBoardMsixManifestText Condition="'$(_WindBoardMsixVersion)' != ''">$([System.Text.RegularExpressions.Regex]::Replace('$(_WindBoardMsixManifestText)', '(?s)(&lt;Identity\b[^&gt;]*?\bVersion=")[^"]*(")', '${1}$(_WindBoardMsixVersion)${2}'))</_WindBoardMsixManifestText>
+
+      <!-- 幂等护栏：源清单已含该 OID 时不再追加（先算出布尔值，避免在条件里直接对多行文本求值） -->
+      <_WindBoardMsixPublisherAlreadyTagged>$([System.Text.RegularExpressions.Regex]::IsMatch('$(_WindBoardMsixManifestText)', '$(_WindBoardMsixUnsignedTestOid)'))</_WindBoardMsixPublisherAlreadyTagged>
+
+      <!-- 只追加 Identity 元素内的 Publisher 属性：保留原值，在末尾追加 ", OID..." -->
+      <_WindBoardMsixManifestText Condition="'$(WindBoardUnsignedTest)' == 'true' and '$(_WindBoardMsixPublisherAlreadyTagged)' != 'True'">$([System.Text.RegularExpressions.Regex]::Replace('$(_WindBoardMsixManifestText)', '(?s)(&lt;Identity\b[^&gt;]*?\bPublisher="[^"]*)(")', '${1}, $(_WindBoardMsixUnsignedTestOid)${2}'))</_WindBoardMsixManifestText>
+
+      <!-- 版本注入或 OID 注入任一发生（含 OID 开关开启的情况），都要落盘并替换 AppxManifest 项 -->
+      <_WindBoardMsixManifestRewritten Condition="'$(_WindBoardMsixVersion)' != '' or '$(WindBoardUnsignedTest)' == 'true'">true</_WindBoardMsixManifestRewritten>
+    </PropertyGroup>
+
+    <!-- 见上方 ③：清掉 Upload 中间产物，避免上一次「未签名测试包」的 msix 被 bundle/upload 复用 -->
+    <RemoveDir Directories="$(OutDir)Upload" Condition="'$(OutDir)' != ''" />
+
+    <WriteLinesToFile
+      Condition="'$(_WindBoardMsixManifestRewritten)' == 'true'"
+      File="$(_WindBoardMsixManifestGenerated)"
+      Lines="$(_WindBoardMsixManifestText)"
+      Overwrite="true"
+      Encoding="UTF-8" />
+
+    <ItemGroup Condition="'$(_WindBoardMsixManifestRewritten)' == 'true'">
+      <!-- 用中间 manifest 替换源 manifest（Remove 按项规格匹配，避免重复项） -->
+      <AppxManifest Remove="@(AppxManifest)" />
+      <AppxManifest Include="$(_WindBoardMsixManifestGenerated)" />
+    </ItemGroup>
+
+    <Message Condition="'$(_WindBoardMsixVersion)' != ''" Importance="High" Text="MSIX 清单版本号注入：VersionPrefix='$(VersionPrefix)' → Identity/@Version='$(_WindBoardMsixVersion)'，中间清单='$(_WindBoardMsixManifestGenerated)'（源清单='$(_WindBoardMsixManifestSource)' 保持不变）" />
+    <Message Condition="'$(_WindBoardMsixVersion)' == ''" Importance="High" Text="MSIX 清单版本号注入：VersionPrefix='$(VersionPrefix)' 不是 3 段或 4 段全数字版本，回退沿用源清单既有 Identity/@Version。" />
+
+    <!-- 未签名测试包提示：必须醒目，避免带 OID 的包流入正式分发 -->
+    <Message
+      Condition="'$(WindBoardUnsignedTest)' == 'true' and '$(_WindBoardMsixPublisherAlreadyTagged)' != 'True'"
+      Importance="High"
+      Text="【警告】未签名测试包：已在 Identity/@Publisher 原值后追加 '$(_WindBoardMsixUnsignedTestOid)'（中间清单='$(_WindBoardMsixManifestGenerated)'）。当前产物是**未签名测试包**，仅用于本机 'Add-AppxPackage -Path &lt;pkg&gt;.msix -AllowUnsigned' 安装验证；**不得提交 Microsoft Store**（正式分发前必须移除该 OID）。正式打包请勿传 -p:WindBoardUnsignedTest=true。" />
+    <Message
+      Condition="'$(WindBoardUnsignedTest)' == 'true' and '$(_WindBoardMsixPublisherAlreadyTagged)' == 'True'"
+      Importance="High"
+      Text="【警告】未签名测试包开关已开启，但源清单 Identity/@Publisher 已含 '$(_WindBoardMsixUnsignedTestOid)'，本次不重复追加。源清单不应手写该 OID（仅打包中间清单需要），请核实 Package.appxmanifest。" />
+  </Target>
+
+  <!--
+    仅打包形态（-p:WindBoardPackage=Msix）：把 CrashReporter 的 **self-contained publish 产物**加入 MSIX payload。
+
+    为什么必须显式注入（阶段 0 Spike 实测结论 V1/V3）：Appx 产包目标挂在 AfterTargets="PrepareMsixPackage"，
+    早于 AfterTargets="Build"/"Publish" 的自定义 Target 执行；MSIX payload 只由 @(PackagingOutputs)
+    派生（GetPackagingOutputs → _ComputeAppxPackagePayload），落在磁盘上的文件不会自动进包。
+
+    为什么在本 Target 内自行 Publish（而不是复用 WindBoard_PublishCrashReporter）：后者挂在
+    AfterTargets="Publish"，晚于 Appx 产包，来不及供 payload 使用；因此在这里以
+    MSBuild 任务显式跑 Restore;Publish，并传入绝对 PublishDir。
+
+    为什么要与主程序 payload 去重：CrashReporter 与主程序同为 self-contained，两者的 .NET 运行时
+    文件同名（coreclr.dll、System.*.dll 等），重复进包会让 makeappx 因包内重名失败；
+    这里保留主程序 payload 的同名文件（同版本运行时），只补入 CrashReporter 独有文件
+    （WindBoard.CrashReporter.*、WinForms/WindowsDesktop 运行时文件等），
+    效果与便携版把两者发布到同一目录后的合并结果一致。
+  -->
+  <Target
+    Name="WindBoard_AddCrashReporterToMsixPayload"
+    Condition="'$(WindBoardPackage)' == 'Msix'"
+    BeforeTargets="_ComputeAppxPackagePayload">
+    <PropertyGroup>
+      <_WindBoardCrashReporterProject>$(MSBuildProjectDirectory)\..\WindBoard.CrashReporter\WindBoard.CrashReporter.csproj</_WindBoardCrashReporterProject>
+      <_WindBoardCrashReporterPlatform>$(Platform)</_WindBoardCrashReporterPlatform>
+      <_WindBoardCrashReporterPlatform Condition="'$(_WindBoardCrashReporterPlatform)' == '' or '$(_WindBoardCrashReporterPlatform)' == 'AnyCPU'">x64</_WindBoardCrashReporterPlatform>
+      <_WindBoardCrashReporterPlatform Condition="'$(RuntimeIdentifier)' == 'win-x86'">x86</_WindBoardCrashReporterPlatform>
+      <_WindBoardCrashReporterPlatform Condition="'$(RuntimeIdentifier)' == 'win-x64'">x64</_WindBoardCrashReporterPlatform>
+      <_WindBoardCrashReporterPlatform Condition="'$(RuntimeIdentifier)' == 'win-arm64'">ARM64</_WindBoardCrashReporterPlatform>
+      <!--
+        发布目录必须是绝对路径且位于 obj 下：
+        - 绝对路径：WindBoard_PublishCrashReporter 从 pubxml 取到的 PublishDir 是相对路径，
+          传给子项目时会被子项目按自身目录解析（design.md §6 记录的实测坑）；
+        - 在 Target 内计算 IntermediateOutputPath：它在项目体（PropertyGroup）求值阶段尚未定义，
+          提前使用会退化成「项目目录\MsixCrashReporter」，把发布产物落在源码树里。
+      -->
+      <_WindBoardCrashReporterMsixPublishDir>$([MSBuild]::NormalizeDirectory('$(MSBuildProjectDirectory)', '$(IntermediateOutputPath)MsixCrashReporter'))</_WindBoardCrashReporterMsixPublishDir>
+    </PropertyGroup>
+
+    <Message Importance="High" Text="发布 self-contained 的 CrashReporter 供 MSIX payload 使用：project='$(_WindBoardCrashReporterProject)'，publishDir='$(_WindBoardCrashReporterMsixPublishDir)'，rid='$(RuntimeIdentifier)'，platform='$(_WindBoardCrashReporterPlatform)'" />
+
+    <MSBuild
+      Projects="$(_WindBoardCrashReporterProject)"
+      Targets="Restore;Publish"
+      Properties="Configuration=$(Configuration);Platform=$(_WindBoardCrashReporterPlatform);RuntimeIdentifier=$(RuntimeIdentifier);SelfContained=true;PublishDir=$(_WindBoardCrashReporterMsixPublishDir)" />
+
+    <ItemGroup>
+      <!--
+        排除两类文件：
+        - *.pdb：与主程序 payload 一致，符号不进包；
+        - *.resources.dll（culture 子目录下的框架本地化资源）：它们在 Appx PRI 生成时没有中性资源对应，
+          会引入 PRI263 警告；CrashReporter 自身字符串在程序集内，缺少框架级本地化资源只会回退到英文。
+      -->
+      <_WindBoardCrashReporterMsixFiles Include="$(_WindBoardCrashReporterMsixPublishDir)**\*" Exclude="$(_WindBoardCrashReporterMsixPublishDir)**\*.pdb;$(_WindBoardCrashReporterMsixPublishDir)**\*.resources.dll" />
+      <!-- 主程序 payload 已包含的文件名（TargetPath），用于去重 -->
+      <_WindBoardMsixPayloadNames Include="@(PackagingOutputs->'%(TargetPath)')" />
+      <_WindBoardCrashReporterMsixPayloadNames Include="@(_WindBoardCrashReporterMsixFiles->'%(RecursiveDir)%(Filename)%(Extension)')" />
+      <_WindBoardCrashReporterMsixPayloadNames Remove="@(_WindBoardMsixPayloadNames)" />
+      <PackagingOutputs Include="@(_WindBoardCrashReporterMsixPayloadNames->'$(_WindBoardCrashReporterMsixPublishDir)%(Identity)')">
+        <TargetPath>%(Identity)</TargetPath>
+        <OutputGroup>WindBoardCrashReporter</OutputGroup>
+      </PackagingOutputs>
+    </ItemGroup>
+
+    <Message Importance="High" Text="将 CrashReporter 发布产物纳入 MSIX payload（共 @(_WindBoardCrashReporterMsixPayloadNames->Count()) 个文件，已排除与主程序重名项）：@(_WindBoardCrashReporterMsixPayloadNames)" />
   </Target>
 </Project>

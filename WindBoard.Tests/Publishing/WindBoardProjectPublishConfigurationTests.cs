@@ -16,10 +16,20 @@ public sealed class WindBoardProjectPublishConfigurationTests
         Assert.True(File.Exists(workflowFilePath), $"未找到发布工作流文件：{workflowFilePath}");
 
         string text = File.ReadAllText(workflowFilePath);
-        const string readyToRunDisableFlag = "-p:PublishReadyToRun=false";
-        int count = CountOccurrences(text, readyToRunDisableFlag);
 
-        Assert.Equal(2, count);
+        // 便携版主程序 publish 只剩一处（自包含）：framework-dependent 变体随 Inno 安装包停发一并下线。
+        const string portablePublishCommand = "dotnet publish $project";
+        Assert.Equal(1, CountOccurrences(text, portablePublishCommand));
+
+        // 并断言 ReadyToRun 关闭标志确实落在这条 publish 命令上：
+        // 只统计整份工作流里该标志出现几次，无法防止标志被挪到别的命令（例如 MSIX 产包）上。
+        int commandStart = text.IndexOf(portablePublishCommand, StringComparison.Ordinal);
+        int commandEnd = text.IndexOf("dotnet publish", commandStart + portablePublishCommand.Length, StringComparison.Ordinal);
+        Assert.True(commandEnd > commandStart, "未找到便携版主程序 publish 之后的下一条 publish 命令，无法界定命令片段。");
+
+        string portablePublishCommandText = text[commandStart..commandEnd];
+        Assert.Contains("-p:PublishReadyToRun=false", portablePublishCommandText, StringComparison.Ordinal);
+        Assert.Contains("--self-contained true", portablePublishCommandText, StringComparison.Ordinal);
     }
 
     [Fact]
