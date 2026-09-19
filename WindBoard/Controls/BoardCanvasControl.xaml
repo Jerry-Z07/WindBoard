@@ -85,10 +85,10 @@
                         <TextBlock x:Name="ShapeProperty1Label" FontSize="11" Opacity="0.75" />
                         <NumberBox
                             x:Name="ShapeProperty1Box"
-                            Width="92"
-                            MinHeight="32"
+                            Width="200"
+                            MinHeight="44"
                             Padding="6,2"
-                            SpinButtonPlacementMode="Compact"
+                            SpinButtonPlacementMode="Inline"
                             SmallChange="1"
                             AcceptsExpression="False"
                             ValueChanged="OnShapeProperty1ValueChanged" />
@@ -98,10 +98,10 @@
                         <TextBlock x:Name="ShapeProperty2Label" FontSize="11" Opacity="0.75" />
                         <NumberBox
                             x:Name="ShapeProperty2Box"
-                            Width="92"
-                            MinHeight="32"
+                            Width="200"
+                            MinHeight="44"
                             Padding="6,2"
-                            SpinButtonPlacementMode="Compact"
+                            SpinButtonPlacementMode="Inline"
                             SmallChange="1"
                             AcceptsExpression="False"
                             ValueChanged="OnShapeProperty2ValueChanged" />
