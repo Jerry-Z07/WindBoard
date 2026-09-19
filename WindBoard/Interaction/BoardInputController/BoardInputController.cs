@@ -248,6 +248,15 @@ namespace WindBoard.Interaction
 
         public event Action<bool>? InteractionStateChanged;
 
+        /// <summary>
+        /// 形状工具提交成功（新形状已入命令栈）后抛出，携带新形状。
+        /// </summary>
+        /// <remarks>
+        /// 控制器只负责路由结果，是否消费（例如自动切换工具并选中）由宿主决定；
+        /// 屏幕批注等不订阅的宿主行为不受影响。
+        /// </remarks>
+        public event Action<BoardShape>? ShapeCommitted;
+
         public void Attach()
         {
             _panel.PointerPressed += OnCanvasPointerPressed;

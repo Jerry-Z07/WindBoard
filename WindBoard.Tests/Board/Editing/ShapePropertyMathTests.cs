@@ -6,7 +6,7 @@ using Xunit;
 namespace WindBoard.Tests.Board.Editing;
 
 /// <summary>
-/// 形状属性面板字段换算用例（design F）：长度/角度 ↔ Start/End、宽/高 ↔ 对角点几何。
+/// 形状属性面板字段换算用例（design F）：长度/角度 ↔ Start/End、宽/高 ↔ 对角点几何、世界坐标 ↔ 厘米。
 /// </summary>
 public sealed class ShapePropertyMathTests
 {
@@ -102,5 +102,43 @@ public sealed class ShapePropertyMathTests
         AssertEx.Equal(8.0f, newStart.Y);
         AssertEx.Equal(17.0f, newEnd.X);
         AssertEx.Equal(14.0f, newEnd.Y);
+    }
+
+    [Fact]
+    public void WorldToCentimeters_KnownValue_UsesDipDefinition()
+    {
+        // 1 世界单位 = 1/96 英寸 = 2.54/96 cm。
+        AssertEx.Equal(0.0264583f, (float)ShapePropertyMath.WorldToCentimeters(1.0), 0.0000001f);
+        AssertEx.Equal(5.2916666f, (float)ShapePropertyMath.WorldToCentimeters(200.0), 0.00001f);
+    }
+
+    [Fact]
+    public void CentimetersToWorld_KnownValue_InvertsFactor()
+    {
+        AssertEx.Equal(96.0f, (float)ShapePropertyMath.CentimetersToWorld(2.54), 0.0001f);
+    }
+
+    [Fact]
+    public void LengthConversion_RoundTrip_RestoresWorldValue()
+    {
+        const double world = 123.456;
+
+        double centimeters = ShapePropertyMath.WorldToCentimeters(world);
+        double restored = ShapePropertyMath.CentimetersToWorld(centimeters);
+
+        AssertEx.Equal((float)world, (float)restored, 0.001f);
+    }
+
+    [Fact]
+    public void WorldToCentimeters_MinPropertyValue_RoundTripsWithinMinimum()
+    {
+        // 浮层下限 = 世界坐标下限的换算值；输入厘米换回世界坐标后仍落在 MinPropertyValue 上。
+        double centimeters = ShapePropertyMath.WorldToCentimeters(ShapePropertyMath.MinPropertyValue);
+
+        AssertEx.Equal(0.000264583f, (float)centimeters, 0.0000001f);
+        AssertEx.Equal(
+            ShapePropertyMath.MinPropertyValue,
+            (float)ShapePropertyMath.CentimetersToWorld(centimeters),
+            0.0000001f);
     }
 }

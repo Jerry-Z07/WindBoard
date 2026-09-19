@@ -18,15 +18,15 @@
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <data name="ShapeProperties_Length" xml:space="preserve">
-    <value>长度</value>
+    <value>长度 (cm)</value>
   </data>
   <data name="ShapeProperties_Angle" xml:space="preserve">
     <value>角度</value>
   </data>
   <data name="ShapeProperties_Width" xml:space="preserve">
-    <value>宽度</value>
+    <value>宽度 (cm)</value>
   </data>
   <data name="ShapeProperties_Height" xml:space="preserve">
-    <value>高度</value>
+    <value>高度 (cm)</value>
   </data>
 </root>

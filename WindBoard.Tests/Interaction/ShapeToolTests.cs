@@ -145,6 +145,38 @@ public sealed class ShapeToolTests
     }
 
     [Fact]
+    public void End_CommitsShape_RecordsLastCommittedShape()
+    {
+        (ShapeTool tool, BoardInputContext context, BoardSession session) = CreateTool(BoardShapeKind.Rectangle);
+
+        tool.Begin(Input(context, new Vector2(60.0f, 60.0f)));
+        tool.Move(Input(context, new Vector2(80.0f, 80.0f)));
+        tool.End(Input(context, new Vector2(80.0f, 80.0f)));
+
+        // 提交结果供控制器抛 ShapeCommitted（宿主据此自动选中）：必须是已入文档的同一实例。
+        BoardShape committed = Assert.IsType<BoardShape>(session.Document.InkItems[0]);
+        Assert.Same(committed, tool.LastCommittedShape);
+    }
+
+    [Fact]
+    public void End_DiscardsDegenerateGeometry_ClearsPreviousCommitResult()
+    {
+        (ShapeTool tool, BoardInputContext context, BoardSession session) = CreateTool(BoardShapeKind.Line);
+
+        tool.Begin(Input(context, new Vector2(60.0f, 60.0f)));
+        tool.Move(Input(context, new Vector2(80.0f, 60.0f)));
+        tool.End(Input(context, new Vector2(80.0f, 60.0f)));
+        Assert.NotNull(tool.LastCommittedShape);
+
+        // 点击未拖动：退化几何被丢弃，不得残留上一次结果（否则宿主会重复选中上一个形状）。
+        tool.Begin(Input(context, new Vector2(60.0f, 60.0f)));
+        tool.End(Input(context, new Vector2(60.0f, 60.0f)));
+
+        Assert.Null(tool.LastCommittedShape);
+        Assert.Single(session.Document.InkItems);
+    }
+
+    [Fact]
     public void Move_WithoutActiveSession_IsNoOp()
     {
         (ShapeTool tool, BoardInputContext context, _) = CreateTool(BoardShapeKind.Line);
