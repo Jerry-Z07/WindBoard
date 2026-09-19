@@ -22,9 +22,10 @@ insert_final_newline = true
 trim_trailing_whitespace = true
 
 # 行尾策略由两层配合，二者在 Windows 上均落到 CRLF：
-# - `.gitattributes` 的 `* text=auto`（git 层）：索引统一存 LF，检出时按平台决定
-#   （Windows 得到 CRLF）。这是 GitHub 官方推荐的默认写法，且会覆盖各贡献者本机的
-#   core.autocrlf，使行为不再依赖个人配置。
+# - `.gitattributes` 的 `* text=auto`（git 层）：入库时把文本在索引中统一规范化为 LF
+#   （这一侧与个人配置无关）；检出到工作区的行尾在未显式设置 `eol` 时仍由
+#   `core.autocrlf` / `core.eol` 决定（Windows 默认 native=CRLF，除非 `core.autocrlf=input`
+#   或 `core.eol=lf`）。只有逐路径 `eol=crlf` 才覆盖个人配置。详见 gitattributes(5)。
 # - 本文件的 `end_of_line = crlf`（编辑器层）：约束编辑器与工具写文件时的行尾。
 # 本项目只面向 Windows（WinUI 3 + Windows App SDK，CI 为 windows-latest），
 # 因此两层都确定为 CRLF；仓库内历史遗留的混合行尾已一并统一。

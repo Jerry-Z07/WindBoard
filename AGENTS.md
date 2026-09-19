@@ -64,7 +64,7 @@
 - 命名空间声明风格按项目区分，由 `.editorconfig` 按路径强制：`WindBoard`/`WindBoard.UITests`/`WindBoard.CrashReporter` 用块作用域 `namespace X { }`；`WindBoard.Tests`/`WindBoard.Launcher` 用文件作用域 `namespace X;`。
 - 命名：类型/方法用 `PascalCase`；私有字段用 `_camelCase`；接口用 `I` 前缀。
 - 全仓库不使用 `this.` 限定实例成员。
-- 行尾统一 CRLF，由两层配合：仓库根 `.gitattributes`（`* text=auto`，git 层：索引存 LF、按平台检出）与 `.editorconfig`（`end_of_line = crlf`，编辑器层）。`.gitattributes` 会覆盖各人本机的 `core.autocrlf`，因此行为不依赖个人配置。修改 `.gitattributes` 中的行尾策略后须执行 `git add --renormalize .`，否则 Git 会把大量未改动文件报为已修改。
+- 行尾统一 CRLF。
 
 ## 测试与验证（Testing）
 

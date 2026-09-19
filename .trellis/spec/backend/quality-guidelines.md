@@ -69,10 +69,10 @@ The repository-root `.editorconfig` is the style baseline read by `EnforceCodeSt
 
 Line endings are governed by two layers that both resolve to CRLF for this Windows-only project (WinUI 3, CI on `windows-latest`):
 
-- `.gitattributes` (`* text=auto`, GitHub's recommended default): the index stores LF and checkout follows the platform, which yields CRLF on Windows. It deliberately does **not** use `* text=auto eol=crlf` — the GitHub docs advise against that form unless every platform must see CRLF — and only pins `eol=crlf` on the file types the Windows toolchain requires (`.sln`, `.slnx`, `.props`, `.iss`, `.isl`, ...).
+- `.gitattributes` (`* text=auto`, GitHub's recommended default): it normalizes text to LF **in the index** (that check-in direction is independent of personal config), but working-tree checkout line endings still follow `core.autocrlf` / `core.eol` unless `eol` is pinned — per gitattributes(5), only an explicit `eol=crlf` overrides the config. On Windows this resolves to CRLF by default (except `core.autocrlf=input` / `core.eol=lf`). It deliberately does **not** use `* text=auto eol=crlf` — the GitHub docs advise against that form unless every platform must see CRLF — and only pins `eol=crlf` on the file types the Windows toolchain requires (`.sln`, `.slnx`, `.props`, `.iss`, `.isl`, ...).
 - `.editorconfig` (`end_of_line = crlf`): what editors and tools write.
 
-Because a repo-level `.gitattributes` overrides each contributor's local `core.autocrlf`, this no longer depends on personal configuration — which is what caused the original drift (643 CRLF / 185 LF / 3 internally-mixed files, the LF ones being files created locally that Git never re-checked-out). The tree was normalized once, then `git add --renormalize .` was run; without that step Git keeps reporting roughly 190 untouched files as modified.
+`* text=auto` pins the **check-in normalization** (LF in the index) independently of each contributor's config, which removes the original drift source (643 CRLF / 185 LF / 3 internally-mixed files, the LF ones being files created locally that Git never re-checked-out). Ordinary working-tree checkout still depends on `core.autocrlf` / `core.eol` unless `eol` is pinned per path, so CRLF is not guaranteed on a clone with `core.autocrlf=input`. The tree was normalized once, then `git add --renormalize .` was run; without that step Git keeps reporting roughly 190 untouched files as modified.
 
 ### Convention: Analyzer warnings are zero-tolerance
 
