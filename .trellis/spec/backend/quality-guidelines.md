@@ -189,6 +189,51 @@ if (PointerRoutingDecisions.SomeNewDecision(e.Pointer.PointerDeviceType, point.P
 
 **Tests Required**：新增纯状态转移/决策分支须在 `WindBoard.Tests/Interaction/` 补单测，断言点覆盖关键边界（触摸 ≥2、空闲 150ms 达到即结束、压感钳位端点 0.1/1.0、pointerId 不匹配不改状态）；浮点断言用 `AssertEx.Equal`。
 
+### Interaction 层契约：工具提交结果经控制器事件交给宿主
+
+**Trigger**：工具在 `End` 中完成域操作（写入命令栈）后，需要在 UI 侧引发后续动作（如形状创建后切换工具并选中）。
+
+**契约**：
+
+| 角色 | 职责 | 边界 |
+|---|---|---|
+| 工具（`IBoardTool` 实现） | 提交成功后把结果记录为自身属性（如 `ShapeTool.LastCommittedShape`）；`End` 入口先置 `null`，保证退化几何被丢弃时不残留上一次结果 | 不得直接调用 UI（切工具/设置选中）：工具层无 UI 依赖，也无法同步 Dock 按钮态 |
+| 控制器 | 在手势状态清理**之后**读取工具结果并抛事件（如 `BoardInputController.ShapeCommitted`），且仅当解析到的工具类型匹配时抛出 | 不得在 `tool.End()` 与 `FinalizeGestureState()` 之间抛事件 |
+| 控件（`BoardCanvasControl`） | 转发为自身事件；与 `_input` 的创建/重建（`EnsureInitialized` / `BindSession`）成对订阅与退订，`Dispose` 退订 | 遗漏任一处订阅/退订会导致事件失效或事件泄漏 |
+| 宿主（`MainWindow` / 各 Feature 窗口） | 决定具体响应（如 `ApplyToolSelection(BoardTool.Select)` + `SetSelectedInkItem`）；不订阅即不响应，用于区分宿主行为（屏幕批注不订阅，行为保持不变） | —— |
+
+**Why（重入陷阱）**：宿主响应时会设置 `BoardCanvas.Tool`，其 setter 内部会 `CancelActiveToolOperation()`。若事件在状态清理前抛出，该重入会命中 `DiscardActiveToolGesture()` 的非早退分支，与释放路径的收尾动作重复释放指针捕获。清理完成后重入会命中早退条件（`ActiveItem` 为 null、无活动指针），是 no-op，因此**同步抛出是安全的**，不需要 `DispatcherQueue.TryEnqueue` 引入异步时序。
+
+**Wrong vs Correct**：
+
+```csharp
+// Wrong：在手势状态清理前抛事件 —— 宿主切工具会重入并重复释放指针捕获
+if (_toolRegistry.TryGetTool(ResolveActiveToolId(), out IBoardTool? tool))
+{
+    tool.End(CreatePointerlessToolInput());
+    if (tool is ShapeTool s && s.LastCommittedShape is BoardShape shape)
+    {
+        ShapeCommitted?.Invoke(shape);   // ← 此时 ActivePointerId 仍未清空
+    }
+}
+_routes.EndActiveStroke();
+FinalizeGestureState();
+
+// Correct：先完成状态清理，再抛结果
+if (_toolRegistry.TryGetTool(ResolveActiveToolId(), out IBoardTool? tool))
+{
+    tool.End(CreatePointerlessToolInput());
+}
+_routes.EndActiveStroke();
+FinalizeGestureState();
+if (tool is ShapeTool shapeTool && shapeTool.LastCommittedShape is BoardShape shape)
+{
+    ShapeCommitted?.Invoke(shape);
+}
+```
+
+**Tests Required**：工具结果属性须有单测（`WindBoard.Tests/Interaction/ShapeToolTests.cs`），断言点覆盖：①提交成功后结果引用等于已入文档的实例（`Assert.Same`）；②退化几何被丢弃后结果被清空（防止宿主重复响应上一次结果）。
+
 ---
 
 ## Code Review Checklist

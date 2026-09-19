@@ -115,6 +115,33 @@ _dockFlow = new DockFlow(host, ...);
 
 ---
 
+## Length Units in UI
+
+### Convention: 域长度以物理单位（厘米）呈现
+
+**What**: 画板域坐标（世界单位）没有物理量纲，按 DIP 名义定义 1 世界单位 = 1/96 英寸。需要向用户呈现长度数值时，只在显示/编辑层换算，域存储不变。
+
+**契约**:
+
+- 换算系数与纯函数集中在 `WindBoard/Board/Editing/ShapePropertyMath.cs`：`CentimetersPerWorldUnit = 2.54 / 96.0`、`WorldToCentimeters` / `CentimetersToWorld`；不要在 UI 层散落字面量系数。
+- 数值与 `BoardViewport.Zoom` **无关**（换算发生在世界坐标层）：缩放画布不得改变显示数值，图上尺寸之比恒等于显示数值之比。
+- 域模型、渲染、导出与 WBIX 持久化仍为世界坐标，无迁移。
+- `NumberBox.Minimum` 必须使用**显示单位**的值（`WorldToCentimeters(MinPropertyValue)`）；用户输入必须**先换回世界坐标、再做下限钳制**，否则会把显示单位下限当成世界坐标下限，破坏"不允许退化几何"的语义。
+- 字段标签用本地化 key 体现单位（如"长度 (cm)"）；已带单位的 key 复用现有文案，不新增冗余 key。
+
+**Why**: 世界坐标是抽象单位，直接显示会让尺寸数值（原为 1:1 的 `px` 近似值）脱离教学场景的物理含义；把换算收敛到纯函数并固定在域坐标层，才能同时保证"数值与缩放解耦"和"可单测"。
+
+> **Gotcha — 属性浮层等输入框的程序化同步**: `ConfigureShapePropertyFields` 每次显示浮层都会重设 `NumberBox.Minimum/Maximum`。当字段语义在"角度（下限 -360）"与"长度类（下限 ≈ 0.000265 cm）"之间切换时，输入框里遗留的越界值会被控件收敛到新下限；该收敛是一次真实的 `Value` 变更并会触发 `ValueChanged`——若不隔离，就会被当成"用户编辑"提交到**新选中的形状**（表现为新形状被压扁，或宽度被写成上一个形状的长度）。
+>
+> 契约（`BoardCanvasControl.ShapeProperties.cs`）：
+> 1. 程序化重设字段边界/数值必须在 `_isSyncingShapeProperties` 保护内执行；
+> 2. 浮层**切换服务目标**（`_shapePropertiesTarget` 变化，含清选后重新显示）时必须 `force` 回读目标真实值——焦点保护只适用于**同一目标**的后续刷新，否则旧值会在失焦时提交到新目标；
+> 3. 顺序固定为：保护内 `Configure`（重置字段语义与边界）→ `Sync(force: 目标是否变化)`。
+
+**Related**: [Interaction 层契约](../backend/quality-guidelines.md)（工具提交结果如何到达宿主）、`WindBoard.Tests/Board/Editing/ShapePropertyMathTests.cs`。
+
+---
+
 ## Localization in Components
 
 ### In XAML
@@ -276,7 +303,8 @@ L10n.Format("Settings_Camouflage_CreateShortcut_Success_Fmt", shortcutPath)
 
 - 圆角：容器底板 `14`，容器内控件 `10`（`DockButtonStyle` / `DockToggleButtonStyle` / `SharedPen*ToggleButtonStyle`）。官方两级为 `ControlCornerRadius`=4 / `OverlayCornerRadius`=8，本项目在其之上统一放大。
 - 结构：底板 `Border` **填满**容器，内容 `StackPanel` 用 `Margin` 内缩（主 Dock `Margin="5"`，屏幕批注栏 `Margin="6"`）。
-- 尺寸与间距：屏幕批注栏的把手与功能按钮统一 `44×44`、元素间距 `4`、分组分隔线 `1×24`（与主 Dock 的 `Spacing="4"`、共享样式 `SharedPenThicknessToggleButtonStyle` 的 `44` 一致）。
+- 尺寸与间距：屏幕批注栏的把手与功能按钮统一 `44×44`、元素间距 `4`、分组分隔线 `1×24`（与主 Dock 的 `Spacing="4"`、共享样式 `SharedPenThicknessToggleButtonStyle` 的 `44` 一致）。属性浮层（`ShapePropertiesBorder`）的数值输入框同样遵守该触控基准：`MinHeight="44"`、`Width="200"`（内部固定占位——边框、内边距、清除按钮 ✕ 与两个内联步进按钮——约 `100` 宽，文本输入区约 `100` 宽，不强制方形）。
+- 浮层中的 `NumberBox` **不得**使用 `SpinButtonPlacementMode="Compact"`：该模式在输入框获得焦点时以 **Flyout** 弹出步进按钮，浮在控件之上、遮挡自身输入区与相邻字段，且与控件几何尺寸无关（加大宽高只会多出无效留白）。浮在内容之上的浮层默认用 `Inline`（步进按钮常驻框内，触摸下可直接点按微调），需要最大输入区时用 `Hidden`。
 
 ```xaml
 <!-- 正确：底板填满容器，内容以 Margin 内缩，Opacity 只作用于底板 -->
