@@ -1,0 +1,175 @@
+WindBoard（轻风白板）隐私政策 / WindBoard Privacy Policy
+
+
+==================== 简体中文 ====================
+
+【生效日期】2026 年 9 月 19 日
+【最后更新】2026 年 9 月 19 日
+【政策版本】1.0
+【适用范围】通过 Microsoft Store 分发的 WindBoard（轻风白板）桌面应用（以下称“本应用”）
+
+本政策说明本应用如何处理你的信息。本应用由开发者 Jerry Z07（以下称“我们”）开发并发布，本政策适用于本应用在 Microsoft Store 发布的所有市场。
+
+一、总述
+
+1. 本应用不需要注册账号，也不要求你提供任何身份信息。
+2. 本应用不收集、不存储，也不向我们上传你的个人信息；本应用不包含广告、行为分析或遥测组件。
+3. 你的白板内容、设置与诊断信息只保存在你自己的设备上，我们无法访问。
+4. 本应用不提供应用内更新下载功能：本应用的获取、安装、更新与许可均由 Microsoft Store 提供。
+
+二、我们不收集的信息
+
+本应用不会收集、存储或向我们传输下列任何信息：
+
+1. 姓名、邮箱、电话号码、通讯地址等身份识别信息；
+2. 设备位置数据；
+3. 摄像头、麦克风、通讯录、短信等隐私数据（本应用未申请相应系统能力）；
+4. 使用行为统计、功能点击记录、设备标识符或广告标识符；
+5. 你的笔迹、白板内容、导入的图片或导出的文件。
+
+本应用仅在你主动操作时读取本地文件：你在文件选择器中主动选择要导入的文件时，或你为 Dock 快捷方式、伪装功能指定本地路径时。除此之外，本应用不会扫描或读取与本应用功能无关的文件。
+
+三、保存在你设备上的数据
+
+本应用会在本机保存运行所需的数据，用于提供功能与排查问题。这些数据不会自动上传：
+
+1. 应用设置：界面与书写偏好、Dock 快捷方式条目（含你填写的链接地址与本地路径）、伪装偏好等。
+2. 运行日志：保存在本应用数据目录下的 Logs 文件夹，用于记录运行状态与排查问题。
+3. 崩溃报告：保存在 Logs 文件夹下的 Crashes 文件夹，内容包含异常类型与调用堆栈、应用版本、进程 ID、处理器架构、.NET 与 Windows 版本，以及相关的本地目录路径。
+4. 伪装图标副本：你为伪装功能选择的图标文件的本地副本。
+5. 你主动保存的文件：导出的工作区文件、导出的 PNG/PDF 图片以及你导入的文件，保存在你自己选择的位置，由你完全掌控。
+
+存储位置说明：通过 Microsoft Store 安装的版本，其数据保存在当前 Windows 用户的应用数据目录中（即 %LocalAppData%\WindBoard 对应的应用包私有存储位置），由 Windows 的系统机制隔离与保护。若你的设备上存在旧版本 WindBoard 遗留的本地数据，本应用在首次运行时可能询问你是否将其迁移到新的数据目录；该操作完全在本机进行，不涉及任何数据上传。
+
+你可以随时自行查看、复制或删除上述文件。崩溃报告与日志只有在你自己决定提供给开发者时才会被我们看到，本应用不会自动发送。
+
+四、本应用访问网络的情形
+
+本应用不进行任何后台数据上报。以下是本应用全部的网络访问情形，所有请求均使用 HTTPS，且不包含任何可识别你身份的凭据或标识符：
+
+1. 获取 Dock 链接图标：当你在 Dock 中添加“链接”类型的快捷方式时，或本应用重新加载 Dock（例如启动）时，本应用会访问你所填写的网址所在站点，请求该站点的首页及其图标地址，以便显示这个链接的图标。如果你从不添加“链接”类型的快捷方式，本应用不会请求任何第三方网站。
+2. 打开外部链接：当你点击本应用内的外部链接（例如 Microsoft Store 页面）时，本应用会将该链接交由系统默认浏览器打开，之后的访问行为由浏览器按其自身的隐私政策处理。
+3. 本应用的更新由 Microsoft Store 提供：本应用不会向开发者服务器或其它第三方服务器发起更新检查、更新包下载、下载源测速或安装请求。
+
+五、第三方
+
+1. 我们不会出售、出租或以任何方式向第三方共享你的个人信息，因为我们并不持有这些信息。
+2. Microsoft Store：通过 Microsoft Store 获取、安装、更新与许可本应用时，相关数据处理由 Microsoft 负责，适用 Microsoft 自身的隐私政策。
+3. 你指定的网站：当你使用 Dock 链接图标功能时，请求会直接发送到你所填写网址的站点，该站点可能按照其自身政策记录访问日志。
+
+六、数据安全
+
+1. 本应用不收集也不上传你的数据，因此不存在开发者服务端的数据存储。
+2. 本机数据保存在当前 Windows 用户账户的权限范围内，由操作系统的账户与文件权限机制保护。
+3. 本应用的所有网络请求均使用 HTTPS 传输。
+
+七、数据保留、删除与你的控制权
+
+1. 查看与删除本地数据：打开本应用的数据目录即可查看或删除其中的文件；删除该目录将清除本应用的全部本地数据。
+2. 卸载：卸载本应用后，其应用包内的私有数据会由 Windows 一并移除。
+3. 反馈信息：如果你通过 GitHub Issues 主动提供日志或崩溃报告，你可以随时要求我们删除该内容。
+
+八、儿童隐私
+
+本应用不收集任何个人信息，也不会有意收集 13 岁以下儿童的数据。
+
+九、政策变更
+
+当本应用新增或调整涉及数据处理的功能时，我们会更新本政策，并修改文首的“最后更新”日期。重大变更会通过应用内提示或更新说明告知你。
+
+十、适用范围
+
+本政策适用于通过 Microsoft Store 发布的 WindBoard 及其全部市场版本。Microsoft 的隐私政策不适用于本应用，Microsoft 亦不为本应用提供默认隐私政策。
+
+十一、联系我们
+
+如果你对本政策有任何疑问、意见或投诉，请通过以下方式联系：
+
+GitHub Issues: https://github.com/Jerry-Z07/WindBoard/issues
+
+
+==================== English ====================
+
+Effective date: September 19, 2026
+Last updated: September 19, 2026
+Policy version: 1.0
+Applies to: the WindBoard desktop application distributed through Microsoft Store (the "App")
+
+This policy explains how the App handles your information. The App is developed and published by Jerry Z07 ("we", "us"). This policy applies to all markets in which the App is published on Microsoft Store.
+
+1. Summary
+
+1.1 The App requires no account and never asks you for identity information.
+1.2 The App does not collect, store, or upload your personal information to us, and contains no advertising, analytics, or telemetry components.
+1.3 Your whiteboard content, settings, and diagnostics stay on your own device; we cannot access them.
+1.4 The App does not download updates on its own: acquisition, installation, updating, and licensing of the App are provided by Microsoft Store.
+
+2. Information we do not collect
+
+The App does not collect, store, or transmit to us any of the following:
+
+2.1 Identity information such as your name, email address, phone number, or postal address;
+2.2 Device location data;
+2.3 Camera, microphone, contacts, or messaging data (the App declares no such system capabilities);
+2.4 Usage statistics, feature-click records, device identifiers, or advertising identifiers;
+2.5 Your ink strokes, whiteboard content, imported images, or exported files.
+
+The App reads local files only when you act explicitly: when you select files to import in a file picker, or when you specify a local path for a Dock shortcut or the camouflage feature. Beyond that, the App does not scan or read files unrelated to its features.
+
+3. Data stored on your device
+
+The App stores the data it needs locally in order to provide its features and to help diagnose problems. This data is never uploaded automatically:
+
+3.1 App settings: UI and ink preferences, Dock shortcut entries (including the web addresses and local paths you enter), and camouflage preferences.
+3.2 Runtime logs: stored in the Logs folder inside the App's data directory, used to record operation status and to troubleshoot problems.
+3.3 Crash reports: stored in the Crashes folder inside the Logs folder, containing the exception type and call stack, app version, process ID, processor architecture, .NET and Windows versions, and related local directory paths.
+3.4 Camouflage icon copy: a local copy of the icon file you selected for the camouflage feature.
+3.5 Files you save yourself: exported workspace files, exported PNG/PDF images, and files you import are stored where you choose and remain fully under your control.
+
+Storage locations: for builds installed from Microsoft Store, this data is stored in the current Windows user's app data location (the package-private store location corresponding to %LocalAppData%\WindBoard) and is isolated and protected by Windows. If local data left by an older version of WindBoard exists on your device, the App may ask on first run whether to migrate it to the new data directory; this happens entirely on your device and involves no data upload.
+
+You may inspect, copy, or delete these files at any time. Crash reports and logs are visible to us only if you decide to provide them; the App never sends them automatically.
+
+4. When the App accesses the network
+
+The App does not report data in the background. The following are all of the App's network access scenarios. All requests use HTTPS and contain no credentials or identifiers that could identify you:
+
+4.1 Fetching Dock link icons: when you add a "link" type shortcut in the Dock, or when the App reloads the Dock (for example at startup), the App contacts the site of the web address you entered and requests that site's home page and icon address, so that the link's icon can be displayed. If you never add a "link" type shortcut, the App contacts no third-party websites.
+4.2 Opening external links: when you click an external link inside the App (for example a Microsoft Store page), the App hands the link to your default browser; subsequent access is handled by the browser under its own privacy policy.
+4.3 Updates are provided by Microsoft Store: the App does not send update checks, update package downloads, download-source speed tests, or installation requests to developer servers or any other third-party servers.
+
+5. Third parties
+
+5.1 We do not sell, rent, or otherwise share your personal information with third parties, because we do not hold it.
+5.2 Microsoft Store: acquiring, installing, updating, and licensing the App through Microsoft Store are handled by Microsoft and are subject to Microsoft's own privacy policy.
+5.3 Websites you specify: when you use the Dock link icon feature, the request goes directly to the site of the web address you entered, and that site may log access under its own policy.
+
+6. Data security
+
+6.1 Because the App neither collects nor uploads your data, there is no developer-side server storage.
+6.2 Local data is stored within the permissions of your current Windows user account and is protected by the operating system's account and file permission model.
+6.3 All of the App's network requests are transmitted over HTTPS.
+
+7. Data retention, deletion, and your controls
+
+7.1 Viewing and deleting local data: open the App's data directory to inspect or delete its contents; deleting that directory removes all of the App's local data.
+7.2 Uninstall: after you uninstall the App, its package-private data is removed by Windows as well.
+7.3 Feedback you provide: if you voluntarily share logs or crash reports through GitHub Issues, you may ask us to remove that content at any time.
+
+8. Children's privacy
+
+The App collects no personal information and does not knowingly collect data from children under 13.
+
+9. Changes to this policy
+
+When the App adds or changes features that involve data handling, we will update this policy and revise the "Last updated" date above. Material changes will be communicated through an in-app notice or in the update notes.
+
+10. Scope
+
+This policy applies to WindBoard as published on Microsoft Store and to all of its market versions. Microsoft's privacy policies do not apply to the App, and Microsoft does not provide a default privacy policy for it.
+
+11. Contact us
+
+If you have any questions, comments, or complaints about this policy, please contact us at:
+
+GitHub Issues: https://github.com/Jerry-Z07/WindBoard/issues

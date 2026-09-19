@@ -53,13 +53,12 @@
 
 ## Quick start
 
-- Installer version: install from the [Microsoft Store](https://apps.microsoft.com/detail/REPLACE_WITH_STORE_PRODUCT_ID)
+- Installer version: install from the [Microsoft Store](https://apps.microsoft.com/detail/9NGWWJ9WGKBX)
 - Portable version: download the zip from [Releases](https://github.com/Jerry-Z07/WindBoard/releases/latest) and extract it
 
 <!--
-  TODO: replace REPLACE_WITH_STORE_PRODUCT_ID above with the real Product ID after publishing.
-  The same placeholder appears in: README.md, WindBoard/Updates/UpdateConstants.cs (StoreProductId),
-  and .github/workflows/release.yml (vars.MSIX_STORE_PRODUCT_ID).
+  The official Product ID is 9NGWWJ9WGKBX; the same value lives in WindBoard/Updates/UpdateConstants.cs (StoreProductId, in-app navigation).
+  .github/workflows/release.yml still falls back to the placeholder when the repo variable vars.MSIX_STORE_PRODUCT_ID is not configured.
 -->
 
 ## Contributing

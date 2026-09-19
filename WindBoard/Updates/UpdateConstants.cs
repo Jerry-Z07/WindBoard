@@ -20,9 +20,9 @@ namespace WindBoard.Updates
 
         // Microsoft Store 产品 ID（Partner Center「Product identity」中的 Store ID）：
         // 单一配置点，供“更新由 Store 托管”卡片打开商店页面使用。
-        // 占位值待 Partner Center 保留应用名并分配真实 Product ID 后替换（release.yml 中的
-        // vars.MSIX_STORE_PRODUCT_ID 只影响发布说明里的链接，此处影响应用内跳转）。
-        internal const string StoreProductId = "REPLACE_WITH_STORE_PRODUCT_ID";
+        // release.yml 中的 vars.MSIX_STORE_PRODUCT_ID 只影响发布说明里的链接，此处影响应用内跳转，
+        // 两者取值需保持一致（见仓库变量列表）。
+        internal const string StoreProductId = "9NGWWJ9WGKBX";
 
         /// <summary>
         /// Store 应用协议链接（优先使用：直接打开 Store 应用的产品页）。

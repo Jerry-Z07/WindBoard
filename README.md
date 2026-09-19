@@ -59,15 +59,12 @@
 
 ## 快速开始
 
-- 安装版：前往 [Microsoft Store](https://apps.microsoft.com/detail/REPLACE_WITH_STORE_PRODUCT_ID) 安装
+- 安装版：前往 [Microsoft Store](https://apps.microsoft.com/detail/9NGWWJ9WGKBX) 安装
 - 便携版：前往 [Releases](https://github.com/Jerry-Z07/WindBoard/releases/latest) 下载 zip 解压即用
 
 <!--
-  待办：上架后把上面的 REPLACE_WITH_STORE_PRODUCT_ID 替换为正式 Product ID。
-  同一占位值出现在三处，需一并替换：
-    - 本 README 与 README_EN.md
-    - WindBoard/Updates/UpdateConstants.cs（StoreProductId）
-    - .github/workflows/release.yml（vars.MSIX_STORE_PRODUCT_ID）
+  官方 Product ID 为 9NGWWJ9WGKBX，同值亦见于 WindBoard/Updates/UpdateConstants.cs（StoreProductId，应用内跳转）。
+  .github/workflows/release.yml 在仓库变量 vars.MSIX_STORE_PRODUCT_ID 未配置时仍会回退到占位值。
 -->
 
 ## 贡献
