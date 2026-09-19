@@ -13,6 +13,7 @@ using Microsoft.UI.Xaml.Media.Animation;
 using Microsoft.UI.Xaml.Shapes;
 using Windows.UI;
 using WindBoard.Board.Editing;
+using WindBoard.Board.Items;
 using WindBoard.Controls;
 using WindBoard.Interaction;
 using WindBoard.Logging;
@@ -72,6 +73,9 @@ namespace WindBoard
             ApplyInitialPenColor();
 
             BoardCanvas.CommandStateChanged += (_, _) => UpdateCommandStates();
+
+            // 形状提交成功后自动选中（工具切换与按钮态由 ApplyToolSelection 统一处理）。
+            BoardCanvas.ShapeCommitted += OnShapeCommitted;
 
             // 主 Dock：工具切换（单选）
             SelectToolToggleButton.Click += (_, _) => ApplyToolSelection(BoardTool.Select);
@@ -229,6 +233,13 @@ namespace WindBoard
             {
                 TryHideShapeFlyout();
             }
+        }
+
+        private void OnShapeCommitted(BoardShape shape)
+        {
+            // 形状创建后自动进入选择并选中新形状，用户可直接调整尺寸（与导入元素的体验一致）。
+            ApplyToolSelection(BoardTool.Select);
+            BoardCanvas.SetSelectedInkItem(shape);
         }
 
         private void UpdateCommandStates()

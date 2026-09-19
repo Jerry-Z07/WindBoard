@@ -1,3 +1,42 @@
+# 行尾符策略（仓库级规则，使「入库规范化」不再依赖个人配置）
+#
+# 背景：本仓库原先没有行尾规则，行为完全依赖各人本机的 core.autocrlf
+# （当前工作副本为 local 设置 true），导致工作区行尾出现漂移：
+# 643 个文件为 CRLF、185 个为 LF（多为较新创建、从未被重新检出的文件），
+# 另有 3 个文件自身行尾混排。本文件把「入库规范化」固化到仓库内。
+#
+# 准确语义（见 gitattributes(5)）：`* text=auto` 只保证**入库方向**把文本在索引中
+# 规范化为 LF（与个人配置无关）；**检出到工作区**的行尾在未显式指定 `eol` 时，
+# 仍由 `core.autocrlf` / `core.eol` 决定（`true` → CRLF；`input` 或 `core.eol=lf` → LF；
+# `false`/未设置 → 平台默认，Windows=CRLF）。只有逐路径的 `eol=crlf` 才覆盖个人配置。
+#
+# 分工：
+# - 本文件（git 层）：决定内容如何存入索引与如何检出到工作区。
+# - 根目录 .editorconfig（编辑器层）：决定编辑器与工具写文件时使用的行尾。
+#   两者在 Windows 上均落到 CRLF，保持一致。
+#
+# `* text=auto` 是 GitHub 官方推荐的默认写法：Git 自动判断文本/二进制，
+# 并将文本内容在索引中统一规范化为 LF，检出时按 `eol` / git 配置 / 平台决定。
+# 未采用 `* text=auto eol=crlf`：官方明确不建议在非「所有平台都必须 CRLF」
+# 的场景下使用该写法；此处只对 Windows 工具链要求 CRLF 的类型显式指定。
+* text=auto
+
+# Windows 工具链要求 CRLF 的文件类型（即使在其他平台检出也保持 CRLF）
+*.sln     text eol=crlf
+*.slnx    text eol=crlf
+*.bat     text eol=crlf
+*.cmd     text eol=crlf
+*.props   text eol=crlf
+*.targets text eol=crlf
+*.vcxproj text eol=crlf
+*.iss     text eol=crlf
+*.isl     text eol=crlf
+
+# 二进制文件不做行尾转换（`binary` 是 `-text -diff` 的别名）
+*.png binary
+*.ico binary
+*.ttf binary
+
 # Trellis: append-only developer journals should merge cleanly across
 # parallel sessions/worktrees — each session only appends a new block, so
 # there is nothing to actually conflict on.

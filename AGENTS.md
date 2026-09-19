@@ -59,8 +59,12 @@
 
 ## 编码规范（Coding Style & Naming）
 
-- 缩进 4 空格；保持现有 `namespace {}` 与大括号风格一致。
-- 命名：类型/方法用 `PascalCase`；私有字段用 `_camelCase`。
+- 风格基准见仓库根目录 `.editorconfig`（`Directory.Build.props` 已启用 `EnforceCodeStyleInBuild`，其中 severity 为 `warning` 的规则参与构建）。新增风格规则前须先统计存量违例数，有违例的只能设为 `suggestion`。
+- 缩进 4 空格（MSBuild 工程文件 2 空格）；保持现有大括号风格一致。
+- 命名空间声明风格按项目区分，由 `.editorconfig` 按路径强制：`WindBoard`/`WindBoard.UITests`/`WindBoard.CrashReporter` 用块作用域 `namespace X { }`；`WindBoard.Tests`/`WindBoard.Launcher` 用文件作用域 `namespace X;`。
+- 命名：类型/方法用 `PascalCase`；私有字段用 `_camelCase`；接口用 `I` 前缀。
+- 全仓库不使用 `this.` 限定实例成员。
+- 行尾统一 CRLF。
 
 ## 测试与验证（Testing）
 
@@ -69,7 +73,8 @@
   - `WindBoard.CrashReporter/InternalsVisibleTo.cs`
   允许测试访问 `internal` 类型。
 - 运行测试：`dotnet test WindBoard.slnx`（默认平台已映射到 x64；如需显式指定可用 `dotnet test WindBoard.slnx -p:Platform=x64`）。
-- CI：`.github/workflows/ci.yml`（push/PR）执行零告警构建（`-p:CodeAnalysisTreatWarningsAsErrors=true`）与全量单测（含渲染快照）；E2E 依赖交互桌面，不进 CI。
+- 发布自动化：`.github/workflows/release.yml`（push `v*` tag 或手动触发）负责产包与发布，构建时传入 `-p:CodeAnalysisTreatWarningsAsErrors=true` 作为零告警闸门。
+- 注意：仓库当前**没有** push/PR 阶段的 CI 工作流，零告警构建与全量单测（含渲染快照）需在提交前本地执行：`dotnet build WindBoard.slnx -c Release -p:Platform=x64 -p:CodeAnalysisTreatWarningsAsErrors=true`、`dotnet test WindBoard.slnx`。E2E 依赖交互桌面，不进 CI。
 - 本地化 Key 审计：`WindBoard.Tests/Localization/LocalizationKeyAuditTests.cs`（要求 C# 中 `L10n.Get/Format` 的 key 为字符串字面量；XAML 使用 `{l10n:Loc Key=...}`）。
 - 测试分层建议：
   - D2D 渲染层可用离屏快照测试覆盖（`WindBoard.Tests/Rendering/Snapshot/`，WARP 软件路径，不依赖真实 GPU/显示器）；基准缺失即测试失败，重建用 `WINDBOARD_REGEN_SNAPSHOTS=1`，基准变更须在提交说明中给出理由。

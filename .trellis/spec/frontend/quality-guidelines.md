@@ -6,7 +6,7 @@
 
 ## Overview
 
-WindBoard frontend follows the principle "safety = correctness > minimal change > readability > consistency." The project has no `.editorconfig` or StyleCop; code quality relies on review and conventions. The rules here combine dotnet-review, winui-app, and deslop skill guidance.
+WindBoard frontend follows the principle "safety = correctness > minimal change > readability > consistency." Code style is enforced by the repository-root `.editorconfig`, which encodes the existing per-project conventions — note that the namespace declaration style intentionally differs between the main app (block-scoped) and the test projects (file-scoped), and the rules are matched per project path. StyleCop is not used; code quality otherwise relies on review and conventions. The rules here combine dotnet-review, winui-app, and deslop skill guidance.
 
 ---
 

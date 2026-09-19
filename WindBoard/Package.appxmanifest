@@ -1,11 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 
 <!--
-  【占位，待 Partner Center 分配后替换】
   Identity 的 Name / Publisher 必须与 Partner Center「Product identity」页分配的字符串
   **逐字符一致**（大小写、空格、标点均敏感），Store 只接受一致身份的包并由微软重签名。
-  下面的 WindBoard.SpikePlaceholder / CN=WindBoard Spike Placeholder 是阶段 0 可行性验证用的
-  占位值，取得正式分配值后整体替换；在此之前不可用于提交 Store。
+  当前已填入 Partner Center 分配的正式身份（ProductId 9NGWWJ9WGKBX）。
 
   该文件仅在显式传入 -p:WindBoardPackage=Msix 时参与打包（见 WindBoard.csproj），
   默认的 unpackaged 构建（dotnet build WindBoard.slnx）不会读取本文件。
@@ -17,15 +15,14 @@
   xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"
   IgnorableNamespaces="uap uap10 rescap">
 
-  <!-- 占位 Identity（Name/Publisher 待 Partner Center 分配后替换） -->
   <Identity
-    Name="WindBoard.SpikePlaceholder"
-    Publisher="CN=WindBoard Spike Placeholder"
+    Name="JerryZ07.1570025E0CBCA"
+    Publisher="CN=17A37EAA-98B9-414B-BD4C-CE80DAC95CE5"
     Version="1.0.0.0" />
 
   <Properties>
     <DisplayName>WindBoard</DisplayName>
-    <PublisherDisplayName>WindBoard Spike Placeholder</PublisherDisplayName>
+    <PublisherDisplayName>Jerry Z07</PublisherDisplayName>
     <!--
       视觉资产统一引用 Assets\Msix\ 下的按尺寸派生图：
       该目录由 WindBoard\Build\GenerateMsixVisualAssets.ps1 从 Assets\icon.png 派生（含 targetsize 变体），

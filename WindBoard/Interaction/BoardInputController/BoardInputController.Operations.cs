@@ -7,6 +7,7 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
 using WindBoard.Board;
 using WindBoard.Board.Elements;
+using WindBoard.Board.Items;
 using WindBoard.Interaction.Tools;
 using Vortice.Mathematics;
 
@@ -48,7 +49,7 @@ namespace WindBoard.Interaction
         /// </summary>
         /// <remarks>
         /// 画笔提交活动笔迹、橡皮提交擦除快照；End 的输入不携带指针信息（提交不依赖坐标），
-        /// 传默认 ToolInput 即可。
+        /// 传默认 ToolInput 即可。形状提交成功后在手势状态清理之后经 <see cref="ShapeCommitted"/> 抛出结果。
         /// </remarks>
         private void CommitActiveToolGesture()
         {
@@ -60,6 +61,13 @@ namespace WindBoard.Interaction
 
             _routes.EndActiveStroke();
             FinalizeGestureState();
+
+            // 形状提交结果在状态清理之后抛给宿主：宿主响应时会切到选择工具（内部经
+            // CancelActiveToolOperation 重入），此时手势状态已清理，重入为 no-op，不会重复释放指针捕获。
+            if (tool is ShapeTool shapeTool && shapeTool.LastCommittedShape is BoardShape shape)
+            {
+                ShapeCommitted?.Invoke(shape);
+            }
         }
 
         /// <summary>构造不携带指针事件的输入（用于强制提交/取消等无 PointerPoint 的调度路径）。</summary>

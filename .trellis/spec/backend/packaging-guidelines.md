@@ -22,6 +22,7 @@ This spec applies whenever you touch:
 - `latest.json` `downloadUrl` must never point at the Store: the shipped client classifies assets by `fileName` suffix and its download flow is "HTTP download → run the local file", with no "open URL" fallback.
 - MSIX artifacts are delivered through `actions/upload-artifact`, **not** as GitHub Release assets.
 - `-p:WindBoardUnsignedTest=true` must **never** appear in CI or in any release build: it tags the manifest publisher with the unsigned-test OID, and a package carrying that OID is rejected by the Store. It exists only so a developer can install the package locally with `Add-AppxPackage -AllowUnsigned`.
+- Store MSIX builds must pass `-p:AppxBundle=Never`: single-project MSIX cannot emit a multi-architecture bundle, and per-architecture bundles carry duplicate Neutral resource packages whose full names collide in one Store submission (batch rejection). See §4.
 
 ### 2. Signatures (MSBuild / CI surface)
 
@@ -37,8 +38,10 @@ This spec applies whenever you touch:
 | Unsigned local test | *(never)* | `-p:WindBoardUnsignedTest=true` appends the `-AllowUnsigned` OID to `Identity/@Publisher` — **local verification only, must never ship** |
 
 MSIX producing properties:
-`-p:GenerateAppxPackageOnBuild=true`, `-p:AppxPackageDir=<abs>`, `-p:UapAppxPackageBuildMode=StoreUpload`,
+`-p:GenerateAppxPackageOnBuild=true`, `-p:AppxPackageDir=<abs>`, `-p:UapAppxPackageBuildMode=StoreUpload`, `-p:AppxBundle=Never`,
 `-p:AppxPackageSigningEnabled=false`, `-p:WindowsAppSDKSelfContained=true`, `-p:SelfContained=true`, `-p:PublishDir=<abs>`.
+
+`-p:AppxBundle=Never` is **required**: single-project MSIX (Windows App SDK) cannot emit a multi-architecture bundle, so each architecture must be a standalone package. Without it, each architecture becomes its own bundle that carries a duplicate Neutral (`..._Neutral_split.scale-*`) resource package, and Partner Center rejects the whole submission for duplicate package full names (see §4).
 
 ### 3. Contracts (pipeline ordering)
 
@@ -59,11 +62,12 @@ MSIX producing properties:
 | `0x800B0100` on `Add-AppxPackage` | package is unsigned | Expected locally: signed packages are required by default. For local verification either self-sign + import into `Cert:\LocalMachine\TrustedPeople` (needs admin), or rebuild with `-p:WindBoardPackage=Msix -p:WindBoardUnsignedTest=true` and install with `Add-AppxPackage -AllowUnsigned` (Win11, needs admin, **never shippable**) |
 | `PRI263` warning | duplicate satellite `*.resources.dll` in payload | Exclude `**/*.resources.dll` from the injected payload |
 | Partner Center rejects the whole batch citing `makepri.exe` version | Store validates the tool version recorded in `build:Metadata` | Check `Microsoft.Windows.SDK.BuildTools` version compatibility before suspecting app code |
+| Partner Center rejects a multi-arch submission: `..._Neutral_split.scale-100` / `..._split.scale-400` "used by two packages with different content" | Each single-arch **bundle** carries its own copy of the Neutral (architecture-independent) scale resource packages; single-project MSIX cannot merge architectures into one bundle | Build with `-p:AppxBundle=Never` so each architecture yields a single `.msixupload` containing one `.msix` (resources embedded, no split packages); the three packages then have unique, architecture-specific full names (`..._x64_~` / `..._x86_~` / `..._arm64_~`) |
 
 ### 5. Good / Base / Bad
 
 - **Good**: `WindBoardPackage` unset → `WindowsPackageType=None`, `AppxManifest` empty, portable output contains no MSIX assets, and only one extra cached P/Invoke (`GetCurrentPackageFullName`) runs at startup.
-- **Base**: `WindBoardPackage=Msix` → one `UapAppxPackageBuildMode=StoreUpload` run yields `<name>_<arch>.msix`, `_Test\<name>_<arch>.msixbundle` and `<name>_<arch>_bundle.msixupload`.
+- **Base**: `WindBoardPackage=Msix` + `AppxBundle=Never` → one `UapAppxPackageBuildMode=StoreUpload` run yields `<name>_<arch>.msixupload` (containing a single `<name>_<arch>.msix` with resources embedded) and `_Test\<name>_<arch>.msix`.
 - **Bad**: relying on files sitting in the publish directory to end up in the package; putting `Package.appxmanifest` into the default build; editing the source manifest's version at build time.
 
 ### 6. Tests Required
@@ -93,7 +97,7 @@ MSIX producing properties:
 ```
 ```powershell
 msbuild WindBoard/WindBoard.csproj /t:Publish `
-  -p:WindBoardPackage=Msix -p:GenerateAppxPackageOnBuild=true `
+  -p:WindBoardPackage=Msix -p:GenerateAppxPackageOnBuild=true -p:AppxBundle=Never `
   -p:AppxPackageDir="<abs>/" -p:PublishDir="<abs>/" -p:UapAppxPackageBuildMode=StoreUpload
 ```
 
@@ -103,7 +107,7 @@ msbuild WindBoard/WindBoard.csproj /t:Publish `
 
 > **Warning**: the version-injection target hooks an **internal** build-tools target name (`_ValidatePresenceOfAppxManifestItems`). If a future `Microsoft.Windows.SDK.BuildTools.MSIX` release renames it, injection silently stops happening (no error) and every Store submission would carry a stale version. After upgrading that package, re-run a MSIX build and assert the packaged `AppxManifest.xml` version.
 
-> **Warning**: `AppxBundle=Never` was used by the legacy `.wapproj` sample flows; this project relies on `UapAppxPackageBuildMode=StoreUpload` producing bundle + upload package directly. With `Microsoft.Windows.SDK.BuildTools.MSIX` 1.7.251221100 that is verified to work.
+> **Warning**: this project must build with `AppxBundle=Never` on top of `UapAppxPackageBuildMode=StoreUpload`, so each architecture yields a single `.msixupload` (one `.msix`, resources embedded). Producing per-architecture **bundles** instead makes Partner Center reject the whole submission with duplicate full names (`<Name>_<ver>_Neutral_split.scale-*`), because single-project MSIX cannot merge architectures into one bundle. Verified with `Microsoft.Windows.SDK.BuildTools.MSIX` 1.7.251221100.
 
 ---
 

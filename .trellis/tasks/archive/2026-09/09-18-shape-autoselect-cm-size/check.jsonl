@@ -1,0 +1,4 @@
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "禁止模式（硬编码字符串、过度防御）、UI 不测策略与代码评审清单，用于核对本次改动合规性"}
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "纯逻辑改动与单元测试的代码标准，用于核对换算函数与单测质量"}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "跨层数据流核对：工具提交 → 控制器事件 → 控件转发 → 窗口响应整条链路的一致性"}
+{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "核对事件订阅/退订生命周期与本地化资源约定是否被遵守"}

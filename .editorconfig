@@ -1,0 +1,116 @@
+# WindBoard 代码风格约定（EditorConfig）
+#
+# 目的：把项目既有的编码约定固化为可执行规则，避免风格随 SDK 版本或新增文件而漂移。
+#
+# 生效方式：Directory.Build.props 已启用 EnforceCodeStyleInBuild=true，
+#          因此本文件中 severity 设为 warning 的规则会在构建期生效；
+#          CI/发布构建再通过 -p:CodeAnalysisTreatWarningsAsErrors=true 升级为错误。
+#
+# 编写原则：本文件遵循「对齐现状」而非「引入新风格」。每条规则都基于对现有代码的
+#          实际统计，并在注释中标注依据与违例数，避免给存量代码制造新的构建告警。
+#
+# 维护约定：新增规则前必须先统计现状违例数；有存量违例的规则只能设为 suggestion，
+#          待存量清理后再单独提交提升 severity 的改动。
+
+root = true
+
+[*]
+charset = utf-8
+indent_style = space
+indent_size = 4
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+# 行尾策略由两层配合，二者在 Windows 上均落到 CRLF：
+# - `.gitattributes` 的 `* text=auto`（git 层）：入库时把文本在索引中统一规范化为 LF
+#   （这一侧与个人配置无关）；检出到工作区的行尾在未显式设置 `eol` 时仍由
+#   `core.autocrlf` / `core.eol` 决定（Windows 默认 native=CRLF，除非 `core.autocrlf=input`
+#   或 `core.eol=lf`）。只有逐路径 `eol=crlf` 才覆盖个人配置。详见 gitattributes(5)。
+# - 本文件的 `end_of_line = crlf`（编辑器层）：约束编辑器与工具写文件时的行尾。
+# 本项目只面向 Windows（WinUI 3 + Windows App SDK，CI 为 windows-latest），
+# 因此两层都确定为 CRLF；仓库内历史遗留的混合行尾已一并统一。
+end_of_line = crlf
+
+# MSBuild 工程文件沿用 2 空格缩进（现状一致）
+[*.{csproj,props,targets,proj}]
+indent_size = 2
+
+[*.cs]
+# --- 命名空间声明风格 ---
+# WindBoard（252/252）、WindBoard.UITests（19/19）、WindBoard.CrashReporter（4/4）
+# 现状全部使用块作用域；WindBoard.Tests（106/106）与 WindBoard.Launcher（2/2）
+# 现状全部使用文件作用域。下方按项目分别覆盖，两处均无存量违例。
+csharp_style_namespace_declarations = block_scoped:warning
+
+# --- 实例成员限定符 ---
+# 全仓库 0 处使用 this. 限定实例成员，统一依赖隐式 this。
+dotnet_style_qualification_for_field = false:warning
+dotnet_style_qualification_for_property = false:warning
+dotnet_style_qualification_for_method = false:warning
+dotnet_style_qualification_for_event = false:warning
+
+# --- var 偏好 ---
+# 现状以显式类型为主（显式类型声明约 2105 处，var 约 295 处），
+# 但 var 在类型显而易见处仍有合理使用，故仅作建议、不参与构建告警。
+csharp_style_var_for_built_in_types = false:suggestion
+csharp_style_var_when_type_is_apparent = false:suggestion
+csharp_style_var_elsewhere = false:suggestion
+
+# --- 命名约定 ---
+# 现状：私有字段统一 _camelCase，接口统一 I 前缀。
+# 设为 suggestion 而非 warning：常量、测试辅助字段等场景可能存在合理例外，
+# 不宜直接阻断构建；确认无例外后可单独提升 severity。
+dotnet_naming_rule.private_fields_underscore_camel_case.severity = suggestion
+dotnet_naming_rule.private_fields_underscore_camel_case.symbols = windboard_private_fields
+dotnet_naming_rule.private_fields_underscore_camel_case.style = windboard_underscore_camel_case
+
+dotnet_naming_symbols.windboard_private_fields.applicable_kinds = field
+dotnet_naming_symbols.windboard_private_fields.applicable_accessibilities = private
+
+dotnet_naming_style.windboard_underscore_camel_case.required_prefix = _
+dotnet_naming_style.windboard_underscore_camel_case.capitalization = camel_case
+
+dotnet_naming_rule.interfaces_prefixed_with_i.severity = suggestion
+dotnet_naming_rule.interfaces_prefixed_with_i.symbols = windboard_interfaces
+dotnet_naming_rule.interfaces_prefixed_with_i.style = windboard_interface_prefix
+
+dotnet_naming_symbols.windboard_interfaces.applicable_kinds = interface
+
+dotnet_naming_style.windboard_interface_prefix.required_prefix = I
+dotnet_naming_style.windboard_interface_prefix.capitalization = pascal_case
+
+# --- 现代语法倾向（仅建议，不参与构建告警）---
+# 项目已在自然使用 C# 12+ 语法（例如 Board/Commands 下的主构造函数），
+# 此处只表达方向，不强制改写存量代码。
+csharp_style_prefer_primary_constructors = true:suggestion
+csharp_style_prefer_collection_expression = true:suggestion
+csharp_style_prefer_switch_expression = true:suggestion
+
+# --- 测试工程与 Launcher 使用文件作用域命名空间（现状 100% 一致）---
+# 必须放在 [*.cs] 之后：EditorConfig 中后出现的 section 优先级更高。
+#
+# 每个项目需要两条规则：`**` 在 EditorConfig 的路径匹配中至少消费一个目录层级，
+# 因此 `WindBoard.Tests/**/*.cs` **不会**匹配项目根目录下的直接子文件
+# （如 WindBoard.Tests/AssertEx.cs），必须额外用单层通配符覆盖。
+# 该行为已实测确认：只写 `**/*.cs` 时，根目录下的 7 个文件会被误判为需改为块作用域。
+[WindBoard.Tests/*.cs]
+csharp_style_namespace_declarations = file_scoped:warning
+
+[WindBoard.Tests/**/*.cs]
+csharp_style_namespace_declarations = file_scoped:warning
+
+[WindBoard.Launcher/*.cs]
+csharp_style_namespace_declarations = file_scoped:warning
+
+[WindBoard.Launcher/**/*.cs]
+csharp_style_namespace_declarations = file_scoped:warning
+
+# --- 生成代码不参与风格检查 ---
+[**/*.g.cs]
+generated_code = true
+
+[**/*.g.i.cs]
+generated_code = true
+
+[**/*.designer.cs]
+generated_code = true

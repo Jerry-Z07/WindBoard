@@ -17,7 +17,8 @@ namespace WindBoard.Interaction.Tools
     /// - Move：更新 End → <see cref="BoardShape.SetGeometry"/> → 请求"旧 ∪ 新几何 AABB"的增量脏矩形
     ///   （屏幕 DIP，机制与 PenTool 等价）；
     /// - End：退化几何（起点终点几乎重合，即点击未拖动）丢弃不提交；否则经
-    ///   <see cref="AddInkItemCommand"/> 提交（撤销/重做语义不变）；
+    ///   <see cref="AddInkItemCommand"/> 提交（撤销/重做语义不变），并把结果记入
+    ///   <see cref="LastCommittedShape"/> 供控制器抛事件（本类不切工具、不设置选中，保持无 UI 依赖）；
     /// - Cancel：清空（预览挂载点与脏矩形由控制器统一清理）；
     /// - 高频路径（指针事件内）禁止日志。
     /// </remarks>
@@ -49,6 +50,14 @@ namespace WindBoard.Interaction.Tools
 
         /// <summary>当前活动形状（未提交）；无会话时为 null。</summary>
         public BoardShape? ActiveShape { get; private set; }
+
+        /// <summary>
+        /// 最近一次 <see cref="End"/> 提交成功的形状（退化几何被丢弃时为 null）。
+        /// </summary>
+        /// <remarks>
+        /// 供控制器在提交后把结果抛给宿主（控件/主窗口），工具自身不切工具、不设置选中。
+        /// </remarks>
+        public BoardShape? LastCommittedShape { get; private set; }
 
         public void Begin(in ToolInput input)
         {
@@ -92,10 +101,14 @@ namespace WindBoard.Interaction.Tools
 
         public void End(in ToolInput input)
         {
+            // 每次提交会话先清空上一次结果：退化几何走丢弃分支时保持 null（宿主据此不自动选中）。
+            LastCommittedShape = null;
+
             BoardShape? shape = ActiveShape;
             if (shape is not null && !IsDegenerate(shape))
             {
                 input.Context.Session.Execute(new AddInkItemCommand(shape));
+                LastCommittedShape = shape;
             }
 
             ActiveShape = null;

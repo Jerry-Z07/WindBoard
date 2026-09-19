@@ -141,8 +141,13 @@ jobs:
             # 必须使用 MSBuild.exe（见上方 Setup MSBuild 步骤的说明），不能用 dotnet msbuild。
             # PublishDir 必须显式传绝对路径：pubxml 内的 PublishDir 是相对路径，传给 CrashReporter
             # 子项目时会被其按自身目录解析（design.md §6 记录的顺序/相对路径坑）。
-            # 三架构各产出一个 .msixupload（内含单架构 bundle）：Partner Center 允许同一提交上传多个包，
-            # 因此这里不额外拼多架构 bundle（design.md §2.2：Store 接受同提交多个单架构包）。
+            #
+            # AppxBundle=Never 是硬性要求（不是可选优化）：单项目 MSIX（Windows App SDK）不支持多架构 bundle，
+            # 若各架构各产一个 bundle，每个 bundle 都会带一份「架构无关（Neutral）」的 scale 资源包
+            # （<Name>_<ver>_Neutral_split.scale-*），同一提交里全名重复 → Partner Center 整批拒收
+            # （错误："必须由其全名唯一标识…存在冲突的包全名为 …split.scale-100"）。
+            # AppxBundle=Never 让每架构产出「单个 .msixupload（内含一个 .msix）」，资源内嵌、不拆分资源包，
+            # 三包全名各自带架构（..._x64_~ / ..._x86_~ / ..._arm64_~）彼此唯一，可同一次提交上传。
             $msixOutDir = Join-Path $PWD ("msix/{0}" -f $rid)
             $msixPublishDir = Join-Path $PWD ("publish/{0}/msix" -f $rid)
             msbuild $project `
@@ -153,6 +158,7 @@ jobs:
               "/p:RuntimeIdentifier=$rid" `
               "/p:WindBoardPackage=Msix" `
               "/p:GenerateAppxPackageOnBuild=true" `
+              "/p:AppxBundle=Never" `
               "/p:AppxPackageDir=$msixOutDir\" `
               "/p:PublishDir=$msixPublishDir\" `
               "/p:UapAppxPackageBuildMode=StoreUpload" `
@@ -161,7 +167,7 @@ jobs:
               "/p:SelfContained=true" `
               $msbuildProps
 
-            $msixUpload = Get-ChildItem -Path $msixOutDir -Recurse -Filter '*_bundle.msixupload' -File -ErrorAction SilentlyContinue |
+            $msixUpload = Get-ChildItem -Path $msixOutDir -Recurse -Filter '*.msixupload' -File -ErrorAction SilentlyContinue |
               Select-Object -First 1
             if ($null -eq $msixUpload) { throw "MSIX upload package not produced: $msixOutDir" }
 

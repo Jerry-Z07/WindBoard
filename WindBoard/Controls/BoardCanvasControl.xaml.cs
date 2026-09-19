@@ -76,6 +76,9 @@ namespace WindBoard.Controls
 
         public event EventHandler? CommandStateChanged;
 
+        /// <summary>形状工具提交成功（新形状已入命令栈）后转发控制器事件，由宿主决定是否自动选中。</summary>
+        internal event Action<BoardShape>? ShapeCommitted;
+
         /// <summary>
         /// 画布背景色（用于渲染层清屏）。
         /// </summary>
@@ -254,6 +257,7 @@ namespace WindBoard.Controls
                 _input.StateChanged -= OnInputStateChanged;
                 _input.FrameInvalidated -= OnFrameInvalidated;
                 _input.InteractionStateChanged -= OnInteractionStateChanged;
+                _input.ShapeCommitted -= OnInputShapeCommitted;
                 _input.Detach();
             }
 
@@ -269,6 +273,7 @@ namespace WindBoard.Controls
             _input.StateChanged += OnInputStateChanged;
             _input.FrameInvalidated += OnFrameInvalidated;
             _input.InteractionStateChanged += OnInteractionStateChanged;
+            _input.ShapeCommitted += OnInputShapeCommitted;
 
             // 避免把旧页面缓存背景“带到”新页面。
             _renderer?.InvalidateCachedBackground();
@@ -331,6 +336,23 @@ namespace WindBoard.Controls
             RequestRender();
         }
 
+        /// <summary>
+        /// 选中指定条目（笔迹/形状；用于形状创建后自动进入选中）。
+        /// </summary>
+        internal void SetSelectedInkItem(IBoardInkItem? item)
+        {
+            if (_input is null)
+            {
+                return;
+            }
+
+            // 外部强制选中前，先结束输入控制器可能存在的连续动作，避免残留捕获/状态。
+            _input.CancelActiveToolOperation();
+
+            _input.SetSelection(item);
+            RequestRender();
+        }
+
         private void EnsureInitialized()
         {
             if (_isInitialized)
@@ -363,6 +385,7 @@ namespace WindBoard.Controls
             _input.StateChanged += OnInputStateChanged;
             _input.FrameInvalidated += OnFrameInvalidated;
             _input.InteractionStateChanged += OnInteractionStateChanged;
+            _input.ShapeCommitted += OnInputShapeCommitted;
 
             AttachEraserCursorHandlers();
             AttachSelectionDockHandlers();
@@ -514,6 +537,11 @@ namespace WindBoard.Controls
             RequestRender();
         }
 
+        private void OnInputShapeCommitted(BoardShape shape)
+        {
+            ShapeCommitted?.Invoke(shape);
+        }
+
         private void OnFrameInvalidated()
         {
             RequestRender();
@@ -606,6 +634,7 @@ namespace WindBoard.Controls
                 _input.StateChanged -= OnInputStateChanged;
                 _input.FrameInvalidated -= OnFrameInvalidated;
                 _input.InteractionStateChanged -= OnInteractionStateChanged;
+                _input.ShapeCommitted -= OnInputShapeCommitted;
                 _input.Detach();
             }
 

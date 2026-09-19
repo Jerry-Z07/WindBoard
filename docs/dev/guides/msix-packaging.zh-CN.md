@@ -8,7 +8,7 @@
 
 | 渠道 | 产物 | 生成方式 |
 |---|---|---|
-| Microsoft Store | 每架构一个 `.msixupload`（内含单架构 bundle） | CI：`release.yml` 的 MSIX 产包步骤（`msbuild`，见下） |
+| Microsoft Store | 每架构一个 `.msixupload`（内含单架构 `.msix`，`AppxBundle=Never`） | CI：`release.yml` 的 MSIX 产包步骤（`msbuild`，见下） |
 | GitHub Releases | 每架构一个 `WindBoard-<version>-<rid>.zip`（便携版，自包含） | CI：`dotnet publish` + `Compress-Archive` |
 | GitHub Releases | `latest.json`（仅含便携版 zip 资产 + changelog） | CI |
 | ~~Inno Setup 安装包~~ | **已停发** | `installer/WindBoard.iss` 保留用于回滚，CI 不再调用 |
@@ -62,7 +62,7 @@
 # 产出一个可用于 -AllowUnsigned 安装的测试包（其余参数与正常产包一致）
 & "<VS>\MSBuild\Current\Bin\MSBuild.exe" WindBoard\WindBoard.csproj /t:Publish /restore `
   /p:Configuration=Release /p:Platform=x64 /p:RuntimeIdentifier=win-x64 `
-  /p:WindBoardPackage=Msix /p:WindBoardUnsignedTest=true /p:GenerateAppxPackageOnBuild=true `
+  /p:WindBoardPackage=Msix /p:WindBoardUnsignedTest=true /p:GenerateAppxPackageOnBuild=true /p:AppxBundle=Never `
   /p:AppxPackageDir="<绝对路径>\msix\win-x64\" /p:PublishDir="<绝对路径>\publish\" `
   /p:UapAppxPackageBuildMode=StoreUpload /p:AppxPackageSigningEnabled=false `
   /p:WindowsAppSDKSelfContained=true /p:SelfContained=true /p:PublishProfile= `
@@ -107,7 +107,7 @@ Add-AppxPackage -Path "<...>\WindBoard_2.9.0.0_x64.msix" -AllowUnsigned
   WindBoard\WindBoard.csproj `
   /t:Publish /restore `
   /p:Configuration=Release /p:Platform=x64 /p:RuntimeIdentifier=win-x64 `
-  /p:WindBoardPackage=Msix /p:GenerateAppxPackageOnBuild=true `
+  /p:WindBoardPackage=Msix /p:GenerateAppxPackageOnBuild=true /p:AppxBundle=Never `
   /p:AppxPackageDir="<绝对路径>\msix\win-x64\" `
   /p:PublishDir="<绝对路径>\publish\win-x64\msix\" `
   /p:UapAppxPackageBuildMode=StoreUpload `
@@ -125,14 +125,14 @@ Add-AppxPackage -Path "<...>\WindBoard_2.9.0.0_x64.msix" -AllowUnsigned
 
 ### 产物与自检
 
-`AppxPackageDir` 下会得到：`WindBoard_<ver>_<arch>_bundle.msixupload`、`<...>_Test\WindBoard_<ver>_<arch>.msixbundle`（以及 bundle 内的单架构/scale 资源包）。自检建议：
+`AppxPackageDir` 下会得到：`WindBoard_<ver>_<arch>.msixupload`（内含单个 `WindBoard_<ver>_<arch>.msix`，资源内嵌、不含独立资源包）、`<...>_Test\WindBoard_<ver>_<arch>.msix`。自检建议：
 
 ```powershell
-# 1) 解出 bundle 内的单架构包（.msixbundle 是 zip 容器，Expand-Archive 不接受该扩展名，先改名为 .zip）
-Copy-Item WindBoard_x_x64.msixbundle WindBoard_x_x64.zip
-Expand-Archive WindBoard_x_x64.zip -DestinationPath bundle
+# 1) 解出上传包内的 .msix（.msixupload 是 zip 容器，Expand-Archive 不接受该扩展名，先改名为 .zip）
+Copy-Item WindBoard_x_x64.msixupload WindBoard_x_x64.zip
+Expand-Archive WindBoard_x_x64.zip -DestinationPath upload
 # 2) 解包（makeappx 取自 Microsoft.Windows.SDK.BuildTools）
-makeappx unpack /p bundle\WindBoard_x_x64.msix /d unpacked /o
+makeappx unpack /p upload\WindBoard_x_x64.msix /d unpacked /o
 # 3) 确认 CrashReporter 是 self-contained：runtimeconfig 应含 includedFrameworks
 Get-Content unpacked\WindBoard.CrashReporter.runtimeconfig.json
 # 4) 确认包内存在其 deps.json 列出的全部资产（0 缺失即不依赖本机 .NET）
@@ -155,7 +155,13 @@ Store 会用自己的证书**重签名**上传的包，因此：
 
 ### 提交形态
 
-`UapAppxPackageBuildMode=StoreUpload` 每架构产出一个 `.msixupload`（官方推荐的提交形态）。Partner Center 允许**同一次提交上传多个包**，因此三个架构分别上传各自的上传包即可；如需单 bundle 多架构，可在后续引入 `AppxBundlePlatforms` 流程。
+`UapAppxPackageBuildMode=StoreUpload` 每架构产出一个 `.msixupload`（官方推荐的提交形态）。Partner Center 允许**同一次提交上传多个包**，因此三个架构分别上传各自的上传包即可。
+
+**必须配合 `AppxBundle=Never`**：单项目 MSIX（Windows App SDK）**不支持多架构 bundle**（官方文档：「单一项目 MSIX 目前不支持创建 MSIX 捆绑」；`microsoft/msstore-cli` 源码注释 `Revisit when Windows App SDK support msixbundle` 亦印证），只能每架构各产一个包。若不加 `AppxBundle=Never`，产出的会是**每架构一个 bundle**，而每个 bundle 都带一份「架构无关（Neutral）」的 scale 资源包（`<Name>_<ver>_Neutral_split.scale-*`）；同一次提交里这些资源包**全名重复**，会被 Partner Center 整批拒收：
+
+> 所有 .msix 和 .appx 程序包必须由其全名唯一标识……存在冲突的包全名为: `<Name>_<ver>_Neutral_split.scale-100`
+
+`AppxBundle=Never` 让每架构产出「单个 `.msixupload`（内含一个 `.msix`）」，资源内嵌、不拆分资源包，三包全名各自带架构（`..._x64_~` / `..._x86_~` / `..._arm64_~`）彼此唯一，可同一次提交上传。
 
 ### `makepri.exe` 版本校验注意
 
