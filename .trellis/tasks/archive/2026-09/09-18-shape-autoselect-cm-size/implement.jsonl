@@ -1,0 +1,4 @@
+{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "控件事件驱动通信模式、BoardCanvasControl partial 拆分约定与本地化 key 规则，本次新增事件转发、选中入口与浮层文案都要遵守"}
+{"file": ".trellis/spec/frontend/state-management.md", "reason": "域状态与 UI 状态的改动路径边界（命令模式、选中集归属），确认自动选中与工具切换应走哪条路径"}
+{"file": ".trellis/spec/backend/directory-structure.md", "reason": "确认厘米换算纯函数放在 Board/Editing 层的放置与分层约定，避免写进 UI 层"}
+{"file": ".trellis/spec/backend/logging-guidelines.md", "reason": "指针释放热路径不得新增日志，事件触发点需符合高频路径约束"}
