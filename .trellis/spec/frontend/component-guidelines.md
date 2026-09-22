@@ -169,7 +169,8 @@ L10n.Format("Settings_Camouflage_CreateShortcut_Success_Fmt", shortcutPath)
 
 - Resource source files live under `WindBoard/Strings/<culture>/<Feature>.resw`
 - `<Feature>` must match the first segment of the key prefix; for example `Settings_Dock_Title` must live in `Strings/<culture>/Settings.resw`
-- Do not use `x:Uid` directly in XAML; keep `{l10n:Loc Key=...}` and let `Localization/L10n.cs` read `WindBoard.pri` at runtime
+- Do not use `x:Uid` directly in XAML; keep `{l10n:Loc Key=...}` and let `Localization/L10n.cs` resolve the resource index by install shape — unpackaged builds pass `<TargetName>.pri` (`WindBoard.pri`) explicitly, packaged (MSIX) builds use the default `ResourceManager()` constructor so the package-root `resources.pri` is loaded automatically
+- Never hard-code a single PRI file name: the same code runs under both shapes, and a hard-coded `<TargetName>.pri` makes every string fall back to its key in the MSIX build (symptom/cause/fix in `backend/packaging-guidelines.md` §4)
 - After adding a new language or a new feature resource, the build automatically refreshes the available language/feature metadata through `Build/GenerateLocalizationMetadata.ps1`
 
 **Validation points**:

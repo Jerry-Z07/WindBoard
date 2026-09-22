@@ -61,8 +61,33 @@ MSIX producing properties:
 | `NullReferenceException` in `WinAppSdkGenerateAppxManifest.UpdateLanguages()` (`APPX0002`) | manifest lacks a language resource list | Add `<Resources><Resource Language="x-generate" /></Resources>` |
 | `0x800B0100` on `Add-AppxPackage` | package is unsigned | Expected locally: signed packages are required by default. For local verification either self-sign + import into `Cert:\LocalMachine\TrustedPeople` (needs admin), or rebuild with `-p:WindBoardPackage=Msix -p:WindBoardUnsignedTest=true` and install with `Add-AppxPackage -AllowUnsigned` (Win11, needs admin, **never shippable**) |
 | `PRI263` warning | duplicate satellite `*.resources.dll` in payload | Exclude `**/*.resources.dll` from the injected payload |
+| Every user-visible string renders as its own localization key in the MSIX/Store build while portable/unpackaged builds are fine | Packaged builds emit a **different PRI file name**: `resources.pri` at the package root when `AppxPackage=true`, versus `<TargetName>.pri` when unpackaged (`MrtCore.PriGen.targets`). Code that hard-codes `new ResourceManager("<TargetName>.pri")` cannot resolve resources under package identity, and `L10n`'s fallback silently returns each key | Resolve the PRI by install shape: packaged → default `ResourceManager()` (loads the package-root `resources.pri`; packaged apps must not rename PRI files), unpackaged → explicit `<TargetName>.pri`. In this repo: `Localization/L10n.ResolvePriFileName` |
 | Partner Center rejects the whole batch citing `makepri.exe` version | Store validates the tool version recorded in `build:Metadata` | Check `Microsoft.Windows.SDK.BuildTools` version compatibility before suspecting app code |
 | Partner Center rejects a multi-arch submission: `..._Neutral_split.scale-100` / `..._split.scale-400` "used by two packages with different content" | Each single-arch **bundle** carries its own copy of the Neutral (architecture-independent) scale resource packages; single-project MSIX cannot merge architectures into one bundle | Build with `-p:AppxBundle=Never` so each architecture yields a single `.msixupload` containing one `.msix` (resources embedded, no split packages); the three packages then have unique, architecture-specific full names (`..._x64_~` / `..._x86_~` / `..._arm64_~`) |
+
+### 4.1 Verification without admin rights (loose-layout registration)
+
+`Add-AppxPackage -AllowUnsigned` and self-signing both require an elevated shell, so on a non-admin machine the packaged form can still be exercised through loose-layout registration (developer mode unlock must be on: `HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock\AllowDevelopmentWithoutDevLicense = 1`):
+
+````powershell
+# 1) produce the package (see §2 / docs/dev/guides/msix-packaging.zh-CN.md)
+# 2) unpack: .msixupload is a zip container, Expand-Archive rejects the extension
+Copy-Item WindBoard_x_x64.msixupload WindBoard_x_x64.zip; Expand-Archive WindBoard_x_x64.zip -DestinationPath upload
+makeappx unpack /p upload\WindBoard_x_x64.msix /d unpacked /o
+# 3) uninstall the Store build first: one Identity can only have one registration
+Remove-AppxPackage <PackageFullName>
+# 4) register the extracted layout (AppxManifest.xml must sit in its root)
+Add-AppxPackage -Register <unpacked>\AppxManifest.xml
+# 5) launch by AUMID — it is <PackageFamilyName>!<Application Id>, NOT the PackageFullName
+Start-Process explorer.exe -ArgumentList "shell:appsFolder\<PackageFamilyName>!App"
+````
+
+Notes:
+
+- The registered package reports `IsDevelopmentMode=True` and `SignatureKind=None`; app data stays under `%LOCALAPPDATA%\Packages\<PFN>\...`.
+- `Remove-AppxPackage` keeps app data by default, so uninstalling the Store build to test is reversible (the user can reinstall from the Store).
+- Limitations that come from loose layout, not from the app: `AppNotificationManager.Register()` throws a WinRT exception under this shape.
+- Assert the outcome programmatically instead of by eye: check the main-window title / UIA element names against the expected strings (localization keys would show up verbatim), and grep the packaged log for `L10n` missing-key warnings.
 
 ### 5. Good / Base / Bad
 
@@ -122,6 +147,8 @@ These block Store submission sign-off, not the code currently in the repo:
 | V6 | Whether the legacy real `%LOCALAPPDATA%\WindBoard\settings.json` is readable from the package | Run the migration flow against a real legacy install |
 | V7 | CrashReporter launching from the read-only package directory + its WinForms writes | Trigger a crash path in the installed package |
 | — | File pickers (`FileSavePicker`/`FileOpenPicker` + `InitializeWithWindow`) behavior under packaging (affects settings export/import and `.wbix` import/export) | Manual check in the installed package |
+
+Partial evidence for V4 (2026-09-22, loose-layout registration): `AppLog` writes aimed at `%LOCALAPPDATA%\WindBoard\Logs\` landed in `%LOCALAPPDATA%\Packages\<PFN>\LocalCache\Local\WindBoard\Logs\`, i.e. AppData writes are virtualized as V4 expects. Store-installed (read-only `Program Files\WindowsApps`) behaviour is still unverified.
 | — | Single-instance interaction between the MSIX form and the portable form | Launch both, observe |
 
 > Related design record: `.trellis/tasks/09-12-msix-packaging-migration/design.md` §6 and `research/msix-facts.md` §9.
