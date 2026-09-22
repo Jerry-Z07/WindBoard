@@ -2,6 +2,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Globalization;
+using System.IO;
 using Microsoft.Windows.ApplicationModel.Resources;
 using WindBoard.Logging;
 
@@ -12,12 +13,17 @@ namespace WindBoard.Localization
     ///
     /// 设计说明：
     /// - 外部 API 继续保持 <c>L10n.Get/Format</c> 与 <c>LocExtension</c> 不变，避免大面积调用点改动；
-    /// - 底层改为读取 <c>WindBoard.pri</c> 中的 <c>.resw</c> 资源，适配 WinUI 3 的资源体系；
+    /// - 底层通过 MRT Core 读取 <c>.resw</c> 资源，PRI 名称由构建形态决定：未打包形态
+    ///   （便携版 / 开发运行 / 单测）的输出目录只有 <c>WindBoard.pri</c>（<c>$(TargetName).pri</c>），
+    ///   必须显式传入文件名；打包（MSIX / Store）形态包内只有包根的 <c>resources.pri</c>，
+    ///   由默认构造自动加载、且不允许改名；
     /// - 缺失 Key / 缺翻译不应导致崩溃：回退为 fallback（或 key 本身），并仅记录一次日志，便于排查漏配。
     /// </summary>
     internal static class L10n
     {
         private const string DefaultCultureName = "zh-CN";
+
+        // 未打包形态的 PRI 文件名（$(TargetName).pri）；打包形态包内不存在该文件，改用包根 resources.pri。
         private const string AppPriFileName = "WindBoard.pri";
 
         // 每个缺失 Key 只打一次日志，避免 UI 高频取值刷屏。
@@ -209,9 +215,25 @@ namespace WindBoard.Localization
             return key.Substring(0, underscore);
         }
 
+        /// <summary>
+        /// 解析未打包形态使用的 PRI 文件名。
+        /// 应用目录存在 <c>WindBoard.pri</c> 时返回该文件名；否则返回 <c>null</c>，
+        /// 表示应使用默认构造读取包根 <c>resources.pri</c>（打包形态）。
+        /// </summary>
+        internal static string? ResolvePriFileName(string baseDirectory)
+        {
+            if (string.IsNullOrWhiteSpace(baseDirectory))
+            {
+                return null;
+            }
+
+            return File.Exists(Path.Combine(baseDirectory, AppPriFileName)) ? AppPriFileName : null;
+        }
+
         private static ResourceManager CreateResourceManager()
         {
-            return new ResourceManager(AppPriFileName);
+            string? priFileName = ResolvePriFileName(AppContext.BaseDirectory);
+            return priFileName is null ? new ResourceManager() : new ResourceManager(priFileName);
         }
 
         private static bool TryGetString(string cultureName, string feature, string key, out string? value, out string? resolvedCultureName)

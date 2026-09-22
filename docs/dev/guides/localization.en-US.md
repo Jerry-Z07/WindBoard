@@ -1,6 +1,6 @@
 # Localization
 
-This document specifies how WindBoard's user-visible text is uniformly extracted into resource dictionaries (`.resw` files) and packaged through WinUI 3 / MRT Core into `WindBoard.pri`.
+This document specifies how WindBoard's user-visible text is uniformly extracted into resource dictionaries (`.resw` files) and compiled through WinUI 3 / MRT Core into a PRI resource index: `<TargetName>.pri` (for this project, `WindBoard.pri`) in the unpackaged form (portable / development run), and the package-root `resources.pri` in the packaged (MSIX / Store) form.
 
 ## Resource Location
 
@@ -13,7 +13,7 @@ This document specifies how WindBoard's user-visible text is uniformly extracted
 
 Notes:
 - Currently, `zh-CN` (Simplified Chinese, default) and `en-US` (English) are provided. When adding other languages later, create new language directories following the same structure (e.g., `ja-JP`).
-- At runtime, the feature resource file is selected based on the first segment of the key prefix (for example, `Settings_*` -> `Settings.resw`) and read through `WindBoard.pri`.
+- At runtime, the feature resource file is selected based on the first segment of the key prefix (for example, `Settings_*` -> `Settings.resw`) and read from the PRI resource index: the unpackaged form reads `WindBoard.pri` explicitly, while in the packaged form `ResourceManager` auto-loads the package-root `resources.pri`.
 - Fallback strategy for missing language/key:
   - Missing language: Automatically falls back to the default `zh-CN`.
   - Missing key: Falls back to `fallback` (if provided) or the key itself, and logs via `WindBoard.Logging.AppLog` (each key is logged only once).

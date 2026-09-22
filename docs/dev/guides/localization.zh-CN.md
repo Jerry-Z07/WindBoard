@@ -1,6 +1,6 @@
 # 本地化（Localization）
 
-本文档约定 WindBoard 的“用户可见文本”如何统一提取到资源字典（`.resw`），并通过 WinUI 3 / MRT Core 打包进 `WindBoard.pri`。
+本文档约定 WindBoard 的“用户可见文本”如何统一提取到资源字典（`.resw`），并通过 WinUI 3 / MRT Core 编译进 PRI 资源索引：未打包形态（便携版 / 开发运行）为 `<TargetName>.pri`（本项目即 `WindBoard.pri`），打包（MSIX / Store）形态为包根的 `resources.pri`。
 
 ## 资源位置
 
@@ -14,7 +14,7 @@
 说明：
 
 - 当前提供 `zh-CN`（简体中文，默认）与 `en-US`（英文）。后续新增其它语言时，按相同结构新增语言目录（例如 `ja-JP`）。
-- 运行时按 key 的第一个前缀段选择功能资源文件（例如 `Settings_*` -> `Settings.resw`），并通过 `WindBoard.pri` 读取。
+- 运行时按 key 的第一个前缀段选择功能资源文件（例如 `Settings_*` -> `Settings.resw`），并从 PRI 资源索引读取：未打包形态显式读取 `WindBoard.pri`，打包形态由 `ResourceManager` 自动加载包根 `resources.pri`。
 - 缺语言/缺 key 的回退策略：
   - 缺语言：自动回退到默认 `zh-CN`。
   - 缺 key：回退到 `fallback`（若提供）或 key 本身，并通过 `WindBoard.Logging.AppLog` 记录（每个 key 只记录一次）。
