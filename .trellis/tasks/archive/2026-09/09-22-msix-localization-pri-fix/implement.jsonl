@@ -1,0 +1,4 @@
+{"file": ".trellis/tasks/09-22-msix-localization-pri-fix/research/pri-format-evidence.md", "reason": "本任务全部取证来源与失效机理（官方 targets 规则、官方文档、本机包目录与 makepri dump、未打包 publish 实测）"}
+{"file": ".trellis/spec/backend/packaging-guidelines.md", "reason": "MSIX 打包契约、AppxPackage/WindowsPackageType 语义、运行时形态（AppInstallKind）分支的硬约束，修复须不违反这些约定"}
+{"file": ".trellis/spec/backend/logging-guidelines.md", "reason": "修改 L10n 取值/回退路径时的 AppLog 使用约定（级别、避免高频刷屏），回退日志是本次验收判据"}
+{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "本地化（l10n）约定：XAML 用 {l10n:Loc}、C# 用 L10n.Get/Format 的既有模式，确保修复不改变对外调用方式"}

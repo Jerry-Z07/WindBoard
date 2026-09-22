@@ -1,0 +1,4 @@
+{"file": ".trellis/tasks/09-22-msix-localization-pri-fix/research/pri-format-evidence.md", "reason": "验收判据来源：包内 PRI 名断言、makepri dump 抽检、日志判据、未打包 publish 回归检查"}
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "代码标准与测试要求，核查改动的可测性、命名与零告警约束"}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "WinUI/本地化相关审查清单，确认修复未违反本地化与 UI 约定"}
+{"file": ".trellis/spec/backend/packaging-guidelines.md", "reason": "打包相关硬约束与验证矩阵，核查解包自检与真机验证步骤未被违反（尤其禁止 -WindBoardUnsignedTest 进入发布路径）"}
