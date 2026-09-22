@@ -740,3 +740,42 @@ P1/P3 并行完成后做整体质量审查：定位并修复 E2E 导出用例的
 ### Status
 
 [OK] **Completed**
+
+
+## Session 19: MSIX 打包形态本地化失效修复
+<!-- trellis-session: v=2 fp=3de42d8e98f6c25e -->
+
+**Date**: 2026-09-22
+**Task**: MSIX 打包形态本地化失效修复
+**Branch**: `develop`
+
+### Summary
+
+修复 MSIX 打包形态下 L10n 因 PRI 文件名不匹配导致界面全部回退为本地化 key 的问题，并完成真机验证
+
+### Main Changes
+
+- L10n 按应用目录是否存在 WindBoard.pri 选择 ResourceManager 构造方式（打包形态走默认构造读包根 resources.pri）
+- 新增 L10nPriFileResolutionTests（4 用例）并修正 localization 指南的 PRI 表述
+- spec 沉淀：packaging-guidelines 新增 PRI 命名差异症状项与无管理员权限的松散布局注册验证流程
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `e4ec3d5` | fix(l10n): 修复 MSIX 打包形态下界面文本全部回退为本地化 key 的问题 |
+| `80afe0b` | docs(spec): 沉淀打包形态 PRI 命名差异与无管理员权限的真机验证路径 |
+
+### Testing
+
+- [OK] 零告警构建 + dotnet test WindBoard.slnx 共 595 通过
+- [OK] MSIX 测试包松散注册运行：窗口标题与 UIA 文本均为译文，日志「缺少资源 key」命中 0
+- [OK] 便携版 publish 输出仍为 WindBoard.pri 且运行显示译文
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- 发布 v2.10.1 到 Microsoft Store（在架 2.10.0.0 仍为修复前版本）

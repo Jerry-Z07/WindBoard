@@ -8,8 +8,8 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 18
-- **Last Active**: 2026-09-19
+- **Total Sessions**: 19
+- **Last Active**: 2026-09-22
 <!-- @@@/auto:current-status -->
 
 ---
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~742 | Active |
+| `journal-1.md` | ~781 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 19 | 2026-09-22 | MSIX 打包形态本地化失效修复 | `e4ec3d5`, `80afe0b` | `develop` |
 | 18 | 2026-09-19 | 形状创建后自动选中与尺寸厘米显示 | `6b49364`, `6b5bc7f`, `657d976` | `develop` |
 | 17 | 2026-09-15 | v2.9.5 过渡版本：设置公告位与选择性并发版 | `338580f`, `84f6d32`, `50f410e`, `6d46b4c`, `7a1cfcd`, `baf6f98`, `7934003` | `main` |
 | 16 | 2026-09-14 | MSIX 打包迁移：安装版转 MSIX、保留便携版、数据互通与平滑迁移 | `084963a`, `2480f90`, `51935f8`, `6085093`, `329e95a`, `61fcf98` | `develop` |
