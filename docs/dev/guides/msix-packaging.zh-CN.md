@@ -136,7 +136,15 @@ makeappx unpack /p upload\WindBoard_x_x64.msix /d unpacked /o
 # 3) 确认 CrashReporter 是 self-contained：runtimeconfig 应含 includedFrameworks
 Get-Content unpacked\WindBoard.CrashReporter.runtimeconfig.json
 # 4) 确认包内存在其 deps.json 列出的全部资产（0 缺失即不依赖本机 .NET）
+# 5) 断言 Appx PRI 已合并：应为 ~2.3 MB；若只有 ~190 KB，说明 obj 中间产物陈旧，需清理后重新产包
+(Get-Item unpacked\resources.pri).Length
 ```
+
+> **警告（2026-09-23 实测）**：在长期存在的主工作树里产包时，`obj` 下的陈旧中间产物会导致 Appx PRI **不再合并** WinUI 资源——构建**零告警**，但注册后应用启动即崩：
+> `XamlParseException: Cannot locate resource from 'ms-appx:///Microsoft.UI.Xaml/Themes/themeresources.xaml'`。
+> 同一条命令在干净工作树（或清理 `obj`/`bin` 后）产出 `resources.pri` ≈ 2,376,232 B，运行正常。产包后请先执行上面第 5 步断言，再解包注册。
+
+> **警告**：`Remove-AppxPackage` **不会**保留应用数据——实测会连同 `%LOCALAPPDATA%\Packages\<PFN>\LocalCache\Local\WindBoard`（`settings.json`、`Logs`、`camouflage`）一起删除。做松散布局验证前请先备份该目录，验证后由用户从 Store 重装再回填。
 
 ## Store 提交
 
@@ -193,7 +201,9 @@ pwsh -NoLogo -NoProfile -File WindBoard/Build/GenerateMsixVisualAssets.ps1 -Forc
 
 ## 已知限制与未验证项
 
-- **未安装验证受阻**：当前开发环境非管理员，无法把自签证书导入 `LocalMachine\TrustedPeople`，因此「安装包后运行」的验证（数据落点、`GetFolderPath` 返回值、旧数据读取、CrashReporter 实际启动）仍待具备管理员权限的环境补测；详见任务设计文档的 `V4`–`V7`。
+- **打包进程内的路径可见性（V4/V5，已由商店版实测解答）**：打包进程内 `GetFolderPath(LocalApplicationData)` 与环境变量 `LOCALAPPDATA` 返回的都是**真实** `%LOCALAPPDATA%`；应用写入 `%LOCALAPPDATA%\WindBoard\...` 的内容实际落在 `%LOCALAPPDATA%\Packages\<PFN>\LocalCache\Local\...`。完整契约与失败兜底见 `.trellis/spec/backend/packaging-guidelines.md` §4.2。
+- **外部进程解析不了应用友好路径**：所谓「runtime merge 到真实 AppData 视图」只在**应用进程内**成立，因此把 `%LOCALAPPDATA%\WindBoard\...` 这类友好路径直接交给资源管理器 / 默认关联程序会弹「找不到路径」（而 `Launcher.Launch*Async` 仍返回成功，易于误判）。凡要交给外部进程的路径都必须先经 `WindBoard/Persistence/AppDataVisiblePathResolver` 映射为 `<LocalCache>\Local\...`，并以 shell 打开（目录 `explorer.exe "<dir>"`、文件 `Process.Start(new ProcessStartInfo(path) { UseShellExecute = true })`）；映射失败必须给出带路径的失败反馈并写 `AppLog.Warn`，不得静默回退到友好路径。
+- **仍未验证**：走 `Add-AppxPackage` 的签名/未签名安装路径需管理员或信任证书，旧版真实数据的读取（`V6`）与包内 CrashReporter 启动（`V7`）等仍待具备管理员权限的环境补测。
 - **包体**：MSIX 为 self-contained（.NET + Windows App SDK 均自包含），x64 上传包约 100 MB，与便携版 zip 同量级。
 - 打包形态的运行时适配（形态探测、更新通道、迁移）不在本文档范围。
 

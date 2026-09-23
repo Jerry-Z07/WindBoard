@@ -384,9 +384,6 @@ This action will be saved to the current device immediately. Continue?</value>
   <data name="Settings_Debug_PathEmpty_Message" xml:space="preserve">
     <value>Path is empty; cannot perform this action.</value>
   </data>
-  <data name="Settings_Debug_LaunchFailed_Message" xml:space="preserve">
-    <value>The system couldn't open the target (there may be no associated app).</value>
-  </data>
   <data name="Settings_Debug_FolderNotFound_Fmt" xml:space="preserve">
     <value>Folder not found: {0}</value>
   </data>

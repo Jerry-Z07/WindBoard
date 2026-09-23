@@ -1,0 +1,4 @@
+{"file": ".trellis/spec/backend/packaging-guidelines.md", "reason": "验收需按打包契约核对；AC6 要求更新该文件"}
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "检查项与质量门禁"}
+{"file": ".trellis/spec/backend/logging-guidelines.md", "reason": "核对日志覆盖与级别是否正确"}
+{"file": ".trellis/spec/backend/e2e-testing-guidelines.md", "reason": "真机/打包形态验证的归口与不变量"}
