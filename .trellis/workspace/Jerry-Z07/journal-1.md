@@ -779,3 +779,32 @@ P1/P3 并行完成后做整体质量审查：定位并修复 E2E 导出用例的
 ### Next Steps
 
 - 发布 v2.10.1 到 Microsoft Store（在架 2.10.0.0 仍为修复前版本）
+
+
+## Session 20: 打包形态下调试页打开配置与日志文件修复
+<!-- trellis-session: v=2 fp=56b4bb831f9e7e91 -->
+
+**Date**: 2026-09-23
+**Task**: 打包形态下调试页打开配置与日志文件修复
+**Branch**: `develop`
+
+### Summary
+
+修复 MSIX 打包形态下调试页四个打开动作与两个复制动作把重定向前的友好路径交给外部进程导致打不开的问题，并完成打包形态真机验收
+
+### Main Changes
+
+- 新增 AppDataVisiblePathResolver：打包形态把友好路径映射为 LocalCache\Local\ 下的外部可见路径，未打包形态原样返回
+- 调试页打开改用 shell，存在性判断与复制路径统一走外部可见路径，成功与失败分支补齐日志
+- Clipboard.Flush 失败降级为非致命，避免已复制却报失败
+- spec 与指南新增 AppData 路径可见性契约、Appx PRI 未合并症状，更正 Remove-AppxPackage 会删除应用数据的错误说明
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `0273eb7` | fix(debug-page): 修复 MSIX 打包形态下调试页打开配置与日志文件失败 |
+
+### Status
+
+[OK] **Completed**
