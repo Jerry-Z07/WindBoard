@@ -8,7 +8,7 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 20
+- **Total Sessions**: 21
 - **Last Active**: 2026-09-23
 <!-- @@@/auto:current-status -->
 
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~810 | Active |
+| `journal-1.md` | ~850 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 21 | 2026-09-23 | 崩溃提示窗口高 DPI 显示修复与布局重设计 | `281cdb0`, `4191e99` | `develop` |
 | 20 | 2026-09-23 | 打包形态下调试页打开配置与日志文件修复 | `0273eb7` | `develop` |
 | 19 | 2026-09-22 | MSIX 打包形态本地化失效修复 | `e4ec3d5`, `80afe0b` | `develop` |
 | 18 | 2026-09-19 | 形状创建后自动选中与尺寸厘米显示 | `6b49364`, `6b5bc7f`, `657d976` | `develop` |
