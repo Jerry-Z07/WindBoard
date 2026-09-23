@@ -1,0 +1,6 @@
+{"file": ".trellis/spec/backend/error-handling.md", "reason": "崩溃链路契约与 CrashReporter 参数清单（第 115 行列出 --report/--logs-dir/--source）；本次新增 3 个参数，实现后必须在 Phase 3.3 同步更新该清单，并保持“崩溃路径绝不抛异常”原则"}
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "分析器零告警红线、CA1305 IFormatProvider 显式传递约定、PascalCase/_camelCase 命名、禁止静默吞异常与 TODO、测试要求（禁用 mock 框架、需要与不需要测试的场景）"}
+{"file": ".trellis/spec/backend/logging-guidelines.md", "reason": "CrashReporterLog 独立日志契约（仅 Info/Warn/Error 三级、必须传 logsDirectory、单一文件不滚动、全链路吞异常）；视图重构不得改变该契约"}
+{"file": ".trellis/spec/frontend/type-safety.md", "reason": "InternalsVisibleTo 可见性约定：视图文本构建抽为 internal static 供 WindBoard.Tests 断言，不得为测试把类型放宽为 public"}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "本次改动跨“主程序进程 → 独立 CrashReporter 进程”边界，需按该指南显式定义边界格式（参数契约）与空值/异常处理责任"}
+{"file": ".trellis/tasks/09-23-crash-reporter-ui-redesign/research/winforms-high-dpi.md", "reason": "本任务核心实现依据：ApplicationHighDpiMode 官方配置方式、AutoScaleMode 与 .NET 8 顶级窗口缩放破坏性变更、TableLayoutPanel Absolute→AutoSize→Percent 分配规则"}

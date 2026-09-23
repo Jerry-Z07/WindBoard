@@ -112,11 +112,15 @@ Crash handling flow:
 
 1. `AppErrorService` captures the unhandled exception
 2. `AppCrashReportStore.TryWriteCrashReport` writes to the `Crashes/` directory (file name includes timestamp + PID + GUID)
-3. `TryLaunchCrashReporter` starts CrashReporter as a separate process (WinForms, with `--report`/`--logs-dir`/`--source`)
+3. `TryLaunchCrashReporter` starts CrashReporter as a separate process (WinForms) with `--report` / `--logs-dir` / `--source` / `--occurred-at` / `--exception-type` / `--exception-message`
 4. The main process exits (`Application.Current.Exit()` or `Environment.Exit(-1)`)
-5. CrashReporter shows the crash window and the user can view/copy the report
+5. CrashReporter shows the crash window (summary pane with type / message / time / source + full report pane) and the user can view/copy the report
 
 **Reentrancy guard**: use `OneTimeGate` (`Interlocked.CompareExchange`) to prevent crash handling reentry and duplicate CrashReporter launches.
+
+**Summary parameters**: `--exception-message` is folded to a single line and truncated to 2000 chars by the main process before it is put on the command line; the full text is always still in the report file.
+
+> **Warning**: the crash window must stay launchable even when extracting the summary fails — a custom exception that throws from its `Message` getter must not take the window down with it. Full contract: `.trellis/spec/frontend/crash-reporter-ui.md`.
 
 ---
 

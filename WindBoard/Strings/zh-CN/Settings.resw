@@ -384,9 +384,6 @@
   <data name="Settings_Debug_PathEmpty_Message" xml:space="preserve">
     <value>路径为空，无法执行该操作。</value>
   </data>
-  <data name="Settings_Debug_LaunchFailed_Message" xml:space="preserve">
-    <value>系统未能打开目标（可能没有可用的关联程序）。</value>
-  </data>
   <data name="Settings_Debug_FolderNotFound_Fmt" xml:space="preserve">
     <value>文件夹不存在：{0}</value>
   </data>
