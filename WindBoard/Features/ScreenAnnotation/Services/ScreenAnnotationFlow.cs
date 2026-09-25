@@ -68,6 +68,17 @@ namespace WindBoard.Features.ScreenAnnotation.Services
 
                 HookWindowEvents();
 
+                // 关键：两个窗口都必须在首次显示（Activate）之前完成无边框与透明背景配置。
+                // 否则 WinUI 顶层窗口会先以主题底色（浅色主题为白）绘制首帧，用户看到明显白闪；
+                // 具体失败原因由窗口层记录（ScreenAnnotation.Interop）。
+                if (!_annotationWindow.TryInitializeForDisplay()
+                    || !_toolbarWindow.TryInitializeForDisplay())
+                {
+                    // 此时主窗口尚未最小化，无需恢复（对最大化/全屏窗口调用 SW_RESTORE 反而会退出该状态）。
+                    await StopAsync(restoreOwnerWindow: false, activateOwnerWindow: true);
+                    return false;
+                }
+
                 _annotationWindow.Activate();
                 _toolbarWindow.Activate();
                 _toolbarWindow.SyncDrawingState(_sessionHost.CreateInitialDrawingStateSnapshot());

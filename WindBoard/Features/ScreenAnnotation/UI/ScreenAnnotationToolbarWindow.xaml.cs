@@ -70,11 +70,62 @@ namespace WindBoard.Features.ScreenAnnotation.UI
                     ClearCanvasRequested?.Invoke();
                     TryHideEraserFlyout();
                 });
-            Activated += OnWindowActivated;
             Closed += OnWindowClosed;
 
             // 形状图标描边同步：初始（Loaded）与选中切换（SetSelectedMode）两路触发。
             ShapeButton.Loaded += (_, _) => UpdateShapeIconStroke();
+        }
+
+        /// <summary>
+        /// 在窗口首次显示（<see cref="Window.Activate"/>）之前完成原生窗口与透明背景配置。
+        /// </summary>
+        /// <remarks>
+        /// 必须前置到显示之前：WinUI 顶层窗口在未挂透明 backdrop 时会以主题底色绘制首帧
+        /// （浅色主题为白），若推迟到首次 Activated 再配置，用户会先看到一个未配置的白底窗口。
+        /// </remarks>
+        internal bool TryInitializeForDisplay()
+        {
+            if (_isWindowInitialized)
+            {
+                return true;
+            }
+
+            IntPtr hwnd = ScreenAnnotationWindowInterop.GetWindowHandle(this);
+            if (hwnd == IntPtr.Zero)
+            {
+                AppLog.Warn("ScreenAnnotation.Interop", "配置工具栏窗口失败：无法获取窗口句柄。");
+                return false;
+            }
+
+            var appWindow = ScreenAnnotationWindowInterop.TryGetAppWindow(hwnd);
+            if (appWindow is null)
+            {
+                AppLog.Warn("ScreenAnnotation.Interop", "配置工具栏窗口失败：无法获取 AppWindow。");
+                return false;
+            }
+
+            RectInt32 bounds = BuildInitialToolbarBounds(hwnd);
+            if (!ScreenAnnotationWindowInterop.TryConfigureBorderlessWindow(appWindow, bounds, out string? windowError))
+            {
+                AppLog.Warn("ScreenAnnotation.Interop", $"配置工具栏窗口失败：error='{windowError}'");
+                return false;
+            }
+
+            if (!TryAttachTransparentBackdrop(hwnd, out string? backdropError))
+            {
+                AppLog.Warn("ScreenAnnotation.Interop", $"初始化工具栏透明背景失败：error='{backdropError}'");
+                return false;
+            }
+
+            if (!ScreenAnnotationWindowInterop.TryPrepareToolbarWindow(hwnd, out string? interopError))
+            {
+                AppLog.Warn("ScreenAnnotation.Interop", $"初始化工具栏原生样式失败：error='{interopError}'");
+                return false;
+            }
+
+            SetSelectedMode(ScreenAnnotationMode.PassThrough);
+            _isWindowInitialized = true;
+            return true;
         }
 
         /// <summary>
@@ -192,51 +243,6 @@ namespace WindBoard.Features.ScreenAnnotation.UI
         {
             hwnd = ScreenAnnotationWindowInterop.GetWindowHandle(this);
             return hwnd != IntPtr.Zero;
-        }
-
-        private void OnWindowActivated(object sender, WindowActivatedEventArgs args)
-        {
-            if (_isWindowInitialized)
-            {
-                return;
-            }
-
-            IntPtr hwnd = ScreenAnnotationWindowInterop.GetWindowHandle(this);
-            if (hwnd == IntPtr.Zero)
-            {
-                return;
-            }
-
-            var appWindow = ScreenAnnotationWindowInterop.TryGetAppWindow(hwnd);
-            if (appWindow is null)
-            {
-                return;
-            }
-
-            RectInt32 bounds = BuildInitialToolbarBounds(hwnd);
-            if (!ScreenAnnotationWindowInterop.TryConfigureBorderlessWindow(appWindow, bounds, out string? windowError))
-            {
-                AppLog.Warn("ScreenAnnotation.Interop", $"配置工具栏窗口失败：error='{windowError}'");
-                CloseWindowAfterInitializationFailure();
-                return;
-            }
-
-            if (!TryAttachTransparentBackdrop(hwnd, out string? backdropError))
-            {
-                AppLog.Warn("ScreenAnnotation.Interop", $"初始化工具栏透明背景失败：error='{backdropError}'");
-                CloseWindowAfterInitializationFailure();
-                return;
-            }
-
-            if (!ScreenAnnotationWindowInterop.TryPrepareToolbarWindow(hwnd, out string? interopError))
-            {
-                AppLog.Warn("ScreenAnnotation.Interop", $"初始化工具栏原生样式失败：error='{interopError}'");
-                CloseWindowAfterInitializationFailure();
-                return;
-            }
-
-            SetSelectedMode(ScreenAnnotationMode.PassThrough);
-            _isWindowInitialized = true;
         }
 
         private void OnPassThroughButtonClicked(object sender, RoutedEventArgs e)
@@ -914,18 +920,6 @@ namespace WindBoard.Features.ScreenAnnotation.UI
 
             SystemBackdrop = null;
             _transparentBackdrop = null;
-        }
-
-        private void CloseWindowAfterInitializationFailure()
-        {
-            try
-            {
-                Close();
-            }
-            catch (Exception ex)
-            {
-                AppLog.Warn("ScreenAnnotation.Interop", "关闭初始化失败的工具栏窗口时发生异常。", ex);
-            }
         }
 
         private static Style GetRequiredStyle(string key)

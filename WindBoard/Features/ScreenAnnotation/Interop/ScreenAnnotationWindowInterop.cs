@@ -194,7 +194,7 @@ namespace WindBoard.Features.ScreenAnnotation.Interop
                 0,
                 0,
                 0,
-                SwpNoMove | SwpNoSize | SwpNoActivate | SwpShowWindow))
+                SwpNoMove | SwpNoSize | SwpNoActivate | ResolveShowWindowFlag(hwnd)))
             {
                 error = $"SetWindowPos(relative z-order) failed: lastError={Marshal.GetLastWin32Error()}";
                 return false;
@@ -436,7 +436,7 @@ namespace WindBoard.Features.ScreenAnnotation.Interop
                 bounds.Y,
                 bounds.Width,
                 bounds.Height,
-                SwpNoZOrder | SwpNoActivate | SwpShowWindow))
+                SwpNoZOrder | SwpNoActivate | ResolveShowWindowFlag(hwnd)))
             {
                 error = $"SetWindowPos(move and resize) failed: lastError={Marshal.GetLastWin32Error()}";
                 return false;
@@ -455,7 +455,7 @@ namespace WindBoard.Features.ScreenAnnotation.Interop
                 0,
                 0,
                 0,
-                SwpNoMove | SwpNoSize | SwpNoActivate | SwpFrameChanged | SwpShowWindow))
+                SwpNoMove | SwpNoSize | SwpNoActivate | SwpFrameChanged | ResolveShowWindowFlag(hwnd)))
             {
                 error = $"SetWindowPos(HWND_TOPMOST) failed: lastError={Marshal.GetLastWin32Error()}";
                 return false;
@@ -570,7 +570,7 @@ namespace WindBoard.Features.ScreenAnnotation.Interop
                 0,
                 0,
                 0,
-                SwpNoMove | SwpNoSize | SwpNoZOrder | SwpNoActivate | SwpFrameChanged | SwpShowWindow))
+                SwpNoMove | SwpNoSize | SwpNoZOrder | SwpNoActivate | SwpFrameChanged | ResolveShowWindowFlag(hwnd)))
             {
                 error = $"SetWindowPos(style refresh) failed: lastError={Marshal.GetLastWin32Error()}";
                 return false;
@@ -578,6 +578,21 @@ namespace WindBoard.Features.ScreenAnnotation.Interop
 
             error = null;
             return true;
+        }
+
+        /// <summary>
+        /// 解析本次 <c>SetWindowPos</c> 是否附带 <c>SWP_SHOWWINDOW</c>。
+        /// </summary>
+        /// <remarks>
+        /// <c>SWP_SHOWWINDOW</c> 会直接显示窗口，因此只在窗口已经可见时才附带：
+        /// 屏幕批注窗口在首次显示前需要保持隐藏完成配置（透明 backdrop / 无边框 / 层级），
+        /// 否则会在内容未渲染、样式未就绪时被提前显示出来。
+        /// 官方文档中应用窗口框架样式变更所需的最小组合为
+        /// <c>SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED</c>，不包含该标志。
+        /// </remarks>
+        private static uint ResolveShowWindowFlag(IntPtr hwnd)
+        {
+            return IsWindowVisible(hwnd) ? SwpShowWindow : 0;
         }
 
         private static RectInt32 ToRectInt32(Rect rect)
@@ -608,6 +623,9 @@ namespace WindBoard.Features.ScreenAnnotation.Interop
 
         [DllImport("user32.dll", SetLastError = true)]
         private static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+
+        [DllImport("user32.dll")]
+        private static extern bool IsWindowVisible(IntPtr hWnd);
 
         [DllImport("user32.dll", SetLastError = true)]
         private static extern bool SetForegroundWindow(IntPtr hWnd);
