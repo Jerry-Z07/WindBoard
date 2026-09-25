@@ -13,17 +13,40 @@ namespace WindBoard
     {
         private bool _hasAppliedStartupWindowMode;
         private bool _isWindowStateSyncAttached;
+        private bool _isExtendedContentIntoTitleBarApplied;
 
         private void ConfigureTitleBar()
         {
-            ExtendsContentIntoTitleBar = true;
-            SetTitleBar(MainTitleBar);
+            ApplyExtendedContentIntoTitleBar(enabled: true);
 
             AppWindowTitleBar titleBar = AppWindow.TitleBar;
             titleBar.ButtonBackgroundColor = Colors.Transparent;
             titleBar.ButtonInactiveBackgroundColor = Colors.Transparent;
 
             AttachWindowStateSync();
+        }
+
+        /// <summary>
+        /// 切换“把内容扩展到标题栏区域”。
+        /// 说明：WinUI 启用该扩展时会为系统标题栏预留 1 个物理像素，XAML 内容岛
+        /// （DesktopChildSiteBridge）随之整体下移 1 像素、高度少 1 像素；全屏时该缝隙
+        /// 会露出窗口背景（浅色主题下为白色），表现为屏幕顶部一条 1px 白线。
+        /// 全屏不需要自定义标题栏，因此全屏时关闭该扩展让内容岛覆盖窗口首行；窗口化时恢复。
+        /// </summary>
+        private void ApplyExtendedContentIntoTitleBar(bool enabled)
+        {
+            if (_isExtendedContentIntoTitleBarApplied == enabled)
+            {
+                return;
+            }
+
+            ExtendsContentIntoTitleBar = enabled;
+            if (enabled)
+            {
+                SetTitleBar(MainTitleBar);
+            }
+
+            _isExtendedContentIntoTitleBarApplied = enabled;
         }
 
         private void AttachWindowStateSync()
@@ -222,8 +245,16 @@ namespace WindBoard
                     return true;
                 }
 
+                // 先于 presenter 切换调整“内容扩展到标题栏”：WinUI 只在窗口化状态下重算
+                // 内容岛位置，若等进入全屏后再关闭该扩展，内容岛不会重排，屏幕顶部将残留白线。
+                ApplyExtendedContentIntoTitleBar(!fullScreen);
+
                 // Windowed：回到 Overlapped Presenter（窗口化）；FullScreen：进入全屏 Presenter。
                 appWindow.SetPresenter(fullScreen ? AppWindowPresenterKind.FullScreen : AppWindowPresenterKind.Overlapped);
+
+                // SetPresenter 返回后 Presenter.Kind 可能尚未更新，这里按目标形态直接设置标题栏可见性；
+                // 随后 AppWindow.Changed 触发的同步会按真实形态再次校正。
+                MainTitleBar.Visibility = fullScreen ? Visibility.Collapsed : Visibility.Visible;
                 return true;
             }
             catch (Exception ex)

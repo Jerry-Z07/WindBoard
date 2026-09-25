@@ -357,6 +357,38 @@ _toolbarWindow.Activate();
 - 不要在配置阶段用 `SetWindowPos(..., SWP_SHOWWINDOW)`（或任何隐含显示窗口的调用）来「让样式生效」。
 - 不要为此把窗口先显示到屏幕外/设为 0 尺寸再搬回来：多一次不可控的呈现，且高 DPI 下坐标更难对齐。
 
+### Convention: 全屏切换必须先切换内容扩展、后切换 presenter
+
+**What**: 主窗口在「窗口化 ↔ 全屏」之间切换时（`MainWindow.WindowMode.cs` 的 `TrySetWindowFullScreen`），`Window.ExtendsContentIntoTitleBar` 的调整必须发生在 `AppWindow.SetPresenter` **之前**：进入全屏先关闭该扩展，退出全屏先开启并 `SetTitleBar(MainTitleBar)`。
+
+**Why**: WinUI 在 `ExtendsContentIntoTitleBar = true` 时会为系统标题栏预留 **1 个物理像素**，承载 XAML 内容的内容岛（`Microsoft.UI.Content.DesktopChildSiteBridge`）因此整体下移 1 像素、高度少 1 像素。窗口化时该缝隙被标题栏遮住不可见；全屏时没有任何遮挡，它会露出窗口背景（浅色主题下为纯白），表现为**屏幕顶部一条 1px 白线**。1920×1440 @150% 实测：修复前内容岛 `(0,1)-(2560,1440)`、第 0 行 `#FFFFFF`；关闭扩展后 `(0,0)-(2560,1440)`、第 0 行为画布色。
+
+**契约**：
+
+- 判定依据是 `AppWindow.Presenter.Kind == AppWindowPresenterKind.FullScreen`：全屏关闭扩展，窗口化开启扩展并重新 `SetTitleBar(MainTitleBar)`。
+- **时序**：`ApplyExtendedContentIntoTitleBar(!fullScreen)` 必须在 `SetPresenter` 之前调用。WinUI 只在**窗口化**状态下重算内容岛位置；先 `SetPresenter(FullScreen)` 再关闭扩展不会触发重排——此时 `ExtendsContentIntoTitleBar` 的读取值已是 `false`，但内容岛仍停在 `(0,1)`，白线依旧存在。
+- **幂等**：`AppWindow.Changed` 会在移动、尺寸变化等场景频繁触发 `SyncTitleBarVisibilityFromWindowState`，扩展切换必须用状态标记（`_isExtendedContentIntoTitleBarApplied`）短路，避免反复切换引发布局抖动。
+- **`Presenter.Kind` 滞后**：`SetPresenter` 返回后 `Presenter.Kind` 可能仍是旧值，因此切换全屏后 `MainTitleBar.Visibility` 按**目标形态**直接赋值，随后 `AppWindow.Changed` 触发的同步再按真实形态校正。
+- 该缝隙**无法**用窗口层属性覆盖：实测 `DWMWA_BORDER_COLOR`、`DWMWA_CAPTION_COLOR`、`DWMWA_USE_IMMERSIVE_DARK_MODE`、`DWMWA_SYSTEMBACKDROP_TYPE` 与 XAML 根元素 `Background` 都不影响该像素——它位于内容岛之外，只能通过消除内容岛偏移来解决。
+
+```csharp
+// MainWindow.TrySetWindowFullScreen（正确顺序）
+ApplyExtendedContentIntoTitleBar(!fullScreen);
+
+appWindow.SetPresenter(fullScreen ? AppWindowPresenterKind.FullScreen : AppWindowPresenterKind.Overlapped);
+
+// SetPresenter 返回后 Presenter.Kind 可能尚未更新，这里按目标形态直接设置
+MainTitleBar.Visibility = fullScreen ? Visibility.Collapsed : Visibility.Visible;
+```
+
+**诊断方法**：用 `EnumChildWindows` 枚举主窗口子窗口，按类名 `Microsoft.UI.Content.DesktopChildSiteBridge` 取 `GetWindowRect`，对比内容岛矩形与窗口矩形是否相差 1 物理像素。全屏时用 `PrintWindow(hwnd, hdc, PW_RENDERFULLCONTENT)` 可直接读出该行像素，不要求窗口在前台。
+
+**Don't**：
+
+- 不要在 `SetPresenter` 之后再切换 `ExtendsContentIntoTitleBar`——不会重排，白线照旧。
+- 不要用「全屏时把窗口上移 1 像素」来凑：`AppWindow.MoveAndResize` 会让窗口直接退出全屏 presenter（实测调用后 `Presenter.Kind` 变回 `Overlapped`）。
+- 不要在 `AppWindow.Changed` 回调里无条件切换扩展属性，必须带幂等标记。
+
 ### Convention: 设置窗口壳层公告位
 
 **What**: 设置窗口壳层（`SettingsWindow`）在 `NavigationView` 之上有一个公告位（内置 `InfoBar`，AutomationId `SettingsWindow_AnnouncementBar`），承载面向用户的版本/分发类通知。新增公告只改公告目录与本地化文案，壳层渲染逻辑不动。
@@ -400,6 +432,8 @@ _toolbarWindow.Activate();
 - Add/remove/resize elements in the screen-annotation toolbar XAML without updating `ExpandedToolbarWidthDip` / `ToolbarHeightDip`: the expanded toolbar gets clipped
 - Configure a transparent top-level window (borderless presenter / `SystemBackdrop` / native styles) in its first `Activated` handler or after `Activate()`: the window is already visible and paints its first frame with the theme background (white in the light theme), so users see a white flash — configure before `Activate()` instead
 - Pass `SWP_SHOWWINDOW` to `SetWindowPos` while configuring a window that is intentionally still hidden: the flag displays the window and undoes the "configure first, show later" order (gate it with `IsWindowVisible`, see `ScreenAnnotationWindowInterop.ResolveShowWindowFlag`)
+- Toggle `ExtendsContentIntoTitleBar` after `SetPresenter(FullScreen)`: WinUI re-lays out the content island only while the window is windowed, so the 1 physical pixel reserved for the system title bar remains and a 1px line of the window background (white in the light theme) stays at the top of the screen — switch the extension before the presenter
+- Try to cover that 1px gap with window-level attributes (`DWMWA_BORDER_COLOR` / `DWMWA_CAPTION_COLOR` / dark mode / backdrop type) or the XAML root `Background`: the pixel lies outside the content island and none of them affect it
 
 ### ✅ DO
 - Handle events in code-behind and keep business logic in Services
@@ -410,3 +444,4 @@ _toolbarWindow.Activate();
 - Confirm whether native WinUI controls already satisfy the requirement before deciding to restyle or add extra controls
 - For hand-drawn icons that must follow selection/theme state, sync in code-behind with three triggers: `Loaded` (initial), `ActualThemeChanged` (theme switch), and the state-changing handler (e.g. `ApplyToolSelection`) — reference `UpdateShapeIconStroke` in `MainWindow.xaml.cs`
 - For transparent top-level windows, finish native + `SystemBackdrop` configuration before showing them (`TryInitializeForDisplay()` → `Activate()`), and roll the flow back on failure — see the «透明顶层窗口必须先配置、后显示» convention above
+- Switch `ExtendsContentIntoTitleBar` *before* `SetPresenter` when toggling full screen (disable it in full screen, re-enable it with `SetTitleBar(MainTitleBar)` when windowed) — see the «全屏切换必须先切换内容扩展、后切换 presenter» convention above
