@@ -116,3 +116,5 @@ appsettings.*.Local.json
 
 .ace-tool/
 # End
+
+.codegraph/
