@@ -16,6 +16,21 @@ namespace WindBoard.CrashReporter
 
         internal string Source { get; init; } = string.Empty;
 
+        /// <summary>
+        /// 崩溃发生时间（主程序以环回格式 ISO 8601 传入的本地时间字符串）。
+        /// </summary>
+        internal string OccurredAt { get; init; } = string.Empty;
+
+        /// <summary>
+        /// 异常类型全名（AppDomain 未处理异常为非 Exception 对象时为其对象类型）。
+        /// </summary>
+        internal string ExceptionType { get; init; } = string.Empty;
+
+        /// <summary>
+        /// 异常消息（主程序侧已折叠为单行并截断，仅用于摘要展示）。
+        /// </summary>
+        internal string ExceptionMessage { get; init; } = string.Empty;
+
         internal static CrashReporterArgs Parse(string[] args)
         {
             // 说明：args 来自 Main(string[] args)，理论上不会为 null；
@@ -28,6 +43,9 @@ namespace WindBoard.CrashReporter
             string reportPath = string.Empty;
             string logsDir = string.Empty;
             string source = string.Empty;
+            string occurredAt = string.Empty;
+            string exceptionType = string.Empty;
+            string exceptionMessage = string.Empty;
 
             // 简单顺序解析：--key value
             // 注意：不要使用复杂的解析库，减少依赖与出错概率。
@@ -60,7 +78,28 @@ namespace WindBoard.CrashReporter
                     continue;
                 }
 
-                // 未知参数：忽略
+                if (IsKey(key, "--occurred-at") && TryGetValue(args, i, out string? occurred))
+                {
+                    occurredAt = occurred ?? string.Empty;
+                    i++;
+                    continue;
+                }
+
+                if (IsKey(key, "--exception-type") && TryGetValue(args, i, out string? exceptionTypeName))
+                {
+                    exceptionType = exceptionTypeName ?? string.Empty;
+                    i++;
+                    continue;
+                }
+
+                if (IsKey(key, "--exception-message") && TryGetValue(args, i, out string? exceptionText))
+                {
+                    exceptionMessage = exceptionText ?? string.Empty;
+                    i++;
+                    continue;
+                }
+
+                // 未知参数：忽略（旧版 CrashReporter 遇到新版主程序新增参数时即走此分支，无副作用）
             }
 
             return new CrashReporterArgs
@@ -68,6 +107,9 @@ namespace WindBoard.CrashReporter
                 ReportPath = reportPath,
                 LogsDirectory = logsDir,
                 Source = source,
+                OccurredAt = occurredAt,
+                ExceptionType = exceptionType,
+                ExceptionMessage = exceptionMessage,
             };
         }
 

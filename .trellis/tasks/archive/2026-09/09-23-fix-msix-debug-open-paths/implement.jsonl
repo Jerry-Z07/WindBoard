@@ -1,0 +1,5 @@
+{"file": ".trellis/spec/backend/packaging-guidelines.md", "reason": "MSIX 打包形态契约、虚拟化落点、真机验证路径与不可放宽的硬约束（本任务直接相关）"}
+{"file": ".trellis/spec/backend/directory-structure.md", "reason": "分层与目录约定，新增 Persistence/ 文件须遵循"}
+{"file": ".trellis/spec/backend/logging-guidelines.md", "reason": "AppLog 用法与成功/失败日志要求，本次要补齐日志盲区"}
+{"file": ".trellis/spec/backend/error-handling.md", "reason": "异常处理与失败反馈约定（R7 兜底）"}
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "质量闸门与单测新增约定"}

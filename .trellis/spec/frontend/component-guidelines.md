@@ -322,6 +322,73 @@ L10n.Format("Settings_Camouflage_CreateShortcut_Success_Fmt", shortcutPath)
 
 **Gotcha — 窗口尺寸联动**: 屏幕批注工具栏的窗口尺寸是 code-behind 硬编码常量（`ScreenAnnotationToolbarWindow.ExpandedToolbarWidthDip` / `ToolbarHeightDip`），其值必须等于 XAML 内容宽高之和。在 XAML 中增删元素或修改间距后必须同步该常量，否则展开态最右侧按钮会被窗口裁剪。
 
+### Convention: 透明顶层窗口必须先配置、后显示
+
+**What**: WinUI 3 的顶层窗口（屏幕批注层 `ScreenAnnotationWindow`、批注工具栏 `ScreenAnnotationToolbarWindow`）必须在 `Window.Activate()` **之前**完成「无边框 presenter + 透明 `SystemBackdrop` + 原生样式/层级」配置；配置由窗口自身的 `TryInitializeForDisplay()` 承担，由 `ScreenAnnotationFlow.StartAsync` 在 `Activate()` 前调用，失败则 `StopAsync` 回滚。
+
+**Why**: 窗口一旦被显示，就会先画出第一帧。未挂 `SystemBackdrop` 时 WinUI 以**当前主题纯色**绘制窗口背景（浅色主题即白，官方 materials 文档「无材质（默认）」），且此时窗口还是创建时的默认尺寸。若把配置放在首次 `Activated` 回调里（窗口此时已可见），用户会先看到「默认尺寸的白底窗口 → 被撑到目标尺寸的白底窗口 → 透明」的闪白序列；主窗口处于全屏时该白帧还会叠加全屏呈现切换与最小化过渡，闪白次数更多。`SystemBackdrop` 在显示前赋值（构造函数/`Activate()` 前）与 XAML 里写 `<Window.SystemBackdrop>` 等价，都是官方支持的写法。
+
+**契约**：
+
+- 显示顺序固定为：`new` 两个窗口 → `HookWindowEvents()` → 两个 `TryInitializeForDisplay()` 都成功 → `Activate()` → 同步状态/模式。
+- 初始化失败分支用 `StopAsync(restoreOwnerWindow: false, activateOwnerWindow: true)`：此刻主窗口尚未最小化，对最大化/全屏窗口调用 `SW_RESTORE`（`TryRestoreWindow`）反而会让它退出该状态。
+- 配置阶段的 `SetWindowPos` **不得附带 `SWP_SHOWWINDOW`**：它会显示窗口（官方文档：“Displays the window”），把刻意保持隐藏的窗口提前显示，白闪绕回来。`ScreenAnnotationWindowInterop.ResolveShowWindowFlag()` 只在 `IsWindowVisible(hwnd)` 为真时附带该标志，对已可见窗口行为完全不变；样式刷新所需的最小组合本就是 `SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED`。
+- `_isWindowInitialized` 仍在配置成功时置位（现在是「已显示前配置完成」的标志），窗口消息处理（`WmDpiChanged` / `WmWindowPosChanged`）依赖它做门禁。
+
+```csharp
+// ScreenAnnotationFlow.StartAsync（正确顺序）
+_annotationWindow = new ScreenAnnotationWindow(displayTarget, _sessionHost, _windowState);
+_toolbarWindow = new ScreenAnnotationToolbarWindow(displayTarget);
+HookWindowEvents();
+
+if (!_annotationWindow.TryInitializeForDisplay() || !_toolbarWindow.TryInitializeForDisplay())
+{
+    await StopAsync(restoreOwnerWindow: false, activateOwnerWindow: true);
+    return false;
+}
+
+_annotationWindow.Activate();
+_toolbarWindow.Activate();
+```
+
+**Don't**：
+
+- 不要在首次 `Activated` / `Activated` 之后才做无边框或 `SystemBackdrop` 配置——那时窗口已经显示过至少一帧。
+- 不要在配置阶段用 `SetWindowPos(..., SWP_SHOWWINDOW)`（或任何隐含显示窗口的调用）来「让样式生效」。
+- 不要为此把窗口先显示到屏幕外/设为 0 尺寸再搬回来：多一次不可控的呈现，且高 DPI 下坐标更难对齐。
+
+### Convention: 全屏切换必须先切换内容扩展、后切换 presenter
+
+**What**: 主窗口在「窗口化 ↔ 全屏」之间切换时（`MainWindow.WindowMode.cs` 的 `TrySetWindowFullScreen`），`Window.ExtendsContentIntoTitleBar` 的调整必须发生在 `AppWindow.SetPresenter` **之前**：进入全屏先关闭该扩展，退出全屏先开启并 `SetTitleBar(MainTitleBar)`。
+
+**Why**: WinUI 在 `ExtendsContentIntoTitleBar = true` 时会为系统标题栏预留 **1 个物理像素**，承载 XAML 内容的内容岛（`Microsoft.UI.Content.DesktopChildSiteBridge`）因此整体下移 1 像素、高度少 1 像素。窗口化时该缝隙被标题栏遮住不可见；全屏时没有任何遮挡，它会露出窗口背景（浅色主题下为纯白），表现为**屏幕顶部一条 1px 白线**。1920×1440 @150% 实测：修复前内容岛 `(0,1)-(2560,1440)`、第 0 行 `#FFFFFF`；关闭扩展后 `(0,0)-(2560,1440)`、第 0 行为画布色。
+
+**契约**：
+
+- 判定依据是 `AppWindow.Presenter.Kind == AppWindowPresenterKind.FullScreen`：全屏关闭扩展，窗口化开启扩展并重新 `SetTitleBar(MainTitleBar)`。
+- **时序**：`ApplyExtendedContentIntoTitleBar(!fullScreen)` 必须在 `SetPresenter` 之前调用。WinUI 只在**窗口化**状态下重算内容岛位置；先 `SetPresenter(FullScreen)` 再关闭扩展不会触发重排——此时 `ExtendsContentIntoTitleBar` 的读取值已是 `false`，但内容岛仍停在 `(0,1)`，白线依旧存在。
+- **幂等**：`AppWindow.Changed` 会在移动、尺寸变化等场景频繁触发 `SyncTitleBarVisibilityFromWindowState`，扩展切换必须用状态标记（`_isExtendedContentIntoTitleBarApplied`）短路，避免反复切换引发布局抖动。
+- **`Presenter.Kind` 滞后**：`SetPresenter` 返回后 `Presenter.Kind` 可能仍是旧值，因此切换全屏后 `MainTitleBar.Visibility` 按**目标形态**直接赋值，随后 `AppWindow.Changed` 触发的同步再按真实形态校正。
+- 该缝隙**无法**用窗口层属性覆盖：实测 `DWMWA_BORDER_COLOR`、`DWMWA_CAPTION_COLOR`、`DWMWA_USE_IMMERSIVE_DARK_MODE`、`DWMWA_SYSTEMBACKDROP_TYPE` 与 XAML 根元素 `Background` 都不影响该像素——它位于内容岛之外，只能通过消除内容岛偏移来解决。
+
+```csharp
+// MainWindow.TrySetWindowFullScreen（正确顺序）
+ApplyExtendedContentIntoTitleBar(!fullScreen);
+
+appWindow.SetPresenter(fullScreen ? AppWindowPresenterKind.FullScreen : AppWindowPresenterKind.Overlapped);
+
+// SetPresenter 返回后 Presenter.Kind 可能尚未更新，这里按目标形态直接设置
+MainTitleBar.Visibility = fullScreen ? Visibility.Collapsed : Visibility.Visible;
+```
+
+**诊断方法**：用 `EnumChildWindows` 枚举主窗口子窗口，按类名 `Microsoft.UI.Content.DesktopChildSiteBridge` 取 `GetWindowRect`，对比内容岛矩形与窗口矩形是否相差 1 物理像素。全屏时用 `PrintWindow(hwnd, hdc, PW_RENDERFULLCONTENT)` 可直接读出该行像素，不要求窗口在前台。
+
+**Don't**：
+
+- 不要在 `SetPresenter` 之后再切换 `ExtendsContentIntoTitleBar`——不会重排，白线照旧。
+- 不要用「全屏时把窗口上移 1 像素」来凑：`AppWindow.MoveAndResize` 会让窗口直接退出全屏 presenter（实测调用后 `Presenter.Kind` 变回 `Overlapped`）。
+- 不要在 `AppWindow.Changed` 回调里无条件切换扩展属性，必须带幂等标记。
+
 ### Convention: 设置窗口壳层公告位
 
 **What**: 设置窗口壳层（`SettingsWindow`）在 `NavigationView` 之上有一个公告位（内置 `InfoBar`，AutomationId `SettingsWindow_AnnouncementBar`），承载面向用户的版本/分发类通知。新增公告只改公告目录与本地化文案，壳层渲染逻辑不动。
@@ -363,6 +430,10 @@ L10n.Format("Settings_Camouflage_CreateShortcut_Success_Fmt", shortcutPath)
 - Read theme brushes via `Application.Current.Resources[key]` for element-level theming: it resolves against the app-level theme, while the element may be overridden by an ancestor `RequestedTheme` (toolbar icons can differ from app theme)
 - Leave `Padding` on a floating toolbar container so the backplate equals the content size: inner controls (r=10) then overflow the backplate corner (r=14) — put the inset on the content `Margin` instead
 - Add/remove/resize elements in the screen-annotation toolbar XAML without updating `ExpandedToolbarWidthDip` / `ToolbarHeightDip`: the expanded toolbar gets clipped
+- Configure a transparent top-level window (borderless presenter / `SystemBackdrop` / native styles) in its first `Activated` handler or after `Activate()`: the window is already visible and paints its first frame with the theme background (white in the light theme), so users see a white flash — configure before `Activate()` instead
+- Pass `SWP_SHOWWINDOW` to `SetWindowPos` while configuring a window that is intentionally still hidden: the flag displays the window and undoes the "configure first, show later" order (gate it with `IsWindowVisible`, see `ScreenAnnotationWindowInterop.ResolveShowWindowFlag`)
+- Toggle `ExtendsContentIntoTitleBar` after `SetPresenter(FullScreen)`: WinUI re-lays out the content island only while the window is windowed, so the 1 physical pixel reserved for the system title bar remains and a 1px line of the window background (white in the light theme) stays at the top of the screen — switch the extension before the presenter
+- Try to cover that 1px gap with window-level attributes (`DWMWA_BORDER_COLOR` / `DWMWA_CAPTION_COLOR` / dark mode / backdrop type) or the XAML root `Background`: the pixel lies outside the content island and none of them affect it
 
 ### ✅ DO
 - Handle events in code-behind and keep business logic in Services
@@ -372,3 +443,5 @@ L10n.Format("Settings_Camouflage_CreateShortcut_Success_Fmt", shortcutPath)
 - UI operations in crash paths must be wrapped in try-catch
 - Confirm whether native WinUI controls already satisfy the requirement before deciding to restyle or add extra controls
 - For hand-drawn icons that must follow selection/theme state, sync in code-behind with three triggers: `Loaded` (initial), `ActualThemeChanged` (theme switch), and the state-changing handler (e.g. `ApplyToolSelection`) — reference `UpdateShapeIconStroke` in `MainWindow.xaml.cs`
+- For transparent top-level windows, finish native + `SystemBackdrop` configuration before showing them (`TryInitializeForDisplay()` → `Activate()`), and roll the flow back on failure — see the «透明顶层窗口必须先配置、后显示» convention above
+- Switch `ExtendsContentIntoTitleBar` *before* `SetPresenter` when toggling full screen (disable it in full screen, re-enable it with `SetTitleBar(MainTitleBar)` when windowed) — see the «全屏切换必须先切换内容扩展、后切换 presenter» convention above

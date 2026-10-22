@@ -26,7 +26,7 @@ namespace WindBoard.Interaction
                 return;
             }
 
-            if (HasBlockingInteractionForWheelZoom())
+            if (HasBlockingInteractionForWheel())
             {
                 return;
             }
@@ -35,6 +35,22 @@ namespace WindBoard.Interaction
             int delta = point.Properties.MouseWheelDelta;
             if (delta == 0)
             {
+                return;
+            }
+
+            // 横向滚轮：触控板双指横移经系统转换为 WM_MOUSEHWHEEL（IsHorizontalMouseWheel 为 true），
+            // 与鼠标倾斜滚轮在应用层不可区分，统一按“系统滚动”语义做横向平移视口（不缩放，也不参与下面的选区变换）。
+            // 竖向滚轮保持既有行为：缩放视口（见下方 factor2 分支）。
+            if (point.Properties.IsHorizontalMouseWheel)
+            {
+                Vector2 panScreenDelta = PointerRoutingDecisions.ResolveHorizontalWheelPanScreenDelta(delta);
+                _viewport.PanByScreenDelta(panScreenDelta);
+
+                // 与右键拖动/触摸平移一致：累积待消费位移，供渲染层走“滚动呈现”快路径。
+                _pendingPanScreenDelta += panScreenDelta;
+
+                e.Handled = true;
+                FrameInvalidated?.Invoke();
                 return;
             }
 
@@ -116,9 +132,9 @@ namespace WindBoard.Interaction
             FrameInvalidated?.Invoke();
         }
 
-        private bool HasBlockingInteractionForWheelZoom()
+        private bool HasBlockingInteractionForWheel()
         {
-            // 滚轮缩放属于“瞬时交互”，当同时存在其它连续交互（例如画线/擦除/平移/选择变换）时直接忽略，
+            // 滚轮缩放与横向滚轮平移都属于“瞬时交互”，当同时存在其它连续交互（例如画线/擦除/平移/选择变换）时直接忽略，
             // 避免状态互相干扰或导致撤销快照不一致。
             return HasActiveToolInteraction || HasPointerGesture || _routes.IsManipulatingSelection;
         }

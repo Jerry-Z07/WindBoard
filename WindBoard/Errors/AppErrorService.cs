@@ -1,5 +1,6 @@
 using System;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
@@ -17,6 +18,10 @@ namespace WindBoard.Errors
     /// </summary>
     internal sealed class AppErrorService
     {
+        // 说明：命令行总长有限（Windows 上限 32767 字符），而异常消息长度不可控，
+        // 传给崩溃窗口的摘要参数需截断；截断只影响摘要展示，完整消息仍在崩溃报告文件中。
+        private const int MaxExceptionMessageChars = 2000;
+
         private readonly object _gate = new();
         private global::WindBoard.MainWindow? _mainWindow;
 
@@ -100,7 +105,7 @@ namespace WindBoard.Errors
             // 使用独立 CrashReporter：不依赖 WinUI 视觉树，避免“主进程已坏导致弹窗出不来”。
             try
             {
-                _ = TryLaunchCrashReporter(crashReport, AppCrashSource.WinUIUnhandledException);
+                _ = TryLaunchCrashReporter(crashReport, AppCrashSource.WinUIUnhandledException, ex, exceptionObject: null);
             }
             catch
             {
@@ -154,7 +159,7 @@ namespace WindBoard.Errors
             // AppDomain 未处理异常时也尽力拉起 CrashReporter（不依赖窗口是否创建）。
             try
             {
-                _ = TryLaunchCrashReporter(wrote ? report : null, AppCrashSource.AppDomainUnhandledException);
+                _ = TryLaunchCrashReporter(wrote ? report : null, AppCrashSource.AppDomainUnhandledException, ex, exceptionObject);
             }
             catch
             {
@@ -277,7 +282,7 @@ namespace WindBoard.Errors
             }
         }
 
-        private bool TryLaunchCrashReporter(AppCrashReport? report, AppCrashSource source)
+        private bool TryLaunchCrashReporter(AppCrashReport? report, AppCrashSource source, Exception? exception, object? exceptionObject)
         {
             // 说明：该方法位于“崩溃链路”，必须极其保守：任何异常都不得冒泡。
             // 返回值语义：true 表示 CrashReporter 已经启动（或此前已启动）；false 表示未启动。
@@ -322,6 +327,17 @@ namespace WindBoard.Errors
                 psi.ArgumentList.Add("--source");
                 psi.ArgumentList.Add(source.ToString());
 
+                // 以下三个参数为摘要区专用：主程序只做边界上的归一化（单行化 + 截断），
+                // 不做展示排版，排版责任归崩溃窗口（见 design.md §2.2）。
+                psi.ArgumentList.Add("--occurred-at");
+                psi.ArgumentList.Add(DateTimeOffset.Now.ToString("O", CultureInfo.InvariantCulture));
+
+                psi.ArgumentList.Add("--exception-type");
+                psi.ArgumentList.Add(GetExceptionTypeName(exception, exceptionObject));
+
+                psi.ArgumentList.Add("--exception-message");
+                psi.ArgumentList.Add(TryGetExceptionMessage(exception));
+
                 Process? p = Process.Start(psi);
                 if (p is null)
                 {
@@ -341,6 +357,48 @@ namespace WindBoard.Errors
                 SafeLogWarn("App", "启动 CrashReporter 异常", ex);
 
                 return false;
+            }
+        }
+
+        /// <summary>
+        /// 构造传给崩溃窗口的异常类型名。
+        /// 说明：AppDomain.UnhandledException 允许抛出非 Exception 对象，故需要 exceptionObject 兜底。
+        /// </summary>
+        private static string GetExceptionTypeName(Exception? exception, object? exceptionObject)
+        {
+            return exception?.GetType().FullName ?? exceptionObject?.GetType().FullName ?? string.Empty;
+        }
+
+        /// <summary>
+        /// 把异常消息归一化为单行摘要参数。
+        /// 规则（见 design.md §2.2）：
+        /// 1. 换行折叠为空格：崩溃窗口按「异常消息：&lt;单行&gt;」排版，消息内换行会破坏该结构；
+        /// 2. 截断到 <see cref="MaxExceptionMessageChars"/>：Windows 命令行总长有上限，而消息长度不可控，
+        ///    截断只影响摘要展示，完整消息仍在崩溃报告文件中。
+        /// </summary>
+        internal static string NormalizeSingleLine(string? message)
+        {
+            if (string.IsNullOrEmpty(message))
+            {
+                return string.Empty;
+            }
+
+            string singleLine = message.ReplaceLineEndings(" ").Trim();
+            return singleLine.Length > MaxExceptionMessageChars
+                ? singleLine[..MaxExceptionMessageChars]
+                : singleLine;
+        }
+
+        private static string TryGetExceptionMessage(Exception? exception)
+        {
+            try
+            {
+                return NormalizeSingleLine(exception?.Message);
+            }
+            catch
+            {
+                // 忽略：自定义异常可能重写 Message 并抛异常；崩溃链路取值失败不能阻断拉起崩溃窗口
+                return string.Empty;
             }
         }
 

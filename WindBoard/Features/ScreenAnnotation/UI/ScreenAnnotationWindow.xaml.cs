@@ -149,50 +149,66 @@ namespace WindBoard.Features.ScreenAnnotation.UI
 
         private void OnWindowActivated(object sender, WindowActivatedEventArgs args)
         {
+            if (!_isWindowInitialized)
+            {
+                return;
+            }
+
+            if (args.WindowActivationState != WindowActivationState.Deactivated)
+            {
+                OverlayActivated?.Invoke(this, EventArgs.Empty);
+            }
+        }
+
+        /// <summary>
+        /// 在窗口首次显示（<see cref="Window.Activate"/>）之前完成原生窗口与透明背景配置。
+        /// </summary>
+        /// <remarks>
+        /// 必须前置到显示之前：WinUI 顶层窗口在未挂透明 backdrop 时会以主题底色绘制首帧
+        /// （浅色主题为白），若推迟到首次 Activated 再配置，用户会先看到一个未配置的白底窗口；
+        /// 主窗口处于全屏时该窗口还会与全屏呈现切换叠加，白闪更明显。
+        /// </remarks>
+        internal bool TryInitializeForDisplay()
+        {
             if (_isWindowInitialized)
             {
-                if (args.WindowActivationState != WindowActivationState.Deactivated)
-                {
-                    OverlayActivated?.Invoke(this, EventArgs.Empty);
-                }
-
-                return;
+                return true;
             }
 
             IntPtr hwnd = ScreenAnnotationWindowInterop.GetWindowHandle(this);
             if (hwnd == IntPtr.Zero)
             {
-                return;
+                AppLog.Warn("ScreenAnnotation.Interop", "配置批注层窗口失败：无法获取窗口句柄。");
+                return false;
             }
 
             var appWindow = ScreenAnnotationWindowInterop.TryGetAppWindow(hwnd);
             if (appWindow is null)
             {
-                return;
+                AppLog.Warn("ScreenAnnotation.Interop", "配置批注层窗口失败：无法获取 AppWindow。");
+                return false;
             }
 
             if (!ScreenAnnotationWindowInterop.TryConfigureBorderlessWindow(appWindow, _displayTarget.Bounds, out string? windowError))
             {
                 AppLog.Warn("ScreenAnnotation.Interop", $"配置批注层窗口失败：error='{windowError}'");
-                CloseWindowAfterInitializationFailure();
-                return;
+                return false;
             }
 
             if (!TryAttachTransparentBackdrop(hwnd, out string? backdropError))
             {
                 AppLog.Warn("ScreenAnnotation.Interop", $"初始化批注层透明背景失败：error='{backdropError}'");
-                CloseWindowAfterInitializationFailure();
-                return;
+                return false;
             }
 
             if (!ScreenAnnotationWindowInterop.TryPrepareAnnotationWindow(hwnd, out string? interopError))
             {
                 AppLog.Warn("ScreenAnnotation.Interop", $"初始化批注层原生样式失败：error='{interopError}'");
-                CloseWindowAfterInitializationFailure();
-                return;
+                return false;
             }
 
             _isWindowInitialized = true;
+            return true;
         }
 
         internal event EventHandler? OverlayActivated;
@@ -290,18 +306,6 @@ namespace WindBoard.Features.ScreenAnnotation.UI
             OverlayWindowPositionChanged?.Invoke(
                 this,
                 new ScreenAnnotationOverlayWindowPositionChangedEventArgs(insertAfterHwnd, flags));
-        }
-
-        private void CloseWindowAfterInitializationFailure()
-        {
-            try
-            {
-                Close();
-            }
-            catch (Exception ex)
-            {
-                AppLog.Warn("ScreenAnnotation.Interop", "关闭初始化失败的批注层窗口时发生异常。", ex);
-            }
         }
 
         private void OnBoardCanvasCommandStateChanged(object? sender, EventArgs e)

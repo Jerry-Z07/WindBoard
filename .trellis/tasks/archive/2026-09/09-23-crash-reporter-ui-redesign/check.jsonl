@@ -1,0 +1,5 @@
+{"file": ".trellis/spec/backend/error-handling.md", "reason": "逐条校验：崩溃路径仍不抛异常、新参数与文档参数清单一致（含 Phase 3.3 的同步更新是否完成）、既有 OneTimeGate 重入保护未被破坏"}
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "校验禁止模式（无静默 catch、无 TODO/HACK/FIXME、无 public 字段）、命名规范、测试覆盖是否落在“需要测试的场景”，以及零告警构建"}
+{"file": ".trellis/spec/backend/logging-guidelines.md", "reason": "校验 CrashReporterLog 调用契约未被改动（级别、logsDirectory 传参、吞异常）"}
+{"file": ".trellis/spec/guides/cross-layer-thinking-guide.md", "reason": "校验跨进程边界契约闭合：参数格式、空值处理、新旧版本双向兼容（新参数缺失时布局不塌陷）"}
+{"file": ".trellis/tasks/09-23-crash-reporter-ui-redesign/research/winforms-high-dpi.md", "reason": "比对实现是否违反研究结论：可换行文本是否被放入 AutoSize 行、尺寸单位与缩放基线是否自洽、是否误用 app.manifest"}

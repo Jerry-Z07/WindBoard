@@ -1,4 +1,5 @@
 using System;
+using System.Numerics;
 using Microsoft.UI.Input;
 
 namespace WindBoard.Interaction
@@ -63,6 +64,9 @@ namespace WindBoard.Interaction
 
         /// <summary>滚轮缩放空闲检测定时器间隔（毫秒）。</summary>
         internal const int WheelZoomTimerIntervalMs = 50;
+
+        /// <summary>横向滚轮平移换算（DIP / 每滚轮单位）。</summary>
+        internal const float HorizontalWheelPanDipPerDelta = 1.0f;
 
         /// <summary>
         /// 是否开始绘制笔迹：鼠标要求左键按下；触控笔/触摸默认允许。
@@ -202,6 +206,21 @@ namespace WindBoard.Interaction
             }
 
             return WheelZoomTickDecision.End;
+        }
+
+        /// <summary>
+        /// 横向滚轮（触控板双指横移）→ 视口横向平移的屏幕位移（DIP）。
+        /// </summary>
+        /// <remarks>
+        /// 触控板双指滑动由系统转换为滚轮消息（横向为 WM_MOUSEHWHEEL，PointerPointProperties.IsHorizontalMouseWheel 为 true），
+        /// 应用层无法与鼠标倾斜滚轮区分，因此统一按“系统滚动”语义处理：<paramref name="wheelDelta"/> 正向表示向右滚动，
+        /// 对应视口右移、画面内容左移（与 ScrollViewer 横向滚动观感一致，并自动遵循系统“滚动方向”设置）；
+        /// <see cref="WindBoard.Board.Viewport.BoardViewport.PanByScreenDelta"/> 的入参是“画面内容位移”，故取反。
+        /// 竖向滚轮不走此路径，保持既有行为（缩放视口）。
+        /// </remarks>
+        internal static Vector2 ResolveHorizontalWheelPanScreenDelta(int wheelDelta)
+        {
+            return new Vector2(-wheelDelta * HorizontalWheelPanDipPerDelta, 0.0f);
         }
     }
 }

@@ -1,4 +1,5 @@
 using System;
+using System.Numerics;
 using Microsoft.UI.Input;
 using WindBoard.Interaction;
 using Xunit;
@@ -191,5 +192,29 @@ public sealed class PointerRoutingDecisionsTests
         // 延迟缩放合并的契约常量：空闲超时 150ms、空闲检测间隔 50ms。
         Assert.Equal(150, PointerRoutingDecisions.WheelZoomIdleTimeoutMs);
         Assert.Equal(50, PointerRoutingDecisions.WheelZoomTimerIntervalMs);
+    }
+
+    [Fact]
+    public void ResolveHorizontalWheelPanScreenDelta_ScrollRight_MovesContentLeft()
+    {
+        // 触控板双指右滑 → 横向滚轮正向 → 与系统横向滚动一致：视口右移、画面内容左移（内容位移为负）。
+        // 120 为 WHEEL_DELTA（一个 notch），触控板则产生高频小增量（如 12）。
+        Assert.Equal(new Vector2(-120.0f, 0.0f), PointerRoutingDecisions.ResolveHorizontalWheelPanScreenDelta(120));
+        Assert.Equal(new Vector2(-12.0f, 0.0f), PointerRoutingDecisions.ResolveHorizontalWheelPanScreenDelta(12));
+    }
+
+    [Fact]
+    public void ResolveHorizontalWheelPanScreenDelta_ScrollLeft_AndZero()
+    {
+        // 反向（向左滚动）平移方向相反；无位移时返回零向量，不触发视口变更。
+        Assert.Equal(new Vector2(120.0f, 0.0f), PointerRoutingDecisions.ResolveHorizontalWheelPanScreenDelta(-120));
+        Assert.Equal(Vector2.Zero, PointerRoutingDecisions.ResolveHorizontalWheelPanScreenDelta(0));
+    }
+
+    [Fact]
+    public void HorizontalWheelPanConstants_MatchPanContract()
+    {
+        // 横向平移换算契约：1 滚轮单位 = 1 DIP（触控板小增量事件按 1:1 映射才顺滑；倾斜滚轮一个 notch 即 120 DIP）。
+        Assert.Equal(1.0f, PointerRoutingDecisions.HorizontalWheelPanDipPerDelta);
     }
 }

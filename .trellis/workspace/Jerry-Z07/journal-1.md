@@ -779,3 +779,72 @@ P1/P3 并行完成后做整体质量审查：定位并修复 E2E 导出用例的
 ### Next Steps
 
 - 发布 v2.10.1 到 Microsoft Store（在架 2.10.0.0 仍为修复前版本）
+
+
+## Session 20: 打包形态下调试页打开配置与日志文件修复
+<!-- trellis-session: v=2 fp=56b4bb831f9e7e91 -->
+
+**Date**: 2026-09-23
+**Task**: 打包形态下调试页打开配置与日志文件修复
+**Branch**: `develop`
+
+### Summary
+
+修复 MSIX 打包形态下调试页四个打开动作与两个复制动作把重定向前的友好路径交给外部进程导致打不开的问题，并完成打包形态真机验收
+
+### Main Changes
+
+- 新增 AppDataVisiblePathResolver：打包形态把友好路径映射为 LocalCache\Local\ 下的外部可见路径，未打包形态原样返回
+- 调试页打开改用 shell，存在性判断与复制路径统一走外部可见路径，成功与失败分支补齐日志
+- Clipboard.Flush 失败降级为非致命，避免已复制却报失败
+- spec 与指南新增 AppData 路径可见性契约、Appx PRI 未合并症状，更正 Remove-AppxPackage 会删除应用数据的错误说明
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `0273eb7` | fix(debug-page): 修复 MSIX 打包形态下调试页打开配置与日志文件失败 |
+
+### Status
+
+[OK] **Completed**
+
+
+## Session 21: 崩溃提示窗口高 DPI 显示修复与布局重设计
+<!-- trellis-session: v=2 fp=df58fb9e128a80b6 -->
+
+**Date**: 2026-09-23
+**Task**: 崩溃提示窗口高 DPI 显示修复与布局重设计
+**Branch**: `develop`
+
+### Summary
+
+修复 CrashReporter 在 150% 等高 DPI 下的布局错乱并重构为上下双区常驻；根因是 AutoScaleDimensions 被 WinForms 归一化导致自动缩放因子恒为 1，改用 AutoScaleMode.None + LogicalToDeviceUnits 自管缩放
+
+### Main Changes
+
+- 窗口重构：错误摘要区（Absolute 固定高度）与完整报告区（Percent 吃满剩余）上下双区常驻，移除折叠详情与建议操作清单
+- 新增跨进程参数 --occurred-at / --exception-type / --exception-message，主程序侧配套换行折叠、2000 字符截断与异常 Message 读取兜底
+- 缩放策略改为 AutoScaleMode.None + LogicalToDeviceUnits；实测证明 Dpi/Font 模式下 AutoScaleDimensions 会被归一化，缩放因子恒为 1
+- 新增 code-spec：.trellis/spec/frontend/crash-reporter-ui.md；同步 error-handling.md 参数清单与 frontend/index.md
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `281cdb0` | fix(crash-reporter): 修复高 DPI 缩放下的布局错乱并重设计崩溃提示窗口 |
+| `4191e99` | docs(spec): 沉淀崩溃窗口 DPI 自管缩放契约并同步参数清单 |
+
+### Testing
+
+- [OK] dotnet build WindBoard.slnx -c Release -p:Platform=x64 -p:CodeAnalysisTreatWarningsAsErrors=true 为 0 警告 0 错误
+- [OK] dotnet test WindBoard.slnx 为 629 通过 / 0 失败
+- [OK] 150%（DPI 144）实机实测：客户区 900x640 放大到 1350x960、摘要区 186px、报告区 575px，exe 级量测与进程内探针一致
+
+### Status
+
+[OK] **Completed**
+
+### Next Steps
+
+- 如需支持跨显示器拖动后重算布局，可在 DpiChanged 中重新应用换算（design.md 第 6 节已记录）
