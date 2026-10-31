@@ -7,22 +7,15 @@ namespace WindBoard.Tests.Localization;
 
 public sealed class LocalizationKeyAuditTests
 {
-    [Fact]
+    [RepoFact]
     public void All_LocKeys_Should_Exist_In_DefaultLanguageResw()
     {
+        // [RepoFact] 在发现阶段已保证能找到仓库根目录；这里只是取回它并给编译器一个非空值。
         DirectoryInfo? repoRoot = RepoRootLocator.Find();
-        if (repoRoot is null)
-        {
-            SkipOrReturn("未找到 WindBoard.slnx，跳过本地化 Key 审计测试。");
-            return;
-        }
+        Assert.NotNull(repoRoot);
 
-        string windBoardDir = Path.Combine(repoRoot.FullName, "WindBoard");
-        if (!Directory.Exists(windBoardDir))
-        {
-            SkipOrReturn("未找到 WindBoard 目录，跳过本地化 Key 审计测试。");
-            return;
-        }
+        string windBoardDir = Path.Combine(repoRoot!.FullName, "WindBoard");
+        Assert.True(Directory.Exists(windBoardDir), $"未找到 WindBoard 目录：{windBoardDir}");
 
         HashSet<string> xamlKeys = CollectXamlLocKeys(windBoardDir);
         HashSet<string> csKeys = CollectCSharpLocKeys(windBoardDir, out List<string> dynamicKeyUsages);
@@ -301,37 +294,5 @@ public sealed class LocalizationKeyAuditTests
     private static string NormalizePath(string path)
     {
         return path.Replace(Path.AltDirectorySeparatorChar, Path.DirectorySeparatorChar);
-    }
-
-    private static void SkipOrReturn(string reason)
-    {
-        // xUnit 2 允许通过抛出 SkipException 在运行时跳过；如果运行环境不支持，则直接返回（视为通过）。
-        Exception? skip = CreateSkipException(reason);
-        if (skip is not null)
-        {
-            throw skip;
-        }
-    }
-
-    private static Exception? CreateSkipException(string reason)
-    {
-        string[] candidates =
-        [
-            "Xunit.Sdk.SkipException, xunit.core",
-            "Xunit.Sdk.SkipException, xunit.assert",
-            "Xunit.Sdk.SkipException, xunit.execution.dotnet",
-            "Xunit.Sdk.SkipException, xunit.execution.desktop",
-        ];
-
-        foreach (string typeName in candidates)
-        {
-            Type? type = Type.GetType(typeName, throwOnError: false);
-            if (type is not null)
-            {
-                return Activator.CreateInstance(type, reason) as Exception;
-            }
-        }
-
-        return null;
     }
 }
