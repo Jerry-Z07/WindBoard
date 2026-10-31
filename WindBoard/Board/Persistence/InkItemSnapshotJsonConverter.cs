@@ -6,6 +6,24 @@ using WindBoard.Board.Items;
 namespace WindBoard.Board.Persistence
 {
     /// <summary>
+    /// 笔迹条目的读模式：由版本契约决定，通过 <see cref="JsonSerializerOptions"/> 实例注入转换器。
+    /// </summary>
+    internal enum InkItemReadMode
+    {
+        /// <summary>
+        /// v1/v2：条目是扁平形态（points/colorRgba 等字段直接在条目对象上）。
+        /// 读到包装形态同样接受（不告警），保证旧文件读取行为不变。
+        /// </summary>
+        LegacyFlat,
+
+        /// <summary>
+        /// v3：条目是 <c>{ kind, stroke|shape }</c> 包装形态。
+        /// 读到扁平条目时按 <c>kind=stroke</c> 兜底读取，并通过回调上报（每个文件最多告警一次）。
+        /// </summary>
+        Wrapped,
+    }
+
+    /// <summary>
     /// <see cref="InkItemSnapshot"/> 的 JSON 转换器（序列化兼容单点）。
     /// </summary>
     /// <remarks>
@@ -14,6 +32,8 @@ namespace WindBoard.Board.Persistence
     ///   （与 Wbix 元素的 <c>{type, data}</c> 模式一致；design E）；
     /// - 读侧兼容 v1/v2 旧文件：旧格式的条目是"扁平"形态（points/colorRgba 等字段直接位于条目对象上，
     ///   没有 kind/stroke 包装），读入时包装为 Kind="stroke" 的 <see cref="InkItemSnapshot"/>；
+    /// - 读模式由 <see cref="InkItemReadMode"/> 决定，两种模式都接受两种形态（差别只在是否对扁平兜底告警），
+    ///   因此不会出现"今日能读的文件改版后读不了"；
     /// - 读侧识别形状包装（<c>{ kind, shape }</c>，kind ∈ 形状集合由 <see cref="BoardInkItemCodec"/> 校验，
     ///   未知 kind 在 Codec 层跳过单条不阻断；带形状条目的文件被旧 App 读取时扁平解析失败 → 拒读，语义不变）；
     /// - Kind 为 null/缺省时归一为 <see cref="BoardInkItemCodec.StrokeKind"/>（仅 stroke 分支），
@@ -22,6 +42,27 @@ namespace WindBoard.Board.Persistence
     /// </remarks>
     internal sealed class InkItemSnapshotJsonConverter : JsonConverter<InkItemSnapshot>
     {
+        private readonly InkItemReadMode _readMode;
+        private readonly Action? _onUnexpectedLegacyFlatItem;
+
+        /// <summary>
+        /// 供类型特性 <c>[JsonConverter(typeof(InkItemSnapshotJsonConverter))]</c> 使用的默认构造：
+        /// 按 v3（包装）模式读取，扁平兜底不告警。
+        /// </summary>
+        public InkItemSnapshotJsonConverter()
+            : this(InkItemReadMode.Wrapped, onUnexpectedLegacyFlatItem: null)
+        {
+        }
+
+        /// <summary>
+        /// 按版本契约指定读模式；<paramref name="onUnexpectedLegacyFlatItem"/> 在该模式下遇到扁平条目时调用。
+        /// </summary>
+        public InkItemSnapshotJsonConverter(InkItemReadMode readMode, Action? onUnexpectedLegacyFlatItem = null)
+        {
+            _readMode = readMode;
+            _onUnexpectedLegacyFlatItem = onUnexpectedLegacyFlatItem;
+        }
+
         public override InkItemSnapshot? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
         {
             if (reader.TokenType == JsonTokenType.Null)
@@ -109,6 +150,12 @@ namespace WindBoard.Board.Persistence
             // 旧格式（v1/v2）扁平形态：整个对象即 StrokeSnapshot。
             // 说明：kind 存在但无 stroke 包装（例如手工编辑的文件）同样按扁平形态读取。
             StrokeSnapshot legacy = ParseStrokeSnapshot(root, options);
+            if (_readMode == InkItemReadMode.Wrapped)
+            {
+                // v3 文件里出现扁平条目属于格式倒退：兜底读取，但由回调方保证「每个文件只告警一次」。
+                _onUnexpectedLegacyFlatItem?.Invoke();
+            }
+
             return new InkItemSnapshot
             {
                 Kind = NormalizeKind(hasKind ? kindText : null),

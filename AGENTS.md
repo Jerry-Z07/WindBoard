@@ -84,7 +84,8 @@
 ## 相关文档（Docs）
 
 - `docs/dev/guides/localization.zh-CN.md`：本地化约定。
-- `docs/dev/guides/wbix.zh-CN.md`：WBIX（`.wbix`）格式说明。
+- `docs/dev/guides/wbix.zh-CN.md`：WBIX（`.wbix`）格式说明（含版本兼容契约）。
+- `docs/dev/guides/ink-rendering.zh-CN.md`：笔迹与图形渲染几何规范（绘制顺序、笔宽与半径、端点/连接、箭头翼、常量表）。
 - `docs/dev/guides/msix-packaging.zh-CN.md`：MSIX 打包与 Store 发布（条件属性、产包命令、payload 注入、版本号注入）。
 - `.agents/skills/writing-release-notes/SKILL.md`：更新日志编写约定。发版前必须加载并遵循
 - 不要阅读 `docs/dev/archive/` 中的内容。

@@ -1,0 +1,2 @@
+pages/page-000.json
+manifest.json
