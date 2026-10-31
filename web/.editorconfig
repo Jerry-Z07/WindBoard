@@ -1,0 +1,14 @@
+# web 子项目局部覆盖：本目录使用 LF + 2 空格缩进（根配置为 CRLF + 4 空格）。
+# 参考 .trellis/tasks/10-31-web-port/design.md §3。
+root = false
+
+[*.{ts,tsx,js,jsx,mjs,cjs,json,jsonc,css,html,md,yml,yaml}]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 2
+
+[*.md]
+trim_trailing_whitespace = false

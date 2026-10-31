@@ -1,0 +1,37 @@
+{
+  "name": "windboard-web",
+  "private": true,
+  "version": "0.1.0",
+  "description": "WindBoard 网页端（本地优先 PWA，与桌面版在 .wbix 上双向互通）",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview",
+    "lint": "oxlint",
+    "typecheck": "tsc -b",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "samples": "node scripts/produce-samples.ts",
+    "samples:check": "node scripts/selfcheck-samples.ts",
+    "interop": "node scripts/interop.mjs",
+    "verify": "pnpm typecheck && pnpm test && pnpm build",
+    "verify:all": "pnpm verify && pnpm interop"
+  },
+  "dependencies": {
+    "@fluentui/react-components": "9.75.0",
+    "fflate": "0.8.3",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "^24.19.2",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.1.2",
+    "oxlint": "^1.89.0",
+    "typescript": "~7.0.2",
+    "vite": "^8.3.5",
+    "vitest": "5.0.5"
+  }
+}

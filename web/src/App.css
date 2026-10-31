@@ -1,0 +1,28 @@
+/* P0 占位页样式；正式样式在 P3（界面外壳）阶段建立，目录为 `src/styles/`。 */
+
+.placeholder {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-start;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 32px;
+  box-sizing: border-box;
+}
+
+.placeholder h1 {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 600;
+}
+
+.placeholder p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.placeholder .hint {
+  opacity: 0.6;
+}

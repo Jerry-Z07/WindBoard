@@ -45,6 +45,10 @@ WindBoard.Tests/Fixtures/wbix/expected/** text eol=crlf
 # `.wbix` 是 zip 容器，永不做行尾转换（虽含 NUL 会被启发式判为二进制，仍显式声明以免误判）
 *.wbix binary
 
+# 网页端子项目用 LF（见 web/.editorconfig）。若不显式钉死，检出方向会随 core.autocrlf
+# 变化，Windows 上会得到 CRLF 并与其 editorconfig 冲突。
+web/** text eol=lf
+
 # Trellis: append-only developer journals should merge cleanly across
 # parallel sessions/worktrees — each session only appends a new block, so
 # there is nothing to actually conflict on.
