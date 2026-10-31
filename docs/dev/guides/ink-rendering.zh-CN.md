@@ -87,7 +87,7 @@ diameter = max(0.5, baseSize * widthFactor)
 radius   = diameter / 2
 ```
 
-- `max(0.5, ...)` 是**最小可见直径下限 0.5 DIP**（`BoardSceneRenderer.cs:1048-1052`、`:452-457`）。
+- `max(0.5, ...)` 是**最小可见直径下限 0.5 DIP**（`BoardSceneRenderer.cs:1324-1336` 的 `CreateInkPoint`；多点的兜底绘制路径 `:496` 同样取 `max(0.5, baseSize * widthFactor)`）。
 - 半径沿折线**逐点**计算：每个采样点按自己的 `pressure` 得到自己的半径。
 
 ### 5.3 单点笔迹
@@ -96,10 +96,17 @@ radius   = diameter / 2
 
 ```
 center = points[0].position
-radius = max(0.5, baseSize * widthFactor(points[0].pressure)) / 2
+radius = max(0.5, baseSize * widthFactor(points[0].pressure) / 2)
 ```
 
-（`BoardSceneRenderer.cs:452-457`：`ctx.FillEllipse(new Ellipse(position, radius, radius), brush)`。）
+注意这里的下限作用于**半径**（0.5 DIP），不是作用于直径——与 §5.2 的多点笔迹不同：
+
+| 形态 | 计算 | 半径下限 |
+|---|---|---|
+| 单点笔迹 | `max(0.5, baseSize * wf / 2)` | **0.5** DIP |
+| 多点笔迹的每个采样点 | `max(0.5, baseSize * wf) / 2` | 0.25 DIP |
+
+即：单点笔迹的最小可见直径是 1 DIP，而多点笔迹的采样点最小直径是 0.5 DIP。这是桌面端的既有行为（`BoardSceneRenderer.cs:452-457`：`ctx.FillEllipse(new Ellipse(position, radius, radius), brush)`），移植时须照搬，不要"统一"。
 
 零个采样点的笔迹直接跳过，不报错。
 
@@ -207,6 +214,7 @@ wingRight = end + (bx * cos + by * sin, -bx * sin + by * cos)
 |---|---|---|
 | 背景色默认值 | `#2E2F33` | 不透明纯色 |
 | 最小可见直径 | `0.5` DIP | 笔迹直径、图形线宽共用下限 |
+| 单点笔迹最小半径 | `0.5` DIP | 单点走 `max(0.5, baseSize*wf/2)`，与上一条不是同一个下限（见 §5.3） |
 | 压感系数下限 | `0.1` | `widthFactor` 的 clamp 下界 |
 | 压感系数上限 | `1.0` | `widthFactor` 的 clamp 上界 |
 | 交互缩放范围 | `0.05 ~ 32` | `BoardViewport.MinZoom/MaxZoom` |
