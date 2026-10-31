@@ -1,4 +1,7 @@
+import { BoardDocument } from './document.ts'
+import type { PageSnapshot } from './model/workspace.ts'
 import { BoardPage } from './page.ts'
+import { BoardSession } from './session.ts'
 
 /**
  * 多页工作区（对应桌面 `WindBoard.Board.Editing.BoardWorkspace`）。
@@ -108,6 +111,29 @@ export class BoardWorkspace {
     return () => {
       this._listeners.delete(listener)
     }
+  }
+
+  /**
+   * 用一组页面快照整体替换工作区（导入 `.wbix` 用；对应桌面 `BoardWorkspaceSnapshotApplier`）。
+   *
+   * 语义：
+   * - 每页按快照 id 与内容重建，撤销/重做栈全部丢弃（导入不是可撤销编辑）；
+   * - `currentIndex` 夹到 `[0, 页数-1]`（对应桌面 `Math.Clamp(manifest.CurrentIndex, ...)`）；
+   * - 空快照视为非法：工作区恒至少一页，调用方应在导入前保证 `pages` 非空。
+   *
+   * @throws RangeError `snapshots` 为空
+   */
+  replaceWithSnapshots(snapshots: readonly PageSnapshot[], currentIndex: number): void {
+    if (snapshots.length === 0) {
+      throw new RangeError('工作区至少需要一页')
+    }
+
+    this._pages = snapshots.map(
+      (snapshot) => new BoardPage(snapshot.id, new BoardSession(new BoardDocument(snapshot))),
+    )
+    this._currentIndex = Math.min(Math.max(Math.trunc(currentIndex) || 0, 0), this._pages.length - 1)
+    this._syncSnapshot()
+    this._emit()
   }
 
   private _syncSnapshot(): void {

@@ -69,12 +69,26 @@
 
 - [x] **P1.1 域模型与命令栈**：`document/page/workspace/viewport/session` + 五类命令，粒度与桌面一致
 - [x] **P1.2 几何与轮廓**：`geometry.ts`（圆头折线、变宽、箭头翼）+ `outline.ts`（展开 + zoom 分桶缓存）
-- [ ] **P1.3 场景渲染**：绘制顺序、背景、单点圆、实时预览层；`rasterizer.ts` 供导出复用
-- [ ] **P1.4 帧调度**：rAF、DPR 后备存储（上限 2）、书写局部重绘、运动 0.95 降质
+- [x] **P1.3 场景渲染**：绘制顺序、背景、单点圆、实时预览层（`rasterizer.ts` 供导出复用 → 随 P4 落地）
+- [x] **P1.4 帧调度**：rAF、DPR 后备存储（上限 2）（书写局部重绘、运动 0.95 降质 → 留钩子，P5 落地）
 - [x] **P1.5 指针路由**：决策表纯函数 + 表驱动测试；笔/鼠标/触摸；右键平移；滚轮锚点缩放
-- [ ] **P1.6 工具**：笔（`0.5/zoom` 采样阈值、压感 clamp）、形状（两点定义）、橡皮（像素 + 整笔 + 滑动清屏，一次手势一条命令）
+- [x] **P1.6 工具**：笔（`0.5/zoom` 采样阈值、压感 clamp）、形状（两点定义）、橡皮（像素 + 整笔 + 滑动清屏，一次手势一条命令）
 - [x] **P1.7 快捷键**：`Ctrl+Z`/`Ctrl+Y` 与改绑模型
 - 验收：能画能缩能撤；保存 `.wbix` → 重新载入 → 视觉一致；桌面渲染快照对比无结构性差异
+
+### P1 完成记录（2026-11-01）
+
+- 验收证据：`pnpm verify` → tsc 0 错误 + **25 文件 / 690 例** + 构建（43 modules，js 263.12 kB / gzip 83.08 kB）；`pnpm lint` 0/0（76 文件）；`pnpm interop` A~E 全绿（双端 `.wbix` 读写仍逐字节一致）。
+- "保存 → 载入 → 视觉一致"由 `web/tests/unit/board-roundtrip.test.ts` 覆盖：模型层比对快照，渲染层比对 `FakeContext2D` 的绘制调用序列，并额外断言"再次写出字节与首次完全相同"。
+- 实现与计划的偏差：
+  1. `rasterizer.ts`（P1.3 的导出复用模块）推迟到 P4.2/P4.3，与导出实现一起写——P1 不需要它。
+  2. 书写局部重绘与运动 0.95 降质只留了 `enableDirtyRect` / `interactiveQualityScale` 钩子（默认关闭/1），P5 再做；原因是浏览器 Canvas2D 与桌面 D3D11 的脏矩形收益模型不同，需要先有真实绘制量数据。
+  3. DOM 事件类型改用 `src/canvas/dom-types.ts` 的结构化视图（`DomPointerLike` 等），而非 DOM 类型名——`web/tsconfig.test.json` 的 `lib` 只有 ES2023，写 DOM 类型名会让测试工程编译失败（与 `src/render/canvas-types.ts` 同一处理方式）。
+  4. 帧率上限 60 与 DPR 上限 2 按桌面常量实现，但未做桌面那种"渲染缩放随交互态切换"（0.95/0.25），见偏差 2。
+- 遗留：
+  1. 浏览器手工验证缺失：Chrome MCP 在本机不可用（`Browser.setContentsSize` 协议错误），P1 只用 node 单测覆盖了 DOM 适配器，真实浏览器端到端留到 P5.1 引入 Playwright 时补。
+  2. 元素卡片只做到"结构一致"（无位图/图标用 Unicode 占位），位图与真实图标在 P2.4 补齐。
+  3. 运行时保留双精度浮点，WBIX 读入值经 f32 量化（见 design.md D13）。
 
 ---
 

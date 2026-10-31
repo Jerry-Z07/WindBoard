@@ -1,28 +1,81 @@
-/* P0 占位页样式；正式样式在 P3（界面外壳）阶段建立，目录为 `src/styles/`。 */
+/*
+ * P1 临时外壳样式（整窗画布 + 开发用工具条）。
+ *
+ * P3 会用 Fluent UI 重建正式界面（Dock / Flyout / 设置页），届时本文件整体替换。
+ * 画布必须 `touch-action: none`，否则触摸手势会被浏览器用于滚动/缩放，指针事件收不全。
+ */
 
-.placeholder {
+.board-shell {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  background: #2e2f33;
+}
+
+.board-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+  cursor: crosshair;
+}
+
+.dev-toolbar {
+  position: absolute;
+  left: 50%;
+  bottom: 16px;
+  transform: translateX(-50%);
   display: flex;
-  flex-direction: column;
-  gap: 8px;
-  align-items: flex-start;
-  justify-content: center;
-  min-height: 100vh;
-  padding: 32px;
-  box-sizing: border-box;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  background: rgba(40, 40, 40, 0.88);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+  color: #ededed;
+  font-size: 12px;
+  user-select: none;
 }
 
-.placeholder h1 {
-  margin: 0;
-  font-size: 28px;
-  font-weight: 600;
+.dev-toolbar button,
+.dev-toolbar select {
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  color: inherit;
+  font: inherit;
+  padding: 4px 10px;
+  cursor: pointer;
 }
 
-.placeholder p {
-  margin: 0;
-  font-size: 14px;
-  line-height: 1.6;
+.dev-toolbar button:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.14);
 }
 
-.placeholder .hint {
-  opacity: 0.6;
+.dev-toolbar button.active {
+  background: rgba(50, 173, 230, 0.32);
+  border-color: rgba(50, 173, 230, 0.7);
+}
+
+.dev-toolbar button:disabled,
+.dev-toolbar select:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.dev-toolbar .divider {
+  width: 1px;
+  height: 18px;
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.dev-toolbar .page-indicator {
+  min-width: 44px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.dev-toolbar .hint {
+  opacity: 0.55;
 }

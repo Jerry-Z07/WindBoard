@@ -110,6 +110,11 @@ export interface PointerContext {
    * 桌面 HasBlockingInteractionForManipulation（Manipulation.cs:417-423）：存在活动工具操作或任一手势。
    * 桌面在 ManipulationStarting 起手前检查（Manipulation.cs:195-201），为 true 时双指不起手势；
    * 缺省 false，等价于“无阻塞”，保持既有行为。
+   *
+   * **求值时机**：ManipulationStarting 发生在触摸按下路径（`HandleTouchPointerPressed` 的 MultiFinger
+   * 分支先调 `EndTouchSingleFingerToolOperationForManipulation`）之后，所以注入方必须按
+   * 「触摸来源的单指操作已被结束」之后的状态计算——触摸来源的工具手势不算阻塞，否则双指
+   * 永远进不了手势，触摸单指笔迹也不会被提交/丢弃。
    */
   readonly blockingInteraction?: boolean
   /**
