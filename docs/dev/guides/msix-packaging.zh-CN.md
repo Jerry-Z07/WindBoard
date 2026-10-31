@@ -173,7 +173,7 @@ Store 会用自己的证书**重签名**上传的包，因此：
 
 ### `makepri.exe` 版本校验注意
 
-Partner Center 会校验包内打包工具版本（历史上曾以 “uses an unsupported version of file makepri.exe … Please update your Visual Studio build tools” 整批拒收）。`makepri.exe` 来自 `Microsoft.Windows.SDK.BuildTools`（本工程显式引用 10.0.28000.2705，实测产出 `makepri 10.0.28000.2705`）。**若上传被拒且错误指向 `makepri.exe`/`makeappx.exe`，先核对 `Microsoft.Windows.SDK.BuildTools` 版本升级，而不是排查业务代码。**
+Partner Center 会校验包内打包工具版本（历史上曾以 “uses an unsupported version of file makepri.exe … Please update your Visual Studio build tools” 整批拒收）。`makepri.exe` 来自 `Microsoft.Windows.SDK.BuildTools`（本工程显式引用 10.0.28000.2957，实测产出 `makepri 10.0.28000.2957`）。**若上传被拒且错误指向 `makepri.exe`/`makeappx.exe`，先核对 `Microsoft.Windows.SDK.BuildTools` 版本升级，而不是排查业务代码。**
 
 ### 其他
 
