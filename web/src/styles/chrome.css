@@ -1,0 +1,5 @@
+/**
+ * 标题栏与提醒栈样式（P3.1/P3.4 由 window-chrome 负责填充）。
+ *
+ * 布局骨架在 `shell.css`（`.wb-titlebar` / `.wb-reminder-stack`）；这里放视觉细节。
+ */

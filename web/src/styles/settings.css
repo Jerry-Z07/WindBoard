@@ -1,0 +1,5 @@
+/**
+ * 设置窗口样式（P3.5 由 settings-ui 负责填充）。
+ *
+ * 优先使用 Fluent UI v9 组件自带的样式，只在需要贴近 WinUI SettingsCard 观感时才有规则。
+ */

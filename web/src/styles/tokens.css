@@ -1,0 +1,86 @@
+/**
+ * 设计令牌：把桌面版 XAML 里的硬编码尺寸/颜色集中到一处，供外壳组件复用。
+ *
+ * 每个变量的注释都写明桌面出处；**改这里的值等于改 UI 规格**，不要在组件里另写魔法数字。
+ *
+ * 主题约定（与桌面一致）：
+ * - 画布区：跟随设置的画布背景色（默认 #2E2F33，属深色）；
+ * - 底部 Dock：**强制浅色**（`MainWindow.xaml:54` 的 `RequestedTheme="Light"`），不随系统切换；
+ * - 标题栏：跟随系统主题（`MicaBackdrop` + `TitleBar` 的默认行为）。
+ */
+
+:root {
+  /* ===== 画布 ===== */
+  /* 画布背景默认值（`BoardCanvasControl.xaml.cs:38`；设置项 `appearance.canvasBackgroundHex`） */
+  --wb-canvas-background: #2e2f33;
+
+  /* ===== 窗口骨架（`MainWindow.xaml:19-70`） ===== */
+  /* WinUI 标准 TitleBar 高度 32 DIP（`TitleBar` 控件默认值） */
+  --wb-titlebar-height: 32px;
+  /* 底部浮层外边距 `Margin="14,0,14,14"`；提醒栈 `Margin="14,14,14,0"` */
+  --wb-overlay-margin: 14px;
+  /* 提醒栈 `MaxWidth="420"`、`Spacing="10"` */
+  --wb-reminder-stack-width: 420px;
+  --wb-reminder-stack-gap: 10px;
+
+  /* ===== Dock 底板 ===== */
+  /* `MainWindow.xaml:76-79`：CornerRadius 14 + Opacity 0.85 */
+  --wb-dock-plate-radius: 14px;
+  --wb-dock-plate-opacity: 0.85;
+  /* 浅色主题下 `SystemControlBackgroundChromeMediumLowBrush` = #F2F2F2
+     （WinUI generic.xaml Light 字典；`RequestedTheme="Light"` 时生效） */
+  --wb-dock-plate-color: #f2f2f2;
+  /* 底板内边距 `Margin="5"`、按钮间距 `Spacing="4"` */
+  --wb-dock-padding: 5px;
+  --wb-dock-gap: 4px;
+
+  /* ===== Dock 按钮（`MainWindow.xaml:82-160` + `App.xaml:20-28`） ===== */
+  --wb-dock-button-width: 60px;
+  --wb-dock-button-height: 52px;
+  /* `DockButtonStyle` 的 CornerRadius 是 10，**不是**底板的 14 */
+  --wb-dock-button-radius: 10px;
+  --wb-dock-button-padding-x: 8px;
+  --wb-dock-button-padding-y: 6px;
+  /* `SymbolIcon` 默认字号 20；文字 11 + `Margin="0,3,0,0"` */
+  --wb-dock-icon-size: 20px;
+  --wb-dock-label-size: 11px;
+  --wb-dock-label-gap: 3px;
+  /* 浅色主题前景 `SystemControlForegroundBaseHighBrush` = #000000 */
+  --wb-dock-foreground: #000000;
+  /* 分隔线：`Width="1" Height="30"` + `SystemControlForegroundBaseMediumLowBrush` = 40% 黑 */
+  --wb-dock-separator-size: 30px;
+  --wb-dock-separator-color: rgba(0, 0, 0, 0.4);
+
+  /* Dock 交互态（`MainWindow.xaml:60-70` 的资源覆盖，覆盖在浅色主题之上） */
+  --wb-dock-hover: #14ffffff; /* ButtonBackgroundPointerOver */
+  --wb-dock-pressed: #22ffffff; /* ButtonBackgroundPressed */
+  --wb-dock-checked: #1976d2; /* ToggleButtonBackgroundChecked */
+  --wb-dock-checked-foreground: #ffffff; /* TextOnAccentFillColorPrimaryBrush */
+
+  /* ===== 页面 Dock（`MainWindow.xaml:687-737`） ===== */
+  --wb-page-button-size: 52px;
+  --wb-page-indicator-width: 84px;
+  --wb-page-indicator-size: 12px;
+
+  /* ===== 弹出面板（`MainWindow.xaml:588-670`） ===== */
+  --wb-pages-flyout-width: 280px;
+  --wb-pages-flyout-row-height: 240px;
+  --wb-pages-flyout-thumbnail-size: 104px;
+  --wb-pages-flyout-delete-size: 24px;
+
+  /* ===== 选择覆盖层（`BoardCanvasControl.xaml:55-72`） ===== */
+  --wb-selection-handle-size: 14px;
+  --wb-selection-handle-color: #ffffff;
+}
+
+/* 标题栏：跟随系统主题（浅色 = 白，深色 = WinUI 深色标题栏基色） */
+:root,
+:root[data-theme='light'] {
+  --wb-titlebar-background: #ffffff;
+  --wb-titlebar-foreground: #1a1a1a;
+}
+
+:root[data-theme='dark'] {
+  --wb-titlebar-background: #202020;
+  --wb-titlebar-foreground: #ffffff;
+}
