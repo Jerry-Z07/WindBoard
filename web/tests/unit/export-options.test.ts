@@ -53,8 +53,7 @@ describe('默认导出选项', () => {
     expect(DEFAULT_EXPORT_OPTIONS).toEqual({
       format: 'png',
       range: 'current',
-      fromPage: 1,
-      toPage: 1,
+      pageRangeText: '',
       pngAspect: 'square',
       pngHeight: 1080,
       pdfDpi: 192,
@@ -76,7 +75,7 @@ describe('默认导出选项', () => {
   })
 })
 
-describe('resolvePageIndices（1 基范围 → 0 基索引）', () => {
+describe('resolvePageIndices（页范围 → 0 基索引）', () => {
   it('当前页 → 单个索引', () => {
     expect(resolvePageIndices('current', 2, 5)).toEqual([2])
   })
@@ -98,29 +97,26 @@ describe('resolvePageIndices（1 基范围 → 0 基索引）', () => {
   it('无页面 → 空数组', () => {
     expect(resolvePageIndices('all', 0, 0)).toEqual([])
     expect(resolvePageIndices('current', 0, 0)).toEqual([])
-    expect(resolvePageIndices('range', 0, 0, 1, 3)).toEqual([])
+    expect(resolvePageIndices('range', 0, 0, '1-3')).toEqual([])
   })
 
-  it('区间 2-4 → [1,2,3]（闭区间，含两端）', () => {
-    expect(resolvePageIndices('range', 0, 5, 2, 4)).toEqual([1, 2, 3])
+  it('区间文本 2-4 → [1,2,3]（闭区间，含两端）', () => {
+    expect(resolvePageIndices('range', 0, 5, '2-4')).toEqual([1, 2, 3])
   })
 
-  it('区间越界时两端夹取到 [1, pageCount]', () => {
-    expect(resolvePageIndices('range', 0, 3, 1, 99)).toEqual([0, 1, 2])
-    expect(resolvePageIndices('range', 0, 3, -5, 2)).toEqual([0, 1])
+  it('自由组合 1,3-5,8 → 去重后升序（桌面 PageRangeParser 的典型输入）', () => {
+    expect(resolvePageIndices('range', 0, 10, '1,3-5,8')).toEqual([0, 2, 3, 4, 7])
+    expect(resolvePageIndices('range', 0, 10, '5,1,5,2-3')).toEqual([0, 1, 2, 4])
   })
 
-  it('区间起止颠倒 → 空数组（非法区间交给校验函数报错）', () => {
-    expect(resolvePageIndices('range', 0, 5, 4, 2)).toEqual([])
+  it('非法文本（越界 / 倒序 / 空）→ 空数组，原因交给 validateExportOptions', () => {
+    expect(resolvePageIndices('range', 0, 3, '1-99')).toEqual([])
+    expect(resolvePageIndices('range', 0, 5, '4-2')).toEqual([])
+    expect(resolvePageIndices('range', 0, 5, '')).toEqual([])
   })
 
-  it('区间缺省参数（未填）→ 视为 1-1', () => {
-    expect(resolvePageIndices('range', 0, 5)).toEqual([0])
-  })
-
-  it('区间为非整数（空输入解析成 NaN）→ 空数组', () => {
-    expect(resolvePageIndices('range', 0, 5, Number.NaN, 3)).toEqual([])
-    expect(resolvePageIndices('range', 0, 5, 1, Number.NaN)).toEqual([])
+  it('区间文本缺省（未填）→ 空数组', () => {
+    expect(resolvePageIndices('range', 0, 5)).toEqual([])
   })
 })
 
@@ -232,37 +228,60 @@ describe('validateExportOptions', () => {
     expect(result.issues).toEqual(['PNG 高度必须是 720 / 1080 / 2160 之一'])
   })
 
-  it('区间起止颠倒 → 不合法', () => {
-    const result = validateExportOptions(options({ range: 'range', fromPage: 4, toPage: 2 }), 5)
+  it('指定范围但未填文本 → 不合法（桌面 `Export_PageRange_EmptyInput_Message`）', () => {
+    const result = validateExportOptions(options({ range: 'range', pageRangeText: '' }), 5)
     expect(result.valid).toBe(false)
-    expect(result.issues).toEqual(['起始页不能大于结束页'])
+    expect(result.issues).toEqual(['请输入页码范围，例如：1,3-5。'])
   })
 
-  it('区间超出总页数 → 不合法', () => {
-    const result = validateExportOptions(options({ range: 'range', fromPage: 1, toPage: 99 }), 3)
-    expect(result.issues).toEqual(['结束页不能超过总页数（3）'])
+  it('指定范围只有逗号 → 同样按"未填"报错（桌面 Split 后无片段）', () => {
+    const result = validateExportOptions(options({ range: 'range', pageRangeText: ' , ' }), 5)
+    expect(result.issues).toEqual(['请输入页码范围，例如：1,3-5。'])
   })
 
-  it('区间起始页小于 1 → 不合法', () => {
-    const result = validateExportOptions(options({ range: 'range', fromPage: 0, toPage: 2 }), 5)
-    expect(result.issues).toEqual(['起始页不能小于 1'])
+  it('区间起止颠倒 → 不合法（桌面 `Export_PageRange_OrderError_Fmt`）', () => {
+    const result = validateExportOptions(options({ range: 'range', pageRangeText: '4-2' }), 5)
+    expect(result.valid).toBe(false)
+    expect(result.issues).toEqual(['页码范围起止顺序错误：4-2。'])
+  })
+
+  it('区间超出总页数 → 不合法（桌面 `Export_PageRange_OutOfRange_Fmt`）', () => {
+    const result = validateExportOptions(options({ range: 'range', pageRangeText: '1-99' }), 3)
+    expect(result.issues).toEqual(['页码超出范围：当前共 3 页。'])
+  })
+
+  it('区间起始页小于 1 → 不合法（桌面 `Export_PageRange_PageMustStartFrom1_Fmt`）', () => {
+    const result = validateExportOptions(options({ range: 'range', pageRangeText: '0-2' }), 5)
+    expect(result.issues).toEqual(['页码必须从 1 开始：0。'])
+  })
+
+  it('非数字页码 → 不合法（桌面 `Export_PageRange_InvalidPage_Fmt`）', () => {
+    const result = validateExportOptions(options({ range: 'range', pageRangeText: 'abc' }), 5)
+    expect(result.issues).toEqual(['非法页码：abc。'])
+  })
+
+  it('自由文本合法 → 合法（`1,3-5,8` 是桌面文档里的示例）', () => {
+    expect(
+      validateExportOptions(options({ range: 'range', pageRangeText: '1,3-5,8' }), 10),
+    ).toEqual({ valid: true, issues: [] })
   })
 
   it('区间合法 → 合法', () => {
     expect(
-      validateExportOptions(options({ range: 'range', fromPage: 2, toPage: 4 }), 5),
+      validateExportOptions(options({ range: 'range', pageRangeText: '2-4' }), 5),
     ).toEqual({ valid: true, issues: [] })
   })
 
   it('文档没有页面 → 不合法', () => {
     const result = validateExportOptions(options(), 0)
     expect(result.valid).toBe(false)
-    expect(result.issues).toEqual(['文档没有可导出的页面'])
+    // 文案取 resw 原文（`Export_NoPages_Message`），不自行改写
+    expect(result.issues).toEqual(['当前工作区没有可导出的页面。'])
   })
 
   it('WBIX 忽略页范围与位图参数（桌面 `ExportFlow.cs:79-84`）', () => {
     const result = validateExportOptions(
-      options({ format: 'wbix', range: 'range', fromPage: 4, toPage: 2, paddingDip: -1 }),
+      options({ format: 'wbix', range: 'range', pageRangeText: '4-2', paddingDip: -1 }),
       5,
     )
     expect(result).toEqual({ valid: true, issues: [] })
@@ -271,7 +290,8 @@ describe('validateExportOptions', () => {
   it('未知格式直接判不合法（防止持久化的脏数据）', () => {
     const result = validateExportOptions(unsafeOptions({ format: 'svg' }), 3)
     expect(result.valid).toBe(false)
-    expect(result.issues).toEqual(['未知的导出格式'])
+    // 文案取 resw 原文（`Export_UnknownFormat_Message`）
+    expect(result.issues).toEqual(['未知导出格式。'])
   })
 
   it('候选值守卫：PNG 高度与 PDF DPI 只接受白名单', () => {
@@ -296,6 +316,7 @@ describe('isMultiPagePng（多页 PNG 提示条件）', () => {
   })
 
   it('区间只选 1 页时不算多页', () => {
-    expect(isMultiPagePng(options({ range: 'range', fromPage: 2, toPage: 2 }), 3)).toBe(false)
+    expect(isMultiPagePng(options({ range: 'range', pageRangeText: '2' }), 3)).toBe(false)
+    expect(isMultiPagePng(options({ range: 'range', pageRangeText: '2-3' }), 3)).toBe(true)
   })
 })

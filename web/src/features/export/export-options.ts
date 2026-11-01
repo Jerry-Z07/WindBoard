@@ -5,13 +5,16 @@
  * - `WindBoard/Features/Export/Models/ExportDialogSelection.cs:6-39`：格式 / 页范围 / DPI / 留白 / 固定画面；
  * - `WindBoard/Features/Export/UI/ExportDialog.cs:19-233`：字段顺序、默认值与 PNG 画面尺寸算法；
  * - `WindBoard/Features/Export/ExportFlow.cs:119-151`：页范围 → 0 基页索引；
- * - `WindBoard/Features/Export/Services/PageRangeParser.cs:16-223`：1 基输入 → 0 基索引（排序去重、越界/倒序报错）；
+ * - `WindBoard/Features/Export/Services/PageRangeParser.cs:16-223`：1 基输入 → 0 基索引（排序去重、越界/倒序报错），
+ *   已逐条移植到同目录的 `page-range.ts`（`parsePageRange`）；
  * - `WindBoard/Features/Export/UI/ExportPickers.cs:43-54`、`:117-125`：默认文件名与日期/时间格式；
  * - `WindBoard/Features/Export/Services/BoardPdfExporter.cs:91-93`、`:152-156`：像素 → pt 换算与 `"0.###"` 格式。
  *
  * 网页端 P3 只做对话框 UI，本模块负责把"用户选择"整理成可校验、可复用的纯数据，
  * 真正的导出（P4）再消费这些数据，避免 UI 与导出实现互相耦合。
  */
+
+import { parsePageRange } from './page-range.ts'
 
 /** 导出格式（`ExportDialogSelection.cs:6-11` 的 `ExportFormat`，顺序与桌面下拉一致）。 */
 export type ExportFormat = 'png' | 'pdf' | 'wbix'
@@ -46,10 +49,13 @@ export interface ExportOptions {
   readonly format: ExportFormat
   /** 页范围来源。 */
   readonly range: ExportRange
-  /** 区间起始页（1 基；仅 `range === 'range'` 时有效）。 */
-  readonly fromPage: number
-  /** 区间结束页（1 基；仅 `range === 'range'` 时有效）。 */
-  readonly toPage: number
+  /**
+   * 页码范围文本（1 基，逗号分隔；仅 `range === 'range'` 时有效）。
+   *
+   * 桌面是单个文本框（`ExportDialog.cs:41-45` 的 `rangeBox`），允许 `1,3-5,8` 这类自由组合；
+   * 解析规则见 `page-range.ts`（移植自 `PageRangeParser.cs:16-223`）。
+   */
+  readonly pageRangeText: string
   /** PNG 画面比例（仅 PNG 有效）。 */
   readonly pngAspect: PngAspect
   /** PNG 画面高度（像素；仅 PNG 有效）。 */
@@ -65,13 +71,12 @@ export interface ExportOptions {
  *
  * 桌面出处：格式 PNG（`ExportDialog.cs:21` `SelectedIndex = 0`）、范围当前页（`:32` `SelectedIndex = 0`）、
  * PNG 比例方形（`:49` `SelectedIndex = 0`）、PNG 高度 1080（`:60-61` `SelectedIndex = 1`）、
- * PDF DPI 192（`:65` `SelectedIndex = 1`）、留白 24（`:76`）。
+ * PDF DPI 192（`:65` `SelectedIndex = 1`）、留白 24（`:76`）、范围文本框为空（`:41-45` 未设 `Text`）。
  */
 export const DEFAULT_EXPORT_OPTIONS: ExportOptions = {
   format: 'png',
   range: 'current',
-  fromPage: 1,
-  toPage: 1,
+  pageRangeText: '',
   pngAspect: 'square',
   pngHeight: 1080,
   pdfDpi: 192,
@@ -114,18 +119,15 @@ function toInteger(value: number, fallback: number): number {
  * 对齐桌面 `ExportFlow.TryResolvePageIndices`（`ExportFlow.cs:119-151`）：
  * - `current` → 当前页（网页端额外做一次夹取，避免控制器快照与页面数短暂不一致时越界）；
  * - `all` → 全部页；
- * - `range` → 1 基闭区间 `[fromPage, toPage]`，两端先夹取到 `[1, pageCount]`；
- *   起止颠倒（含夹取后颠倒）视为非法区间，返回空数组，由 {@link validateExportOptions} 给出原因。
- *
- * 注意：桌面 `PageRangeParser` 允许 `"1,3-5,8"` 这类自由文本；网页端 P3 的 UI 是"起止页"两个数字输入，
- * 因此这里只表达闭区间；若 P4 需要还原自由文本，再补一个文本解析器即可。
+ * - `range` → 交给 {@link parsePageRange}（逐条移植自 `PageRangeParser.cs:16-223`）解析自由文本，
+ *   支持 `1`、`1,3,5`、`2-6`、`1,3-5,8`；非法输入返回空数组，
+ *   具体原因由 {@link validateExportOptions} 给出（桌面同样在解析失败时报错，`ExportFlow.cs:144-145`）。
  */
 export function resolvePageIndices(
   range: ExportRange,
   currentIndex: number,
   pageCount: number,
-  fromPage = 1,
-  toPage = 1,
+  pageRangeText = '',
 ): number[] {
   const total = toInteger(pageCount, 0)
   if (total <= 0) {
@@ -141,20 +143,8 @@ export function resolvePageIndices(
     return Array.from({ length: total }, (_, index) => index)
   }
 
-  const from = toInteger(fromPage, Number.NaN)
-  const to = toInteger(toPage, Number.NaN)
-  if (!Number.isInteger(from) || !Number.isInteger(to)) {
-    return []
-  }
-
-  // 两端夹取到 [1, total]；夹取后仍颠倒则视为非法区间。
-  const start = Math.max(1, Math.min(from, total))
-  const end = Math.max(1, Math.min(to, total))
-  if (start > end) {
-    return []
-  }
-
-  return Array.from({ length: end - start + 1 }, (_, offset) => start - 1 + offset)
+  const parsed = parsePageRange(pageRangeText, total)
+  return parsed.ok ? [...parsed.indices] : []
 }
 
 /** 两位补零（`ExportPickers.cs:117-125` 的 `"yyyy-MM-dd"` / `"HHmm"` 都是定长补零格式）。 */
@@ -284,12 +274,15 @@ export interface ExportValidation {
  * 桌面在点"下一步"之后才校验（`ExportFlow.cs:86-91` 用 `PageRangeParser` 报错并弹窗）；
  * 网页端提前到对话框内联提示，规则与桌面一致：
  * - 文档无页面 → 不可导出（`ExportFlow.cs:124-128`）；
- * - 区间必须满足 `1 ≤ 起 ≤ 止 ≤ 页数`（`PageRangeParser.cs:162-171`、`:195-199`）；
+ * - 指定范围时必须能解析出至少一页（`ExportFlow.cs:144-145` → `PageRangeParser.cs:18-77`）；
  * - 留白非负（`ExportDialog.cs:188-191`）；
  * - DPI / PNG 高度只能取候选值（`ExportDialog.cs:178-185`、`:199-203`）。
  *
  * WBIX 固定导出整个工作区，忽略页范围与位图参数（`ExportFlow.cs:79-84`），
  * 因此这些参数不参与校验。
+ *
+ * 文案来源：能在 `WindBoard/Strings/zh-CN/Export.resw` 找到原文的一律逐字对齐（key 标在各分支旁）；
+ * 只有桌面不可达的防御性校验（见下方注释）才保留网页端文案。
  */
 export function validateExportOptions(
   options: ExportOptions,
@@ -299,11 +292,13 @@ export function validateExportOptions(
 
   const total = toInteger(pageCount, 0)
   if (total <= 0) {
-    issues.push('文档没有可导出的页面')
+    // `Export_NoPages_Message`（`Export.resw:35-36`；桌面 `ExportFlow.cs:124-128`）。
+    issues.push('当前工作区没有可导出的页面。')
   }
 
   if (!isExportFormat(options.format)) {
-    issues.push('未知的导出格式')
+    // `Export_UnknownFormat_Message`（`Export.resw:32-33`；桌面 `ExportFlow.cs:104`）。
+    issues.push('未知导出格式。')
     return { valid: false, issues }
   }
 
@@ -313,23 +308,21 @@ export function validateExportOptions(
   }
 
   if (!isExportRange(options.range)) {
-    issues.push('未知的页范围')
+    // `Export_UnknownPageScope_Message`（`Export.resw:38-39`；桌面 `ExportFlow.cs:147-149`）。
+    issues.push('未知页范围。')
   } else if (options.range === 'range' && total > 0) {
-    if (!Number.isInteger(options.fromPage) || !Number.isInteger(options.toPage)) {
-      issues.push('区间起止页必须是整数')
-    } else {
-      if (options.fromPage < 1) {
-        issues.push('起始页不能小于 1')
-      }
-      if (options.fromPage > options.toPage) {
-        issues.push('起始页不能大于结束页')
-      }
-      if (options.toPage > total) {
-        issues.push(`结束页不能超过总页数（${String(total)}）`)
-      }
+    // 只报解析器的第一条原因（与桌面"弹一次窗"的体验一致）；`total <= 0` 已单独报过，避免重复。
+    const parsed = parsePageRange(options.pageRangeText, total)
+    if (!parsed.ok && parsed.error !== null) {
+      issues.push(parsed.error)
     }
   }
 
+  // 以下四条是**网页端防御性校验**：桌面不可达（对应控件是下拉/文本框，取值由 UI 保证），
+  // `Export.resw` 里没有对应 key，因此文案沿用网页端，不能当作"桌面原文"来对齐：
+  // - 留白：桌面解析失败回落 24、负数夹到 0（`ExportDialog.cs:187-191`），从不报错；
+  // - PDF DPI：桌面是三选一下拉（`ExportDialog.cs:63-72`、`:178-185`）；
+  // - PNG 高度 / 画面比例：桌面同样是下拉（`ExportDialog.cs:47-61`、`:199-203`）。
   if (!Number.isFinite(options.paddingDip) || options.paddingDip < MIN_PADDING_DIP) {
     issues.push('留白必须是数字且不小于 0')
   }
@@ -363,8 +356,7 @@ export function isMultiPagePng(options: ExportOptions, pageCount: number): boole
       // 多页判定与当前页无关（`current` 只会得到 1 页），传 0 即可。
       0,
       pageCount,
-      options.fromPage,
-      options.toPage,
+      options.pageRangeText,
     ).length > 1
   )
 }

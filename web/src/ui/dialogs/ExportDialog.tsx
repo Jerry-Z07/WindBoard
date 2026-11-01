@@ -5,7 +5,7 @@
  * PNG 画面尺寸算法与"仅 PNG / 仅 PDF / 仅位图"的显隐规则都在那里；
  * 文案取自 `WindBoard/Strings/zh-CN/Export.resw`。
  *
- * P3 只做 UI：点"导出"后推一条提醒并关闭（`handleExport` 里标了 P4 接入点）。
+ * P3 只做 UI：点"下一步"后推一条提醒并关闭（`handleExport` 里标了 P4 接入点）。
  * 纸张/画面尺寸、文件名、页索引、校验等**纯逻辑**全部在 `features/export/export-options.ts`。
  */
 
@@ -58,33 +58,42 @@ export interface ExportDialogProps {
   readonly onClose: () => void
 }
 
-/** 格式文案（桌面 `Export_FileType_Png/Pdf`、`Export_Format_Wbix_WithExt`）。 */
+/** 格式文案（`Export_FileType_Png`、`Export_FileType_Pdf`、`Export_Format_Wbix_WithExt`；`Export.resw:59-70`）。 */
 const FORMAT_LABELS: Record<ExportFormat, string> = {
   png: 'PNG 图片',
   pdf: 'PDF 文档',
   wbix: 'WBIX 源文件 (.wbix)',
 }
 
-/** 页范围文案（桌面 `Export_PageScope_Current/All/Range`；网页端用起止页输入，故去掉"1,3-5"示例）。 */
+/** 页范围文案（`Export_PageScope_Current/All/Range`；`Export.resw:77-85`）。 */
 const RANGE_LABELS: Record<ExportRange, string> = {
   current: '当前页',
   all: '全部页',
-  range: '指定范围',
+  range: '指定范围（例如：1,3-5）',
 }
 
-/** PNG 比例文案（桌面 `Export_PngAspect_Square/4_3/16_9`）。 */
+/** PNG 比例文案（`Export_PngAspect_Square/4_3/16_9`；`Export.resw:104-112`）。 */
 const ASPECT_LABELS: Record<PngAspect, string> = {
   square: '1:1（方形）',
   'ratio-4-3': '4:3',
   'ratio-16-9': '16:9',
 }
 
-/** PDF 清晰度文案（桌面 `Export_PdfDpi_Standard/High/Ultra`）。 */
+/** PDF 清晰度文案（`Export_PdfDpi_Standard/High/Ultra`；`Export.resw:119-127`）。 */
 const DPI_LABELS: Record<number, string> = {
   96: '标准（96 DPI）',
   192: '高清（192 DPI）',
   288: '超清（288 DPI）',
 }
+
+/**
+ * 面板末尾的静态提示（桌面 `Export_Hint_Text`，`WindBoard/Strings/zh-CN/Export.resw:128-130`）。
+ *
+ * 桌面在 `ExportDialog.cs:85-90` 创建、`:157` 作为 `panel.Children` 的最后一个加入；
+ * 这里逐字照抄，避免与桌面文案漂移。
+ */
+const EXPORT_HINT_TEXT =
+  '提示：PNG 会按固定比例/分辨率导出（内容等比缩放并居中）；PNG 多页会导出到文件夹；PDF 会生成多页文档；WBIX 会包含全部页面与后续资源扩展位。'
 
 /** 数字输入：空串视为"未填"（`NaN`），交给 `validateExportOptions` 报错。 */
 function parseNumberInput(value: string): number {
@@ -132,18 +141,10 @@ function ExportDialogForm(props: { readonly onClose: () => void }): ReactNode {
   const reminders = useReminderService()
 
   const pageCount = snapshot.pageCount
-  const currentPage = Math.min(
-    Math.max(snapshot.currentPageIndex + 1, 1),
-    Math.max(pageCount, 1),
-  )
 
   // 打开时刻决定默认文件名；表单存活期间保持不变，避免用户看到文件名每帧跳变。
   const [now] = useState(() => new Date())
-  const [options, setOptions] = useState<ExportOptions>(() => ({
-    ...DEFAULT_EXPORT_OPTIONS,
-    fromPage: currentPage,
-    toPage: currentPage,
-  }))
+  const [options, setOptions] = useState<ExportOptions>(() => DEFAULT_EXPORT_OPTIONS)
 
   const update = (patch: Partial<ExportOptions>): void => {
     setOptions((previous) => ({ ...previous, ...patch }))
@@ -159,10 +160,9 @@ function ExportDialogForm(props: { readonly onClose: () => void }): ReactNode {
         options.range,
         snapshot.currentPageIndex,
         pageCount,
-        options.fromPage,
-        options.toPage,
+        options.pageRangeText,
       ),
-    [options.range, options.fromPage, options.toPage, snapshot.currentPageIndex, pageCount],
+    [options.range, options.pageRangeText, snapshot.currentPageIndex, pageCount],
   )
   const frame = useMemo(
     () => computePngFrameSize(options.pngAspect, options.pngHeight),
@@ -197,6 +197,7 @@ function ExportDialogForm(props: { readonly onClose: () => void }): ReactNode {
     <DialogBody>
       <DialogTitle
         action={
+          // `Common_Close` = "关闭"（`Common.resw:50-52`）；桌面 ContentDialog 的关闭按钮由系统提供。
           <Button
             appearance="subtle"
             icon={<DismissRegular />}
@@ -205,11 +206,13 @@ function ExportDialogForm(props: { readonly onClose: () => void }): ReactNode {
           />
         }
       >
+        {/* `Export_Dialog_Title`（`Export.resw:20-22`；桌面 `ExportDialog.cs:161`） */}
         导出
       </DialogTitle>
 
       <DialogContent className="wb-dialog__form">
         {/* 格式（`ExportDialog.cs:19-28`，下拉三项顺序 PNG / PDF / WBIX） */}
+        {/* 标签 `Export_Format_Label`（`Export.resw:71-73`；桌面 `ExportDialog.cs:144`） */}
         <Field label="导出格式">
           <Dropdown
             value={FORMAT_LABELS[options.format]}
@@ -233,7 +236,8 @@ function ExportDialogForm(props: { readonly onClose: () => void }): ReactNode {
         </Field>
 
         {/* 页范围（`ExportDialog.cs:30-45`、`:92-95`） */}
-        <Field label="导出范围">
+        {/* 标签 `Export_PageScope_Label`（`Export.resw:74-76`；桌面 `ExportDialog.cs:146`） */}
+        <Field label="导出页面">
           <Dropdown
             value={RANGE_LABELS[options.range]}
             selectedOptions={[options.range]}
@@ -255,34 +259,26 @@ function ExportDialogForm(props: { readonly onClose: () => void }): ReactNode {
           </Dropdown>
         </Field>
 
-        {options.range === 'range' ? (
-          <div className="wb-dialog__range">
-            <Field label="起始页">
-              <Input
-                type="number"
-                min={1}
-                max={pageCount}
-                value={numberInputValue(options.fromPage)}
-                onChange={(_event, data) => {
-                  update({ fromPage: parseNumberInput(data.value) })
-                }}
-              />
-            </Field>
-            <Field label="结束页">
-              <Input
-                type="number"
-                min={1}
-                max={pageCount}
-                value={numberInputValue(options.toPage)}
-                onChange={(_event, data) => {
-                  update({ toPage: parseNumberInput(data.value) })
-                }}
-              />
-            </Field>
-          </div>
-        ) : null}
+        {/*
+          页码范围文本框（`ExportDialog.cs:41-45` 的 `rangeBox`、`:92-95` 的 `UpdateRangeEnabled`）：
+          桌面是**始终在面板里**的单个 TextBox，只在 `scope == Range` 时启用（禁用而非隐藏），
+          因此这里同样常驻、用 `disabled` 表达。占位符取 `Export_PageRange_Placeholder`（`Export.resw:86-88`）。
+          桌面没有可见标签（只有占位符），`Export.resw` 里也没有对应 key；这里的 `Field` 标签是
+          网页端为读屏软件关联控件而补的（唯一一处 resw 无出处的可见文案）。
+        */}
+        <Field label="页码范围">
+          <Input
+            value={options.pageRangeText}
+            placeholder="例如：1,3-5"
+            disabled={options.range !== 'range'}
+            onChange={(_event, data) => {
+              update({ pageRangeText: data.value })
+            }}
+          />
+        </Field>
 
         {/* 仅 PNG：画面比例 + 输出分辨率（`ExportDialog.cs:47-61`、`:116-132`） */}
+        {/* 标签 `Export_PngAspect_Label`（`Export.resw:89-91`） */}
         {isPng ? (
           <>
             <Field label="画面比例（PNG）">
@@ -307,6 +303,7 @@ function ExportDialogForm(props: { readonly onClose: () => void }): ReactNode {
               </Dropdown>
             </Field>
 
+            {/* 标签 `Export_PngSize_Label`（`Export.resw:92-94`） */}
             <Field label="输出分辨率（PNG）">
               <Dropdown
                 value={pngHeightLabel(options.pngHeight, options.pngAspect)}
@@ -329,6 +326,7 @@ function ExportDialogForm(props: { readonly onClose: () => void }): ReactNode {
         ) : null}
 
         {/* 仅 PDF：DPI（`ExportDialog.cs:63-72`、`:178-185`） */}
+        {/* 标签 `Export_PdfDpi_Label`（`Export.resw:95-97`） */}
         {isPdf ? (
           <Field label="清晰度（PDF）">
             <Dropdown
@@ -351,11 +349,13 @@ function ExportDialogForm(props: { readonly onClose: () => void }): ReactNode {
         ) : null}
 
         {/* 留白：PNG/PDF 共用（`ExportDialog.cs:74-78`、`:130-131`） */}
+        {/* 标签 `Export_Padding_Label`、占位符 `Export_Padding_Placeholder`（`Export.resw:98-103`；桌面 `ExportDialog.cs:74-78`） */}
         {isRaster ? (
           <Field label="内容留白（DIP）">
             <Input
               type="number"
               min={0}
+              placeholder="边距（DIP）"
               value={numberInputValue(options.paddingDip)}
               onChange={(_event, data) => {
                 update({ paddingDip: parseNumberInput(data.value) })
@@ -371,35 +371,50 @@ function ExportDialogForm(props: { readonly onClose: () => void }): ReactNode {
           </MessageBar>
         ) : null}
 
-        {/* 提示区：导出页数 / PNG 固定画面 / 多页子目录 / WBIX 整库 */}
+        {/*
+          提示区：导出页数 / PNG 固定画面 / 多页子目录 / WBIX 整库。
+          这四条是**网页端独有的动态提示**，`Export.resw` 里没有对应 key（桌面把这些信息放在
+          后续的导出流程与结果对话框里，见 `ExportFlow.cs:187-215`、`Export_Completed_File_Fmt`），
+          因此文案由网页端自拟；不要当成桌面原文。
+        */}
         <Text className="wb-dialog__hint">
           {`将导出 ${String(pageIndices.length)} 页`}
           {isPng ? `，画面 ${String(frame.pixelWidth)}×${String(frame.pixelHeight)}` : ''}
         </Text>
         {multiPagePng ? (
-          <Text className="wb-dialog__hint">
-            {`多页 PNG 将导出到 ${folderName} 子目录（桌面 ExportFlow.cs:212-215）`}
-          </Text>
+          <Text className="wb-dialog__hint">{`多页 PNG 将导出到 ${folderName} 子目录`}</Text>
         ) : null}
         {options.format === 'wbix' ? (
           <Text className="wb-dialog__hint">WBIX 会导出整个工作区（忽略页范围）。</Text>
         ) : null}
+
+        {/*
+          静态提示（桌面 `Export_Hint_Text`，`Export.resw:128-130`；在桌面面板里是最后一个子元素，
+          `ExportDialog.cs:85-90` 定义、`:157` 加入 `panel.Children`），放在动态提示之后、文件名之前。
+        */}
+        <Text className="wb-dialog__hint">{EXPORT_HINT_TEXT}</Text>
 
         {/* 默认文件名（桌面 `ExportPickers.cs:43-54`；WBIX 无 WindBoard- 前缀） */}
         <Text className="wb-dialog__filename">{suggestedName}</Text>
       </DialogContent>
 
       <DialogActions>
+        {/* `Common_Cancel` = "取消"（`Common.resw:23-25`；桌面 `ExportDialog.cs:164` 的 `CloseButtonText`） */}
         <Button appearance="secondary" onClick={props.onClose}>
           取消
         </Button>
+        {/*
+          主按钮文案取 `Common_Next` = "下一步"（桌面 `ExportDialog.cs:163` 的 `PrimaryButtonText`）：
+          桌面点它之后还要选保存位置，真正的"导出"发生在后续步骤。
+          桌面 ContentDialog 本身没有按钮图标，网页端保留既有的 `ArrowExportRegular` 以维持视觉一致。
+        */}
         <Button
           appearance="primary"
           icon={<ArrowExportRegular />}
           disabled={!validation.valid}
           onClick={handleExport}
         >
-          导出
+          下一步
         </Button>
       </DialogActions>
     </DialogBody>
