@@ -216,9 +216,43 @@
 状态：`pnpm verify` 976 例全绿、`pnpm lint` 0/0、`pnpm build` 781.86 kB（gzip 223.89 kB，取色器带入体积，
 Vite 仍报 >500 kB 警告 → P5.2 拆包）。
 
-**仍未做**：InfoBar 内部度量是近似值；组件级 DOM 冒烟测试（`vitest` 的 `test.include` 目前不含 `.tsx`，
+**仍未做**：组件级 DOM 冒烟测试（`vitest` 的 `test.include` 目前不含 `.tsx`，
 要补需引入 jsdom + @testing-library/react，属 P5 范围）；`--wb-dock-foreground` 之外的其它 WinUI
 前景色（如 Secondary/Tertiary 文本）尚未逐一对齐。
+
+#### 仍在差异清零（2026-11-01 深夜）
+
+上一节列的三个遗留项已全部处理：
+
+1. **拆包**（`ef1866f`）：Vite 8 已切 Rolldown，`manualChunks` 不再支持，改用
+   `build.rolldownOptions.output.codeSplitting.groups`。781.86 kB 单包 →
+   业务 107.37(gzip 33.97) + react 218.75(68.27) + fluent 441.56(116.77) + icons 14.24(5.39)，
+   >500 kB 提示消失；三方库与业务代码分开缓存。`fflate` 暂不建组（WBIX 读写还没被入口引用，P4 再接）。
+2. **组件级冒烟测试**（同提交）：引入 jsdom + @testing-library/react（devDependency），
+   `test.include` 加 `.test.tsx`，`tsconfig.test.json` 补 DOM lib 与 `jsx`（默认环境仍是 node，
+   组件测试在文件头切 jsdom）。`tests/unit/ui-shell-smoke.test.tsx` 7 例覆盖外壳挂载、
+   单页「+」保留、工具二次点击开面板、设置窗口 6 分类、外观页 3 张可点卡片、
+   导出对话框能开不抛错（最后一条正是当初整页白屏的回归面）。
+   顺带修 `useFullscreen` 把 `undefined` 当"已全屏"导致标题栏误隐的缺陷。
+3. **InfoBar 度量**（`dbf489c`）：`chrome.css` 的 `.wb-reminder*` 按 `generic.xaml` 的 InfoBar
+   默认模板逐条重写（min-height 48、左内边距 16、图标 16 + `16/14/16` 边距、14px/20px 正文、
+   关闭按钮 38×38 + margin 5、圆角 4、1px 描边），四组 severity 配色取主题字典原值。
+   又一次踩到 XAML ARGB 的坑：`#80F6F6F6`/`#E4000000`/`#08FFFFFF` 直接进 CSS 会变成青色/不透明红，
+   全部改成 `rgb(r g b / a%)`。
+4. **次级前景色**：新增 `--wb-text-primary/secondary/tertiary/disabled`（浅色 `#E4000000 / #9E000000 /
+   #72000000 / #5C000000`，深色 `#FFFFFF / #C5FFFFFF / #87FFFFFF / #5DFFFFFF`）+
+   `--wb-dock-text-primary`（Dock 区强制浅色，**不随主题切换**，否则深色下白字压浅底板），
+   `dock.css`/`settings.css`/`dialogs.css` 共 30 余处文字色改引 token。
+   判定不按 Fluent 层级机械平移：Fluent 的 `#616161` 等效 62% 黑，正好是 WinUI 的 **Secondary**
+   而不是 Tertiary。
+5. 顺手修：设置主题只在挂载时读一次 `matchMedia`，系统切深浅色后界面不跟随
+   （桌面 WinUI 是实时跟随的）；改为订阅 `change` 事件。
+
+**仍是真差异（桌面行为/资源本身如此，故保留）**：
+- 提醒条图标：桌面用 Segoe Fluent Icons 的"实心圆 + 符号"双层字形，网页端无该字体，
+  只对齐尺寸与 severity 颜色；信息级图标桌面取用户强调色，网页端用 Fluent 品牌色。
+- `InfoBarPanel` 横排/纵排切换阈值在 WinUI 原生代码里（包内读不到），按提醒栈 `MaxWidth=420` 走纵排。
+- 桌面 InfoBar 的 `AutomationProperties.IsDialog` / `LandmarkType=Custom` 无障碍语义未复刻。
 
 ---
 

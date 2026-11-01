@@ -2,8 +2,10 @@
  * 对话框样式（P3.6：导出 / 导入 / 通用确认）。
  *
  * 约定：
- * - 颜色一律用 Fluent 主题令牌（`--colorNeutral*` / `--colorPaletteRed*`），由 `FluentProvider`
- *   按系统深浅色注入，因此对话框自动跟随 App 主题，这里**不写死浅色**；
+ * - 文字色用 `tokens.css` 的 WinUI 语义令牌 `--wb-text-*`（`TextFillColorPrimary/Secondary/Tertiary`），
+ *   它们随 `data-theme` 切换深浅色，等价于桌面的 `TextFillColor*Brush`；
+ *   其余颜色（背景 / 描边 / 状态色）仍用 Fluent 主题令牌（`--colorNeutral*` / `--colorPaletteRed*`），
+ *   由 `FluentProvider` 按系统深浅色注入，因此对话框自动跟随 App 主题，这里**不写死浅色**；
  * - 尺寸沿用 `tokens.css` 的 `--wb-*` 语义；对话框自身的量在 `.wb-dialog` 上用局部自定义属性声明；
  * - 与 Fluent 原子类会"抢"的属性（宽度 / 最大宽度）用双类选择器提高优先级，避免依赖样式注入顺序。
  */
@@ -15,6 +17,10 @@
   --wb-dialog-gap: 10px;
   width: min(var(--wb-dialog-width), calc(100vw - 48px));
   max-width: none;
+  /* 对话框正文的继承色：Fluent 默认用 `--colorNeutralForeground1`（#242424），
+     桌面 ContentDialog 里的普通 TextBlock 走 WinUI `TextFillColorPrimary`（#E4000000）；
+     这里统一成后者，子元素里没有显式 color 的文本（标题、正文）随之对齐。 */
+  color: var(--wb-text-primary);
 }
 
 /* 确认框更窄（只有标题 + 一段正文）；导入框要放下警告与文件名 */
@@ -44,18 +50,22 @@
 }
 
 /* ===== 文本 ===== */
-/* 提示行（导出页数 / 多页子目录 / WBIX 说明） */
+/* 提示行（导出页数 / 多页子目录 / WBIX 说明）。
+   桌面导出对话框的提示是默认前景 + `Opacity = 0.85`（`Features/Export/UI/ExportDialog.cs:85-89`），
+   即 `TextFillColorPrimary` × 0.85。 */
 .wb-dialog__hint {
-  color: var(--colorNeutralForeground3);
+  color: var(--wb-text-primary);
+  opacity: 0.85;
   font-size: 12px;
   line-height: 1.45;
 }
 
-/* 默认文件名：等宽显示，便于与桌面 "WindBoard-2026-11-01-1530.png" 逐字符比对 */
+/* 默认文件名：等宽显示，便于与桌面 "WindBoard-2026-11-01-1530.png" 逐字符比对。
+   桌面没有对应的标签（文件名在 TextBox 里编辑），网页端是只读预览 → 按次要文本取色。 */
 .wb-dialog__filename {
   font-family: ui-monospace, "Cascadia Mono", "Consolas", monospace;
   font-size: 12px;
-  color: var(--colorNeutralForeground2);
+  color: var(--wb-text-secondary);
   overflow-wrap: anywhere;
 }
 
@@ -94,7 +104,8 @@
 .wb-dialog__file-name {
   flex: 1 1 auto;
   min-width: 0;
-  color: var(--colorNeutralForeground3);
+  /* 已选文件的路径：信息性文本 → 次要文本（桌面此处是 TextBlock，默认前景即可，网页端降一级） */
+  color: var(--wb-text-secondary);
   font-size: 12px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -102,8 +113,9 @@
 }
 
 /* ===== 确认框 ===== */
+/* 确认框正文：桌面是 `ContentDialog` 里的普通 TextBlock（没写 Foreground）→ `TextFillColorPrimary` */
 .wb-dialog__confirm-content {
-  color: var(--colorNeutralForeground2);
+  color: var(--wb-text-primary);
   line-height: 1.5;
   /* 桌面风险提示是多段文本（`Import.resw` 的 `Import_Risk_*` 带空行），保留换行 */
   white-space: pre-line;
@@ -112,5 +124,6 @@
 /* ===== 占位（尚未实现的对话框仍在用，例如 `SettingsWindow`） ===== */
 .wb-dialog-placeholder {
   padding: 16px;
-  color: var(--colorNeutralForeground3);
+  /* 占位文案（尚未实现的对话框）→ 三级文本 */
+  color: var(--wb-text-tertiary);
 }

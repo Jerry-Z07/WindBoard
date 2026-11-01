@@ -3,8 +3,9 @@
  *
  * 目标：用 Fluent UI v9 组件 + 少量布局规则贴近桌面 WinUI 观感
  * （桌面是独立 `SettingsWindow` + `NavigationView` + `SettingsCard`，
- * 见 `WindBoard/Settings/SettingsWindow.xaml` 与 `WindBoard/Settings/Pages/*.xaml`）。
- * 颜色一律取 FluentProvider 注入的 token，避免在深浅色主题下写死颜色。
+ * 见 `WindBoard/Settings/SettingsWindow.xaml` 与 `WindBoard/Settings/Pages` 下的各页 xaml）。
+ * 文字色统一用 `tokens.css` 的 WinUI 语义令牌 `--wb-text-*`（对应桌面 `TextFillColor*Brush`，
+ * 见 `generic.xaml:7750-7753`），其余颜色取 FluentProvider 注入的 token，避免写死颜色。
  */
 
 /* ===== 窗口骨架 ===== */
@@ -21,6 +22,11 @@
   height: min(640px, calc(100vh - 48px));
   max-width: none;
   max-height: none;
+  /* 设置窗口正文的继承色：Fluent 默认 `--colorNeutralForeground1`（#242424），
+     桌面 `SettingsWindow` 里的普通 TextBlock / SettingsCard 标题走 WinUI
+     `TextFillColorPrimary`（#E4000000 = 89.4% 黑）。统一成后者，
+     没有显式 color 的文本（页标题、小节标题、卡片标题）随之对齐。 */
+  color: var(--wb-text-primary);
 }
 
 /*
@@ -118,10 +124,13 @@
   line-height: 24px;
 }
 
+/* 页头说明（网页端新增，桌面 `SettingsWindow.xaml` 的 NavigationView `AlwaysShowHeader="False"` 没有页头）：
+   按 WinUI 的"次要文本"取色 `TextFillColorSecondary`（`generic.xaml:7751`），
+   而不是 Fluent Web 的 `--colorNeutralForeground3`（#616161）。 */
 .wb-settings-page-header__description {
   margin: 2px 0 0;
   font-size: 12px;
-  color: var(--colorNeutralForeground3, #616161);
+  color: var(--wb-text-secondary);
 }
 
 .wb-settings-page-scroll {
@@ -180,10 +189,13 @@
   line-height: 20px;
 }
 
+/* 卡片描述：桌面 `SettingsCard.Description` 由 CommunityToolkit 模板取
+   `TextFillColorSecondaryBrush`（`CommunityToolkit.WinUI.Controls.SettingsControls.pri` 内含
+   Primary/Secondary/Disabled 三个画刷名，Description 用 Secondary）→ `generic.xaml:7751` #9E000000 */
 .wb-settings-card__description {
   font-size: 12px;
   line-height: 16px;
-  color: var(--colorNeutralForeground3, #616161);
+  color: var(--wb-text-secondary);
 }
 
 .wb-settings-card__control {
@@ -218,23 +230,31 @@
 
 /* ===== 通用文本 ===== */
 
+/* 提示行：桌面的设置页提示都是默认前景 + `Opacity="0.75"`
+   （`ShortcutsSettingsPage.xaml:15-17`、`DockSettingsPage.xaml:35-38`、`PenSettingsPage.xaml:200`），
+   即 `TextFillColorPrimary` × 0.75，而不是另一个灰色。 */
 .wb-settings-hint {
   margin: 4px 0 0;
   font-size: 12px;
   line-height: 16px;
-  color: var(--colorNeutralForeground3, #616161);
+  color: var(--wb-text-primary);
+  opacity: 0.75;
 }
 
+/* 错误提示：属状态色（桌面走 `SystemFillColorCritical`），本次不并入 TextFillColor 体系，
+   仍用 Fluent 的 `--colorPaletteRedForeground1` 以便深浅色主题自动切换。 */
 .wb-settings-error {
   font-size: 12px;
   line-height: 16px;
   color: var(--colorPaletteRedForeground1, #c50f1f);
 }
 
+/* 版本号：桌面 `AboutSettingsPage.xaml:46-49` 是 `Opacity="0.75"` 的默认前景文本 */
 .wb-settings-version {
   font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace;
   font-size: 13px;
-  color: var(--colorNeutralForeground2, #424242);
+  color: var(--wb-text-primary);
+  opacity: 0.75;
 }
 
 /* 卡片右侧的"当前值预览"（桌面 `StackPanel Orientation="Horizontal" Spacing="8"`） */
@@ -253,9 +273,10 @@
   flex: 0 0 auto;
 }
 
-/* 桌面预览文本 `Opacity="0.75"` */
+/* 桌面预览文本 `Opacity="0.75"`（`AppearanceSettingsPage.xaml:82`、`BackgroundSettingsPage.xaml:43`）
+   = `TextFillColorPrimary` × 0.75 */
 .wb-settings-value__text {
-  color: var(--colorNeutralForeground2, #424242);
+  color: var(--wb-text-primary);
   opacity: 0.75;
 }
 
@@ -317,7 +338,8 @@
 .wb-settings-palette__hex {
   font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace;
   font-size: 10px;
-  color: var(--colorNeutralForeground3, #616161);
+  /* 色块下方的色值标签（网页端新增，桌面设置页没有）→ 按次要文本取色 */
+  color: var(--wb-text-secondary);
 }
 
 .wb-settings-palette__clear {
@@ -329,7 +351,9 @@
   padding: 0;
   font-size: 12px;
   line-height: 14px;
-  color: var(--colorNeutralForeground2, #424242);
+  /* 这是个普通按钮（桌面 `PenSettingsPage.xaml:178-181` 的"清除"按钮），
+     前景 = ButtonForeground = `TextFillColorPrimary` */
+  color: var(--wb-text-primary);
   background-color: var(--colorNeutralBackground1, #ffffff);
   border: 1px solid var(--colorNeutralStroke2, #e0e0e0);
   border-radius: 50%;
@@ -353,7 +377,8 @@
 
 .wb-settings-thickness__label {
   font-size: 12px;
-  color: var(--colorNeutralForeground3, #616161);
+  /* 档位标签（网页端新增）→ 次要文本 */
+  color: var(--wb-text-secondary);
 }
 
 /* ===== 快捷键 ===== */
@@ -384,10 +409,13 @@
   border-radius: 8px;
 }
 
+/* 快捷键文本：桌面 `ShortcutsSettingsPage.xaml:48-50` 等处是默认前景 + `Opacity="0.75"`
+   （`TextFillColorPrimary` × 0.75），不是另一种灰 */
 .wb-settings-gesture-list code {
   font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace;
   font-size: 12px;
-  color: var(--colorNeutralForeground3, #616161);
+  color: var(--wb-text-primary);
+  opacity: 0.75;
 }
 
 /* ===== 关于：重置确认 ===== */
@@ -435,7 +463,8 @@
   margin: 0;
   font-size: 12px;
   font-weight: 600;
-  color: var(--colorNeutralForeground2, #424242);
+  /* 分组标题（网页端把桌面三段预览加了标题）→ 与桌面小节标题同级，取 `TextFillColorPrimary` */
+  color: var(--wb-text-primary);
 }
 
 /* 桌面预览是一行横向排列的按钮（`ItemsStackPanel Orientation="Horizontal"`），窄屏允许换行 */
@@ -460,7 +489,8 @@
   border: 1px solid var(--colorNeutralStroke2, #e0e0e0);
   border-radius: 10px;
   background: var(--colorNeutralBackground1, #ffffff);
-  color: var(--colorNeutralForeground1, #242424);
+  /* 桌面预览项里的文字（`DockSettingsPage.xaml:82-88`）没写 Foreground → `TextFillColorPrimary` */
+  color: var(--wb-text-primary);
   cursor: grab;
   user-select: none;
   /* 拖动期间不允许浏览器接管滚动/缩放手势（Pointer Events 需要独占指针） */
@@ -486,7 +516,8 @@
 
 .wb-dock-order__grip {
   display: inline-flex;
-  color: var(--colorNeutralForeground4, #707070);
+  /* 拖动把手图标（网页端新增，桌面靠 ListView 拖拽没有把手）→ 三级文本，弱化存在感 */
+  color: var(--wb-text-tertiary);
 }
 
 .wb-dock-order__icon {

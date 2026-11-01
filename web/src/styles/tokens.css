@@ -23,6 +23,26 @@
   --wb-reminder-stack-width: 420px;
   --wb-reminder-stack-gap: 10px;
 
+  /* ===== 文本前景（WinUI `TextFillColor*`，跟随 App 主题） ===== */
+  /*
+   * 取值来自 WinUI 的 `generic.xaml` Light 字典（`TextFillColorPrimary` 等）：
+   * `~/.nuget/packages/microsoft.windowsappsdk.winui/2.6.4/lib/native/Microsoft.UI/Themes/generic.xaml:7750-7753`。
+   *
+   * **换算说明（重要）**：XAML 里是 8 位 ARGB（`#E4000000` = alpha E4 + 黑），
+   * 而 CSS 的 hex 只有 `#RRGGBB` 与 `#RRGGBBAA` 两种——`#E4000000` 抄进 CSS 会被当成
+   * 不透明的 `#E40000`（红色）。所以这里统一写成 `rgb(R G B / A%)`，
+   * alpha 用 `十六进制 / 255` 换算后的百分比（保留 1 位小数）。
+   *
+   * 桌面默认文字色就是 `TextFillColorPrimary`（`DefaultTextForegroundThemeBrush` →
+   * `TextFillColorPrimaryBrush`，`generic.xaml:1103`），它比纯黑 `#000000` 略淡；
+   * 只有显式写了 `SystemControlForegroundBaseHighBrush`（`SystemBaseHighColor` = `#FF000000`）
+   * 的地方才是纯黑——两者不要混用（见 `--wb-dock-foreground`）。
+   */
+  --wb-text-primary: rgb(0 0 0 / 89.4%); /* TextFillColorPrimary = #E4000000 */
+  --wb-text-secondary: rgb(0 0 0 / 62%); /* TextFillColorSecondary = #9E000000 */
+  --wb-text-tertiary: rgb(0 0 0 / 44.7%); /* TextFillColorTertiary = #72000000 */
+  --wb-text-disabled: rgb(0 0 0 / 36.1%); /* TextFillColorDisabled = #5C000000 */
+
   /* ===== Dock 底板 ===== */
   /* `MainWindow.xaml:76-79`：CornerRadius 14 + Opacity 0.85 */
   --wb-dock-plate-radius: 14px;
@@ -50,13 +70,25 @@
      （如 `MainWindow.xaml:244` 画笔面板标题），Light 主题下 `SystemBaseHighColor` = #FF000000 */
   --wb-dock-foreground: #000000;
   /*
+   * Dock 区**强制浅色**（`MainWindow.xaml:54` 的 `RequestedTheme="Light"`），
+   * 所以浮层里**没写 Foreground** 的文字（如 `MainWindow.xaml:283` 的"粗细"）
+   * 走默认前景 `DefaultTextForegroundThemeBrush` → `TextFillColorPrimaryBrush`
+   * （`generic.xaml:1103`），Light 取值 = #E4000000（89.4% 黑），不是纯黑。
+   *
+   * 单独开一个**不随 App 主题切换**的令牌：深色主题下浅色底板上的文字必须仍是深色，
+   * 不能直接用会翻成白色的 `--wb-text-primary`。
+   */
+  --wb-dock-text-primary: rgb(0 0 0 / 89.4%);
+  /*
    * Dock **按钮**文字前景与浮层不同：按钮走 `DockButtonStyle` → `DefaultButtonStyle`，
    * 其 `Foreground` 是 `{ThemeResource ButtonForeground}` → `TextFillColorPrimaryBrush`
    * → Light 主题的 `TextFillColorPrimary` = #E4000000（89.4% 黑），并非纯黑。
    *
    * 注意这又是 XAML 的 ARGB：`#E4000000` 直接写进 CSS 会被读成"不透明红"，必须换成 CSS alpha 写法。
+   *
+   * 与 `--wb-dock-text-primary` 是同一个 WinUI 值（TextFillColorPrimary），直接引用以免两处漂移。
    */
-  --wb-dock-button-foreground: rgb(0 0 0 / 89.4%);
+  --wb-dock-button-foreground: var(--wb-dock-text-primary);
   /* 分隔线：`Width="1" Height="30"` + `SystemControlForegroundBaseMediumLowBrush` = 40% 黑 */
   --wb-dock-separator-size: 30px;
   --wb-dock-separator-color: rgba(0, 0, 0, 0.4);
@@ -92,10 +124,18 @@
 :root,
 :root[data-theme='light'] {
   --wb-titlebar-background: #ffffff;
-  --wb-titlebar-foreground: #1a1a1a;
+  /* 标题文字：`TitleBarForegroundBrush` → `TextFillColorPrimaryBrush`（`generic.xaml:2857`），
+     Light 取值 #E4000000 = 89.4% 黑（原先写的 #1a1a1a 是网页端自定的近似值） */
+  --wb-titlebar-foreground: rgb(0 0 0 / 89.4%);
 }
 
 :root[data-theme='dark'] {
   --wb-titlebar-background: #202020;
   --wb-titlebar-foreground: #ffffff;
+  /* WinUI `generic.xaml:2024-2027` 的 Dark 字典：
+     Primary #FFFFFF / Secondary #C5FFFFFF / Tertiary #87FFFFFF / Disabled #5DFFFFFF */
+  --wb-text-primary: #ffffff;
+  --wb-text-secondary: rgb(255 255 255 / 77.3%);
+  --wb-text-tertiary: rgb(255 255 255 / 52.9%);
+  --wb-text-disabled: rgb(255 255 255 / 36.5%);
 }

@@ -48,8 +48,10 @@
 /* ===== 弹出面板外框 ===== */
 
 .wb-flyout {
-  /* 浅色底板 `SystemControlBackgroundChromeMediumLowBrush` = #F2F2F2（与 Dock 底板同源） */
-  color: var(--wb-dock-foreground);
+  /* 浅色底板 `SystemControlBackgroundChromeMediumLowBrush` = #F2F2F2（与 Dock 底板同源）。
+     默认文字前景是 WinUI 的 `TextFillColorPrimary`（89.4% 黑，`generic.xaml:1103`），
+     只有显式写了 `SystemControlForegroundBaseHighBrush` 的 TextBlock 才是纯黑。 */
+  color: var(--wb-dock-text-primary);
   box-sizing: border-box;
 }
 
@@ -68,11 +70,14 @@
   overflow: hidden;
 }
 
-/* 笔面板标题：14 号 SemiBold、不透明度 0.85、Margin 16,12,16,10（`MainWindow.xaml:242-248`） */
+/* 笔面板标题：14 号 SemiBold、不透明度 0.85、Margin 16,12,16,10（`MainWindow.xaml:242-248`）。
+   桌面这里显式写了 `Foreground="{ThemeResource SystemControlForegroundBaseHighBrush}"`
+   + `Opacity="0.85"`，所以是纯黑 × 0.85，而不是默认的 89.4% 黑。 */
 .wb-flyout__title {
   margin: 12px 16px 10px;
   font-size: 14px;
   font-weight: 600;
+  color: var(--wb-dock-foreground);
   opacity: 0.85;
 }
 
@@ -97,7 +102,9 @@
   gap: 6px;
 }
 
-/* 小标题：默认 14 号、不透明度 0.75（`MainWindow.xaml:283`） */
+/* 小标题：默认 14 号、不透明度 0.75（`MainWindow.xaml:283`）。
+   桌面这个 TextBlock **没写 Foreground**，因此是默认前景 `TextFillColorPrimary` × 0.75，
+   颜色由 `.wb-flyout` 继承下来（不要改成纯黑）。 */
 .wb-flyout__label {
   font-size: 14px;
   opacity: 0.75;
@@ -148,7 +155,8 @@
   border: 0;
   border-radius: var(--wb-dock-button-radius);
   background: transparent;
-  color: var(--wb-dock-foreground);
+  /* 桌面这几个 ToggleButton 没覆盖 Foreground → ButtonForeground = TextFillColorPrimary */
+  color: var(--wb-dock-text-primary);
   cursor: default;
 }
 
@@ -179,7 +187,8 @@
   border: 0;
   border-radius: var(--wb-dock-button-radius);
   background: transparent;
-  color: var(--wb-dock-foreground);
+  /* 同上：ButtonForeground = TextFillColorPrimary */
+  color: var(--wb-dock-text-primary);
   cursor: default;
 }
 
@@ -212,9 +221,11 @@
   border-radius: var(--wb-dock-plate-radius);
 }
 
-/* 卡片内标题 12 号、不透明度 0.85（`MainWindow.xaml:362-366`） */
+/* 卡片内标题 12 号、不透明度 0.85（`MainWindow.xaml:362-366`）。
+   桌面这里同样显式写了 `SystemControlForegroundBaseHighBrush` + `Opacity="0.85"` → 纯黑 × 0.85。 */
 .wb-flyout--eraser .wb-flyout__label {
   font-size: 12px;
+  color: var(--wb-dock-foreground);
   opacity: 0.85;
 }
 
@@ -227,7 +238,8 @@
   background: var(--wb-dock-plate-color);
 }
 
-/* 文案 15 号 SemiBold，居中（`MainWindow.xaml:392-399`） */
+/* 文案 15 号 SemiBold，居中（`MainWindow.xaml:392-399`）。
+   桌面显式写了 `Foreground="{ThemeResource SystemControlForegroundBaseHighBrush}"` → 纯黑。 */
 .wb-slide__text {
   position: absolute;
   inset: 0;
@@ -236,6 +248,7 @@
   justify-content: center;
   font-size: 15px;
   font-weight: 600;
+  color: var(--wb-dock-foreground);
   pointer-events: none;
 }
 
@@ -349,7 +362,8 @@
   border: 0;
   border-radius: 7px;
   background: transparent;
-  color: var(--wb-dock-foreground);
+  /* 桌面是普通 Button（`MainWindow.xaml:648-662`），前景 = ButtonForeground = TextFillColorPrimary */
+  color: var(--wb-dock-text-primary);
   cursor: default;
 }
 
