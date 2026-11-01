@@ -12,14 +12,16 @@
  * - 点击切换页、删除按钮删除该页（`UI/MainWindow/MainWindow.Pages.cs` 的 `OnPagesListItemClick` /
  *   `OnDeletePageClicked`）
  *
- * P3 阶段缩略图用"占位方块 + 页码"表示（真实缩略图渲染属 P5）。
+ * 缩略图由 `PageThumbnail` 用 Canvas2D 绘制（算法见 `render/thumbnail.ts`，照搬桌面
+ * `PageThumbnailControl` 的折线近似）。
  *
  * 本组件只渲染**面板内容**，锚点与开合由 `DockBar` 的 Fluent `Popover` 负责。
  */
 
 import type { ReactNode } from 'react'
 import { DeleteRegular } from '@fluentui/react-icons'
-import { useBoardController, useBoardSnapshot } from '../../app/hooks.ts'
+import { useBoardController, useBoardSnapshot, useSettings } from '../../app/hooks.ts'
+import { PageThumbnail } from '../shell/PageThumbnail.tsx'
 
 /** 属性。 */
 export interface PagesFlyoutProps {
@@ -34,7 +36,12 @@ export function PagesFlyout(props: PagesFlyoutProps): ReactNode {
 
   const controller = useBoardController()
   const snapshot = useBoardSnapshot()
+  const settings = useSettings()
   const pages = Array.from({ length: snapshot.pageCount }, (_unused, index) => index)
+  // 缩略图尺寸：列表项宽 240 减去左右内边距 8×2（`MainWindow.xaml:633-640,665`），高固定 104
+  const thumbnailWidth = 224
+  const thumbnailHeight = 104
+  const canvasBackground = settings.appearance.canvasBackgroundHex
 
   const selectPage = (index: number): void => {
     if (index !== snapshot.currentPageIndex) {
@@ -89,8 +96,13 @@ export function PagesFlyout(props: PagesFlyoutProps): ReactNode {
                   <DeleteRegular fontSize={12} />
                 </button>
               </div>
-              <div className="wb-pages__thumb" aria-hidden>
-                <span className="wb-pages__thumb-number">{index + 1}</span>
+              <div className="wb-pages__thumb">
+                <PageThumbnail
+                  items={controller.workspace.pages[index].session.document.items}
+                  widthDip={thumbnailWidth}
+                  heightDip={thumbnailHeight}
+                  background={canvasBackground}
+                />
               </div>
             </div>
           )

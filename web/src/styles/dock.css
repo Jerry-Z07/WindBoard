@@ -363,9 +363,13 @@
   align-items: center;
   justify-content: center;
   height: var(--wb-pages-flyout-thumbnail-size);
+  overflow: hidden;
   border-radius: 8px;
   background: var(--wb-canvas-background);
-  color: rgb(255 255 255 / 55%);
-  font-size: 24px;
-  font-weight: 600;
+}
+
+/* 缩略图画布：尺寸由组件按 DIP 指定，这里只兜住圆角裁切 */
+.wb-pages__thumb-canvas {
+  display: block;
+  max-width: 100%;
 }
