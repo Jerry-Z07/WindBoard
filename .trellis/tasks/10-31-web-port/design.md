@@ -61,6 +61,13 @@ web/
 └─ scripts/      gen-i18n.mjs  interop.mjs  verify.mjs
 ```
 
+> **实际落地与上面草图的差异**（P0–P3 实现后回填）：
+> - `board/model/*.ts` 实际为 `board/model/{stroke,shape,element,workspace,ids}.ts` + `board/{document,page,workspace,session,commands,viewport,snapshot}.ts`；
+> - `ink/scene-renderer.ts` / `frame-scheduler.ts` 实际落在 `render/{scene,elements,frame-scheduler,render-handle}.ts`；
+> - 工具在 `tools/{pen,shape,eraser,tool-settings}.ts`（未走 `interaction/tools/`）；
+> - `Controls/BoardCanvasControl` 的对应物是 `canvas/{board-controller,dom-input,dom-types}.ts` + `ui/shell/BoardSurface.tsx`；
+> - 新增 `app/`（services / contexts / providers / hooks 四件套）与 `styles/`（tokens / shell / chrome / dock / settings / dialogs）。
+
 `web/` 不加入 `WindBoard.slnx`，桌面构建与测试完全不受影响（AC10）。
 
 ## 4. 技术选型
@@ -185,6 +192,17 @@ expected/*.golden.json 各条目解压后的期望文本
 - **写入时**由 `src/persistence/wbix/f32-format.ts` 的 `formatF32()` 先 `Math.fround` 再取最短往返文本；**读入时**不需要额外量化——文本本身就是 f32 最短往返表示，`JSON.parse` 得到的双精度数恰好等于该 f32 值。即"内存值 = 磁盘值的 f32 语义"，与桌面版 `float` 字段一致。
 - 由此产生的偏差上限为 f32 的相对精度（约 1e-7）。在 zoom 0.05~32 的范围内，10^4 世界单位上的误差也远小于 1 DIP，不影响观感；但**涉及数值相等的测试必须按 f32 精度比较**（`web/tests/unit/board-roundtrip.test.ts` 的 `froundDeep()` 就是这个用途）。
 - 不做"全部 fround"的替代方案：它会让每个采样点都付舍入成本，且 `Math.fround` 不保证与 .NET 的 f32 解析结果在边界值上逐位一致，反而更难解释差异来源。
+
+### D14 UI 层落地：令牌取 WinUI 主题字典，服务与 React 解耦
+**问题**：UI 还原最容易走偏的地方是把"看起来差不多"当成规格。桌面的尺寸/颜色分散在 `MainWindow.xaml`、`App.xaml` 的样式与 WinUI 主题资源里，靠目测抄会把偏差固化进代码。
+
+**设计**：
+- **令牌来源必须是主题字典，不是截图**：Dock 底板色 `#F2F2F2`、前景 `#000000`、分隔线 40% 黑，均取自 WinUI `generic.xaml` 的 **Light** 字典（`SystemChromeMediumLowColor` / `SystemBaseHighColor` / `SystemBaseMediumLowColor`）；交互态取 `MainWindow.xaml:57-70` 的资源覆盖（hover `#14FFFFFF`、pressed `#22FFFFFF`、checked `#1976D2` + 白字）。全部集中在 `src/styles/tokens.css` 并逐条注明桌面出处。
+- **两个易错常量**：底板圆角是 **14**（`Border.CornerRadius`），按钮圆角是 **10**（`App.xaml` 的 `DockButtonStyle`）——不是同一个值。
+- **主题分层**：App 级 `FluentProvider` 跟随系统深浅色（对应桌面 `MicaBackdrop` 跟随系统）；**底部 Dock 强制浅色**（桌面 `MainWindow.xaml:54` 的 `RequestedTheme="Light"`），在 Dock 内部再包一层 `webLightTheme`；画布背景独立由设置 `appearance.canvasBackgroundHex` 决定。三者互不影响。
+- **服务不依赖 React**：设置/提醒/面板状态机都是纯 TS 单例（对应桌面 `AppSettingsService` / `AppReminderService` 静态单例），React 侧只有 `contexts.ts` + `providers.tsx` + `hooks.ts` 三个薄文件，用 `useSyncExternalStore` 订阅快照。好处是这些服务能在 node 环境直接测，且不会出现"同一设置两个真源"。
+- **组件测试策略**：`vitest` 跑在 node 环境（`environment: 'node'`，只收集 `tests/**/*.test.ts`），**不做组件单测**——组件只允许包含布局与绑定，所有可判定逻辑（Dock 布局、面板开合、提醒队列、设置归一化、导出参数）必须落在纯 `.ts` 模块并由单测覆盖。组件本身的观感差异交给 P5.1 的 Playwright 视觉回归。
+- **已知验证缺口**：桌面参考图无法自动获取——`PrintWindow(PW_RENDERFULLCONTENT)` 能抓到标题栏与画布，但抓不到 XAML 叠加层（Dock、弹出面板），全屏截图又会干扰用户桌面。因此 P3 的验收依据是"令牌与 XAML 数值逐条对齐"，而非像素比对；像素级的对照留到 P5.1（届时以离屏渲染的网页截图为基础做回归）。
 
 ## 6. 域模型契约
 
