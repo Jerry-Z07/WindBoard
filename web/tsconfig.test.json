@@ -2,7 +2,12 @@
   "compilerOptions": {
     "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.test.tsbuildinfo",
     "target": "es2023",
-    "lib": ["ES2023"],
+    /*
+     * 组件级冒烟测试（`tests/unit/ui-*.test.tsx`，jsdom + @testing-library/react）需要 DOM 类型
+     * 与 JSX 支持。纯函数测试不受影响——它们仍然只用 `ES2023` 那套 API，不碰 DOM。
+     */
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "jsx": "react-jsx",
     "types": ["node"],
     "skipLibCheck": true,
 

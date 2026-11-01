@@ -13,6 +13,17 @@ export interface FullscreenState {
   toggle(): void
 }
 
+/**
+ * 当前元素是否处于全屏。
+ *
+ * 用宽松比较而不是 `!== null`：在缺少 Fullscreen API 的环境里
+ * `document.fullscreenElement` 是 `undefined`（jsdom 就是这样），
+ * `undefined !== null` 会把"没有 API"误判成"处于全屏"，导致标题栏被隐藏。
+ */
+function isDocumentFullscreen(): boolean {
+  return document.fullscreenElement !== null && document.fullscreenElement !== undefined
+}
+
 /** 订阅全屏状态。 */
 export function useFullscreen(): FullscreenState {
   const [isFullscreen, setIsFullscreen] = useState(false)
@@ -22,7 +33,7 @@ export function useFullscreen(): FullscreenState {
       return
     }
     const onChange = (): void => {
-      setIsFullscreen(document.fullscreenElement !== null)
+      setIsFullscreen(isDocumentFullscreen())
     }
     document.addEventListener('fullscreenchange', onChange)
     onChange()
@@ -41,7 +52,7 @@ export function useFullscreen(): FullscreenState {
       try {
         if (next) {
           void document.documentElement.requestFullscreen?.()
-        } else if (document.fullscreenElement !== null) {
+        } else if (isDocumentFullscreen()) {
           void document.exitFullscreen?.()
         }
       } catch {
