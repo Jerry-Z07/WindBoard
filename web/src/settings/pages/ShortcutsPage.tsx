@@ -17,6 +17,7 @@ import {
   isValidShortcutBinding,
   type ShortcutId,
 } from '../../interaction/shortcuts.ts'
+import { SETTINGS_ANCHORS } from '../search-targets.ts'
 import { SettingsCard, SettingsSection } from './SettingsCard.tsx'
 
 /** 只读的鼠标组合快捷键（文案取桌面 zh-CN L10n）。 */
@@ -30,6 +31,8 @@ const MOUSE_GESTURES: readonly { readonly action: string; readonly gesture: stri
 /** 单个快捷键编辑器属性。 */
 interface ShortcutEditorProps {
   readonly title: string
+  /** 卡片的搜索锚点（`SETTINGS_ANCHORS` 里的值）。 */
+  readonly anchor: string
   readonly binding: string
   readonly otherTitle: string
   readonly otherBinding: string
@@ -78,7 +81,11 @@ function ShortcutEditor(props: ShortcutEditorProps): ReactNode {
   }
 
   return (
-    <SettingsCard title={props.title} description="支持 Ctrl / Alt / Shift 组合；留空表示禁用">
+    <SettingsCard
+      title={props.title}
+      description="支持 Ctrl / Alt / Shift 组合；留空表示禁用"
+      anchor={props.anchor}
+    >
       <div className="wb-settings-shortcut">
         <Input
           value={value}
@@ -153,6 +160,7 @@ export function ShortcutsPage(): ReactNode {
       <SettingsSection title="键盘快捷键">
         <ShortcutEditor
           title="撤销"
+          anchor={SETTINGS_ANCHORS.shortcutsUndo}
           binding={undo}
           otherTitle="重做"
           otherBinding={redo}
@@ -162,6 +170,7 @@ export function ShortcutsPage(): ReactNode {
         />
         <ShortcutEditor
           title="重做"
+          anchor={SETTINGS_ANCHORS.shortcutsRedo}
           binding={redo}
           otherTitle="撤销"
           otherBinding={undo}
@@ -169,7 +178,11 @@ export function ShortcutsPage(): ReactNode {
             commitShortcut('redo', next)
           }}
         />
-        <SettingsCard title="快捷键冲突提醒" description="当两个快捷键冲突时给出提醒">
+        <SettingsCard
+          title="快捷键冲突提醒"
+          description="当两个快捷键冲突时给出提醒"
+          anchor={SETTINGS_ANCHORS.shortcutsConflictReminder}
+        >
           <Switch
             checked={conflictReminderEnabled}
             aria-label="快捷键冲突提醒"

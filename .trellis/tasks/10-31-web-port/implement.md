@@ -173,6 +173,53 @@
 （`requestFullscreen` 需要真实用户手势）。
 - 验收：AC6、AC7；Playwright 截图与桌面参考图结构一致
 
+#### 浏览器复核第二轮（2026-11-01 晚，界面还原优先）
+
+第一轮遗留的三项已消化：页面缩略图改为真实渲染（`4925764`）；全屏切换经 MCP 真实点击验证
+（`document.fullscreenElement` 非空、标题栏隐藏、退出后恢复）；设置 6 页逐页点过。
+
+本轮按桌面 XAML 补齐四块界面并修掉 5 个缺陷：
+
+1. **设置搜索框**（`SettingsWindow.xaml:23-44` 的 `AutoSuggestBox`）：`settings/search-targets.ts`
+   的卡片清单 + 纯匹配函数（空白不出建议、`OrdinalIgnoreCase` 子串、最多 8 条），
+   `SettingsSearchBox` 负责交互；选中后切页、`scrollIntoView` 居中并高亮 1.2s。
+   卡片清单与页面组件共用一个 `SETTINGS_ANCHORS` 常量，避免两边字符串漂移。
+2. **外观页改回"可点卡片 + 二级弹窗"**（桌面 `AppearanceSettingsPage.xaml:61-124`）：
+   画布背景颜色卡 → `CanvasColorDialog`（取色器 + HEX + 恢复默认，**即时写入**、取消回滚）；
+   元素卡片主题卡 → `ElementCardThemeDialog`（**确定才写入**，与前者语义相反，桌面就是这么设计的）；
+   Dock 设置卡 → 跳转 Dock 页（桌面是 `Frame.Navigate`）。`SettingsCard` 新增 `onClick`，
+   有 `onClick` 时渲染成真 `<button>`（键盘/读屏语义交给浏览器）。
+3. **Dock 页排序编辑器**（桌面 `DockSettingsPage.xaml:47-229` 的四组 `ListView`）：
+   指针拖动 + 每项「上移/下移」按钮（键盘可达），落盘只写发生变化的那一组；
+   `settings/dock-order.ts` 是纯函数（`moveItem` / `moveItemUp` / `moveItemDown` / `normalizeOrder`）。
+   实测拖动「新增」到首位后主 Dock 立即跟随、`localStorage` 同步、恢复默认可用。
+4. **导出对话框页范围**改回桌面的**单个自由文本框**（`ExportDialog.cs:41-45`）：始终可见、
+   仅 `指定范围` 时可用，解析逻辑照搬 `PageRangeParser.cs`（不用 `Number()`，改用 `^[+-]?\d+$`
+   以保持 C# `int.TryParse` 的严格性），主按钮文案 `Common_Next` = 「下一步」，补 `Export_Hint_Text`。
+
+缺陷修复：
+
+5. **取色器把色域/滑条挤到容器外**（本轮最隐蔽的一个）：`@fluentui/react-color-picker` 的
+   `HsvColor` 里 `s`/`v` 是 **0~1 的小数**（`useColorArea.js:34-35` 才 `× 100` 转百分比，
+   拖动时按 `deltaX / 100` 增量并夹到 `[0,1]`），最初按 0~100 传，导致进度变量变成
+   `--fui-AreaX--progress: 980%`、内容被撑到 3633px 宽、色域缩略图定位在 `x = -2643`（整块看不见）。
+   改为小数后 `10% / 20%` 正确，`scrollWidth == clientWidth`。
+6. `--wb-dock-foreground` 拆成两个 token：浮层文字（桌面显式 `SystemControlForegroundBaseHighBrush`
+   = `#000000`）与 Dock **按钮**文字（`DockButtonStyle` → `DefaultButtonStyle` →
+   `TextFillColorPrimary` = `#E4000000`，即 89.4% 黑）。实测 Dock 标签 `rgba(0,0,0,0.894)`。
+7. 删掉三处死样式：`.wb-flyout-surface`、`.wb-settings-swatches/.wb-settings-swatch/.wb-settings-color-field`
+   （外观页不再铺色板）、`.wb-dialog__range`（页范围改单框）、`.wb-settings-body .fui-DialogTitle__action`
+   （关闭按钮搬进标题行 flex）。清 `.wb-settings-swatch` 时漏删一行 `outline-offset` 让
+   lightningcss 在 `pnpm build` 阶段报 `Invalid token in pseudo element`，已修。
+8. 设置搜索的样式 import 原先追加在 `main.tsx` 末尾（子代理为避免并行冲突），改回顶部 import 区。
+
+状态：`pnpm verify` 976 例全绿、`pnpm lint` 0/0、`pnpm build` 781.86 kB（gzip 223.89 kB，取色器带入体积，
+Vite 仍报 >500 kB 警告 → P5.2 拆包）。
+
+**仍未做**：InfoBar 内部度量是近似值；组件级 DOM 冒烟测试（`vitest` 的 `test.include` 目前不含 `.tsx`，
+要补需引入 jsdom + @testing-library/react，属 P5 范围）；`--wb-dock-foreground` 之外的其它 WinUI
+前景色（如 Secondary/Tertiary 文本）尚未逐一对齐。
+
 ---
 
 ## P4 文件能力

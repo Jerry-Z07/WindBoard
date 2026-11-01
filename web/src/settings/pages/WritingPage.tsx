@@ -14,6 +14,7 @@ import { Add24Regular, Delete24Regular } from '@fluentui/react-icons'
 import type { ReactNode } from 'react'
 import { useSettings, useSettingsService } from '../../app/hooks.ts'
 import { MAX_THICKNESS, MIN_THICKNESS } from '../model.ts'
+import { SETTINGS_ANCHORS } from '../search-targets.ts'
 import { SettingsCard, SettingsSection } from './SettingsCard.tsx'
 
 /** 色板槽位上下限（桌面 `PenSettingsDefaults.MinPaletteCount/MaxPaletteCount`）。 */
@@ -71,6 +72,7 @@ export function WritingPage(): ReactNode {
       <SettingsCard
         title="颜色数量"
         description={`色板槽位 ${MIN_PALETTE_SLOTS}~${MAX_PALETTE_SLOTS} 个；可保留空色块（未设置颜色），点击色块即可设置颜色`}
+        anchor={SETTINGS_ANCHORS.writingPaletteCount}
       >
         <div className="wb-settings-palette-actions">
           <Button
@@ -124,7 +126,10 @@ export function WritingPage(): ReactNode {
         ))}
       </div>
 
-      <SettingsCard title="通过滑条调整粗细">
+      <SettingsCard
+        title="通过滑条调整粗细"
+        anchor={SETTINGS_ANCHORS.writingThicknessSlider}
+      >
         <Switch
           checked={pen.useThicknessSlider}
           label={pen.useThicknessSlider ? '滑条' : '三档'}

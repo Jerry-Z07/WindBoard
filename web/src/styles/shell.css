@@ -122,7 +122,9 @@
   /* 底板 0.85 不透明度只作用于背景，不影响内部图标/文字（桌面用单独 Border 实现） */
   background: color-mix(in srgb, var(--wb-dock-plate-color) 85%, transparent);
   border-radius: var(--wb-dock-plate-radius);
-  color: var(--wb-dock-foreground);
+  /* Dock 里只有按钮（`.wb-dock-button` 用 `color: inherit`），文字走 `DefaultButtonStyle`
+     的 `TextFillColorPrimary`（89.4% 黑），不是浮层那种纯黑 */
+  color: var(--wb-dock-button-foreground);
 }
 
 .wb-dock__separator {

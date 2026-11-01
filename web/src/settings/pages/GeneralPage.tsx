@@ -9,6 +9,7 @@ import { Dropdown, Option } from '@fluentui/react-components'
 import type { ReactNode } from 'react'
 import { useSettings, useSettingsService } from '../../app/hooks.ts'
 import type { LanguagePreference, StartupWindowMode } from '../model.ts'
+import { SETTINGS_ANCHORS } from '../search-targets.ts'
 import { SettingsCard } from './SettingsCard.tsx'
 
 /** 下拉选项。 */
@@ -42,7 +43,11 @@ export function GeneralPage(): ReactNode {
 
   return (
     <div className="wb-settings-page">
-      <SettingsCard title="语言" description="选择应用显示语言">
+      <SettingsCard
+        title="语言"
+        description="选择应用显示语言"
+        anchor={SETTINGS_ANCHORS.generalLanguage}
+      >
         <Dropdown
           aria-label="语言"
           value={labelOf(LANGUAGE_CHOICES, settings.general.languagePreference)}
@@ -62,7 +67,11 @@ export function GeneralPage(): ReactNode {
         </Dropdown>
       </SettingsCard>
 
-      <SettingsCard title="启动时窗口形态" description="设置应用下次启动时窗口显示形态">
+      <SettingsCard
+        title="启动时窗口形态"
+        description="设置应用下次启动时窗口显示形态"
+        anchor={SETTINGS_ANCHORS.generalStartupWindowMode}
+      >
         <Dropdown
           aria-label="启动时窗口形态"
           value={labelOf(STARTUP_CHOICES, settings.general.startupWindowMode)}

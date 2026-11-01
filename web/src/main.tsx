@@ -6,6 +6,7 @@ import './styles/shell.css'
 import './styles/chrome.css'
 import './styles/dock.css'
 import './styles/settings.css'
+import './styles/settings-search.css'
 import './styles/dialogs.css'
 import App from './App.tsx'
 

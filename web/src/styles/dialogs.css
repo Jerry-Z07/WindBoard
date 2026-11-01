@@ -26,22 +26,21 @@
   --wb-dialog-width: 480px;
 }
 
+/* 取色器弹窗要放下色域方框与三条滑条（桌面 `ContentDialog` 装 `ColorPicker`） */
+.wb-dialog.wb-dialog--canvas-color {
+  --wb-dialog-width: 420px;
+}
+
+/* 元素卡片主题弹窗只有两个单选，取确认框宽度即可 */
+.wb-dialog.wb-dialog--element-theme {
+  --wb-dialog-width: 380px;
+}
+
 /* ===== 表单布局 ===== */
 .wb-dialog__form {
   display: flex;
   flex-direction: column;
   gap: var(--wb-dialog-gap);
-}
-
-/* 起止页两个数字输入并排 */
-.wb-dialog__range {
-  display: flex;
-  gap: var(--wb-dialog-gap);
-}
-
-.wb-dialog__range > * {
-  flex: 1 1 0;
-  min-width: 0;
 }
 
 /* ===== 文本 ===== */
@@ -58,6 +57,25 @@
   font-size: 12px;
   color: var(--colorNeutralForeground2);
   overflow-wrap: anywhere;
+}
+
+/* ===== 画布背景颜色取色器 ===== */
+/*
+ * 色域方框的尺寸与圆角都用 Fluent `ColorArea` 自己的值（实测 371×300、圆角 4），
+ * 这里不再覆盖：它的高度由 Griffel 原子类下发，单类选择器赢不了（见 `settings.css`
+ * 里 `wb-settings-surface` 的同类说明），而默认值观感已接近桌面 `ColorSpectrumShape="Box"`。
+ */
+
+/* HEX 输入 + 「恢复默认」按钮同一行（桌面 `Grid ColumnSpacing="12"`） */
+.wb-dialog__hex-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+}
+
+.wb-dialog__hex-field {
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 /* ===== 导入 ===== */

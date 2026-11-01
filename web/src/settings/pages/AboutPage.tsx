@@ -20,6 +20,7 @@ import {
 import { ArrowExport24Regular, ArrowImport24Regular, ArrowReset24Regular } from '@fluentui/react-icons'
 import { useState, type ReactNode } from 'react'
 import { useSettingsService } from '../../app/hooks.ts'
+import { SETTINGS_ANCHORS } from '../search-targets.ts'
 import { SettingsCard, SettingsSection } from './SettingsCard.tsx'
 
 /**
@@ -37,24 +38,40 @@ export function AboutPage(): ReactNode {
 
   return (
     <div className="wb-settings-page">
-      <SettingsCard title="版本" description="网页端版本号（与 package.json 保持一致）">
+      <SettingsCard
+        title="版本"
+        description="网页端版本号（与 package.json 保持一致）"
+        anchor={SETTINGS_ANCHORS.aboutVersion}
+      >
         <code className="wb-settings-version">{WEB_VERSION}</code>
       </SettingsCard>
 
       <SettingsSection title="设置管理">
-        <SettingsCard title="导出设置" description="导出当前全部设置到 JSON 文件（P4 提供）">
+        <SettingsCard
+          title="导出设置"
+          description="导出当前全部设置到 JSON 文件（P4 提供）"
+          anchor={SETTINGS_ANCHORS.aboutExportSettings}
+        >
           <Button icon={<ArrowExport24Regular />} disabled>
             导出设置
           </Button>
         </SettingsCard>
 
-        <SettingsCard title="导入设置" description="从 JSON 文件导入并覆盖当前全部设置（P4 提供）">
+        <SettingsCard
+          title="导入设置"
+          description="从 JSON 文件导入并覆盖当前全部设置（P4 提供）"
+          anchor={SETTINGS_ANCHORS.aboutImportSettings}
+        >
           <Button icon={<ArrowImport24Regular />} disabled>
             导入设置
           </Button>
         </SettingsCard>
 
-        <SettingsCard title="恢复默认设置" description="清空当前设置并恢复默认值">
+        <SettingsCard
+          title="恢复默认设置"
+          description="清空当前设置并恢复默认值"
+          anchor={SETTINGS_ANCHORS.aboutResetSettings}
+        >
           <Button
             appearance="primary"
             icon={<ArrowReset24Regular />}

@@ -1,76 +1,96 @@
 /**
  * 设置 → 外观（桌面 `WindBoard/Settings/Pages/AppearanceSettingsPage.xaml`）。
  *
- * 桌面用二级弹窗 + WinUI ColorPicker 选画布背景色（`:40-105`）；网页端退化为
- * "预设色块 + 当前色值文本"，点选即写入 `appearance.canvasBackgroundHex`，
- * 画布（`BoardSurface`）已订阅该字段，改动会实时反映。
- * 元素卡主题保持桌面的深色/浅色二选一（`:137-171`）。
+ * 桌面这一页是**三张可点卡片**，编辑动作全在二级弹窗里完成：
+ * - `CanvasBackgroundCard`（`:61-84`）→ `CanvasBackgroundDialog`（`:126-164`，取色器 + HEX）；
+ * - `DockSettingsCard`（`:86-100`）→ `Frame.Navigate(typeof(DockSettingsPage))`（跳转到 Dock 设置页）；
+ * - `ElementCardThemeCard`（`:102-124`）→ `ElementCardThemeDialog`（`:166-180`，深色/浅色二选一）。
+ * 卡片右侧只是"当前值预览"（20×20 圆角色块 + HEX 文本 / 主题名），本身不可编辑——
+ * 之前网页端把色板直接铺在卡片里、主题直接放单选组，与桌面的交互形状不一致，
+ * 现在按桌面还原。
  */
 
-import { Radio, RadioGroup } from '@fluentui/react-components'
 import type { ReactNode } from 'react'
-import { useSettings, useSettingsService } from '../../app/hooks.ts'
-import { DEFAULT_CANVAS_BACKGROUND_HEX } from '../model.ts'
+import { useState } from 'react'
+import { useSettings } from '../../app/hooks.ts'
+import { CanvasColorDialog } from '../../ui/dialogs/CanvasColorDialog.tsx'
+import { ElementCardThemeDialog } from '../../ui/dialogs/ElementCardThemeDialog.tsx'
+import { SETTINGS_ANCHORS } from '../search-targets.ts'
+import type { SettingsPageId } from '../window-model.ts'
 import { SettingsCard } from './SettingsCard.tsx'
 
-/** 预设画布背景色（首项为桌面默认值 `ColorHex.DefaultCanvasBackgroundHex`）。 */
-const PRESET_CANVAS_BACKGROUND_HEXES: readonly string[] = [
-  DEFAULT_CANVAS_BACKGROUND_HEX,
-  '#1E1E1E',
-  '#000000',
-  '#3B3B3B',
-  '#E5E5E5',
-  '#F5F5F5',
-  '#FFFFFF',
-  '#F7F3E8',
-]
+/** 属性。 */
+export interface AppearancePageProps {
+  /**
+   * 切换到其它设置页（桌面 `OnDockSettingsClicked` 里 `Frame.Navigate` 的等价物）。
+   *
+   * `SettingsWindow` 通过它传入自己的 `setPageId`；单独渲染本页（如测试）时可省略。
+   */
+  readonly onNavigate?: (pageId: SettingsPageId) => void
+}
 
 /** 外观页。 */
-export function AppearancePage(): ReactNode {
+export function AppearancePage(props: AppearancePageProps): ReactNode {
   const settings = useSettings()
-  const settingsService = useSettingsService()
   const currentHex = settings.appearance.canvasBackgroundHex
+  const currentTheme = settings.appearance.elementCardTheme
+  const [colorDialogOpen, setColorDialogOpen] = useState(false)
+  const [themeDialogOpen, setThemeDialogOpen] = useState(false)
 
   return (
     <div className="wb-settings-page">
-      <SettingsCard title="画布背景颜色" description="设置画布的背景颜色">
-        <div className="wb-settings-color-field">
-          <div className="wb-settings-swatches" role="group" aria-label="画布背景颜色预设">
-            {PRESET_CANVAS_BACKGROUND_HEXES.map((hex) => (
-              <button
-                key={hex}
-                type="button"
-                className="wb-settings-swatch"
-                style={{ backgroundColor: hex }}
-                aria-label={`画布背景 ${hex}`}
-                aria-pressed={currentHex === hex}
-                onClick={() => {
-                  settingsService.patch({ appearance: { canvasBackgroundHex: hex } })
-                }}
-              />
-            ))}
-          </div>
-          <code className="wb-settings-hex">{currentHex}</code>
-        </div>
+      <SettingsCard
+        title="画布背景颜色"
+        description="设置画布的背景颜色"
+        anchor={SETTINGS_ANCHORS.appearanceCanvasBackground}
+        onClick={() => {
+          setColorDialogOpen(true)
+        }}
+      >
+        {/* 桌面 `AppearanceSettingsPage.xaml:70-82`：色块 20×20、圆角 4、描边 1，右侧 HEX 文本 Opacity 0.75 */}
+        <span className="wb-settings-value">
+          <span className="wb-settings-color-preview" style={{ backgroundColor: currentHex }} />
+          <span className="wb-settings-value__text">{currentHex}</span>
+        </span>
       </SettingsCard>
+
+      <SettingsCard
+        title="Dock 设置"
+        description="调整 Dock 内组件的位置与显隐"
+        anchor={SETTINGS_ANCHORS.appearanceDockSettings}
+        onClick={() => {
+          props.onNavigate?.('dock')
+        }}
+      />
 
       <SettingsCard
         title="元素卡片主题"
         description="切换白板上导入元素（图片/文件/文本/链接等）的卡片外观"
+        anchor={SETTINGS_ANCHORS.appearanceElementCardTheme}
+        onClick={() => {
+          setThemeDialogOpen(true)
+        }}
       >
-        <RadioGroup
-          layout="horizontal"
-          value={settings.appearance.elementCardTheme}
-          onChange={(_, data) => {
-            if (data.value === 'dark' || data.value === 'light') {
-              settingsService.patch({ appearance: { elementCardTheme: data.value } })
-            }
-          }}
-        >
-          <Radio value="dark" label="深色" />
-          <Radio value="light" label="浅色" />
-        </RadioGroup>
+        <span className="wb-settings-value">
+          <span className="wb-settings-value__text">{currentTheme === 'light' ? '浅色' : '深色'}</span>
+        </span>
       </SettingsCard>
+
+      {colorDialogOpen && (
+        <CanvasColorDialog
+          onClose={() => {
+            setColorDialogOpen(false)
+          }}
+        />
+      )}
+
+      {themeDialogOpen && (
+        <ElementCardThemeDialog
+          onClose={() => {
+            setThemeDialogOpen(false)
+          }}
+        />
+      )}
     </div>
   )
 }

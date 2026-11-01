@@ -45,8 +45,18 @@
   --wb-dock-icon-size: 20px;
   --wb-dock-label-size: 11px;
   --wb-dock-label-gap: 3px;
-  /* 浅色主题前景 `SystemControlForegroundBaseHighBrush` = #000000 */
+  /* 浮层内文字前景：桌面浮层里的 TextBlock 显式写了
+     `Foreground="{ThemeResource SystemControlForegroundBaseHighBrush}"`
+     （如 `MainWindow.xaml:244` 画笔面板标题），Light 主题下 `SystemBaseHighColor` = #FF000000 */
   --wb-dock-foreground: #000000;
+  /*
+   * Dock **按钮**文字前景与浮层不同：按钮走 `DockButtonStyle` → `DefaultButtonStyle`，
+   * 其 `Foreground` 是 `{ThemeResource ButtonForeground}` → `TextFillColorPrimaryBrush`
+   * → Light 主题的 `TextFillColorPrimary` = #E4000000（89.4% 黑），并非纯黑。
+   *
+   * 注意这又是 XAML 的 ARGB：`#E4000000` 直接写进 CSS 会被读成"不透明红"，必须换成 CSS alpha 写法。
+   */
+  --wb-dock-button-foreground: rgb(0 0 0 / 89.4%);
   /* 分隔线：`Width="1" Height="30"` + `SystemControlForegroundBaseMediumLowBrush` = 40% 黑 */
   --wb-dock-separator-size: 30px;
   --wb-dock-separator-color: rgba(0, 0, 0, 0.4);

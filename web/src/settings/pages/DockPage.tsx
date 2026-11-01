@@ -1,34 +1,422 @@
 /**
  * 设置 → Dock（桌面 `WindBoard/Features/Dock/UI/DockSettingsPage.xaml`）。
  *
- * 网页端 v1 只保留"显示撤销/重做"开关（`dock.isUndoRedoVisible`，桌面
- * `DockSettingsPage.xaml:234-244`）。快捷 Dock 属桌面能力，v1 不实现，
- * 按 `research/03-ui-inventory.md` §9 只留一行说明，不放可交互控件。
+ * 结构对齐桌面：
+ * - 拖动提示：`DockSettingsPage.xaml:34-37`（`Settings_Dock_DragHint`）；
+ * - 「预览」区（`:40`，`Common_Preview`）：四组可重排列表——左侧 Dock / 工具 / 撤销·重做 / 页面，
+ *   分组与默认顺序取自 `WindBoard/Features/Dock/Models/DockItemIds.cs`（与
+ *   `settings/model.ts` 的 `DEFAULT_*_DOCK_ITEMS` 一一对应）；
+ * - 「选项」区（`:231`，`Common_Options`）：显示撤销/重做、显示快捷入口 Dock、恢复默认布局。
+ *
+ * 与桌面的差异（网页端实现约束，均已在此说明）：
+ * - 桌面靠 `ListView.CanReorderItems` 的原生拖动；网页端用 Pointer Events 自己实现（见
+ *   `DockOrderGroup`），鼠标 / 触摸 / 笔都能拖，未引入第三方拖拽库；
+ * - 桌面拖动结束后一次性写回四组顺序（`DockSettingsPage.xaml.cs:395-412`），网页端只写
+ *   发生变化的那一组，避免无意义的重渲染与存储写入；
+ * - 桌面预览没有组标题（靠上/中/下三行的位置区分，`:47-229`），网页端为可访问性补了组标题；
+ * - 桌面拖动有系统的拖动浮层（drag visual），网页端用"拖动项半透明 + 落点高亮"表达反馈。
  */
 
-import { Switch } from '@fluentui/react-components'
-import type { ReactNode } from 'react'
+import { Button, Switch } from '@fluentui/react-components'
+import {
+  AddRegular,
+  ArrowDownRegular,
+  ArrowImportRegular,
+  ArrowRedoRegular,
+  ArrowUndoRegular,
+  ArrowUpRegular,
+  ChevronLeftRegular,
+  ChevronRightRegular,
+  CursorRegular,
+  DocumentRegular,
+  EditRegular,
+  EraserRegular,
+  MoreHorizontalRegular,
+  ReOrderDotsVerticalRegular,
+  SubtractRegular,
+} from '@fluentui/react-icons'
+import { useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react'
 import { useSettings, useSettingsService } from '../../app/hooks.ts'
-import { SettingsCard } from './SettingsCard.tsx'
+import { isSameOrder, moveItem, moveItemDown, moveItemUp } from '../dock-order.ts'
+import {
+  DEFAULT_LEFT_DOCK_ITEMS,
+  DEFAULT_PAGE_DOCK_ITEMS,
+  DEFAULT_SETTINGS,
+  DEFAULT_TOOL_DOCK_ITEMS,
+  DEFAULT_UNDO_REDO_DOCK_ITEMS,
+  type DockItemId,
+} from '../model.ts'
+import { SETTINGS_ANCHORS } from '../search-targets.ts'
+import { SettingsCard, SettingsSection } from './SettingsCard.tsx'
+
+/** 四组顺序在设置模型（`DockSettings`）里的字段名。 */
+type DockOrderKey = 'leftOrder' | 'toolsOrder' | 'undoRedoOrder' | 'pagesOrder'
+
+/** 一组 Dock 项的定义。 */
+interface DockGroupDefinition {
+  /** 对应 `DockSettings` 的字段。 */
+  readonly orderKey: DockOrderKey
+  /** 组标题（桌面预览无标题，网页端为可访问性补充）。 */
+  readonly title: string
+  /** 该组的全部合法项，同时是默认顺序。 */
+  readonly items: readonly DockItemId[]
+}
+
+/** 四组的分组顺序与桌面 XAML 的摆放一致：左 → 中（工具 + 撤销重做）→ 右。 */
+const DOCK_GROUPS: readonly DockGroupDefinition[] = [
+  { orderKey: 'leftOrder', title: '左侧 Dock', items: DEFAULT_LEFT_DOCK_ITEMS },
+  { orderKey: 'toolsOrder', title: '工具', items: DEFAULT_TOOL_DOCK_ITEMS },
+  { orderKey: 'undoRedoOrder', title: '撤销/重做', items: DEFAULT_UNDO_REDO_DOCK_ITEMS },
+  { orderKey: 'pagesOrder', title: '页面', items: DEFAULT_PAGE_DOCK_ITEMS },
+]
+
+/** 单项的显示信息。 */
+interface DockItemMeta {
+  /** 本地化名称（取桌面 zh-CN L10n）。 */
+  readonly label: string
+  readonly icon: ReactNode
+}
+
+/**
+ * 每项的图标：与主 Dock（`ui/shell/DockBar.tsx`）保持一致，"预览"才真的是预览。
+ *
+ * 桌面字形出处：`Features/Dock/UI/DockSettingsPage.xaml.cs:424-441`（`CreateItem` 的 switch）。
+ */
+const DOCK_ITEM_META: Record<DockItemId, DockItemMeta> = {
+  // 桌面 Symbol.More（更多）
+  more: { label: '更多', icon: <MoreHorizontalRegular fontSize={20} /> },
+  // 桌面 Symbol.BackToWindow；主 Dock 用最小化横线 `SubtractRegular`（见 DockBar.tsx:158），预览沿用主 Dock
+  minimize: { label: '最小化', icon: <SubtractRegular fontSize={20} /> },
+  // 桌面 Symbol.Download（导入）
+  import: { label: '导入', icon: <ArrowImportRegular fontSize={20} /> },
+  // 桌面 Symbol.TouchPointer；Fluent 无同名图标，主 Dock 用 CursorRegular（见 DockBar.tsx:275-278）
+  toolSelect: { label: '选择', icon: <CursorRegular fontSize={20} /> },
+  // 桌面 Symbol.Edit（书写）
+  toolPen: { label: '书写', icon: <EditRegular fontSize={20} /> },
+  // 桌面 FontIcon "\uE75C"（擦除）
+  toolEraser: { label: '擦除', icon: <EraserRegular fontSize={20} /> },
+  // 桌面 FontIcon "\uEC87"（Draw 近似，Segoe Fluent Icons 无 Shapes）
+  toolShape: { label: '形状', icon: <ShapeToolIcon /> },
+  // 桌面 Symbol.Undo（撤销）
+  undo: { label: '撤销', icon: <ArrowUndoRegular fontSize={20} /> },
+  // 桌面 Symbol.Redo（重做）
+  redo: { label: '重做', icon: <ArrowRedoRegular fontSize={20} /> },
+  // 桌面 Symbol.Back（上一页）
+  pagePrev: { label: '上一页', icon: <ChevronLeftRegular fontSize={20} /> },
+  // 桌面 FontIcon "\uE8A7"（页码）；主 Dock 该位置显示页码文本，预览用文档图标近似
+  pageIndicator: { label: '页码', icon: <DocumentRegular fontSize={20} /> },
+  // 桌面 Symbol.Forward（下一页）
+  pageNext: { label: '下一页', icon: <ChevronRightRegular fontSize={20} /> },
+  // 桌面 Symbol.Add（新增）
+  pageAdd: { label: '新增', icon: <AddRegular fontSize={20} /> },
+}
+
+/**
+ * 形状工具的自绘图标（`MainWindow.xaml:502-518` 的 `ShapeToolIconPath`）。
+ *
+ * 与 `ui/shell/DockBar.tsx` 的 `ShapeToolIcon` 是同一段 Path 数据（桌面刻意不用字体图标，
+ * 因为 Segoe Fluent Icons 里没有"形状"语义的图标）。这里没有抽公共组件，是因为本次写域
+ * 只包含设置页文件；后续如需统一，可把两者提到共享的图标模块。
+ */
+function ShapeToolIcon(): ReactNode {
+  return (
+    <svg width={20} height={20} viewBox="0 0 20 20" aria-hidden focusable="false">
+      <path
+        d="M10.5,1.5 H18.5 V9.5 H10.5 Z M1.5,14.5 A4,4 0 1 1 9.5,14.5 A4,4 0 1 1 1.5,14.5 Z"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={1.7}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  )
+}
+
+/** 拖动状态：哪一组的哪一项正被拖到哪一项上。 */
+interface DragState {
+  readonly orderKey: DockOrderKey
+  readonly id: DockItemId
+  readonly overId: DockItemId
+}
+
+/** 单组可重排列表的属性。 */
+interface DockOrderGroupProps {
+  readonly group: DockGroupDefinition
+  readonly order: readonly DockItemId[]
+  readonly drag: DragState | null
+  readonly onDragStart: (orderKey: DockOrderKey, id: DockItemId) => void
+  readonly onDragOver: (orderKey: DockOrderKey, overId: DockItemId) => void
+  readonly onDragEnd: (
+    orderKey: DockOrderKey,
+    id: DockItemId,
+    overId: DockItemId | null,
+  ) => void
+  readonly onMoveUp: (orderKey: DockOrderKey, index: number) => void
+  readonly onMoveDown: (orderKey: DockOrderKey, index: number) => void
+}
+
+/**
+ * 一组可重排的 Dock 项。
+ *
+ * 交互：
+ * - 指针（鼠标/触摸/笔）按住任意一项后拖动，落点项高亮，松手时写入新顺序；
+ *   点在「上移 / 下移」按钮上不会触发拖动（按钮自己处理点击）；
+ * - 每项可聚焦（`tabIndex=0`），键盘用户通过项内的「上移 / 下移」按钮调整顺序，
+ *   拖动中的项带 `aria-grabbed`，屏幕阅读器可感知拖动状态。
+ */
+function DockOrderGroup(props: DockOrderGroupProps): ReactNode {
+  const { group, order, drag } = props
+  const listRef = useRef<HTMLUListElement>(null)
+  const activeDrag = drag !== null && drag.orderKey === group.orderKey ? drag : null
+
+  /** 指针当前落在哪一项上（用 DOM 矩形判断，兼容换行布局）。 */
+  const resolveOverId = (clientX: number, clientY: number): DockItemId | null => {
+    const list = listRef.current
+    if (list === null) {
+      return null
+    }
+    for (const element of list.querySelectorAll<HTMLElement>('[data-dock-item-id]')) {
+      const rect = element.getBoundingClientRect()
+      const inside =
+        clientX >= rect.left && clientX <= rect.right && clientY >= rect.top && clientY <= rect.bottom
+      if (!inside) {
+        continue
+      }
+      const id = element.dataset.dockItemId
+      if (id !== undefined && (order as readonly string[]).includes(id)) {
+        return id as DockItemId
+      }
+    }
+    return null
+  }
+
+  return (
+    <div className="wb-dock-order__group">
+      <h4 className="wb-dock-order__group-title">{group.title}</h4>
+      <ul className="wb-dock-order__list" aria-label={`${group.title} 顺序`} ref={listRef}>
+        {order.map((id, index) => {
+          const meta = DOCK_ITEM_META[id]
+          const isDragging = activeDrag !== null && activeDrag.id === id
+          const isOver = activeDrag !== null && activeDrag.id !== id && activeDrag.overId === id
+          const className = [
+            'wb-dock-order__item',
+            isDragging ? 'wb-dock-order__item--dragging' : '',
+            isOver ? 'wb-dock-order__item--over' : '',
+          ]
+            .filter((part) => part !== '')
+            .join(' ')
+
+          const handlePointerDown = (event: ReactPointerEvent<HTMLLIElement>): void => {
+            // 点在项内按钮上时交给按钮自己处理，避免"上移/下移"被拖动抢走
+            if ((event.target as HTMLElement).closest('button') !== null) {
+              return
+            }
+            event.currentTarget.setPointerCapture(event.pointerId)
+            props.onDragStart(group.orderKey, id)
+          }
+
+          return (
+            <li
+              key={id}
+              className={className}
+              data-dock-item-id={id}
+              tabIndex={0}
+              aria-grabbed={isDragging}
+              aria-label={`${meta.label}，第 ${index + 1} 项，共 ${order.length} 项`}
+              onPointerDown={handlePointerDown}
+              onPointerMove={(event) => {
+                if (activeDrag === null || activeDrag.id !== id) {
+                  return
+                }
+                const overId = resolveOverId(event.clientX, event.clientY)
+                if (overId !== null) {
+                  props.onDragOver(group.orderKey, overId)
+                }
+              }}
+              onPointerUp={(event) => {
+                if (activeDrag === null || activeDrag.id !== id) {
+                  return
+                }
+                const overId = resolveOverId(event.clientX, event.clientY) ?? activeDrag.overId
+                props.onDragEnd(group.orderKey, id, overId)
+              }}
+              onPointerCancel={() => {
+                if (activeDrag === null || activeDrag.id !== id) {
+                  return
+                }
+                props.onDragEnd(group.orderKey, id, null)
+              }}
+            >
+              <span className="wb-dock-order__grip" aria-hidden>
+                <ReOrderDotsVerticalRegular fontSize={12} />
+              </span>
+              <span className="wb-dock-order__icon" aria-hidden>
+                {meta.icon}
+              </span>
+              <span className="wb-dock-order__label">{meta.label}</span>
+              <span className="wb-dock-order__moves">
+                <Button
+                  size="small"
+                  appearance="subtle"
+                  className="wb-dock-order__move"
+                  icon={<ArrowUpRegular />}
+                  aria-label={`上移 ${meta.label}`}
+                  disabled={index === 0}
+                  onClick={() => {
+                    props.onMoveUp(group.orderKey, index)
+                  }}
+                />
+                <Button
+                  size="small"
+                  appearance="subtle"
+                  className="wb-dock-order__move"
+                  icon={<ArrowDownRegular />}
+                  aria-label={`下移 ${meta.label}`}
+                  disabled={index === order.length - 1}
+                  onClick={() => {
+                    props.onMoveDown(group.orderKey, index)
+                  }}
+                />
+              </span>
+            </li>
+          )
+        })}
+      </ul>
+    </div>
+  )
+}
 
 /** Dock 设置页。 */
 export function DockPage(): ReactNode {
   const settings = useSettings()
   const settingsService = useSettingsService()
+  const [drag, setDrag] = useState<DragState | null>(null)
+
+  /** 写入某一组的顺序；内容没变就跳过，避免无意义的持久化与重渲染。 */
+  const commitOrder = (orderKey: DockOrderKey, next: readonly DockItemId[]): void => {
+    if (isSameOrder(settings.dock[orderKey], next)) {
+      return
+    }
+    switch (orderKey) {
+      case 'leftOrder':
+        settingsService.patch({ dock: { leftOrder: next } })
+        break
+      case 'toolsOrder':
+        settingsService.patch({ dock: { toolsOrder: next } })
+        break
+      case 'undoRedoOrder':
+        settingsService.patch({ dock: { undoRedoOrder: next } })
+        break
+      case 'pagesOrder':
+        settingsService.patch({ dock: { pagesOrder: next } })
+        break
+    }
+  }
+
+  const handleDragStart = (orderKey: DockOrderKey, id: DockItemId): void => {
+    setDrag({ orderKey, id, overId: id })
+  }
+
+  const handleDragOver = (orderKey: DockOrderKey, overId: DockItemId): void => {
+    setDrag((current) => {
+      if (current === null || current.orderKey !== orderKey || current.overId === overId) {
+        return current
+      }
+      return { ...current, overId }
+    })
+  }
+
+  /** 松手：按"拖动项 → 落点项"算出新顺序并落盘；`overId` 为 null 表示取消。 */
+  const handleDragEnd = (
+    orderKey: DockOrderKey,
+    id: DockItemId,
+    overId: DockItemId | null,
+  ): void => {
+    setDrag(null)
+    if (overId === null || overId === id) {
+      return
+    }
+    const order = settings.dock[orderKey]
+    const fromIndex = order.indexOf(id)
+    const toIndex = order.indexOf(overId)
+    if (fromIndex < 0 || toIndex < 0) {
+      return
+    }
+    commitOrder(orderKey, moveItem(order, fromIndex, toIndex))
+  }
+
+  const handleMoveUp = (orderKey: DockOrderKey, index: number): void => {
+    commitOrder(orderKey, moveItemUp(settings.dock[orderKey], index))
+  }
+
+  const handleMoveDown = (orderKey: DockOrderKey, index: number): void => {
+    commitOrder(orderKey, moveItemDown(settings.dock[orderKey], index))
+  }
 
   return (
     <div className="wb-settings-page">
-      <SettingsCard title="显示撤销/重做区域" description="在底部 Dock 显示撤销/重做按钮">
-        <Switch
-          checked={settings.dock.isUndoRedoVisible}
-          aria-label="显示撤销/重做区域"
-          onChange={(_, data) => {
-            settingsService.patch({ dock: { isUndoRedoVisible: data.checked } })
-          }}
-        />
-      </SettingsCard>
+      {/* 桌面 `DockSettingsPage.xaml:34-37` 的拖动提示 */}
+      <p className="wb-settings-hint">
+        长按并拖动下方按钮，可调整它们在 Dock 中的显示顺序（支持触摸拖动）。
+      </p>
 
-      <p className="wb-settings-hint">网页端暂不支持快捷 Dock（主 Dock 两侧的快捷入口）。</p>
+      <SettingsSection title="预览">
+        {DOCK_GROUPS.map((group) => (
+          <DockOrderGroup
+            key={group.orderKey}
+            group={group}
+            order={settings.dock[group.orderKey]}
+            drag={drag}
+            onDragStart={handleDragStart}
+            onDragOver={handleDragOver}
+            onDragEnd={handleDragEnd}
+            onMoveUp={handleMoveUp}
+            onMoveDown={handleMoveDown}
+          />
+        ))}
+      </SettingsSection>
+
+      <SettingsSection title="选项">
+        <SettingsCard
+          title="显示撤销/重做区域"
+          description="在底部 Dock 显示撤销/重做按钮"
+          anchor={SETTINGS_ANCHORS.dockUndoRedoVisible}
+        >
+          <Switch
+            checked={settings.dock.isUndoRedoVisible}
+            aria-label="显示撤销/重做区域"
+            onChange={(_, data) => {
+              settingsService.patch({ dock: { isUndoRedoVisible: data.checked } })
+            }}
+          />
+        </SettingsCard>
+
+        <SettingsCard
+          title="显示快捷入口 Dock（主 Dock 左右侧）"
+          description="网页端 v1 暂未渲染快捷入口，此开关只保存偏好"
+        >
+          <Switch
+            checked={settings.dock.isShortcutDocksVisible}
+            aria-label="显示快捷入口 Dock"
+            onChange={(_, data) => {
+              settingsService.patch({ dock: { isShortcutDocksVisible: data.checked } })
+            }}
+          />
+        </SettingsCard>
+
+        {/* 桌面 `DockSettingsPage.xaml:418-424`：恢复默认布局（`s.Dock = new DockSettings()`） */}
+        <SettingsCard title="恢复 Dock 默认布局" description="把四组顺序与两个显隐开关恢复为默认">
+          <Button
+            onClick={() => {
+              setDrag(null)
+              settingsService.patch({ dock: DEFAULT_SETTINGS.dock })
+            }}
+          >
+            恢复默认
+          </Button>
+        </SettingsCard>
+      </SettingsSection>
     </div>
   )
 }

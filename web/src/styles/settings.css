@@ -39,25 +39,16 @@
 }
 
 /*
- * Fluent 的 `DialogTitle` 会把 `action` 渲染成标题的**兄弟节点**
- * （`<h2 class="fui-DialogTitle">` + `<div class="fui-DialogTitle__action">`），
- * 默认靠 DialogBody 的网格把它摆到右上角；这里把 DialogBody 改成了纵向 flex，
- * 若不接管定位，关闭按钮会掉到标题下方并左对齐。
+ * 标题行由 `SettingsWindow` 自己用 flex 排（标题 + 搜索框 + 关闭按钮），所以这里
+ * 不再需要给 `DialogTitle` 的 `action` 槽位做绝对定位，也不留右侧内边距。
  */
-.wb-settings-body .fui-DialogTitle__action {
-  position: absolute;
-  top: 10px;
-  right: 12px;
-}
-
 .wb-settings-title {
   /* Fluent 的 DialogTitle 是 content-box，网格里被拉满会因左右 padding 溢出面板 */
   box-sizing: border-box;
   display: flex;
   align-items: center;
   margin: 0;
-  /* 右侧留出关闭按钮的位置 */
-  padding: 16px 56px 8px 24px;
+  padding: 0;
   font-size: 20px;
   font-weight: 600;
   line-height: 28px;
@@ -158,6 +149,23 @@
   border-radius: 8px;
 }
 
+/* 可点击卡片：桌面 `SettingsCard IsClickEnabled="True"`（整张卡片是按钮，右侧放"当前值预览"）。
+   按钮默认继承浏览器的 button 样式，这里把卡片外观与交互态补齐。 */
+.wb-settings-card--clickable {
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+}
+
+.wb-settings-card--clickable:hover {
+  background-color: var(--colorNeutralBackground1Hover, #f5f5f5);
+}
+
+.wb-settings-card--clickable:active {
+  background-color: var(--colorNeutralBackground1Pressed, #e0e0e0);
+}
+
 .wb-settings-card__text {
   display: flex;
   flex-direction: column;
@@ -223,41 +231,32 @@
   color: var(--colorPaletteRedForeground1, #c50f1f);
 }
 
-.wb-settings-hex,
 .wb-settings-version {
   font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace;
   font-size: 13px;
   color: var(--colorNeutralForeground2, #424242);
 }
 
-/* ===== 外观：预设色块 ===== */
-
-.wb-settings-color-field {
+/* 卡片右侧的"当前值预览"（桌面 `StackPanel Orientation="Horizontal" Spacing="8"`） */
+.wb-settings-value {
   display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 6px;
-}
-
-.wb-settings-swatches {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-end;
+  align-items: center;
   gap: 8px;
 }
 
-.wb-settings-swatch {
-  width: 24px;
-  height: 24px;
-  padding: 0;
+/* 桌面 `AppearanceSettingsPage.xaml:70-77`：色块 20×20、圆角 4、描边 1 */
+.wb-settings-color-preview {
+  width: 20px;
+  height: 20px;
   border: 1px solid var(--colorNeutralStroke1, #d1d1d1);
-  border-radius: 50%;
-  cursor: pointer;
+  border-radius: 4px;
+  flex: 0 0 auto;
 }
 
-.wb-settings-swatch[aria-pressed='true'] {
-  outline: 2px solid var(--colorBrandBackground, #0f6cbd);
-  outline-offset: 2px;
+/* 桌面预览文本 `Opacity="0.75"` */
+.wb-settings-value__text {
+  color: var(--colorNeutralForeground2, #424242);
+  opacity: 0.75;
 }
 
 /* ===== 书写：色板 ===== */
@@ -422,4 +421,93 @@
   .wb-settings-nav__item[aria-current='page']::before {
     display: none;
   }
+}
+
+/* ===== Dock 顺序编辑器（设置 → Dock，桌面 `DockSettingsPage.xaml:30-229`） ===== */
+
+.wb-dock-order__group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.wb-dock-order__group-title {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--colorNeutralForeground2, #424242);
+}
+
+/* 桌面预览是一行横向排列的按钮（`ItemsStackPanel Orientation="Horizontal"`），窄屏允许换行 */
+.wb-dock-order__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* 尺寸对齐桌面预览项：MinWidth 60 / MinHeight 52 / CornerRadius 10（`DockPreviewItemBorderStyle`） */
+.wb-dock-order__item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  box-sizing: border-box;
+  min-width: 60px;
+  min-height: 52px;
+  padding: 6px 8px;
+  border: 1px solid var(--colorNeutralStroke2, #e0e0e0);
+  border-radius: 10px;
+  background: var(--colorNeutralBackground1, #ffffff);
+  color: var(--colorNeutralForeground1, #242424);
+  cursor: grab;
+  user-select: none;
+  /* 拖动期间不允许浏览器接管滚动/缩放手势（Pointer Events 需要独占指针） */
+  touch-action: none;
+}
+
+.wb-dock-order__item:focus-visible {
+  outline: 2px solid var(--colorStrokeFocus2, #000000);
+  outline-offset: 1px;
+}
+
+.wb-dock-order__item--dragging {
+  opacity: 0.55;
+  border-style: dashed;
+  cursor: grabbing;
+}
+
+/* 落点高亮：拖动时指针下方的那一项 */
+.wb-dock-order__item--over {
+  outline: 2px dashed var(--colorBrandStroke1, #0f6cbd);
+  outline-offset: 1px;
+}
+
+.wb-dock-order__grip {
+  display: inline-flex;
+  color: var(--colorNeutralForeground4, #707070);
+}
+
+.wb-dock-order__icon {
+  display: inline-flex;
+  align-items: center;
+}
+
+.wb-dock-order__label {
+  font-size: 11px;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.wb-dock-order__moves {
+  display: inline-flex;
+  gap: 2px;
+  margin-left: 2px;
+}
+
+.wb-dock-order__move {
+  min-width: 20px;
+  height: 20px;
+  padding: 0 2px;
 }
