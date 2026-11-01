@@ -79,7 +79,7 @@ import {
   type ToolKind,
   type TouchManipulationTarget,
 } from '../interaction/pointer-router.ts'
-import { matchShortcut, type KeyboardLike, type ShortcutBindings, type ShortcutId } from '../interaction/shortcuts.ts'
+import { matchSelectionShortcut, matchShortcut, type KeyboardLike, type ShortcutBindings, type SelectionShortcutId, type ShortcutId } from '../interaction/shortcuts.ts'
 import type { RenderCanvas } from '../render/canvas-types.ts'
 import {
   createBoardRenderHandle,
@@ -1310,7 +1310,38 @@ export function createBoardController(options: BoardControllerOptions): BoardCon
     if (matched === 'redo') {
       return redo()
     }
-    return false
+
+    // 网页端新增的选择快捷键（桌面没有这条路，见 `interaction/shortcuts.ts` 的说明）：
+    // 先让用户自定义的撤销/重做优先，再处理这三个键——避免把用户改绑到 Delete 的槽位抢走。
+    const selectionAction = matchSelectionShortcut(event, {
+      isTextInputFocused: options.isTextInputFocused,
+    })
+    if (selectionAction === null) {
+      return false
+    }
+    return applySelectionShortcut(selectionAction)
+  }
+
+  /**
+   * 执行选择快捷键。
+   *
+   * 只在选择工具下生效：其它工具里 `Ctrl+A`/`Delete` 没有可操作的选中集，误触反而会
+   * 在画线途中删掉东西。`Escape` 额外承担"取消进行中的框选"，与桌面
+   * `CancelMarqueeSelectionGesture` 的效果一致。
+   */
+  function applySelectionShortcut(action: SelectionShortcutId): boolean {
+    if (action === 'clearSelection') {
+      if (mode === 'selection-marquee') {
+        cancelSelectionGesture()
+        return true
+      }
+      // 其它工具下的 Esc 不清选中（桌面本来也没有该键，不做额外联想）。
+      return tool === 'select' ? controller.clearSelection() : false
+    }
+    if (tool !== 'select') {
+      return false
+    }
+    return action === 'selectAll' ? controller.selectAll() : controller.deleteSelection()
   }
 
   function undo(): boolean {
@@ -1361,7 +1392,7 @@ export function createBoardController(options: BoardControllerOptions): BoardCon
   renderHandle.requestRender()
   snapshot = buildSnapshot()
 
-  return {
+  const controller: BoardController = {
     viewport,
     workspace,
     getDocument: () => workspace.currentPage.session.document,
@@ -1621,6 +1652,8 @@ export function createBoardController(options: BoardControllerOptions): BoardCon
       listeners.clear()
     },
   }
+
+  return controller
 }
 
 /** 整笔擦除策略：命中即整条移除（桌面 `WholeStrokeEraser.cs:12-28`）。 */

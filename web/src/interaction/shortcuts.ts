@@ -300,6 +300,49 @@ export function matchShortcut(
   return matched
 }
 
+/**
+ * 网页端新增的选择快捷键（**桌面没有对应键盘路径**）。
+ *
+ * 桌面把选择相关的操作全放在了画布浮层按钮上（`BoardCanvasControl.xaml:118-168` 的
+ * 置顶/复制/删除三个 `Button`），全仓库没有任何 `Ctrl+A` / `Escape` / `Delete` 的键盘路径
+ * （P2 期间 grep `VirtualKey`/`KeyboardAccelerator` 已确认）。网页端按用户预期补上这三个键，
+ * 属于**浏览器增强**，不是桌面行为的复刻——两端的差异记录在 `implement.md` 的 P2 记录里。
+ *
+ * 约束（保持"不抢浏览器/不误触"）：
+ * - 只在选择工具下生效（控制器侧判定），且焦点在文本输入框时一律不处理；
+ * - `Ctrl+A` 只接受 Ctrl（不带 Alt/Shift/Meta），`Escape`/`Delete`/`Backspace` 不接受任何修饰键；
+ * - `Backspace` 与 `Delete` 等价（两者都是"删除"，`Backspace` 需要调用方 `preventDefault`
+ *   以免触发浏览器的"后退"）。
+ */
+export type SelectionShortcutId = 'selectAll' | 'clearSelection' | 'deleteSelection'
+
+/** 匹配网页端新增的选择快捷键；不匹配时返回 null。 */
+export function matchSelectionShortcut(
+  event: KeyboardLike,
+  options: ShortcutMatchOptions = {},
+): SelectionShortcutId | null {
+  if (event.metaKey || event.altKey) {
+    return null
+  }
+
+  // 文本输入框里的一切按键都交还给输入框（与撤销/重做同一规则）。
+  if (options.isTextInputFocused?.() === true) {
+    return null
+  }
+
+  const key = event.key
+  if (key === 'Escape') {
+    return event.shiftKey || event.ctrlKey ? null : 'clearSelection'
+  }
+  if (key === 'Delete' || key === 'Backspace') {
+    return event.shiftKey || event.ctrlKey ? null : 'deleteSelection'
+  }
+  if ((key === 'a' || key === 'A') && event.ctrlKey && !event.shiftKey) {
+    return 'selectAll'
+  }
+  return null
+}
+
 /** 按槽位顺序查找第一个命中的合法绑定。 */
 function findBinding(bindings: ShortcutBindings, pressed: ParsedKeyboardEvent): ShortcutId | null {
   const seen = new Set<string>()
