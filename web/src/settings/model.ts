@@ -14,7 +14,7 @@
  * 保留的字段即使当前 UI 未暴露，也按桌面默认值落盘，避免将来加回时出现"字段消失"。
  */
 
-import { canonicalShortcutBinding } from '../interaction/shortcuts.ts'
+import { canonicalShortcutBinding, isValidShortcutBinding } from '../interaction/shortcuts.ts'
 
 /** 语言偏好：`system` 表示跟随系统（桌面 `AppLanguagePreference`）。 */
 export type LanguagePreference = 'system' | 'zh-CN' | 'en-US'
@@ -293,6 +293,12 @@ function normalizeShortcutBinding(value: unknown, fallback: string): string {
   }
   if (value.trim() === '') {
     return ''
+  }
+  // 桌面 `KeyboardShortcutGesture.IsValidForApp`（`:125-134`）要求必须含 Ctrl 或 Alt，
+  // 只做 `canonicalShortcutBinding` 会把 `Shift+Z` / `A` 这类"可解析但不可用"的值留下，
+  // 与桌面读设置文件的行为不一致。
+  if (!isValidShortcutBinding(value)) {
+    return fallback
   }
   return canonicalShortcutBinding(value) ?? fallback
 }

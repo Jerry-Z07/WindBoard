@@ -14,7 +14,7 @@
 | 右上浮层 | InfoBar 提醒栈，**≤3 个**，自动关闭 6/8/10s | `:43-49` |
 | 底部浮层 | margin 14，**强制浅色主题**，含 左Dock / ◀快捷Dock / 主Dock / 快捷Dock▶ / 页面Dock | `:54-70` |
 
-- 全屏时隐藏标题栏（`UI/MainWindow/WindowMode.cs:85-92`）。
+- 全屏时隐藏标题栏（`UI/MainWindow/MainWindow.WindowMode.cs:83-95`，`:91-93` 判定 Collapsed/Visible）。
 - **无状态栏、无缩放读数、无系统托盘图标。**
 
 ## 2. Dock

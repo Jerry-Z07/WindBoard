@@ -1,5 +1,398 @@
 /**
- * 设置窗口样式（P3.5 由 settings-ui 负责填充）。
+ * 设置窗口样式（P3.5）。
  *
- * 优先使用 Fluent UI v9 组件自带的样式，只在需要贴近 WinUI SettingsCard 观感时才有规则。
+ * 目标：用 Fluent UI v9 组件 + 少量布局规则贴近桌面 WinUI 观感
+ * （桌面是独立 `SettingsWindow` + `NavigationView` + `SettingsCard`，
+ * 见 `WindBoard/Settings/SettingsWindow.xaml` 与 `WindBoard/Settings/Pages/*.xaml`）。
+ * 颜色一律取 FluentProvider 注入的 token，避免在深浅色主题下写死颜色。
  */
+
+/* ===== 窗口骨架 ===== */
+
+/* 桌面窗口 900 × 640 量级；视口不足时收缩，避免小屏溢出 */
+.wb-settings-surface {
+  width: min(900px, calc(100vw - 48px));
+  height: min(640px, calc(100vh - 48px));
+  max-width: none;
+}
+
+.wb-settings-body {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  gap: 0;
+  padding: 0;
+}
+
+.wb-settings-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0;
+  padding: 16px 12px 8px 24px;
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 28px;
+}
+
+.wb-settings-layout {
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+/* ===== 左侧导航（桌面 NavigationView） ===== */
+
+.wb-settings-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 0 0 180px;
+  padding: 4px 8px 12px;
+  overflow-y: auto;
+  border-right: 1px solid var(--colorNeutralStroke2, #e0e0e0);
+}
+
+.wb-settings-nav__item {
+  position: relative;
+  justify-content: flex-start;
+  width: 100%;
+  min-height: 40px;
+  font-weight: 400;
+}
+
+.wb-settings-nav__item[aria-current='page'] {
+  background-color: var(--colorNeutralBackground1Selected, #ebebeb);
+  font-weight: 600;
+}
+
+/* WinUI NavigationView 的选中指示条 */
+.wb-settings-nav__item[aria-current='page']::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 25%;
+  bottom: 25%;
+  width: 3px;
+  border-radius: 2px;
+  background-color: var(--colorBrandBackground, #0f6cbd);
+}
+
+/* ===== 右侧内容 ===== */
+
+.wb-settings-content {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+}
+
+.wb-settings-page-header {
+  padding: 8px 24px 0;
+}
+
+.wb-settings-page-header__title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 24px;
+}
+
+.wb-settings-page-header__description {
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: var(--colorNeutralForeground3, #616161);
+}
+
+.wb-settings-page-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 12px 24px 24px;
+}
+
+.wb-settings-page {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* ===== 设置卡片（对应 WinUI SettingsCard） ===== */
+
+.wb-settings-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 16px;
+  background-color: var(--colorNeutralBackground1, #ffffff);
+  border: 1px solid var(--colorNeutralStroke2, #e0e0e0);
+  border-radius: 8px;
+}
+
+.wb-settings-card__text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.wb-settings-card__title {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
+}
+
+.wb-settings-card__description {
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--colorNeutralForeground3, #616161);
+}
+
+.wb-settings-card__control {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  flex: 0 0 auto;
+}
+
+/* ===== 分组标题 ===== */
+
+.wb-settings-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.wb-settings-section__title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 22px;
+}
+
+.wb-settings-section__body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* ===== 通用文本 ===== */
+
+.wb-settings-hint {
+  margin: 4px 0 0;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--colorNeutralForeground3, #616161);
+}
+
+.wb-settings-error {
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--colorPaletteRedForeground1, #c50f1f);
+}
+
+.wb-settings-hex,
+.wb-settings-version {
+  font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  font-size: 13px;
+  color: var(--colorNeutralForeground2, #424242);
+}
+
+/* ===== 外观：预设色块 ===== */
+
+.wb-settings-color-field {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+.wb-settings-swatches {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.wb-settings-swatch {
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 1px solid var(--colorNeutralStroke1, #d1d1d1);
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.wb-settings-swatch[aria-pressed='true'] {
+  outline: 2px solid var(--colorBrandBackground, #0f6cbd);
+  outline-offset: 2px;
+}
+
+/* ===== 书写：色板 ===== */
+
+.wb-settings-palette-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.wb-settings-palette {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 12px 16px;
+  background-color: var(--colorNeutralBackground2, #fafafa);
+  border: 1px solid var(--colorNeutralStroke2, #e0e0e0);
+  border-radius: 8px;
+}
+
+.wb-settings-palette__slot {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  width: 56px;
+}
+
+.wb-settings-palette__swatch {
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--colorNeutralStroke1, #d1d1d1);
+  border-radius: 50%;
+  /* 空色块（未设置颜色）用斜线底纹表示 */
+  background-image: linear-gradient(
+    45deg,
+    transparent 45%,
+    var(--colorNeutralStroke2, #e0e0e0) 45%,
+    var(--colorNeutralStroke2, #e0e0e0) 55%,
+    transparent 55%
+  );
+}
+
+/* 原生取色器覆盖在色块上，视觉上"点色块即改色" */
+.wb-settings-palette__picker {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 0;
+  transform: translateX(-50%);
+  opacity: 0;
+  cursor: pointer;
+}
+
+.wb-settings-palette__hex {
+  font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  font-size: 10px;
+  color: var(--colorNeutralForeground3, #616161);
+}
+
+.wb-settings-palette__clear {
+  position: absolute;
+  top: -4px;
+  right: 2px;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  font-size: 12px;
+  line-height: 14px;
+  color: var(--colorNeutralForeground2, #424242);
+  background-color: var(--colorNeutralBackground1, #ffffff);
+  border: 1px solid var(--colorNeutralStroke2, #e0e0e0);
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+/* ===== 书写：三档粗细 ===== */
+
+.wb-settings-thickness {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.wb-settings-thickness__item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 132px;
+}
+
+.wb-settings-thickness__label {
+  font-size: 12px;
+  color: var(--colorNeutralForeground3, #616161);
+}
+
+/* ===== 快捷键 ===== */
+
+.wb-settings-shortcut {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.wb-settings-gesture-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.wb-settings-gesture-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 8px 16px;
+  font-size: 13px;
+  border: 1px solid var(--colorNeutralStroke2, #e0e0e0);
+  border-radius: 8px;
+}
+
+.wb-settings-gesture-list code {
+  font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  font-size: 12px;
+  color: var(--colorNeutralForeground3, #616161);
+}
+
+/* ===== 关于：重置确认 ===== */
+
+.wb-settings-confirm {
+  width: min(420px, calc(100vw - 48px));
+}
+
+/* ===== 窄屏：导航改为顶部横向（对应桌面 NavigationView 的 Top 模式） ===== */
+
+@media (max-width: 720px) {
+  .wb-settings-layout {
+    flex-direction: column;
+  }
+
+  .wb-settings-nav {
+    flex: 0 0 auto;
+    flex-direction: row;
+    gap: 4px;
+    padding: 0 12px 8px;
+    overflow-x: auto;
+    border-right: 0;
+    border-bottom: 1px solid var(--colorNeutralStroke2, #e0e0e0);
+  }
+
+  .wb-settings-nav__item {
+    width: auto;
+    white-space: nowrap;
+  }
+
+  .wb-settings-nav__item[aria-current='page']::before {
+    display: none;
+  }
+}

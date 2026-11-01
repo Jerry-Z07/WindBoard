@@ -1,3 +1,98 @@
 /**
- * 对话框样式（P3.6 由 dialogs 负责填充）。
+ * 对话框样式（P3.6：导出 / 导入 / 通用确认）。
+ *
+ * 约定：
+ * - 颜色一律用 Fluent 主题令牌（`--colorNeutral*` / `--colorPaletteRed*`），由 `FluentProvider`
+ *   按系统深浅色注入，因此对话框自动跟随 App 主题，这里**不写死浅色**；
+ * - 尺寸沿用 `tokens.css` 的 `--wb-*` 语义；对话框自身的量在 `.wb-dialog` 上用局部自定义属性声明；
+ * - 与 Fluent 原子类会"抢"的属性（宽度 / 最大宽度）用双类选择器提高优先级，避免依赖样式注入顺序。
  */
+
+.wb-dialog.wb-dialog {
+  /* 桌面用默认 ContentDialog（WinUI 默认最大宽度 548 DIP）；导出表单字段较多，取 440 更紧凑 */
+  --wb-dialog-width: 440px;
+  /* 桌面字段容器 `StackPanel Spacing="10"`（`ExportDialog.cs:142`） */
+  --wb-dialog-gap: 10px;
+  width: min(var(--wb-dialog-width), calc(100vw - 48px));
+  max-width: none;
+}
+
+/* 确认框更窄（只有标题 + 一段正文）；导入框要放下警告与文件名 */
+.wb-dialog.wb-dialog--confirm {
+  --wb-dialog-width: 380px;
+}
+
+.wb-dialog.wb-dialog--import {
+  --wb-dialog-width: 480px;
+}
+
+/* ===== 表单布局 ===== */
+.wb-dialog__form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--wb-dialog-gap);
+}
+
+/* 起止页两个数字输入并排 */
+.wb-dialog__range {
+  display: flex;
+  gap: var(--wb-dialog-gap);
+}
+
+.wb-dialog__range > * {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+/* ===== 文本 ===== */
+/* 提示行（导出页数 / 多页子目录 / WBIX 说明） */
+.wb-dialog__hint {
+  color: var(--colorNeutralForeground3);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+/* 默认文件名：等宽显示，便于与桌面 "WindBoard-2026-11-01-1530.png" 逐字符比对 */
+.wb-dialog__filename {
+  font-family: ui-monospace, "Cascadia Mono", "Consolas", monospace;
+  font-size: 12px;
+  color: var(--colorNeutralForeground2);
+  overflow-wrap: anywhere;
+}
+
+/* ===== 导入 ===== */
+/* 原生 file input 隐藏，由"选择 WBIX/WBI 文件…"按钮触发；保留在 DOM 中，键盘与辅助技术仍可访问 */
+.wb-dialog__file-input {
+  display: none;
+}
+
+.wb-dialog__file-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.wb-dialog__file-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  color: var(--colorNeutralForeground3);
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ===== 确认框 ===== */
+.wb-dialog__confirm-content {
+  color: var(--colorNeutralForeground2);
+  line-height: 1.5;
+  /* 桌面风险提示是多段文本（`Import.resw` 的 `Import_Risk_*` 带空行），保留换行 */
+  white-space: pre-line;
+}
+
+/* ===== 占位（尚未实现的对话框仍在用，例如 `SettingsWindow`） ===== */
+.wb-dialog-placeholder {
+  padding: 16px;
+  color: var(--colorNeutralForeground3);
+}

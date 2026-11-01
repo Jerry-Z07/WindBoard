@@ -1,0 +1,177 @@
+/**
+ * 设置 → 书写（桌面 `WindBoard/Settings/Pages/WritingSettingsPage.xaml` 只是入口，
+ * 实际编辑在 `PenSettingsPage.xaml`）。
+ *
+ * 字段对齐 `writing.pen`：
+ * - `paletteHexes`：色板，桌面 3~24 槽（`PenSettingsDefaults.MinPaletteCount/MaxPaletteCount`），
+ *   增删槽位时新增项为 `null`（空色块），删除从末位开始（`PenSettingsPage.xaml.cs:233-268`）；
+ * - `thicknessPresets`：三档粗细，范围 0.5~64（`:330-353`）；
+ * - `useThicknessSlider`：滑条/三档二选一（`:188-197`）。
+ */
+
+import { Button, SpinButton, Switch } from '@fluentui/react-components'
+import { Add24Regular, Delete24Regular } from '@fluentui/react-icons'
+import type { ReactNode } from 'react'
+import { useSettings, useSettingsService } from '../../app/hooks.ts'
+import { MAX_THICKNESS, MIN_THICKNESS } from '../model.ts'
+import { SettingsCard, SettingsSection } from './SettingsCard.tsx'
+
+/** 色板槽位上下限（桌面 `PenSettingsDefaults.MinPaletteCount/MaxPaletteCount`）。 */
+const MIN_PALETTE_SLOTS = 3
+const MAX_PALETTE_SLOTS = 24
+
+/** 三档粗细的标签（桌面 `Settings_Pen_ThicknessPreset1..3_Header`）。 */
+const THICKNESS_PRESET_LABELS: readonly string[] = ['档位 1（细）', '档位 2（中）', '档位 3（粗）']
+
+/** 替换三档中的某一档（保持元组类型，避免索引赋值）。 */
+function withThicknessPreset(
+  presets: readonly [number, number, number],
+  index: number,
+  value: number,
+): [number, number, number] {
+  return [
+    index === 0 ? value : presets[0],
+    index === 1 ? value : presets[1],
+    index === 2 ? value : presets[2],
+  ]
+}
+
+/** 书写页。 */
+export function WritingPage(): ReactNode {
+  const settings = useSettings()
+  const settingsService = useSettingsService()
+  const pen = settings.writing.pen
+  const palette = pen.paletteHexes
+
+  /** 追加一个空色块（桌面 `OnPaletteCountValueChanged` 的新增分支）。 */
+  const addSlot = (): void => {
+    if (palette.length >= MAX_PALETTE_SLOTS) {
+      return
+    }
+    settingsService.patch({ writing: { pen: { paletteHexes: [...palette, null] } } })
+  }
+
+  /** 删除末位色块（桌面从末尾 `RemoveRange`）。 */
+  const removeSlot = (): void => {
+    if (palette.length <= MIN_PALETTE_SLOTS) {
+      return
+    }
+    settingsService.patch({ writing: { pen: { paletteHexes: palette.slice(0, -1) } } })
+  }
+
+  /** 设置某个槽位的颜色；`null` 表示空色块。 */
+  const setSlotColor = (index: number, hex: string | null): void => {
+    const next = [...palette]
+    next[index] = hex
+    settingsService.patch({ writing: { pen: { paletteHexes: next } } })
+  }
+
+  return (
+    <div className="wb-settings-page">
+      <SettingsCard
+        title="颜色数量"
+        description={`色板槽位 ${MIN_PALETTE_SLOTS}~${MAX_PALETTE_SLOTS} 个；可保留空色块（未设置颜色），点击色块即可设置颜色`}
+      >
+        <div className="wb-settings-palette-actions">
+          <Button
+            icon={<Add24Regular />}
+            onClick={addSlot}
+            disabled={palette.length >= MAX_PALETTE_SLOTS}
+          >
+            添加色块
+          </Button>
+          <Button
+            icon={<Delete24Regular />}
+            onClick={removeSlot}
+            disabled={palette.length <= MIN_PALETTE_SLOTS}
+          >
+            删除末位
+          </Button>
+        </div>
+      </SettingsCard>
+
+      <div className="wb-settings-palette" role="group" aria-label="画笔色板">
+        {palette.map((hex, index) => (
+          <div key={index} className="wb-settings-palette__slot" title={hex ?? '空色块'}>
+            <span
+              className="wb-settings-palette__swatch"
+              style={{ backgroundColor: hex ?? 'transparent' }}
+              aria-hidden
+            />
+            <input
+              type="color"
+              className="wb-settings-palette__picker"
+              value={hex ?? '#FFFFFF'}
+              aria-label={`色板第 ${index + 1} 个颜色`}
+              onChange={(event) => {
+                setSlotColor(index, event.target.value)
+              }}
+            />
+            <span className="wb-settings-palette__hex">{hex ?? '空'}</span>
+            {hex !== null && (
+              <button
+                type="button"
+                className="wb-settings-palette__clear"
+                aria-label={`清空第 ${index + 1} 个色块`}
+                onClick={() => {
+                  setSlotColor(index, null)
+                }}
+              >
+                ×
+              </button>
+            )}
+          </div>
+        ))}
+      </div>
+
+      <SettingsCard title="通过滑条调整粗细">
+        <Switch
+          checked={pen.useThicknessSlider}
+          label={pen.useThicknessSlider ? '滑条' : '三档'}
+          onChange={(_, data) => {
+            settingsService.patch({ writing: { pen: { useThicknessSlider: data.checked } } })
+          }}
+        />
+      </SettingsCard>
+
+      {pen.useThicknessSlider ? (
+        <p className="wb-settings-hint">
+          滑条模式：画笔粗细在 {MIN_THICKNESS}~{MAX_THICKNESS} 之间连续调整。
+        </p>
+      ) : (
+        <SettingsSection title="三档粗细默认值（细 / 中 / 粗）">
+          <div className="wb-settings-thickness">
+            {THICKNESS_PRESET_LABELS.map((label, index) => (
+              <label key={label} className="wb-settings-thickness__item">
+                <span className="wb-settings-thickness__label">{label}</span>
+                <SpinButton
+                  aria-label={label}
+                  value={pen.thicknessPresets[index]}
+                  min={MIN_THICKNESS}
+                  max={MAX_THICKNESS}
+                  step={0.5}
+                  onChange={(_, data) => {
+                    if (data.value === undefined || data.value === null) {
+                      return
+                    }
+                    settingsService.patch({
+                      writing: {
+                        pen: {
+                          thicknessPresets: withThicknessPreset(
+                            pen.thicknessPresets,
+                            index,
+                            data.value,
+                          ),
+                        },
+                      },
+                    })
+                  }}
+                />
+              </label>
+            ))}
+          </div>
+        </SettingsSection>
+      )}
+    </div>
+  )
+}

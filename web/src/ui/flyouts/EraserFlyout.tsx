@@ -1,20 +1,148 @@
 /**
- * 橡皮（像素/整笔 + 滑动清屏）面板内容（占位，P3.3 由 dock-ui 实现）。
+ * 橡皮（像素/整笔 + 滑动清屏）面板内容。
  *
- * 这里只渲染**面板内容**，定位与开合由 `DockBar` 的 Fluent `Popover` 负责，
- * 因此本组件不需要关心锚点元素。
+ * 桌面出处：`WindBoard/MainWindow.xaml:332-429`（`EraserFlyout`）。
+ * - 外层 `StackPanel Width="232" Spacing="10"`（`:338`）
+ * - 擦除模式卡：圆角 14 + 1px 描边；标题 12 号、不透明度 0.85；两个 `RadioButton` 横向间距 16
+ *   （`:338-382`）
+ * - 滑动清屏条：`232 × 52`、圆角 14、文字 15 号 SemiBold；把手 44×44、圆角 22、左边距 6、
+ *   底色 `#F2F2F2`、图标 16 号 `#6B6B6B`（`:386-429`）
+ * - 拖拽阈值：拖到最大位移的 90% 才清屏，松手回弹（`UI/Common/ClearCanvasSlideController.cs:12-14,190-196`）
+ * - 空页时整条置灰不可拖（`ClearCanvasSlideController.UpdateEnabledState`）
+ *
+ * 浏览器与桌面的差异：桌面用指针捕获 + `TranslateTransform` 做拖动；网页端用 Pointer Events +
+ * 同样的阈值判定，位移用 CSS `transform` 表达。
  */
 
-import type { ReactNode } from 'react'
+import type { PointerEvent as ReactPointerEvent, ReactNode } from 'react'
+import { useRef, useState } from 'react'
+import { Radio, RadioGroup } from '@fluentui/react-components'
+import { DeleteRegular } from '@fluentui/react-icons'
+import { useBoardController, useBoardSnapshot } from '../../app/hooks.ts'
+import type { EraserMode } from '../../tools/tool-settings.ts'
+import { clearSlideProgress, clearSlideThumbMaxOffset, isClearSlideComplete } from '../shell/dock-layout.ts'
 
 /** 属性。 */
 export interface EraserFlyoutProps {
-  /** 关闭面板（由 DockBar 传入）。 */
+  /** 关闭面板（清屏完成后自动收起，与桌面一致）。 */
   readonly onClose: () => void
 }
 
-/** 面板内容（占位）。 */
+/** 滑动条底板尺寸（`MainWindow.xaml:386`）。 */
+const SLIDE_HOST_WIDTH = 232
+/** 把手尺寸（`MainWindow.xaml:404-405`）。 */
+const THUMB_SIZE = 44
+
+/** 一次拖动过程中的起点信息。 */
+interface DragState {
+  readonly pointerId: number
+  readonly startX: number
+  readonly startOffset: number
+}
+
+/** 面板内容。 */
 export function EraserFlyout(props: EraserFlyoutProps): ReactNode {
-  void props.onClose
-  return <div className="wb-flyout-surface">TODO: EraserFlyout</div>
+  const controller = useBoardController()
+  const snapshot = useBoardSnapshot()
+  const [offset, setOffset] = useState(0)
+  // 渲染期不能读 ref（oxlint `react/refs`），因此按下时把"最大位移"同步进 state，
+  // 仅用于 `aria-valuenow`；拖拽过程中的边界仍由 `maxOffset()` 实时计算。
+  const [maxOffsetPx, setMaxOffsetPx] = useState(0)
+  const hostRef = useRef<HTMLDivElement | null>(null)
+  const dragRef = useRef<DragState | null>(null)
+
+  // 空页没有可清的内容，整条置灰（`ClearCanvasSlideController.UpdateEnabledState`）
+  const canClear = snapshot.itemCount > 0
+
+  const maxOffset = (): number => {
+    const width = hostRef.current?.clientWidth ?? SLIDE_HOST_WIDTH
+    return clearSlideThumbMaxOffset(width, THUMB_SIZE)
+  }
+
+  const reset = (): void => {
+    dragRef.current = null
+    setOffset(0)
+  }
+
+  const onPointerDown = (event: ReactPointerEvent<HTMLDivElement>): void => {
+    if (!canClear || dragRef.current !== null) {
+      return
+    }
+    dragRef.current = { pointerId: event.pointerId, startX: event.clientX, startOffset: offset }
+    setMaxOffsetPx(maxOffset())
+    event.currentTarget.setPointerCapture(event.pointerId)
+  }
+
+  const onPointerMove = (event: ReactPointerEvent<HTMLDivElement>): void => {
+    const drag = dragRef.current
+    if (drag === null || drag.pointerId !== event.pointerId) {
+      return
+    }
+    const next = drag.startOffset + (event.clientX - drag.startX)
+    setOffset(Math.min(Math.max(next, 0), maxOffset()))
+  }
+
+  const onPointerUp = (event: ReactPointerEvent<HTMLDivElement>): void => {
+    const drag = dragRef.current
+    if (drag === null || drag.pointerId !== event.pointerId) {
+      return
+    }
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId)
+    }
+    const reached = isClearSlideComplete(offset, maxOffset())
+    reset()
+    if (reached) {
+      controller.clearPage()
+      props.onClose()
+    }
+  }
+
+  const onPointerCancel = (): void => {
+    reset()
+  }
+
+  return (
+    <div className="wb-flyout wb-flyout--eraser">
+      <div className="wb-flyout__card">
+        <div className="wb-flyout__label">擦除模式</div>
+        <RadioGroup
+          layout="horizontal"
+          value={snapshot.eraserMode}
+          onChange={(_event, data) => {
+            controller.setEraserMode(data.value as EraserMode)
+          }}
+        >
+          <Radio value="pixel" label="点擦" />
+          <Radio value="stroke" label="笔划擦" />
+        </RadioGroup>
+      </div>
+
+      <div
+        ref={hostRef}
+        className="wb-slide"
+        data-disabled={canClear ? undefined : 'true'}
+        style={{ width: SLIDE_HOST_WIDTH }}
+      >
+        <span className="wb-slide__text">滑动清屏</span>
+        <div
+          className="wb-slide__thumb"
+          role="slider"
+          tabIndex={canClear ? 0 : -1}
+          aria-label="滑动清屏"
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-valuenow={Math.round(clearSlideProgress(offset, maxOffsetPx) * 100)}
+          aria-disabled={!canClear}
+          style={{ transform: `translateX(${offset}px)` }}
+          onPointerDown={onPointerDown}
+          onPointerMove={onPointerMove}
+          onPointerUp={onPointerUp}
+          onPointerCancel={onPointerCancel}
+        >
+          <DeleteRegular fontSize={16} />
+        </div>
+      </div>
+    </div>
+  )
 }

@@ -1,5 +1,104 @@
 /**
- * 标题栏与提醒栈样式（P3.1/P3.4 由 window-chrome 负责填充）。
+ * 标题栏与提醒栈样式（P3.1 / P3.4）。
  *
- * 布局骨架在 `shell.css`（`.wb-titlebar` / `.wb-reminder-stack`）；这里放视觉细节。
+ * 布局骨架在 `shell.css`（`.wb-titlebar` / `.wb-reminder-stack`），这里只放视觉细节。
+ *
+ * 颜色来源约定：**提醒卡片的严重级配色由组件用 Fluent `tokens` 注入**（内联
+ * `background` / `color`），本文件只负责盒模型、字号与交互态——避免同一颜色出现两处来源。
+ * 中性色（字号/字重/焦点描边）用 `FluentProvider` 注入的 CSS 变量（等价于 `tokens.*`），
+ * 也不硬编码 hex。
+ *
+ * 尺寸来源：
+ * - 标题栏高 32 / 内边距 16 / 图标 16×16 / 标题 12 号 / 1px 分隔线：`tokens.css` 与
+ *   `shell.css` 已实现（桌面 `MainWindow.xaml:19-37` + WinUI `TitleBar` 默认度量）；
+ * - 提醒栈外边距 14 / 条目间距 10 / 最大宽 420：`tokens.css`（桌面 `MainWindow.xaml:43-49`）；
+ * - 卡片内部度量（内边距 12×14、图标 20、关闭按钮 24、圆角 4）：桌面用的是 WinUI 内置
+ *   `InfoBar`，其模板不在本仓库，这里按 WinUI 默认外观取近似值（圆角 4 即
+ *   `ControlCornerRadius` 默认值），目标是观感一致而非逐像素还原。
  */
+
+/* ===== 标题栏（P3.1） ===== */
+
+/* 窗口很窄时标题优先省略，图标与内边距保持不变（桌面标题栏同样不换行） */
+.wb-titlebar {
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.wb-titlebar__title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ===== 提醒栈卡片（P3.4，自绘 InfoBar） ===== */
+
+.wb-reminder {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 4px;
+  /* 1px 描边用 currentColor 混合：自动跟随严重级的文字色，深浅主题都不需要额外颜色来源 */
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, currentColor 22%, transparent);
+  font-size: var(--fontSizeBase300);
+  line-height: var(--lineHeightBase300);
+}
+
+/* 严重级图标：Fluent 图标是 1em 方块，字号即图标尺寸 */
+.wb-reminder__icon {
+  display: flex;
+  flex: 0 0 auto;
+  font-size: 20px;
+  line-height: 1;
+}
+
+.wb-reminder__content {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 2px;
+  /* 允许收缩，否则长 URL 会把卡片撑出提醒栈的 420 上限 */
+  min-width: 0;
+}
+
+.wb-reminder__title {
+  font-weight: var(--fontWeightSemibold);
+}
+
+.wb-reminder__message {
+  /* 长单词/长 URL 不撑破卡片；保留消息里自带的换行 */
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+/* 关闭按钮（对应桌面 `InfoBar.IsClosable = true`） */
+.wb-reminder__close {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: inherit;
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.wb-reminder__close:hover {
+  background: color-mix(in srgb, currentColor 12%, transparent);
+}
+
+.wb-reminder__close:active {
+  background: color-mix(in srgb, currentColor 22%, transparent);
+}
+
+.wb-reminder__close:focus-visible {
+  outline: 2px solid var(--colorStrokeFocus2);
+  outline-offset: 1px;
+}
