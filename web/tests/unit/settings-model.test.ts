@@ -16,12 +16,14 @@ import {
   DEFAULT_THICKNESS_PRESETS,
   MAX_THICKNESS,
   MIN_THICKNESS,
+  hexToRgba,
   normalizeColorHex,
   normalizeColorHexOrDefault,
   normalizeDockOrder,
   normalizePalette,
   normalizeSettings,
   normalizeThicknessPresets,
+  resolveInitialPenColorHex,
 } from '../../src/settings/model.ts'
 import {
   DEFAULT_SETTINGS_PAGE_ID,
@@ -85,6 +87,39 @@ describe('normalizeColorHex：颜色归一化', () => {
     expect(normalizeColorHexOrDefault('bad', DEFAULT_CANVAS_BACKGROUND_HEX)).toBe('#2E2F33')
     expect(normalizeColorHexOrDefault('#abc123', DEFAULT_CANVAS_BACKGROUND_HEX)).toBe('#ABC123')
     expect(normalizeColorHexOrDefault('bad', 'also-bad')).toBe('#000000')
+  })
+})
+
+describe('resolveInitialPenColorHex：启动时的画笔颜色（桌面 ApplyInitialPenColor）', () => {
+  it('取色板首个可解析颜色，默认色板得到白色', () => {
+    expect(resolveInitialPenColorHex(DEFAULT_PALETTE_HEXES)).toBe('#FFFFFF')
+  })
+
+  it('跳过空槽位与非法值', () => {
+    expect(resolveInitialPenColorHex([null, '  ', 'bad', '#0a84ff'])).toBe('#0A84FF')
+  })
+
+  it('全为空块时返回 null（调用方保留控制器默认值）', () => {
+    expect(resolveInitialPenColorHex([null, '', 'nope'])).toBeNull()
+    expect(resolveInitialPenColorHex([])).toBeNull()
+  })
+})
+
+describe('hexToRgba：十六进制转 0~1 浮点', () => {
+  it('#FFFFFF → 纯白不透明', () => {
+    expect(hexToRgba('#FFFFFF')).toEqual({ r: 1, g: 1, b: 1, a: 1 })
+  })
+
+  it('#0A84FF → 精确分量', () => {
+    const color = hexToRgba('#0A84FF')
+    expect(color.a).toBe(1)
+    expect(color.r).toBeCloseTo(10 / 255, 10)
+    expect(color.g).toBeCloseTo(132 / 255, 10)
+    expect(color.b).toBeCloseTo(255 / 255, 10)
+  })
+
+  it('非法值按黑色处理（不抛错）', () => {
+    expect(hexToRgba('bad')).toEqual({ r: 0, g: 0, b: 0, a: 1 })
   })
 })
 

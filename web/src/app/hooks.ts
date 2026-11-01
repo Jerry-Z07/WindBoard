@@ -89,8 +89,14 @@ export function usePageIndicatorText(): string {
   return `${current} / ${total}`
 }
 
-/** 是否需要显示页面 Dock（单页时整体隐藏，`UI/MainWindow/MainWindow.Pages.cs:81-101`）。 */
-export function useShouldShowPageDock(): boolean {
+/**
+ * 是否显示"翻页三件套"（上一页/指示器/下一页）。
+ *
+ * 单页时只隐藏这三项，**「+」始终可见**（`UI/MainWindow/MainWindow.Pages.cs:81-101`：
+ * `showPager = total > 1` 只折叠 `PagePrevButton`/`PageNextButton`/`PageIndicatorButton`）。
+ * 若把整个右侧 Dock 一起隐藏，用户就没有任何入口新增第二页。
+ */
+export function useShowPagePager(): boolean {
   const snapshot = useBoardSnapshot()
   return snapshot.pageCount > 1
 }

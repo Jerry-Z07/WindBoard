@@ -51,9 +51,14 @@
   --wb-dock-separator-size: 30px;
   --wb-dock-separator-color: rgba(0, 0, 0, 0.4);
 
-  /* Dock 交互态（`MainWindow.xaml:60-70` 的资源覆盖，覆盖在浅色主题之上） */
-  --wb-dock-hover: #14ffffff; /* ButtonBackgroundPointerOver */
-  --wb-dock-pressed: #22ffffff; /* ButtonBackgroundPressed */
+  /*
+   * Dock 交互态（`MainWindow.xaml:60-70` 的资源覆盖）。
+   *
+   * 注意：XAML 的 `Color="#14FFFFFF"` 是 **ARGB**（alpha 0x14 = 8%，白），
+   * 直接抄进 CSS 会被读成 `#14FFFF`（不透明青色）。这里显式换成 CSS alpha 写法。
+   */
+  --wb-dock-hover: rgb(255 255 255 / 7.8%); /* ButtonBackgroundPointerOver = #14FFFFFF */
+  --wb-dock-pressed: rgb(255 255 255 / 13.3%); /* ButtonBackgroundPressed = #22FFFFFF */
   --wb-dock-checked: #1976d2; /* ToggleButtonBackgroundChecked */
   --wb-dock-checked-foreground: #ffffff; /* TextOnAccentFillColorPrimaryBrush */
 

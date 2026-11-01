@@ -17,7 +17,8 @@
 import { useMemo, useState, type ReactNode } from 'react'
 import { useFullscreen } from '../../app/use-fullscreen.ts'
 import type { ShellActions } from '../../app/contexts.ts'
-import { ShellActionsProvider } from '../../app/providers.tsx'
+import { BoardControllerProvider, ShellActionsProvider } from '../../app/providers.tsx'
+import type { BoardController } from '../../canvas/board-controller.ts'
 import { BoardSurface } from './BoardSurface.tsx'
 import { DockBar } from './DockBar.tsx'
 import { ReminderStack } from './ReminderStack.tsx'
@@ -29,6 +30,7 @@ import { ImportDialog } from '../dialogs/ImportDialog.tsx'
 /** 应用外壳。 */
 export function AppShell(): ReactNode {
   const { isFullscreen, toggle: toggleFullscreen } = useFullscreen()
+  const [controller, setController] = useState<BoardController | null>(null)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [exportOpen, setExportOpen] = useState(false)
   const [importOpen, setImportOpen] = useState(false)
@@ -55,34 +57,48 @@ export function AppShell(): ReactNode {
       <div className="wb-app">
         <TitleBar visible={!isFullscreen} />
         <div className="wb-body">
-          <BoardSurface />
-          <ReminderStack />
-          <div className="wb-dock-layer">
-            <DockBar placement="left" />
-            <div className="wb-dock-layer__center">
-              <DockBar placement="center" />
-            </div>
-            <DockBar placement="right" />
-          </div>
+          <BoardSurface onControllerChange={setController} />
+          {/* 工具栏依赖控制器存在，而控制器要等画布元素挂载后才创建，所以这层先不渲染。 */}
+          {controller === null ? null : (
+            <BoardControllerProvider controller={controller}>
+              <ReminderStack />
+              <div className="wb-dock-layer">
+                <DockBar placement="left" />
+                <div className="wb-dock-layer__center">
+                  <DockBar placement="center" />
+                </div>
+                <DockBar placement="right" />
+              </div>
+            </BoardControllerProvider>
+          )}
         </div>
-        <SettingsWindow
-          open={settingsOpen}
-          onClose={() => {
-            setSettingsOpen(false)
-          }}
-        />
-        <ExportDialog
-          open={exportOpen}
-          onClose={() => {
-            setExportOpen(false)
-          }}
-        />
-        <ImportDialog
-          open={importOpen}
-          onClose={() => {
-            setImportOpen(false)
-          }}
-        />
+        {/*
+          窗口级对话框同样依赖控制器（导出要读当前页快照、导入要写工作区），
+          必须一起放进 provider；放在 provider 外面会让 `useBoardController` 抛错、
+          整个应用白屏。
+        */}
+        {controller === null ? null : (
+          <BoardControllerProvider controller={controller}>
+            <SettingsWindow
+              open={settingsOpen}
+              onClose={() => {
+                setSettingsOpen(false)
+              }}
+            />
+            <ExportDialog
+              open={exportOpen}
+              onClose={() => {
+                setExportOpen(false)
+              }}
+            />
+            <ImportDialog
+              open={importOpen}
+              onClose={() => {
+                setImportOpen(false)
+              }}
+            />
+          </BoardControllerProvider>
+        )}
       </div>
     </ShellActionsProvider>
   )

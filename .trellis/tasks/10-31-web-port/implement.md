@@ -127,6 +127,50 @@
   1. **未做浏览器冒烟**：Chrome MCP 在本机不可用（`Browser.setContentsSize` 协议错误），P3 全部由 tsc + 单测 + 逐条桌面出处核对保证。合入后需人工 `pnpm dev` 看一眼三处：Popover 是否贴在 Dock 上方、滑动清屏把手是否跟随指针、删页后当前页落点。
   2. InfoBar 卡片内部度量是近似值（内置控件模板不在仓库）；Fluent 的 Blue 只有 `Background2`，信息级蓝底比 WinUI 浅蓝更饱和。
   3. 首屏 js 734 kB / gzip 210 kB，Fluent UI 与图标全量进主 chunk → P5.2 做 vendor 拆分（当前 Vite 有 `>500 kB` 提示）。
+
+#### 浏览器复核（2026-11-01，Chrome DevTools MCP 打通后）
+
+前置：MCP 之前一直报 `Browser.setContentsSize`，根因是它自己那份持久化 Chrome 配置里
+`~/.cache/chrome-devtools-mcp/chrome-profile/Default/Preferences` 的
+`browser.window_placement.maximized = true`——Chrome 每次恢复成最大化窗口，而 MCP 传的
+`--viewport 1600x1000` 要走 `Browser.setContentsSize`，Chrome 对最大化窗口一律拒绝。
+把该标记改成 `false` 并把窗口收进工作区后即可连上。
+
+在真实浏览器里逐项点过后发现并修掉 6 个缺陷（**全部是「接线/样式口径」问题，单测覆盖不到**）：
+
+1. **整页白屏**：`BoardControllerProvider` 只包在 `BoardSurface` 自己的 children 上，
+   而 Dock 是它的兄弟节点 → `useBoardController` 抛错、React 卸载整棵树。
+   改为 `AppShell` 统一持有控制器状态并包住 Dock。
+2. **画布完全无输入**：`attachBoardInput` 在 P1 的临时 `App.tsx` 里调用，换成外壳后
+   **一处调用都没有**，控制器只建模型和渲染、不碰 DOM 事件。改为在 `BoardSurface`
+   的挂载 effect 里与控制器同生共死（`detach()` 进 cleanup）。
+3. **默认笔色错误**：照抄了 `BoardCanvasControl` 字段初始化的黑色兜底值，
+   而桌面启动时 `MainWindow.ApplyInitialPenColor()` 会把笔色改成**色板首个可解析色**
+   （默认 `#FFFFFF`）。深色画布上黑笔几乎不可见。新增纯函数
+   `resolveInitialPenColorHex()`（含 3 例单测）并把结果传给 `createBoardController`。
+4. **单页时右侧 Dock 整体消失**：桌面 `showPager = total > 1` 只折叠「上一页/指示器/下一页」，
+   **「+」始终可见**；整块隐藏后用户没有任何入口新增第二页。改为只过滤翻页三件套。
+5. **Dock 悬停态变成青色**：`--wb-dock-hover: #14ffffff` / `--wb-dock-pressed: #22ffffff`
+   是 XAML 的 **ARGB**（alpha 0x14 / 0x22 的白），写进 CSS 会被读成 `#14FFFF`（不透明青）。
+   改为 `rgb(255 255 255 / 7.8%)` / `13.3%`，并在 tokens.css 注明这个坑。
+6. **设置/导出/导入对话框塌掉**：Fluent v9 用原子类下发 `width`/`max-width: 600px`/`height`/
+   `display: grid`，与单类选择器同权重但注入在静态样式表之后，`.wb-settings-surface` /
+   `.wb-settings-body` 全被盖掉（表现为窗口被压到 600 宽、卡片文字一字一行、关闭按钮跑到面板外）。
+   改用 `.fui-DialogSurface.wb-settings-surface` 双类提高权重；`DialogTitle` 的 `action`
+   是标题的**兄弟节点**，DialogBody 改成 flex 后需自己接管 `fui-DialogTitle__action` 的绝对定位。
+   另修：`ExportDialog` / `ImportDialog` 渲染在 provider 之外 → 点导出直接白屏，已一并包进 provider。
+
+另外修正三处口径：擦除模式卡漏了浅色底（桌面 `SystemControlBackgroundChromeMediumLowBrush`）；
+页面列表项 `width: 240` 未声明 `box-sizing: border-box`（XAML 的 Width 含 padding）导致多出横向滚动条；
+滑动清屏的阈值判定读的是渲染闭包里的 `offset`，快速拖动时最后一帧会丢（改为 `offsetRef` 实时值），
+并把 `setPointerCapture` 的 `NotFoundError` 一并兜住。
+
+复核通过的行为：绘制（含压感粗细）、撤销/重做态、笔面板（白色为选中）、橡皮面板（空页时整条置灰、
+拖过 90% 清屏并自动收起、清屏入撤销栈）、形状面板、页面管理（新增页后出现 `2 / 2`、删页后回退并把
+面板收起）、更多菜单、设置 6 页、导出/导入对话框、提醒栈（InfoBar 蓝色信息条 + 自动关闭）。
+
+**仍未做**：页面缩略图是占位块（显示页码，不是页面渲染快照）；`pnpm dev` 下的全屏切换未验证
+（`requestFullscreen` 需要真实用户手势）。
 - 验收：AC6、AC7；Playwright 截图与桌面参考图结构一致
 
 ---

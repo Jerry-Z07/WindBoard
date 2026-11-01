@@ -200,6 +200,36 @@ export function normalizeColorHexOrDefault(value: unknown, defaultHex: string): 
   return normalizeColorHex(value) ?? normalizeColorHex(defaultHex) ?? '#000000'
 }
 
+/**
+ * 取色板里第一个可解析的颜色，作为启动时的画笔颜色。
+ *
+ * 对应桌面 `MainWindow.ApplyInitialPenColor()`：启动时**只执行一次**，把 `ToolOptions.PenColor`
+ * 改成色板首个有效色（默认色板首项是 `#FFFFFF`）。`BoardCanvasControl` 字段初始化里的黑色
+ * 只是"这条逻辑跑之前"的兜底值，不是用户实际看到的默认笔色——照抄它会得到深色画布上的黑笔。
+ *
+ * 全部为空块时返回 `null`，调用方保留原有画笔颜色（桌面同样"不做兜底扩展"）。
+ */
+export function resolveInitialPenColorHex(palette: readonly (string | null)[]): string | null {
+  for (const entry of palette) {
+    const hex = normalizeColorHex(entry)
+    if (hex !== null) {
+      return hex
+    }
+  }
+  return null
+}
+
+/** `#RRGGBB` → 0~1 浮点 RGBA（不透明）。用于把设置里的颜色交给画笔。 */
+export function hexToRgba(hex: string): { r: number; g: number; b: number; a: number } {
+  const normalized = normalizeColorHex(hex) ?? '#000000'
+  return {
+    r: Number.parseInt(normalized.slice(1, 3), 16) / 255,
+    g: Number.parseInt(normalized.slice(3, 5), 16) / 255,
+    b: Number.parseInt(normalized.slice(5, 7), 16) / 255,
+    a: 1,
+  }
+}
+
 /** 把未知值收敛为布尔（非布尔取默认）。 */
 function boolOr(value: unknown, fallback: boolean): boolean {
   return typeof value === 'boolean' ? value : fallback

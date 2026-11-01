@@ -9,14 +9,27 @@
 
 /* ===== 窗口骨架 ===== */
 
-/* 桌面窗口 900 × 640 量级；视口不足时收缩，避免小屏溢出 */
-.wb-settings-surface {
+/*
+ * 尺寸按桌面窗口的量级定（900 × 640）；视口不足时收缩，避免小屏溢出。
+ *
+ * 选择器写成 `.fui-DialogSurface.wb-settings-surface`：Fluent v9 用原子类（如 `.r1u3t6p6`）
+ * 下发 `width` / `max-width: 600px` / `height`，与单类选择器同权重但注入在静态样式表之后，
+ * 单类写法会被它盖掉（表现：窗口被压到 600 宽、铺满全高、关闭按钮跑到面板外）。
+ */
+.fui-DialogSurface.wb-settings-surface {
   width: min(900px, calc(100vw - 48px));
   height: min(640px, calc(100vh - 48px));
   max-width: none;
+  max-height: none;
 }
 
-.wb-settings-body {
+/*
+ * `fui-DialogBody` 也是 Fluent 的组件级元素：它自带 `display: grid` 与三列
+ * `grid-template-columns`（标题 / 内容 / 动作），单类选择器同样会被原子类盖掉，
+ * 表现是右侧内容被塞进 244px 的第二列。这里显式提高权重改成纵向 flex。
+ */
+.fui-DialogBody.wb-settings-body {
+  position: relative;
   display: flex;
   flex-direction: column;
   height: 100%;
@@ -25,12 +38,26 @@
   padding: 0;
 }
 
+/*
+ * Fluent 的 `DialogTitle` 会把 `action` 渲染成标题的**兄弟节点**
+ * （`<h2 class="fui-DialogTitle">` + `<div class="fui-DialogTitle__action">`），
+ * 默认靠 DialogBody 的网格把它摆到右上角；这里把 DialogBody 改成了纵向 flex，
+ * 若不接管定位，关闭按钮会掉到标题下方并左对齐。
+ */
+.wb-settings-body .fui-DialogTitle__action {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+}
+
 .wb-settings-title {
+  /* Fluent 的 DialogTitle 是 content-box，网格里被拉满会因左右 padding 溢出面板 */
+  box-sizing: border-box;
   display: flex;
   align-items: center;
-  justify-content: space-between;
   margin: 0;
-  padding: 16px 12px 8px 24px;
+  /* 右侧留出关闭按钮的位置 */
+  padding: 16px 56px 8px 24px;
   font-size: 20px;
   font-weight: 600;
   line-height: 28px;

@@ -201,12 +201,13 @@
   width: 232px;
 }
 
-/* 擦除模式卡：圆角 14、1px 描边、内边距 12/10（`MainWindow.xaml:341-346`） */
+/* 擦除模式卡：圆角 14、1px 描边、内边距 12/10、浅色底（`MainWindow.xaml:341-346`） */
 .wb-flyout__card {
   display: flex;
   flex-direction: column;
   gap: 8px;
   padding: 10px 12px;
+  background: var(--wb-dock-plate-color);
   border: 1px solid var(--wb-dock-separator-color);
   border-radius: var(--wb-dock-plate-radius);
 }
@@ -292,14 +293,22 @@
 .wb-pages {
   display: flex;
   flex-direction: column;
+  /* 桌面 `HorizontalScrollBarVisibility="Disabled"`（`MainWindow.xaml:615`）：只允许纵向滚动 */
+  overflow-x: hidden;
   overflow-y: auto;
 }
 
-/* 列表项：宽 240、圆角 12、1px 描边、内边距 8、下外边距 8（`MainWindow.xaml:633-640`） */
+/*
+ * 列表项：宽 240、圆角 12、1px 描边、内边距 8、下外边距 8（`MainWindow.xaml:633-640`）。
+ *
+ * `box-sizing: border-box` 必须显式声明：XAML 的 `Width="240"` 含 padding 与 border，
+ * 而 CSS 默认是 content-box——不声明就会变成 240+16+2，撑出横向滚动条。
+ */
 .wb-pages__row {
   display: flex;
   flex-direction: column;
   gap: 6px;
+  box-sizing: border-box;
   width: var(--wb-pages-flyout-row-width);
   padding: 8px;
   margin-bottom: 8px;

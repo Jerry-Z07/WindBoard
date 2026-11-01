@@ -45,6 +45,15 @@ export function EraserFlyout(props: EraserFlyoutProps): ReactNode {
   const controller = useBoardController()
   const snapshot = useBoardSnapshot()
   const [offset, setOffset] = useState(0)
+  /**
+   * 位移的实时值。
+   *
+   * 必须在 ref 里同步维护：`pointerup` 处理器读的是**本次渲染闭包**里的 `offset`，而快速拖动时
+   * 最后一串 `pointermove` 与 `pointerup` 可能落在同一帧内，闭包里的值还没更新——直接用 state
+   * 判定阈值会漏掉最后一段位移，表现为"拖到底却不清屏"。桌面的把手读的是
+   * `TranslateTransform.X`（实时值），这里用 ref 对齐同一语义。
+   */
+  const offsetRef = useRef(0)
   // 渲染期不能读 ref（oxlint `react/refs`），因此按下时把"最大位移"同步进 state，
   // 仅用于 `aria-valuenow`；拖拽过程中的边界仍由 `maxOffset()` 实时计算。
   const [maxOffsetPx, setMaxOffsetPx] = useState(0)
@@ -61,6 +70,7 @@ export function EraserFlyout(props: EraserFlyoutProps): ReactNode {
 
   const reset = (): void => {
     dragRef.current = null
+    offsetRef.current = 0
     setOffset(0)
   }
 
@@ -68,9 +78,14 @@ export function EraserFlyout(props: EraserFlyoutProps): ReactNode {
     if (!canClear || dragRef.current !== null) {
       return
     }
-    dragRef.current = { pointerId: event.pointerId, startX: event.clientX, startOffset: offset }
+    dragRef.current = { pointerId: event.pointerId, startX: event.clientX, startOffset: offsetRef.current }
     setMaxOffsetPx(maxOffset())
-    event.currentTarget.setPointerCapture(event.pointerId)
+    try {
+      event.currentTarget.setPointerCapture(event.pointerId)
+    } catch {
+      // 指针已失效时 `setPointerCapture` 会抛 NotFoundError（与 `dom-input.ts` 同一处理）：
+      // 拖动仍可继续，只是移出把手后收不到事件。
+    }
   }
 
   const onPointerMove = (event: ReactPointerEvent<HTMLDivElement>): void => {
@@ -78,8 +93,9 @@ export function EraserFlyout(props: EraserFlyoutProps): ReactNode {
     if (drag === null || drag.pointerId !== event.pointerId) {
       return
     }
-    const next = drag.startOffset + (event.clientX - drag.startX)
-    setOffset(Math.min(Math.max(next, 0), maxOffset()))
+    const next = Math.min(Math.max(drag.startOffset + (event.clientX - drag.startX), 0), maxOffset())
+    offsetRef.current = next
+    setOffset(next)
   }
 
   const onPointerUp = (event: ReactPointerEvent<HTMLDivElement>): void => {
@@ -87,10 +103,15 @@ export function EraserFlyout(props: EraserFlyoutProps): ReactNode {
     if (drag === null || drag.pointerId !== event.pointerId) {
       return
     }
-    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
-      event.currentTarget.releasePointerCapture(event.pointerId)
+    try {
+      if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+        event.currentTarget.releasePointerCapture(event.pointerId)
+      }
+    } catch {
+      // 捕获已失效：无需处理。
     }
-    const reached = isClearSlideComplete(offset, maxOffset())
+    // 用实时位移判定，避免闭包里的 state 落后最后一帧（见 `offsetRef` 注释）。
+    const reached = isClearSlideComplete(offsetRef.current, maxOffset())
     reset()
     if (reached) {
       controller.clearPage()

@@ -54,7 +54,7 @@ import {
   useReminderService,
   useSettings,
   useShellActions,
-  useShouldShowPageDock,
+  useShowPagePager,
 } from '../../app/hooks.ts'
 import type { ToolKind } from '../../interaction/pointer-router.ts'
 import type { DockItemId } from '../../settings/model.ts'
@@ -414,7 +414,7 @@ function RightDock(): ReactNode {
   const flyouts = useFlyoutMachine()
   const openFlyout = useOpenFlyout()
   const indicatorText = usePageIndicatorText()
-  const shouldShow = useShouldShowPageDock()
+  const showPager = useShowPagePager()
   const ordered = applyDockOrder(PAGE_DOCK_ITEMS, (id) => id, settings.dock.pagesOrder)
 
   const closeFlyout = (): void => {
@@ -425,10 +425,6 @@ function RightDock(): ReactNode {
     if (!data.open) {
       closeFlyout()
     }
-  }
-
-  if (!shouldShow) {
-    return null
   }
 
   const indicatorButton = (
@@ -443,6 +439,10 @@ function RightDock(): ReactNode {
   )
 
   const renderItem = (id: DockItemId): ReactNode => {
+    // 单页时只折叠翻页三件套，「+」始终可见（否则没有入口新增第二页）
+    if (!showPager && (id === 'pagePrev' || id === 'pageIndicator' || id === 'pageNext')) {
+      return null
+    }
     switch (id) {
       case 'pagePrev':
         return (

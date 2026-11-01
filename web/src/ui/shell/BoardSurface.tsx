@@ -12,8 +12,10 @@
 
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { createBoardController, type BoardController } from '../../canvas/board-controller.ts'
+import { attachBoardInput } from '../../canvas/dom-input.ts'
 import { useSettings } from '../../app/hooks.ts'
-import { BoardControllerProvider } from '../../app/providers.tsx'
+import { hexToRgba, resolveInitialPenColorHex } from '../../settings/model.ts'
+import { createDefaultPenSettings } from '../../tools/tool-settings.ts'
 
 /** 属性。 */
 export interface BoardSurfaceProps {
@@ -35,6 +37,7 @@ export function BoardSurface(props: BoardSurfaceProps): ReactNode {
   const [controller, setController] = useState<BoardController | null>(null)
 
   const background = settings.appearance.canvasBackgroundHex
+  const paletteHexes = settings.writing.pen.paletteHexes
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -42,12 +45,24 @@ export function BoardSurface(props: BoardSurfaceProps): ReactNode {
       return
     }
 
-    const created = createBoardController({ canvas, background })
+    // 启动时的画笔颜色取色板首个有效色（桌面 `ApplyInitialPenColor`，默认 #FFFFFF）；
+    // 色板全为空块时保留控制器默认值。粗细固定用默认 3.0（桌面不改写 `PenBaseSize`，
+    // 面板里"哪一档被选中"是打开时按 `|当前值 - 档位| < 0.001` 反推的）。
+    const initialColorHex = resolveInitialPenColorHex(paletteHexes)
+    const penSettings = createDefaultPenSettings()
+    if (initialColorHex !== null) {
+      penSettings.color = hexToRgba(initialColorHex)
+    }
+
+    const created = createBoardController({ canvas, background, penSettings })
+    // 输入绑定必须和控制器同生共死：`createBoardController` 只建模型与渲染，不碰 DOM 事件。
+    const input = attachBoardInput(created, { canvas })
     setController(created)
     props.onControllerChange?.(created)
 
     return () => {
       props.onControllerChange?.(null)
+      input.detach()
       created.dispose()
       setController(null)
     }
@@ -63,9 +78,9 @@ export function BoardSurface(props: BoardSurfaceProps): ReactNode {
   return (
     <div className="wb-surface">
       <canvas ref={canvasRef} className="wb-surface__canvas" />
-      {controller === null ? null : (
-        <BoardControllerProvider controller={controller}>{props.children}</BoardControllerProvider>
-      )}
+      {/* 覆盖层的上下文由 `AppShell` 统一提供：Dock 是 `BoardSurface` 的兄弟节点，
+          若只在这里包一层，Dock 就拿不到控制器。 */}
+      {props.children}
     </div>
   )
 }

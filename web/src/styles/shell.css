@@ -193,12 +193,3 @@
   font-size: var(--wb-page-indicator-size);
   font-weight: 600;
 }
-
-/* 面板/菜单容器：Fluent 的 Popover/Menu 自带定位，这里只保证颜色跟随 Dock 的浅色主题 */
-.wb-flyout-surface {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  padding: 12px;
-  min-width: 180px;
-}
