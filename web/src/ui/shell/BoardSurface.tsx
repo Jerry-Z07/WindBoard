@@ -4,18 +4,37 @@
  * 职责边界（刻意做窄，方便替换）：
  * - 创建/销毁 `BoardController`（内部含渲染句柄与 DOM 输入适配器）；
  * - 把设置里的画布背景色同步给控制器；
- * - 画布元素铺满容器，`touch-action: none` 由样式表保证。
+ * - 画布元素铺满容器，`touch-action: none` 由样式表保证；
+ * - **P2.3 覆盖层**：选中后在选择框下方渲染"形状属性浮层"与"选中项 Dock"两块 DOM 浮层。
+ *   选择框、8 个手柄、框选矩形是**画在 canvas 上**的（`render/selection.ts`，由控制器驱动），
+ *   这里只负责桌面上那两块 XAML 浮层（`BoardCanvasControl.xaml:74-168`）。
  *
- * **不做**的事：工具栏、弹出面板、选区覆盖层。它们都由 shell 组件按控制器快照渲染，
- * 这样画布层不会因为 UI 迭代而反复改动。
+ * **不做**的事：工具栏、弹出面板、设置窗口。它们都由 shell 组件按控制器快照渲染。
  */
 
-import { useEffect, useRef, useState, type ReactNode } from 'react'
-import { createBoardController, type BoardController } from '../../canvas/board-controller.ts'
+import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, type ReactNode } from 'react'
+import {
+  createBoardController,
+  type BoardController,
+  type BoardControllerSnapshot,
+} from '../../canvas/board-controller.ts'
 import { attachBoardInput } from '../../canvas/dom-input.ts'
 import { useSettings } from '../../app/hooks.ts'
 import { hexToRgba, resolveInitialPenColorHex } from '../../settings/model.ts'
 import { createDefaultPenSettings } from '../../tools/tool-settings.ts'
+import {
+  centimetersToWorld,
+  computeLineEndFromLengthAngle,
+  computeRectGeometryFromSize,
+  MIN_SHAPE_PROPERTY_LENGTH,
+} from '../../board/editing/shape-property.ts'
+import type { Shape } from '../../board/model/shape.ts'
+import { SelectionActionBar } from '../overlay/SelectionActionBar.tsx'
+import { ShapePropertiesPanel } from '../overlay/ShapePropertiesPanel.tsx'
+import {
+  deriveShapePropertyFields,
+  type ShapePropertyFieldId,
+} from '../overlay/shape-property-fields.ts'
 
 /** 属性。 */
 export interface BoardSurfaceProps {
@@ -26,15 +45,52 @@ export interface BoardSurfaceProps {
    * 而控制器又必须等画布元素挂载后才能创建。
    */
   readonly onControllerChange?: (controller: BoardController | null) => void
-  /** 画布之上、同一容器内的覆盖层（P2 的选区覆盖层将来挂这里）。 */
+  /** 画布之上、同一容器内的覆盖层（保留给 shell 用）。 */
   readonly children?: ReactNode
+}
+
+/** 桌面浮层与选择框的垂直间距（`BoardCanvasControl.Rendering.cs:225`/`:232` 的 `+ 8.0`）。 */
+const OVERLAY_GAP_DIP = 8
+
+/** 订阅控制器快照；控制器尚未创建时返回 null。 */
+function useControllerSnapshot(controller: BoardController | null): BoardControllerSnapshot | null {
+  const subscribe = (onChange: () => void): (() => void) =>
+    controller === null ? () => undefined : controller.subscribe(onChange)
+  const getSnapshot = (): BoardControllerSnapshot | null =>
+    controller === null ? null : controller.getSnapshot()
+  return useSyncExternalStore(subscribe, getSnapshot)
+}
+
+/** 覆盖层的实测尺寸（用于叠放与边界钳制；桌面同样先 `Measure` 再 `Clamp`）。 */
+interface OverlayMetrics {
+  readonly panelWidth: number
+  readonly panelHeight: number
+  readonly barWidth: number
+}
+
+const ZERO_METRICS: OverlayMetrics = { panelWidth: 0, panelHeight: 0, barWidth: 0 }
+
+/** 取单个选中形状（桌面 `TryGetSingleSelectedShape` 的等价物：仅单选且是形状时返回）。 */
+function singleSelectedShape(snapshot: BoardControllerSnapshot | null): Shape | null {
+  if (snapshot === null || snapshot.selection.element !== null) {
+    return null
+  }
+  const items = snapshot.selection.items
+  if (items.length !== 1) {
+    return null
+  }
+  const only = items[0]
+  return only.kind === 'stroke' ? null : only
 }
 
 /** 画布宿主。 */
 export function BoardSurface(props: BoardSurfaceProps): ReactNode {
   const settings = useSettings()
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
+  const overlayHostRef = useRef<HTMLDivElement | null>(null)
   const [controller, setController] = useState<BoardController | null>(null)
+  const snapshot = useControllerSnapshot(controller)
+  const [metrics, setMetrics] = useState<OverlayMetrics>(ZERO_METRICS)
 
   const background = settings.appearance.canvasBackgroundHex
   const paletteHexes = settings.writing.pen.paletteHexes
@@ -75,12 +131,145 @@ export function BoardSurface(props: BoardSurfaceProps): ReactNode {
     controller?.setBackground(background)
   }, [controller, background])
 
+  // 选中集变化 → 重算覆盖层几何（选择框是 canvas 画的，这里只更新 DOM 浮层）。
+  const selection = snapshot?.selection ?? null
+  const hasSelection = selection !== null && (selection.items.length > 0 || selection.element !== null)
+
+  // 浮层是先渲染、再量尺寸、再定位（桌面也是 `Measure` 后 `Clamp`）。用 layout effect 保证不闪烁。
+  //
+  // 这里刻意不写依赖数组：每次渲染后都要重量（浮层内容随选中对象变化），而 `setMetrics` 只在
+  // 尺寸真的变了才换对象，所以不会形成更新循环（下一帧 `current === next` 直接返回原值）。
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useLayoutEffect(() => {
+    const host = overlayHostRef.current
+    if (host === null) {
+      return
+    }
+    const panel = host.querySelector('.wb-shape-props')
+    const bar = host.querySelector('.wb-selection-actions')
+    const next: OverlayMetrics = {
+      panelWidth: panel === null ? 0 : panel.getBoundingClientRect().width,
+      panelHeight: panel === null ? 0 : panel.getBoundingClientRect().height,
+      barWidth: bar === null ? 0 : bar.getBoundingClientRect().width,
+    }
+    setMetrics((current) =>
+      current.panelWidth === next.panelWidth &&
+      current.panelHeight === next.panelHeight &&
+      current.barWidth === next.barWidth
+        ? current
+        : next,
+    )
+  })
+
+  const shape = singleSelectedShape(snapshot)
+  const bounds = hasSelection ? (controller?.getSelectionScreenBounds() ?? null) : null
+  const viewportSize = controller?.viewport.sizeDip ?? { x: 0, y: 0 }
+  const shapeFields = shape === null ? null : deriveShapePropertyFields(shape)
+
+  /**
+   * 浮层锚点：选择框下沿中心（桌面 `bounds.Bottom + 8`），并按已量到的浮层宽度把 X 钳进画布。
+   *
+   * - 形状属性浮层：锚点直接是选择框下沿；
+   * - 选中项 Dock：有属性浮层时排在浮层下方（桌面 `panelBottom + 8`），否则也在选择框下沿。
+   *   两个组件内部都自带 `translate(-50%, 8px)`，所以这里传的是"下沿中心"，不需要自己补 8。
+   */
+  const centerX = bounds === null ? 0 : (bounds.min.x + bounds.max.x) / 2
+  const selectionBarAnchor =
+    bounds === null
+      ? null
+      : {
+          x: clampAnchorCenterX(centerX, metrics.barWidth, viewportSize.x),
+          y: bounds.max.y + (shape === null ? 0 : metrics.panelHeight + OVERLAY_GAP_DIP),
+        }
+
+  const shapePanelAnchor =
+    bounds === null || shape === null
+      ? null
+      : { x: clampAnchorCenterX(centerX, metrics.panelWidth, viewportSize.x), y: bounds.max.y }
+
+  /** 形状属性浮层提交：厘米/角度 → 世界几何 → 命令栈（桌面 `CommitShapePropertiesFromBoxes`）。 */
+  const onShapePropertyChange = (id: ShapePropertyFieldId, value: number): void => {
+    if (controller === null || shape === null) {
+      return
+    }
+    const field = shapeFields?.find((candidate) => candidate.id === id)
+    if (field === undefined) {
+      return
+    }
+    // 两个字段都是"提交时一次性换算"，所以要把另一个字段的当前值也读出来一起算。
+    const primary = id === 'primary' ? value : (shapeFields?.[0]?.value ?? 0)
+    const secondary = id === 'secondary' ? value : (shapeFields?.[1]?.value ?? 0)
+
+    let next: { start: { x: number; y: number }; end: { x: number; y: number } }
+    if (shape.kind === 'line' || shape.kind === 'arrow') {
+      // 桌面：以 Start 为锚点，长度下限钳制后再换回世界坐标（顺序不可颠倒）。
+      const lengthWorld = Math.max(MIN_SHAPE_PROPERTY_LENGTH, centimetersToWorld(primary))
+      next = {
+        start: { ...shape.start },
+        end: computeLineEndFromLengthAngle(shape.start, lengthWorld, secondary),
+      }
+    } else {
+      const widthWorld = Math.max(MIN_SHAPE_PROPERTY_LENGTH, centimetersToWorld(primary))
+      const heightWorld = Math.max(MIN_SHAPE_PROPERTY_LENGTH, centimetersToWorld(secondary))
+      next = computeRectGeometryFromSize(shape.start, shape.end, widthWorld, heightWorld)
+    }
+    controller.applySelectedShapeGeometry(next)
+  }
+
   return (
     <div className="wb-surface">
       <canvas ref={canvasRef} className="wb-surface__canvas" />
+      {/* P2.3 覆盖层：桌面这两块是 XAML 浮层（`BoardCanvasControl.xaml:74-168`），
+          选择框与手柄则由 canvas 自己绘制。 */}
+      <div ref={overlayHostRef} className="wb-overlay-host">
+        <ShapePropertiesPanel
+          fields={shapeFields}
+          anchorScreenDip={shapePanelAnchor}
+          onChange={onShapePropertyChange}
+        />
+        <SelectionActionBar
+          anchorScreenDip={selectionBarAnchor}
+          onBringToFront={
+            controller === null
+              ? undefined
+              : () => {
+                  controller.bringSelectionToFront()
+                }
+          }
+          onDuplicate={
+            controller === null
+              ? undefined
+              : () => {
+                  controller.duplicateSelection()
+                }
+          }
+          onDelete={
+            controller === null
+              ? undefined
+              : () => {
+                  controller.deleteSelection()
+                }
+          }
+        />
+      </div>
       {/* 覆盖层的上下文由 `AppShell` 统一提供：Dock 是 `BoardSurface` 的兄弟节点，
           若只在这里包一层，Dock 就拿不到控制器。 */}
       {props.children}
     </div>
   )
+}
+
+/**
+ * 把"居中锚点"的 X 钳进画布范围。
+ *
+ * 桌面是把浮层的**结果矩形**钳到 `[0, 画布宽 - 浮层宽]`（`Rendering.cs:308-317`）；
+ * 网页端浮层靠 `translate(-50%, 8px)` 居中，所以这里按半宽收边，等价于同一个结果矩形钳制。
+ * 宽度首帧尚未量到时传 0，视为"未约束"，下一帧量到后自然收敛。
+ */
+function clampAnchorCenterX(x: number, width: number, viewportWidth: number): number {
+  if (width <= 0 || viewportWidth <= width) {
+    return x
+  }
+  const half = width / 2
+  return Math.min(Math.max(x, half), viewportWidth - half)
 }

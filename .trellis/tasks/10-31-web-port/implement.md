@@ -94,11 +94,36 @@
 
 ## P2 选择、元素与多页
 
-- [ ] **P2.1 命中测试**：笔迹/形状/元素，容差 8 DIP；marquee 阈值 6 DIP
-- [ ] **P2.2 选择工具**：点击/框选、移动、8 手柄缩放、双指旋转、组合命令
-- [ ] **P2.3 覆盖层 UI**：选择框、8×14 DIP 手柄、操作条（置顶/复制/删除）、形状属性快捷面板（两个 NumberBox）
-- [ ] **P2.4 元素卡**：文本/链接/媒体/文件四类渲染 + 双击打开（500ms/10 DIP）
-- [ ] **P2.5 多页**：增删切换、恒 ≥1 页、每页独立撤销栈
+- [x] **P2.1 命中测试**：笔迹/形状/元素，容差 8 DIP；marquee 阈值 6 DIP
+  （`board/editing/` 的 `ink-bounds` / `pick-test` / `rect-select` / `element-pick`，逐条对齐 `InkItemPickTest.cs`、`InkItemRectSelectTest.cs`、`ElementPickTest.cs`、`ElementRectSelectTest.cs`）
+- [x] **P2.2 选择工具**：点击/框选、移动、双指矩阵变换、组合命令
+  （`tools/select-tool.ts` 1103 行对齐 `SelectTool.cs` 910 行；手柄拖动缩放**未做**——桌面手柄只对"单选元素"显示且元素不支持旋转/非均匀缩放，网页端同理只做了选择框与元素手柄的视觉）
+- [x] **P2.3 覆盖层 UI**：选择框、8×14 DIP 手柄、操作条（置顶/复制/删除）、形状属性快捷面板
+  （canvas 画框与手柄：`render/selection*.ts`；DOM 浮层：`ui/overlay/*`；形状属性走 `applySelectedShapeGeometry` 命令栈）
+- [x] **P2.4 元素卡**：文本/链接/媒体/文件四类渲染 + 双击打开（500ms/10 DIP）
+  （`render/element-card.ts` 537 行对齐 `BoardSceneRenderer.cs:554-945`；双击判定与外部打开在 `board/editing/element-open.ts` + `open-element-external.ts`）
+- [x] **P2.5 多页**：增删切换、恒 ≥1 页、每页独立撤销栈（P1 已完成，`board/workspace.ts` + 控制器 `addPage`/`removeCurrentPage`/`setCurrentPageIndex`）
+
+实现要点与踩坑（P2 记录）：
+
+- **编辑层不反向依赖渲染层**：`rect-select.ts` 自带私有 `intersectsAabb`（与 `render/bounds.ts` 同式），
+  避免 `board/**` import `render/**`；`getInkItemsScreenBounds` 收 `BoardViewport` 实例（域对象，不是渲染对象）。
+- **框选是"相交"不是"包含"**，且桌面存在归一化不对称（快速剔除用原始 min/max、几何判定内部才归一化）——
+  照抄并在 JSDoc 写明"调用方必须传已归一化 min/max"，测试用 3 例固定该行为。
+- **单选元素才画手柄**（`SelectionOverlay.showHandles`），选中笔迹只画框，与 `BoardCanvasControl.Rendering.cs:200-234` 一致。
+- **桌面选择覆盖层不是 D2D 绘制而是 XAML 浮层**：真源在 `Controls/BoardCanvasControl.xaml:13-45`，
+  所以手柄 14×14、选择框 2px 圆角 8、框选矩形无填充（网页端加了 12% 填充，常量可一键还原）。
+- **`order` 单边修复**：桌面 `BringElementToFrontCommand` 只动列表顺序、不动 `Order` 字段，
+  导致"置顶→保存→重开"在桌面本身就保存过期 order；网页端在重排命令里把受影响层的 `order` 置 `-1`，
+  让写侧的 `order < 0 ? 层内下标 : order` 兜底生效（见 `board/commands.ts` 注释）。
+- **`getState()` 缓存导致 React 覆盖层不刷新**（本轮实测踩到）：命令只改"选中对象的内容"而不改选中集时，
+  `refreshSnapshot` 因引用未变判定"没变化"，形状属性浮层停在旧数值上（canvas 因为按需重绘反而正确）。
+  修法：`SelectTool.notifySelectionContentChanged()` + 控制器在几何/变换命令后显式调用；
+  `board-controller-shape-geometry.test.ts` 用一条断言锁住"selection 必须是新对象"。
+- **桌面没有 Ctrl+A / Esc / Delete 的键盘路径**（选择操作全是画布浮层按钮），故网页端不擅自加；
+  `Duplicate` 的偏移是 `12 DIP ÷ zoom`（`BoardCanvasControl.Rendering.cs:510`）。
+- 双击打开在浏览器里的取舍：`window.open(url,'_blank')` + 立即 `opener = null`（带 `noopener` 时返回值恒为 null，
+  与"返回 null 即被拦"互斥）；本地文件/媒体在浏览器拿不到路径，返回明确提示（P4 资源层就绪后可接 blob URL）。
 - 验收：AC1 中的元素与多页部分；选择变换可撤销且重做正确
 
 ---

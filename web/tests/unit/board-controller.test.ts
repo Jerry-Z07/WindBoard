@@ -12,8 +12,11 @@ import {
   normalizeWheelDelta,
   wheelZoomFactor,
   type BoardController,
+  type BoardControllerOptions,
   type PointerSample,
 } from '../../src/canvas/board-controller.ts'
+import { AddElementCommand } from '../../src/board/commands.ts'
+import type { BoardElement } from '../../src/board/model/element.ts'
 import type { Stroke, Vec2 } from '../../src/board/model/stroke.ts'
 import type { InkItem } from '../../src/board/model/workspace.ts'
 import type { PointerModifiers, PointerPhase } from '../../src/interaction/pointer-router.ts'
@@ -514,5 +517,338 @@ describe('背景与画笔设置', () => {
     const stroke = strokeAt(0)
     expect(stroke.baseSize).toBe(8)
     expect(stroke.enablePressure).toBe(false)
+  })
+})
+
+// ===== P2：选择工具接线 =====
+
+/** 手动定时器：滚轮变换的 150ms 空闲提交需要可控推进（不依赖真实 setTimeout）。 */
+interface ManualScheduler {
+  readonly scheduleTimeout: (callback: () => void, delayMs: number) => unknown
+  readonly cancelTimeout: (handle: unknown) => void
+  runAll(): void
+  readonly pending: number
+}
+
+function createManualScheduler(): ManualScheduler {
+  interface Entry {
+    readonly callback: () => void
+    readonly delayMs: number
+    cancelled: boolean
+  }
+  const entries: Entry[] = []
+  return {
+    scheduleTimeout(callback, delayMs) {
+      const entry: Entry = { callback, delayMs, cancelled: false }
+      entries.push(entry)
+      return entry
+    },
+    cancelTimeout(handle) {
+      ;(handle as Entry).cancelled = true
+    },
+    runAll() {
+      const pendingEntries = entries.splice(0, entries.length)
+      for (const entry of pendingEntries) {
+        if (!entry.cancelled) {
+          entry.callback()
+        }
+      }
+    },
+    get pending() {
+      return entries.filter((entry) => !entry.cancelled).length
+    },
+  }
+}
+
+/** 重建控制器（注入提醒 / 定时器 / 外部打开环境等）。 */
+function recreateController(options: Partial<BoardControllerOptions> = {}): void {
+  controller.dispose()
+  canvas = new FakeCanvas({ clientWidth: 800, clientHeight: 600 })
+  controller = createBoardController({ canvas, ...options })
+  clock.advance()
+}
+
+/** 构造一个链接元素（世界 0,0 起、100×100，屏幕占 (400,300)-(500,400)）。 */
+function makeLinkElement(overrides: Partial<BoardElement> = {}): BoardElement {
+  return {
+    id: 'link-1',
+    layer: 'aboveInk',
+    order: 0,
+    positionWorld: { x: 0, y: 0 },
+    sizeWorld: { x: 100, y: 100 },
+    type: 'link',
+    url: 'https://example.com',
+    title: null,
+    ...overrides,
+  }
+}
+
+/** 鼠标点一下（按下 + 抬起，同一坐标）。 */
+function click(screen: Vec2, overrides: Partial<PointerSample> = {}): void {
+  controller.handlePointer(pointer('down', screen, overrides))
+  controller.handlePointer(pointer('up', screen, overrides))
+}
+
+/** 画一条笔迹并切到选择工具。 */
+function drawStrokeAndSelectTool(): void {
+  drawStroke({ x: 400, y: 300 }, { x: 500, y: 300 })
+  controller.setTool('select')
+}
+
+/** 笔迹各点的世界坐标快照。 */
+function strokePoints(index = 0): readonly Vec2[] {
+  return strokeAt(index).points.map((point) => ({ x: point.x, y: point.y }))
+}
+
+describe('选择工具（P2）', () => {
+  it('点选笔迹：快照暴露选择，覆盖层包围盒可用', () => {
+    drawStrokeAndSelectTool()
+    click({ x: 450, y: 300 })
+
+    const selection = controller.getSnapshot().selection
+    expect(selection.items).toHaveLength(1)
+    expect(selection.element).toBeNull()
+    expect(controller.getSelectionScreenBounds()).not.toBeNull()
+  })
+
+  it('框选：拖动矩形覆盖笔迹后选中', () => {
+    drawStrokeAndSelectTool()
+
+    controller.handlePointer(pointer('down', { x: 380, y: 280 }))
+    controller.handlePointer(pointer('move', { x: 400, y: 290 }))
+    controller.handlePointer(pointer('move', { x: 520, y: 320 }))
+    controller.handlePointer(pointer('up', { x: 520, y: 320 }))
+
+    expect(controller.getSnapshot().selection.items).toHaveLength(1)
+  })
+
+  it('拖动选中项：位移入命令栈且可撤销', () => {
+    drawStrokeAndSelectTool()
+    click({ x: 450, y: 300 })
+    const before = strokePoints()
+
+    controller.handlePointer(pointer('down', { x: 450, y: 300 }))
+    controller.handlePointer(pointer('move', { x: 470, y: 310 }))
+    controller.handlePointer(pointer('up', { x: 470, y: 310 }))
+
+    expect(strokePoints()[0]?.x).toBeCloseTo((before[0]?.x ?? 0) + 20, 6)
+    expect(strokePoints()[0]?.y).toBeCloseTo((before[0]?.y ?? 0) + 10, 6)
+
+    controller.undo()
+    expect(strokePoints()[0]?.x).toBeCloseTo(before[0]?.x ?? 0, 6)
+    expect(strokePoints()[0]?.y).toBeCloseTo(before[0]?.y ?? 0, 6)
+  })
+
+  it('selectAll / deleteSelection 走命令栈，clearSelection 无选中时返回 false', () => {
+    drawStroke({ x: 400, y: 300 }, { x: 420, y: 300 })
+    drawStroke({ x: 400, y: 320 }, { x: 420, y: 320 })
+    controller.setTool('select')
+
+    expect(controller.selectAll()).toBe(true)
+    expect(controller.getSnapshot().selection.items).toHaveLength(2)
+
+    expect(controller.deleteSelection()).toBe(true)
+    expect(items()).toHaveLength(0)
+
+    controller.undo()
+    expect(items()).toHaveLength(2)
+    // 撤销后选择已被清空（删除时调用了 clearSelection）。
+    expect(controller.clearSelection()).toBe(false)
+  })
+
+  it('duplicateSelection 复制并选中副本（偏移 12 DIP ÷ zoom）', () => {
+    drawStrokeAndSelectTool()
+    click({ x: 450, y: 300 })
+
+    expect(controller.duplicateSelection()).toBe(true)
+    expect(items()).toHaveLength(2)
+
+    const selected = controller.getSnapshot().selection.items
+    expect(selected).toHaveLength(1)
+    expect(selected[0]).toBe(items()[1])
+    expect(selected[0]).not.toBe(items()[0])
+  })
+
+  it('bringSelectionToFront：已置顶返回 false，未置顶重排且可撤销', () => {
+    drawStroke({ x: 400, y: 300 }, { x: 420, y: 300 })
+    drawStroke({ x: 400, y: 320 }, { x: 420, y: 320 })
+    controller.setTool('select')
+    click({ x: 410, y: 300 })
+
+    const first = items()[0]
+    expect(controller.bringSelectionToFront()).toBe(true)
+    expect(items()[1]).toBe(first)
+    // 已在末尾一段：桌面直接返回，不产生命令。
+    expect(controller.bringSelectionToFront()).toBe(false)
+
+    controller.undo()
+    expect(items()[0]).toBe(first)
+  })
+
+  it('setSelectedElementTransform：走命令栈，尺寸下限 0.01', () => {
+    recreateController()
+    const element = makeLinkElement()
+    controller.getSession().execute(new AddElementCommand(element))
+    controller.setTool('select')
+    click({ x: 450, y: 350 })
+
+    expect(controller.getSnapshot().selection.element).toBe(element)
+    expect(controller.setSelectedElementTransform({ positionWorld: { x: 10, y: 20 } })).toBe(true)
+    expect(element.positionWorld).toEqual({ x: 10, y: 20 })
+
+    controller.undo()
+    expect(element.positionWorld).toEqual({ x: 0, y: 0 })
+
+    expect(controller.setSelectedElementTransform({ sizeWorld: { x: 0, y: 0 } })).toBe(true)
+    expect(element.sizeWorld).toEqual({ x: 0.01, y: 0.01 })
+  })
+
+  it('getSelectionScreenBounds 覆盖选中元素包围盒', () => {
+    recreateController()
+    controller.getSession().execute(new AddElementCommand(makeLinkElement()))
+    controller.setTool('select')
+    click({ x: 450, y: 350 })
+
+    expect(controller.getSelectionScreenBounds()).toEqual({
+      min: { x: 400, y: 300 },
+      max: { x: 500, y: 400 },
+    })
+  })
+
+  it('双击链接元素调用外部打开（成功不推提醒）', () => {
+    const opened: string[] = []
+    const pushes: string[] = []
+    recreateController({
+      openElementEnv: {
+        openWindow: (url) => {
+          opened.push(url)
+          return true
+        },
+      },
+      reminders: {
+        push: (input) => {
+          pushes.push(input.message)
+          return pushes.length
+        },
+      },
+    })
+    controller.getSession().execute(new AddElementCommand(makeLinkElement()))
+    controller.setTool('select')
+
+    click({ x: 450, y: 350 })
+    click({ x: 450, y: 350 })
+
+    expect(opened).toHaveLength(1)
+    expect(opened[0]).toContain('example.com')
+    expect(pushes).toHaveLength(0)
+  })
+
+  it('双击打开失败推 error 提醒', () => {
+    const pushes: { message: string; severity?: string }[] = []
+    recreateController({
+      openElementEnv: { openWindow: () => false },
+      reminders: {
+        push: (input) => {
+          pushes.push(input)
+          return pushes.length
+        },
+      },
+    })
+    controller.getSession().execute(new AddElementCommand(makeLinkElement()))
+    controller.setTool('select')
+
+    click({ x: 450, y: 350 })
+    click({ x: 450, y: 350 })
+
+    expect(pushes).toHaveLength(1)
+    expect(pushes[0]?.severity).toBe('error')
+  })
+
+  it('Ctrl+滚轮缩放选中笔迹：空闲后合并为一次撤销', () => {
+    const scheduler = createManualScheduler()
+    recreateController({
+      scheduleTimeout: scheduler.scheduleTimeout,
+      cancelTimeout: scheduler.cancelTimeout,
+    })
+    drawStrokeAndSelectTool()
+    click({ x: 450, y: 300 })
+    const before = strokePoints()
+
+    controller.handleWheel({
+      deltaX: 0,
+      deltaY: -100,
+      deltaMode: 0,
+      screen: { x: 450, y: 300 },
+      modifiers: { ctrl: true, shift: false, alt: false },
+    })
+
+    // 锚点 (450,300) 屏幕 → 世界 (50,0)，缩放系数 1.1：x=100 的点（第 5 个采样点）应移到 105。
+    expect(strokePoints()[4]?.x).toBeCloseTo(105, 6)
+    expect(scheduler.pending).toBe(1)
+
+    scheduler.runAll()
+    expect(controller.getSession().canUndo).toBe(true)
+
+    controller.undo()
+    expect(strokePoints()[4]?.x).toBeCloseTo(before[4]?.x ?? 0, 6)
+  })
+
+  it('触摸单指在选中框内仍开始框选（桌面 SelectGesture 分支）', () => {
+    drawStrokeAndSelectTool()
+    click({ x: 450, y: 300 })
+
+    controller.handlePointer(
+      pointer('down', { x: 450, y: 300 }, { pointerId: 2, pointerType: 'touch', pressure: 1 }),
+    )
+
+    expect(controller.getSnapshot().selection.marquee).not.toBeNull()
+    controller.handlePointer(
+      pointer('up', { x: 450, y: 300 }, { pointerId: 2, pointerType: 'touch', pressure: 1 }),
+    )
+  })
+
+  it('双指触摸命中选中集：走选中集变换而不是视口缩放', () => {
+    drawStrokeAndSelectTool()
+    click({ x: 450, y: 300 })
+    const before = strokePoints()
+
+    controller.handlePointer(
+      pointer('down', { x: 450, y: 300 }, { pointerId: 2, pointerType: 'touch', pressure: 1 }),
+    )
+    controller.handlePointer(
+      pointer('down', { x: 550, y: 300 }, { pointerId: 3, pointerType: 'touch', pressure: 1 }),
+    )
+    // 双指手势开始后框选被取消。
+    expect(controller.getSnapshot().selection.marquee).toBeNull()
+
+    controller.handlePointer(
+      pointer('move', { x: 430, y: 300 }, { pointerId: 2, pointerType: 'touch', pressure: 1 }),
+    )
+    controller.handlePointer(
+      pointer('move', { x: 570, y: 300 }, { pointerId: 3, pointerType: 'touch', pressure: 1 }),
+    )
+    controller.handlePointer(
+      pointer('up', { x: 430, y: 300 }, { pointerId: 2, pointerType: 'touch', pressure: 1 }),
+    )
+    controller.handlePointer(
+      pointer('up', { x: 570, y: 300 }, { pointerId: 3, pointerType: 'touch', pressure: 1 }),
+    )
+
+    // 视口不变；笔迹长度按两帧缩放比放大（100 → 120 → 140）。
+    expect(controller.getSnapshot().zoom).toBe(1)
+    const beforeLength = (before[4]?.x ?? 0) - (before[0]?.x ?? 0)
+    const afterLength = (strokePoints()[4]?.x ?? 0) - (strokePoints()[0]?.x ?? 0)
+    expect(afterLength).toBeCloseTo(beforeLength * 1.4, 3)
+
+    controller.undo()
+    expect(strokePoints()[0]?.x).toBeCloseTo(before[0]?.x ?? 0, 4)
+    expect(strokePoints()[4]?.x).toBeCloseTo(before[4]?.x ?? 0, 4)
+  })
+
+  it('无选中时快照 selection 是稳定空值引用', () => {
+    const first = controller.getSnapshot().selection
+    expect(first.items).toHaveLength(0)
+    expect(first.element).toBeNull()
+    expect(controller.getSnapshot().selection).toBe(first)
   })
 })

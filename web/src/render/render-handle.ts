@@ -8,7 +8,9 @@
  * 2. **帧调度**：rAF 合并重绘 + `maxFps` 上限（桌面 `MaxInteractiveFps = 60`，
  *    `BoardCanvasControl.xaml.cs:26`），具体实现见 `frame-scheduler.ts`；
  * 3. **尺寸变化**：`ResizeObserver` 监听 CSS 尺寸 → `viewport.updateViewportSize` → 重绘；
- * 4. **场景绘制**：委托 `scene.ts`（绘制顺序、笔迹轮廓、形状、元素卡片）。
+ * 4. **场景绘制**：委托 `scene.ts`（绘制顺序、笔迹轮廓、形状、元素卡片）；
+ * 5. **覆盖层**：`setSelection` 的选择框/手柄/框选矩形在场景之后绘制（`selection.ts`），
+ *    永远压在实时预览之上。
  *
  * P1.4 范围说明：本阶段只落地“正确的整帧重绘”。脏矩形局部重绘与视口交互降质
  * （桌面 `DxSwapChainPanelRenderer.cs:18-21` 的 `DirtyRectExtraPixels = 2` /
@@ -21,11 +23,29 @@ import type { Stroke, Vec2 } from '../board/model/stroke.ts'
 import { StrokeOutlineCache } from '../ink/outline.ts'
 import type { RenderCanvas, RenderContext2D } from './canvas-types.ts'
 import { createFrameScheduler, normalizeMaxFps } from './frame-scheduler.ts'
-import { drawScene, type RenderSources, type SceneSurface } from './scene.ts'
+import { drawScene, type RenderSources as SceneRenderSources, type SceneSurface } from './scene.ts'
+import { drawSelectionOverlay, type SelectionOverlay } from './selection.ts'
 
-export type { RenderSources } from './scene.ts'
+export type { SceneSurface } from './scene.ts'
+export type { SelectionOverlay } from './selection.ts'
 export { DEFAULT_BACKGROUND } from './scene.ts'
 export { DEFAULT_MAX_FPS } from './frame-scheduler.ts'
+
+/**
+ * 渲染数据源：场景（`scene.ts`）+ 可选的选择覆盖层。
+ *
+ * 覆盖层字段放在这里而不是 `scene.ts`：P2 的选择框/手柄/marquee 不属于场景内容
+ * （它永远画在实时预览之上），由本文件在 `drawScene` 之后补画；
+ * `scene.ts` 因此完全不用改动。
+ */
+export interface RenderSources extends SceneRenderSources {
+  /**
+   * 选择覆盖层（屏幕 DIP）；缺省或 `null` 表示没有选中、也没有框选。
+   *
+   * 由 `setSelection` 就地更新；`scene.ts` 不认识该字段。
+   */
+  selection?: SelectionOverlay | null
+}
 
 /** 设备像素比上限：超过 2 时按 2 计算后备存储。 */
 export const MAX_DEVICE_PIXEL_RATIO = 2
@@ -66,6 +86,13 @@ export interface BoardRenderHandle {
   setLiveStroke(stroke: Stroke | null): void
   /** 更新实时预览形状；传 `null` 表示结束拖拽。 */
   setLiveShape(shape: Shape | null): void
+  /**
+   * 更新选择覆盖层；传 `null` 表示取消选中与框选。
+   *
+   * 覆盖层永远画在场景与实时预览之上（桌面同样是独立的 XAML 覆盖层，
+   * 见 `BoardCanvasControl.xaml:38-71`）。
+   */
+  setSelection(selection: SelectionOverlay | null): void
   /** 释放监听与缓存；之后所有绘制请求都会被忽略。 */
   dispose(): void
 }
@@ -89,7 +116,7 @@ export function createBoardRenderHandle(
   let disposed = false
   let surface: SceneSurface = { pixelWidth: 1, pixelHeight: 1, devicePixelRatio: 1 }
 
-  /** 一帧：同步尺寸 → 清理轮廓缓存 → 整帧绘制。 */
+  /** 一帧：同步尺寸 → 清理轮廓缓存 → 整帧绘制场景 → 覆盖层。 */
   function renderFrame(): void {
     if (disposed || context === null) {
       return
@@ -97,6 +124,12 @@ export function createBoardRenderHandle(
     syncSurface()
     pruneOutlineCache()
     drawScene(context, sources, surface, outlineCache)
+
+    // 覆盖层最后画：选择框/手柄/marquee 永远在场景与实时预览之上。
+    const selection = sources.selection
+    if (selection !== undefined && selection !== null) {
+      drawSelectionOverlay(context, selection, surface)
+    }
   }
 
   /**
@@ -178,6 +211,13 @@ export function createBoardRenderHandle(
         return
       }
       sources.liveShape = shape
+      scheduler.request()
+    },
+    setSelection(selection: SelectionOverlay | null): void {
+      if (disposed) {
+        return
+      }
+      sources.selection = selection
       scheduler.request()
     },
     dispose(): void {

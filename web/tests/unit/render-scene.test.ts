@@ -212,19 +212,92 @@ describe('场景渲染（scene）', () => {
     expect(context.opsOfType('roundRect')[0].args).toEqual([0, 0, 320, 180, 14])
 
     const fill = context.opsOfType('fill')[0]
-    expect(fill.style?.fillStyle).toBe('#202126')
+    // 深色 palette 经 `colorToCss` 输出 `rgba()`（桌面 `DarkPalette` 是 Color4 浮点，
+    // `BoardSceneRenderer.cs:74-80`：#202126 / #3A3B40）
+    expect(fill.style?.fillStyle).toBe('rgba(32, 33, 38, 1)')
 
     const border = context.opsOfType('stroke')[0]
-    expect(border.style?.strokeStyle).toBe('#3A3B40')
+    expect(border.style?.strokeStyle).toBe('rgba(58, 59, 64, 1)')
     expect(border.style?.lineWidth).toBe(1.5)
 
     // 徽标：左上角圆形色块，圆心 (pad + 16, pad + 16)、半径 16
     expect(context.opsOfType('arc')[0].args).toEqual([28, 28, 16])
 
     const texts = context.opsOfType('fillText').map((op) => op.text)
-    expect(texts).toContain('文本')
+    // 标题文案取桌面 L10n `ElementCard_Text_Title` = "文字"（旧占位实现写的是"文本"）
+    expect(texts).toContain('文字')
     expect(texts).toContain('第一行')
     expect(texts).toContain('第二行')
+  })
+
+  it('四类元素都走 drawElementCard（每种一张卡片 + 一个徽标 + 标题文字）', () => {
+    const elements = [
+      createElement({ id: 't', type: 'text', text: '正文', positionWorld: { x: 0, y: 0 } }),
+      createElement({
+        id: 'l',
+        type: 'link',
+        title: '示例链接',
+        url: 'https://example.com',
+        positionWorld: { x: 300, y: 0 },
+      }),
+      createElement({
+        id: 'm',
+        type: 'media',
+        kind: 'audio',
+        displayName: '录音.mp3',
+        positionWorld: { x: 0, y: 200 },
+      }),
+      createElement({
+        id: 'f',
+        type: 'file',
+        displayName: '报告.pdf',
+        positionWorld: { x: 300, y: 200 },
+      }),
+    ]
+    const context = render(createSources({ document: createDocument([], elements) }))
+
+    // 每张卡片：1 个圆角底板 + 1 个徽标圆
+    expect(context.opsOfType('roundRect')).toHaveLength(4)
+    expect(context.opsOfType('arc')).toHaveLength(4)
+
+    const texts = context.opsOfType('fillText').map((op) => op.text)
+    expect(texts).toContain('文字') // text 元素标题
+    expect(texts).toContain('示例链接') // link 标题
+    expect(texts).toContain('录音.mp3') // media 显示名
+    expect(texts).toContain('报告.pdf') // file 显示名
+
+    // 类型强调色（徽标底色）：link 蓝、audio 橙、file（已知扩展名 .pdf）绿、text 灰
+    const accentFills = context
+      .opsOfType('fill')
+      .map((op) => op.style?.fillStyle)
+      .filter((style) => typeof style === 'string' && style.startsWith('rgb('))
+    expect(accentFills).toEqual([
+      'rgb(140, 140, 148)', // text
+      'rgb(10, 133, 255)', // link
+      'rgb(255, 148, 0)', // audio
+      'rgb(51, 199, 89)', // file .pdf
+    ])
+  })
+
+  it('浅色主题生效：底板/描边/文字都换成 LightPalette', () => {
+    const element = createElement({ id: 'text-1', type: 'text', text: '正文' })
+    const context = render(
+      createSources({ document: createDocument([], [element]), elementCardTheme: 'light' }),
+    )
+
+    expect(context.opsOfType('fill')[0].style?.fillStyle).toBe('rgba(255, 255, 255, 0.92)')
+    expect(context.opsOfType('stroke')[0].style?.strokeStyle).toBe('rgba(0, 0, 0, 0.28)')
+
+    const titleText = context.opsOfType('fillText').find((op) => op.text === '文字')
+    expect(titleText).toBeDefined()
+    expect(titleText?.style?.fillStyle).toBe('rgba(0, 0, 0, 0.9)')
+  })
+
+  it('部分可见的元素照常绘制（AABB 相交即画）', () => {
+    // 视口 800×600、相机原点：可见世界 x∈[-400,400]、y∈[-300,300]
+    const element = createElement({ id: 'edge', positionWorld: { x: 380, y: -20 } })
+    const context = render(createSources({ document: createDocument([], [element]) }))
+    expect(context.opsOfType('roundRect')).toHaveLength(1)
   })
 
   it('可见区域外的元素被跳过', () => {

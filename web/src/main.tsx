@@ -8,6 +8,7 @@ import './styles/dock.css'
 import './styles/settings.css'
 import './styles/settings-search.css'
 import './styles/dialogs.css'
+import './styles/overlay.css'
 import App from './App.tsx'
 
 createRoot(document.getElementById('root')!).render(

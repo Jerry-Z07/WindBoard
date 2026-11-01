@@ -8,13 +8,16 @@
  *   桌面常量 `BoardCanvasControl.xaml.cs:38`）；
  * - 笔迹轮廓由 `web/src/ink/outline.ts` 展开成世界坐标闭合多边形（单点即圆），
  *   几何契约见 `ink-rendering.zh-CN.md` §5；
- * - 形状只描边不填充、圆头圆角、miter 2.0（`ink-rendering.zh-CN.md` §6）。
+ * - 形状只描边不填充、圆头圆角、miter 2.0（`ink-rendering.zh-CN.md` §6）；
+ * - 元素卡片由 `element-card.ts` 绘制（桌面 `DrawCardElement`，`BoardSceneRenderer.cs:554-634`），
+ *   主题来自 `RenderSources.elementCardTheme`（缺省深色，与桌面 `ElementCardTheme.Dark` 一致）。
  *
  * 范围说明：P1.4 只落地“正确的整帧重绘”；脏矩形局部重绘与交互降质留待 P5 性能阶段
  * （钩子见 `render-handle.ts` 的 `RenderHandleOptions`）。
  */
 
 import type { BoardDocument } from '../board/document.ts'
+import type { BoardElement } from '../board/model/element.ts'
 import type { Shape } from '../board/model/shape.ts'
 import type { Stroke } from '../board/model/stroke.ts'
 import type { InkItem } from '../board/model/workspace.ts'
@@ -31,7 +34,11 @@ import type { StrokeOutlineCache } from '../ink/outline.ts'
 import { intersectsWorldBounds } from './bounds.ts'
 import type { RenderContext2D } from './canvas-types.ts'
 import { colorToCss } from './color.ts'
-import { drawVisibleElementCards } from './elements.ts'
+import {
+  drawElementCard,
+  getElementCardBounds,
+  type ElementCardThemeMode,
+} from './element-card.ts'
 
 /** 桌面默认画布背景色（`BoardCanvasControl.xaml.cs:38`，`ink-rendering.zh-CN.md` §3/§8）。 */
 export const DEFAULT_BACKGROUND = '#2E2F33'
@@ -51,6 +58,14 @@ export interface RenderSources {
   liveStroke: Stroke | null
   /** 正在拖拽的形状（实时预览，可为 null）。 */
   liveShape: Shape | null
+  /**
+   * 元素卡片主题；缺省（或非 `'light'`）按桌面默认的深色处理。
+   *
+   * 桌面默认值 `ElementCardTheme.Dark`（`BoardSceneRenderer.cs:64`，
+   * 设置项由 `BoardCanvasControl.xaml.cs:41` 注入）；渲染层**不读设置**，
+   * 由上层在构造 sources 时写入（渲染句柄原样透传给 `drawScene`）。
+   */
+  elementCardTheme?: ElementCardThemeMode
 }
 
 /** 画布后备存储参数。 */
@@ -96,9 +111,12 @@ export function drawScene(
 
   const visibleWorld = viewport.getVisibleWorldBounds()
   const zoom = viewport.zoom
+  // 卡片主题：渲染层不读设置，只看 sources 注入的值；缺省按桌面默认深色。
+  const elementCardTheme: ElementCardThemeMode =
+    sources.elementCardTheme === 'light' ? 'light' : 'dark'
 
   // 3. 笔迹下方元素（顺序第 1 步）。
-  drawVisibleElementCards(ctx, document.elementsBelowInk(), visibleWorld)
+  drawVisibleElements(ctx, document.elementsBelowInk(), visibleWorld, elementCardTheme, zoom)
 
   // 4. 文档墨迹条目（顺序第 2 步）：数组顺序即绘制顺序，未知条目静默跳过。
   for (const item of document.items) {
@@ -106,7 +124,7 @@ export function drawScene(
   }
 
   // 5. 笔迹上方元素（顺序第 3 步）。
-  drawVisibleElementCards(ctx, document.elementsAboveInk(), visibleWorld)
+  drawVisibleElements(ctx, document.elementsAboveInk(), visibleWorld, elementCardTheme, zoom)
 
   // 6. 实时预览（顺序第 4 步）：桌面同一时刻只有一个活动条目，网页端笔迹与形状都支持。
   if (sources.liveStroke !== null) {
@@ -123,6 +141,39 @@ export function drawScene(
 /** 背景色兜底：空串 / 纯空白时使用桌面默认色。 */
 export function resolveBackground(background: string): string {
   return background.trim().length > 0 ? background : DEFAULT_BACKGROUND
+}
+
+/**
+ * 按层绘制可见元素卡片。
+ *
+ * 剔除口径与桌面 `DrawElementsIfVisible` 一致（`BoardSceneRenderer.cs:501-537`）：
+ * 用元素的世界包围盒（`BoardElement.GetBoundsWorld()`，网页端即 `getElementCardBounds`）
+ * 与当前可见区求 AABB 相交，不相交直接跳过；卡片本身的几何/配色/文案由
+ * `element-card.ts` 负责（与桌面 `DrawCardElement` 同源）。
+ *
+ * @param elements 同层元素，数组顺序即绘制顺序（桌面读入时已按 `order` 排好，渲染不再排序）
+ * @param visibleWorld 当前可见世界包围盒
+ * @param theme 卡片主题（`'dark'` / `'light'`）
+ * @param zoom 当前缩放（透传给卡片绘制，供 P5 缩小省细节用）
+ */
+function drawVisibleElements(
+  ctx: RenderContext2D,
+  elements: readonly BoardElement[],
+  visibleWorld: WorldBounds,
+  theme: ElementCardThemeMode,
+  zoom: number,
+): void {
+  for (const element of elements) {
+    const rect = getElementCardBounds(element)
+    const bounds: WorldBounds = {
+      min: { x: rect.left, y: rect.top },
+      max: { x: rect.left + rect.width, y: rect.top + rect.height },
+    }
+    if (!intersectsWorldBounds(bounds, visibleWorld)) {
+      continue
+    }
+    drawElementCard(ctx, element, { theme, zoom })
+  }
 }
 
 /** 墨迹条目分发：笔迹 / 形状 / 未知类型（静默跳过，`BoardSceneRenderer.cs:333-349`）。 */
