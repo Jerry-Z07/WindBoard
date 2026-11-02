@@ -27,7 +27,7 @@ import {
   Text,
 } from '@fluentui/react-components'
 import { ArrowExportRegular, DismissRegular } from '@fluentui/react-icons'
-import { useBoardSnapshot, useReminderService } from '../../app/hooks.ts'
+import { useBoardController, useBoardSnapshot, useReminderService, useSettings } from '../../app/hooks.ts'
 import {
   DEFAULT_EXPORT_OPTIONS,
   PDF_DPI_VALUES,
@@ -51,6 +51,7 @@ import type {
   PngAspect,
   PngHeight,
 } from '../../features/export/export-options.ts'
+import { runExport } from '../../features/export/export-runner.ts'
 
 /** 属性。 */
 export interface ExportDialogProps {
@@ -139,6 +140,9 @@ export function ExportDialog(props: ExportDialogProps): ReactNode {
 function ExportDialogForm(props: { readonly onClose: () => void }): ReactNode {
   const snapshot = useBoardSnapshot()
   const reminders = useReminderService()
+  // 真实导出要读工作区快照与外观设置（背景色 / 元素卡主题）
+  const controller = useBoardController()
+  const settings = useSettings()
 
   const pageCount = snapshot.pageCount
 
@@ -181,16 +185,32 @@ function ExportDialogForm(props: { readonly onClose: () => void }): ReactNode {
       return
     }
 
-    // ===== P4 接入点：真实导出 =====
-    // 桌面 `WindBoard/Features/Export/ExportFlow.cs:43-117` 的顺序：
-    //   1) 取工作区快照（`:62-70`，导出期间不再读实时文档）；
-    //   2) 组装 `BoardRasterExportOptions`（`:72-77`：DPI、留白、背景色、固定画面）；
-    //   3) WBIX 直接导出整库（`:79-84`，忽略页范围）；
-    //   4) `resolvePageIndices` 等价逻辑 → 0 基页索引（`:86-91`，本文件已用 `pageIndices` 算好）；
-    //   5) 按格式分派：PDF `:169-185`、PNG 单页/多页 `:187-233`（多页走 `WindBoard-{date}` 子目录）。
-    // 网页端届时把下面这行替换为真实导出调用即可（文件名用 `suggestedName`）。
-    reminders.push({ message: '导出能力将在 P4 提供', severity: 'informational' })
+    // 真实导出：桌面顺序见 `WindBoard/Features/Export/ExportFlow.cs:43-233`
+    //（快照 → 光栅选项 → WBIX 整库 → 页范围 → 按格式分派），细节在 `export-runner.ts`。
+    // 导出是异步的（编码 + 写盘），所以这里先关对话框再跑，失败信息走提醒条。
     props.onClose()
+    void (async () => {
+      try {
+        const outcome = await runExport(options, {
+          controller,
+          background: settings.appearance.canvasBackgroundHex,
+          elementCardTheme: settings.appearance.elementCardTheme,
+        })
+        if (outcome.ok) {
+          reminders.push({ message: outcome.message ?? '导出完成', severity: 'informational' })
+          return
+        }
+        // 用户取消不提示（与桌面一致：取消选择器就是静默返回）
+        if (outcome.cancelled !== true) {
+          reminders.push({ message: outcome.error ?? '导出失败', severity: 'error' })
+        }
+      } catch (error) {
+        reminders.push({
+          message: `导出失败：${error instanceof Error ? error.message : String(error)}`,
+          severity: 'error',
+        })
+      }
+    })()
   }
 
   return (

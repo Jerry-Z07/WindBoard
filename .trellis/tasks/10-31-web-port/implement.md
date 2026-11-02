@@ -283,13 +283,42 @@ Vite 仍报 >500 kB 警告 → P5.2 拆包）。
 
 ## P4 文件能力
 
-- [ ] **P4.1 WBIX 导入流程**：拖拽 / 选择文件 / `launchQueue`；独占警告、替换页确认、缺资源提示
-- [ ] **P4.2 PNG 导出**：自动内容边界（内容 + 2×padding 24 DIP）、固定画幅（方形/4:3/16:9 × 720/1080/2160）、DPI 写入 `pHYs` 块、批量命名规则
-- [ ] **P4.3 PDF 导出**：每页一张整页位图，页面尺寸 `px*72/dpi`，DPI 96/192/288（默认 192）
-- [ ] **P4.4 PlatformIO**：FSA 主路径 + `<a download>` / `<input file>` 回退 + 多页 PNG 降级为 ZIP
+- [x] **P4.1 WBIX 导入流程**：`.wbix` 字节 → 页面快照 → 追加到工作区末尾并切到导入包记录的相对页
+  （`features/import/wbix-import.ts` + 真实可用的 `ImportDialog`）。
+  桌面唯一活路径是 `ImportFlow.cs:99-101` 的 `AppendAfterLastPage`——"覆盖整个工作区"只存在于
+  已下线对话框的 resw（C# 零引用），所以网页端只实现追加，`BoardWorkspace.appendPages()` 保留已有页的撤销栈。
+  拖拽 / `launchQueue` 未做（浏览器权限与安装态相关，留待 P5）。
+- [x] **P4.2 PNG 导出**：固定画幅（方形/4:3/16:9 × 720/1080/2160）+ 自适应画幅（内容 + 2×padding）、
+  DPI 折算与 `maxEdge` 钳制、`pHYs` 块写入、多页进 `WindBoard-{date}` 目录、命名规则对齐桌面
+- [x] **P4.3 PDF 导出**：每页一张整页位图（`FlateDecode` RGB 流），最小 PDF 结构
+  （catalog/pages/page/content/image + xref），页面尺寸 `px*72/dpi`
+- [x] **P4.4 PlatformIO**：FSA 优先（`showSaveFilePicker` / `showDirectoryPicker`）、
+  `<a download>` 与 `<input type=file>` 回退、多页 PNG 无目录权限时降级为 ZIP
 - [ ] **P4.5 自动保存与恢复**：OPFS 分片 + IndexedDB 索引；节流 2s；崩溃后恢复提示
 - [ ] **P4.6 设置导入导出**：兼容桌面设置文件（白名单合并、未知字段忽略）
 - 验收：AC2、AC4、AC5；导出文件能在桌面版/系统阅读器中正常打开
+
+#### P4 记录：实现要点与踩坑（2026-11-02）
+
+- **`OffscreenCanvas` 与 `HTMLCanvasElement` 的取字节方式不同**（`convertToBlob` vs `toBlob`）。
+  最初把编码放在工厂里、对目标对象做 `as unknown as` 转型，运行时直接报
+  `canvas.toBlob is not a function`；改为让 `RasterRenderTarget` 自带 `encodePng()` / `readRgba()`，
+  把两种画布的差异封在创建处。
+- **PNG 的 DPI 必须自己写**：`canvas.toBlob('image/png')` 不带分辨率，桌面 WIC 会
+  `SetResolution(dpi, dpi)`。补 `pHYs` 块（96 DPI = 3780 像素/米）插在 `IHDR` 之后；
+  重复调用要先剔除旧的 `pHYs`，否则会叠加。
+- **导出画幅只统计笔迹**（`BoardRasterExporter.TryGetDocumentBounds:222-260`），形状与元素不参与——
+  这是桌面既有口径，跟它才能得到同样的裁切。
+- **多页 PNG 与单页命名不同**：目录 `WindBoard-{date}`、文件 `{date}-{页码:000}.png`
+  （`BoardExportService.cs:126-130`）；单页是 `WindBoard-{date}-{HHmm}.png`。
+- 浏览器失败给的是英文 `DOMException`，`platform/io.ts` 按 `name` 归类加了中文前缀
+  （实测踩到 `File picker already active.` 直接抛给用户的突兀感）。
+
+浏览器实测（Chromium，注入假 picker 捕获字节）：
+单页 PNG `WindBoard-2026-11-02-1238.png` 53522 B（PNG 签名 + IEND，含 1 个 `pHYs`）；
+PDF `WindBoard-2026-11-02-1238.pdf` 8254 B（`%PDF-1.4` → `%%EOF`）；
+多页 PNG 写进 `WindBoard-2026-11-02/` 的 `2026-11-02-001.png` / `-002.png`；
+WBIX `2026-11-02-1238.wbix` 1514 B（zip 头 `PK\x03\x04`，无 `WindBoard-` 前缀）。
 
 ---
 

@@ -1,16 +1,16 @@
 /**
- * 导入对话框（WBIX / WBI）。
+ * 导入对话框（WBIX）。
  *
  * 桌面权威源：
- * - `WindBoard/UI/MainWindow/MainWindow.Import.cs`（导入入口）；
- * - `WindBoard/Features/Import/ImportFlow.cs:43-117`（选文件 → 类型识别 → 提交）、`:195-380`（WBIX/WBI 实际导入）；
- * - 警告文案取自 `WindBoard/Strings/zh-CN/Import.resw` 的 `Import_Risk_ReplaceWorkspace_Content`：
- *   "选择"覆盖整个工作区"将替换当前所有页面内容。建议在覆盖前先导出备份（WBIX）。"
+ * - `WindBoard/UI/MainWindow/MainWindow.Import.cs:18-51`（导入入口）；
+ * - `WindBoard/Features/Import/ImportFlow.cs:42-60`（选文件 → 提交）、`:99-101`（选中工作区文件时一律
+ *   `AppendAfterLastPage`）、`:206-256`（解析 + 追加页 + 切当前页）、`:258-262`（失败提示）；
+ * - 文案取自 `WindBoard/Strings/zh-CN/Import.resw` 与 `ImportDialog.resw`（下方常量逐条标注 key）。
  *
- * P3 只做 UI：选文件 + 风险提示 + 取消/导入；点"导入"推提醒并关闭（`handleImport` 标了 P4 接入点）。
+ * 纯逻辑在 `features/import/wbix-import.ts`：本组件只负责「选文件 → 解析 → 应用到工作区 → 提示」。
  */
 
-import { useRef, useState, type ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 import {
   Button,
   Dialog,
@@ -19,13 +19,45 @@ import {
   DialogContent,
   DialogSurface,
   DialogTitle,
-  Field,
   MessageBar,
   MessageBarBody,
   Text,
 } from '@fluentui/react-components'
 import { ArrowImportRegular, DismissRegular, FolderOpenRegular } from '@fluentui/react-icons'
-import { useReminderService } from '../../app/hooks.ts'
+import { useBoardController, useReminderService } from '../../app/hooks.ts'
+import { applyImportedWorkspace, parseWbixForImport } from '../../features/import/wbix-import.ts'
+import { pickFile } from '../../platform/io.ts'
+
+/**
+ * 文案（逐条对应 resw key，未自造）：
+ * - `Import_Wbix_Dialog_Title`：导入 WBIX/WBI
+ * - `ImportDialog_PickWbix`：选择 WBIX/WBI 文件…
+ * - `Import_Wbix_InsertMethod_Label` + `Import_Wbix_Mode_Append`：插入方式：/ 新增在最后一页之后
+ * - `Import_Failed_Title`：导入失败
+ * - `Import_Wbix_ParseFailed_Message`：WBIX/WBI 文件解析失败。
+ * - `Import_Wbix_Busy_Message`：正在导入，请稍候…
+ * - `Import_Tip_Title`：导入提示
+ * - `ImportDialog_FilePicker_Failed_Fmt`：打开文件选择器失败：{0}
+ */
+const TEXTS = {
+  dialogTitle: '导入 WBIX/WBI',
+  pickFile: '选择 WBIX/WBI 文件…',
+  insertMethodLabel: '插入方式：',
+  appendMode: '新增在最后一页之后',
+  failedTitle: '导入失败',
+  parseFailed: 'WBIX/WBI 文件解析失败。',
+  busy: '正在导入，请稍候…',
+  tipTitle: '导入提示',
+  filePickerFailedFmt: '打开文件选择器失败：{0}',
+} as const
+
+/**
+ * 文件选择器的 accept 过滤。
+ *
+ * 只收 `.wbix`：桌面还支持旧格式 `.wbi`（`WbiWorkspaceImporter`），但 web 侧只移植了 WBIX 读取，
+ * 允许选中 `.wbi` 只会得到一条"解析失败"，不如在选择器里就过滤掉。
+ */
+const WBIX_ACCEPT = '.wbix'
 
 /** 属性。 */
 export interface ImportDialogProps {
@@ -54,24 +86,62 @@ export function ImportDialog(props: ImportDialogProps): ReactNode {
 
 /** 表单（挂载即"打开一次"）。 */
 function ImportDialogForm(props: { readonly onClose: () => void }): ReactNode {
+  const controller = useBoardController()
   const reminders = useReminderService()
-  const inputRef = useRef<HTMLInputElement>(null)
   const [fileName, setFileName] = useState<string | null>(null)
+  const [fileBytes, setFileBytes] = useState<Uint8Array | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [busy, setBusy] = useState(false)
 
-  const handleImport = (): void => {
-    if (fileName === null) {
+  /** 选文件（桌面 `ImportFlow.cs:52-56`；取消选择不改变当前状态）。 */
+  const handlePickFile = async (): Promise<void> => {
+    setError(null)
+    try {
+      const picked = await pickFile(WBIX_ACCEPT)
+      if (picked === null) {
+        return
+      }
+
+      setFileName(picked.name)
+      setFileBytes(picked.bytes)
+    } catch (cause) {
+      setError(formatText(TEXTS.filePickerFailedFmt, errorMessage(cause)))
+    }
+  }
+
+  /** 解析并应用（桌面 `ImportFlow.cs:206-256`）。 */
+  const handleImport = async (): Promise<void> => {
+    if (fileBytes === null || busy) {
       return
     }
 
-    // ===== P4 接入点：真实导入 =====
-    // 桌面 `WindBoard/Features/Import/ImportFlow.cs:43-117` 的顺序：
-    //   1) 选文件（`:43-70`）→ 2) 识别类型（`:96-101`，WBIX/WBI 走 `ImportWbixMode`）；
-    //   3) 提交后按模式导入：`:195-315` WBIX、`:317-380` WBI（`ReplaceCurrentPage` 时先清当前页，
-    //      默认 `AppendAfterLastPage` 追加到末页之后，见 `:100-101`）；
-    //   4) 缺资源/解析失败分别提示（`:261`、`:378`）。
-    // 网页端届时在这里调用 WBIX 解析（`web/src/persistence/wbix/**`）并替换工作区。
-    reminders.push({ message: '导入能力将在 P4 提供', severity: 'informational' })
-    props.onClose()
+    setBusy(true)
+    setError(null)
+    try {
+      // 解析是同步的 CPU 工作（解压 + JSON），先让出一次事件循环，"正在导入"才能渲染出来。
+      await new Promise<void>((resolve) => {
+        setTimeout(resolve, 0)
+      })
+
+      const imported = parseWbixForImport(fileBytes)
+      applyImportedWorkspace(controller.workspace, imported)
+
+      // 桌面把容忍告警只写日志（`AppLog.Warn`）；网页端没有日志层，用提醒把被跳过的内容告诉用户。
+      if (imported.warnings.length > 0) {
+        reminders.push({
+          title: TEXTS.tipTitle,
+          message: summarizeWarnings(imported.warnings),
+          severity: 'warning',
+        })
+      }
+
+      props.onClose()
+    } catch {
+      // 桌面 `ImportFlow.cs:258-262`：任何导入异常都显示同一条解析失败文案（异常细节只进日志）。
+      setError(TEXTS.parseFailed)
+    } finally {
+      setBusy(false)
+    }
   }
 
   return (
@@ -82,65 +152,80 @@ function ImportDialogForm(props: { readonly onClose: () => void }): ReactNode {
             appearance="subtle"
             icon={<DismissRegular />}
             aria-label="关闭"
+            disabled={busy}
             onClick={props.onClose}
           />
         }
       >
-        导入
+        {TEXTS.dialogTitle}
       </DialogTitle>
 
       <DialogContent className="wb-dialog__form">
-        {/* 风险提示：桌面在"覆盖整个工作区"前弹确认（`ImportFlow.cs:398-412`） */}
-        <MessageBar intent="warning">
-          <MessageBarBody>
-            导入 WBIX/WBI 会替换当前工作区内容（所有页面），且无法撤销。建议在覆盖前先导出备份。
-          </MessageBarBody>
-        </MessageBar>
+        <div className="wb-dialog__file-row">
+          <Button
+            icon={<FolderOpenRegular />}
+            disabled={busy}
+            onClick={() => {
+              void handlePickFile()
+            }}
+          >
+            {TEXTS.pickFile}
+          </Button>
+          <Text className="wb-dialog__file-name">{fileName ?? '尚未选择文件'}</Text>
+        </div>
 
-        <Field label="WBIX / WBI 文件">
-          <div className="wb-dialog__file-row">
-            {/* 真实文件选择器：只取文件名用于展示，P3 不解析内容 */}
-            <input
-              ref={inputRef}
-              className="wb-dialog__file-input"
-              type="file"
-              accept=".wbix,.wbi"
-              aria-label="选择 WBIX/WBI 文件"
-              onChange={(event) => {
-                const file = event.target.files?.[0]
-                setFileName(file === undefined ? null : file.name)
-              }}
-            />
-            <Button
-              icon={<FolderOpenRegular />}
-              onClick={() => {
-                inputRef.current?.click()
-              }}
-            >
-              选择 WBIX/WBI 文件…
-            </Button>
-            <Text className="wb-dialog__file-name">{fileName ?? '尚未选择文件'}</Text>
-          </div>
-        </Field>
-
+        {/* 桌面 WBIX 导入只有"追加"一条活路径（`ImportFlow.cs:99-101`），这里把模式说明摆在明面上。 */}
         <Text className="wb-dialog__hint">
-          仅支持桌面版导出的 .wbix / .wbi；网页端暂不解析文件内容（P4 接入）。
+          {TEXTS.insertMethodLabel}
+          {TEXTS.appendMode}
         </Text>
+
+        {busy ? (
+          <MessageBar intent="info">
+            <MessageBarBody>{TEXTS.busy}</MessageBarBody>
+          </MessageBar>
+        ) : null}
+
+        {error === null ? null : (
+          <MessageBar intent="error">
+            <MessageBarBody>
+              {TEXTS.failedTitle}：{error}
+            </MessageBarBody>
+          </MessageBar>
+        )}
       </DialogContent>
 
       <DialogActions>
-        <Button appearance="secondary" onClick={props.onClose}>
+        <Button appearance="secondary" disabled={busy} onClick={props.onClose}>
           取消
         </Button>
         <Button
           appearance="primary"
           icon={<ArrowImportRegular />}
-          disabled={fileName === null}
-          onClick={handleImport}
+          disabled={fileBytes === null || busy}
+          onClick={() => {
+            void handleImport()
+          }}
         >
           导入
         </Button>
       </DialogActions>
     </DialogBody>
   )
+}
+
+/** 单参数填充 `{0}`（桌面 `L10n.Format` 的单参数用法）。 */
+function formatText(template: string, value: string): string {
+  return template.replace('{0}', value)
+}
+
+/** 取异常的可读信息。 */
+function errorMessage(cause: unknown): string {
+  return cause instanceof Error ? cause.message : String(cause)
+}
+
+/** 汇总容忍告警（最多 3 条，其余用省略号收尾；不添加任何自造文案）。 */
+function summarizeWarnings(warnings: readonly string[]): string {
+  const head = warnings.slice(0, 3).join('；')
+  return warnings.length > 3 ? `${head}…` : head
 }

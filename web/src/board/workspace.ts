@@ -136,6 +136,34 @@ export class BoardWorkspace {
     this._emit()
   }
 
+  /**
+   * 在末尾追加若干页并切到指定下标（对应桌面 `AppendPages`，`Features/Import/ImportFlow.cs:252-255`）。
+   *
+   * 与 `replaceWithSnapshots` 的区别：**已有页对象原样保留**（各自的会话与撤销栈不受影响），
+   * 只有新追加的页是新建的——WBIX 导入走这条路径，桌面 `AppendPages` 同样保留现有页的撤销栈。
+   *
+   * @param snapshots 追加的页快照；空数组是空操作（桌面在页数为 0 时只记日志后返回）。
+   * @param switchToIndex 追加完成后要切换到的**绝对**页下标；缺省停在第一张新页，
+   *   越界自动收敛到 `[0, count - 1]`。
+   * @returns 第一张新页的绝对下标；没有追加时返回 -1。
+   */
+  appendPages(snapshots: readonly PageSnapshot[], switchToIndex?: number): number {
+    if (snapshots.length === 0) {
+      return -1
+    }
+
+    const firstIndex = this._pages.length
+    for (const snapshot of snapshots) {
+      this._pages.push(new BoardPage(snapshot.id, new BoardSession(new BoardDocument(snapshot))))
+    }
+
+    const target = switchToIndex ?? firstIndex
+    this._currentIndex = Math.min(Math.max(Math.trunc(target) || 0, 0), this._pages.length - 1)
+    this._syncSnapshot()
+    this._emit()
+    return firstIndex
+  }
+
   private _syncSnapshot(): void {
     this._snapshot = Object.freeze([...this._pages])
   }
