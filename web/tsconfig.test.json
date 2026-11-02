@@ -8,7 +8,12 @@
      */
     "lib": ["ES2023", "DOM", "DOM.Iterable"],
     "jsx": "react-jsx",
-    "types": ["node"],
+    /*
+     * `vite/client` 提供 `import.meta.env` 的类型：测试会 typecheck 到被导入的 `src/**`
+     * （如 `BoardSurface.tsx` 里的 `import.meta.env.DEV` 调试句柄），只给 node 类型会报
+     * `Property 'env' does not exist on type 'ImportMeta'`。
+     */
+    "types": ["node", "vite/client"],
     "skipLibCheck": true,
 
     /* Bundler mode（测试由 vitest 转译，与 app 保持一致的解析策略） */

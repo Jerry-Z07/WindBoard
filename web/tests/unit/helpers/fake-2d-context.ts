@@ -219,6 +219,15 @@ export class FakeContext2D implements RenderContext2D {
     })
   }
 
+  /**
+   * 贴图（静态层缓存用）。只记录目标坐标：测试关心的是"贴了几次、贴在哪儿"，
+   * 位图内容由离屏上下文自己的 ops 记录来断言。
+   */
+  drawImage(image: unknown, dx: number, dy: number): void {
+    this.ops.push({ op: 'drawImage', args: [dx, dy] })
+    void image
+  }
+
   fillText(text: string, x: number, y: number): void {
     this.ops.push({
       op: 'fillText',

@@ -65,6 +65,13 @@ export interface RenderContext2D {
   stroke(): void
   clip(): void
   fillRect(x: number, y: number, width: number, height: number): void
+  /**
+   * 把另一块画布/位图按 1:1 贴到目标位置（不缩放）。
+   *
+   * 静态层缓存（`static-cache.ts`）靠它把离屏画好的整帧贴到主画布上；
+   * 只声明三参数重载，因为渲染层只按设备像素 1:1 贴图。
+   */
+  drawImage(image: unknown, dx: number, dy: number): void
   fillText(text: string, x: number, y: number, maxWidth?: number): void
 }
 

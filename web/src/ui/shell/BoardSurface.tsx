@@ -150,6 +150,24 @@ export function BoardSurface(props: BoardSurfaceProps): ReactNode {
   }, [controller, background])
 
   /**
+   * 开发期调试句柄：把控制器挂到 `window` 上，供 DevTools / 性能脚本操作。
+   *
+   * 只用于本地开发（`import.meta.env.DEV`）：生产构建里这段会被整段摇掉，
+   * 因此不存在"线上暴露内部控制对象"的风险。存在的理由很实际——
+   * P5.2 的 1 万笔迹压测需要能批量灌入笔迹并直接读帧时间，靠模拟指针事件造数据既慢又失真。
+   */
+  useEffect(() => {
+    if (!import.meta.env.DEV || controller === null) {
+      return
+    }
+    const scope = globalThis as { __windboardDev?: { controller: BoardController } }
+    scope.__windboardDev = { controller }
+    return () => {
+      delete scope.__windboardDev
+    }
+  }, [controller])
+
+  /**
    * 系统「用 WindBoard 打开 .wbix」：把 `file_handlers` 递进来的文件插到最后一页之后。
    *
    * 语义与导入对话框完全一致（桌面 `ImportFlow.cs:99-101` 只有 `AppendAfterLastPage` 一条活路径），

@@ -90,6 +90,28 @@ export function drawScene(
   surface: SceneSurface,
   outlineCache: StrokeOutlineCache,
 ): void {
+  drawSceneBase(ctx, sources, surface, outlineCache)
+  drawLivePreview(ctx, sources, surface, outlineCache)
+  // 还原单位变换：上下文可能被调用方复用（离屏导出等），避免状态泄漏。
+  ctx.setTransform(1, 0, 0, 1, 0, 0)
+}
+
+/**
+ * 绘制「静态场景」：背景 + 笔迹下方元素 + 文档墨迹 + 笔迹上方元素（顺序第 1~3 步）。
+ *
+ * 从 `drawScene` 拆出来的原因是性能（P5.2）：1 万条笔迹整帧重绘实测 p50 ≈ 83ms，
+ * 而书写时真正变化的只有末尾那条实时预览。把静态部分画进离屏画布缓存、每帧只贴图 +
+ * 画实时预览，就能把常态帧压回一帧预算内（见 `static-cache.ts`）。
+ *
+ * 调用方若只想要静态层，画完记得自己复位变换（本函数保持调用前的变换语义：
+ * 结束时把变换复位成单位矩阵）。
+ */
+export function drawSceneBase(
+  ctx: RenderContext2D,
+  sources: RenderSources,
+  surface: SceneSurface,
+  outlineCache: StrokeOutlineCache,
+): void {
   const { document, viewport } = sources
 
   // 1. 背景：先把后备存储整块铺满（每帧都要填，避免残留上一帧内容）。
@@ -126,15 +148,46 @@ export function drawScene(
   // 5. 笔迹上方元素（顺序第 3 步）。
   drawVisibleElements(ctx, document.elementsAboveInk(), visibleWorld, elementCardTheme, zoom)
 
-  // 6. 实时预览（顺序第 4 步）：桌面同一时刻只有一个活动条目，网页端笔迹与形状都支持。
+  // 复位变换，让后续（实时预览/覆盖层）从干净状态开始。
+  ctx.setTransform(1, 0, 0, 1, 0, 0)
+}
+
+/**
+ * 绘制实时预览（顺序第 4 步）：桌面同一时刻只有一个活动条目，网页端笔迹与形状都支持。
+ *
+ * 结束时同样把变换复位成单位矩阵。
+ */
+export function drawLivePreview(
+  ctx: RenderContext2D,
+  sources: RenderSources,
+  surface: SceneSurface,
+  outlineCache: StrokeOutlineCache,
+): void {
+  const { viewport } = sources
+  const matrix = viewport.getWorldToScreenMatrix()
+  const scale = surface.devicePixelRatio
+  const hasLiveStroke = sources.liveStroke !== null
+  const hasLiveShape = sources.liveShape !== null
+  if (!hasLiveStroke && !hasLiveShape) {
+    return
+  }
+
+  ctx.setTransform(
+    matrix.a * scale,
+    matrix.b * scale,
+    matrix.c * scale,
+    matrix.d * scale,
+    matrix.e * scale,
+    matrix.f * scale,
+  )
+  const visibleWorld = viewport.getVisibleWorldBounds()
+  const zoom = viewport.zoom
   if (sources.liveStroke !== null) {
     drawStroke(ctx, sources.liveStroke, visibleWorld, zoom, outlineCache)
   }
   if (sources.liveShape !== null) {
     drawShape(ctx, sources.liveShape, visibleWorld)
   }
-
-  // 还原单位变换：上下文可能被调用方复用（离屏导出等），避免状态泄漏。
   ctx.setTransform(1, 0, 0, 1, 0, 0)
 }
 

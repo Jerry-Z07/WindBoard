@@ -23,8 +23,21 @@ import type { Stroke, Vec2 } from '../board/model/stroke.ts'
 import { StrokeOutlineCache } from '../ink/outline.ts'
 import type { RenderCanvas, RenderContext2D } from './canvas-types.ts'
 import { createFrameScheduler, normalizeMaxFps } from './frame-scheduler.ts'
-import { drawScene, type RenderSources as SceneRenderSources, type SceneSurface } from './scene.ts'
+import {
+  drawLivePreview,
+  drawScene,
+  drawSceneBase,
+  type RenderSources as SceneRenderSources,
+  type SceneSurface,
+} from './scene.ts'
 import { drawSelectionOverlay, type SelectionOverlay } from './selection.ts'
+import {
+  computeSceneSignature,
+  countScenePoints,
+  createDomOffscreenCanvasFactory,
+  createStaticLayerCache,
+  type OffscreenCanvasFactory,
+} from './static-cache.ts'
 
 export type { SceneSurface } from './scene.ts'
 export type { SelectionOverlay } from './selection.ts'
@@ -50,6 +63,25 @@ export interface RenderSources extends SceneRenderSources {
 /** 设备像素比上限：超过 2 时按 2 计算后备存储。 */
 export const MAX_DEVICE_PIXEL_RATIO = 2
 
+/**
+ * 静态层缓存的默认启用门槛（采样点数）。
+ *
+ * 实测（1600×795 视口、DPR 1.5、软件光栅化，单位 ms/帧 p50）：
+ *
+ * | 点数   | 缓存命中（贴图） | 缓存未命中（整帧重绘） |
+ * |--------|------------------|------------------------|
+ * | 12k    | —（低于门槛）    | 1.9                    |
+ * | 30k    | 2.4              | 5.6                    |
+ * | 120k   | 6.7              | 23.1                   |
+ *
+ * 两条曲线的交点约 13k 点（贴图 2.4ms ≈ 重绘 13k 点）。门槛取 30000 而不是 13000，
+ * 因为**贴图成本随画布像素数走、重绘成本随点数走**：窗口放大到 4K 时贴图会涨几倍，
+ * 而点数不变。留出这个余量，宁可少优化一档，也不让缓存比不缓存更慢。
+ *
+ * 门槛按点数而不是条目数，理由见 `countScenePoints`。
+ */
+export const DEFAULT_STATIC_CACHE_THRESHOLD_POINTS = 30_000
+
 /** 后备存储像素尺寸。 */
 export interface BackingStoreSize {
   width: number
@@ -74,6 +106,21 @@ export interface RenderHandleOptions {
    * （`DxSwapChainPanelRenderer.cs:21`），实现留待 P5 性能阶段。
    */
   interactiveQualityScale?: number
+  /**
+   * 静态层缓存的启用门槛（**采样点数**，见 `countScenePoints`）。
+   *
+   * 默认 30000：缓存命中时每帧的固定成本是一次全屏贴图（实测软件光栅化下约 7ms，
+   * 真机 GPU 上远低于此），未命中时是整帧重绘（实测约 0.24µs/点）。两者相交在
+   * ~30k 点，取整到 30000 并留了余量——宁可少优化，也不要让缓存比不缓存更慢。
+   * 传 `0` 表示始终启用，传 `Number.POSITIVE_INFINITY` 表示禁用。
+   */
+  staticCacheThresholdPoints?: number
+  /**
+   * 离屏画布工厂（默认走 `document.createElement('canvas')`）。
+   *
+   * 独立成参数是为了让 Node 环境的单测能注入假画布，验证"什么时候复用、什么时候重画"。
+   */
+  createOffscreenCanvas?: OffscreenCanvasFactory
 }
 
 /** 画布渲染句柄（对外唯一入口）。 */
@@ -113,23 +160,75 @@ export function createBoardRenderHandle(
   const context = canvas.getContext('2d') as RenderContext2D | null
   const outlineCache = new StrokeOutlineCache()
   const maxFps = normalizeMaxFps(options.maxFps)
+  const staticCacheThresholdPoints =
+    options.staticCacheThresholdPoints ?? DEFAULT_STATIC_CACHE_THRESHOLD_POINTS
+  const staticCache = createStaticLayerCache(
+    options.createOffscreenCanvas ?? createDomOffscreenCanvasFactory(),
+  )
+  /** 上一帧的静态层指纹；`null` 表示还没有画过。 */
+  let staticSignature: number | null = null
   let disposed = false
   let surface: SceneSurface = { pixelWidth: 1, pixelHeight: 1, devicePixelRatio: 1 }
 
-  /** 一帧：同步尺寸 → 清理轮廓缓存 → 整帧绘制场景 → 覆盖层。 */
+  /**
+   * 一帧：同步尺寸 → 清理轮廓缓存 → （静态层）场景 + 实时预览 → 覆盖层。
+   *
+   * 静态层缓存启用时，场景部分只在指纹变化时重画，其余帧只做一次 1:1 贴图；
+   * 未启用时退回整帧重绘（小场景更快，也保持了 P1 以来的行为）。
+   */
   function renderFrame(): void {
     if (disposed || context === null) {
       return
     }
     syncSurface()
     pruneOutlineCache()
-    drawScene(context, sources, surface, outlineCache)
+
+    if (shouldUseStaticCache()) {
+      drawCachedFrame()
+    } else {
+      drawScene(context, sources, surface, outlineCache)
+    }
 
     // 覆盖层最后画：选择框/手柄/marquee 永远在场景与实时预览之上。
     const selection = sources.selection
     if (selection !== undefined && selection !== null) {
       drawSelectionOverlay(context, selection, surface)
     }
+  }
+
+  /** 当前场景是否走静态层缓存（名字刻意不以 use 开头：它不是 React Hook）。 */
+  function shouldUseStaticCache(): boolean {
+    return (
+      staticCache !== null && countScenePoints(sources.document) >= staticCacheThresholdPoints
+    )
+  }
+
+  /** 用静态层缓存画一帧：必要时重画离屏层，然后贴图 + 实时预览。 */
+  function drawCachedFrame(): void {
+    if (staticCache === null || context === null) {
+      return
+    }
+    const signature = computeSceneSignature(
+      sources.document,
+      sources.viewport,
+      surface,
+      sources.background,
+      sources.elementCardTheme,
+    )
+    const staticContext = staticCache.prepare(surface)
+    if (staticContext === null) {
+      // 环境不支持离屏画布：这一帧退回整帧重绘，别把画面留白
+      drawScene(context, sources, surface, outlineCache)
+      return
+    }
+    if (staticCache.resized || signature !== staticSignature) {
+      drawSceneBase(staticContext, sources, surface, outlineCache)
+      staticSignature = signature
+    }
+    // 贴图必须在单位变换下做：离屏层与目标画布是同一套设备像素
+    context.setTransform(1, 0, 0, 1, 0, 0)
+    context.drawImage(staticCache.canvas, 0, 0)
+    drawLivePreview(context, sources, surface, outlineCache)
   }
 
   /**
@@ -225,6 +324,8 @@ export function createBoardRenderHandle(
         return
       }
       disposed = true
+      staticCache.dispose()
+      staticSignature = null
       resizeObserver?.disconnect()
       scheduler.dispose()
       outlineCache.clear()
