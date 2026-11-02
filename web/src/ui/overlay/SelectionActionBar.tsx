@@ -17,6 +17,7 @@
 import { ArrowUndoRegular, ArrowUpRegular, CopyRegular, DeleteRegular } from '@fluentui/react-icons'
 import type { ReactNode } from 'react'
 import { FluentProvider, webLightTheme } from '@fluentui/react-components'
+import { useI18n } from '../../i18n/context.ts'
 import { DockButton } from '../shell/DockButton.tsx'
 import {
   isActionEnabled,
@@ -60,6 +61,7 @@ const TRANSPARENT_THEME_STYLE = { background: 'transparent', display: 'block' } 
 
 /** 选中项 Dock。 */
 export function SelectionActionBar(props: SelectionActionBarProps): ReactNode {
+  const { t } = useI18n()
   const anchor = props.anchorScreenDip
   if (anchor === null) {
     return null
@@ -69,6 +71,12 @@ export function SelectionActionBar(props: SelectionActionBarProps): ReactNode {
     props.bringToFrontState,
     props.onBringToFront !== undefined,
   )
+  // 文案走 i18n（key 与桌面 `Common.resw` 同名）；`resolveBringToFrontButton` 返回的
+  // `label` 只是纯函数层的兜底值，UI 一律以 key 为准，避免两处中文各自漂移。
+  const bringToFrontLabel =
+    bringToFront.icon === 'undo' ? t('Common_CancelBringToFront') : t('Common_BringToFront')
+  const copyLabel = t('Common_Copy')
+  const deleteLabel = t('Common_Delete')
 
   return (
     <div className="wb-overlay-anchor" style={{ transform: `translate(${anchor.x}px, ${anchor.y}px)` }}>
@@ -78,22 +86,22 @@ export function SelectionActionBar(props: SelectionActionBarProps): ReactNode {
           <DockButton
             // 图标判别值 → Fluent 图标：up = 桌面 `Symbol.Up`，undo = 桌面 `Symbol.Undo`
             icon={bringToFront.icon === 'undo' ? <ArrowUndoRegular /> : <ArrowUpRegular />}
-            label={bringToFront.label}
-            title={bringToFront.label}
+            label={bringToFrontLabel}
+            title={bringToFrontLabel}
             disabled={bringToFront.disabled}
             onClick={props.onBringToFront}
           />
           <DockButton
             icon={<CopyRegular />}
-            label="复制"
-            title="复制"
+            label={copyLabel}
+            title={copyLabel}
             disabled={!isActionEnabled(props.canDuplicate, props.onDuplicate !== undefined)}
             onClick={props.onDuplicate}
           />
           <DockButton
             icon={<DeleteRegular />}
-            label="删除"
-            title="删除"
+            label={deleteLabel}
+            title={deleteLabel}
             disabled={!isActionEnabled(props.canDelete, props.onDelete !== undefined)}
             onClick={props.onDelete}
           />

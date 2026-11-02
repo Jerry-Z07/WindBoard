@@ -12,6 +12,7 @@ import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { FluentProvider, webDarkTheme, webLightTheme } from '@fluentui/react-components'
 import { AppServicesProvider } from './app/providers.tsx'
 import { createAppServices, disposeAppServices } from './app/services.ts'
+import { I18nProvider } from './i18n/I18nProvider.tsx'
 import { AppShell } from './ui/shell/AppShell.tsx'
 
 /** 深色偏好查询串（`tokens.css` 的深色变量块走 `data-theme`，与本判定同源）。 */
@@ -69,7 +70,9 @@ function App(): ReactNode {
   return (
     <FluentProvider theme={theme} style={{ height: '100%' }}>
       <AppServicesProvider services={services}>
-        <AppShell />
+        <I18nProvider>
+          <AppShell />
+        </I18nProvider>
       </AppServicesProvider>
     </FluentProvider>
   )

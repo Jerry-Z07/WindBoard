@@ -337,9 +337,40 @@ P4.5 / P4.6 浏览器实测（2026-11-02）：
 - [ ] **P5.1 视觉回归**：Playwright 截图基线入库；Mica/亚克力区域只比对结构
 - [ ] **P5.2 性能**：1 万笔迹实测，必要时启用分块位图缓存；给出帧时间与输入延迟数据
 - [ ] **P5.3 触屏**：iPad Safari 压感与掌拒实测；iOS canvas 尺寸限制处理
-- [ ] **P5.4 i18n**：`gen-i18n.mjs` + key 集合审计测试
+- [~] **P5.4 i18n**：`gen-i18n.mjs` + key 集合审计测试（基础设施已落地，界面文案迁移进行中）
 - [x] **P5.5 PWA**：manifest、图标（192/512）、SW 预缓存与静默更新、`file_handlers`
 - 验收：AC8、AC9；Lighthouse PWA 可安装
+
+### P5.4 记录：i18n 基础设施（2026-11-02）
+
+已落地（可验证）：
+
+- **文案表生成**：`web/scripts/gen-i18n.mjs`（`pnpm i18n`）解析
+  `WindBoard/Strings/{zh-CN,en-US}/*.resw`（各 18 个文件、512 个 key），产出
+  `web/src/i18n/locales/{zh-CN,en-US}.generated.ts`。生成时做两件事的守卫：
+  同一 key 跨 resw 取值冲突直接报错；两个语言的 key 集合不一致直接报错。
+- **运行时**：`web/src/i18n/index.ts` —— `LOCALES`/`DEFAULT_LOCALE`(zh-CN)、
+  `MESSAGES_BY_LOCALE`、`normalizeLocale`（`zh-Hans-CN`→`zh-CN`、`en-GB`→`en-US`）、
+  `resolveLocale(preference, systemLanguages)`、`formatMessage`（.NET 风格 `{0}` 占位符）、
+  `translate`/`createTranslator`（回落：目标语言 → zh-CN → key 本身）。
+- **React 接线**：`web/src/i18n/context.ts`（`createContext` + `useI18n`，**未包 Provider 时
+  回落默认语言而不抛错**——语言只是显示层，不该让组件单测或装配顺序调整变成白屏）
+  与 `web/src/i18n/I18nProvider.tsx`（读 `settings.general.languagePreference`，`system`
+  时按 `navigator.languages` 解析；同步写 `<html lang>`）。`App.tsx` 把 `I18nProvider`
+  套在 `AppServicesProvider` 内、`AppShell` 外。
+- **迁移示例**：`ui/shell/TitleBar.tsx`（`MainWindow_Title`）、
+  `ui/overlay/SelectionActionBar.tsx`（`Common_BringToFront` / `Common_CancelBringToFront` /
+  `Common_Copy` / `Common_Delete`）。
+- **守卫测试**：`web/tests/unit/i18n.test.ts` 16 例——语言归一/解析/占位符/回落，
+  以及**生成物与 resw 的一致性**（重新解析 resw 逐 key 比对；resw 改了却忘了 `pnpm i18n`
+  会直接失败）。另断言两语言 key 集合相同、没有空文案。
+
+浏览器实测：把 `settings.general.languagePreference` 设为 `en-US` 后刷新 →
+标题变 `WindBoard`、`<html lang>` 变 `en-US`；Dock 文案仍是中文（尚未迁移，符合预期）。
+
+未完成（渐进迁移，按页面推进）：Dock 标签、各弹出面板、设置页、对话框、提醒条的文案
+仍是硬编码中文。迁移方式已定型：把该组件的 `TEXTS` 常量换成 `useI18n().t('Key')`，
+key 一律取 resw 里的原名，不做新造。
 
 ### P5.5 记录：PWA 落地（2026-11-02）
 

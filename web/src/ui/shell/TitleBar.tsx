@@ -20,14 +20,15 @@
  */
 
 import type { ReactNode } from 'react'
+import { useI18n } from '../../i18n/context.ts'
 
 /**
- * 窗口标题。
+ * 窗口标题的文案 key（桌面 `MainWindow_Title`，见 `WindBoard/Strings/zh-CN/MainWindow.resw`）。
  *
- * 桌面取本地化资源 `MainWindow_Title`（默认语言 zh-CN）；网页端暂用中文字面量，
- * P5 接入 i18n 后改为走文案表（与桌面 resw 的 key 对齐）。
+ * 标题也走文案表而不是字面量：它是最容易被截图/横向对比看出差异的一处，
+ * 且桌面本来就用的是本地化资源。
  */
-const WINDOW_TITLE = '轻风白板'
+const WINDOW_TITLE_KEY = 'MainWindow_Title' as const
 
 /** 属性。 */
 export interface TitleBarProps {
@@ -37,13 +38,14 @@ export interface TitleBarProps {
 
 /** 标题栏：图标 + 标题（桌面 `TitleBar` 无返回键/导航按钮，故没有其它元素）。 */
 export function TitleBar(props: TitleBarProps): ReactNode {
+  const { t } = useI18n()
   if (!props.visible) {
     return null
   }
   return (
     <header className="wb-titlebar">
       <span className="wb-titlebar__icon" aria-hidden="true" />
-      <span className="wb-titlebar__title">{WINDOW_TITLE}</span>
+      <span className="wb-titlebar__title">{t(WINDOW_TITLE_KEY)}</span>
     </header>
   )
 }
