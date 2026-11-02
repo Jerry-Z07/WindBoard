@@ -37,6 +37,22 @@
 *.ico binary
 *.ttf binary
 
+# WBIX golden 语料断言的是「解压后的逐字节文本」，其中的 CRLF 本身就是格式契约的一部分。
+# `* text=auto` 只保证入库规范化，检出方向仍随 core.autocrlf 变化——若不显式钉死，
+# 在 core.autocrlf=false 的机器或 CI 上会检出 LF，导致 golden 测试假失败。
+WindBoard.Tests/Fixtures/wbix/expected/** text eol=crlf
+
+# `.wbix` 是 zip 容器，永不做行尾转换（虽含 NUL 会被启发式判为二进制，仍显式声明以免误判）
+*.wbix binary
+
+# 网页端子项目用 LF（见 web/.editorconfig）。若不显式钉死，检出方向会随 core.autocrlf
+# 变化，Windows 上会得到 CRLF 并与其 editorconfig 冲突。
+web/** text eol=lf
+
+# `web/** text eol=lf` 会盖掉上面的 `*.png binary`（同名属性后出现的规则优先），
+# 而 PWA 图标就在 web/public 下，必须再钉一次，否则可能被当文本转换行尾而损坏。
+web/**/*.png binary
+
 # Trellis: append-only developer journals should merge cleanly across
 # parallel sessions/worktrees — each session only appends a new block, so
 # there is nothing to actually conflict on.
@@ -46,3 +62,4 @@
 # picking either side (task state lives in task.json, not index.md). See
 # .trellis/spec/cli/backend/directory-structure.md for details.
 .trellis/workspace/*/journal-*.md merge=union
+WindBoard.Tests/Fixtures/settings/** text eol=lf

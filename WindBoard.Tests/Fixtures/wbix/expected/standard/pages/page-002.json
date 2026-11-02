@@ -1,0 +1,49 @@
+{
+  "id": "88888888-8888-4888-8888-888888888888",
+  "strokes": [
+    {
+      "kind": "stroke",
+      "stroke": {
+        "points": [
+          {
+            "position": {
+              "x": 1000000,
+              "y": -1000000
+            },
+            "pressure": 0.15
+          },
+          {
+            "position": {
+              "x": -1000000,
+              "y": 1000000
+            },
+            "pressure": 0.45
+          },
+          {
+            "position": {
+              "x": 999999.94,
+              "y": -0.5
+            },
+            "pressure": 0.75
+          },
+          {
+            "position": {
+              "x": -999999.5,
+              "y": 0.125
+            },
+            "pressure": 0.95
+          }
+        ],
+        "colorRgba": {
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "w": 1
+        },
+        "baseSize": 12.75,
+        "enablePressure": true
+      }
+    }
+  ],
+  "elements": []
+}

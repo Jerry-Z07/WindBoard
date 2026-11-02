@@ -29,7 +29,7 @@ WBIX (`.wbix`) is the persistence format for a workspace. It is essentially a Zi
 └── assets/                - binary assets (cover images, embedded images, and so on)
 ```
 
-**Current version**: 3 (`WbixWorkspaceSerializer.CurrentVersion`). Write side always emits the current version; read side gates `0 < Version <= CurrentVersion`. Older apps refuse to open newer files (by design, no downgrade writing / no per-version migration code).
+**Current version**: 3 (`WbixWorkspaceSerializer.CurrentVersion`). Write side always emits the current version; read side **dispatches on `version`** to a per-version page reader: `WbixPageReaderRegistry.For(version)` returns `WbixPageReaderV1V2` for 1/2 and `WbixPageReaderV3` for 3, and throws `InvalidDataException` (L10n key `Wbix_VersionNotSupported_Fmt`) for `version <= 0` or `version > CurrentVersion`. There is **no data migration** between versions: a version bump means "add a new reader, leave the existing readers untouched". Older apps refuse to open newer files (by design: no downgrade writing).
 
 **manifest.json** structure:
 ```csharp
@@ -52,9 +52,29 @@ record WbixManifest(
 Page payload `strokes` entries are `InkItemSnapshot { Kind, Stroke?, Shape? }` (JSON key stays `strokes` for v2 compat):
 
 - **v3 write shape**: `{ "kind": "stroke", "stroke": { points, colorRgba, baseSize, enablePressure } }` for polyline strokes and `{ "kind": "line"|"rect"|"ellipse"|"arrow", "shape": { start, end, colorRgba, width } }` for two-point shapes — single form only. Shape kinds are a v3 in-format kind extension (version stays 3; no v3 files were shipped before the extension).
-- **v1/v2 read compat**: entries are flat (`points/colorRgba/...` directly on the item, no wrapper). `InkItemSnapshotJsonConverter` handles both forms; a missing or explicit-null `kind` normalizes to `"stroke"`.
+- **v1/v2 read compat**: entries are flat (`points/colorRgba/...` directly on the item, no wrapper). `InkItemSnapshotJsonConverter` takes a read mode (`InkItemReadMode.LegacyFlat` / `InkItemReadMode.Wrapped`) injected through the `JsonSerializerOptions` instance used for that version's pages. **Both modes accept both forms** (the mode only decides whether the flat fallback logs a Warn), so no file that loads today can start failing. A missing or explicit-null `kind` normalizes to `"stroke"`.
 - **Unknown kind**: log `Warn("WBIX", ...)` and skip that single item; never fail the whole load. Known shape kinds with a missing `shape` payload are corrupt data and fail fast (same as a known `stroke` kind with a missing payload).
 - **Snapshot ↔ domain conversion**: all conversions go through `BoardInkItemCodec` (`ToItemList` / `ToStrokeItem` / `ToItem`), which owns Bounds recalculation and z-order preservation. Shape kind strings (`"line"/"rect"/"ellipse"/"arrow"`) ↔ `BoardShapeKind` mapping lives only in `BoardInkItemCodec` (single point). `WbiWorkspaceImporter` must pass the explicit stroke path (legacy WBI has no kind).
+
+### Version contract (read-side dispatch)
+
+`version` is a **compatibility contract**, not decoration. Two kinds of format change exist:
+
+- **Additive** (new optional field, new `kind` value, new `elements[].type`): `version` stays unchanged. The read side must tolerate unknown fields and unknown enum-ish values (skip + warn). Shape kinds (`line`/`rect`/`ellipse`/`arrow`) were added this way inside v3.
+- **Breaking** (field semantics, structure shape, or a type changes): bump `CurrentVersion` and add a new page reader. Checklist:
+  1. New `WbixPageReaderV{N}` in `WbixWorkspaceSerializer.Readers.cs`; **existing readers stay untouched**.
+  2. Register it in `WbixPageReaderRegistry.For`.
+  3. Bump `WbixWorkspaceSerializer.CurrentVersion`.
+  4. Add fixtures under `WindBoard.Tests/Fixtures/wbix/` (input + `expected/` text).
+  5. Keep existing golden files and their assertions; a deliberate byte change needs an explicit corpus update and a justification in the commit message.
+
+The unknown-version rejection happens **after** the manifest is parsed and `format` is validated, but **before any page is read** — a file with an illegal `version` and an empty `pages` array must still be rejected, never silently treated as an empty workspace.
+
+### Byte-level golden corpus
+
+`WindBoard.Tests/Fixtures/wbix/` is the **single source of truth** for what the writer emits: zip entry names and order, JSON indentation, key order, whether `null` members are written, number formatting, and non-ASCII escaping. Tests compare the produced text against `expected/` byte-for-byte (line endings normalized, with the writer's newline style asserted separately), so any writer change fails the suite — that is the point, not flakiness. Do **not** "fix" the writer to make a golden pass; update the corpus only when the format change is intentional.
+
+The line separator is part of the contract: the writer sets `JsonSerializerOptions.NewLine = "\r\n"` explicitly and never relies on `Environment.NewLine`. Without that, the on-disk byte shape would silently depend on the host OS (or on a future .NET default change), which yields either a failing test for a format that did not break, or a format that changed unnoticed. A second implementation must emit CRLF as well.
 
 ### Safety checks
 

@@ -1,0 +1,6 @@
+pages/page-000.json
+pages/page-001.json
+pages/page-002.json
+assets/elements/img-0001.png
+assets/cover.png
+manifest.json

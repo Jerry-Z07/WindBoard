@@ -8,6 +8,7 @@
 - 平台：默认已映射到 x64；如需显式指定可用 `-p:Platform=x64`
 - 运行时：.NET 10，目标 `net10.0-windows10.0.26100.0`，最低支持 `10.0.19041.0`
 - 打包：便携版 zip（`dotnet publish`）+ Microsoft Store 的 MSIX（`-p:WindBoardPackage=Msix`，须用 VS `MSBuild.exe` 产包）；Inno 安装包已停发（`installer/WindBoard.iss` 保留用于回滚）。详见 `docs/dev/guides/msix-packaging.zh-CN.md`
+- 网页端（`web/`，不在解决方案里，独立 pnpm）：`cd web && pnpm install` → `pnpm verify`（typecheck + test + build）；动了 `ui/**`/`styles/**` 再跑 `pnpm e2e`；动了 WBIX 格式层再跑 `pnpm interop`（需 .NET SDK）；改了 `.resw` 必须跑 `pnpm i18n` 重新生成词表
 
 ## 解决方案结构（Solution Structure）
 
@@ -20,6 +21,7 @@
 
 - 默认为 unpackaged 桌面应用（`WindowsPackageType=None`、`EnableMsixTooling=false`）；MSIX 打包仅在显式传 `-p:WindBoardPackage=Msix` 时启用
 - `WindBoard.Launcher` 完全独立，无项目引用
+- `web/` 是网页端移植（React + TypeScript + Vite，PWA），**不属于** `WindBoard.slnx`，用 pnpm 管理；它与桌面版的对应关系与同步义务见 `docs/dev/guides/web-port.zh-CN.md`
 
 ## 架构概述（Architecture）
 
@@ -74,7 +76,8 @@
   允许测试访问 `internal` 类型。
 - 运行测试：`dotnet test WindBoard.slnx`（默认平台已映射到 x64；如需显式指定可用 `dotnet test WindBoard.slnx -p:Platform=x64`）。
 - 发布自动化：`.github/workflows/release.yml`（push `v*` tag 或手动触发）负责产包与发布，构建时传入 `-p:CodeAnalysisTreatWarningsAsErrors=true` 作为零告警闸门。
-- 注意：仓库当前**没有** push/PR 阶段的 CI 工作流，零告警构建与全量单测（含渲染快照）需在提交前本地执行：`dotnet build WindBoard.slnx -c Release -p:Platform=x64 -p:CodeAnalysisTreatWarningsAsErrors=true`、`dotnet test WindBoard.slnx`。E2E 依赖交互桌面，不进 CI。
+- 注意：桌面侧**没有** push/PR 阶段的 CI 工作流（只有 `.github/workflows/release.yml` 的 tag 发布流程），零告警构建与全量单测（含渲染快照）需在提交前本地执行：`dotnet build WindBoard.slnx -c Release -p:Platform=x64 -p:CodeAnalysisTreatWarningsAsErrors=true`、`dotnet test WindBoard.slnx`。E2E 依赖交互桌面，不进 CI。
+- 网页端有 push/PR CI：`.github/workflows/web.yml`（ubuntu，跑 lint / typecheck / test 含跨端一致性 / build / i18n 生成物校验）。它**不跑** `pnpm e2e`（视觉基线含中文字形，换机器即不可比）与 `pnpm interop`（需 Windows + .NET 10，仅在手动 dispatch 勾选时跑），所以动了 `ui/**`、`styles/**`、`persistence/wbix/**` 时这两项仍要本地跑。
 - 本地化 Key 审计：`WindBoard.Tests/Localization/LocalizationKeyAuditTests.cs`（要求 C# 中 `L10n.Get/Format` 的 key 为字符串字面量；XAML 使用 `{l10n:Loc Key=...}`）。
 - 测试分层建议：
   - D2D 渲染层可用离屏快照测试覆盖（`WindBoard.Tests/Rendering/Snapshot/`，WARP 软件路径，不依赖真实 GPU/显示器）；基准缺失即测试失败，重建用 `WINDBOARD_REGEN_SNAPSHOTS=1`，基准变更须在提交说明中给出理由。
@@ -84,7 +87,9 @@
 ## 相关文档（Docs）
 
 - `docs/dev/guides/localization.zh-CN.md`：本地化约定。
-- `docs/dev/guides/wbix.zh-CN.md`：WBIX（`.wbix`）格式说明。
+- `docs/dev/guides/wbix.zh-CN.md`：WBIX（`.wbix`）格式说明（含版本兼容契约）。
+- `docs/dev/guides/ink-rendering.zh-CN.md`：笔迹与图形渲染几何规范（绘制顺序、笔宽与半径、端点/连接、箭头翼、常量表）。
+- `docs/dev/guides/web-port.zh-CN.md`：网页端（`web/`）与桌面端的模块映射、双端契约、同步流程与门禁命令。**改桌面主程序前先看这张对应表**。
 - `docs/dev/guides/msix-packaging.zh-CN.md`：MSIX 打包与 Store 发布（条件属性、产包命令、payload 注入、版本号注入）。
 - `.agents/skills/writing-release-notes/SKILL.md`：更新日志编写约定。发版前必须加载并遵循
 - 不要阅读 `docs/dev/archive/` 中的内容。

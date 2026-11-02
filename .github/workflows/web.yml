@@ -1,0 +1,135 @@
+name: Web
+
+# 网页端（web/）的 push/PR 闸门。
+#
+# 为什么单开一个 workflow 而不并进 release.yml：
+# - release.yml 只在 push tag 时跑，且要产 MSIX/zip 包；网页端的日常校验需要更快的反馈；
+# - 这里的 `verify` 全部跑在 ubuntu 上、不碰 .NET，所以任何改动都能在几分钟内给出结论。
+#
+# 触发路径包含桌面源码：`web/tests/conformance/` 直接读 `WindBoard/**` 的 XAML 与
+# `WindBoard.Tests/Fixtures/**` 的语料做两端比对，桌面改了这些文件同样要让网页端测试重跑。
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - 'web/**'
+      - 'WindBoard/**'
+      - 'WindBoard.Tests/**'
+      - 'WindBoard.slnx'
+      - '.gitattributes'
+      - '.github/workflows/web.yml'
+  pull_request:
+    paths:
+      - 'web/**'
+      - 'WindBoard/**'
+      - 'WindBoard.Tests/**'
+      - 'WindBoard.slnx'
+      - '.gitattributes'
+      - '.github/workflows/web.yml'
+  workflow_dispatch:
+    inputs:
+      interop:
+        description: '同时跑 WBIX 双端互通（Windows，需要 .NET 10，耗时数分钟）'
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: web-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: 类型检查 / 测试 / 构建
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 安装 pnpm
+        # 版本钉在这里而不是 package.json 的 `packageManager` 字段：
+        # pnpm 12 见到该字段会把自身当作 packageManagerDependency 写进 pnpm-lock.yaml
+        # （多出一次完整 importers/packages 段），让锁文件凭空变脏。
+        uses: pnpm/action-setup@v4
+        with:
+          version: 12.14.0
+
+      - name: 安装 Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: web/pnpm-lock.yaml
+
+      - name: 安装依赖
+        run: pnpm install --frozen-lockfile
+
+      - name: 代码风格
+        run: pnpm lint
+
+      - name: 类型检查
+        run: pnpm typecheck
+
+      # 含 tests/conformance：WBIX 语料、设置默认值语料、XAML ↔ design token 三组两端比对。
+      - name: 单元测试与跨端一致性
+        run: pnpm test
+
+      - name: 构建
+        run: pnpm build
+
+      # 桌面改了 .resw 却没跑 `pnpm i18n` 时，生成物会与词表不一致 —— 这类漂移靠人记不住。
+      - name: 检查 i18n 生成物是否最新
+        run: |
+          pnpm i18n
+          if [ -n "$(git status --porcelain -- src/i18n/locales)" ]; then
+            echo "::error::src/i18n/locales 与 resw/web-strings 不同步，请在 web/ 下运行 pnpm i18n 并提交结果"
+            git --no-pager diff -- src/i18n/locales
+            exit 1
+          fi
+
+  # WBIX 双端互通需要 `dotnet build WindBoard.slnx`（WinUI，Windows-only）与 .NET 10 SDK，
+  # 只能在 Windows runner 上跑，且耗时明显高于 verify；因此默认不参与 PR 闸门，
+  # 需要时用 workflow_dispatch 手动打开，或本地跑 `pnpm interop`（发布前必须跑）。
+  interop:
+    name: WBIX 双端互通
+    if: github.event_name == 'workflow_dispatch' && inputs.interop
+    runs-on: windows-latest
+    timeout-minutes: 40
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 安装 pnpm
+        # 版本钉在 workflow 里而不是 package.json 的 `packageManager` 字段：
+        # pnpm 12 见到该字段会把自身当作 packageManagerDependency 写进 pnpm-lock.yaml
+        # （多出一次完整 importers/packages 段），让锁文件凭空变脏。
+        uses: pnpm/action-setup@v4
+        with:
+          version: 12.14.0
+
+      - name: 安装 Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: web/pnpm-lock.yaml
+
+      - name: 安装 .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: 安装依赖
+        run: pnpm install --frozen-lockfile
+
+      - name: 双端互通（A~E 五步）
+        run: pnpm interop

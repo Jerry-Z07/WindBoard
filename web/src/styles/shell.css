@@ -1,0 +1,197 @@
+/**
+ * 应用外壳布局样式。
+ *
+ * 结构对应 `WindBoard/MainWindow.xaml` 的两行 Grid：
+ * ```
+ * Row 0  TitleBar（全屏时隐藏）
+ * Row 1  BoardSurface + 右上提醒栈 + 底部 Dock（三块分别左/居中/右对齐）
+ * ```
+ * 尺寸与颜色一律来自 `tokens.css`，这里只负责摆放。
+ */
+
+.wb-app {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--wb-canvas-background);
+  /* 整窗禁止选中/拖拽，避免写画时选中文字或触发原生拖影 */
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
+}
+
+/* ===== 标题栏 ===== */
+.wb-titlebar {
+  flex: 0 0 auto;
+  height: var(--wb-titlebar-height);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-inline: 16px;
+  background: var(--wb-titlebar-background);
+  color: var(--wb-titlebar-foreground);
+  font-size: 12px;
+  /* 桌面为 Mica，网页端用 1px 分隔线表达同一条边界 */
+  border-bottom: 1px solid rgb(0 0 0 / 8%);
+}
+
+.wb-titlebar__icon {
+  width: 16px;
+  height: 16px;
+  border-radius: 3px;
+  background: linear-gradient(135deg, #7cc4ff, #3a8ee6);
+  flex: 0 0 auto;
+}
+
+.wb-titlebar__title {
+  font-size: 12px;
+  line-height: 1;
+}
+
+/* ===== 画布区 ===== */
+.wb-body {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.wb-surface {
+  position: absolute;
+  inset: 0;
+}
+
+.wb-surface__canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  /* 触摸设备上禁止浏览器接管手势（桌面无此概念，属浏览器必需项） */
+  touch-action: none;
+  cursor: crosshair;
+}
+
+/* ===== 右上提醒栈（`MainWindow.xaml:43-49`） ===== */
+.wb-reminder-stack {
+  position: absolute;
+  top: var(--wb-overlay-margin);
+  right: var(--wb-overlay-margin);
+  display: flex;
+  flex-direction: column;
+  gap: var(--wb-reminder-stack-gap);
+  width: min(var(--wb-reminder-stack-width), calc(100% - 2 * var(--wb-overlay-margin)));
+  pointer-events: none;
+  z-index: 20;
+}
+
+.wb-reminder-stack > * {
+  pointer-events: auto;
+}
+
+/* ===== 底部 Dock 层（`MainWindow.xaml:54-70`） ===== */
+.wb-dock-layer {
+  position: absolute;
+  left: var(--wb-overlay-margin);
+  right: var(--wb-overlay-margin);
+  bottom: var(--wb-overlay-margin);
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  /* 三块浮层各自对齐左/中/右；中间块绝对居中，保证主 Dock 始终以窗口居中 */
+  z-index: 30;
+  pointer-events: none;
+}
+
+.wb-dock-layer > * {
+  pointer-events: auto;
+}
+
+.wb-dock-layer__center {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  transform: translateX(-50%);
+}
+
+/* ===== Dock 底板与按钮 ===== */
+.wb-dock {
+  display: flex;
+  align-items: center;
+  gap: var(--wb-dock-gap);
+  padding: var(--wb-dock-padding);
+  /* 底板 0.85 不透明度只作用于背景，不影响内部图标/文字（桌面用单独 Border 实现） */
+  background: color-mix(in srgb, var(--wb-dock-plate-color) 85%, transparent);
+  border-radius: var(--wb-dock-plate-radius);
+  /* Dock 里只有按钮（`.wb-dock-button` 用 `color: inherit`），文字走 `DefaultButtonStyle`
+     的 `TextFillColorPrimary`（89.4% 黑），不是浮层那种纯黑 */
+  color: var(--wb-dock-button-foreground);
+}
+
+.wb-dock__separator {
+  width: 1px;
+  height: var(--wb-dock-separator-size);
+  background: var(--wb-dock-separator-color);
+  flex: 0 0 auto;
+}
+
+.wb-dock-button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--wb-dock-label-gap);
+  min-width: var(--wb-dock-button-width);
+  min-height: var(--wb-dock-button-height);
+  padding: var(--wb-dock-button-padding-y) var(--wb-dock-button-padding-x);
+  border: 0;
+  border-radius: var(--wb-dock-button-radius);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: default;
+}
+
+.wb-dock-button:hover {
+  background: var(--wb-dock-hover);
+}
+
+.wb-dock-button:active {
+  background: var(--wb-dock-pressed);
+}
+
+.wb-dock-button[aria-pressed='true'] {
+  background: var(--wb-dock-checked);
+  color: var(--wb-dock-checked-foreground);
+}
+
+.wb-dock-button:disabled {
+  opacity: 0.4;
+}
+
+.wb-dock-button__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--wb-dock-icon-size);
+  height: var(--wb-dock-icon-size);
+  font-size: var(--wb-dock-icon-size);
+  line-height: 1;
+}
+
+.wb-dock-button__label {
+  font-size: var(--wb-dock-label-size);
+  line-height: 1;
+  white-space: nowrap;
+}
+
+/* 页面 Dock：按钮是正方形图标按钮，指示器更宽、字号 12 半粗（`MainWindow.xaml:687-737`） */
+.wb-dock--pages .wb-dock-button {
+  min-width: var(--wb-page-button-size);
+  padding: 0;
+}
+
+.wb-dock__page-indicator {
+  min-width: var(--wb-page-indicator-width);
+  font-size: var(--wb-page-indicator-size);
+  font-weight: 600;
+}

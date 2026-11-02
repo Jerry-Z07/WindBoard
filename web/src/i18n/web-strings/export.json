@@ -1,0 +1,30 @@
+{
+  "zh-CN": {
+    "Web_Export_PageRangeLabel": "页码范围",
+    "Web_Export_PageCount_Fmt": "将导出 {0} 页",
+    "Web_Export_SizeSuffix_Fmt": "，画面 {0}×{1}",
+    "Web_Export_MultiPageFolder_Fmt": "多页 PNG 将导出到 {0} 子目录",
+    "Web_Export_WbixWholeWorkspace": "WBIX 会导出整个工作区（忽略页范围）。",
+    "Web_Export_UnknownFormat": "未知导出格式。",
+    "Web_Export_UnknownPageScope": "未知页范围。",
+    "Web_Export_PaddingInvalid": "留白必须是数字且不小于 0",
+    "Web_Export_PdfDpiInvalid": "PDF DPI 必须是 96 / 192 / 288 之一",
+    "Web_Export_PngHeightInvalid": "PNG 高度必须是 720 / 1080 / 2160 之一",
+    "Web_Export_PngAspectInvalid": "PNG 比例无效",
+    "Web_Export_FileFormatInvalid": "文件格式不正确"
+  },
+  "en-US": {
+    "Web_Export_PageRangeLabel": "Page range",
+    "Web_Export_PageCount_Fmt": "{0} page(s) will be exported",
+    "Web_Export_SizeSuffix_Fmt": ", image {0}×{1}",
+    "Web_Export_MultiPageFolder_Fmt": "Multi-page PNG exports into the “{0}” subfolder",
+    "Web_Export_WbixWholeWorkspace": "WBIX exports the whole workspace (page range is ignored).",
+    "Web_Export_UnknownFormat": "Unknown export format.",
+    "Web_Export_UnknownPageScope": "Unknown page scope.",
+    "Web_Export_PaddingInvalid": "Padding must be a number no less than 0",
+    "Web_Export_PdfDpiInvalid": "PDF DPI must be one of 96 / 192 / 288",
+    "Web_Export_PngHeightInvalid": "PNG height must be one of 720 / 1080 / 2160",
+    "Web_Export_PngAspectInvalid": "Invalid PNG aspect ratio",
+    "Web_Export_FileFormatInvalid": "Invalid file format"
+  }
+}

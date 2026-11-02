@@ -1,0 +1,57 @@
+{
+  "id": "22222222-2222-4222-8222-222222222222",
+  "strokes": [
+    {
+      "kind": "stroke",
+      "stroke": {
+        "points": [
+          {
+            "position": {
+              "x": 1,
+              "y": 2
+            },
+            "pressure": 1
+          }
+        ],
+        "colorRgba": {
+          "x": 0,
+          "y": 0,
+          "z": 0,
+          "w": 1
+        },
+        "baseSize": 2,
+        "enablePressure": false
+      }
+    },
+    {
+      "kind": "stroke",
+      "stroke": {
+        "points": [
+          {
+            "position": {
+              "x": -5,
+              "y": -6
+            },
+            "pressure": 0.33333334
+          },
+          {
+            "position": {
+              "x": -7.5,
+              "y": -8.25
+            },
+            "pressure": 0.1
+          }
+        ],
+        "colorRgba": {
+          "x": 0.5,
+          "y": 0.25,
+          "z": 1,
+          "w": 1
+        },
+        "baseSize": 6.5,
+        "enablePressure": true
+      }
+    }
+  ],
+  "elements": []
+}
