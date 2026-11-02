@@ -1,6 +1,10 @@
 # 技术设计：WindBoard Web
 
 > 事实源：`research/01-wbix-format-implementation.md`（文件格式）、`research/02-rendering-interaction-spec.md`（渲染与输入）、`research/03-ui-inventory.md`（界面清单）、`research/04-web-stack-research.md`（技术选型）。
+>
+> **本文是立项期设计记录，§3 的目录草图与实现已有偏差**（见 §3 末尾的「实际落地与草图的差异」）。
+> 当前**权威**的模块映射、双端契约与同步流程以 `docs/dev/guides/web-port.zh-CN.md` 为准；
+> 阶段进展与踩坑记录见同目录 `implement.md`。
 
 ## 1. 设计原则
 

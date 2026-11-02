@@ -12,6 +12,8 @@ WBIX 是一个以 **Zip 容器**承载的白板工作区文件：
 - 二进制内容：放在 `assets/` 目录（例如封面图 `assets/cover.png`）
 
 > 阅读顺序建议：包结构见 §2，字段语义见 §3~§4，**版本兼容契约**（读侧如何按 `version` 分派、破坏性变更怎么做）见 §5，笔迹/图形的几何绘制口径见 `docs/dev/guides/ink-rendering.zh-CN.md`。
+>
+> 网页端实现：`web/src/persistence/wbix/**`（逐字符对齐本文的 JSON 文本形态），双端字节级一致性由 `cd web && pnpm interop` 守住；**改了本文任何一条形态约定，网页端必须同步**，对应关系见 `docs/dev/guides/web-port.zh-CN.md` §3.1。
 
 设计目标：
 

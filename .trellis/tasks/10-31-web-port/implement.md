@@ -120,8 +120,8 @@
   `refreshSnapshot` 因引用未变判定"没变化"，形状属性浮层停在旧数值上（canvas 因为按需重绘反而正确）。
   修法：`SelectTool.notifySelectionContentChanged()` + 控制器在几何/变换命令后显式调用；
   `board-controller-shape-geometry.test.ts` 用一条断言锁住"selection 必须是新对象"。
-- **桌面没有 Ctrl+A / Esc / Delete 的键盘路径**（选择操作全是画布浮层按钮），故网页端不擅自加；
-  `Duplicate` 的偏移是 `12 DIP ÷ zoom`（`BoardCanvasControl.Rendering.cs:510`）。
+- **桌面没有 Ctrl+A / Esc / Delete 的键盘路径**（选择操作全是画布浮层按钮）。P2 当时因此没有加；**P2 之后用户明确要求补键盘入口**，已在 `interaction/shortcuts.ts` 实现 `selectAll` / `clearSelection` / `deleteSelection` 并由 `canvas/board-controller.ts` 的 `handleKey` 接入（仅在 `tool === 'select'` 生效），属于**有意偏差**，登记在 `docs/dev/guides/web-port.zh-CN.md` §6。
+- `Duplicate` 的偏移是 `12 DIP ÷ zoom`（`BoardCanvasControl.Rendering.cs:510`）。
 - 双击打开在浏览器里的取舍：`window.open(url,'_blank')` + 立即 `opener = null`（带 `noopener` 时返回值恒为 null，
   与"返回 null 即被拦"互斥）；本地文件/媒体在浏览器拿不到路径，返回明确提示（P4 资源层就绪后可接 blob URL）。
 - 验收：AC1 中的元素与多页部分；选择变换可撤销且重做正确

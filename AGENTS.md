@@ -8,6 +8,7 @@
 - 平台：默认已映射到 x64；如需显式指定可用 `-p:Platform=x64`
 - 运行时：.NET 10，目标 `net10.0-windows10.0.26100.0`，最低支持 `10.0.19041.0`
 - 打包：便携版 zip（`dotnet publish`）+ Microsoft Store 的 MSIX（`-p:WindBoardPackage=Msix`，须用 VS `MSBuild.exe` 产包）；Inno 安装包已停发（`installer/WindBoard.iss` 保留用于回滚）。详见 `docs/dev/guides/msix-packaging.zh-CN.md`
+- 网页端（`web/`，不在解决方案里，独立 pnpm）：`cd web && pnpm install` → `pnpm verify`（typecheck + test + build）；动了 `ui/**`/`styles/**` 再跑 `pnpm e2e`；动了 WBIX 格式层再跑 `pnpm interop`（需 .NET SDK）；改了 `.resw` 必须跑 `pnpm i18n` 重新生成词表
 
 ## 解决方案结构（Solution Structure）
 
@@ -20,6 +21,7 @@
 
 - 默认为 unpackaged 桌面应用（`WindowsPackageType=None`、`EnableMsixTooling=false`）；MSIX 打包仅在显式传 `-p:WindBoardPackage=Msix` 时启用
 - `WindBoard.Launcher` 完全独立，无项目引用
+- `web/` 是网页端移植（React + TypeScript + Vite，PWA），**不属于** `WindBoard.slnx`，用 pnpm 管理；它与桌面版的对应关系与同步义务见 `docs/dev/guides/web-port.zh-CN.md`
 
 ## 架构概述（Architecture）
 
@@ -86,6 +88,7 @@
 - `docs/dev/guides/localization.zh-CN.md`：本地化约定。
 - `docs/dev/guides/wbix.zh-CN.md`：WBIX（`.wbix`）格式说明（含版本兼容契约）。
 - `docs/dev/guides/ink-rendering.zh-CN.md`：笔迹与图形渲染几何规范（绘制顺序、笔宽与半径、端点/连接、箭头翼、常量表）。
+- `docs/dev/guides/web-port.zh-CN.md`：网页端（`web/`）与桌面端的模块映射、双端契约、同步流程与门禁命令。**改桌面主程序前先看这张对应表**。
 - `docs/dev/guides/msix-packaging.zh-CN.md`：MSIX 打包与 Store 发布（条件属性、产包命令、payload 注入、版本号注入）。
 - `.agents/skills/writing-release-notes/SKILL.md`：更新日志编写约定。发版前必须加载并遵循
 - 不要阅读 `docs/dev/archive/` 中的内容。
