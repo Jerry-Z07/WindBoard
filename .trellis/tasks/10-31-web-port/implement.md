@@ -671,6 +671,72 @@ interface LocalizedMessage { key: MessageKey; args?: readonly (string | number)[
 
 ---
 
+## P6 双端一致性守卫与 CI（并入 develop 前）
+
+P0~P5 完成后，`docs/dev/guides/web-port.zh-CN.md` 的 §7.1 列出了一批「改了桌面不会有任何
+测试变红」的缺口。P6 把其中两类最容易漂移的契约机械化，并补上网页端的 push/PR 闸门。
+
+### P6.1 设置默认值共享语料
+
+两端默认值此前各写各的单测，没有共享事实源（不像 WBIX 有 golden 语料）。
+
+- 语料 `WindBoard.Tests/Fixtures/settings/defaults.json`（LF、2 空格缩进）只包含两端共有的
+  子集：`general` / `appearance` / `dock`（四组顺序 + 两个开关）/ `writing.pen` /
+  `keyboardShortcuts`。桌面独有的 `camouflage`、`updates`、`diagnostics`、`announcements`
+  不入语料——网页端不实现这些能力，放进去只会让语料变成"桌面完整设置"的假承诺。
+- 桌面守护测试 `WindBoard.Tests/Settings/SettingsDefaultsGoldenTests.cs`：把 `new AppSettings()`
+  用 `JsonObject` 显式投影成语料形态（固定键序），与语料做 `JsonNode.DeepEquals` 比对；
+  `WINBOARD_REGEN_SETTINGS_GOLDEN=1` 重建，写入时补尾随换行。
+- 网页端守护 `web/tests/conformance/settings-defaults.test.ts`（4 例）：语料存在、
+  `DEFAULT_SETTINGS` 与语料逐字段一致、`normalizeSettings({})` 回落一致、
+  顶层与 `dock`/`keyboardShortcuts` 键集合同构。
+- 负向验证：改语料 `#2E2F33` → `#101010`，网页端红；改 `PenSettingsDefaults.cs` 色板
+  `#FF3B30` → `#FF3B31`，桌面红。两边都验证后已还原。
+
+### P6.2 XAML → CSS 令牌校验
+
+`styles/tokens.css` 的每个变量原本只**注释**了桌面出处，没有校验。
+
+- `web/tests/conformance/desktop-tokens.test.ts`（25 例）**直接读桌面 XAML 源码**（不复制语料），
+  用规则表抽取 `MainWindow.xaml` / `App.xaml` / `BoardCanvasControl.xaml` 的数值与颜色，
+  与 `styles/*.css` 的令牌比对：`LENGTH_RULES` 20 条（Dock 底板圆角/内边距/间距、按钮
+  60×52 圆角 10、分隔线 30、页码按钮 52、指示器 84、页面面板 280 与条目 240、缩略图 104、
+  删除按钮 24、选择手柄 14、提醒栈 420 等）+ `COLOR_RULES` 4 条（hover 7.8% 白、
+  pressed 13.3% 白、checked `#1976D2`、手柄白）。
+- 颜色比对走 `parseXamlColor()` 按 **ARGB** 解析、`parseCssColor()` 按 CSS 语义解析，
+  再比通道（alpha 容差 1/255）——把「XAML 8 位色是 ARGB、CSS 是 RGBA」这个已经踩过两次的
+  坑变成用例。
+- 锚点缺失即抛错，XAML 结构变化会立刻暴露；踩过的坑：`App.xaml`/`BoardCanvasControl.xaml`
+  的样式用 `<Setter Property="X" Value="N" />` 语法，不是属性语法，首版两条规则因此取错值。
+- 负向验证：`DockButtonStyle` 的 `CornerRadius` 10 → 12，测试红，已还原。
+- 顺带删除 `tokens.css` 里零引用且语义错标的 `--wb-pages-flyout-row-height`（240 是条目宽度，
+  已在 `dock.css` 有 `--wb-pages-flyout-row-width`）。
+
+### P6.3 网页端 CI
+
+`.github/workflows/web.yml`：
+
+- `verify`（ubuntu-latest，工作目录 `web`，20 分钟上限）：checkout → pnpm 12.14.0 →
+  node 22（cache pnpm）→ `pnpm install --frozen-lockfile` → `lint` → `typecheck` → `test`
+  → `build` → `pnpm i18n` 后检查 `src/i18n/locales` 无漂移。触发路径含 `WindBoard/**`、
+  `WindBoard.Tests/**`、`.gitattributes`，因为 P6.1/P6.2 的一致性测试直接读桌面文件。
+- `interop`（windows-latest，仅 `workflow_dispatch` 勾选）：额外装 .NET 10 跑 `pnpm interop`。
+  **默认不进 PR 闸门**：它要 `dotnet build WindBoard.slnx -p:Platform=x64`（WinUI 解决方案），
+  在 GHA 上未经验证，自动跑容易产生与代码无关的红。
+- `pnpm e2e` 也不进 CI：视觉基线含中文字形，换机器即不可比，仍是本地闸门。
+- pnpm 版本钉在 workflow 的 `version:` 而不是 `package.json` 的 `packageManager` 字段——
+  后者会让 pnpm 12 把自身写进 `pnpm-lock.yaml` 的 `packageManagerDependencies`，凭空多出一整段
+  `importers`/`packages`，锁文件变脏。
+
+### 门禁结果（并入 develop 前实测）
+
+- 网页端：`pnpm lint` 0/0（194 文件）、`pnpm verify` **59 文件 / 1438 例** + 构建通过、
+  `pnpm e2e` 11 例全绿（3 触屏 + 8 视觉，10 张基线）、`pnpm interop` A~E 五步全绿。
+- 桌面侧：`dotnet build WindBoard.slnx -c Release -p:Platform=x64 -p:CodeAnalysisTreatWarningsAsErrors=true`
+  0 警告 0 错误；`dotnet test WindBoard.slnx` **650 通过 / 1 跳过**（新增的默认值语料测试 +1）。
+
+---
+
 ## 依赖与顺序
 
 ```

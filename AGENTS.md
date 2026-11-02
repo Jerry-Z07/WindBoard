@@ -76,7 +76,8 @@
   允许测试访问 `internal` 类型。
 - 运行测试：`dotnet test WindBoard.slnx`（默认平台已映射到 x64；如需显式指定可用 `dotnet test WindBoard.slnx -p:Platform=x64`）。
 - 发布自动化：`.github/workflows/release.yml`（push `v*` tag 或手动触发）负责产包与发布，构建时传入 `-p:CodeAnalysisTreatWarningsAsErrors=true` 作为零告警闸门。
-- 注意：仓库当前**没有** push/PR 阶段的 CI 工作流，零告警构建与全量单测（含渲染快照）需在提交前本地执行：`dotnet build WindBoard.slnx -c Release -p:Platform=x64 -p:CodeAnalysisTreatWarningsAsErrors=true`、`dotnet test WindBoard.slnx`。E2E 依赖交互桌面，不进 CI。
+- 注意：桌面侧**没有** push/PR 阶段的 CI 工作流（只有 `.github/workflows/release.yml` 的 tag 发布流程），零告警构建与全量单测（含渲染快照）需在提交前本地执行：`dotnet build WindBoard.slnx -c Release -p:Platform=x64 -p:CodeAnalysisTreatWarningsAsErrors=true`、`dotnet test WindBoard.slnx`。E2E 依赖交互桌面，不进 CI。
+- 网页端有 push/PR CI：`.github/workflows/web.yml`（ubuntu，跑 lint / typecheck / test 含跨端一致性 / build / i18n 生成物校验）。它**不跑** `pnpm e2e`（视觉基线含中文字形，换机器即不可比）与 `pnpm interop`（需 Windows + .NET 10，仅在手动 dispatch 勾选时跑），所以动了 `ui/**`、`styles/**`、`persistence/wbix/**` 时这两项仍要本地跑。
 - 本地化 Key 审计：`WindBoard.Tests/Localization/LocalizationKeyAuditTests.cs`（要求 C# 中 `L10n.Get/Format` 的 key 为字符串字面量；XAML 使用 `{l10n:Loc Key=...}`）。
 - 测试分层建议：
   - D2D 渲染层可用离屏快照测试覆盖（`WindBoard.Tests/Rendering/Snapshot/`，WARP 软件路径，不依赖真实 GPU/显示器）；基准缺失即测试失败，重建用 `WINDBOARD_REGEN_SNAPSHOTS=1`，基准变更须在提交说明中给出理由。

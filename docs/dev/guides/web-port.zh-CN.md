@@ -130,7 +130,8 @@
 
 - 事实源：`WindBoard/MainWindow.xaml`、`WindBoard/App.xaml`（按钮/色块/托盘样式）、`WindBoard/Settings/*.xaml`、`WindBoard/Features/**/UI/*.xaml`。
 - 网页端：`ui/**`（结构）+ `styles/tokens.css`（颜色、圆角、尺寸）+ `styles/{shell,dock,settings,dialogs,overlay}.css`。
-- 保障：`web/e2e/`（`visual.spec.ts` 8 个用例 / 10 张界面基线截图 + `touch.spec.ts` 3 个触屏用例）+ `web/tests/unit/dock-layout.test.ts`、`web/tests/unit/ui-shell-smoke.test.tsx`（挂载与关键交互冒烟）。**没有**「XAML 数值 → CSS 变量」的自动校验，常量改动靠人工核对。
+- 保障：`web/tests/conformance/desktop-tokens.test.ts` —— **直接读桌面 XAML 源码**，把 Dock 底板/按钮/页码/页面面板/选择手柄等 20 余个数值与 `styles/*.css` 的令牌逐个比对（颜色按 ARGB→RGBA 换算后比通道）。改桌面数值不同步网页端 → 该测试立刻红。
+- 另外：`web/e2e/`（`visual.spec.ts` 8 个用例 / 10 张界面基线截图 + `touch.spec.ts` 3 个触屏用例）+ `web/tests/unit/dock-layout.test.ts`、`web/tests/unit/ui-shell-smoke.test.tsx`（挂载与关键交互冒烟）。未纳入令牌测试的 XAML 数值仍靠人工核对，新增令牌时请顺手加一条规则。
 - 漂移症状：面板尺寸/圆角/选中态颜色不对。
 - **坑（已踩过两次）**：XAML 的 8 位十六进制颜色是 **ARGB**，CSS 的 8 位是 **RGBA**，直接抄会得到完全不同的颜色（`#E4000000` 在浏览器里是不透明红，`#08FFFFFF` 是青色）。所有带 alpha 的颜色必须写成 `rgb(r g b / a%)`。
 - **坑（Fluent UI v9）**：Griffel 用原子类下发 `width`/`height`/`display` 等属性，与单类选择器同权重但注入更晚。覆盖 Fluent 组件自身设置过的属性必须用双类选择器（`.fui-DialogSurface.wb-settings-surface`）。
@@ -149,7 +150,8 @@
 
 - 事实源：桌面设置文件与 `WindBoard/Settings/**`（含 `PenSettingsDefaults`、颜色归一化规则）。
 - 网页端：`settings/model.ts`（模型 + 归一化）、`settings/service.ts`（单例 + 事件）、`settings/settings-file.ts`（导出/导入 JSON）。
-- 保障：`web/tests/unit/{settings-model,settings-service,settings-file}.test.ts`。
+- 保障：`web/tests/unit/{settings-model,settings-service,settings-file}.test.ts` + `web/tests/conformance/settings-defaults.test.ts`（读 `WindBoard.Tests/Fixtures/settings/defaults.json` 与 `DEFAULT_SETTINGS` 逐字段比对；语料由 `WindBoard.Tests/Settings/SettingsDefaultsGoldenTests.cs` 守护，桌面改默认值 → 桌面语料测试先红 → 重建语料 → 网页端测试再红）。
+- 重建默认值语料：`WINBOARD_REGEN_SETTINGS_GOLDEN=1 dotnet test WindBoard.slnx --filter FullyQualifiedName~SettingsDefaultsGoldenTests`，改动理由写进提交说明。
 - 漂移症状：导入桌面设置后某些项回落默认值（通常是新增字段或归一化规则变了）。
 
 ### 3.9 页面缩略图
@@ -204,6 +206,8 @@
 
 桌面侧（仓库根）：提交前仍按 `AGENTS.md` 跑零告警构建 + 全量单测。**改了两端相关代码时两边都要跑。**
 
+CI（`.github/workflows/web.yml`）在 push/PR 时自动跑 `lint` → `typecheck` → `test`（含三组 conformance）→ `build`，并校验 `src/i18n/locales` 与词表同步。**CI 不跑 `pnpm e2e`**（视觉基线含中文字形，换机器即不可比）也**不跑 `pnpm interop`**（需要 Windows + .NET 10，默认只在 `workflow_dispatch` 勾选时跑），所以这两项仍是本地闸门。
+
 ## 6. 有意偏差（不要"顺手修正"）
 
 以下差异是**刻意**的，改回去会破坏体验，动手前先读代码里的注释：
@@ -239,13 +243,13 @@
 
 | 项目 | 现状 |
 |---|---|
-| `MainWindow.xaml` / `App.xaml` / 设置页 XAML 的数值（圆角、间距、尺寸） | `styles/tokens.css` 每个变量只**注释**了桌面出处，无校验脚本 |
+| `MainWindow.xaml` / `App.xaml` / 设置页 XAML 的数值（圆角、间距、尺寸） | 已被 `tests/conformance/desktop-tokens.test.ts` 覆盖 20 余项；**未加规则的新令牌仍需人工核对**（新增令牌时请顺手加一条规则） |
 | 两端渲染像素 | 桌面 D2D 快照与网页 Canvas 各自独立，无图像 diff |
 | `UI/MainWindow/MainWindow.*.cs` 的编排时序（导出/导入/分页/快捷键） | 网页端 `ui/shell/**` 按行为重写，无对账测试 |
-| 设置默认值与归一化规则 | 两端各写单测、**没有共享 fixture**（不像 WBIX 有 golden 语料） |
+| 设置默认值与归一化规则 | 默认值已由 `WindBoard.Tests/Fixtures/settings/defaults.json` 强制两端一致；**归一化规则**（非法值回落）仍各自单测 |
 | 导出文件命名 / 画幅 / DPI 计算 | `Features/Export/**` 与 `features/export/**` 各自单测 |
-| Dock 默认顺序 | `Features/Dock/Models/DockItemIds.cs` ↔ `settings/model.ts` 的 `DEFAULT_*_DOCK_ITEMS` 靠人工一一对应 |
-| 快捷键表 | `Features/Shortcuts/**` ↔ `interaction/shortcuts.ts`，只锁 key 集合不锁按键行为 |
+| Dock 默认顺序 | 已包含在设置默认值语料里（四组顺序 + 两个显示开关） |
+| 快捷键表 | 默认绑定（`Ctrl+Z`/`Ctrl+Y`）在设置语料里；**按键解析与冲突检测**仍各自单测，不锁行为 |
 | WinUI 模板度量（InfoBar、元素卡） | `generic.xaml` 里的值手工抄进 `element-card.ts` / `chrome.css` |
 | 系统强调色 | 桌面取 `SystemAccentColor`，网页固定 `#0078D4`，永远无法自动一致 |
 | e2e 视觉基线 | 只覆盖 8 个用例 / 10 张图，且含中文字形，换机器即不可比 |
