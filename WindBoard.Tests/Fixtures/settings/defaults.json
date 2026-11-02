@@ -1,0 +1,61 @@
+{
+  "general": {
+    "languagePreference": "system",
+    "startupWindowMode": "windowed"
+  },
+  "appearance": {
+    "canvasBackgroundHex": "#2E2F33",
+    "elementCardTheme": "dark"
+  },
+  "dock": {
+    "leftOrder": [
+      "more",
+      "minimize",
+      "import"
+    ],
+    "toolsOrder": [
+      "toolSelect",
+      "toolPen",
+      "toolEraser",
+      "toolShape"
+    ],
+    "undoRedoOrder": [
+      "undo",
+      "redo"
+    ],
+    "pagesOrder": [
+      "pagePrev",
+      "pageIndicator",
+      "pageNext",
+      "pageAdd"
+    ],
+    "isUndoRedoVisible": true,
+    "isShortcutDocksVisible": false
+  },
+  "writing": {
+    "pen": {
+      "paletteHexes": [
+        "#FFFFFF",
+        "#FF3B30",
+        "#FFCC00",
+        "#34C759",
+        "#32ADE6",
+        "#0A84FF",
+        "#AF52DE",
+        "#FF2D55",
+        "#000000"
+      ],
+      "thicknessPresets": [
+        2,
+        3,
+        5
+      ],
+      "useThicknessSlider": false
+    }
+  },
+  "keyboardShortcuts": {
+    "conflictReminderEnabled": true,
+    "undo": "Ctrl+Z",
+    "redo": "Ctrl+Y"
+  }
+}

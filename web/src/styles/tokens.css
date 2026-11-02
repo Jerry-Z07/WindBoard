@@ -110,8 +110,8 @@
   --wb-page-indicator-size: 12px;
 
   /* ===== 弹出面板（`MainWindow.xaml:588-670`） ===== */
+  /* 条目宽度 240 定义在 `dock.css`（与色板/预设同属"浮层内部尺寸"），不在这里重复 */
   --wb-pages-flyout-width: 280px;
-  --wb-pages-flyout-row-height: 240px;
   --wb-pages-flyout-thumbnail-size: 104px;
   --wb-pages-flyout-delete-size: 24px;
 

@@ -62,3 +62,4 @@ web/**/*.png binary
 # picking either side (task state lives in task.json, not index.md). See
 # .trellis/spec/cli/backend/directory-structure.md for details.
 .trellis/workspace/*/journal-*.md merge=union
+WindBoard.Tests/Fixtures/settings/** text eol=lf
