@@ -24,9 +24,8 @@ export default defineConfig({
             // Fluent UI 组件库（体积最大的一块）；图标包单独再拆，避免改一个图标就整包失效
             { name: 'fluent', test: /node_modules[\\/]@fluentui[\\/](?!react-icons[\\/])/ },
             { name: 'fluent-icons', test: /node_modules[\\/]@fluentui[\\/]react-icons[\\/]/ },
-            // 注：`fflate`（WBIX 的 zip 读写）目前还没被应用入口引用（P4 才接导入导出），
-            // 因此这里先不设分组——等 P4 把 `persistence/wbix` 接进 UI 后再加回来，
-            // 免得多一条匹配不到任何模块的死配置。
+            // 注：`fflate`（WBIX 的 zip 读写）只被导出/导入链路引用，体积远小于上面两组，
+            // 单独成组只会让首屏多一个请求，因此留在主包里不单列。
           ],
         },
       },

@@ -13,7 +13,7 @@
  * `export const MESSAGES = { 'Tool_Pen': '书写', ... } as const`。
  *
  * 运行：`node scripts/gen-i18n.mjs`（`pnpm i18n`）。改文案请改 `.resw` 后重新生成，
- * `tests/unit/i18n-audit.test.ts` 会在产物过期时失败。
+ * `tests/unit/i18n.test.ts` 会在产物过期时失败。
  */
 
 import { readdirSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs'

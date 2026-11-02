@@ -11,7 +11,7 @@
  *
  * 回落顺序：目标语言 → 默认语言（`zh-CN`）→ key 本身。
  * 最后一步返回 key 而不是抛错：漏翻一条文案不该让整个界面挂掉，
- * 而「界面上出现一个 key」本身就很显眼，配合 `i18n-audit.test.ts` 也不会漏进生产。
+ * 而「界面上出现一个 key」本身就很显眼，配合 `i18n.test.ts` 也不会漏进生产。
  */
 
 import { MESSAGES as EN_US } from './locales/en-US.generated.ts'
