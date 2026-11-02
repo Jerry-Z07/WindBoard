@@ -20,6 +20,7 @@ import {
 import { ArrowExport24Regular, ArrowImport24Regular, ArrowReset24Regular } from '@fluentui/react-icons'
 import { useState, type ReactNode } from 'react'
 import { useReminderService, useSettings, useSettingsService } from '../../app/hooks.ts'
+import { useI18n } from '../../i18n/context.ts'
 import { pickFile, saveFile } from '../../platform/io.ts'
 import { SETTINGS_FILE_NAME, parseSettingsFile, serializeSettingsFile } from '../settings-file.ts'
 import { SETTINGS_ANCHORS } from '../search-targets.ts'
@@ -35,6 +36,7 @@ const WEB_VERSION = '0.1.0'
 
 /** 关于页。 */
 export function AboutPage(): ReactNode {
+  const { t } = useI18n()
   const settingsService = useSettingsService()
   const settings = useSettings()
   const reminders = useReminderService()
@@ -53,9 +55,18 @@ export function AboutPage(): ReactNode {
           bytes: new TextEncoder().encode(text),
         })
         if (result.ok) {
-          reminders.push({ message: `已导出设置：${result.path ?? SETTINGS_FILE_NAME}`, severity: 'informational' })
+          reminders.push({
+            message: t(
+              'Settings_About_SettingsManagement_Exported_Fmt',
+              result.path ?? SETTINGS_FILE_NAME,
+            ),
+            severity: 'informational',
+          })
         } else if (result.cancelled !== true) {
-          reminders.push({ message: `导出设置失败：${result.error ?? '未知错误'}`, severity: 'error' })
+          reminders.push({
+            message: `导出设置失败：${result.error ?? t('Common_UnknownError')}`,
+            severity: 'error',
+          })
         }
       } finally {
         setBusy(false)
@@ -78,7 +89,10 @@ export function AboutPage(): ReactNode {
           return
         }
         settingsService.replace(parsed.settings)
-        reminders.push({ message: `已导入设置：${picked.name}`, severity: 'informational' })
+        reminders.push({
+          message: t('Settings_About_SettingsManagement_Imported_Fmt', picked.name),
+          severity: 'informational',
+        })
         for (const note of parsed.notes ?? []) {
           reminders.push({ message: note, severity: 'warning' })
         }
@@ -91,37 +105,37 @@ export function AboutPage(): ReactNode {
   return (
     <div className="wb-settings-page">
       <SettingsCard
-        title="版本"
+        title={t('Settings_About_Version')}
         description="网页端版本号（与 package.json 保持一致）"
         anchor={SETTINGS_ANCHORS.aboutVersion}
       >
         <code className="wb-settings-version">{WEB_VERSION}</code>
       </SettingsCard>
 
-      <SettingsSection title="设置管理">
+      <SettingsSection title={t('Settings_About_SettingsManagement_SectionTitle')}>
         <SettingsCard
-          title="导出设置"
+          title={t('Settings_About_SettingsManagement_Export_Title')}
           description="导出当前全部设置到 JSON 文件（与桌面版格式兼容）"
           anchor={SETTINGS_ANCHORS.aboutExportSettings}
         >
           <Button icon={<ArrowExport24Regular />} disabled={busy} onClick={handleExportSettings}>
-            导出设置
+            {t('Settings_About_SettingsManagement_Export_Title')}
           </Button>
         </SettingsCard>
 
         <SettingsCard
-          title="导入设置"
+          title={t('Settings_About_SettingsManagement_Import_Title')}
           description="从 JSON 文件导入并覆盖当前全部设置（忽略未知字段，非法值回落默认）"
           anchor={SETTINGS_ANCHORS.aboutImportSettings}
         >
           <Button icon={<ArrowImport24Regular />} disabled={busy} onClick={handleImportSettings}>
-            导入设置
+            {t('Settings_About_SettingsManagement_Import_Title')}
           </Button>
         </SettingsCard>
 
         <SettingsCard
-          title="恢复默认设置"
-          description="清空当前设置并恢复默认值"
+          title={t('Settings_About_SettingsManagement_Reset_Title')}
+          description={t('Settings_About_SettingsManagement_Reset_Description')}
           anchor={SETTINGS_ANCHORS.aboutResetSettings}
         >
           <Button
@@ -131,7 +145,7 @@ export function AboutPage(): ReactNode {
               setResetConfirmOpen(true)
             }}
           >
-            恢复默认设置
+            {t('Settings_About_SettingsManagement_Reset_Title')}
           </Button>
         </SettingsCard>
       </SettingsSection>
@@ -146,10 +160,8 @@ export function AboutPage(): ReactNode {
       >
         <DialogSurface className="wb-settings-confirm">
           <DialogBody>
-            <DialogTitle>确认恢复默认设置</DialogTitle>
-            <DialogContent>
-              当前全部设置将恢复为默认值，并清空现有设置记录。此操作会立即保存，是否继续？
-            </DialogContent>
+            <DialogTitle>{t('Settings_About_SettingsManagement_ResetConfirm_Title')}</DialogTitle>
+            <DialogContent>{t('Settings_About_SettingsManagement_ResetConfirm_Content')}</DialogContent>
             <DialogActions>
               <Button
                 appearance="secondary"
@@ -157,7 +169,7 @@ export function AboutPage(): ReactNode {
                   setResetConfirmOpen(false)
                 }}
               >
-                取消
+                {t('Common_Cancel')}
               </Button>
               <Button
                 appearance="primary"
@@ -166,7 +178,7 @@ export function AboutPage(): ReactNode {
                   setResetConfirmOpen(false)
                 }}
               >
-                恢复默认
+                {t('Common_ResetToDefault')}
               </Button>
             </DialogActions>
           </DialogBody>

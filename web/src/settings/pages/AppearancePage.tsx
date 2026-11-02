@@ -13,6 +13,7 @@
 import type { ReactNode } from 'react'
 import { useState } from 'react'
 import { useSettings } from '../../app/hooks.ts'
+import { useI18n } from '../../i18n/context.ts'
 import { CanvasColorDialog } from '../../ui/dialogs/CanvasColorDialog.tsx'
 import { ElementCardThemeDialog } from '../../ui/dialogs/ElementCardThemeDialog.tsx'
 import { SETTINGS_ANCHORS } from '../search-targets.ts'
@@ -31,6 +32,7 @@ export interface AppearancePageProps {
 
 /** 外观页。 */
 export function AppearancePage(props: AppearancePageProps): ReactNode {
+  const { t } = useI18n()
   const settings = useSettings()
   const currentHex = settings.appearance.canvasBackgroundHex
   const currentTheme = settings.appearance.elementCardTheme
@@ -40,8 +42,8 @@ export function AppearancePage(props: AppearancePageProps): ReactNode {
   return (
     <div className="wb-settings-page">
       <SettingsCard
-        title="画布背景颜色"
-        description="设置画布的背景颜色"
+        title={t('Settings_Background_CanvasBackgroundColor_Title')}
+        description={t('Settings_Background_CanvasBackgroundColor_Description')}
         anchor={SETTINGS_ANCHORS.appearanceCanvasBackground}
         onClick={() => {
           setColorDialogOpen(true)
@@ -55,8 +57,8 @@ export function AppearancePage(props: AppearancePageProps): ReactNode {
       </SettingsCard>
 
       <SettingsCard
-        title="Dock 设置"
-        description="调整 Dock 内组件的位置与显隐"
+        title={t('Settings_Dock_Title')}
+        description={t('Settings_Dock_Description')}
         anchor={SETTINGS_ANCHORS.appearanceDockSettings}
         onClick={() => {
           props.onNavigate?.('dock')
@@ -64,15 +66,21 @@ export function AppearancePage(props: AppearancePageProps): ReactNode {
       />
 
       <SettingsCard
-        title="元素卡片主题"
-        description="切换白板上导入元素（图片/文件/文本/链接等）的卡片外观"
+        title={t('Settings_Appearance_ElementCardTheme_Title')}
+        description={t('Settings_Appearance_ElementCardTheme_Description')}
         anchor={SETTINGS_ANCHORS.appearanceElementCardTheme}
         onClick={() => {
           setThemeDialogOpen(true)
         }}
       >
         <span className="wb-settings-value">
-          <span className="wb-settings-value__text">{currentTheme === 'light' ? '浅色' : '深色'}</span>
+          <span className="wb-settings-value__text">
+            {t(
+              currentTheme === 'light'
+                ? 'Settings_Appearance_ElementCardTheme_Light'
+                : 'Settings_Appearance_ElementCardTheme_Dark',
+            )}
+          </span>
         </span>
       </SettingsCard>
 

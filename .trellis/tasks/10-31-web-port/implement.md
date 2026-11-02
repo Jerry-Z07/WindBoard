@@ -476,6 +476,55 @@ dev 构建带 StrictMode 双渲染与未压缩代码，基线跟线上不一致�
 
 触屏与 iOS 尺寸限制见 P5.3。
 
+### P5.4 记录（二）：界面文案迁移（2026-11-02）
+
+第一批（标题栏、选择操作条）之后，本轮把**面向用户的固定文案**整体迁到 resw 词表：
+23 个组件、约 130 处调用点，key 一律取桌面 resw 原名，`t('Key')` / `t('Key', 参数)`。
+
+| 区域 | 文件 | 处数 |
+|------|------|------|
+| 外壳与浮层 | `ui/shell/{DockBar,ReminderStack,BoardSurface}.tsx`、`ui/settings/SettingsSearchBox.tsx`、`ui/overlay/ShapePropertiesPanel.tsx` | 23 |
+| 对话框 | `ui/dialogs/{ExportImport,ImportDialog,CanvasColorDialog,ElementCardThemeDialog,ConfirmDialog,SettingsWindow}.tsx` | 约 73 |
+| 浮层 | `ui/flyouts/{Pen,Eraser,Shape,Pages}Flyout.tsx` | 14 |
+| 设置页 | `settings/pages/{General,Appearance,About,Shortcuts,Writing,Dock}Page.tsx` | 78 |
+
+**写法上的两条约定**（避免在模块顶层调用 `t`、避免文案与 key 漂移）：
+
+- 「选项数组 / 映射表」这类模块级数据不再存中文，改存 `MessageKey`（如
+  `Choice.labelKey`、`SHAPE_ITEMS.labelKey`、`DOCK_ITEM_META.labelKey`、
+  `FORMAT_LABEL_KEYS`），渲染处 `t(...)`；
+- 需要参数的地方用词表里的 `*_Fmt`（占位符 `{0}`/`{1}`），例如
+  `Export_PngSizeItem_Fmt`、`Settings_Shortcuts_Error_Conflict_Fmt`、
+  `Settings_About_SettingsManagement_Exported_Fmt`。
+
+**迁移后可见文案的唯一变化**：语言下拉的「简体中文」→「中文」，因为桌面
+`Settings_General_Language_Chinese` 的值就是「中文」（以桌面原文为准）。
+另外快捷键的非法输入提示改用桌面 `Settings_Shortcuts_Error_Invalid`
+（语义等价、措辞更短）。
+
+**仍然保留中文的部分**（都记了原因，不是漏改）：
+
+1. **网页端独有文案**：`RecoveryDialog` 整个自动保存恢复流程（桌面无此功能）、
+   `BoardSurface` 的三条“用 WindBoard 打开文件”提醒、提醒条里的“浏览器不支持最小化窗口”、
+   设置页里解释浏览器能力边界的长句（Dock 页“网页端 v1 暂未渲染快捷入口…”等）。
+2. **resw 没有对应 key 的可访问性文案**：取色器的饱和度/明度/色相 `aria-label`、
+   设置窗口的「关闭设置」「设置分类」`aria-label`、页面管理面板的「删除该页」、
+   搜索框的「搜索建议」「没有匹配的设置项」、色板序号类 `aria-label`
+   （保留序号而不是复用 `Settings_Pen_ClearSwatch_Button`，否则多个按钮同名，读屏更难用）。
+3. **写域外的纯数据模块**（下一轮可接）：
+   - `settings/search-targets.ts` 的 `cardTitle`（搜索建议里显示的卡片名）；
+   - `settings/window-model.ts` 的 6 个分类名与描述（导航项）；对应 key
+     `SettingsWindow_Nav_General/_Appearance/_Writing/_Shortcuts/_About` 已存在，
+     `dock` 页桌面没有、保持 "Dock"；
+   - `features/export/page-range.ts` 的 `PAGE_RANGE_MESSAGES` 与
+     `features/export/export-options.ts` 的 7 条 `issues.push('中文…')`：
+     `Export_PageRange_*` 与 `Export_NoPages_Message` 等 key 已存在，注册表里
+     注释已写好对应关系，但这两个模块是纯函数（返回 string 供 UI 直接显示），
+     要改成返回 key 才能翻译，属于接口调整。
+
+**验证**：`tsc -b` 0 错误、`vitest` 57 文件 / 1406 例全绿、`oxlint` 0/0（190 文件）、
+`playwright test` 11 例全绿（8 张视觉基线未变，说明这次只换了文案来源、没改布局）。
+
 ### P5.3 记录：触屏回归与 iOS 画布上限（2026-11-02）
 
 **桌面事实先对齐**（避免“优化”出不存在的功能）：

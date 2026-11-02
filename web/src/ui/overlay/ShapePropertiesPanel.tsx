@@ -28,6 +28,8 @@
 
 import type { ReactNode } from 'react'
 import { FluentProvider, SpinButton, webLightTheme } from '@fluentui/react-components'
+import { useI18n, type Translator } from '../../i18n/context.ts'
+import type { MessageKey } from '../../i18n/locales/zh-CN.generated.ts'
 import type { OverlayAnchorDip } from './SelectionActionBar.tsx'
 import type { ShapePropertyField, ShapePropertyFieldId } from './shape-property-fields.ts'
 
@@ -44,14 +46,39 @@ export interface ShapePropertiesPanelProps {
 /** 强制浅色主题时给 FluentProvider 的样式：底板由 `overlay.css` 负责。 */
 const TRANSPARENT_THEME_STYLE = { background: 'transparent', display: 'block' } as const
 
+/**
+ * 字段标签的文案 key。
+ *
+ * 标签文本由写域外的 `shape-property-fields.ts` 直接给出桌面 resw 原文
+ * （`长度 (cm)` / `角度` / `宽度 (cm)` / `高度 (cm)`），这里按"原文 → key"映射回文案表，
+ * 保证 en-US 下也能取到译文；等该模块改为返回 key 后可以删掉这张表。
+ */
+const FIELD_LABEL_KEYS: Readonly<Record<string, MessageKey>> = {
+  '长度 (cm)': 'ShapeProperties_Length',
+  '角度': 'ShapeProperties_Angle',
+  '宽度 (cm)': 'ShapeProperties_Width',
+  '高度 (cm)': 'ShapeProperties_Height',
+}
+
 /** 桌面 `SmallChange="1"`（`BoardCanvasControl.xaml:91`/`:105`）。 */
 const STEP = 1
 
 /** 桌面 `SetShapePropertyValue` 把显示值四舍五入到 2 位小数（`ShapeProperties.cs:196`）。 */
 const PRECISION = 2
 
+/**
+ * 取字段标签的译文：命中映射表就用文案表的值，否则原样返回（防御未来新增字段）。
+ * @param {string} label `shape-property-fields.ts` 给出的桌面原文
+ * @param {Translator} t 取词函数
+ * @returns {string}
+ */
+function fieldLabel(label: string, t: Translator): string {
+  return Object.hasOwn(FIELD_LABEL_KEYS, label) ? t(FIELD_LABEL_KEYS[label]) : label
+}
+
 /** 形状属性浮层。 */
 export function ShapePropertiesPanel(props: ShapePropertiesPanelProps): ReactNode {
+  const { t } = useI18n()
   const anchor = props.anchorScreenDip
   const fields = props.fields
   if (anchor === null || fields === null) {
@@ -65,7 +92,7 @@ export function ShapePropertiesPanel(props: ShapePropertiesPanelProps): ReactNod
         <div className="wb-shape-props">
           {fields.map((field) => (
             <div key={field.id} className="wb-shape-props__field">
-              <span className="wb-shape-props__label">{field.label}</span>
+              <span className="wb-shape-props__label">{fieldLabel(field.label, t)}</span>
               <SpinButton
                 className="wb-shape-props__spin"
                 value={field.value}
@@ -74,7 +101,7 @@ export function ShapePropertiesPanel(props: ShapePropertiesPanelProps): ReactNod
                 step={STEP}
                 precision={PRECISION}
                 // 输入框本身没有可见标签（桌面用上方 TextBlock），这里补无障碍名
-                input={{ 'aria-label': field.label }}
+                input={{ 'aria-label': fieldLabel(field.label, t) }}
                 onChange={(_event, data) => {
                   const next = data.value
                   // 清空/非法输入时 data.value 为 undefined（桌面此时是 NaN 并回读刷新）：不回调

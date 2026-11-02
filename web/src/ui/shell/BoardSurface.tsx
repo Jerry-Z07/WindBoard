@@ -20,6 +20,7 @@ import {
 } from '../../canvas/board-controller.ts'
 import { attachBoardInput } from '../../canvas/dom-input.ts'
 import { useReminderService, useSettings } from '../../app/hooks.ts'
+import { useI18n } from '../../i18n/context.ts'
 import { setLaunchFileHandler } from '../../platform/file-handlers.ts'
 import { applyImportedWorkspace } from '../../features/import/wbix-import.ts'
 import { hexToRgba, resolveInitialPenColorHex } from '../../settings/model.ts'
@@ -99,6 +100,7 @@ function singleSelectedShape(snapshot: BoardControllerSnapshot | null): Shape | 
 export function BoardSurface(props: BoardSurfaceProps): ReactNode {
   const settings = useSettings()
   const reminders = useReminderService()
+  const { t } = useI18n()
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
   const overlayHostRef = useRef<HTMLDivElement | null>(null)
   const [controller, setController] = useState<BoardController | null>(null)
@@ -190,7 +192,7 @@ export function BoardSurface(props: BoardSurfaceProps): ReactNode {
         } catch (error) {
           console.warn('打开系统传入的 WBIX 失败', error)
           reminders.push({
-            title: '打开失败',
+            title: t('Common_OpenFailed_Title'),
             message: `无法打开 ${file.name}，文件可能已损坏或不是 WBIX。`,
             severity: 'error',
           })
@@ -200,7 +202,7 @@ export function BoardSurface(props: BoardSurfaceProps): ReactNode {
     return () => {
       setLaunchFileHandler(null)
     }
-  }, [controller, reminders])
+  }, [controller, reminders, t])
 
   /**
    * 自动保存：控制器就绪后启动，文档/页变化时按 2s 节流落盘（网页端增强，桌面无此功能）。

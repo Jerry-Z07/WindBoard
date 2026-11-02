@@ -13,6 +13,7 @@ import { Button, SpinButton, Switch } from '@fluentui/react-components'
 import { Add24Regular, Delete24Regular } from '@fluentui/react-icons'
 import type { ReactNode } from 'react'
 import { useSettings, useSettingsService } from '../../app/hooks.ts'
+import { useI18n } from '../../i18n/context.ts'
 import { MAX_THICKNESS, MIN_THICKNESS } from '../model.ts'
 import { SETTINGS_ANCHORS } from '../search-targets.ts'
 import { SettingsCard, SettingsSection } from './SettingsCard.tsx'
@@ -21,8 +22,12 @@ import { SettingsCard, SettingsSection } from './SettingsCard.tsx'
 const MIN_PALETTE_SLOTS = 3
 const MAX_PALETTE_SLOTS = 24
 
-/** 三档粗细的标签（桌面 `Settings_Pen_ThicknessPreset1..3_Header`）。 */
-const THICKNESS_PRESET_LABELS: readonly string[] = ['档位 1（细）', '档位 2（中）', '档位 3（粗）']
+/** 三档粗细的标签 key（桌面 `Settings_Pen_ThicknessPreset1..3_Header`）。 */
+const THICKNESS_PRESET_KEYS = [
+  'Settings_Pen_ThicknessPreset1_Header',
+  'Settings_Pen_ThicknessPreset2_Header',
+  'Settings_Pen_ThicknessPreset3_Header',
+] as const
 
 /** 替换三档中的某一档（保持元组类型，避免索引赋值）。 */
 function withThicknessPreset(
@@ -43,6 +48,7 @@ export function WritingPage(): ReactNode {
   const settingsService = useSettingsService()
   const pen = settings.writing.pen
   const palette = pen.paletteHexes
+  const { t } = useI18n()
 
   /** 追加一个空色块（桌面 `OnPaletteCountValueChanged` 的新增分支）。 */
   const addSlot = (): void => {
@@ -70,7 +76,7 @@ export function WritingPage(): ReactNode {
   return (
     <div className="wb-settings-page">
       <SettingsCard
-        title="颜色数量"
+        title={t('Settings_Pen_PaletteCount_Header')}
         description={`色板槽位 ${MIN_PALETTE_SLOTS}~${MAX_PALETTE_SLOTS} 个；可保留空色块（未设置颜色），点击色块即可设置颜色`}
         anchor={SETTINGS_ANCHORS.writingPaletteCount}
       >
@@ -127,12 +133,16 @@ export function WritingPage(): ReactNode {
       </div>
 
       <SettingsCard
-        title="通过滑条调整粗细"
+        title={t('Settings_Pen_UseThicknessSlider_Header')}
         anchor={SETTINGS_ANCHORS.writingThicknessSlider}
       >
         <Switch
           checked={pen.useThicknessSlider}
-          label={pen.useThicknessSlider ? '滑条' : '三档'}
+          label={t(
+            pen.useThicknessSlider
+              ? 'Settings_Pen_ThicknessMode_Slider'
+              : 'Settings_Pen_ThicknessMode_Presets',
+          )}
           onChange={(_, data) => {
             settingsService.patch({ writing: { pen: { useThicknessSlider: data.checked } } })
           }}
@@ -144,13 +154,13 @@ export function WritingPage(): ReactNode {
           滑条模式：画笔粗细在 {MIN_THICKNESS}~{MAX_THICKNESS} 之间连续调整。
         </p>
       ) : (
-        <SettingsSection title="三档粗细默认值（细 / 中 / 粗）">
+        <SettingsSection title={t('Settings_Pen_ThicknessPresets_Hint')}>
           <div className="wb-settings-thickness">
-            {THICKNESS_PRESET_LABELS.map((label, index) => (
-              <label key={label} className="wb-settings-thickness__item">
-                <span className="wb-settings-thickness__label">{label}</span>
+            {THICKNESS_PRESET_KEYS.map((labelKey, index) => (
+              <label key={labelKey} className="wb-settings-thickness__item">
+                <span className="wb-settings-thickness__label">{t(labelKey)}</span>
                 <SpinButton
-                  aria-label={label}
+                  aria-label={t(labelKey)}
                   value={pen.thicknessPresets[index]}
                   min={MIN_THICKNESS}
                   max={MAX_THICKNESS}

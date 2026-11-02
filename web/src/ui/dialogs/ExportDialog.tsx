@@ -28,6 +28,7 @@ import {
 } from '@fluentui/react-components'
 import { ArrowExportRegular, DismissRegular } from '@fluentui/react-icons'
 import { useBoardController, useBoardSnapshot, useReminderService, useSettings } from '../../app/hooks.ts'
+import { useI18n, type Translator } from '../../i18n/context.ts'
 import {
   DEFAULT_EXPORT_OPTIONS,
   PDF_DPI_VALUES,
@@ -59,42 +60,33 @@ export interface ExportDialogProps {
   readonly onClose: () => void
 }
 
-/** 格式文案（`Export_FileType_Png`、`Export_FileType_Pdf`、`Export_Format_Wbix_WithExt`；`Export.resw:59-70`）。 */
-const FORMAT_LABELS: Record<ExportFormat, string> = {
-  png: 'PNG 图片',
-  pdf: 'PDF 文档',
-  wbix: 'WBIX 源文件 (.wbix)',
-}
+/** 格式文案的 key（`Export_FileType_Png`、`Export_FileType_Pdf`、`Export_Format_Wbix_WithExt`；`Export.resw:59-70`）。 */
+const FORMAT_LABEL_KEYS = {
+  png: 'Export_FileType_Png',
+  pdf: 'Export_FileType_Pdf',
+  wbix: 'Export_Format_Wbix_WithExt',
+} as const satisfies Record<ExportFormat, string>
 
-/** 页范围文案（`Export_PageScope_Current/All/Range`；`Export.resw:77-85`）。 */
-const RANGE_LABELS: Record<ExportRange, string> = {
-  current: '当前页',
-  all: '全部页',
-  range: '指定范围（例如：1,3-5）',
-}
+/** 页范围文案的 key（`Export_PageScope_Current/All/Range`；`Export.resw:77-85`）。 */
+const RANGE_LABEL_KEYS = {
+  current: 'Export_PageScope_Current',
+  all: 'Export_PageScope_All',
+  range: 'Export_PageScope_Range',
+} as const satisfies Record<ExportRange, string>
 
-/** PNG 比例文案（`Export_PngAspect_Square/4_3/16_9`；`Export.resw:104-112`）。 */
-const ASPECT_LABELS: Record<PngAspect, string> = {
-  square: '1:1（方形）',
-  'ratio-4-3': '4:3',
-  'ratio-16-9': '16:9',
-}
+/** PNG 比例文案的 key（`Export_PngAspect_Square/4_3/16_9`；`Export.resw:104-112`）。 */
+const ASPECT_LABEL_KEYS = {
+  square: 'Export_PngAspect_Square',
+  'ratio-4-3': 'Export_PngAspect_4_3',
+  'ratio-16-9': 'Export_PngAspect_16_9',
+} as const satisfies Record<PngAspect, string>
 
-/** PDF 清晰度文案（`Export_PdfDpi_Standard/High/Ultra`；`Export.resw:119-127`）。 */
-const DPI_LABELS: Record<number, string> = {
-  96: '标准（96 DPI）',
-  192: '高清（192 DPI）',
-  288: '超清（288 DPI）',
-}
-
-/**
- * 面板末尾的静态提示（桌面 `Export_Hint_Text`，`WindBoard/Strings/zh-CN/Export.resw:128-130`）。
- *
- * 桌面在 `ExportDialog.cs:85-90` 创建、`:157` 作为 `panel.Children` 的最后一个加入；
- * 这里逐字照抄，避免与桌面文案漂移。
- */
-const EXPORT_HINT_TEXT =
-  '提示：PNG 会按固定比例/分辨率导出（内容等比缩放并居中）；PNG 多页会导出到文件夹；PDF 会生成多页文档；WBIX 会包含全部页面与后续资源扩展位。'
+/** PDF 清晰度文案的 key（`Export_PdfDpi_Standard/High/Ultra`；`Export.resw:119-127`）。 */
+const DPI_LABEL_KEYS = {
+  96: 'Export_PdfDpi_Standard',
+  192: 'Export_PdfDpi_High',
+  288: 'Export_PdfDpi_Ultra',
+} as const satisfies Record<number, string>
 
 /** 数字输入：空串视为"未填"（`NaN`），交给 `validateExportOptions` 报错。 */
 function parseNumberInput(value: string): number {
@@ -111,10 +103,13 @@ function numberInputValue(value: number): string {
  * PNG 高度选项文案（桌面 `ExportDialog.cs:97-114` 的 `UpdatePngSizeItems`：
  * 文案随比例变化，2160 档用 4K 写法，见 `Export_PngSizeItem_Fmt` / `Export_PngSize4kItem_Fmt`）。
  */
-function pngHeightLabel(height: PngHeight, aspect: PngAspect): string {
+function pngHeightLabel(t: Translator, height: PngHeight, aspect: PngAspect): string {
   const frame = computePngFrameSize(aspect, height)
-  const size = `${String(frame.pixelWidth)}×${String(frame.pixelHeight)}`
-  return height === 2160 ? `4K（${size}）` : `${String(height)}P（${size}）`
+  const width = String(frame.pixelWidth)
+  const pixelHeight = String(frame.pixelHeight)
+  return height === 2160
+    ? t('Export_PngSize4kItem_Fmt', width, pixelHeight)
+    : t('Export_PngSizeItem_Fmt', String(height), width, pixelHeight)
 }
 
 /** 导出对话框。 */
@@ -143,6 +138,7 @@ function ExportDialogForm(props: { readonly onClose: () => void }): ReactNode {
   // 真实导出要读工作区快照与外观设置（背景色 / 元素卡主题）
   const controller = useBoardController()
   const settings = useSettings()
+  const { t } = useI18n()
 
   const pageCount = snapshot.pageCount
 
@@ -197,16 +193,16 @@ function ExportDialogForm(props: { readonly onClose: () => void }): ReactNode {
           elementCardTheme: settings.appearance.elementCardTheme,
         })
         if (outcome.ok) {
-          reminders.push({ message: outcome.message ?? '导出完成', severity: 'informational' })
+          reminders.push({ message: outcome.message ?? t('Export_Completed_Title'), severity: 'informational' })
           return
         }
         // 用户取消不提示（与桌面一致：取消选择器就是静默返回）
         if (outcome.cancelled !== true) {
-          reminders.push({ message: outcome.error ?? '导出失败', severity: 'error' })
+          reminders.push({ message: outcome.error ?? t('Export_Failed_Title'), severity: 'error' })
         }
       } catch (error) {
         reminders.push({
-          message: `导出失败：${error instanceof Error ? error.message : String(error)}`,
+          message: `${t('Export_Failed_Title')}：${error instanceof Error ? error.message : String(error)}`,
           severity: 'error',
         })
       }
@@ -221,21 +217,21 @@ function ExportDialogForm(props: { readonly onClose: () => void }): ReactNode {
           <Button
             appearance="subtle"
             icon={<DismissRegular />}
-            aria-label="关闭"
+            aria-label={t('Common_Close')}
             onClick={props.onClose}
           />
         }
       >
         {/* `Export_Dialog_Title`（`Export.resw:20-22`；桌面 `ExportDialog.cs:161`） */}
-        导出
+        {t('Export_Dialog_Title')}
       </DialogTitle>
 
       <DialogContent className="wb-dialog__form">
         {/* 格式（`ExportDialog.cs:19-28`，下拉三项顺序 PNG / PDF / WBIX） */}
         {/* 标签 `Export_Format_Label`（`Export.resw:71-73`；桌面 `ExportDialog.cs:144`） */}
-        <Field label="导出格式">
+        <Field label={t('Export_Format_Label')}>
           <Dropdown
-            value={FORMAT_LABELS[options.format]}
+            value={t(FORMAT_LABEL_KEYS[options.format])}
             selectedOptions={[options.format]}
             onOptionSelect={(_event, data) => {
               if (isExportFormat(data.optionValue)) {
@@ -243,23 +239,23 @@ function ExportDialogForm(props: { readonly onClose: () => void }): ReactNode {
               }
             }}
           >
-            <Option value="png" text={FORMAT_LABELS.png}>
-              {FORMAT_LABELS.png}
+            <Option value="png" text={t(FORMAT_LABEL_KEYS.png)}>
+              {t(FORMAT_LABEL_KEYS.png)}
             </Option>
-            <Option value="pdf" text={FORMAT_LABELS.pdf}>
-              {FORMAT_LABELS.pdf}
+            <Option value="pdf" text={t(FORMAT_LABEL_KEYS.pdf)}>
+              {t(FORMAT_LABEL_KEYS.pdf)}
             </Option>
-            <Option value="wbix" text={FORMAT_LABELS.wbix}>
-              {FORMAT_LABELS.wbix}
+            <Option value="wbix" text={t(FORMAT_LABEL_KEYS.wbix)}>
+              {t(FORMAT_LABEL_KEYS.wbix)}
             </Option>
           </Dropdown>
         </Field>
 
         {/* 页范围（`ExportDialog.cs:30-45`、`:92-95`） */}
         {/* 标签 `Export_PageScope_Label`（`Export.resw:74-76`；桌面 `ExportDialog.cs:146`） */}
-        <Field label="导出页面">
+        <Field label={t('Export_PageScope_Label')}>
           <Dropdown
-            value={RANGE_LABELS[options.range]}
+            value={t(RANGE_LABEL_KEYS[options.range])}
             selectedOptions={[options.range]}
             onOptionSelect={(_event, data) => {
               if (isExportRange(data.optionValue)) {
@@ -267,14 +263,14 @@ function ExportDialogForm(props: { readonly onClose: () => void }): ReactNode {
               }
             }}
           >
-            <Option value="current" text={RANGE_LABELS.current}>
-              {RANGE_LABELS.current}
+            <Option value="current" text={t(RANGE_LABEL_KEYS.current)}>
+              {t(RANGE_LABEL_KEYS.current)}
             </Option>
-            <Option value="all" text={RANGE_LABELS.all}>
-              {RANGE_LABELS.all}
+            <Option value="all" text={t(RANGE_LABEL_KEYS.all)}>
+              {t(RANGE_LABEL_KEYS.all)}
             </Option>
-            <Option value="range" text={RANGE_LABELS.range}>
-              {RANGE_LABELS.range}
+            <Option value="range" text={t(RANGE_LABEL_KEYS.range)}>
+              {t(RANGE_LABEL_KEYS.range)}
             </Option>
           </Dropdown>
         </Field>
@@ -289,7 +285,7 @@ function ExportDialogForm(props: { readonly onClose: () => void }): ReactNode {
         <Field label="页码范围">
           <Input
             value={options.pageRangeText}
-            placeholder="例如：1,3-5"
+            placeholder={t('Export_PageRange_Placeholder')}
             disabled={options.range !== 'range'}
             onChange={(_event, data) => {
               update({ pageRangeText: data.value })
@@ -301,9 +297,9 @@ function ExportDialogForm(props: { readonly onClose: () => void }): ReactNode {
         {/* 标签 `Export_PngAspect_Label`（`Export.resw:89-91`） */}
         {isPng ? (
           <>
-            <Field label="画面比例（PNG）">
+            <Field label={t('Export_PngAspect_Label')}>
               <Dropdown
-                value={ASPECT_LABELS[options.pngAspect]}
+                value={t(ASPECT_LABEL_KEYS[options.pngAspect])}
                 selectedOptions={[options.pngAspect]}
                 onOptionSelect={(_event, data) => {
                   if (isPngAspect(data.optionValue)) {
@@ -311,22 +307,22 @@ function ExportDialogForm(props: { readonly onClose: () => void }): ReactNode {
                   }
                 }}
               >
-                <Option value="square" text={ASPECT_LABELS.square}>
-                  {ASPECT_LABELS.square}
+                <Option value="square" text={t(ASPECT_LABEL_KEYS.square)}>
+                  {t(ASPECT_LABEL_KEYS.square)}
                 </Option>
-                <Option value="ratio-4-3" text={ASPECT_LABELS['ratio-4-3']}>
-                  {ASPECT_LABELS['ratio-4-3']}
+                <Option value="ratio-4-3" text={t(ASPECT_LABEL_KEYS['ratio-4-3'])}>
+                  {t(ASPECT_LABEL_KEYS['ratio-4-3'])}
                 </Option>
-                <Option value="ratio-16-9" text={ASPECT_LABELS['ratio-16-9']}>
-                  {ASPECT_LABELS['ratio-16-9']}
+                <Option value="ratio-16-9" text={t(ASPECT_LABEL_KEYS['ratio-16-9'])}>
+                  {t(ASPECT_LABEL_KEYS['ratio-16-9'])}
                 </Option>
               </Dropdown>
             </Field>
 
             {/* 标签 `Export_PngSize_Label`（`Export.resw:92-94`） */}
-            <Field label="输出分辨率（PNG）">
+            <Field label={t('Export_PngSize_Label')}>
               <Dropdown
-                value={pngHeightLabel(options.pngHeight, options.pngAspect)}
+                value={pngHeightLabel(t, options.pngHeight, options.pngAspect)}
                 selectedOptions={[String(options.pngHeight)]}
                 onOptionSelect={(_event, data) => {
                   const height = Number(data.optionValue)
@@ -336,8 +332,8 @@ function ExportDialogForm(props: { readonly onClose: () => void }): ReactNode {
                 }}
               >
                 {PNG_HEIGHTS.map((height) => (
-                  <Option key={height} value={String(height)} text={pngHeightLabel(height, options.pngAspect)}>
-                    {pngHeightLabel(height, options.pngAspect)}
+                  <Option key={height} value={String(height)} text={pngHeightLabel(t, height, options.pngAspect)}>
+                    {pngHeightLabel(t, height, options.pngAspect)}
                   </Option>
                 ))}
               </Dropdown>
@@ -348,9 +344,9 @@ function ExportDialogForm(props: { readonly onClose: () => void }): ReactNode {
         {/* 仅 PDF：DPI（`ExportDialog.cs:63-72`、`:178-185`） */}
         {/* 标签 `Export_PdfDpi_Label`（`Export.resw:95-97`） */}
         {isPdf ? (
-          <Field label="清晰度（PDF）">
+          <Field label={t('Export_PdfDpi_Label')}>
             <Dropdown
-              value={DPI_LABELS[options.pdfDpi]}
+              value={t(DPI_LABEL_KEYS[options.pdfDpi])}
               selectedOptions={[String(options.pdfDpi)]}
               onOptionSelect={(_event, data) => {
                 const dpi = Number(data.optionValue)
@@ -360,8 +356,8 @@ function ExportDialogForm(props: { readonly onClose: () => void }): ReactNode {
               }}
             >
               {PDF_DPI_VALUES.map((dpi) => (
-                <Option key={dpi} value={String(dpi)} text={DPI_LABELS[dpi]}>
-                  {DPI_LABELS[dpi]}
+                <Option key={dpi} value={String(dpi)} text={t(DPI_LABEL_KEYS[dpi])}>
+                  {t(DPI_LABEL_KEYS[dpi])}
                 </Option>
               ))}
             </Dropdown>
@@ -371,11 +367,11 @@ function ExportDialogForm(props: { readonly onClose: () => void }): ReactNode {
         {/* 留白：PNG/PDF 共用（`ExportDialog.cs:74-78`、`:130-131`） */}
         {/* 标签 `Export_Padding_Label`、占位符 `Export_Padding_Placeholder`（`Export.resw:98-103`；桌面 `ExportDialog.cs:74-78`） */}
         {isRaster ? (
-          <Field label="内容留白（DIP）">
+          <Field label={t('Export_Padding_Label')}>
             <Input
               type="number"
               min={0}
-              placeholder="边距（DIP）"
+              placeholder={t('Export_Padding_Placeholder')}
               value={numberInputValue(options.paddingDip)}
               onChange={(_event, data) => {
                 update({ paddingDip: parseNumberInput(data.value) })
@@ -412,7 +408,7 @@ function ExportDialogForm(props: { readonly onClose: () => void }): ReactNode {
           静态提示（桌面 `Export_Hint_Text`，`Export.resw:128-130`；在桌面面板里是最后一个子元素，
           `ExportDialog.cs:85-90` 定义、`:157` 加入 `panel.Children`），放在动态提示之后、文件名之前。
         */}
-        <Text className="wb-dialog__hint">{EXPORT_HINT_TEXT}</Text>
+        <Text className="wb-dialog__hint">{t('Export_Hint_Text')}</Text>
 
         {/* 默认文件名（桌面 `ExportPickers.cs:43-54`；WBIX 无 WindBoard- 前缀） */}
         <Text className="wb-dialog__filename">{suggestedName}</Text>
@@ -421,7 +417,7 @@ function ExportDialogForm(props: { readonly onClose: () => void }): ReactNode {
       <DialogActions>
         {/* `Common_Cancel` = "取消"（`Common.resw:23-25`；桌面 `ExportDialog.cs:164` 的 `CloseButtonText`） */}
         <Button appearance="secondary" onClick={props.onClose}>
-          取消
+          {t('Common_Cancel')}
         </Button>
         {/*
           主按钮文案取 `Common_Next` = "下一步"（桌面 `ExportDialog.cs:163` 的 `PrimaryButtonText`）：
@@ -434,7 +430,7 @@ function ExportDialogForm(props: { readonly onClose: () => void }): ReactNode {
           disabled={!validation.valid}
           onClick={handleExport}
         >
-          下一步
+          {t('Common_Next')}
         </Button>
       </DialogActions>
     </DialogBody>

@@ -15,6 +15,7 @@
 import type { ReactNode } from 'react'
 import { useBoardController, useBoardSnapshot } from '../../app/hooks.ts'
 import type { ShapeKind } from '../../board/model/shape.ts'
+import { useI18n } from '../../i18n/context.ts'
 
 /** 属性。 */
 export interface ShapeFlyoutProps {
@@ -22,18 +23,19 @@ export interface ShapeFlyoutProps {
   readonly onClose: () => void
 }
 
-/** 形状项与文案（`Strings/zh-CN/Tool.resw`：直线 / 矩形 / 椭圆 / 箭头）。 */
-const SHAPE_ITEMS: ReadonlyArray<{ readonly kind: ShapeKind; readonly label: string }> = [
-  { kind: 'line', label: '直线' },
-  { kind: 'rect', label: '矩形' },
-  { kind: 'ellipse', label: '椭圆' },
-  { kind: 'arrow', label: '箭头' },
-]
+/** 形状项与文案 key（`Strings/zh-CN/Tool.resw`：直线 / 矩形 / 椭圆 / 箭头）。 */
+const SHAPE_ITEMS = [
+  { kind: 'line', labelKey: 'Tool_Line' },
+  { kind: 'rect', labelKey: 'Tool_Rectangle' },
+  { kind: 'ellipse', labelKey: 'Tool_Ellipse' },
+  { kind: 'arrow', labelKey: 'Tool_Arrow' },
+] as const satisfies ReadonlyArray<{ readonly kind: ShapeKind; readonly labelKey: string }>
 
 /** 面板内容。 */
 export function ShapeFlyout(props: ShapeFlyoutProps): ReactNode {
   const controller = useBoardController()
   const snapshot = useBoardSnapshot()
+  const { t } = useI18n()
 
   const select = (kind: ShapeKind): void => {
     controller.setShapeKind(kind)
@@ -52,8 +54,8 @@ export function ShapeFlyout(props: ShapeFlyoutProps): ReactNode {
           type="button"
           className="wb-shape__item"
           aria-pressed={snapshot.tool === 'shape' && snapshot.shapeKind === item.kind}
-          aria-label={item.label}
-          title={item.label}
+          aria-label={t(item.labelKey)}
+          title={t(item.labelKey)}
           onClick={() => {
             select(item.kind)
           }}

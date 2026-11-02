@@ -21,6 +21,7 @@ import { DeleteRegular } from '@fluentui/react-icons'
 import { useBoardController, useBoardSnapshot } from '../../app/hooks.ts'
 import type { EraserMode } from '../../tools/tool-settings.ts'
 import { clearSlideProgress, clearSlideThumbMaxOffset, isClearSlideComplete } from '../shell/dock-layout.ts'
+import { useI18n } from '../../i18n/context.ts'
 
 /** 属性。 */
 export interface EraserFlyoutProps {
@@ -44,6 +45,7 @@ interface DragState {
 export function EraserFlyout(props: EraserFlyoutProps): ReactNode {
   const controller = useBoardController()
   const snapshot = useBoardSnapshot()
+  const { t } = useI18n()
   const [offset, setOffset] = useState(0)
   /**
    * 位移的实时值。
@@ -126,7 +128,7 @@ export function EraserFlyout(props: EraserFlyoutProps): ReactNode {
   return (
     <div className="wb-flyout wb-flyout--eraser">
       <div className="wb-flyout__card">
-        <div className="wb-flyout__label">擦除模式</div>
+        <div className="wb-flyout__label">{t('MainWindow_EraserMode_Title')}</div>
         <RadioGroup
           layout="horizontal"
           value={snapshot.eraserMode}
@@ -134,8 +136,8 @@ export function EraserFlyout(props: EraserFlyoutProps): ReactNode {
             controller.setEraserMode(data.value as EraserMode)
           }}
         >
-          <Radio value="pixel" label="点擦" />
-          <Radio value="stroke" label="笔划擦" />
+          <Radio value="pixel" label={t('MainWindow_EraserMode_Point')} />
+          <Radio value="stroke" label={t('MainWindow_EraserMode_Stroke')} />
         </RadioGroup>
       </div>
 
@@ -145,12 +147,12 @@ export function EraserFlyout(props: EraserFlyoutProps): ReactNode {
         data-disabled={canClear ? undefined : 'true'}
         style={{ width: SLIDE_HOST_WIDTH }}
       >
-        <span className="wb-slide__text">滑动清屏</span>
+        <span className="wb-slide__text">{t('MainWindow_ClearCanvas_Slide')}</span>
         <div
           className="wb-slide__thumb"
           role="slider"
           tabIndex={canClear ? 0 : -1}
-          aria-label="滑动清屏"
+          aria-label={t('MainWindow_ClearCanvas_Slide')}
           aria-valuemin={0}
           aria-valuemax={100}
           aria-valuenow={Math.round(clearSlideProgress(offset, maxOffsetPx) * 100)}

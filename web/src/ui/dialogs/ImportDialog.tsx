@@ -25,6 +25,7 @@ import {
 } from '@fluentui/react-components'
 import { ArrowImportRegular, DismissRegular, FolderOpenRegular } from '@fluentui/react-icons'
 import { useBoardController, useReminderService } from '../../app/hooks.ts'
+import { useI18n } from '../../i18n/context.ts'
 import { applyImportedWorkspace, parseWbixForImport } from '../../features/import/wbix-import.ts'
 import { pickFile } from '../../platform/io.ts'
 
@@ -39,18 +40,6 @@ import { pickFile } from '../../platform/io.ts'
  * - `Import_Tip_Title`：导入提示
  * - `ImportDialog_FilePicker_Failed_Fmt`：打开文件选择器失败：{0}
  */
-const TEXTS = {
-  dialogTitle: '导入 WBIX/WBI',
-  pickFile: '选择 WBIX/WBI 文件…',
-  insertMethodLabel: '插入方式：',
-  appendMode: '新增在最后一页之后',
-  failedTitle: '导入失败',
-  parseFailed: 'WBIX/WBI 文件解析失败。',
-  busy: '正在导入，请稍候…',
-  tipTitle: '导入提示',
-  filePickerFailedFmt: '打开文件选择器失败：{0}',
-} as const
-
 /**
  * 文件选择器的 accept 过滤。
  *
@@ -88,6 +77,7 @@ export function ImportDialog(props: ImportDialogProps): ReactNode {
 function ImportDialogForm(props: { readonly onClose: () => void }): ReactNode {
   const controller = useBoardController()
   const reminders = useReminderService()
+  const { t } = useI18n()
   const [fileName, setFileName] = useState<string | null>(null)
   const [fileBytes, setFileBytes] = useState<Uint8Array | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -105,7 +95,7 @@ function ImportDialogForm(props: { readonly onClose: () => void }): ReactNode {
       setFileName(picked.name)
       setFileBytes(picked.bytes)
     } catch (cause) {
-      setError(formatText(TEXTS.filePickerFailedFmt, errorMessage(cause)))
+      setError(t('ImportDialog_FilePicker_Failed_Fmt', errorMessage(cause)))
     }
   }
 
@@ -129,7 +119,7 @@ function ImportDialogForm(props: { readonly onClose: () => void }): ReactNode {
       // 桌面把容忍告警只写日志（`AppLog.Warn`）；网页端没有日志层，用提醒把被跳过的内容告诉用户。
       if (imported.warnings.length > 0) {
         reminders.push({
-          title: TEXTS.tipTitle,
+          title: t('Import_Tip_Title'),
           message: summarizeWarnings(imported.warnings),
           severity: 'warning',
         })
@@ -138,7 +128,7 @@ function ImportDialogForm(props: { readonly onClose: () => void }): ReactNode {
       props.onClose()
     } catch {
       // 桌面 `ImportFlow.cs:258-262`：任何导入异常都显示同一条解析失败文案（异常细节只进日志）。
-      setError(TEXTS.parseFailed)
+      setError(t('Import_Wbix_ParseFailed_Message'))
     } finally {
       setBusy(false)
     }
@@ -151,13 +141,13 @@ function ImportDialogForm(props: { readonly onClose: () => void }): ReactNode {
           <Button
             appearance="subtle"
             icon={<DismissRegular />}
-            aria-label="关闭"
+            aria-label={t('Common_Close')}
             disabled={busy}
             onClick={props.onClose}
           />
         }
       >
-        {TEXTS.dialogTitle}
+        {t('Import_Wbix_Dialog_Title')}
       </DialogTitle>
 
       <DialogContent className="wb-dialog__form">
@@ -169,27 +159,27 @@ function ImportDialogForm(props: { readonly onClose: () => void }): ReactNode {
               void handlePickFile()
             }}
           >
-            {TEXTS.pickFile}
+            {t('ImportDialog_PickWbix')}
           </Button>
           <Text className="wb-dialog__file-name">{fileName ?? '尚未选择文件'}</Text>
         </div>
 
         {/* 桌面 WBIX 导入只有"追加"一条活路径（`ImportFlow.cs:99-101`），这里把模式说明摆在明面上。 */}
         <Text className="wb-dialog__hint">
-          {TEXTS.insertMethodLabel}
-          {TEXTS.appendMode}
+          {t('Import_Wbix_InsertMethod_Label')}
+          {t('Import_Wbix_Mode_Append')}
         </Text>
 
         {busy ? (
           <MessageBar intent="info">
-            <MessageBarBody>{TEXTS.busy}</MessageBarBody>
+            <MessageBarBody>{t('Import_Wbix_Busy_Message')}</MessageBarBody>
           </MessageBar>
         ) : null}
 
         {error === null ? null : (
           <MessageBar intent="error">
             <MessageBarBody>
-              {TEXTS.failedTitle}：{error}
+              {t('Import_Failed_Title')}：{error}
             </MessageBarBody>
           </MessageBar>
         )}
@@ -197,7 +187,7 @@ function ImportDialogForm(props: { readonly onClose: () => void }): ReactNode {
 
       <DialogActions>
         <Button appearance="secondary" disabled={busy} onClick={props.onClose}>
-          取消
+          {t('Common_Cancel')}
         </Button>
         <Button
           appearance="primary"
@@ -207,16 +197,11 @@ function ImportDialogForm(props: { readonly onClose: () => void }): ReactNode {
             void handleImport()
           }}
         >
-          导入
+          {t('Common_Import')}
         </Button>
       </DialogActions>
     </DialogBody>
   )
-}
-
-/** 单参数填充 `{0}`（桌面 `L10n.Format` 的单参数用法）。 */
-function formatText(template: string, value: string): string {
-  return template.replace('{0}', value)
 }
 
 /** 取异常的可读信息。 */

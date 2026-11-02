@@ -18,6 +18,7 @@ import {
   Text,
 } from '@fluentui/react-components'
 import { WarningRegular } from '@fluentui/react-icons'
+import { useI18n } from '../../i18n/context.ts'
 
 /** 属性。 */
 export interface ConfirmDialogProps {
@@ -45,8 +46,10 @@ const DANGER_STYLE: CSSProperties = {
 
 /** 通用确认对话框。 */
 export function ConfirmDialog(props: ConfirmDialogProps): ReactNode {
-  const confirmText = props.confirmText ?? '确定'
-  const cancelText = props.cancelText ?? '取消'
+  const { t } = useI18n()
+  // 默认按钮文案取 resw：`Common_OK` = 确定、`Common_Cancel` = 取消。
+  const confirmText = props.confirmText ?? t('Common_OK')
+  const cancelText = props.cancelText ?? t('Common_Cancel')
   const danger = props.danger === true
 
   return (

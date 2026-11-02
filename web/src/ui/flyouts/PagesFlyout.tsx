@@ -22,6 +22,7 @@ import type { ReactNode } from 'react'
 import { DeleteRegular } from '@fluentui/react-icons'
 import { useBoardController, useBoardSnapshot, useSettings } from '../../app/hooks.ts'
 import { PageThumbnail } from '../shell/PageThumbnail.tsx'
+import { useI18n } from '../../i18n/context.ts'
 
 /** 属性。 */
 export interface PagesFlyoutProps {
@@ -37,6 +38,7 @@ export function PagesFlyout(props: PagesFlyoutProps): ReactNode {
   const controller = useBoardController()
   const snapshot = useBoardSnapshot()
   const settings = useSettings()
+  const { t } = useI18n()
   const pages = Array.from({ length: snapshot.pageCount }, (_unused, index) => index)
   // 缩略图尺寸：列表项宽 240 减去左右内边距 8×2（`MainWindow.xaml:633-640,665`），高固定 104
   const thumbnailWidth = 224
@@ -58,8 +60,8 @@ export function PagesFlyout(props: PagesFlyoutProps): ReactNode {
 
   return (
     <div className="wb-flyout wb-flyout--panel wb-flyout--pages">
-      <div className="wb-flyout__heading">页面管理</div>
-      <div className="wb-pages" role="listbox" aria-label="页面管理">
+      <div className="wb-flyout__heading">{t('MainWindow_PageManager_Title')}</div>
+      <div className="wb-pages" role="listbox" aria-label={t('MainWindow_PageManager_Title')}>
         {pages.map((index) => {
           const selected = index === snapshot.currentPageIndex
           return (

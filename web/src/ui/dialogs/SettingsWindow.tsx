@@ -25,6 +25,7 @@ import {
   Settings24Regular,
 } from '@fluentui/react-icons'
 import { useEffect, useRef, useState, type ReactElement, type ReactNode } from 'react'
+import { useI18n } from '../../i18n/context.ts'
 import { AboutPage } from '../../settings/pages/AboutPage.tsx'
 import { AppearancePage } from '../../settings/pages/AppearancePage.tsx'
 import { DockPage } from '../../settings/pages/DockPage.tsx'
@@ -101,6 +102,7 @@ function renderPage(id: SettingsPageId, onNavigate: (pageId: SettingsPageId) => 
 
 /** 设置窗口。 */
 export function SettingsWindow(props: SettingsWindowProps): ReactNode {
+  const { t } = useI18n()
   const [pageId, setPageId] = useState<SettingsPageId>(DEFAULT_SETTINGS_PAGE_ID)
   const [pending, setPending] = useState<PendingSearchTarget | null>(null)
   const pendingSeq = useRef(0)
@@ -167,7 +169,7 @@ export function SettingsWindow(props: SettingsWindowProps): ReactNode {
             所以整行用 flex 容器自己排。
           */}
           <div className="wb-settings-titlebar">
-            <DialogTitle className="wb-settings-title">设置</DialogTitle>
+            <DialogTitle className="wb-settings-title">{t('Common_Settings')}</DialogTitle>
             <SettingsSearchBox onSelect={handleSearchSelect} />
             <Button
               appearance="subtle"

@@ -12,6 +12,8 @@
 import { Button, Input, Switch } from '@fluentui/react-components'
 import { useState, type ReactNode } from 'react'
 import { useSettings, useSettingsService } from '../../app/hooks.ts'
+import { useI18n } from '../../i18n/context.ts'
+import type { MessageKey } from '../../i18n/locales/zh-CN.generated.ts'
 import {
   canonicalShortcutBinding,
   isValidShortcutBinding,
@@ -20,13 +22,28 @@ import {
 import { SETTINGS_ANCHORS } from '../search-targets.ts'
 import { SettingsCard, SettingsSection } from './SettingsCard.tsx'
 
-/** 只读的鼠标组合快捷键（文案取桌面 zh-CN L10n）。 */
-const MOUSE_GESTURES: readonly { readonly action: string; readonly gesture: string }[] = [
-  { action: '平移视口', gesture: '鼠标右键拖动' },
-  { action: '缩放视口', gesture: '鼠标滚轮' },
-  { action: '选择：缩放选中', gesture: 'Ctrl+滚轮' },
-  { action: '选择：旋转选中笔迹', gesture: 'Shift+滚轮' },
-]
+/** 只读的鼠标组合快捷键的文案 key（桌面 `Settings_Shortcuts_Mouse_*`）。 */
+const MOUSE_GESTURES = [
+  {
+    actionKey: 'Settings_Shortcuts_Mouse_PanViewport_Title',
+    gestureKey: 'Settings_Shortcuts_Mouse_PanViewport_Gesture',
+  },
+  {
+    actionKey: 'Settings_Shortcuts_Mouse_ZoomViewport_Title',
+    gestureKey: 'Settings_Shortcuts_Mouse_ZoomViewport_Gesture',
+  },
+  {
+    actionKey: 'Settings_Shortcuts_Mouse_ZoomSelection_Title',
+    gestureKey: 'Settings_Shortcuts_Mouse_ZoomSelection_Gesture',
+  },
+  {
+    actionKey: 'Settings_Shortcuts_Mouse_RotateSelection_Title',
+    gestureKey: 'Settings_Shortcuts_Mouse_RotateSelection_Gesture',
+  },
+] as const satisfies ReadonlyArray<{
+  readonly actionKey: MessageKey
+  readonly gestureKey: MessageKey
+}>
 
 /** 单个快捷键编辑器属性。 */
 interface ShortcutEditorProps {
@@ -51,6 +68,7 @@ function ShortcutEditor(props: ShortcutEditorProps): ReactNode {
   // 也不会在组件里留一份独立的设置副本（设置仍是唯一事实源）。
   const [draft, setDraft] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const { t } = useI18n()
   const value = draft ?? props.binding
 
   /** 校验并提交；非法/冲突时只提示、不写入。 */
@@ -63,16 +81,16 @@ function ShortcutEditor(props: ShortcutEditorProps): ReactNode {
       return
     }
     if (!isValidShortcutBinding(text)) {
-      setError('快捷键无效：必须包含 Ctrl 或 Alt，且只能有一个普通按键。')
+      setError(t('Settings_Shortcuts_Error_Invalid'))
       return
     }
     const canonical = canonicalShortcutBinding(text)
     if (canonical === null) {
-      setError('快捷键无效：无法解析该组合键。')
+      setError(t('Settings_Shortcuts_Error_Invalid'))
       return
     }
     if (props.otherBinding !== '' && canonicalShortcutBinding(props.otherBinding) === canonical) {
-      setError(`该快捷键已分配给“${props.otherTitle}”，请先修改或清除冲突项。`)
+      setError(t('Settings_Shortcuts_Error_Conflict_Fmt', props.otherTitle))
       return
     }
     setError(null)
@@ -147,6 +165,7 @@ export function ShortcutsPage(): ReactNode {
   const settings = useSettings()
   const settingsService = useSettingsService()
   const { undo, redo, conflictReminderEnabled } = settings.keyboardShortcuts
+  const { t } = useI18n()
 
   /** 写入单个槽位（`patch` 会归一化：非法回退默认、冲突清空后者）。 */
   const commitShortcut = (id: ShortcutId, next: string): void => {
@@ -157,35 +176,35 @@ export function ShortcutsPage(): ReactNode {
 
   return (
     <div className="wb-settings-page">
-      <SettingsSection title="键盘快捷键">
+      <SettingsSection title={t('Settings_Shortcuts_Keyboard_SectionTitle')}>
         <ShortcutEditor
-          title="撤销"
+          title={t('Settings_Shortcuts_Undo_Title')}
           anchor={SETTINGS_ANCHORS.shortcutsUndo}
           binding={undo}
-          otherTitle="重做"
+          otherTitle={t('Settings_Shortcuts_Redo_Title')}
           otherBinding={redo}
           onCommit={(next) => {
             commitShortcut('undo', next)
           }}
         />
         <ShortcutEditor
-          title="重做"
+          title={t('Settings_Shortcuts_Redo_Title')}
           anchor={SETTINGS_ANCHORS.shortcutsRedo}
           binding={redo}
-          otherTitle="撤销"
+          otherTitle={t('Settings_Shortcuts_Undo_Title')}
           otherBinding={undo}
           onCommit={(next) => {
             commitShortcut('redo', next)
           }}
         />
         <SettingsCard
-          title="快捷键冲突提醒"
+          title={t('Settings_Shortcuts_ConflictReminder_Header')}
           description="当两个快捷键冲突时给出提醒"
           anchor={SETTINGS_ANCHORS.shortcutsConflictReminder}
         >
           <Switch
             checked={conflictReminderEnabled}
-            aria-label="快捷键冲突提醒"
+            aria-label={t('Settings_Shortcuts_ConflictReminder_Header')}
             onChange={(_, data) => {
               settingsService.patch({
                 keyboardShortcuts: { conflictReminderEnabled: data.checked },
@@ -198,13 +217,13 @@ export function ShortcutsPage(): ReactNode {
         </p>
       </SettingsSection>
 
-      <SettingsSection title="鼠标组合快捷键">
-        <p className="wb-settings-hint">鼠标组合快捷键暂不支持修改。</p>
+      <SettingsSection title={t('Settings_Shortcuts_Mouse_SectionTitle')}>
+        <p className="wb-settings-hint">{t('Settings_Shortcuts_Mouse_SectionDescription')}</p>
         <ul className="wb-settings-gesture-list">
           {MOUSE_GESTURES.map((item) => (
-            <li key={item.action}>
-              <span>{item.action}</span>
-              <code>{item.gesture}</code>
+            <li key={item.actionKey}>
+              <span>{t(item.actionKey)}</span>
+              <code>{t(item.gestureKey)}</code>
             </li>
           ))}
         </ul>

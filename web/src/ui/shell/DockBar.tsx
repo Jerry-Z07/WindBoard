@@ -56,6 +56,8 @@ import {
   useShellActions,
   useShowPagePager,
 } from '../../app/hooks.ts'
+import { useI18n } from '../../i18n/context.ts'
+import type { MessageKey } from '../../i18n/locales/zh-CN.generated.ts'
 import type { ToolKind } from '../../interaction/pointer-router.ts'
 import type { DockItemId } from '../../settings/model.ts'
 import { EraserFlyout } from '../flyouts/EraserFlyout.tsx'
@@ -64,7 +66,12 @@ import { PenFlyout } from '../flyouts/PenFlyout.tsx'
 import { ShapeFlyout } from '../flyouts/ShapeFlyout.tsx'
 import { planToolButtonClick } from '../flyouts/flyout-machine.ts'
 import { DockButton } from './DockButton.tsx'
-import { applyDockOrder, buildMoreMenuEntries, type DockPlacement } from './dock-layout.ts'
+import {
+  applyDockOrder,
+  buildMoreMenuEntries,
+  type DockPlacement,
+  type MoreMenuActionId,
+} from './dock-layout.ts'
 
 /** 属性。 */
 export interface DockBarProps {
@@ -89,12 +96,17 @@ const DOCK_TOOL_KIND: Readonly<Partial<Record<DockItemId, ToolKind>>> = {
   toolShape: 'shape',
 }
 
-/** 工具项文案（`Strings/zh-CN/Tool.resw`：选择 / 书写 / 擦除 / 形状）。 */
-const TOOL_LABELS: Readonly<Record<ToolKind, string>> = {
-  select: '选择',
-  pen: '书写',
-  eraser: '擦除',
-  shape: '形状',
+/**
+ * 工具项文案 key（`Strings/zh-CN/Tool.resw`：选择 / 书写 / 擦除 / 形状）。
+ *
+ * 这里存 key 而不是中文：调用点在渲染时用 `t(...)` 取词，
+ * 语言切换（设置 → 常规 → 语言）后无需重新构造映射表。
+ */
+const TOOL_LABEL_KEYS: Readonly<Record<ToolKind, MessageKey>> = {
+  select: 'Tool_Select',
+  pen: 'Tool_Pen',
+  eraser: 'Tool_Eraser',
+  shape: 'Tool_Shape',
 }
 
 /**
@@ -142,6 +154,7 @@ export function DockBar(props: DockBarProps): ReactNode {
 
 /** 左 Dock：更多（菜单）/ 最小化 / 导入。 */
 function LeftDock(): ReactNode {
+  const { t } = useI18n()
   const actions = useShellActions()
   const reminders = useReminderService()
   const settings = useSettings()
@@ -156,7 +169,7 @@ function LeftDock(): ReactNode {
           <DockButton
             key={id}
             icon={<SubtractRegular fontSize={20} />}
-            label="最小化"
+            label={t('Common_Minimize')}
             onClick={() => {
               // 浏览器没有"最小化窗口"能力（桌面 `MainWindow.xaml:133-145` 的 `BackToWindow`）。
               // 保留按钮位置以维持与桌面一致的 Dock 结构，点击时用提醒解释为什么不可用。
@@ -169,7 +182,7 @@ function LeftDock(): ReactNode {
           <DockButton
             key={id}
             icon={<ArrowImportRegular fontSize={20} />}
-            label="导入"
+            label={t('Common_Import')}
             onClick={actions.openImport}
           />
         )
@@ -183,8 +196,25 @@ function LeftDock(): ReactNode {
 
 /** 更多菜单（`MainWindow.xaml:92-124`：设置 / 分隔 / 导出 / 全屏切换）。 */
 function MoreButton(): ReactNode {
+  const { t } = useI18n()
   const actions = useShellActions()
   const entries = buildMoreMenuEntries(actions.isFullscreen)
+
+  /**
+   * 菜单项文案：条目里的 `label` 是 `dock-layout.ts` 的静态中文，
+   * 这里按 id 改用文案表取词（`Common_Settings` / `Common_Export` / `Common_FullScreen` /
+   * `Common_ExitFullScreen`），语言切换后菜单才会跟着变。
+   */
+  const menuLabel = (id: MoreMenuActionId): string => {
+    switch (id) {
+      case 'settings':
+        return t('Common_Settings')
+      case 'export':
+        return t('Common_Export')
+      default:
+        return actions.isFullscreen ? t('Common_ExitFullScreen') : t('Common_FullScreen')
+    }
+  }
 
   const iconOf = (id: 'settings' | 'export' | 'fullscreen'): ReactElement => {
     switch (id) {
@@ -211,7 +241,7 @@ function MoreButton(): ReactNode {
   return (
     <Menu>
       <MenuTrigger disableButtonEnhancement>
-        <DockButton icon={<MoreHorizontalRegular fontSize={20} />} label="更多" />
+        <DockButton icon={<MoreHorizontalRegular fontSize={20} />} label={t('Common_More')} />
       </MenuTrigger>
       <MenuPopover>
         {/* 菜单挂在 body 上，会脱离 Dock 的浅色主题，这里补一层，避免深色系统下变成深色菜单 */}
@@ -222,7 +252,7 @@ function MoreButton(): ReactNode {
                 <MenuDivider key="divider" />
               ) : (
                 <MenuItem key={entry.id} icon={iconOf(entry.id)} onClick={runOf(entry.id)}>
-                  {entry.label}
+                  {menuLabel(entry.id)}
                 </MenuItem>
               ),
             )}
@@ -237,6 +267,7 @@ function MoreButton(): ReactNode {
 
 /** 主 Dock：选择 / 笔 / 橡皮 / 形状 + 分隔线 + 撤销 / 重做。 */
 function CenterDock(): ReactNode {
+  const { t } = useI18n()
   const controller = useBoardController()
   const snapshot = useBoardSnapshot()
   const settings = useSettings()
@@ -294,9 +325,9 @@ function CenterDock(): ReactNode {
     const button = (
       <DockButton
         icon={toolIcon(tool)}
-        label={TOOL_LABELS[tool]}
+        label={t(TOOL_LABEL_KEYS[tool])}
         pressed={snapshot.tool === tool}
-        title={TOOL_LABELS[tool]}
+        title={t(TOOL_LABEL_KEYS[tool])}
         onClick={() => {
           clickTool(tool)
         }}
@@ -345,7 +376,7 @@ function CenterDock(): ReactNode {
           <DockButton
             key={id}
             icon={<ArrowUndoRegular fontSize={20} />}
-            label="撤销"
+            label={t('Common_Undo')}
             disabled={!snapshot.canUndo}
             onClick={() => {
               controller.undo()
@@ -357,7 +388,7 @@ function CenterDock(): ReactNode {
           <DockButton
             key={id}
             icon={<ArrowRedoRegular fontSize={20} />}
-            label="重做"
+            label={t('Common_Redo')}
             disabled={!snapshot.canRedo}
             onClick={() => {
               controller.redo()
@@ -408,6 +439,7 @@ function ShapeToolIcon(): ReactNode {
 
 /** 页面 Dock：上一页 / 指示器 / 下一页 / 新增（单页时整块隐藏）。 */
 function RightDock(): ReactNode {
+  const { t } = useI18n()
   const controller = useBoardController()
   const snapshot = useBoardSnapshot()
   const settings = useSettings()
@@ -431,7 +463,7 @@ function RightDock(): ReactNode {
     <DockButton
       label={indicatorText}
       className="wb-dock__page-indicator"
-      title="页面管理"
+      title={t('MainWindow_PageManager_Title')}
       onClick={() => {
         flyouts.toggle('pages')
       }}
@@ -449,7 +481,7 @@ function RightDock(): ReactNode {
           <DockButton
             key={id}
             icon={<ChevronLeftRegular fontSize={20} />}
-            title="上一页"
+            title={t('Common_PreviousPage')}
             disabled={snapshot.currentPageIndex <= 0}
             onClick={() => {
               controller.setCurrentPageIndex(snapshot.currentPageIndex - 1)
@@ -479,7 +511,7 @@ function RightDock(): ReactNode {
           <DockButton
             key={id}
             icon={<ChevronRightRegular fontSize={20} />}
-            title="下一页"
+            title={t('Common_NextPage')}
             disabled={snapshot.currentPageIndex >= snapshot.pageCount - 1}
             onClick={() => {
               controller.setCurrentPageIndex(snapshot.currentPageIndex + 1)

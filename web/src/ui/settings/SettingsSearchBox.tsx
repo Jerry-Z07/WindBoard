@@ -14,6 +14,7 @@
 
 import { SearchBox } from '@fluentui/react-components'
 import { useId, useState, type KeyboardEvent, type ReactNode } from 'react'
+import { useI18n } from '../../i18n/context.ts'
 import {
   searchSettings,
   type SettingsSearchResult,
@@ -28,6 +29,7 @@ export interface SettingsSearchBoxProps {
 
 /** 设置搜索框。 */
 export function SettingsSearchBox(props: SettingsSearchBoxProps): ReactNode {
+  const { t } = useI18n()
   const baseId = useId()
   const listboxId = `${baseId}-listbox`
 
@@ -95,10 +97,10 @@ export function SettingsSearchBox(props: SettingsSearchBoxProps): ReactNode {
     <div className="wb-settings-search">
       <SearchBox
         className="wb-settings-search__input"
-        placeholder="搜索设置"
+        placeholder={t('SettingsWindow_Search_Placeholder')}
         value={query}
         role="combobox"
-        aria-label="搜索设置"
+        aria-label={t('SettingsWindow_Search_Placeholder')}
         aria-autocomplete="list"
         aria-expanded={showSuggestions}
         aria-controls={showSuggestions ? listboxId : undefined}

@@ -32,6 +32,7 @@ import {
 } from '@fluentui/react-icons'
 import type { ReactNode } from 'react'
 import { useReminderService, useReminders } from '../../app/hooks.ts'
+import { useI18n } from '../../i18n/context.ts'
 import type { Reminder, ReminderSeverity } from '../reminders/reminder-store.ts'
 
 /**
@@ -60,6 +61,7 @@ interface ReminderCardProps {
 
 /** 单条提醒卡片：左图标 / 中文本 / 右关闭按钮（对应 `InfoBar` 模板的三列网格）。 */
 function ReminderCard(props: ReminderCardProps): ReactNode {
+  const { t } = useI18n()
   const title = props.reminder.title
   return (
     <div className="wb-reminder" data-severity={props.reminder.severity}>
@@ -70,11 +72,11 @@ function ReminderCard(props: ReminderCardProps): ReactNode {
         )}
         <span className="wb-reminder__message">{props.reminder.message}</span>
       </div>
-      {/* 无障碍名称先写中文占位，P5 接入 i18n 后改为文案表 */}
+      {/* 关闭按钮的无障碍名：桌面 InfoBar 的关闭按钮同样取 `Common_Close` */}
       <button
         type="button"
         className="wb-reminder__close"
-        aria-label="关闭提醒"
+        aria-label={t('Common_Close')}
         onClick={() => {
           props.onDismiss(props.reminder.id)
         }}

@@ -39,6 +39,7 @@ import {
   MessageBarBody,
 } from '@fluentui/react-components'
 import { useSettings, useSettingsService } from '../../app/hooks.ts'
+import { useI18n } from '../../i18n/context.ts'
 import { DEFAULT_CANVAS_BACKGROUND_HEX, normalizeColorHex } from '../../settings/model.ts'
 
 /** 属性。 */
@@ -70,6 +71,7 @@ interface Hsv {
 export function CanvasColorDialog(props: CanvasColorDialogProps): ReactNode {
   const settings = useSettings()
   const settingsService = useSettingsService()
+  const { t } = useI18n()
 
   /** 打开时的原始颜色（桌面 `_dialogOriginalColor`，`CanvasBackgroundColorSettingsController.cs:88`）。 */
   const [originalHex] = useState(() => settings.appearance.canvasBackgroundHex)
@@ -130,9 +132,9 @@ export function CanvasColorDialog(props: CanvasColorDialogProps): ReactNode {
         }
       }}
     >
-      <DialogSurface className="wb-dialog wb-dialog--canvas-color" aria-label="画布背景颜色">
+      <DialogSurface className="wb-dialog wb-dialog--canvas-color" aria-label={t('Settings_Background_CanvasBackgroundColor_Title')}>
         <DialogBody>
-          <DialogTitle>画布背景颜色</DialogTitle>
+          <DialogTitle>{t('Settings_Background_CanvasBackgroundColor_Title')}</DialogTitle>
           <DialogContent className="wb-dialog__form">
             {/*
               桌面 `ColorPicker`（`AppearanceSettingsPage.xaml:132-138`）：
@@ -153,8 +155,8 @@ export function CanvasColorDialog(props: CanvasColorDialogProps): ReactNode {
 
             {/* 桌面：HEX 输入框 + 右侧"恢复默认"按钮（`AppearanceSettingsPage.xaml:140-157`） */}
             <div className="wb-dialog__hex-row">
-              <Field label="HEX" className="wb-dialog__hex-field">
-                <Input value={hexText} placeholder="#2E2F33" onChange={(_event, data) => onHexInput(data.value)} />
+              <Field label={t('Settings_Background_HexHeader')} className="wb-dialog__hex-field">
+                <Input value={hexText} placeholder={t('Settings_Background_HexPlaceholder')} onChange={(_event, data) => onHexInput(data.value)} />
               </Field>
               <Button
                 appearance="secondary"
@@ -162,24 +164,24 @@ export function CanvasColorDialog(props: CanvasColorDialogProps): ReactNode {
                   applyHex(DEFAULT_CANVAS_BACKGROUND_HEX)
                 }}
               >
-                恢复默认
+                {t('Common_ResetToDefault')}
               </Button>
             </div>
 
             {/* 桌面 `InfoBar Severity="Error"`（`AppearanceSettingsPage.xaml:159-164`） */}
             {hexInvalid && (
               <MessageBar intent="error">
-                <MessageBarBody>HEX 颜色格式无效，请使用 #RRGGBB（例如 #2E2F33）</MessageBarBody>
+                <MessageBarBody>{t('Settings_Background_HexError')}</MessageBarBody>
               </MessageBar>
             )}
           </DialogContent>
           <DialogActions>
             <Button appearance="secondary" onClick={cancel}>
-              取消
+              {t('Common_Cancel')}
             </Button>
             {/* 桌面"确定"只关闭弹窗：颜色在变化时已实时写入（`CanvasBackgroundColorSettingsController.cs:97-100`） */}
             <Button appearance="primary" onClick={props.onClose}>
-              确定
+              {t('Common_OK')}
             </Button>
           </DialogActions>
         </DialogBody>

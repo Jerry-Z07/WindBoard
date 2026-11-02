@@ -8,49 +8,62 @@
 import { Dropdown, Option } from '@fluentui/react-components'
 import type { ReactNode } from 'react'
 import { useSettings, useSettingsService } from '../../app/hooks.ts'
+import { useI18n, type Translator } from '../../i18n/context.ts'
+import type { MessageKey } from '../../i18n/locales/zh-CN.generated.ts'
 import type { LanguagePreference, StartupWindowMode } from '../model.ts'
 import { SETTINGS_ANCHORS } from '../search-targets.ts'
 import { SettingsCard } from './SettingsCard.tsx'
 
-/** 下拉选项。 */
+/**
+ * 下拉选项。
+ *
+ * 存文案 key 而不是中文：`t(...)` 只能在组件里调用（模块顶层没有 Provider），
+ * 所以选项表只记 key，渲染时再取词。
+ */
 interface Choice<T extends string> {
   readonly value: T
-  readonly label: string
+  readonly labelKey: MessageKey
 }
 
 /** 语言选项（桌面 `AppLanguagePreference`：system / zh-CN / en-US）。 */
 const LANGUAGE_CHOICES: readonly Choice<LanguagePreference>[] = [
-  { value: 'system', label: '跟随系统' },
-  { value: 'zh-CN', label: '简体中文' },
-  { value: 'en-US', label: 'English' },
+  { value: 'system', labelKey: 'Settings_General_Language_FollowSystem' },
+  { value: 'zh-CN', labelKey: 'Settings_General_Language_Chinese' },
+  { value: 'en-US', labelKey: 'Settings_General_Language_English' },
 ]
 
 /** 启动窗口形态选项（桌面 `StartupWindowMode`）。 */
 const STARTUP_CHOICES: readonly Choice<StartupWindowMode>[] = [
-  { value: 'windowed', label: '窗口化' },
-  { value: 'fullscreen', label: '全屏' },
+  { value: 'windowed', labelKey: 'Settings_General_StartupWindowMode_Windowed' },
+  { value: 'fullscreen', labelKey: 'Settings_General_StartupWindowMode_FullScreen' },
 ]
 
 /** 取选项显示文案（值非法时回退原值，正常情况下模型已保证合法）。 */
-function labelOf<T extends string>(choices: readonly Choice<T>[], value: T): string {
-  return choices.find((choice) => choice.value === value)?.label ?? value
+function labelOf<T extends string>(
+  choices: readonly Choice<T>[],
+  value: T,
+  t: Translator,
+): string {
+  const choice = choices.find((candidate) => candidate.value === value)
+  return choice === undefined ? value : t(choice.labelKey)
 }
 
 /** 常规页。 */
 export function GeneralPage(): ReactNode {
+  const { t } = useI18n()
   const settings = useSettings()
   const settingsService = useSettingsService()
 
   return (
     <div className="wb-settings-page">
       <SettingsCard
-        title="语言"
-        description="选择应用显示语言"
+        title={t('Settings_General_Language_Title')}
+        description={t('Settings_General_Language_Description')}
         anchor={SETTINGS_ANCHORS.generalLanguage}
       >
         <Dropdown
-          aria-label="语言"
-          value={labelOf(LANGUAGE_CHOICES, settings.general.languagePreference)}
+          aria-label={t('Settings_General_Language_Title')}
+          value={labelOf(LANGUAGE_CHOICES, settings.general.languagePreference, t)}
           selectedOptions={[settings.general.languagePreference]}
           onOptionSelect={(_, data) => {
             const next = LANGUAGE_CHOICES.find((choice) => choice.value === data.optionValue)
@@ -61,20 +74,20 @@ export function GeneralPage(): ReactNode {
         >
           {LANGUAGE_CHOICES.map((choice) => (
             <Option key={choice.value} value={choice.value}>
-              {choice.label}
+              {t(choice.labelKey)}
             </Option>
           ))}
         </Dropdown>
       </SettingsCard>
 
       <SettingsCard
-        title="启动时窗口形态"
-        description="设置应用下次启动时窗口显示形态"
+        title={t('Settings_General_StartupWindowMode_Title')}
+        description={t('Settings_General_StartupWindowMode_Description')}
         anchor={SETTINGS_ANCHORS.generalStartupWindowMode}
       >
         <Dropdown
-          aria-label="启动时窗口形态"
-          value={labelOf(STARTUP_CHOICES, settings.general.startupWindowMode)}
+          aria-label={t('Settings_General_StartupWindowMode_Title')}
+          value={labelOf(STARTUP_CHOICES, settings.general.startupWindowMode, t)}
           selectedOptions={[settings.general.startupWindowMode]}
           onOptionSelect={(_, data) => {
             const next = STARTUP_CHOICES.find((choice) => choice.value === data.optionValue)
@@ -85,7 +98,7 @@ export function GeneralPage(): ReactNode {
         >
           {STARTUP_CHOICES.map((choice) => (
             <Option key={choice.value} value={choice.value}>
-              {choice.label}
+              {t(choice.labelKey)}
             </Option>
           ))}
         </Dropdown>

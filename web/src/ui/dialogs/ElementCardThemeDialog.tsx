@@ -26,6 +26,7 @@ import {
   RadioGroup,
 } from '@fluentui/react-components'
 import { useSettings, useSettingsService } from '../../app/hooks.ts'
+import { useI18n } from '../../i18n/context.ts'
 
 /** 属性。 */
 export interface ElementCardThemeDialogProps {
@@ -37,6 +38,7 @@ export interface ElementCardThemeDialogProps {
 export function ElementCardThemeDialog(props: ElementCardThemeDialogProps): ReactNode {
   const settings = useSettings()
   const settingsService = useSettingsService()
+  const { t } = useI18n()
   /** 弹窗内的临时选择（桌面是两个 RadioButton，确定时才落库）。 */
   const [selected, setSelected] = useState<'dark' | 'light'>(settings.appearance.elementCardTheme)
 
@@ -55,9 +57,9 @@ export function ElementCardThemeDialog(props: ElementCardThemeDialogProps): Reac
         }
       }}
     >
-      <DialogSurface className="wb-dialog wb-dialog--element-theme" aria-label="元素卡片主题">
+      <DialogSurface className="wb-dialog wb-dialog--element-theme" aria-label={t('Settings_Appearance_ElementCardTheme_DialogTitle')}>
         <DialogBody>
-          <DialogTitle>元素卡片主题</DialogTitle>
+          <DialogTitle>{t('Settings_Appearance_ElementCardTheme_DialogTitle')}</DialogTitle>
           <DialogContent className="wb-dialog__form">
             <RadioGroup
               value={selected}
@@ -67,16 +69,16 @@ export function ElementCardThemeDialog(props: ElementCardThemeDialogProps): Reac
                 }
               }}
             >
-              <Radio value="dark" label="深色" />
-              <Radio value="light" label="浅色" />
+              <Radio value="dark" label={t('Settings_Appearance_ElementCardTheme_Dark')} />
+              <Radio value="light" label={t('Settings_Appearance_ElementCardTheme_Light')} />
             </RadioGroup>
           </DialogContent>
           <DialogActions>
             <Button appearance="secondary" onClick={props.onClose}>
-              取消
+              {t('Common_Cancel')}
             </Button>
             <Button appearance="primary" onClick={commit}>
-              确定
+              {t('Common_OK')}
             </Button>
           </DialogActions>
         </DialogBody>

@@ -37,6 +37,8 @@ import {
 } from '@fluentui/react-icons'
 import { useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react'
 import { useSettings, useSettingsService } from '../../app/hooks.ts'
+import { useI18n } from '../../i18n/context.ts'
+import type { MessageKey } from '../../i18n/locales/zh-CN.generated.ts'
 import { isSameOrder, moveItem, moveItemDown, moveItemUp } from '../dock-order.ts'
 import {
   DEFAULT_LEFT_DOCK_ITEMS,
@@ -72,8 +74,8 @@ const DOCK_GROUPS: readonly DockGroupDefinition[] = [
 
 /** 单项的显示信息。 */
 interface DockItemMeta {
-  /** 本地化名称（取桌面 zh-CN L10n）。 */
-  readonly label: string
+  /** 本地化名称的 key（取桌面 zh-CN L10n）。 */
+  readonly labelKey: MessageKey
   readonly icon: ReactNode
 }
 
@@ -84,31 +86,31 @@ interface DockItemMeta {
  */
 const DOCK_ITEM_META: Record<DockItemId, DockItemMeta> = {
   // 桌面 Symbol.More（更多）
-  more: { label: '更多', icon: <MoreHorizontalRegular fontSize={20} /> },
+  more: { labelKey: 'Common_More', icon: <MoreHorizontalRegular fontSize={20} /> },
   // 桌面 Symbol.BackToWindow；主 Dock 用最小化横线 `SubtractRegular`（见 DockBar.tsx:158），预览沿用主 Dock
-  minimize: { label: '最小化', icon: <SubtractRegular fontSize={20} /> },
+  minimize: { labelKey: 'Common_Minimize', icon: <SubtractRegular fontSize={20} /> },
   // 桌面 Symbol.Download（导入）
-  import: { label: '导入', icon: <ArrowImportRegular fontSize={20} /> },
+  import: { labelKey: 'Common_Import', icon: <ArrowImportRegular fontSize={20} /> },
   // 桌面 Symbol.TouchPointer；Fluent 无同名图标，主 Dock 用 CursorRegular（见 DockBar.tsx:275-278）
-  toolSelect: { label: '选择', icon: <CursorRegular fontSize={20} /> },
+  toolSelect: { labelKey: 'Tool_Select', icon: <CursorRegular fontSize={20} /> },
   // 桌面 Symbol.Edit（书写）
-  toolPen: { label: '书写', icon: <EditRegular fontSize={20} /> },
+  toolPen: { labelKey: 'Tool_Pen', icon: <EditRegular fontSize={20} /> },
   // 桌面 FontIcon "\uE75C"（擦除）
-  toolEraser: { label: '擦除', icon: <EraserRegular fontSize={20} /> },
+  toolEraser: { labelKey: 'Tool_Eraser', icon: <EraserRegular fontSize={20} /> },
   // 桌面 FontIcon "\uEC87"（Draw 近似，Segoe Fluent Icons 无 Shapes）
-  toolShape: { label: '形状', icon: <ShapeToolIcon /> },
+  toolShape: { labelKey: 'Tool_Shape', icon: <ShapeToolIcon /> },
   // 桌面 Symbol.Undo（撤销）
-  undo: { label: '撤销', icon: <ArrowUndoRegular fontSize={20} /> },
+  undo: { labelKey: 'Common_Undo', icon: <ArrowUndoRegular fontSize={20} /> },
   // 桌面 Symbol.Redo（重做）
-  redo: { label: '重做', icon: <ArrowRedoRegular fontSize={20} /> },
+  redo: { labelKey: 'Common_Redo', icon: <ArrowRedoRegular fontSize={20} /> },
   // 桌面 Symbol.Back（上一页）
-  pagePrev: { label: '上一页', icon: <ChevronLeftRegular fontSize={20} /> },
+  pagePrev: { labelKey: 'Common_PreviousPage', icon: <ChevronLeftRegular fontSize={20} /> },
   // 桌面 FontIcon "\uE8A7"（页码）；主 Dock 该位置显示页码文本，预览用文档图标近似
-  pageIndicator: { label: '页码', icon: <DocumentRegular fontSize={20} /> },
+  pageIndicator: { labelKey: 'Common_PageNumber', icon: <DocumentRegular fontSize={20} /> },
   // 桌面 Symbol.Forward（下一页）
-  pageNext: { label: '下一页', icon: <ChevronRightRegular fontSize={20} /> },
+  pageNext: { labelKey: 'Common_NextPage', icon: <ChevronRightRegular fontSize={20} /> },
   // 桌面 Symbol.Add（新增）
-  pageAdd: { label: '新增', icon: <AddRegular fontSize={20} /> },
+  pageAdd: { labelKey: 'Common_Add', icon: <AddRegular fontSize={20} /> },
 }
 
 /**
@@ -169,6 +171,7 @@ function DockOrderGroup(props: DockOrderGroupProps): ReactNode {
   const { group, order, drag } = props
   const listRef = useRef<HTMLUListElement>(null)
   const activeDrag = drag !== null && drag.orderKey === group.orderKey ? drag : null
+  const { t } = useI18n()
 
   /** 指针当前落在哪一项上（用 DOM 矩形判断，兼容换行布局）。 */
   const resolveOverId = (clientX: number, clientY: number): DockItemId | null => {
@@ -223,7 +226,7 @@ function DockOrderGroup(props: DockOrderGroupProps): ReactNode {
               data-dock-item-id={id}
               tabIndex={0}
               aria-grabbed={isDragging}
-              aria-label={`${meta.label}，第 ${index + 1} 项，共 ${order.length} 项`}
+              aria-label={`${t(meta.labelKey)}，第 ${index + 1} 项，共 ${order.length} 项`}
               onPointerDown={handlePointerDown}
               onPointerMove={(event) => {
                 if (activeDrag === null || activeDrag.id !== id) {
@@ -254,14 +257,14 @@ function DockOrderGroup(props: DockOrderGroupProps): ReactNode {
               <span className="wb-dock-order__icon" aria-hidden>
                 {meta.icon}
               </span>
-              <span className="wb-dock-order__label">{meta.label}</span>
+              <span className="wb-dock-order__label">{t(meta.labelKey)}</span>
               <span className="wb-dock-order__moves">
                 <Button
                   size="small"
                   appearance="subtle"
                   className="wb-dock-order__move"
                   icon={<ArrowUpRegular />}
-                  aria-label={`上移 ${meta.label}`}
+                  aria-label={`上移 ${t(meta.labelKey)}`}
                   disabled={index === 0}
                   onClick={() => {
                     props.onMoveUp(group.orderKey, index)
@@ -272,7 +275,7 @@ function DockOrderGroup(props: DockOrderGroupProps): ReactNode {
                   appearance="subtle"
                   className="wb-dock-order__move"
                   icon={<ArrowDownRegular />}
-                  aria-label={`下移 ${meta.label}`}
+                  aria-label={`下移 ${t(meta.labelKey)}`}
                   disabled={index === order.length - 1}
                   onClick={() => {
                     props.onMoveDown(group.orderKey, index)
@@ -292,6 +295,7 @@ export function DockPage(): ReactNode {
   const settings = useSettings()
   const settingsService = useSettingsService()
   const [drag, setDrag] = useState<DragState | null>(null)
+  const { t } = useI18n()
 
   /** 写入某一组的顺序；内容没变就跳过，避免无意义的持久化与重渲染。 */
   const commitOrder = (orderKey: DockOrderKey, next: readonly DockItemId[]): void => {
@@ -358,10 +362,10 @@ export function DockPage(): ReactNode {
     <div className="wb-settings-page">
       {/* 桌面 `DockSettingsPage.xaml:34-37` 的拖动提示 */}
       <p className="wb-settings-hint">
-        长按并拖动下方按钮，可调整它们在 Dock 中的显示顺序（支持触摸拖动）。
+        {t('Settings_Dock_DragHint')}
       </p>
 
-      <SettingsSection title="预览">
+      <SettingsSection title={t('Common_Preview')}>
         {DOCK_GROUPS.map((group) => (
           <DockOrderGroup
             key={group.orderKey}
@@ -377,15 +381,15 @@ export function DockPage(): ReactNode {
         ))}
       </SettingsSection>
 
-      <SettingsSection title="选项">
+      <SettingsSection title={t('Common_Options')}>
         <SettingsCard
-          title="显示撤销/重做区域"
+          title={t('Settings_Dock_ShowUndoRedo_Header')}
           description="在底部 Dock 显示撤销/重做按钮"
           anchor={SETTINGS_ANCHORS.dockUndoRedoVisible}
         >
           <Switch
             checked={settings.dock.isUndoRedoVisible}
-            aria-label="显示撤销/重做区域"
+            aria-label={t('Settings_Dock_ShowUndoRedo_Header')}
             onChange={(_, data) => {
               settingsService.patch({ dock: { isUndoRedoVisible: data.checked } })
             }}
@@ -393,12 +397,12 @@ export function DockPage(): ReactNode {
         </SettingsCard>
 
         <SettingsCard
-          title="显示快捷入口 Dock（主 Dock 左右侧）"
+          title={t('Settings_Dock_ShowShortcutDocks_Header')}
           description="网页端 v1 暂未渲染快捷入口，此开关只保存偏好"
         >
           <Switch
             checked={settings.dock.isShortcutDocksVisible}
-            aria-label="显示快捷入口 Dock"
+            aria-label={t('Settings_Dock_ShowShortcutDocks_Header')}
             onChange={(_, data) => {
               settingsService.patch({ dock: { isShortcutDocksVisible: data.checked } })
             }}
@@ -406,14 +410,17 @@ export function DockPage(): ReactNode {
         </SettingsCard>
 
         {/* 桌面 `DockSettingsPage.xaml:418-424`：恢复默认布局（`s.Dock = new DockSettings()`） */}
-        <SettingsCard title="恢复 Dock 默认布局" description="把四组顺序与两个显隐开关恢复为默认">
+        <SettingsCard
+          title={t('Settings_Dock_ResetLayout_Button')}
+          description="把四组顺序与两个显隐开关恢复为默认"
+        >
           <Button
             onClick={() => {
               setDrag(null)
               settingsService.patch({ dock: DEFAULT_SETTINGS.dock })
             }}
           >
-            恢复默认
+            {t('Common_ResetToDefault')}
           </Button>
         </SettingsCard>
       </SettingsSection>

@@ -18,6 +18,7 @@ import type { ReactNode } from 'react'
 import { Slider } from '@fluentui/react-components'
 import { useBoardController, useBoardSnapshot, usePenPalette } from '../../app/hooks.ts'
 import { computePaletteColumns, hexToPenColor, isActivePenHex, layoutPaletteSlots } from '../shell/dock-layout.ts'
+import { useI18n } from '../../i18n/context.ts'
 
 /** 属性。 */
 export interface PenFlyoutProps {
@@ -38,6 +39,7 @@ export function PenFlyout(props: PenFlyoutProps): ReactNode {
   const controller = useBoardController()
   const snapshot = useBoardSnapshot()
   const { paletteHexes, thicknessPresets, useThicknessSlider } = usePenPalette()
+  const { t } = useI18n()
   const pen = snapshot.penSettings
 
   const slots = layoutPaletteSlots(paletteHexes)
@@ -57,7 +59,7 @@ export function PenFlyout(props: PenFlyoutProps): ReactNode {
 
   return (
     <div className="wb-flyout wb-flyout--panel wb-flyout--pen">
-      <div className="wb-flyout__title">画笔设置</div>
+      <div className="wb-flyout__title">{t('Settings_Pen_Title')}</div>
       <div className="wb-flyout__divider" />
       <div className="wb-flyout__body">
         <div
@@ -87,7 +89,7 @@ export function PenFlyout(props: PenFlyoutProps): ReactNode {
         */}
         {useThicknessSlider ? null : (
         <div className="wb-flyout__group">
-          <div className="wb-flyout__label">粗细</div>
+          <div className="wb-flyout__label">{t('Common_Thickness')}</div>
           <div className="wb-thickness">
             {thicknessPresets.map((size) => (
               <button
@@ -121,7 +123,7 @@ export function PenFlyout(props: PenFlyoutProps): ReactNode {
 
         {useThicknessSlider ? (
           <div className="wb-flyout__group">
-            <div className="wb-flyout__label">粗细</div>
+            <div className="wb-flyout__label">{t('Common_Thickness')}</div>
             <Slider
               min={THICKNESS_MIN}
               max={THICKNESS_MAX}
