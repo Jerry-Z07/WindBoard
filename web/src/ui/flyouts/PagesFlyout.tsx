@@ -87,8 +87,8 @@ export function PagesFlyout(props: PagesFlyoutProps): ReactNode {
                 <button
                   type="button"
                   className="wb-pages__delete"
-                  title="删除该页"
-                  aria-label={`删除第 ${index + 1} 页`}
+                  title={t('Web_DeletePage')}
+                  aria-label={t('Web_DeletePageNumber_Fmt', index + 1)}
                   onClick={(event) => {
                     // 阻止冒泡，避免删除时同时触发"切换页"
                     event.stopPropagation()

@@ -26,12 +26,12 @@ describe('deriveShapePropertyFields：直线/箭头 → 长度 + 角度', () => 
     const [primary, secondary] = deriveShapePropertyFields(makeShape('line', 0, 0, 96, 0))
 
     expect(primary.id).toBe('primary')
-    expect(primary.label).toBe('长度 (cm)')
+    expect(primary.labelKey).toBe('ShapeProperties_Length')
     expect(primary.value).toBe(2.54)
     expect(primary.unit).toBe('cm')
 
     expect(secondary.id).toBe('secondary')
-    expect(secondary.label).toBe('角度')
+    expect(secondary.labelKey).toBe('ShapeProperties_Angle')
     expect(secondary.value).toBe(0)
     expect(secondary.unit).toBe('°')
   })
@@ -76,11 +76,11 @@ describe('deriveShapePropertyFields：矩形/椭圆 → 宽度 + 高度', () => 
   it('96×48 世界单位 = 2.54cm × 1.27cm', () => {
     const [primary, secondary] = deriveShapePropertyFields(makeShape('rect', 10, 20, 106, 68))
 
-    expect(primary.label).toBe('宽度 (cm)')
+    expect(primary.labelKey).toBe('ShapeProperties_Width')
     expect(primary.value).toBe(2.54)
     expect(primary.unit).toBe('cm')
 
-    expect(secondary.label).toBe('高度 (cm)')
+    expect(secondary.labelKey).toBe('ShapeProperties_Height')
     expect(secondary.value).toBe(1.27)
     expect(secondary.unit).toBe('cm')
   })

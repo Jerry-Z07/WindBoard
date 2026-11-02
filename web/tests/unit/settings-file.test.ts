@@ -10,6 +10,14 @@
 import { describe, expect, it } from 'vitest'
 import { DEFAULT_SETTINGS, normalizeSettings } from '../../src/settings/model.ts'
 import { SETTINGS_FILE_NAME, parseSettingsFile, serializeSettingsFile } from '../../src/settings/settings-file.ts'
+import { formatLocalized } from '../../src/i18n/message.ts'
+import { createTranslator } from '../../src/i18n/index.ts'
+import type { LocalizedMessage } from '../../src/i18n/message.ts'
+
+/** 把可本地化消息按 zh-CN 渲染成文本（断言用）。 */
+function zh(message: LocalizedMessage): string {
+  return formatLocalized(createTranslator('zh-CN'), message)
+}
 
 describe('serializeSettingsFile', () => {
   it('输出 camelCase、2 空格缩进、以换行结尾', () => {
@@ -48,7 +56,8 @@ describe('parseSettingsFile', () => {
   it('没有认识的分区时失败（避免"导入了但什么都没变"）', () => {
     const result = parseSettingsFile('{"diagnostics":{"enabled":true}}')
     expect(result.ok).toBe(false)
-    expect(result.error).toContain('没有')
+    expect(result.error).toBeDefined()
+    expect(zh(result.error!)).toContain('没有')
   })
 
   it('容忍 // 与 /* */ 注释、尾逗号（桌面 ReadCommentHandling=Skip + AllowTrailingCommas）', () => {
@@ -91,7 +100,9 @@ describe('parseSettingsFile', () => {
     const result = parseSettingsFile(text)
     expect(result.ok).toBe(true)
     expect(result.settings?.appearance.canvasBackgroundHex).toBe(DEFAULT_SETTINGS.appearance.canvasBackgroundHex)
-    expect((result.notes ?? []).some((note) => note.includes('外观'))).toBe(true)
+    expect(
+      (result.notes ?? []).map((note) => zh(note)).some((note) => note.includes('外观')),
+    ).toBe(true)
   })
 
   it('桌面独有分区（诊断/公告/伪装/自动更新）会提示已忽略', () => {
@@ -103,7 +114,7 @@ describe('parseSettingsFile', () => {
     })
     const result = parseSettingsFile(text)
     expect(result.ok).toBe(true)
-    const joined = (result.notes ?? []).join(' ')
+    const joined = (result.notes ?? []).map((note) => zh(note)).join(' ')
     expect(joined).toContain('诊断日志')
     expect(joined).toContain('伪装')
     expect(joined).toContain('自动更新')

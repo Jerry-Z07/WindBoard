@@ -13,6 +13,7 @@
  */
 
 import { zipSync } from 'fflate'
+import { localized, type LocalizedMessage } from '../i18n/message.ts'
 
 /** 保存单个文件的请求。 */
 export interface SaveFileRequest {
@@ -28,7 +29,7 @@ export interface SaveResult {
   readonly ok: boolean
   readonly cancelled?: boolean
   readonly path?: string
-  readonly error?: string
+  readonly error?: LocalizedMessage
 }
 
 /** 选择并读取的文件。 */
@@ -72,31 +73,31 @@ function isAbortError(error: unknown): boolean {
 }
 
 /**
- * 把任意异常转成人类可读的中文错误文本。
+ * 把任意异常转成可本地化的错误消息。
  *
  * 浏览器的 `DOMException` 只有英文 `message`（如 `File picker already active.`），
- * 直接展示给用户很突兀，所以按 `name` 归类给出中文前缀，再附原始信息便于排查。
+ * 直接展示给用户很突兀，所以按 `name` 归类给出提示前缀，再附原始信息便于排查。
  */
-function describeError(error: unknown): string {
+function describeError(error: unknown): LocalizedMessage {
   if (typeof error === 'object' && error !== null && 'name' in error) {
     const name = (error as { name: unknown }).name
     const detail = error instanceof Error ? error.message : String(error)
     switch (name) {
       case 'SecurityError':
-        return `浏览器拒绝了文件访问（需要用户手势或安全上下文）：${detail}`
+        return localized('Web_Io_SecurityError_Fmt', detail)
       case 'NotAllowedError':
-        return `没有文件访问权限：${detail}`
+        return localized('Web_Io_NotAllowed_Fmt', detail)
       case 'NotFoundError':
-        return `目标位置不存在：${detail}`
+        return localized('Web_Io_NotFound_Fmt', detail)
       case 'InvalidStateError':
-        return `文件选择器正忙（上一次对话框还没关闭）：${detail}`
+        return localized('Web_Io_InvalidState_Fmt', detail)
       case 'NotSupportedError':
-        return `当前浏览器不支持该文件操作：${detail}`
+        return localized('Web_Io_NotSupported_Fmt', detail)
       default:
-        return detail
+        return localized('Web_Io_Generic_Fmt', detail)
     }
   }
-  return String(error)
+  return localized('Web_Io_Generic_Fmt', String(error))
 }
 
 /** 由 MIME 生成 picker 的 `types` 描述（FSA 要求 `accept` 是 `{ mime: [ext] }`）。 */
@@ -119,7 +120,7 @@ function pickerTypes(suggestedName: string, mimeType: string): { description: st
 export async function saveFile(request: SaveFileRequest): Promise<SaveResult> {
   const scope = getWindow()
   if (scope === null) {
-    return { ok: false, error: '当前环境不支持文件保存' }
+    return { ok: false, error: localized('Web_Io_UnsupportedEnvironment') }
   }
 
   if (typeof scope.showSaveFilePicker === 'function') {
@@ -159,12 +160,12 @@ export async function saveFilesToFolder(
   files: readonly SaveFileRequest[],
 ): Promise<SaveResult> {
   if (files.length === 0) {
-    return { ok: false, error: '没有可保存的文件' }
+    return { ok: false, error: localized('Web_Io_NoFilesToSave') }
   }
 
   const scope = getWindow()
   if (scope === null) {
-    return { ok: false, error: '当前环境不支持文件保存' }
+    return { ok: false, error: localized('Web_Io_UnsupportedEnvironment') }
   }
 
   if (typeof scope.showDirectoryPicker === 'function') {

@@ -13,6 +13,7 @@
 
 import type { DockItemId } from '../../settings/model.ts'
 import type { PenColor } from '../../tools/tool-settings.ts'
+import type { MessageKey } from '../../i18n/locales/zh-CN.generated.ts'
 
 /** Dock 三个浮层的位置（`MainWindow.xaml:54-70`：左/中/右三块分别对齐）。 */
 export type DockPlacement = 'left' | 'center' | 'right'
@@ -127,16 +128,8 @@ export type MoreMenuActionId = 'settings' | 'export' | 'fullscreen'
 
 /** 更多菜单的一项：普通菜单项或分隔线（`MenuFlyoutSeparator`）。 */
 export type MoreMenuEntry =
-  | { readonly kind: 'item'; readonly id: MoreMenuActionId; readonly label: string }
+  | { readonly kind: 'item'; readonly id: MoreMenuActionId; readonly labelKey: MessageKey }
   | { readonly kind: 'divider' }
-
-/** 菜单文案（`Strings/zh-CN/Common.resw`：`Common_Settings` / `Common_Export` / `Common_FullScreen` / `Common_ExitFullScreen`）。 */
-const MORE_MENU_LABELS = {
-  settings: '设置',
-  export: '导出',
-  fullscreen: '全屏',
-  exitFullscreen: '退出全屏',
-} as const
 
 /**
  * 构建更多菜单（桌面 `MainWindow.xaml:92-124` 的顺序：设置 / 分隔 / 导出 / 全屏）。
@@ -148,13 +141,14 @@ const MORE_MENU_LABELS = {
  */
 export function buildMoreMenuEntries(isFullscreen: boolean): readonly MoreMenuEntry[] {
   return [
-    { kind: 'item', id: 'settings', label: MORE_MENU_LABELS.settings },
+    // 文案 key 与桌面 `Common.resw` 同名，渲染由 `DockBar` 用 `t()` 完成。
+    { kind: 'item', id: 'settings', labelKey: 'Common_Settings' },
     { kind: 'divider' },
-    { kind: 'item', id: 'export', label: MORE_MENU_LABELS.export },
+    { kind: 'item', id: 'export', labelKey: 'Common_Export' },
     {
       kind: 'item',
       id: 'fullscreen',
-      label: isFullscreen ? MORE_MENU_LABELS.exitFullscreen : MORE_MENU_LABELS.fullscreen,
+      labelKey: isFullscreen ? 'Common_ExitFullScreen' : 'Common_FullScreen',
     },
   ]
 }

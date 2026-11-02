@@ -8,34 +8,39 @@
  * - 容错优先：片段两端空白会被裁掉，空片段（`1,,3`、`1, ,3`）直接忽略。
  *
  * 桌面调用点：`WindBoard/Features/Export/ExportFlow.cs:144-145`（`PageScope.Range` 分支）。
- * 报错文案与 `WindBoard/Strings/zh-CN/Export.resw` 逐条对齐，key 见 {@link PAGE_RANGE_MESSAGES}。
+ * 报错文案与 `WindBoard/Strings/zh-CN/Export.resw` 逐条对齐，key 见 {@link PAGE_RANGE_MESSAGES}；
+ * 这里只产出 key + 实参，渲染交给 UI（`i18n/message.ts`），因此英文界面下报错也是英文。
  */
 
+import { localized, type LocalizedMessage } from '../../i18n/message.ts'
+
 /**
- * 报错文案（集中一处，便于与桌面 resw 逐条核对）。
+ * 报错文案：只给 **key + 实参**，中文/英文由 UI 用 `t()` 渲染。
  *
- * 命名对应 `Export.resw` 里的 key：`*_Message` 是不带占位符的整句，
- * `*_Fmt` 带 `{0}`，这里用函数承载（`{0}` 的含义写在各自注释里）。
+ * 命名对应 `Export.resw` 里的 key：`*_Message` 不带占位符、`*_Fmt` 带 `{0}`。
+ * 纯函数不拼中文，是为了让英文界面下的报错也是英文（见 `i18n/message.ts`）。
  */
 export const PAGE_RANGE_MESSAGES = {
   /** `Export_PageRange_PageCountInvalid_Message`（`Export.resw:170-172`）。 */
-  pageCountInvalid: '页面数量非法。',
+  pageCountInvalid: localized('Export_PageRange_PageCountInvalid_Message'),
   /** `Export_PageRange_EmptyInput_Message`（`Export.resw:173-175`）。 */
-  emptyInput: '请输入页码范围，例如：1,3-5。',
+  emptyInput: localized('Export_PageRange_EmptyInput_Message'),
   /** `Export_PageRange_NoValidPages_Message`（`Export.resw:176-178`）。 */
-  noValidPages: '未解析到任何有效页码。',
+  noValidPages: localized('Export_PageRange_NoValidPages_Message'),
   /** `Export_PageRange_PageMustStartFrom1_Message`（`Export.resw:191-193`）。 */
-  pageMustStartFrom1: '页码必须从 1 开始。',
+  pageMustStartFrom1: localized('Export_PageRange_PageMustStartFrom1_Message'),
   /** `Export_PageRange_InvalidRange_Fmt`（`Export.resw:179-181`）；`{0}` = 原始片段。 */
-  invalidRange: (token: string): string => `非法页码范围：${token}。`,
+  invalidRange: (token: string): LocalizedMessage => localized('Export_PageRange_InvalidRange_Fmt', token),
   /** `Export_PageRange_OrderError_Fmt`（`Export.resw:182-184`）；`{0}` = 原始片段。 */
-  orderError: (token: string): string => `页码范围起止顺序错误：${token}。`,
+  orderError: (token: string): LocalizedMessage => localized('Export_PageRange_OrderError_Fmt', token),
   /** `Export_PageRange_InvalidPage_Fmt`（`Export.resw:185-187`）；`{0}` = 页码文本（区间取起/止单侧）。 */
-  invalidPage: (token: string): string => `非法页码：${token}。`,
+  invalidPage: (token: string): LocalizedMessage => localized('Export_PageRange_InvalidPage_Fmt', token),
   /** `Export_PageRange_PageMustStartFrom1_Fmt`（`Export.resw:188-190`）；`{0}` = 页码文本。 */
-  pageMustStartFrom1WithToken: (token: string): string => `页码必须从 1 开始：${token}。`,
+  pageMustStartFrom1WithToken: (token: string): LocalizedMessage =>
+    localized('Export_PageRange_PageMustStartFrom1_Fmt', token),
   /** `Export_PageRange_OutOfRange_Fmt`（`Export.resw:194-196`）；`{0}` = 总页数。 */
-  outOfRange: (pageCount: number): string => `页码超出范围：当前共 ${String(pageCount)} 页。`,
+  outOfRange: (pageCount: number): LocalizedMessage =>
+    localized('Export_PageRange_OutOfRange_Fmt', pageCount),
 } as const
 
 /** 解析结果（对应 C# `TryParse` 的返回值 + `out pageIndices` + `out errorMessage`）。 */
@@ -44,14 +49,14 @@ export interface PageRangeParseResult {
   readonly ok: boolean
   /** 0 基页索引，升序且无重复；失败时为空数组（与 C# 一致，失败不回填）。 */
   readonly indices: readonly number[]
-  /** 失败原因；成功时为 `null`（C# 里是 `string.Empty`）。 */
-  readonly error: string | null
+  /** 失败原因；成功时为 `null`（C# 里是 `string.Empty`）。文案由 UI 用 `t()` 渲染。 */
+  readonly error: LocalizedMessage | null
 }
 
 /** 单侧页码的解析结果（用判别联合避免 `!` 断言）。 */
 type PageNumberParse =
   | { readonly value: number; readonly error: null }
-  | { readonly value: null; readonly error: string }
+  | { readonly value: null; readonly error: LocalizedMessage }
 
 /** `int` 的取值范围（C# `int.TryParse` 溢出即失败）。 */
 const INT32_MIN = -2147483648
@@ -102,7 +107,11 @@ function parsePageNumber(token: string): PageNumberParse {
  * 注意：`start <= 0 || end <= 0` 分支在桌面其实不可达（`TryParsePageNumber` 已挡掉非正数），
  * 这里保留是为了与 C# 逐行对应，将来若放宽 `TryParsePageNumber` 不会漏掉兜底。
  */
-function validateOneBasedRange(start: number, end: number, pageCount: number): string | null {
+function validateOneBasedRange(
+  start: number,
+  end: number,
+  pageCount: number,
+): LocalizedMessage | null {
   if (start <= 0 || end <= 0) {
     return PAGE_RANGE_MESSAGES.pageMustStartFrom1
   }
@@ -115,7 +124,11 @@ function validateOneBasedRange(start: number, end: number, pageCount: number): s
 }
 
 /** 单页片段（`PageRangeParser.cs:103-121` 的 `TryParseSinglePageAndAdd`）。 */
-function addSinglePage(indices: Set<number>, token: string, pageCount: number): string | null {
+function addSinglePage(
+  indices: Set<number>,
+  token: string,
+  pageCount: number,
+): LocalizedMessage | null {
   const parsed = parsePageNumber(token)
   if (parsed.error !== null) {
     return parsed.error
@@ -142,7 +155,7 @@ function addRange(
   token: string,
   dashIndex: number,
   pageCount: number,
-): string | null {
+): LocalizedMessage | null {
   // 只允许一个 '-'，避免 '1-2-3' 这类歧义输入（`PageRangeParser.cs:139-143`）。
   if (token.lastIndexOf('-') !== dashIndex) {
     return PAGE_RANGE_MESSAGES.invalidRange(token)
@@ -183,7 +196,11 @@ function addRange(
 }
 
 /** 单个片段（`PageRangeParser.cs:79-101` 的 `TryParseTokenAndAdd`）。 */
-function addToken(indices: Set<number>, raw: string, pageCount: number): string | null {
+function addToken(
+  indices: Set<number>,
+  raw: string,
+  pageCount: number,
+): LocalizedMessage | null {
   const token = raw.trim()
   if (token.length === 0) {
     // 拆分时已去掉空项，这里再兜一层，与 C# `PageRangeParser.cs:88-92` 一致。
@@ -199,7 +216,7 @@ function addToken(indices: Set<number>, raw: string, pageCount: number): string 
 }
 
 /** 失败结果的构造（避免各处重复写 `indices: []`）。 */
-function failure(error: string): PageRangeParseResult {
+function failure(error: LocalizedMessage): PageRangeParseResult {
   return { ok: false, indices: [], error }
 }
 

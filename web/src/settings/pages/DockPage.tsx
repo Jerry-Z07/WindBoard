@@ -58,18 +58,22 @@ type DockOrderKey = 'leftOrder' | 'toolsOrder' | 'undoRedoOrder' | 'pagesOrder'
 interface DockGroupDefinition {
   /** 对应 `DockSettings` 的字段。 */
   readonly orderKey: DockOrderKey
-  /** 组标题（桌面预览无标题，网页端为可访问性补充）。 */
-  readonly title: string
+  /** 组标题的文案 key（桌面预览无标题，网页端为可访问性补充）。 */
+  readonly titleKey: MessageKey
   /** 该组的全部合法项，同时是默认顺序。 */
   readonly items: readonly DockItemId[]
 }
 
 /** 四组的分组顺序与桌面 XAML 的摆放一致：左 → 中（工具 + 撤销重做）→ 右。 */
 const DOCK_GROUPS: readonly DockGroupDefinition[] = [
-  { orderKey: 'leftOrder', title: '左侧 Dock', items: DEFAULT_LEFT_DOCK_ITEMS },
-  { orderKey: 'toolsOrder', title: '工具', items: DEFAULT_TOOL_DOCK_ITEMS },
-  { orderKey: 'undoRedoOrder', title: '撤销/重做', items: DEFAULT_UNDO_REDO_DOCK_ITEMS },
-  { orderKey: 'pagesOrder', title: '页面', items: DEFAULT_PAGE_DOCK_ITEMS },
+  { orderKey: 'leftOrder', titleKey: 'Web_Settings_DockGroupLeft', items: DEFAULT_LEFT_DOCK_ITEMS },
+  { orderKey: 'toolsOrder', titleKey: 'Web_Settings_DockGroupTools', items: DEFAULT_TOOL_DOCK_ITEMS },
+  {
+    orderKey: 'undoRedoOrder',
+    titleKey: 'Web_Settings_DockGroupUndoRedo',
+    items: DEFAULT_UNDO_REDO_DOCK_ITEMS,
+  },
+  { orderKey: 'pagesOrder', titleKey: 'Web_Settings_DockGroupPages', items: DEFAULT_PAGE_DOCK_ITEMS },
 ]
 
 /** 单项的显示信息。 */
@@ -196,8 +200,12 @@ function DockOrderGroup(props: DockOrderGroupProps): ReactNode {
 
   return (
     <div className="wb-dock-order__group">
-      <h4 className="wb-dock-order__group-title">{group.title}</h4>
-      <ul className="wb-dock-order__list" aria-label={`${group.title} 顺序`} ref={listRef}>
+      <h4 className="wb-dock-order__group-title">{t(group.titleKey)}</h4>
+      <ul
+        className="wb-dock-order__list"
+        aria-label={t('Web_Settings_DockGroupOrderAria_Fmt', t(group.titleKey))}
+        ref={listRef}
+      >
         {order.map((id, index) => {
           const meta = DOCK_ITEM_META[id]
           const isDragging = activeDrag !== null && activeDrag.id === id
@@ -226,7 +234,12 @@ function DockOrderGroup(props: DockOrderGroupProps): ReactNode {
               data-dock-item-id={id}
               tabIndex={0}
               aria-grabbed={isDragging}
-              aria-label={`${t(meta.labelKey)}，第 ${index + 1} 项，共 ${order.length} 项`}
+              aria-label={t(
+                'Web_Settings_DockItemAria_Fmt',
+                t(meta.labelKey),
+                index + 1,
+                order.length,
+              )}
               onPointerDown={handlePointerDown}
               onPointerMove={(event) => {
                 if (activeDrag === null || activeDrag.id !== id) {
@@ -264,7 +277,7 @@ function DockOrderGroup(props: DockOrderGroupProps): ReactNode {
                   appearance="subtle"
                   className="wb-dock-order__move"
                   icon={<ArrowUpRegular />}
-                  aria-label={`上移 ${t(meta.labelKey)}`}
+                  aria-label={t('Web_Settings_MoveUp_Fmt', t(meta.labelKey))}
                   disabled={index === 0}
                   onClick={() => {
                     props.onMoveUp(group.orderKey, index)
@@ -275,7 +288,7 @@ function DockOrderGroup(props: DockOrderGroupProps): ReactNode {
                   appearance="subtle"
                   className="wb-dock-order__move"
                   icon={<ArrowDownRegular />}
-                  aria-label={`下移 ${t(meta.labelKey)}`}
+                  aria-label={t('Web_Settings_MoveDown_Fmt', t(meta.labelKey))}
                   disabled={index === order.length - 1}
                   onClick={() => {
                     props.onMoveDown(group.orderKey, index)
@@ -384,7 +397,7 @@ export function DockPage(): ReactNode {
       <SettingsSection title={t('Common_Options')}>
         <SettingsCard
           title={t('Settings_Dock_ShowUndoRedo_Header')}
-          description="在底部 Dock 显示撤销/重做按钮"
+          description={t('Web_Settings_DockUndoRedo_Description')}
           anchor={SETTINGS_ANCHORS.dockUndoRedoVisible}
         >
           <Switch
@@ -398,7 +411,7 @@ export function DockPage(): ReactNode {
 
         <SettingsCard
           title={t('Settings_Dock_ShowShortcutDocks_Header')}
-          description="网页端 v1 暂未渲染快捷入口，此开关只保存偏好"
+          description={t('Web_Settings_DockShortcutDocks_Description')}
         >
           <Switch
             checked={settings.dock.isShortcutDocksVisible}
@@ -412,7 +425,7 @@ export function DockPage(): ReactNode {
         {/* 桌面 `DockSettingsPage.xaml:418-424`：恢复默认布局（`s.Dock = new DockSettings()`） */}
         <SettingsCard
           title={t('Settings_Dock_ResetLayout_Button')}
-          description="把四组顺序与两个显隐开关恢复为默认"
+          description={t('Web_Settings_DockReset_Description')}
         >
           <Button
             onClick={() => {

@@ -19,6 +19,7 @@ import {
   DialogTitle,
 } from '@fluentui/react-components'
 import { useState, type ReactNode } from 'react'
+import { useI18n, type Translator } from '../../i18n/context.ts'
 import type { AutosaveMeta } from '../../persistence/autosave-store.ts'
 
 /** 属性。 */
@@ -30,17 +31,17 @@ export interface RecoveryDialogProps {
 }
 
 /** 把时间戳格式化成"x 分钟前"这类相对描述（超过一天给绝对时间）。 */
-function describeAge(savedAt: number, now: number): string {
+function describeAge(t: Translator, savedAt: number, now: number): string {
   const diffMinutes = Math.max(0, Math.round((now - savedAt) / 60000))
   if (diffMinutes < 1) {
-    return '刚刚'
+    return t('Web_Recovery_JustNow')
   }
   if (diffMinutes < 60) {
-    return `${diffMinutes} 分钟前`
+    return t('Web_Recovery_MinutesAgo_Fmt', diffMinutes)
   }
   const hours = Math.round(diffMinutes / 60)
   if (hours < 24) {
-    return `${hours} 小时前`
+    return t('Web_Recovery_HoursAgo_Fmt', hours)
   }
   const date = new Date(savedAt)
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
@@ -51,6 +52,7 @@ export function RecoveryDialog(props: RecoveryDialogProps): ReactNode {
   // 相对时间只在挂载时算一次：渲染期调用 `Date.now()` 违反 React 的 purity 规则
   // （同一份 props 会渲染出不同结果），这里用惰性初始化把"读时钟"固定在挂载那一刻。
   const [nowAtMount] = useState(() => Date.now())
+  const { t } = useI18n()
   const meta = props.meta
   if (meta === null) {
     return null
@@ -69,10 +71,14 @@ export function RecoveryDialog(props: RecoveryDialogProps): ReactNode {
     >
       <DialogSurface className="wb-dialog">
         <DialogBody>
-          <DialogTitle>发现未完成的编辑</DialogTitle>
+          <DialogTitle>{t('Web_Recovery_Title')}</DialogTitle>
           <DialogContent>
-            上次会话（{describeAge(meta.savedAt, nowAtMount)}，{meta.pageCount} 页、{meta.itemCount} 个条目）
-            有自动保存的内容，是否恢复？
+            {t(
+              'Web_Recovery_Message_Fmt',
+              describeAge(t, meta.savedAt, nowAtMount),
+              meta.pageCount,
+              meta.itemCount,
+            )}
           </DialogContent>
           <DialogActions>
             <Button
@@ -81,7 +87,7 @@ export function RecoveryDialog(props: RecoveryDialogProps): ReactNode {
                 props.onDiscard()
               }}
             >
-              丢弃
+              {t('Web_Recovery_Discard')}
             </Button>
             <Button
               appearance="primary"
@@ -89,7 +95,7 @@ export function RecoveryDialog(props: RecoveryDialogProps): ReactNode {
                 props.onRestore()
               }}
             >
-              恢复
+              {t('Web_Recovery_Restore')}
             </Button>
           </DialogActions>
         </DialogBody>

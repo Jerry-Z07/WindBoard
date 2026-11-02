@@ -168,17 +168,17 @@ describe('buildMoreMenuEntries：桌面更多菜单（去掉屏幕批注与退�
     const entries = buildMoreMenuEntries(false)
 
     expect(entries).toHaveLength(4)
-    expect(entries[0]).toEqual({ kind: 'item', id: 'settings', label: '设置' })
+    expect(entries[0]).toEqual({ kind: 'item', id: 'settings', labelKey: 'Common_Settings' })
     expect(entries[1]).toEqual({ kind: 'divider' })
-    expect(entries[2]).toEqual({ kind: 'item', id: 'export', label: '导出' })
-    expect(entries[3]).toEqual({ kind: 'item', id: 'fullscreen', label: '全屏' })
+    expect(entries[2]).toEqual({ kind: 'item', id: 'export', labelKey: 'Common_Export' })
+    expect(entries[3]).toEqual({ kind: 'item', id: 'fullscreen', labelKey: 'Common_FullScreen' })
   })
 
-  it('全屏时最后一项文案切到"退出全屏"', () => {
+  it('全屏时最后一项的 key 切到 Common_ExitFullScreen', () => {
     const entries = buildMoreMenuEntries(true)
     const last = entries[entries.length - 1]
 
-    expect(last).toEqual({ kind: 'item', id: 'fullscreen', label: '退出全屏' })
+    expect(last).toEqual({ kind: 'item', id: 'fullscreen', labelKey: 'Common_ExitFullScreen' })
   })
 
   it('不包含屏幕批注与退出（浏览器没有对应能力）', () => {

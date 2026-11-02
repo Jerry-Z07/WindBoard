@@ -14,6 +14,7 @@
  * 真正的导出（P4）再消费这些数据，避免 UI 与导出实现互相耦合。
  */
 
+import { localized, type LocalizedMessage } from '../../i18n/message.ts'
 import { parsePageRange } from './page-range.ts'
 
 /** 导出格式（`ExportDialogSelection.cs:6-11` 的 `ExportFormat`，顺序与桌面下拉一致）。 */
@@ -265,7 +266,8 @@ export function formatPdfPageSizePt(
 /** 校验结果：`issues` 为空即 `valid`（两者保持同步，方便 UI 直接渲染第一条原因）。 */
 export interface ExportValidation {
   readonly valid: boolean
-  readonly issues: readonly string[]
+  /** 校验失败原因；文案由 UI 用 `t()` 渲染（见 `i18n/message.ts`）。 */
+  readonly issues: readonly LocalizedMessage[]
 }
 
 /**
@@ -288,17 +290,17 @@ export function validateExportOptions(
   options: ExportOptions,
   pageCount: number,
 ): ExportValidation {
-  const issues: string[] = []
+  const issues: LocalizedMessage[] = []
 
   const total = toInteger(pageCount, 0)
   if (total <= 0) {
     // `Export_NoPages_Message`（`Export.resw:35-36`；桌面 `ExportFlow.cs:124-128`）。
-    issues.push('当前工作区没有可导出的页面。')
+    issues.push(localized('Export_NoPages_Message'))
   }
 
   if (!isExportFormat(options.format)) {
     // `Export_UnknownFormat_Message`（`Export.resw:32-33`；桌面 `ExportFlow.cs:104`）。
-    issues.push('未知导出格式。')
+    issues.push(localized('Web_Export_UnknownFormat'))
     return { valid: false, issues }
   }
 
@@ -309,7 +311,7 @@ export function validateExportOptions(
 
   if (!isExportRange(options.range)) {
     // `Export_UnknownPageScope_Message`（`Export.resw:38-39`；桌面 `ExportFlow.cs:147-149`）。
-    issues.push('未知页范围。')
+    issues.push(localized('Web_Export_UnknownPageScope'))
   } else if (options.range === 'range' && total > 0) {
     // 只报解析器的第一条原因（与桌面"弹一次窗"的体验一致）；`total <= 0` 已单独报过，避免重复。
     const parsed = parsePageRange(options.pageRangeText, total)
@@ -324,19 +326,19 @@ export function validateExportOptions(
   // - PDF DPI：桌面是三选一下拉（`ExportDialog.cs:63-72`、`:178-185`）；
   // - PNG 高度 / 画面比例：桌面同样是下拉（`ExportDialog.cs:47-61`、`:199-203`）。
   if (!Number.isFinite(options.paddingDip) || options.paddingDip < MIN_PADDING_DIP) {
-    issues.push('留白必须是数字且不小于 0')
+    issues.push(localized('Web_Export_PaddingInvalid'))
   }
 
   if (options.format === 'pdf' && !isPdfDpi(options.pdfDpi)) {
-    issues.push('PDF DPI 必须是 96 / 192 / 288 之一')
+    issues.push(localized('Web_Export_PdfDpiInvalid'))
   }
 
   if (options.format === 'png') {
     if (!isPngHeight(options.pngHeight)) {
-      issues.push('PNG 高度必须是 720 / 1080 / 2160 之一')
+      issues.push(localized('Web_Export_PngHeightInvalid'))
     }
     if (!isPngAspect(options.pngAspect)) {
-      issues.push('PNG 比例无效')
+      issues.push(localized('Web_Export_PngAspectInvalid'))
     }
   }
 

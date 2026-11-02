@@ -6,6 +6,7 @@
  */
 
 import { describe, expect, it } from 'vitest'
+import { localized } from '../../src/i18n/message.ts'
 import {
   DEFAULT_EXPORT_OPTIONS,
   MIN_PADDING_DIP,
@@ -209,55 +210,55 @@ describe('validateExportOptions', () => {
   it('留白为负 → 不合法', () => {
     const result = validateExportOptions(options({ paddingDip: -1 }), 3)
     expect(result.valid).toBe(false)
-    expect(result.issues).toEqual(['留白必须是数字且不小于 0'])
+    expect(result.issues).toEqual([localized('Web_Export_PaddingInvalid')])
   })
 
   it('留白非数字（空输入）→ 不合法', () => {
     const result = validateExportOptions(options({ paddingDip: Number.NaN }), 3)
-    expect(result.issues).toEqual(['留白必须是数字且不小于 0'])
+    expect(result.issues).toEqual([localized('Web_Export_PaddingInvalid')])
   })
 
   it('PDF DPI 不在候选集合 → 不合法', () => {
     const result = validateExportOptions(unsafeOptions({ format: 'pdf', pdfDpi: 144 }), 3)
     expect(result.valid).toBe(false)
-    expect(result.issues).toEqual(['PDF DPI 必须是 96 / 192 / 288 之一'])
+    expect(result.issues).toEqual([localized('Web_Export_PdfDpiInvalid')])
   })
 
   it('PNG 高度不在候选集合 → 不合法', () => {
     const result = validateExportOptions(unsafeOptions({ pngHeight: 900 }), 3)
-    expect(result.issues).toEqual(['PNG 高度必须是 720 / 1080 / 2160 之一'])
+    expect(result.issues).toEqual([localized('Web_Export_PngHeightInvalid')])
   })
 
   it('指定范围但未填文本 → 不合法（桌面 `Export_PageRange_EmptyInput_Message`）', () => {
     const result = validateExportOptions(options({ range: 'range', pageRangeText: '' }), 5)
     expect(result.valid).toBe(false)
-    expect(result.issues).toEqual(['请输入页码范围，例如：1,3-5。'])
+    expect(result.issues).toEqual([localized('Export_PageRange_EmptyInput_Message')])
   })
 
   it('指定范围只有逗号 → 同样按"未填"报错（桌面 Split 后无片段）', () => {
     const result = validateExportOptions(options({ range: 'range', pageRangeText: ' , ' }), 5)
-    expect(result.issues).toEqual(['请输入页码范围，例如：1,3-5。'])
+    expect(result.issues).toEqual([localized('Export_PageRange_EmptyInput_Message')])
   })
 
   it('区间起止颠倒 → 不合法（桌面 `Export_PageRange_OrderError_Fmt`）', () => {
     const result = validateExportOptions(options({ range: 'range', pageRangeText: '4-2' }), 5)
     expect(result.valid).toBe(false)
-    expect(result.issues).toEqual(['页码范围起止顺序错误：4-2。'])
+    expect(result.issues).toEqual([localized('Export_PageRange_OrderError_Fmt', '4-2')])
   })
 
   it('区间超出总页数 → 不合法（桌面 `Export_PageRange_OutOfRange_Fmt`）', () => {
     const result = validateExportOptions(options({ range: 'range', pageRangeText: '1-99' }), 3)
-    expect(result.issues).toEqual(['页码超出范围：当前共 3 页。'])
+    expect(result.issues).toEqual([localized('Export_PageRange_OutOfRange_Fmt', 3)])
   })
 
   it('区间起始页小于 1 → 不合法（桌面 `Export_PageRange_PageMustStartFrom1_Fmt`）', () => {
     const result = validateExportOptions(options({ range: 'range', pageRangeText: '0-2' }), 5)
-    expect(result.issues).toEqual(['页码必须从 1 开始：0。'])
+    expect(result.issues).toEqual([localized('Export_PageRange_PageMustStartFrom1_Fmt', '0')])
   })
 
   it('非数字页码 → 不合法（桌面 `Export_PageRange_InvalidPage_Fmt`）', () => {
     const result = validateExportOptions(options({ range: 'range', pageRangeText: 'abc' }), 5)
-    expect(result.issues).toEqual(['非法页码：abc。'])
+    expect(result.issues).toEqual([localized('Export_PageRange_InvalidPage_Fmt', 'abc')])
   })
 
   it('自由文本合法 → 合法（`1,3-5,8` 是桌面文档里的示例）', () => {
@@ -276,7 +277,7 @@ describe('validateExportOptions', () => {
     const result = validateExportOptions(options(), 0)
     expect(result.valid).toBe(false)
     // 文案取 resw 原文（`Export_NoPages_Message`），不自行改写
-    expect(result.issues).toEqual(['当前工作区没有可导出的页面。'])
+    expect(result.issues).toEqual([localized('Export_NoPages_Message')])
   })
 
   it('WBIX 忽略页范围与位图参数（桌面 `ExportFlow.cs:79-84`）', () => {
@@ -291,7 +292,7 @@ describe('validateExportOptions', () => {
     const result = validateExportOptions(unsafeOptions({ format: 'svg' }), 3)
     expect(result.valid).toBe(false)
     // 文案取 resw 原文（`Export_UnknownFormat_Message`）
-    expect(result.issues).toEqual(['未知导出格式。'])
+    expect(result.issues).toEqual([localized('Web_Export_UnknownFormat')])
   })
 
   it('候选值守卫：PNG 高度与 PDF DPI 只接受白名单', () => {

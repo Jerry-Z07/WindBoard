@@ -6,6 +6,8 @@
  */
 
 import { describe, expect, it } from 'vitest'
+import { createTranslator } from '../../src/i18n/index.ts'
+import { formatLocalized, localized } from '../../src/i18n/message.ts'
 import type { BoardElement } from '../../src/board/model/element.ts'
 import {
   openElementExternal,
@@ -80,7 +82,7 @@ describe('链接（桌面 OpenLinkAsync:84-104）', () => {
     })
 
     expect(result.ok).toBe(false)
-    expect(result.error).toEqual({ title: '无法打开链接', message: '系统未能打开该链接。' })
+    expect(result.error).toEqual({ title: localized('Open_CannotOpenLink_Title'), message: localized('Open_LaunchLinkFailed_Message') })
     // 确实尝试过打开。
     expect(recorder.calls).toEqual(['https://example.com/'])
   })
@@ -93,7 +95,7 @@ describe('链接（桌面 OpenLinkAsync:84-104）', () => {
 
     expect(result).toEqual({
       ok: false,
-      error: { title: '无法打开链接', message: '链接格式无效：ht tp://x' },
+      error: { title: localized('Open_CannotOpenLink_Title'), message: localized('Open_InvalidLinkFormat_Fmt', 'ht tp://x') },
     })
     expect(recorder.calls).toEqual([])
   })
@@ -106,7 +108,7 @@ describe('链接（桌面 OpenLinkAsync:84-104）', () => {
 
     expect(result).toEqual({
       ok: false,
-      error: { title: '无法打开链接', message: '链接为空。' },
+      error: { title: localized('Open_CannotOpenLink_Title'), message: localized('Open_LinkEmpty_Message') },
     })
     expect(recorder.calls).toEqual([])
   })
@@ -120,7 +122,7 @@ describe('链接（桌面 OpenLinkAsync:84-104）', () => {
 
     expect(result).toEqual({
       ok: false,
-      error: { title: '无法打开链接', message: '系统未能打开该链接。' },
+      error: { title: localized('Open_CannotOpenLink_Title'), message: localized('Open_LaunchLinkFailed_Message') },
     })
   })
 })
@@ -140,7 +142,7 @@ describe('媒体 / 文件（桌面 OpenFilePathAsync:127-153）', () => {
 
     expect(result).toEqual({
       ok: false,
-      error: { title: '无法打开文件', message: '网页端无法打开本地文件：a.png' },
+      error: { title: localized('Open_CannotOpenFile_Title'), message: localized('Web_OpenLocalFileUnsupported_Fmt', 'a.png') },
     })
     // 文件类目标不会调用 openWindow（浏览器没有本地打开通道）。
     expect(recorder.calls).toEqual([])
@@ -153,7 +155,7 @@ describe('媒体 / 文件（桌面 OpenFilePathAsync:127-153）', () => {
 
     expect(result).toEqual({
       ok: false,
-      error: { title: '无法打开文件', message: '网页端无法打开本地文件：C:/tmp/a.pdf' },
+      error: { title: localized('Open_CannotOpenFile_Title'), message: localized('Web_OpenLocalFileUnsupported_Fmt', 'C:/tmp/a.pdf') },
     })
   })
 
@@ -170,7 +172,7 @@ describe('媒体 / 文件（桌面 OpenFilePathAsync:127-153）', () => {
 
     expect(result).toEqual({
       ok: false,
-      error: { title: '无法打开文件', message: '该附件尚未加载到网页端，暂时无法打开。' },
+      error: { title: localized('Open_CannotOpenFile_Title'), message: localized('Web_OpenResourceUnavailable') },
     })
   })
 
@@ -181,7 +183,7 @@ describe('媒体 / 文件（桌面 OpenFilePathAsync:127-153）', () => {
 
     expect(result).toEqual({
       ok: false,
-      error: { title: '无法打开文件', message: '该附件尚未加载到网页端，暂时无法打开。' },
+      error: { title: localized('Open_CannotOpenFile_Title'), message: localized('Web_OpenResourceUnavailable') },
     })
   })
 
@@ -190,7 +192,7 @@ describe('媒体 / 文件（桌面 OpenFilePathAsync:127-153）', () => {
 
     expect(result).toEqual({
       ok: false,
-      error: { title: '无法打开文件', message: '文件路径为空。' },
+      error: { title: localized('Open_CannotOpenFile_Title'), message: localized('Open_FilePathEmpty_Message') },
     })
   })
 })
@@ -213,15 +215,25 @@ describe('缺省环境（node 无 window）', () => {
 
     expect(result).toEqual({
       ok: false,
-      error: { title: '无法打开链接', message: '系统未能打开该链接。' },
+      error: { title: localized('Open_CannotOpenLink_Title'), message: localized('Open_LaunchLinkFailed_Message') },
     })
   })
 })
 
 describe('网页端新增文案', () => {
-  it('两条文案逐字固定（桌面 resw 无对应 key）', () => {
-    expect(WEB_ONLY_OPEN_TEXTS.localFileUnsupportedFmt).toBe('网页端无法打开本地文件：{0}')
-    expect(WEB_ONLY_OPEN_TEXTS.resourceUnavailableMessage).toBe(
+  it('两条网页独有文案的 key 与渲染结果（桌面 resw 无对应 key）', () => {
+    expect(WEB_ONLY_OPEN_TEXTS.localFileUnsupportedFmt('a.png')).toEqual({
+      key: 'Web_OpenLocalFileUnsupported_Fmt',
+      args: ['a.png'],
+    })
+    expect(WEB_ONLY_OPEN_TEXTS.resourceUnavailableMessage).toEqual({
+      key: 'Web_OpenResourceUnavailable',
+    })
+    const translateZh = createTranslator('zh-CN')
+    expect(formatLocalized(translateZh, WEB_ONLY_OPEN_TEXTS.localFileUnsupportedFmt('a.png'))).toBe(
+      '网页端无法打开本地文件：a.png',
+    )
+    expect(formatLocalized(translateZh, WEB_ONLY_OPEN_TEXTS.resourceUnavailableMessage)).toBe(
       '该附件尚未加载到网页端，暂时无法打开。',
     )
   })

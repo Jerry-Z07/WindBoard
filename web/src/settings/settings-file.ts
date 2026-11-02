@@ -13,6 +13,8 @@
  */
 
 import { normalizeSettings, type AppSettings } from './model.ts'
+import { localized, type LocalizedMessage } from '../i18n/message.ts'
+import type { MessageKey } from '../i18n/locales/zh-CN.generated.ts'
 
 /** 导出文件的默认名（与桌面 `settings.json` 区分开，便于用户分辨来源）。 */
 export const SETTINGS_FILE_NAME = 'windboard-settings.json'
@@ -22,8 +24,8 @@ export interface SettingsImportResult {
   readonly ok: boolean
   readonly settings?: AppSettings
   /** 归一化过程中产生的说明（桌面 `SettingsNormalizationReport` 的等价物）。 */
-  readonly notes?: readonly string[]
-  readonly error?: string
+  readonly notes?: readonly LocalizedMessage[]
+  readonly error?: LocalizedMessage
 }
 
 /** 把设置序列化成桌面兼容的 JSON 文本。 */
@@ -67,7 +69,7 @@ export function serializeSettingsFile(settings: AppSettings): string {
 export function parseSettingsFile(text: string): SettingsImportResult {
   const trimmed = text.trim()
   if (trimmed === '') {
-    return { ok: false, error: '设置文件内容为空' }
+    return { ok: false, error: localized('Web_SettingsFile_Empty') }
   }
 
   let raw: unknown
@@ -76,12 +78,15 @@ export function parseSettingsFile(text: string): SettingsImportResult {
   } catch (error) {
     return {
       ok: false,
-      error: `设置文件不是合法 JSON：${error instanceof Error ? error.message : String(error)}`,
+      error: localized(
+        'Web_SettingsFile_InvalidJson_Fmt',
+        error instanceof Error ? error.message : String(error),
+      ),
     }
   }
 
   if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) {
-    return { ok: false, error: '设置文件的顶层必须是对象' }
+    return { ok: false, error: localized('Web_SettingsFile_NotObject') }
   }
 
   const record = raw as Record<string, unknown>
@@ -94,12 +99,12 @@ export function parseSettingsFile(text: string): SettingsImportResult {
   }
 
   if (Object.keys(candidate).length === 0) {
-    return { ok: false, error: '设置文件里没有本应用认识的字段' }
+    return { ok: false, error: localized('Web_SettingsFile_NoKnownFields') }
   }
 
   // `normalizeSettings` 负责逐项归一化（非法值回落默认），未提供的分区保持默认值。
   const settings = normalizeSettings(candidate)
-  const notes: string[] = []
+  const notes: LocalizedMessage[] = []
   collectNotes(record, settings, notes)
 
   return { ok: true, settings, notes }
@@ -179,35 +184,32 @@ function stripJsonExtensions(text: string): string {
 function collectNotes(
   record: Record<string, unknown>,
   settings: AppSettings,
-  notes: string[],
+  notes: LocalizedMessage[],
 ): void {
-  const unsupportedSections: string[] = []
+  // 桌面独有分区逐个提示（文案里带分区名，按分区拆 key 才能随语言变化）。
   if (record.diagnostics !== undefined) {
-    unsupportedSections.push('诊断日志')
+    notes.push(localized('Web_SettingsFile_Unsupported_Diagnostics'))
   }
   if (record.announcements !== undefined) {
-    unsupportedSections.push('公告已读状态')
+    notes.push(localized('Web_SettingsFile_Unsupported_Announcements'))
   }
   if (typeof record.general === 'object' && record.general !== null) {
     const general = record.general as Record<string, unknown>
     if (general.camouflage !== undefined) {
-      unsupportedSections.push('伪装')
+      notes.push(localized('Web_SettingsFile_Unsupported_Camouflage'))
     }
     if (general.updates !== undefined) {
-      unsupportedSections.push('自动更新')
+      notes.push(localized('Web_SettingsFile_Unsupported_Updates'))
     }
-  }
-  if (unsupportedSections.length > 0) {
-    notes.push(`桌面版分区「${unsupportedSections.join('、')}」在网页端不支持，已忽略。`)
   }
 
   // 归一化可能把非法值回落成默认值，逐项对比给出提示（对应桌面 SettingsNormalizationReport）。
-  const sections: { key: keyof AppSettings; label: string }[] = [
-    { key: 'appearance', label: '外观' },
-    { key: 'writing', label: '书写' },
-    { key: 'dock', label: 'Dock' },
-    { key: 'keyboardShortcuts', label: '快捷键' },
-    { key: 'general', label: '常规' },
+  const sections: { key: keyof AppSettings; messageKey: MessageKey }[] = [
+    { key: 'appearance', messageKey: 'Web_SettingsFile_Fallback_Appearance' },
+    { key: 'writing', messageKey: 'Web_SettingsFile_Fallback_Writing' },
+    { key: 'dock', messageKey: 'Web_SettingsFile_Fallback_Dock' },
+    { key: 'keyboardShortcuts', messageKey: 'Web_SettingsFile_Fallback_Shortcuts' },
+    { key: 'general', messageKey: 'Web_SettingsFile_Fallback_General' },
   ]
   for (const section of sections) {
     const raw = record[section.key]
@@ -217,7 +219,7 @@ function collectNotes(
     const rawText = JSON.stringify(raw)
     const mergedText = JSON.stringify(settings[section.key])
     if (rawText !== mergedText) {
-      notes.push(`分区「${section.label}」里有非法或过期的值，已回落到默认值。`)
+      notes.push(localized(section.messageKey))
     }
   }
 }

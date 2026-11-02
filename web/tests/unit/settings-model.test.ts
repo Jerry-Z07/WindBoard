@@ -7,6 +7,7 @@
  */
 
 import { describe, expect, it } from 'vitest'
+import { createTranslator } from '../../src/i18n/index.ts'
 import {
   DEFAULT_CANVAS_BACKGROUND_HEX,
   DEFAULT_LEFT_DOCK_ITEMS,
@@ -32,6 +33,8 @@ import {
   findSettingsPage,
   isSettingsPageId,
   resolveSettingsPageId,
+  settingsPageDescription,
+  settingsPageLabel,
 } from '../../src/settings/window-model.ts'
 
 describe('默认设置（与桌面 settings.json 首次写出的一致）', () => {
@@ -283,9 +286,10 @@ describe('window-model：设置页清单与导航', () => {
   })
 
   it('每页都有非空标题与说明', () => {
+    const t = createTranslator('zh-CN')
     for (const page of SETTINGS_PAGES) {
-      expect(page.label.length).toBeGreaterThan(0)
-      expect(page.description.length).toBeGreaterThan(0)
+      expect(settingsPageLabel(page, t).length).toBeGreaterThan(0)
+      expect(settingsPageDescription(page, t).length).toBeGreaterThan(0)
     }
   })
 
@@ -305,7 +309,8 @@ describe('window-model：设置页清单与导航', () => {
   })
 
   it('findSettingsPage 返回对应页描述', () => {
-    expect(findSettingsPage('dock').label).toBe('Dock')
-    expect(findSettingsPage('about').description).toContain('版本')
+    const t = createTranslator('zh-CN')
+    expect(settingsPageLabel(findSettingsPage('dock'), t)).toBe('Dock')
+    expect(settingsPageDescription(findSettingsPage('about'), t)).toContain('版本')
   })
 })

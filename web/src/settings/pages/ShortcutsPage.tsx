@@ -101,13 +101,13 @@ function ShortcutEditor(props: ShortcutEditorProps): ReactNode {
   return (
     <SettingsCard
       title={props.title}
-      description="支持 Ctrl / Alt / Shift 组合；留空表示禁用"
+      description={t('Web_Settings_Shortcut_Description')}
       anchor={props.anchor}
     >
       <div className="wb-settings-shortcut">
         <Input
           value={value}
-          placeholder="例如 Ctrl+Z"
+          placeholder={t('Web_Settings_ShortcutPlaceholder')}
           aria-label={props.title}
           aria-invalid={error !== null}
           onChange={(_, data) => {
@@ -152,7 +152,7 @@ function ShortcutEditor(props: ShortcutEditorProps): ReactNode {
             props.onCommit('')
           }}
         >
-          清除
+          {t('Web_Settings_ClearShortcut')}
         </Button>
       </div>
       {error !== null && <span className="wb-settings-error">{error}</span>}
@@ -199,7 +199,7 @@ export function ShortcutsPage(): ReactNode {
         />
         <SettingsCard
           title={t('Settings_Shortcuts_ConflictReminder_Header')}
-          description="当两个快捷键冲突时给出提醒"
+          description={t('Web_Settings_ConflictReminder_Description')}
           anchor={SETTINGS_ANCHORS.shortcutsConflictReminder}
         >
           <Switch
@@ -212,9 +212,7 @@ export function ShortcutsPage(): ReactNode {
             }}
           />
         </SettingsCard>
-        <p className="wb-settings-hint">
-          撤销与重做不能同时禁用；两者都留空时会自动保留默认的撤销快捷键。
-        </p>
+        <p className="wb-settings-hint">{t('Web_Settings_Shortcuts_Hint')}</p>
       </SettingsSection>
 
       <SettingsSection title={t('Settings_Shortcuts_Mouse_SectionTitle')}>

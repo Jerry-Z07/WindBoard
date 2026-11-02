@@ -10,9 +10,9 @@ import { describe, expect, it } from 'vitest'
 import { isActionEnabled, resolveBringToFrontButton } from '../../src/ui/overlay/selection-action.ts'
 
 describe('resolveBringToFrontButton：置顶按钮三态', () => {
-  it('默认态：文案「置顶」、Up 图标、可用', () => {
+  it('默认态：文案 key 为 Common_BringToFront、Up 图标、可用', () => {
     expect(resolveBringToFrontButton('default')).toEqual({
-      label: '置顶',
+      labelKey: 'Common_BringToFront',
       icon: 'up',
       disabled: false,
     })
@@ -22,9 +22,9 @@ describe('resolveBringToFrontButton：置顶按钮三态', () => {
     expect(resolveBringToFrontButton()).toEqual(resolveBringToFrontButton('default'))
   })
 
-  it('可撤销态：文案「取消置顶」、Undo 图标、可用', () => {
+  it('可撤销态：文案 key 为 Common_CancelBringToFront、Undo 图标、可用', () => {
     expect(resolveBringToFrontButton('cancel')).toEqual({
-      label: '取消置顶',
+      labelKey: 'Common_CancelBringToFront',
       icon: 'undo',
       disabled: false,
     })
@@ -32,7 +32,7 @@ describe('resolveBringToFrontButton：置顶按钮三态', () => {
 
   it('不可用态：文案与图标仍保持「置顶 / Up」，只是禁用（桌面 IsEnabled 分支不换文案）', () => {
     expect(resolveBringToFrontButton('disabled')).toEqual({
-      label: '置顶',
+      labelKey: 'Common_BringToFront',
       icon: 'up',
       disabled: true,
     })
@@ -41,7 +41,7 @@ describe('resolveBringToFrontButton：置顶按钮三态', () => {
   it('没有回调时一律禁用，但文案仍按状态推导', () => {
     expect(resolveBringToFrontButton('default', false).disabled).toBe(true)
     expect(resolveBringToFrontButton('cancel', false)).toEqual({
-      label: '取消置顶',
+      labelKey: 'Common_CancelBringToFront',
       icon: 'undo',
       disabled: true,
     })

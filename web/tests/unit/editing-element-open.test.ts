@@ -6,6 +6,8 @@
  */
 
 import { describe, expect, it } from 'vitest'
+import { createTranslator } from '../../src/i18n/index.ts'
+import { formatLocalized, localized, type LocalizedMessage } from '../../src/i18n/message.ts'
 import type { BoardElement } from '../../src/board/model/element.ts'
 import type { Vec2 } from '../../src/board/model/stroke.ts'
 import {
@@ -14,10 +16,12 @@ import {
   ELEMENT_DOUBLE_CLICK_MAX_DISTANCE_DIP,
   ELEMENT_DOUBLE_CLICK_TIMEOUT_MS,
   ELEMENT_OPEN_TEXTS,
-  formatOpenText,
   normalizeOpenUrl,
   resolveElementOpenTarget,
 } from '../../src/board/editing/element-open.ts'
+
+/** zh-CN 取词函数：用来核对 key 渲染出来的文案与桌面 resw 一致。 */
+const translateZh = createTranslator('zh-CN')
 
 const ID_A = '11111111-1111-4111-8111-111111111111'
 const ID_B = '22222222-2222-4222-8222-222222222222'
@@ -268,22 +272,22 @@ describe('describeElementOpenError（Open.cs:84-134 的前置校验）', () => {
   const errorCases: ReadonlyArray<{
     note: string
     target: Parameters<typeof describeElementOpenError>[0]
-    expected: { title: string; message: string } | null
+    expected: { title: LocalizedMessage; message: LocalizedMessage } | null
   }> = [
     {
       note: '链接为空（Open_LinkEmpty_Message）',
       target: { kind: 'url', url: '' },
-      expected: { title: '无法打开链接', message: '链接为空。' },
+      expected: { title: localized('Open_CannotOpenLink_Title'), message: localized('Open_LinkEmpty_Message') },
     },
     {
       note: '链接全空白同样算空',
       target: { kind: 'url', url: '   ' },
-      expected: { title: '无法打开链接', message: '链接为空。' },
+      expected: { title: localized('Open_CannotOpenLink_Title'), message: localized('Open_LinkEmpty_Message') },
     },
     {
       note: '链接格式无效（Open_InvalidLinkFormat_Fmt，{0} 为原文）',
       target: { kind: 'url', url: 'ht tp://x' },
-      expected: { title: '无法打开链接', message: '链接格式无效：ht tp://x' },
+      expected: { title: localized('Open_CannotOpenLink_Title'), message: localized('Open_InvalidLinkFormat_Fmt', 'ht tp://x') },
     },
     {
       note: '合法链接无需提示',
@@ -298,12 +302,12 @@ describe('describeElementOpenError（Open.cs:84-134 的前置校验）', () => {
     {
       note: '文件路径为空（Open_FilePathEmpty_Message）',
       target: { kind: 'file', path: '', displayName: 'a.png' },
-      expected: { title: '无法打开文件', message: '文件路径为空。' },
+      expected: { title: localized('Open_CannotOpenFile_Title'), message: localized('Open_FilePathEmpty_Message') },
     },
     {
       note: '文件路径全空白同样算空',
       target: { kind: 'file', path: '   ', displayName: '' },
-      expected: { title: '无法打开文件', message: '文件路径为空。' },
+      expected: { title: localized('Open_CannotOpenFile_Title'), message: localized('Open_FilePathEmpty_Message') },
     },
     {
       note: '非空路径无需静态提示（真实错误交给执行打开的调用方）',
@@ -319,31 +323,51 @@ describe('describeElementOpenError（Open.cs:84-134 的前置校验）', () => {
   }
 })
 
-describe('ELEMENT_OPEN_TEXTS 与 resw 文案逐字一致', () => {
-  const textCases: ReadonlyArray<{ key: string; value: string }> = [
-    { key: 'cannotOpenLinkTitle', value: '无法打开链接' },
-    { key: 'linkEmptyMessage', value: '链接为空。' },
-    { key: 'invalidLinkFormatFmt', value: '链接格式无效：{0}' },
-    { key: 'launchLinkFailedMessage', value: '系统未能打开该链接。' },
-    { key: 'cannotOpenFileTitle', value: '无法打开文件' },
-    { key: 'filePathEmptyMessage', value: '文件路径为空。' },
-    { key: 'fileNotFoundTitle', value: '文件不存在' },
-    { key: 'fileNotFoundFmt', value: '找不到文件：{0}' },
-    { key: 'unauthorizedFmt', value: '无权限访问：{0}' },
-    { key: 'launchFileFailedFmt', value: '系统未能打开：{0}' },
-    { key: 'openFailedTitle', value: '打开失败' },
-    { key: 'close', value: '关闭' },
+describe('ELEMENT_OPEN_TEXTS 与 resw 的 key 对应', () => {
+  const keyCases: ReadonlyArray<{ field: keyof typeof ELEMENT_OPEN_TEXTS; key: string }> = [
+    { field: 'cannotOpenLinkTitle', key: 'Open_CannotOpenLink_Title' },
+    { field: 'linkEmptyMessage', key: 'Open_LinkEmpty_Message' },
+    { field: 'launchLinkFailedMessage', key: 'Open_LaunchLinkFailed_Message' },
+    { field: 'cannotOpenFileTitle', key: 'Open_CannotOpenFile_Title' },
+    { field: 'filePathEmptyMessage', key: 'Open_FilePathEmpty_Message' },
+    { field: 'fileNotFoundTitle', key: 'Open_FileNotFound_Title' },
+    { field: 'openFailedTitle', key: 'Common_OpenFailed_Title' },
+    { field: 'close', key: 'Common_Close' },
   ]
 
-  for (const testCase of textCases) {
-    it(`${testCase.key} = ${testCase.value}`, () => {
-      const texts: Record<string, string> = ELEMENT_OPEN_TEXTS
-      expect(texts[testCase.key]).toBe(testCase.value)
+  for (const testCase of keyCases) {
+    it(`${testCase.field} → ${testCase.key}`, () => {
+      expect(ELEMENT_OPEN_TEXTS[testCase.field]).toEqual({ key: testCase.key })
     })
   }
 
-  it('formatOpenText 替换 {0} 占位符', () => {
-    expect(formatOpenText(ELEMENT_OPEN_TEXTS.fileNotFoundFmt, 'a.png')).toBe('找不到文件：a.png')
-    expect(formatOpenText('无占位符', 'x')).toBe('无占位符')
+  it('带占位符的三个构造器把实参原样带上', () => {
+    expect(ELEMENT_OPEN_TEXTS.invalidLinkFormatFmt('x')).toEqual({
+      key: 'Open_InvalidLinkFormat_Fmt',
+      args: ['x'],
+    })
+    expect(ELEMENT_OPEN_TEXTS.fileNotFoundFmt('a.png')).toEqual({
+      key: 'Open_FileNotFound_Fmt',
+      args: ['a.png'],
+    })
+    expect(ELEMENT_OPEN_TEXTS.unauthorizedFmt('a.png')).toEqual({
+      key: 'Open_Unauthorized_Fmt',
+      args: ['a.png'],
+    })
+    expect(ELEMENT_OPEN_TEXTS.launchFileFailedFmt('a.png')).toEqual({
+      key: 'Open_LaunchFileFailed_Fmt',
+      args: ['a.png'],
+    })
+  })
+
+  it('渲染成中文与桌面 resw 原文一致（锁住“渲染结果不变”）', () => {
+    expect(formatLocalized(translateZh, ELEMENT_OPEN_TEXTS.cannotOpenLinkTitle)).toBe('无法打开链接')
+    expect(formatLocalized(translateZh, ELEMENT_OPEN_TEXTS.linkEmptyMessage)).toBe('链接为空。')
+    expect(formatLocalized(translateZh, ELEMENT_OPEN_TEXTS.invalidLinkFormatFmt('a b'))).toBe(
+      '链接格式无效：a b',
+    )
+    expect(formatLocalized(translateZh, ELEMENT_OPEN_TEXTS.fileNotFoundFmt('a.png'))).toBe(
+      '找不到文件：a.png',
+    )
   })
 })

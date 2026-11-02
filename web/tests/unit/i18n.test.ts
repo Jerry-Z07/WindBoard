@@ -1,9 +1,9 @@
 /**
  * i18n 的单测：语言解析、占位符替换、回落，以及「生成物是否过期」的守卫。
  *
- * 最后一条最重要：`src/i18n/locales/*.generated.ts` 是从桌面 resw 生成的产物，
- * 一旦有人改了 `WindBoard/Strings/**` 却忘了 `pnpm i18n`，两端文案就会静默分叉。
- * 这里直接重新解析 resw 与产物比对，过期即失败（等价于桌面端的 golden 守卫）。
+ * 最后一条最重要：`src/i18n/locales/*.generated.ts` 是从桌面 resw + 网页独有词条
+ * 合并生成的产物，一旦有人改了源文件却忘了 `pnpm i18n`，文案就会静默分叉。
+ * 这里直接重新解析两侧源文件与产物比对，过期即失败（等价于桌面端的 golden 守卫）。
  */
 
 import { readdirSync, readFileSync } from 'node:fs'
@@ -23,6 +23,7 @@ import {
 /** 项目根（vitest 的工作目录是 `web/`）。 */
 const WEB_ROOT = process.cwd()
 const RESW_ROOT = resolve(WEB_ROOT, '../WindBoard/Strings')
+const WEB_STRINGS_DIR = resolve(WEB_ROOT, 'src/i18n/web-strings')
 
 /** XML 实体反转义（与 `scripts/gen-i18n.mjs` 保持同一张表）。 */
 const ENTITIES: Readonly<Record<string, string>> = {
@@ -58,11 +59,32 @@ function parseResw(path: string): Map<string, string> {
 }
 
 /**
- * 从 resw 目录重建一个语言的完整消息表。
+ * 读取 `src/i18n/web-strings/*.json` 里某个语言的网页独有文案
+ * （与 `scripts/gen-i18n.mjs` 的合并规则一致）。
  * @param {string} locale 语言
  * @returns {Record<string, string>}
  */
-function loadLocaleFromResw(locale: string): Record<string, string> {
+function loadWebStrings(locale: string): Record<string, string> {
+  const files = readdirSync(WEB_STRINGS_DIR)
+    .filter((name) => name.endsWith('.json'))
+    .sort()
+  const merged: Record<string, string> = {}
+  for (const file of files) {
+    const table = JSON.parse(readFileSync(join(WEB_STRINGS_DIR, file), 'utf8')) as Record<
+      string,
+      Record<string, string>
+    >
+    Object.assign(merged, table[locale] ?? {})
+  }
+  return merged
+}
+
+/**
+ * 从 resw 目录 + 网页独有文案重建一个语言的完整消息表。
+ * @param {string} locale 语言
+ * @returns {Record<string, string>}
+ */
+function loadLocaleFromSources(locale: string): Record<string, string> {
   const dir = join(RESW_ROOT, locale)
   const files = readdirSync(dir)
     .filter((name) => name.endsWith('.resw'))
@@ -73,7 +95,7 @@ function loadLocaleFromResw(locale: string): Record<string, string> {
       merged[key] = value
     }
   }
-  return merged
+  return { ...merged, ...loadWebStrings(locale) }
 }
 
 describe('normalizeLocale', () => {
@@ -145,10 +167,10 @@ describe('translate', () => {
   })
 })
 
-describe('生成物与 resw 同步', () => {
+describe('生成物与源文件同步', () => {
   for (const locale of LOCALES) {
-    it(`${locale} 的消息表与 WindBoard/Strings/${locale} 完全一致`, () => {
-      const fromResw = loadLocaleFromResw(locale)
+    it(`${locale} 的消息表与 resw + web-strings 完全一致`, () => {
+      const fromResw = loadLocaleFromSources(locale)
       const generated = MESSAGES_BY_LOCALE[locale]
       expect(Object.keys(generated).sort()).toEqual(Object.keys(fromResw).sort())
       for (const [key, value] of Object.entries(fromResw)) {
@@ -161,6 +183,14 @@ describe('生成物与 resw 同步', () => {
     const zhKeys = Object.keys(MESSAGES_BY_LOCALE['zh-CN']).sort()
     const enKeys = Object.keys(MESSAGES_BY_LOCALE['en-US']).sort()
     expect(enKeys).toEqual(zhKeys)
+  })
+
+  it('网页独有文案的 key 一律以 Web_ 开头', () => {
+    for (const locale of LOCALES) {
+      for (const key of Object.keys(loadWebStrings(locale))) {
+        expect(key.startsWith('Web_'), key).toBe(true)
+      }
+    }
   })
 
   it('没有值为空的条目（空文案在界面上等于消失）', () => {

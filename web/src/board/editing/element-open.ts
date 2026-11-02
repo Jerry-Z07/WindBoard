@@ -13,6 +13,7 @@
  *    需要实际 IO，纯函数无法区分，由真正执行打开的调用方负责，文案见 `ELEMENT_OPEN_TEXTS`。
  */
 
+import { localized, type LocalizedMessage } from '../../i18n/message.ts'
 import type { BoardElement } from '../model/element.ts'
 import type { Vec2 } from '../model/stroke.ts'
 
@@ -27,47 +28,40 @@ const MAX_DISTANCE_SQUARED =
   ELEMENT_DOUBLE_CLICK_MAX_DISTANCE_DIP * ELEMENT_DOUBLE_CLICK_MAX_DISTANCE_DIP
 
 /**
- * 打开相关文案（zh-CN）。
+ * 打开相关文案：只给 **key**，中英文由 UI 用 `t()` 渲染（见 `i18n/message.ts`）。
  *
- * 逐字取自 `WindBoard/Strings/zh-CN/Open.resw` 与 `Common.resw`，注释标注 resw key。
- * 纯函数只会产出其中 4 条（链接为空 / 链接格式无效 / 文件路径为空 及其标题），
+ * key 逐字取自 `WindBoard/Strings/zh-CN/Open.resw` 与 `Common.resw`（注释标注来源）。
+ * 纯函数只产出其中 4 条（链接为空 / 链接格式无效 / 文件路径为空 及其标题），
  * 其余 8 条登记在此供真正执行打开的调用方复用，避免 web 端另造文案。
  */
 export const ELEMENT_OPEN_TEXTS = {
   /** `Open_CannotOpenLink_Title` */
-  cannotOpenLinkTitle: '无法打开链接',
+  cannotOpenLinkTitle: localized('Open_CannotOpenLink_Title'),
   /** `Open_LinkEmpty_Message` */
-  linkEmptyMessage: '链接为空。',
+  linkEmptyMessage: localized('Open_LinkEmpty_Message'),
   /** `Open_InvalidLinkFormat_Fmt`（`{0}` = 链接原文） */
-  invalidLinkFormatFmt: '链接格式无效：{0}',
+  invalidLinkFormatFmt: (raw: string): LocalizedMessage =>
+    localized('Open_InvalidLinkFormat_Fmt', raw),
   /** `Open_LaunchLinkFailed_Message` */
-  launchLinkFailedMessage: '系统未能打开该链接。',
+  launchLinkFailedMessage: localized('Open_LaunchLinkFailed_Message'),
   /** `Open_CannotOpenFile_Title` */
-  cannotOpenFileTitle: '无法打开文件',
+  cannotOpenFileTitle: localized('Open_CannotOpenFile_Title'),
   /** `Open_FilePathEmpty_Message` */
-  filePathEmptyMessage: '文件路径为空。',
+  filePathEmptyMessage: localized('Open_FilePathEmpty_Message'),
   /** `Open_FileNotFound_Title` */
-  fileNotFoundTitle: '文件不存在',
+  fileNotFoundTitle: localized('Open_FileNotFound_Title'),
   /** `Open_FileNotFound_Fmt`（`{0}` = 元素显示名） */
-  fileNotFoundFmt: '找不到文件：{0}',
+  fileNotFoundFmt: (name: string): LocalizedMessage => localized('Open_FileNotFound_Fmt', name),
   /** `Open_Unauthorized_Fmt`（`{0}` = 元素显示名） */
-  unauthorizedFmt: '无权限访问：{0}',
+  unauthorizedFmt: (name: string): LocalizedMessage => localized('Open_Unauthorized_Fmt', name),
   /** `Open_LaunchFileFailed_Fmt`（`{0}` = 元素显示名） */
-  launchFileFailedFmt: '系统未能打开：{0}',
+  launchFileFailedFmt: (name: string): LocalizedMessage =>
+    localized('Open_LaunchFileFailed_Fmt', name),
   /** `Common_OpenFailed_Title` */
-  openFailedTitle: '打开失败',
+  openFailedTitle: localized('Common_OpenFailed_Title'),
   /** `Common_Close` */
-  close: '关闭',
+  close: localized('Common_Close'),
 } as const
-
-/**
- * 用单个参数填充文案里的 `{0}` 占位符（与 `L10n.Format` 的单参数用法等价）。
- *
- * 例：`formatOpenText(ELEMENT_OPEN_TEXTS.fileNotFoundFmt, 'a.png')` → `找不到文件：a.png`。
- */
-export function formatOpenText(template: string, value: string): string {
-  return template.replace('{0}', value)
-}
 
 /**
  * 双击判定器：内部维护「上一次元素点击」记录（桌面 `_lastElementClick*` 三个字段，`Open.cs:22-24`）。
@@ -212,11 +206,12 @@ export function normalizeOpenUrl(raw: string): string | null {
 }
 
 /**
- * 打开失败的提示（标题 + 正文），文案来自 `ELEMENT_OPEN_TEXTS`。
+ * 打开失败的提示（标题 + 正文），文案来自 `ELEMENT_OPEN_TEXTS`；
+ * 只带 key + 实参，渲染由调用方用 `formatLocalized(t, …)` 完成。
  */
 export interface ElementOpenError {
-  readonly title: string
-  readonly message: string
+  readonly title: LocalizedMessage
+  readonly message: LocalizedMessage
 }
 
 /**
@@ -248,7 +243,7 @@ export function describeElementOpenError(
     if (normalizeOpenUrl(raw) === null) {
       return {
         title: ELEMENT_OPEN_TEXTS.cannotOpenLinkTitle,
-        message: formatOpenText(ELEMENT_OPEN_TEXTS.invalidLinkFormatFmt, raw),
+        message: ELEMENT_OPEN_TEXTS.invalidLinkFormatFmt(raw),
       }
     }
 

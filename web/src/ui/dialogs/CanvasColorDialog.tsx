@@ -145,12 +145,12 @@ export function CanvasColorDialog(props: CanvasColorDialogProps): ReactNode {
             <ColorPicker color={hsv} onColorChange={onPickerChange} shape="rounded">
               <ColorArea
                 className="wb-dialog__color-area"
-                inputX={{ 'aria-label': '饱和度' }}
-                inputY={{ 'aria-label': '明度' }}
+                inputX={{ 'aria-label': t('Web_ColorSaturation') }}
+                inputY={{ 'aria-label': t('Web_ColorBrightness') }}
               />
-              <ColorSlider aria-label="色相" channel="hue" />
-              <ColorSlider aria-label="饱和度" channel="saturation" />
-              <ColorSlider aria-label="明度" channel="value" />
+              <ColorSlider aria-label={t('Web_ColorHue')} channel="hue" />
+              <ColorSlider aria-label={t('Web_ColorSaturation')} channel="saturation" />
+              <ColorSlider aria-label={t('Web_ColorBrightness')} channel="value" />
             </ColorPicker>
 
             {/* 桌面：HEX 输入框 + 右侧"恢复默认"按钮（`AppearanceSettingsPage.xaml:140-157`） */}

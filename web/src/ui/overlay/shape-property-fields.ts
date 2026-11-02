@@ -20,6 +20,7 @@ import {
   readRectSize,
   worldToCentimeters,
 } from '../../board/editing/shape-property.ts'
+import type { MessageKey } from '../../i18n/locales/zh-CN.generated.ts'
 import type { Shape } from '../../board/model/shape.ts'
 
 /** 浮层里的两个字段槽位（桌面 `ShapeProperty1Box` / `ShapeProperty2Box`）。 */
@@ -28,8 +29,8 @@ export type ShapePropertyFieldId = 'primary' | 'secondary'
 /** 一个字段：标签 + 当前值 + 单位（+ 桌面 `NumberBox` 的取值范围）。 */
 export interface ShapePropertyField {
   readonly id: ShapePropertyFieldId
-  /** 标签文本，桌面直接取自 resw（已含单位，如 `长度 (cm)`）。 */
-  readonly label: string
+  /** 标签的文案 key（桌面从 resw 取词，已含单位，如「长度 (cm)」）；渲染交给 UI。 */
+  readonly labelKey: MessageKey
   /** 当前值（长度类已换算为厘米）。 */
   readonly value: number
   /** 单位：长度类 `cm`、角度 `°`。桌面把单位写进标签文本，这里单独给出以便无障碍与后续格式化。 */
@@ -41,13 +42,13 @@ export interface ShapePropertyField {
 }
 
 /** `ShapeProperties_Length`（`WindBoard/Strings/zh-CN/ShapeProperties.resw:20`）。 */
-const LABEL_LENGTH = '长度 (cm)'
+const LABEL_LENGTH: MessageKey = 'ShapeProperties_Length'
 /** `ShapeProperties_Angle`（`:23`）。 */
-const LABEL_ANGLE = '角度'
+const LABEL_ANGLE: MessageKey = 'ShapeProperties_Angle'
 /** `ShapeProperties_Width`（`:26`）。 */
-const LABEL_WIDTH = '宽度 (cm)'
+const LABEL_WIDTH: MessageKey = 'ShapeProperties_Width'
 /** `ShapeProperties_Height`（`:29`）。 */
-const LABEL_HEIGHT = '高度 (cm)'
+const LABEL_HEIGHT: MessageKey = 'ShapeProperties_Height'
 
 /** 长度类字段下限（厘米）：桌面 `WorldToCentimeters(ShapePropertyMath.MinPropertyValue)`，`:127`。 */
 const MIN_LENGTH_CM = worldToCentimeters(MIN_SHAPE_PROPERTY_LENGTH)
@@ -79,14 +80,14 @@ export function deriveShapePropertyFields(
     return [
       {
         id: 'primary',
-        label: LABEL_LENGTH,
+        labelKey: LABEL_LENGTH,
         value: roundForDisplay(worldToCentimeters(length)),
         unit: 'cm',
         min: MIN_LENGTH_CM,
       },
       {
         id: 'secondary',
-        label: LABEL_ANGLE,
+        labelKey: LABEL_ANGLE,
         value: roundForDisplay(angleDegrees),
         unit: '°',
         min: MIN_ANGLE,
@@ -99,14 +100,14 @@ export function deriveShapePropertyFields(
   return [
     {
       id: 'primary',
-      label: LABEL_WIDTH,
+      labelKey: LABEL_WIDTH,
       value: roundForDisplay(worldToCentimeters(width)),
       unit: 'cm',
       min: MIN_LENGTH_CM,
     },
     {
       id: 'secondary',
-      label: LABEL_HEIGHT,
+      labelKey: LABEL_HEIGHT,
       value: roundForDisplay(worldToCentimeters(height)),
       unit: 'cm',
       min: MIN_LENGTH_CM,

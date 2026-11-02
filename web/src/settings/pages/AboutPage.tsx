@@ -21,6 +21,7 @@ import { ArrowExport24Regular, ArrowImport24Regular, ArrowReset24Regular } from 
 import { useState, type ReactNode } from 'react'
 import { useReminderService, useSettings, useSettingsService } from '../../app/hooks.ts'
 import { useI18n } from '../../i18n/context.ts'
+import { formatLocalized } from '../../i18n/message.ts'
 import { pickFile, saveFile } from '../../platform/io.ts'
 import { SETTINGS_FILE_NAME, parseSettingsFile, serializeSettingsFile } from '../settings-file.ts'
 import { SETTINGS_ANCHORS } from '../search-targets.ts'
@@ -64,7 +65,12 @@ export function AboutPage(): ReactNode {
           })
         } else if (result.cancelled !== true) {
           reminders.push({
-            message: `导出设置失败：${result.error ?? t('Common_UnknownError')}`,
+            message: t(
+              'Web_Settings_ExportFailed_Fmt',
+              result.error === undefined
+                ? t('Common_UnknownError')
+                : formatLocalized(t, result.error),
+            ),
             severity: 'error',
           })
         }
@@ -85,7 +91,15 @@ export function AboutPage(): ReactNode {
         }
         const parsed = parseSettingsFile(new TextDecoder().decode(picked.bytes))
         if (!parsed.ok || parsed.settings === undefined) {
-          reminders.push({ message: `导入设置失败：${parsed.error ?? '文件格式不正确'}`, severity: 'error' })
+          reminders.push({
+            message: t(
+              'Web_Settings_ImportFailed_Fmt',
+              parsed.error === undefined
+                ? t('Web_Settings_FileFormatInvalid')
+                : formatLocalized(t, parsed.error),
+            ),
+            severity: 'error',
+          })
           return
         }
         settingsService.replace(parsed.settings)
@@ -94,7 +108,7 @@ export function AboutPage(): ReactNode {
           severity: 'informational',
         })
         for (const note of parsed.notes ?? []) {
-          reminders.push({ message: note, severity: 'warning' })
+          reminders.push({ message: formatLocalized(t, note), severity: 'warning' })
         }
       } finally {
         setBusy(false)
@@ -106,7 +120,7 @@ export function AboutPage(): ReactNode {
     <div className="wb-settings-page">
       <SettingsCard
         title={t('Settings_About_Version')}
-        description="网页端版本号（与 package.json 保持一致）"
+        description={t('Web_Settings_Version_Description')}
         anchor={SETTINGS_ANCHORS.aboutVersion}
       >
         <code className="wb-settings-version">{WEB_VERSION}</code>
@@ -115,7 +129,7 @@ export function AboutPage(): ReactNode {
       <SettingsSection title={t('Settings_About_SettingsManagement_SectionTitle')}>
         <SettingsCard
           title={t('Settings_About_SettingsManagement_Export_Title')}
-          description="导出当前全部设置到 JSON 文件（与桌面版格式兼容）"
+          description={t('Web_Settings_ExportSettings_Description')}
           anchor={SETTINGS_ANCHORS.aboutExportSettings}
         >
           <Button icon={<ArrowExport24Regular />} disabled={busy} onClick={handleExportSettings}>
@@ -125,7 +139,7 @@ export function AboutPage(): ReactNode {
 
         <SettingsCard
           title={t('Settings_About_SettingsManagement_Import_Title')}
-          description="从 JSON 文件导入并覆盖当前全部设置（忽略未知字段，非法值回落默认）"
+          description={t('Web_Settings_ImportSettings_Description')}
           anchor={SETTINGS_ANCHORS.aboutImportSettings}
         >
           <Button icon={<ArrowImport24Regular />} disabled={busy} onClick={handleImportSettings}>

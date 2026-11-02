@@ -70,7 +70,6 @@ import {
   applyDockOrder,
   buildMoreMenuEntries,
   type DockPlacement,
-  type MoreMenuActionId,
 } from './dock-layout.ts'
 
 /** 属性。 */
@@ -173,7 +172,7 @@ function LeftDock(): ReactNode {
             onClick={() => {
               // 浏览器没有"最小化窗口"能力（桌面 `MainWindow.xaml:133-145` 的 `BackToWindow`）。
               // 保留按钮位置以维持与桌面一致的 Dock 结构，点击时用提醒解释为什么不可用。
-              reminders.push({ message: '浏览器不支持最小化窗口', severity: 'informational' })
+              reminders.push({ message: t('Web_MinimizeUnsupported_Message'), severity: 'informational' })
             }}
           />
         )
@@ -199,22 +198,6 @@ function MoreButton(): ReactNode {
   const { t } = useI18n()
   const actions = useShellActions()
   const entries = buildMoreMenuEntries(actions.isFullscreen)
-
-  /**
-   * 菜单项文案：条目里的 `label` 是 `dock-layout.ts` 的静态中文，
-   * 这里按 id 改用文案表取词（`Common_Settings` / `Common_Export` / `Common_FullScreen` /
-   * `Common_ExitFullScreen`），语言切换后菜单才会跟着变。
-   */
-  const menuLabel = (id: MoreMenuActionId): string => {
-    switch (id) {
-      case 'settings':
-        return t('Common_Settings')
-      case 'export':
-        return t('Common_Export')
-      default:
-        return actions.isFullscreen ? t('Common_ExitFullScreen') : t('Common_FullScreen')
-    }
-  }
 
   const iconOf = (id: 'settings' | 'export' | 'fullscreen'): ReactElement => {
     switch (id) {
@@ -252,7 +235,7 @@ function MoreButton(): ReactNode {
                 <MenuDivider key="divider" />
               ) : (
                 <MenuItem key={entry.id} icon={iconOf(entry.id)} onClick={runOf(entry.id)}>
-                  {menuLabel(entry.id)}
+                  {t(entry.labelKey)}
                 </MenuItem>
               ),
             )}
@@ -523,7 +506,7 @@ function RightDock(): ReactNode {
           <DockButton
             key={id}
             icon={<AddRegular fontSize={20} />}
-            title="新增页"
+            title={t('Web_AddPage')}
             onClick={() => {
               controller.addPage()
             }}

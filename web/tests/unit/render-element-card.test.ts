@@ -8,6 +8,7 @@
 
 import { describe, expect, it } from 'vitest'
 import type { BoardElement } from '../../src/board/model/element.ts'
+import { createTranslator } from '../../src/i18n/index.ts'
 import {
   drawElementCard,
   elementCardPalette,
@@ -396,5 +397,46 @@ describe('主题切换与边界', () => {
     drawElementCard(atSmall, makeElement({ type: 'text', text: '你好' }), { theme: 'dark', zoom: 0.25 })
 
     expect(atSmall.ops).toEqual(atOne.ops)
+  })
+})
+
+describe('卡片文案走 i18n（P5.4）：t 注入后随语言切换', () => {
+  /** 英文取词函数（`ElementCard_*` 的 en-US 值）。 */
+  const en = createTranslator('en-US')
+
+  it('不传 t 时退回默认语言（中文），与接 i18n 之前逐字一致', () => {
+    const ctx = new FakeContext2D()
+    drawElementCard(ctx, makeElement({ type: 'file', displayName: 'a.pdf' }), DARK)
+
+    expect(texts(ctx)).toEqual(['▤', 'a.pdf', 'PDF 文档', '双击外部打开'])
+  })
+
+  it('传 en-US 时文件类型标签与打开提示都变英文', () => {
+    const ctx = new FakeContext2D()
+    drawElementCard(ctx, makeElement({ type: 'file', displayName: 'a.pdf' }), { ...DARK, t: en })
+
+    expect(texts(ctx)).toEqual(['▤', 'a.pdf', 'PDF document', 'Double-click to open externally'])
+  })
+
+  it('文本元素标题「文字」与媒体卡「（未命名）」同样跟随语言', () => {
+    const textCtx = new FakeContext2D()
+    drawElementCard(textCtx, makeElement({ type: 'text', text: '你好' }), { ...DARK, t: en })
+    expect(texts(textCtx)).toContain('Text')
+
+    const mediaCtx = new FakeContext2D()
+    drawElementCard(mediaCtx, makeElement({ type: 'media', kind: 'image' }), { ...DARK, t: en })
+    expect(texts(mediaCtx)).toContain('(Unnamed)')
+    expect(texts(mediaCtx)).toContain('Image (preview unavailable)')
+    expect(texts(mediaCtx)).toContain('Double-click to open externally')
+  })
+
+  it('链接卡的打开提示随语言切换', () => {
+    const ctx = new FakeContext2D()
+    drawElementCard(ctx, makeElement({ type: 'link', url: 'https://example.com' }), {
+      ...DARK,
+      t: en,
+    })
+
+    expect(texts(ctx)).toEqual(['↗', 'https://example.com', 'Double-click to open link'])
   })
 })

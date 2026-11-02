@@ -161,7 +161,7 @@ function ImportDialogForm(props: { readonly onClose: () => void }): ReactNode {
           >
             {t('ImportDialog_PickWbix')}
           </Button>
-          <Text className="wb-dialog__file-name">{fileName ?? '尚未选择文件'}</Text>
+          <Text className="wb-dialog__file-name">{fileName ?? t('Web_NoFileSelected')}</Text>
         </div>
 
         {/* 桌面 WBIX 导入只有"追加"一条活路径（`ImportFlow.cs:99-101`），这里把模式说明摆在明面上。 */}

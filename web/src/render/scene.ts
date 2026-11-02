@@ -22,6 +22,7 @@ import type { Shape } from '../board/model/shape.ts'
 import type { Stroke } from '../board/model/stroke.ts'
 import type { InkItem } from '../board/model/workspace.ts'
 import type { BoardViewport, WorldBounds } from '../board/viewport.ts'
+import type { MessageTranslator } from '../i18n/message.ts'
 import {
   getArrowWings,
   getShapeBounds,
@@ -66,6 +67,13 @@ export interface RenderSources {
    * 由上层在构造 sources 时写入（渲染句柄原样透传给 `drawScene`）。
    */
   elementCardTheme?: ElementCardThemeMode
+  /**
+   * 取词函数：元素卡片上的标题/副标题是画布可见文字，需随界面语言切换。
+   *
+   * 渲染层**不读全局语言状态**，由上层（`BoardController`）注入；缺省时卡片退回默认语言，
+   * 保证单测、导出等无 UI 上下文的调用方仍能画出正常文案。
+   */
+  t?: MessageTranslator
 }
 
 /** 画布后备存储参数。 */
@@ -138,7 +146,14 @@ export function drawSceneBase(
     sources.elementCardTheme === 'light' ? 'light' : 'dark'
 
   // 3. 笔迹下方元素（顺序第 1 步）。
-  drawVisibleElements(ctx, document.elementsBelowInk(), visibleWorld, elementCardTheme, zoom)
+  drawVisibleElements(
+    ctx,
+    document.elementsBelowInk(),
+    visibleWorld,
+    elementCardTheme,
+    zoom,
+    sources.t,
+  )
 
   // 4. 文档墨迹条目（顺序第 2 步）：数组顺序即绘制顺序，未知条目静默跳过。
   for (const item of document.items) {
@@ -146,7 +161,14 @@ export function drawSceneBase(
   }
 
   // 5. 笔迹上方元素（顺序第 3 步）。
-  drawVisibleElements(ctx, document.elementsAboveInk(), visibleWorld, elementCardTheme, zoom)
+  drawVisibleElements(
+    ctx,
+    document.elementsAboveInk(),
+    visibleWorld,
+    elementCardTheme,
+    zoom,
+    sources.t,
+  )
 
   // 复位变换，让后续（实时预览/覆盖层）从干净状态开始。
   ctx.setTransform(1, 0, 0, 1, 0, 0)
@@ -208,6 +230,7 @@ export function resolveBackground(background: string): string {
  * @param visibleWorld 当前可见世界包围盒
  * @param theme 卡片主题（`'dark'` / `'light'`）
  * @param zoom 当前缩放（透传给卡片绘制，供 P5 缩小省细节用）
+ * @param t 取词函数（卡片文案随界面语言切换；缺省时卡片退回默认语言）
  */
 function drawVisibleElements(
   ctx: RenderContext2D,
@@ -215,6 +238,7 @@ function drawVisibleElements(
   visibleWorld: WorldBounds,
   theme: ElementCardThemeMode,
   zoom: number,
+  t: MessageTranslator | undefined,
 ): void {
   for (const element of elements) {
     const rect = getElementCardBounds(element)
@@ -225,7 +249,7 @@ function drawVisibleElements(
     if (!intersectsWorldBounds(bounds, visibleWorld)) {
       continue
     }
-    drawElementCard(ctx, element, { theme, zoom })
+    drawElementCard(ctx, element, { theme, zoom, ...(t === undefined ? {} : { t }) })
   }
 }
 

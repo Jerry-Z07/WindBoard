@@ -71,8 +71,8 @@ export function SelectionActionBar(props: SelectionActionBarProps): ReactNode {
     props.bringToFrontState,
     props.onBringToFront !== undefined,
   )
-  // 文案走 i18n（key 与桌面 `Common.resw` 同名）；`resolveBringToFrontButton` 返回的
-  // `label` 只是纯函数层的兜底值，UI 一律以 key 为准，避免两处中文各自漂移。
+  // 文案走 i18n（key 与桌面 `Common.resw` 同名）；`resolveBringToFrontButton` 返回的就是
+  // `labelKey`，UI 在这里用 `t()` 渲染，纯函数层不碰文案。
   const bringToFrontLabel =
     bringToFront.icon === 'undo' ? t('Common_CancelBringToFront') : t('Common_BringToFront')
   const copyLabel = t('Common_Copy')
@@ -82,7 +82,11 @@ export function SelectionActionBar(props: SelectionActionBarProps): ReactNode {
     <div className="wb-overlay-anchor" style={{ transform: `translate(${anchor.x}px, ${anchor.y}px)` }}>
       {/* 桌面 `RequestedTheme="Light"`：Dock 强制浅色，不受应用主题影响 */}
       <FluentProvider theme={webLightTheme} style={TRANSPARENT_THEME_STYLE}>
-        <div className="wb-selection-actions" role="toolbar" aria-label="选中项操作">
+        <div
+          className="wb-selection-actions"
+          role="toolbar"
+          aria-label={t('Web_SelectionActions_Label')}
+        >
           <DockButton
             // 图标判别值 → Fluent 图标：up = 桌面 `Symbol.Up`，undo = 桌面 `Symbol.Undo`
             icon={bringToFront.icon === 'undo' ? <ArrowUndoRegular /> : <ArrowUpRegular />}

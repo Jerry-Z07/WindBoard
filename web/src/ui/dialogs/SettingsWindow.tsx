@@ -37,6 +37,8 @@ import {
   DEFAULT_SETTINGS_PAGE_ID,
   SETTINGS_PAGES,
   findSettingsPage,
+  settingsPageDescription,
+  settingsPageLabel,
   type SettingsPageId,
 } from '../../settings/window-model.ts'
 import { SettingsSearchBox } from '../settings/SettingsSearchBox.tsx'
@@ -174,13 +176,13 @@ export function SettingsWindow(props: SettingsWindowProps): ReactNode {
             <Button
               appearance="subtle"
               icon={<Dismiss24Regular />}
-              aria-label="关闭设置"
+              aria-label={t('Web_CloseSettings')}
               onClick={props.onClose}
             />
           </div>
 
           <div className="wb-settings-layout">
-            <nav className="wb-settings-nav" aria-label="设置分类">
+            <nav className="wb-settings-nav" aria-label={t('Web_SettingsCategories')}>
               {SETTINGS_PAGES.map((item) => (
                 <Button
                   key={item.id}
@@ -192,15 +194,17 @@ export function SettingsWindow(props: SettingsWindowProps): ReactNode {
                     setPageId(item.id)
                   }}
                 >
-                  {item.label}
+                  {t(item.labelKey)}
                 </Button>
               ))}
             </nav>
 
             <div className="wb-settings-content">
               <header className="wb-settings-page-header">
-                <h3 className="wb-settings-page-header__title">{page.label}</h3>
-                <p className="wb-settings-page-header__description">{page.description}</p>
+                <h3 className="wb-settings-page-header__title">{settingsPageLabel(page, t)}</h3>
+                <p className="wb-settings-page-header__description">
+                  {settingsPageDescription(page, t)}
+                </p>
               </header>
               <div className="wb-settings-page-scroll">{renderPage(pageId, setPageId)}</div>
             </div>

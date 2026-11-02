@@ -77,7 +77,11 @@ export function WritingPage(): ReactNode {
     <div className="wb-settings-page">
       <SettingsCard
         title={t('Settings_Pen_PaletteCount_Header')}
-        description={`色板槽位 ${MIN_PALETTE_SLOTS}~${MAX_PALETTE_SLOTS} 个；可保留空色块（未设置颜色），点击色块即可设置颜色`}
+        description={t(
+          'Web_Settings_PaletteCount_Description_Fmt',
+          MIN_PALETTE_SLOTS,
+          MAX_PALETTE_SLOTS,
+        )}
         anchor={SETTINGS_ANCHORS.writingPaletteCount}
       >
         <div className="wb-settings-palette-actions">
@@ -86,21 +90,25 @@ export function WritingPage(): ReactNode {
             onClick={addSlot}
             disabled={palette.length >= MAX_PALETTE_SLOTS}
           >
-            添加色块
+            {t('Web_Settings_AddPaletteSlot')}
           </Button>
           <Button
             icon={<Delete24Regular />}
             onClick={removeSlot}
             disabled={palette.length <= MIN_PALETTE_SLOTS}
           >
-            删除末位
+            {t('Web_Settings_RemoveLastPaletteSlot')}
           </Button>
         </div>
       </SettingsCard>
 
-      <div className="wb-settings-palette" role="group" aria-label="画笔色板">
+      <div className="wb-settings-palette" role="group" aria-label={t('Web_Settings_PaletteGroupLabel')}>
         {palette.map((hex, index) => (
-          <div key={index} className="wb-settings-palette__slot" title={hex ?? '空色块'}>
+          <div
+            key={index}
+            className="wb-settings-palette__slot"
+            title={hex ?? t('Web_Settings_EmptyPaletteSlot')}
+          >
             <span
               className="wb-settings-palette__swatch"
               style={{ backgroundColor: hex ?? 'transparent' }}
@@ -110,17 +118,17 @@ export function WritingPage(): ReactNode {
               type="color"
               className="wb-settings-palette__picker"
               value={hex ?? '#FFFFFF'}
-              aria-label={`色板第 ${index + 1} 个颜色`}
+              aria-label={t('Web_Settings_PaletteColorAria_Fmt', index + 1)}
               onChange={(event) => {
                 setSlotColor(index, event.target.value)
               }}
             />
-            <span className="wb-settings-palette__hex">{hex ?? '空'}</span>
+            <span className="wb-settings-palette__hex">{hex ?? t('Web_Settings_PaletteEmptyShort')}</span>
             {hex !== null && (
               <button
                 type="button"
                 className="wb-settings-palette__clear"
-                aria-label={`清空第 ${index + 1} 个色块`}
+                aria-label={t('Web_Settings_ClearPaletteSlotAria_Fmt', index + 1)}
                 onClick={() => {
                   setSlotColor(index, null)
                 }}
@@ -151,7 +159,7 @@ export function WritingPage(): ReactNode {
 
       {pen.useThicknessSlider ? (
         <p className="wb-settings-hint">
-          滑条模式：画笔粗细在 {MIN_THICKNESS}~{MAX_THICKNESS} 之间连续调整。
+          {t('Web_Settings_ThicknessSlider_Hint_Fmt', MIN_THICKNESS, MAX_THICKNESS)}
         </p>
       ) : (
         <SettingsSection title={t('Settings_Pen_ThicknessPresets_Hint')}>

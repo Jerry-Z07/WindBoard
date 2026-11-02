@@ -17,10 +17,10 @@
 
 import type { BoardElement } from '../model/element.ts'
 import type { ElementOpenError, ElementOpenTarget } from './element-open.ts'
+import { localized, type LocalizedMessage } from '../../i18n/message.ts'
 import {
   describeElementOpenError,
   ELEMENT_OPEN_TEXTS,
-  formatOpenText,
   normalizeOpenUrl,
   resolveElementOpenTarget,
 } from './element-open.ts'
@@ -30,12 +30,14 @@ import {
  *
  * 理由：桌面能启动本地程序，网页不能。若沿用桌面的 `Open_FileNotFound_Fmt` / `Open_Unauthorized_Fmt`
  * 会误导用户以为"文件丢了/没权限"，实际是"浏览器打不开本地文件"。
+ * key 落在 `src/i18n/web-strings/element.json`。
  */
 export const WEB_ONLY_OPEN_TEXTS = {
   /** 本地文件在浏览器里没有打开通道（`{0}` 为显示名，缺失时用路径）。 */
-  localFileUnsupportedFmt: '网页端无法打开本地文件：{0}',
+  localFileUnsupportedFmt: (displayName: string): LocalizedMessage =>
+    localized('Web_OpenLocalFileUnsupported_Fmt', displayName),
   /** 元素引用的内嵌资源尚未加载到网页端（P4 资源层就绪前恒为此状态）。 */
-  resourceUnavailableMessage: '该附件尚未加载到网页端，暂时无法打开。',
+  resourceUnavailableMessage: localized('Web_OpenResourceUnavailable'),
 } as const
 
 /** 外部打开的结果。`ok` 为 false 时 `error` 一定有值，调用方直接弹提示即可。 */
@@ -148,7 +150,7 @@ function openFileTarget(element: BoardElement, target: FileOpenTarget): OpenElem
     ok: false,
     error: {
       title: ELEMENT_OPEN_TEXTS.cannotOpenFileTitle,
-      message: formatOpenText(WEB_ONLY_OPEN_TEXTS.localFileUnsupportedFmt, displayName),
+      message: WEB_ONLY_OPEN_TEXTS.localFileUnsupportedFmt(displayName),
     },
   }
 }
@@ -205,7 +207,7 @@ function defaultOpenWindow(url: string): boolean {
 function invalidLinkError(raw: string): ElementOpenError {
   return {
     title: ELEMENT_OPEN_TEXTS.cannotOpenLinkTitle,
-    message: formatOpenText(ELEMENT_OPEN_TEXTS.invalidLinkFormatFmt, raw.trim()),
+    message: ELEMENT_OPEN_TEXTS.invalidLinkFormatFmt(raw.trim()),
   }
 }
 

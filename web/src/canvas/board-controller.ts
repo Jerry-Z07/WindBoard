@@ -55,6 +55,8 @@ import {
   type ElementDoubleClickTracker,
 } from '../board/editing/element-open.ts'
 import { getElementBoundsWorld } from '../board/editing/element-pick.ts'
+import { formatLocalized, type MessageTranslator } from '../i18n/message.ts'
+import { createTranslator, DEFAULT_LOCALE } from '../i18n/index.ts'
 import { getInkItemsScreenBounds, type ScreenBounds } from '../board/editing/ink-bounds.ts'
 import { openElementExternal, type OpenElementEnv } from '../board/editing/open-element-external.ts'
 import type { BoardElement } from '../board/model/element.ts'
@@ -171,6 +173,9 @@ export interface BoardReminderSink {
 }
 
 /** 控制器构造参数。 */
+/** 默认取词函数（默认语言）；外壳没注入 `translate` 时使用。 */
+const defaultTranslator = createTranslator(DEFAULT_LOCALE)
+
 export interface BoardControllerOptions {
   /** 画布（浏览器传 `HTMLCanvasElement`，其结构满足 `RenderCanvas`）。 */
   readonly canvas: RenderCanvas
@@ -192,6 +197,14 @@ export interface BoardControllerOptions {
   readonly isTextInputFocused?: () => boolean
   /** 提醒推送入口（双击打开失败时推 error 提醒，`Open.cs:53` 的异常分支）。 */
   readonly reminders?: BoardReminderSink
+  /**
+   * 取词函数（用于把纯逻辑产出的 key 渲染成用户可见文案，例如“无法打开元素”）。
+   *
+   * 缺省用默认语言：控制器本身不依赖 React，语言由外壳注入；
+   * 外壳传 `t` 时应传一个**读最新语言**的包装函数（见 `BoardSurface`），
+   * 否则建好控制器后切语言不会生效。
+   */
+  readonly translate?: MessageTranslator
   /** 打开元素的外部环境（测试可注入 `openWindow`，避免真的开新窗口）。 */
   readonly openElementEnv?: OpenElementEnv
   /**
@@ -331,6 +344,9 @@ export function createBoardController(options: BoardControllerOptions): BoardCon
     background,
     liveStroke: null,
     liveShape: null,
+    // 元素卡文案是画布可见文字：外壳注入的 `translate` 是读 ref 的包装，
+    // 切语言后下一帧就是新文案（渲染层不读全局语言状态）。
+    ...(options.translate === undefined ? {} : { t: options.translate }),
   }
   const renderHandle: BoardRenderHandle = createBoardRenderHandle(options.canvas, sources, {
     maxFps: options.maxFps,
@@ -595,10 +611,14 @@ export function createBoardController(options: BoardControllerOptions): BoardCon
     }
 
     const error = result.error
+    const translate = options.translate ?? defaultTranslator
     options.reminders?.push({
-      message: error?.message ?? '无法打开元素',
+      message:
+        error === undefined
+          ? translate('Web_OpenElementFailed_Message')
+          : formatLocalized(translate, error.message),
       severity: 'error',
-      title: error?.title,
+      title: error === undefined ? undefined : formatLocalized(translate, error.title),
     })
   }
 

@@ -104,10 +104,7 @@ export function GeneralPage(): ReactNode {
         </Dropdown>
       </SettingsCard>
 
-      <p className="wb-settings-hint">
-        提示：界面语言已接入文案表（来自桌面 `.resw`），但网页端的文案迁移是逐步进行的——切换语言后
-        标题、选中项操作等已迁移位置会立即跟随；启动形态目前只保存偏好。
-      </p>
+      <p className="wb-settings-hint">{t('Web_Settings_LanguageHint')}</p>
     </div>
   )
 }

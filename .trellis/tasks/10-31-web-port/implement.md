@@ -337,7 +337,7 @@ P4.5 / P4.6 浏览器实测（2026-11-02）：
 - [x] **P5.1 视觉回归**：Playwright 截图基线入库（不下载浏览器，用本机 Chrome）
 - [x] **P5.2 性能**：1 万笔迹实测 + 静态层缓存已落地 + 输入延迟实测（见 P5.2 记录）
 - [x] **P5.3 触屏**：触屏 e2e 回归（单指画线/双指手势/捏合缩放）+ iOS 画布面积上限防护（真机项记为受限）
-- [~] **P5.4 i18n**：`gen-i18n.mjs` + key 集合审计测试（基础设施已落地，界面文案迁移进行中）
+- [x] **P5.4 i18n**：`gen-i18n.mjs` + key 集合审计测试 + 全部界面文案迁移（含网页独有词条目录，2026-11-02 收尾）
 - [x] **P5.5 PWA**：manifest、图标（192/512）、SW 预缓存与静默更新、`file_handlers`
 - 验收：AC8、AC9；Lighthouse PWA 可安装
 
@@ -524,6 +524,63 @@ dev 构建带 StrictMode 双渲染与未压缩代码，基线跟线上不一致�
 
 **验证**：`tsc -b` 0 错误、`vitest` 57 文件 / 1406 例全绿、`oxlint` 0/0（190 文件）、
 `playwright test` 11 例全绿（8 张视觉基线未变，说明这次只换了文案来源、没改布局）。
+
+### P5.4 记录（三）：i18n 收尾 —— 网页独有词条与剩余界面文案（2026-11-02）
+
+上一轮留下的三类“未接”里，本轮把前两类接完（第三类见文末的明确例外）。
+
+**1. 新增网页独有词条目录 `web/src/i18n/web-strings/`**
+
+有一批文案只描述浏览器里的东西（自动保存恢复、Service Worker、把设置导出成 JSON、
+“浏览器不支持最小化窗口”等），桌面永远用不到。塞进 `WindBoard/Strings/*.resw` 会让桌面
+背一批死 key，还会干扰桌面侧的 key 审计（那里要求 key 必须被 C# 引用）。
+
+做法：目录下按区域拆多个 JSON（`shell.json` / `settings.json` / `dialogs.json` /
+`export.json` / `runtime.json`），每份形如
+`{ "zh-CN": { "Web_X": "…" }, "en-US": { "Web_X": "…" } }`；**key 一律 `Web_` 前缀**，
+一眼能看出不是桌面词条。`gen-i18n.mjs` 读全部 `*.json` 合并，校验前缀、同文件内不重复、
+**与 resw key 撞名直接抛错**。最终 621 key（resw 512 + 网页独有 109），两语言集合一致。
+
+**2. 纯函数返回 key 而不是中文：新增 `web/src/i18n/message.ts`**
+
+`features/export/page-range.ts`、`export-options.ts` 这类纯逻辑原来返回中文串，
+等于把语言钉死在逻辑层。改为返回
+
+```ts
+interface LocalizedMessage { key: MessageKey; args?: readonly (string | number)[] }
+```
+
+由 UI 侧 `formatLocalized(t, message)` 渲染。`localized()` 不传实参时省略 `args` 字段，
+方便测试用 `toEqual` 断言。`MessageTranslator` 刻意不用 React 侧的 `Translator` 类型，
+避免把 React 拖进纯逻辑的依赖图。
+
+`page-range.ts` 的报错优先级与 C# 分支顺序一字未改，只是把中文换成了 key。
+
+**3. 剩下的界面文案**
+
+- 导出链路：对话框的校验问题、动态提示（页数/尺寸/多页目录/WBIX 全工作区）、范围框标签；
+- 外壳：更多菜单（`MoreMenuEntry.label` → `labelKey`，删掉 `DockBar` 里按 id 覆盖文案的
+  `menuLabel()`）、新增页标题、选中项操作条的无障碍标签；
+- 浮层：形状属性字段（`ShapePropertyField.label` → `labelKey`，删掉
+  `ShapePropertiesPanel` 里“中文原文 → key”的映射表）；
+- 元素双击打开：`element-open.ts` 的错误文案改成 `LocalizedMessage`，删除 `formatOpenText()`；
+  控制器新增 `translate` 选项，外壳用读取 ref 的包装函数注入，**切语言后下一次提醒就是新语言**；
+- 画布上的元素卡：`element-card.ts` 的 8 条文案 + 16 种扩展名改 `MessageKey`
+  （`ElementCard.resw` 的 19 个 key 已够用，新增 0 个 key），`RenderSources.t` 透传；
+  导出图里的卡片文字同样跟随语言（`ExportRunnerDeps.t`）。
+- 语言切换后画布要重画：`BoardSurface` 里 `useEffect(() => controller?.requestRender(), [controller, t])`，
+  否则元素卡文案要等下一次交互才更新。
+
+**明确不接的部分（都是开发者诊断，不进界面）**：`persistence/wbix/*` 的解析错误文本、
+`app/hooks.ts` 的 provider 不变量异常、`board/workspace.ts` 的 `RangeError`、
+`platform/{pwa,file-handlers}.ts` 与 `ui/shell/BoardSurface.tsx` 的 `console.warn`。
+桌面端对应的异常文本同样不本地化，保持一致。
+
+**验证**：`tsc -b` 0 错误、`vitest` 57 文件 / 1409 例全绿、`oxlint` 0/0（192 文件）、
+`playwright` 11 例全绿（`settings-general` 基线按新提示文案重建，其余 10 张未变）、
+浏览器实测 en-US：标题 `WindBoard`、Dock 十个标签、更多菜单三项、设置导航六项、
+常规页卡片与提示、画笔面板「Pen settings / Thickness」、擦除面板「Point / Stroke / Slide to clear」、
+导出对话框全部字段与主按钮「Next」均为英文，`<html lang>` = `en-US`。
 
 ### P5.3 记录：触屏回归与 iOS 画布上限（2026-11-02）
 

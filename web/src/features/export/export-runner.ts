@@ -30,14 +30,15 @@ import {
   type ExportOptions,
 } from './export-options.ts'
 import type { PageSnapshot } from '../../board/model/workspace.ts'
+import { localized, type LocalizedMessage, type MessageTranslator } from '../../i18n/message.ts'
 
 /** 导出结果（供 UI 提示用）。 */
 export interface ExportOutcome {
   readonly ok: boolean
   readonly cancelled?: boolean
   /** 成功后给用户看的说明（桌面用 `Export_Completed_Title` + 路径/文件夹文案）。 */
-  readonly message?: string
-  readonly error?: string
+  readonly message?: LocalizedMessage
+  readonly error?: LocalizedMessage
 }
 
 /** 离屏表面工厂（`ExportRunnerDeps` 里注入，便于测试）。 */
@@ -58,6 +59,8 @@ export interface ExportRunnerDeps {
   readonly now?: Date
   /** 离屏渲染工厂；缺省用浏览器实现。 */
   readonly surfaceFactory?: RasterSurfaceFactory
+  /** 取词函数（导出图里元素卡的文字跟随界面语言；缺省用默认语言）。 */
+  readonly t?: MessageTranslator
 }
 
 /** 多页 PNG 的文件名规则（`BoardExportService.cs:126-130`：`{date}-{页码:000}.png`）。 */
@@ -134,6 +137,17 @@ function createBrowserSurfaceFactory(): RasterSurfaceFactory | null {
   }
 }
 
+/** 带本地化消息的导出错误：`runExport` 捕获后转成 `ExportOutcome.error`。 */
+class ExportLocalizedError extends Error {
+  /** 面向用户的本地化消息。 */
+  readonly localized: LocalizedMessage
+
+  constructor(message: LocalizedMessage) {
+    super(message.key)
+    this.localized = message
+  }
+}
+
 /** 渲染一页并返回离屏表面。 */
 function renderPage(
   page: PageSnapshot,
@@ -143,11 +157,18 @@ function renderPage(
 ): RasterRenderTarget {
   const target = factory.create(frame.pixelWidth, frame.pixelHeight)
   if (target === null) {
-    throw new Error('当前浏览器不支持离屏渲染，无法导出')
+    throw new ExportLocalizedError(localized('Web_Export_NoOffscreen'))
   }
-  const drawn = renderPageToRaster(page, frame, deps.background, target, deps.elementCardTheme)
+  const drawn = renderPageToRaster(
+    page,
+    frame,
+    deps.background,
+    target,
+    deps.elementCardTheme,
+    deps.t,
+  )
   if (!drawn) {
-    throw new Error('离屏画布不可用，无法导出')
+    throw new ExportLocalizedError(localized('Web_Export_CanvasUnavailable'))
   }
   return target
 }
@@ -159,10 +180,25 @@ function renderPage(
  * 以及把结果转成提醒条。
  */
 export async function runExport(options: ExportOptions, deps: ExportRunnerDeps): Promise<ExportOutcome> {
+  try {
+    return await runExportInternal(options, deps)
+  } catch (error) {
+    if (error instanceof ExportLocalizedError) {
+      return { ok: false, error: error.localized }
+    }
+    throw error
+  }
+}
+
+/** 实际的导出实现；抛 {@link ExportLocalizedError} 时由 {@link runExport} 转成失败结果。 */
+async function runExportInternal(
+  options: ExportOptions,
+  deps: ExportRunnerDeps,
+): Promise<ExportOutcome> {
   const now = deps.now ?? new Date()
   const factory = deps.surfaceFactory ?? createBrowserSurfaceFactory()
   if (factory === null) {
-    return { ok: false, error: '当前环境不支持导出' }
+    return { ok: false, error: localized('Web_Export_UnsupportedEnvironment') }
   }
 
   const workspace = deps.controller.workspace
@@ -184,7 +220,7 @@ export async function runExport(options: ExportOptions, deps: ExportRunnerDeps):
       mimeType: 'application/octet-stream',
       bytes,
     })
-    return toOutcome(result, `已导出 WBIX：${result.path ?? fileName}`)
+    return toOutcome(result, localized('Web_Export_DoneWbix_Fmt', result.path ?? fileName))
   }
 
   const fallbackViewportSizeDip = deps.controller.viewport.sizeDip
@@ -207,7 +243,7 @@ export async function runExport(options: ExportOptions, deps: ExportRunnerDeps):
       const surface = renderPage(page, frame, deps, factory)
       const rgba = surface.readRgba?.()
       if (rgba === null || rgba === undefined) {
-        return { ok: false, error: '无法读回页面像素，导出中止' }
+        return { ok: false, error: localized('Web_Export_ReadPixelsFailed') }
       }
       pages.push({
         rgb: rgbaToRgb(rgba),
@@ -221,7 +257,7 @@ export async function runExport(options: ExportOptions, deps: ExportRunnerDeps):
     const bytes = buildPdf(pages)
     const fileName = formatExportSuggestedFileName(now, 'pdf')
     const result = await saveFile({ suggestedName: fileName, mimeType: 'application/pdf', bytes })
-    return toOutcome(result, `已导出 PDF：${result.path ?? fileName}`)
+    return toOutcome(result, localized('Web_Export_DonePdf_Fmt', result.path ?? fileName))
   }
 
   // ===== PNG：单页 or 多页（多页进目录/ZIP） =====
@@ -242,7 +278,7 @@ export async function runExport(options: ExportOptions, deps: ExportRunnerDeps):
     const surface = renderPage(page, frame, deps, factory)
     const png = await surface.encodePng?.()
     if (png === null || png === undefined) {
-      return { ok: false, error: 'PNG 编码失败' }
+      return { ok: false, error: localized('Web_Export_PngEncodeFailed') }
     }
     const withDpi = embedPngDpi(png, frame.dpi) ?? png
     rendered.push({ name: String(pageNumber), bytes: withDpi })
@@ -253,11 +289,11 @@ export async function runExport(options: ExportOptions, deps: ExportRunnerDeps):
   if (!multiPage) {
     const first = rendered[0]
     if (first === undefined) {
-      return { ok: false, error: '没有可导出的页面' }
+      return { ok: false, error: localized('Web_Export_NoPages') }
     }
     const fileName = formatExportSuggestedFileName(now, 'png')
     const result = await saveFile({ suggestedName: fileName, mimeType: 'image/png', bytes: first.bytes })
-    return toOutcome(result, `已导出 PNG：${result.path ?? fileName}`)
+    return toOutcome(result, localized('Web_Export_DonePng_Fmt', result.path ?? fileName))
   }
 
   const folderName = formatPngFolderName(now)
@@ -268,16 +304,19 @@ export async function runExport(options: ExportOptions, deps: ExportRunnerDeps):
     bytes: page.bytes,
   }))
   const result = await saveFilesToFolder(folderName, files)
-  return toOutcome(result, `已导出 ${files.length} 页 PNG：${result.path ?? folderName}`)
+  return toOutcome(
+    result,
+    localized('Web_Export_DoneMultiPng_Fmt', files.length, result.path ?? folderName),
+  )
 }
 
 /** 把 `SaveResult` 转成导出结果（取消不算失败）。 */
-function toOutcome(result: SaveResult, successMessage: string): ExportOutcome {
+function toOutcome(result: SaveResult, successMessage: LocalizedMessage): ExportOutcome {
   if (result.ok) {
     return { ok: true, message: successMessage }
   }
   if (result.cancelled === true) {
     return { ok: false, cancelled: true }
   }
-  return { ok: false, error: result.error ?? '导出失败' }
+  return { ok: false, error: result.error ?? localized('Web_Export_Failed') }
 }

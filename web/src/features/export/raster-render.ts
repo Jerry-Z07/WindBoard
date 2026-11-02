@@ -15,6 +15,7 @@ import type { PageSnapshot } from '../../board/model/workspace.ts'
 import { StrokeOutlineCache } from '../../ink/outline.ts'
 import type { RenderContext2D } from '../../render/canvas-types.ts'
 import { drawScene, type SceneSurface } from '../../render/scene.ts'
+import type { MessageTranslator } from '../../i18n/message.ts'
 import type { ExportFrame } from './raster-frame.ts'
 
 /**
@@ -48,6 +49,8 @@ export function renderPageToRaster(
   background: string,
   target: RasterRenderTarget,
   theme: 'dark' | 'light',
+  /** 取词函数（元素卡上的文字跟随界面语言；缺省用默认语言）。 */
+  t?: MessageTranslator,
 ): boolean {
   const ctx = target.createContext()
   if (ctx === null) {
@@ -78,6 +81,7 @@ export function renderPageToRaster(
       liveStroke: null,
       liveShape: null,
       elementCardTheme: theme,
+      ...(t === undefined ? {} : { t }),
     },
     surface,
     new StrokeOutlineCache(),

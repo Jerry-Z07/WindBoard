@@ -12,6 +12,8 @@
  * 能在 node 环境直接单测；组件侧再映射成 `ArrowUpRegular` / `ArrowUndoRegular`。
  */
 
+import type { MessageKey } from '../../i18n/locales/zh-CN.generated.ts'
+
 /** 置顶按钮的三态（调用方按"是否最上层 / 能否撤销这次置顶"推导）。 */
 export type BringToFrontState = 'default' | 'cancel' | 'disabled'
 
@@ -20,15 +22,16 @@ export type BringToFrontIcon = 'up' | 'undo'
 
 /** 置顶按钮的呈现结果。 */
 export interface BringToFrontButtonView {
-  readonly label: string
+  /** 文案 key（`Common_BringToFront` / `Common_CancelBringToFront`），由调用方用 `t()` 渲染。 */
+  readonly labelKey: MessageKey
   readonly icon: BringToFrontIcon
   readonly disabled: boolean
 }
 
 /** `Common_BringToFront`（`WindBoard/Strings/zh-CN/Common.resw`）。 */
-const LABEL_BRING_TO_FRONT = '置顶'
+const LABEL_KEY_BRING_TO_FRONT: MessageKey = 'Common_BringToFront'
 /** `Common_CancelBringToFront`（同文件；对应"撤销这次置顶"）。 */
-const LABEL_CANCEL_BRING_TO_FRONT = '取消置顶'
+const LABEL_KEY_CANCEL_BRING_TO_FRONT: MessageKey = 'Common_CancelBringToFront'
 
 /**
  * 由三态推导置顶按钮的文案 / 图标 / 可用性。
@@ -42,7 +45,7 @@ export function resolveBringToFrontButton(
 ): BringToFrontButtonView {
   const canCancel = state === 'cancel'
   return {
-    label: canCancel ? LABEL_CANCEL_BRING_TO_FRONT : LABEL_BRING_TO_FRONT,
+    labelKey: canCancel ? LABEL_KEY_CANCEL_BRING_TO_FRONT : LABEL_KEY_BRING_TO_FRONT,
     icon: canCancel ? 'undo' : 'up',
     // 桌面：IsEnabled = !isTopMost || canCancelBringToFront → 'disabled' 即"最上层且不可撤销"
     disabled: state === 'disabled' || !hasHandler,

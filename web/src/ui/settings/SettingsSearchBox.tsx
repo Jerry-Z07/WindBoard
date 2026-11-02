@@ -37,7 +37,7 @@ export function SettingsSearchBox(props: SettingsSearchBoxProps): ReactNode {
   const [open, setOpen] = useState(false)
   const [activeIndex, setActiveIndex] = useState(-1)
 
-  const results = searchSettings(query)
+  const results = searchSettings(query, t)
   // 桌面：`string.IsNullOrWhiteSpace(query)` 时不出建议
   const showSuggestions = open && query.trim() !== ''
   const activeDescendant =
@@ -118,10 +118,10 @@ export function SettingsSearchBox(props: SettingsSearchBoxProps): ReactNode {
           className="wb-settings-search__suggestions"
           id={listboxId}
           role="listbox"
-          aria-label="搜索建议"
+          aria-label={t('Web_SettingsSearchSuggestions')}
         >
           {results.length === 0 ? (
-            <div className="wb-settings-search__empty">没有匹配的设置项</div>
+            <div className="wb-settings-search__empty">{t('Web_SettingsSearchEmpty')}</div>
           ) : (
             results.map((result, index) => (
               <div
@@ -143,9 +143,9 @@ export function SettingsSearchBox(props: SettingsSearchBoxProps): ReactNode {
                 }}
               >
                 <span className="wb-settings-search__suggestion-title">{result.displayText}</span>
-                {result.target.description === undefined ? null : (
+                {result.description === undefined ? null : (
                   <span className="wb-settings-search__suggestion-description">
-                    {result.target.description}
+                    {result.description}
                   </span>
                 )}
               </div>

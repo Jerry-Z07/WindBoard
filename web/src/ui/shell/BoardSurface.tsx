@@ -101,6 +101,12 @@ export function BoardSurface(props: BoardSurfaceProps): ReactNode {
   const settings = useSettings()
   const reminders = useReminderService()
   const { t } = useI18n()
+  /**
+   * 控制器的取词函数：控制器在挂载时创建一次，但语言可以随时切换，
+   * 所以传一层读 ref 的包装（每次渲染更新 ref），而不是把 `t` 的当前值钉死进去。
+   */
+  const translateRef = useRef(t)
+  translateRef.current = t
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
   const overlayHostRef = useRef<HTMLDivElement | null>(null)
   const [controller, setController] = useState<BoardController | null>(null)
@@ -111,6 +117,12 @@ export function BoardSurface(props: BoardSurfaceProps): ReactNode {
   const autosaveServiceRef = useRef<AutosaveService | null>(null)
   const flushRef = useRef<(() => void) | null>(null)
   const [pendingAutosave, setPendingAutosave] = useState<AutosaveMeta | null>(null)
+
+  // 语言切换后画布上的元素卡文案要重画：`translate` 读的是 ref，值已经更新，
+  // 但没有任何交互会触发新帧，这里显式请求一次（`t` 的身份随语言变化）。
+  useEffect(() => {
+    controller?.requestRender()
+  }, [controller, t])
 
   const background = settings.appearance.canvasBackgroundHex
   const paletteHexes = settings.writing.pen.paletteHexes
@@ -130,7 +142,12 @@ export function BoardSurface(props: BoardSurfaceProps): ReactNode {
       penSettings.color = hexToRgba(initialColorHex)
     }
 
-    const created = createBoardController({ canvas, background, penSettings })
+    const created = createBoardController({
+      canvas,
+      background,
+      penSettings,
+      translate: (key, ...args) => translateRef.current(key, ...args),
+    })
     // 输入绑定必须和控制器同生共死：`createBoardController` 只建模型与渲染，不碰 DOM 事件。
     const input = attachBoardInput(created, { canvas })
     setController(created)
@@ -185,15 +202,15 @@ export function BoardSurface(props: BoardSurfaceProps): ReactNode {
           const imported = parseWbixForImport(file.bytes)
           applyImportedWorkspace(controller.workspace, imported)
           reminders.push({
-            title: '已打开文件',
-            message: `${file.name} 已插入到最后一页之后。`,
+            title: t('Web_OpenedFile_Title'),
+            message: t('Web_OpenedFile_Message_Fmt', file.name),
             severity: 'informational',
           })
         } catch (error) {
           console.warn('打开系统传入的 WBIX 失败', error)
           reminders.push({
             title: t('Common_OpenFailed_Title'),
-            message: `无法打开 ${file.name}，文件可能已损坏或不是 WBIX。`,
+            message: t('Web_OpenFileFailed_Message_Fmt', file.name),
             severity: 'error',
           })
         }

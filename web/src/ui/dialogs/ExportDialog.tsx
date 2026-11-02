@@ -29,6 +29,7 @@ import {
 import { ArrowExportRegular, DismissRegular } from '@fluentui/react-icons'
 import { useBoardController, useBoardSnapshot, useReminderService, useSettings } from '../../app/hooks.ts'
 import { useI18n, type Translator } from '../../i18n/context.ts'
+import { formatLocalized } from '../../i18n/message.ts'
 import {
   DEFAULT_EXPORT_OPTIONS,
   PDF_DPI_VALUES,
@@ -191,14 +192,25 @@ function ExportDialogForm(props: { readonly onClose: () => void }): ReactNode {
           controller,
           background: settings.appearance.canvasBackgroundHex,
           elementCardTheme: settings.appearance.elementCardTheme,
+          t,
         })
         if (outcome.ok) {
-          reminders.push({ message: outcome.message ?? t('Export_Completed_Title'), severity: 'informational' })
+          reminders.push({
+            message:
+              outcome.message === undefined
+                ? t('Export_Completed_Title')
+                : formatLocalized(t, outcome.message),
+            severity: 'informational',
+          })
           return
         }
         // 用户取消不提示（与桌面一致：取消选择器就是静默返回）
         if (outcome.cancelled !== true) {
-          reminders.push({ message: outcome.error ?? t('Export_Failed_Title'), severity: 'error' })
+          reminders.push({
+            message:
+              outcome.error === undefined ? t('Export_Failed_Title') : formatLocalized(t, outcome.error),
+            severity: 'error',
+          })
         }
       } catch (error) {
         reminders.push({
@@ -282,7 +294,7 @@ function ExportDialogForm(props: { readonly onClose: () => void }): ReactNode {
           桌面没有可见标签（只有占位符），`Export.resw` 里也没有对应 key；这里的 `Field` 标签是
           网页端为读屏软件关联控件而补的（唯一一处 resw 无出处的可见文案）。
         */}
-        <Field label="页码范围">
+        <Field label={t('Web_Export_PageRangeLabel')}>
           <Input
             value={options.pageRangeText}
             placeholder={t('Export_PageRange_Placeholder')}
@@ -383,7 +395,9 @@ function ExportDialogForm(props: { readonly onClose: () => void }): ReactNode {
         {/* 校验提示（桌面在确认后才弹窗报错，网页端内联提示；规则见 `validateExportOptions`） */}
         {validation.issues.length > 0 ? (
           <MessageBar intent="warning">
-            <MessageBarBody>{validation.issues.join('；')}</MessageBarBody>
+            <MessageBarBody>
+              {validation.issues.map((issue) => formatLocalized(t, issue)).join('；')}
+            </MessageBarBody>
           </MessageBar>
         ) : null}
 
@@ -394,14 +408,16 @@ function ExportDialogForm(props: { readonly onClose: () => void }): ReactNode {
           因此文案由网页端自拟；不要当成桌面原文。
         */}
         <Text className="wb-dialog__hint">
-          {`将导出 ${String(pageIndices.length)} 页`}
-          {isPng ? `，画面 ${String(frame.pixelWidth)}×${String(frame.pixelHeight)}` : ''}
+          {t('Web_Export_PageCount_Fmt', pageIndices.length)}
+          {isPng
+            ? t('Web_Export_SizeSuffix_Fmt', frame.pixelWidth, frame.pixelHeight)
+            : ''}
         </Text>
         {multiPagePng ? (
-          <Text className="wb-dialog__hint">{`多页 PNG 将导出到 ${folderName} 子目录`}</Text>
+          <Text className="wb-dialog__hint">{t('Web_Export_MultiPageFolder_Fmt', folderName)}</Text>
         ) : null}
         {options.format === 'wbix' ? (
-          <Text className="wb-dialog__hint">WBIX 会导出整个工作区（忽略页范围）。</Text>
+          <Text className="wb-dialog__hint">{t('Web_Export_WbixWholeWorkspace')}</Text>
         ) : null}
 
         {/*
