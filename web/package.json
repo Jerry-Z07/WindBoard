@@ -15,6 +15,7 @@
     "samples": "node scripts/produce-samples.ts",
     "samples:check": "node scripts/selfcheck-samples.ts",
     "interop": "node scripts/interop.mjs",
+    "icons": "node scripts/generate-icons.mjs",
     "verify": "pnpm typecheck && pnpm test && pnpm build",
     "verify:all": "pnpm verify && pnpm interop"
   },

@@ -49,6 +49,10 @@ WindBoard.Tests/Fixtures/wbix/expected/** text eol=crlf
 # 变化，Windows 上会得到 CRLF 并与其 editorconfig 冲突。
 web/** text eol=lf
 
+# `web/** text eol=lf` 会盖掉上面的 `*.png binary`（同名属性后出现的规则优先），
+# 而 PWA 图标就在 web/public 下，必须再钉一次，否则可能被当文本转换行尾而损坏。
+web/**/*.png binary
+
 # Trellis: append-only developer journals should merge cleanly across
 # parallel sessions/worktrees — each session only appends a new block, so
 # there is nothing to actually conflict on.

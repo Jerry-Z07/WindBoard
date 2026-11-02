@@ -19,7 +19,9 @@ import {
   type BoardControllerSnapshot,
 } from '../../canvas/board-controller.ts'
 import { attachBoardInput } from '../../canvas/dom-input.ts'
-import { useSettings } from '../../app/hooks.ts'
+import { useReminderService, useSettings } from '../../app/hooks.ts'
+import { setLaunchFileHandler } from '../../platform/file-handlers.ts'
+import { applyImportedWorkspace } from '../../features/import/wbix-import.ts'
 import { hexToRgba, resolveInitialPenColorHex } from '../../settings/model.ts'
 import { createDefaultPenSettings } from '../../tools/tool-settings.ts'
 import {
@@ -96,6 +98,7 @@ function singleSelectedShape(snapshot: BoardControllerSnapshot | null): Shape | 
 /** 画布宿主。 */
 export function BoardSurface(props: BoardSurfaceProps): ReactNode {
   const settings = useSettings()
+  const reminders = useReminderService()
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
   const overlayHostRef = useRef<HTMLDivElement | null>(null)
   const [controller, setController] = useState<BoardController | null>(null)
@@ -145,6 +148,41 @@ export function BoardSurface(props: BoardSurfaceProps): ReactNode {
   useEffect(() => {
     controller?.setBackground(background)
   }, [controller, background])
+
+  /**
+   * 系统「用 WindBoard 打开 .wbix」：把 `file_handlers` 递进来的文件插到最后一页之后。
+   *
+   * 语义与导入对话框完全一致（桌面 `ImportFlow.cs:99-101` 只有 `AppendAfterLastPage` 一条活路径），
+   * 因此这里直接复用 `applyImportedWorkspace`，不另写一套覆盖/合并逻辑。
+   */
+  useEffect(() => {
+    if (controller === null) {
+      return
+    }
+    setLaunchFileHandler((files) => {
+      for (const file of files) {
+        try {
+          const imported = parseWbixForImport(file.bytes)
+          applyImportedWorkspace(controller.workspace, imported)
+          reminders.push({
+            title: '已打开文件',
+            message: `${file.name} 已插入到最后一页之后。`,
+            severity: 'informational',
+          })
+        } catch (error) {
+          console.warn('打开系统传入的 WBIX 失败', error)
+          reminders.push({
+            title: '打开失败',
+            message: `无法打开 ${file.name}，文件可能已损坏或不是 WBIX。`,
+            severity: 'error',
+          })
+        }
+      }
+    })
+    return () => {
+      setLaunchFileHandler(null)
+    }
+  }, [controller, reminders])
 
   /**
    * 自动保存：控制器就绪后启动，文档/页变化时按 2s 节流落盘（网页端增强，桌面无此功能）。

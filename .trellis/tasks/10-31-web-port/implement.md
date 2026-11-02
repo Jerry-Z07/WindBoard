@@ -338,8 +338,53 @@ P4.5 / P4.6 浏览器实测（2026-11-02）：
 - [ ] **P5.2 性能**：1 万笔迹实测，必要时启用分块位图缓存；给出帧时间与输入延迟数据
 - [ ] **P5.3 触屏**：iPad Safari 压感与掌拒实测；iOS canvas 尺寸限制处理
 - [ ] **P5.4 i18n**：`gen-i18n.mjs` + key 集合审计测试
-- [ ] **P5.5 PWA**：manifest、图标（192/512）、SW 预缓存与静默更新、`file_handlers`
+- [x] **P5.5 PWA**：manifest、图标（192/512）、SW 预缓存与静默更新、`file_handlers`
 - 验收：AC8、AC9；Lighthouse PWA 可安装
+
+### P5.5 记录：PWA 落地（2026-11-02）
+
+实现要点：
+
+- **图标自绘**：新增 `web/scripts/generate-icons.mjs`（`pnpm icons`），零依赖——解析式圆角矩形
+  覆盖度 + 沿贝塞尔曲线盖圆盘求线宽覆盖度，最后用 Node 内置 `zlib.deflateSync` 编 PNG
+  （自带 CRC32 与 chunk 拼装）。产出 `public/{icon-192,icon-512,icon-maskable-512,apple-touch-icon}.png`。
+  不引 `canvas`/`sharp` 是因为图形只有「圆角方块 + 一笔曲线」，为 4 张图装原生依赖不值得；
+  图标本身是产物，入库后平时无需重生成。
+- **manifest**：`web/public/manifest.webmanifest`，`display: standalone` + `display_override`
+  （`window-controls-overlay` 优先，桌面安装态更像原生窗口），`background_color` 取画布默认
+  `#2E2F33`、`theme_color` 取品牌蓝 `#1976D2`，`icons` 三档含 `purpose: maskable`，
+  `file_handlers` 声明 `.wbix`，`launch_handler.client_mode = ['focus-existing','auto']`
+  （已开窗口时聚焦而非新开）。
+- **Service Worker**：`web/public/sw.js`，手写不引 `vite-plugin-pwa`。策略是
+  「导航请求网络优先 + 静态资源缓存优先」：构建产物文件名带内容哈希，缓存 HTML 后按需缓存即可，
+  因此 SW 里不需要维护一份会过期的资源清单（这是不引插件的主要理由）。
+  新版本**不自动接管**（`skipWaiting` 只在收到 `SKIP_WAITING` 消息时调用），
+  因为「后台换掉正在书写中的页面」比「晚一个版本」危险得多。
+- **注册**：`web/src/platform/pwa.ts`，只在 `import.meta.env.PROD` 且支持 SW 时注册
+  （dev 下注册会让热更新失效）；页面重新可见时主动 `registration.update()`。
+- **`file_handlers` 接线**：`web/src/platform/file-handlers.ts` —— `attachLaunchQueue()` 在
+  `main.tsx` 渲染前调用，读 `window.launchQueue` 的文件字节；用「队列 + 消费者」两段式结构
+  处理启动顺序（文件可能比 React 挂载先到）。`BoardSurface` 注册消费者，复用
+  `applyImportedWorkspace`（与导入对话框同一语义：追加到最后一页之后），成功/失败各发一条提醒。
+- **`index.html`**：补 manifest/apple-touch-icon/apple-mobile-web-app-* 三条 iOS 私有 meta、
+  `theme-color`、`color-scheme`；标题由过时的 `WindBoard Web` 改回桌面一致的「轻风白板」
+  （`WindBoard/Strings/zh-CN/MainWindow.resw` 的 `MainWindow_Title`）。
+- **`.gitattributes`**：补 `web/**/*.png binary`。`web/** text eol=lf` 会覆盖前面的
+  `*.png binary`（同名属性后出现者优先），不钉一次就可能把 PNG 当文本转换行尾而损坏。
+
+验证：
+
+- 单元测试 `web/tests/unit/file-handlers.test.ts` 7 例（无 API 时不抛、字节读取、先到先排队、
+  多文件顺序、单文件失败不影响其余、清除消费者后回队列、空列表不触发）。
+- 生产构建 + `vite preview` 实测：manifest 可解析（name/display/3 icons/1 file_handler），
+  三张图标都能 `createImageBitmap` 解码且尺寸为 192/512/512，SW `activated` 且页面
+  `controller` 非空。
+- **离线实测**：停掉 preview 服务后刷新页面 → 标题、10 个 Dock 按钮、画布均正常渲染，
+  `navigation.transferSize === 0`（来自 SW 缓存）；此时再 `fetch('/sw.js', {cache:'no-store'})`
+  失败，证明断网确实生效、页面确实由缓存提供。
+- 回归：`npx tsc -b` 0 错误、`vitest` 54 文件 / 1371 例全绿、`oxlint src tests scripts` 0/0。
+- 未覆盖：Lighthouse 可安装性评分、真实"安装到桌面后双击 `.wbix` 打开"（需要安装态，
+  Chrome MCP 无法模拟），这两项留作人工验收。
 
 ---
 
