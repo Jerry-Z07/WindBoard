@@ -18,7 +18,9 @@
     "icons": "node scripts/generate-icons.mjs",
     "i18n": "node scripts/gen-i18n.mjs",
     "verify": "pnpm typecheck && pnpm test && pnpm build",
-    "verify:all": "pnpm verify && pnpm interop"
+    "verify:all": "pnpm verify && pnpm e2e && pnpm interop",
+    "e2e": "playwright test",
+    "e2e:update": "playwright test --update-snapshots"
   },
   "dependencies": {
     "@fluentui/react-components": "9.75.0",
@@ -28,6 +30,7 @@
     "react-dom": "^19.3.1"
   },
   "devDependencies": {
+    "@playwright/test": "^1.64.1",
     "@testing-library/dom": "^10.4.2",
     "@testing-library/react": "^16.3.3",
     "@types/node": "^24.19.2",

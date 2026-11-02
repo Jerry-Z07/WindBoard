@@ -25,3 +25,8 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Playwright 视觉回归产物（截图基线 e2e/__screenshots__ 要进版本库，这里只忽略运行产物）
+test-results
+playwright-report
+blob-report

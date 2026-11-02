@@ -334,7 +334,7 @@ P4.5 / P4.6 浏览器实测（2026-11-02）：
 
 ## P5 打磨
 
-- [ ] **P5.1 视觉回归**：Playwright 截图基线入库；Mica/亚克力区域只比对结构
+- [x] **P5.1 视觉回归**：Playwright 截图基线入库（不下载浏览器，用本机 Chrome）
 - [~] **P5.2 性能**：1 万笔迹实测 + 静态层缓存已落地（输入延迟仍缺实测数据）
 - [ ] **P5.3 触屏**：iPad Safari 压感与掌拒实测；iOS canvas 尺寸限制处理
 - [~] **P5.4 i18n**：`gen-i18n.mjs` + key 集合审计测试（基础设施已落地，界面文案迁移进行中）
@@ -371,6 +371,40 @@ P4.5 / P4.6 浏览器实测（2026-11-02）：
 未完成（渐进迁移，按页面推进）：Dock 标签、各弹出面板、设置页、对话框、提醒条的文案
 仍是硬编码中文。迁移方式已定型：把该组件的 `TEXTS` 常量换成 `useI18n().t('Key')`，
 key 一律取 resw 里的原名，不做新造。
+
+### P5.1 记录：Playwright 视觉回归（2026-11-02）
+
+**为什么不下载浏览器**：`pnpm add -D @playwright/test` 时设
+`PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1`，配置里 `channel: 'chrome'` 直接驱动本机已装的 Chrome。
+省掉一个 ~130MB 的 Chromium 下载，代价是依赖本机 Chrome 版本（对同一台开发机/同一镜像 CI 够用）。
+
+**被测对象是生产构建**：`webServer` 跑 `pnpm build && pnpm preview --port 4173`。
+dev 构建带 StrictMode 双渲染与未压缩代码，基线跟线上不一致没有意义。
+固定 `viewport 1200×800`、`deviceScaleFactor: 1`、`colorScheme: 'light'`、`locale: 'zh-CN'`、
+`timezoneId: 'Asia/Shanghai'`、`animations: 'disabled'`、`maxDiffPixelRatio: 0.002`。
+
+**8 张基线**（`web/e2e/__screenshots__/visual.spec.ts/`）：空画布、Dock 左段、Dock 中段、
+笔迹与四种形状的绘制结果、画笔面板、擦除面板、形状面板、页面管理面板、设置窗口、导出对话框。
+两处需要控制时间/选择器的细节：
+
+- 导出对话框的默认文件名带日期，用 `page.clock.setFixedTime` 固定；
+- 工具按钮的规则是「未激活时第一次只切工具、第二次才开面板」，而画笔是**默认激活**的，
+  所以画笔面板只需点一次；形状按钮是纯图标（只有 `aria-label`），且选中后浮层自动关闭，
+  因此每个形状都要重新点开一次浮层。
+
+**踩到的两个坑**：
+1. `vite preview` 只监听 `localhost`（IPv6 `::1`），配置写 `127.0.0.1` 会连不上，
+   `webServer` 直接 240s 超时；改成 `localhost` 后正常。
+2. e2e 需要独立 `tsconfig.e2e.json`（`lib` 加 DOM）：`page.evaluate` 的回调体是在浏览器里跑的，
+   但测试文件本身跑在 Node 上。放进 `tsconfig.node.json` 会让 `scripts/` 误用 DOM API。
+
+**稳定性**：连续两次运行基线文件 sha256 完全一致；`pnpm e2e` 约 15s（含一次构建）。
+
+**已知局限**：截图里含中文字形，基线只适合同一开发机/同一镜像 CI；跨机器的字体差异
+不在本阶段目标内（要跨平台稳定得把字体打包进页面，属于设计变更）。
+
+**命令**：`pnpm e2e`（比对）、`pnpm e2e:update`（重建基线，基线变更须在提交说明里给理由）；
+`pnpm verify:all` = `typecheck + vitest + build + e2e + interop`。
 
 ### P5.2 记录：静态层缓存与帧时间实测（2026-11-02）
 
