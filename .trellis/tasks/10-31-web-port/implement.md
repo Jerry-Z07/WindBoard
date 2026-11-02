@@ -294,8 +294,12 @@ Vite 仍报 >500 kB 警告 → P5.2 拆包）。
   （catalog/pages/page/content/image + xref），页面尺寸 `px*72/dpi`
 - [x] **P4.4 PlatformIO**：FSA 优先（`showSaveFilePicker` / `showDirectoryPicker`）、
   `<a download>` 与 `<input type=file>` 回退、多页 PNG 无目录权限时降级为 ZIP
-- [ ] **P4.5 自动保存与恢复**：OPFS 分片 + IndexedDB 索引；节流 2s；崩溃后恢复提示
-- [ ] **P4.6 设置导入导出**：兼容桌面设置文件（白名单合并、未知字段忽略）
+- [x] **P4.5 自动保存与恢复**：WBIX 字节存 OPFS + 元数据单独成文件，2s 节流、页面隐藏时 flush，
+  启动时若有存档弹 `RecoveryDialog`（恢复 = 解析存档替换工作区，等价于导入自己刚存的 WBIX）。
+  **注：桌面没有自动保存功能**（只在用户显式保存时写文件），这是网页端增强、不是移植。
+- [x] **P4.6 设置导入导出**：`settings-file.ts` 白名单序列化 + 容忍注释/尾逗号的解析（对齐桌面
+  `ReadCommentHandling=Skip` + `AllowTrailingCommas`），未知字段忽略、非法值回落默认并给出说明；
+  关于页三张卡全部接通（走 `platform/io.ts`）。
 - 验收：AC2、AC4、AC5；导出文件能在桌面版/系统阅读器中正常打开
 
 #### P4 记录：实现要点与踩坑（2026-11-02）
@@ -319,6 +323,12 @@ Vite 仍报 >500 kB 警告 → P5.2 拆包）。
 PDF `WindBoard-2026-11-02-1238.pdf` 8254 B（`%PDF-1.4` → `%%EOF`）；
 多页 PNG 写进 `WindBoard-2026-11-02/` 的 `2026-11-02-001.png` / `-002.png`；
 WBIX `2026-11-02-1238.wbix` 1514 B（zip 头 `PK\x03\x04`，无 `WindBoard-` 前缀）。
+
+P4.5 / P4.6 浏览器实测（2026-11-02）：
+- 画一笔后等 2 秒，OPFS 出现 `autosave.wbix`(829 B) + `autosave.meta.json`（1 页 / 1 条目）；
+- 刷新页面弹出「发现未完成的编辑（刚刚，1 页、1 个条目）」，点「恢复」后笔迹回来、存档被清除；
+- 「关于 → 导出设置」产出 `windboard-settings.json`（general / appearance / dock / writing /
+  keyboardShortcuts 五个分区、2 空格缩进，与桌面 `WriteIndented` 一致）。
 
 ---
 

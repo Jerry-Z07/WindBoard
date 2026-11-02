@@ -4,8 +4,8 @@
  *
  * 网页端保留"版本"与"设置管理"两块；桌面关于页的自动更新检查
  * （`AboutSettingsPage.Updates.cs`）与 Debug 入口按 `research/03-ui-inventory.md` §9 不做。
- * 导出/导入设置的真实文件能力属 P4，这里按钮置灰并注明；只有"恢复默认设置"
- * 可用（对应桌面 `SettingsManagementPage.xaml` 的二次确认后重置）。
+ * 三张卡（导出/导入/恢复默认）在 P4 全部接通：导出/导入走 `settings-file.ts` 的
+ * 「白名单序列化 + 容忍注释/尾逗号解析」，文件读写走 `platform/io.ts`。
  */
 
 import {
@@ -19,7 +19,9 @@ import {
 } from '@fluentui/react-components'
 import { ArrowExport24Regular, ArrowImport24Regular, ArrowReset24Regular } from '@fluentui/react-icons'
 import { useState, type ReactNode } from 'react'
-import { useSettingsService } from '../../app/hooks.ts'
+import { useReminderService, useSettings, useSettingsService } from '../../app/hooks.ts'
+import { pickFile, saveFile } from '../../platform/io.ts'
+import { SETTINGS_FILE_NAME, parseSettingsFile, serializeSettingsFile } from '../settings-file.ts'
 import { SETTINGS_ANCHORS } from '../search-targets.ts'
 import { SettingsCard, SettingsSection } from './SettingsCard.tsx'
 
@@ -34,7 +36,57 @@ const WEB_VERSION = '0.1.0'
 /** 关于页。 */
 export function AboutPage(): ReactNode {
   const settingsService = useSettingsService()
+  const settings = useSettings()
+  const reminders = useReminderService()
   const [resetConfirmOpen, setResetConfirmOpen] = useState(false)
+  const [busy, setBusy] = useState(false)
+
+  /** 导出当前设置到 JSON 文件（桌面 `SettingsManagementPage` 的导出卡片）。 */
+  const handleExportSettings = (): void => {
+    setBusy(true)
+    void (async () => {
+      try {
+        const text = serializeSettingsFile(settings)
+        const result = await saveFile({
+          suggestedName: SETTINGS_FILE_NAME,
+          mimeType: 'application/json',
+          bytes: new TextEncoder().encode(text),
+        })
+        if (result.ok) {
+          reminders.push({ message: `已导出设置：${result.path ?? SETTINGS_FILE_NAME}`, severity: 'informational' })
+        } else if (result.cancelled !== true) {
+          reminders.push({ message: `导出设置失败：${result.error ?? '未知错误'}`, severity: 'error' })
+        }
+      } finally {
+        setBusy(false)
+      }
+    })()
+  }
+
+  /** 从 JSON 文件导入设置（桌面同卡片；未知字段忽略、非法值回落默认）。 */
+  const handleImportSettings = (): void => {
+    setBusy(true)
+    void (async () => {
+      try {
+        const picked = await pickFile('.json,application/json')
+        if (picked === null) {
+          return
+        }
+        const parsed = parseSettingsFile(new TextDecoder().decode(picked.bytes))
+        if (!parsed.ok || parsed.settings === undefined) {
+          reminders.push({ message: `导入设置失败：${parsed.error ?? '文件格式不正确'}`, severity: 'error' })
+          return
+        }
+        settingsService.replace(parsed.settings)
+        reminders.push({ message: `已导入设置：${picked.name}`, severity: 'informational' })
+        for (const note of parsed.notes ?? []) {
+          reminders.push({ message: note, severity: 'warning' })
+        }
+      } finally {
+        setBusy(false)
+      }
+    })()
+  }
 
   return (
     <div className="wb-settings-page">
@@ -49,20 +101,20 @@ export function AboutPage(): ReactNode {
       <SettingsSection title="设置管理">
         <SettingsCard
           title="导出设置"
-          description="导出当前全部设置到 JSON 文件（P4 提供）"
+          description="导出当前全部设置到 JSON 文件（与桌面版格式兼容）"
           anchor={SETTINGS_ANCHORS.aboutExportSettings}
         >
-          <Button icon={<ArrowExport24Regular />} disabled>
+          <Button icon={<ArrowExport24Regular />} disabled={busy} onClick={handleExportSettings}>
             导出设置
           </Button>
         </SettingsCard>
 
         <SettingsCard
           title="导入设置"
-          description="从 JSON 文件导入并覆盖当前全部设置（P4 提供）"
+          description="从 JSON 文件导入并覆盖当前全部设置（忽略未知字段，非法值回落默认）"
           anchor={SETTINGS_ANCHORS.aboutImportSettings}
         >
-          <Button icon={<ArrowImport24Regular />} disabled>
+          <Button icon={<ArrowImport24Regular />} disabled={busy} onClick={handleImportSettings}>
             导入设置
           </Button>
         </SettingsCard>

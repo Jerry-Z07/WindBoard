@@ -29,6 +29,16 @@ import {
   MIN_SHAPE_PROPERTY_LENGTH,
 } from '../../board/editing/shape-property.ts'
 import type { Shape } from '../../board/model/shape.ts'
+import { createAutosaveService, type AutosaveService } from '../../persistence/autosave.ts'
+import {
+  createBrowserAutosaveStore,
+  type AutosaveMeta,
+  type AutosaveStore,
+} from '../../persistence/autosave-store.ts'
+import { writeWbix } from '../../persistence/wbix/write.ts'
+import { parseWbixForImport } from '../../features/import/wbix-import.ts'
+import { workspaceToSnapshot } from '../../board/snapshot.ts'
+import { RecoveryDialog } from '../dialogs/RecoveryDialog.tsx'
 import { SelectionActionBar } from '../overlay/SelectionActionBar.tsx'
 import { ShapePropertiesPanel } from '../overlay/ShapePropertiesPanel.tsx'
 import {
@@ -91,6 +101,11 @@ export function BoardSurface(props: BoardSurfaceProps): ReactNode {
   const [controller, setController] = useState<BoardController | null>(null)
   const snapshot = useControllerSnapshot(controller)
   const [metrics, setMetrics] = useState<OverlayMetrics>(ZERO_METRICS)
+  /** 自动保存存储与服务（浏览器不支持 OPFS 时降级为内存，`durable` 为 false 就不提供恢复）。 */
+  const autosaveStoreRef = useRef<AutosaveStore | null>(null)
+  const autosaveServiceRef = useRef<AutosaveService | null>(null)
+  const flushRef = useRef<(() => void) | null>(null)
+  const [pendingAutosave, setPendingAutosave] = useState<AutosaveMeta | null>(null)
 
   const background = settings.appearance.canvasBackgroundHex
   const paletteHexes = settings.writing.pen.paletteHexes
@@ -130,6 +145,108 @@ export function BoardSurface(props: BoardSurfaceProps): ReactNode {
   useEffect(() => {
     controller?.setBackground(background)
   }, [controller, background])
+
+  /**
+   * 自动保存：控制器就绪后启动，文档/页变化时按 2s 节流落盘（网页端增强，桌面无此功能）。
+   *
+   * 恢复流程：启动时先读元数据，有存档就弹 `RecoveryDialog`；
+   * 恢复走"解析存档 → 替换工作区"，等价于导入自己刚存的 WBIX。
+   */
+  useEffect(() => {
+    if (controller === null) {
+      return
+    }
+    let disposed = false
+    let unsubscribeSession: (() => void) | null = null
+    let unsubscribeWorkspace: (() => void) | null = null
+
+    void (async () => {
+      const store = await createBrowserAutosaveStore()
+      if (disposed) {
+        return
+      }
+      autosaveStoreRef.current = store
+
+      // 只有真正持久化时才提供"恢复"（内存存储重启即失，没有恢复价值）
+      const meta = store.durable ? await store.readMeta() : null
+      if (!disposed && meta !== null) {
+        setPendingAutosave(meta)
+      }
+
+      const service = createAutosaveService({
+        store,
+        getBytes: () =>
+          writeWbix(workspaceToSnapshot(controller.workspace, controller.viewport)),
+        getMeta: () => {
+          let itemCount = 0
+          for (const page of controller.workspace.pages) {
+            itemCount += page.session.document.items.length
+          }
+          return { pageCount: controller.workspace.pages.length, itemCount }
+        },
+        onError: () => {
+          // 写盘失败只记录一次，不打断书写（下一步操作还会再试）
+          console.warn('[autosave] 自动保存失败')
+        },
+      })
+      autosaveServiceRef.current = service
+
+      const schedule = (): void => {
+        service.schedule()
+      }
+      unsubscribeSession = controller.getSession().subscribe(schedule)
+      unsubscribeWorkspace = controller.workspace.subscribe(schedule)
+
+      // 页面隐藏/卸载前尽力落盘（`pagehide` 比 `beforeunload` 更可靠）
+      const flush = (): void => {
+        void service.flush()
+      }
+      window.addEventListener('pagehide', flush)
+      flushRef.current = flush
+    })()
+
+    return () => {
+      disposed = true
+      unsubscribeSession?.()
+      unsubscribeWorkspace?.()
+      if (flushRef.current !== null) {
+        window.removeEventListener('pagehide', flushRef.current)
+        flushRef.current = null
+      }
+      autosaveServiceRef.current?.dispose()
+      autosaveServiceRef.current = null
+    }
+  }, [controller])
+
+  /** 恢复存档：解析字节 → 替换工作区；成功后清掉存档。 */
+  const handleRestoreAutosave = (): void => {
+    void (async () => {
+      const store = autosaveStoreRef.current
+      setPendingAutosave(null)
+      if (store === null) {
+        return
+      }
+      try {
+        const bytes = await store.readBytes()
+        if (bytes === null) {
+          await store.clear()
+          return
+        }
+        const imported = parseWbixForImport(bytes)
+        controller?.workspace.replaceWithSnapshots(imported.snapshots, imported.currentIndex)
+        await store.clear()
+      } catch {
+        // 存档损坏：清掉并让用户从空白开始（不弹二次错误，避免打扰）
+        await store.clear()
+      }
+    })()
+  }
+
+  /** 丢弃存档。 */
+  const handleDiscardAutosave = (): void => {
+    setPendingAutosave(null)
+    void autosaveStoreRef.current?.clear()
+  }
 
   // 选中集变化 → 重算覆盖层几何（选择框是 canvas 画的，这里只更新 DOM 浮层）。
   const selection = snapshot?.selection ?? null
@@ -252,6 +369,11 @@ export function BoardSurface(props: BoardSurfaceProps): ReactNode {
           }
         />
       </div>
+      <RecoveryDialog
+        meta={pendingAutosave}
+        onRestore={handleRestoreAutosave}
+        onDiscard={handleDiscardAutosave}
+      />
       {/* 覆盖层的上下文由 `AppShell` 统一提供：Dock 是 `BoardSurface` 的兄弟节点，
           若只在这里包一层，Dock 就拿不到控制器。 */}
       {props.children}
