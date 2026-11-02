@@ -20,7 +20,8 @@
     "verify": "pnpm typecheck && pnpm test && pnpm build",
     "verify:all": "pnpm verify && pnpm e2e && pnpm interop",
     "e2e": "playwright test",
-    "e2e:update": "playwright test --update-snapshots"
+    "e2e:update": "playwright test --update-snapshots",
+    "perf": "node scripts/measure-perf.mjs"
   },
   "dependencies": {
     "@fluentui/react-components": "9.75.0",

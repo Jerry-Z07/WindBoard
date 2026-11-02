@@ -64,6 +64,20 @@ export interface RenderSources extends SceneRenderSources {
 export const MAX_DEVICE_PIXEL_RATIO = 2
 
 /**
+ * 单个画布的后备存储像素面积上限（iOS Safari 的硬限制）。
+ *
+ * WebKit（iOS/iPadOS）把单张 canvas 的像素总数限制在 16 777 216（4096×4096）；
+ * 超过限制时画布**不会报错，而是直接画不出东西**，表现为“整块画布空白”。
+ * 桌面版走 DXGI 交换链没有这个限制，因此这是一处浏览器特有的补充，
+ * 只对 iOS 生效，其它平台维持原样。
+ *
+ * 触屏设备的常规组合撞不上去（iPad Pro 12.9 横屏 1366×1024 DIP × DPR 2 ≈ 5.6M 像素），
+ * 但外接显示器 / 分屏放大窗口之后可能越过上限，所以按面积反算一个安全的 DPR，
+ * 而不是放弃渲染。
+ */
+export const MAX_CANVAS_AREA_PIXELS = 16_777_216
+
+/**
  * 静态层缓存的默认启用门槛（采样点数）。
  *
  * 实测（1600×795 视口、DPR 1.5、软件光栅化，单位 ms/帧 p50）：
@@ -239,7 +253,6 @@ export function createBoardRenderHandle(
    * - 只有像素尺寸真的变化时才写 `canvas.width/height`（写它会重置画布状态）。
    */
   function syncSurface(): void {
-    const devicePixelRatio = resolveDevicePixelRatio(readDevicePixelRatio())
     const widthDip = canvas.clientWidth
     const heightDip = canvas.clientHeight
     if (widthDip > 0 && heightDip > 0) {
@@ -247,6 +260,7 @@ export function createBoardRenderHandle(
     }
 
     const sizeDip = sources.viewport.sizeDip
+    const devicePixelRatio = resolveCanvasDevicePixelRatio(readDevicePixelRatio(), sizeDip)
     const size = computeBackingStoreSize(sizeDip, devicePixelRatio)
     if (canvas.width !== size.width) {
       canvas.width = size.width
@@ -343,6 +357,51 @@ export function resolveDevicePixelRatio(raw: number | undefined): number {
     return 1
   }
   return Math.min(MAX_DEVICE_PIXEL_RATIO, raw)
+}
+
+/**
+ * 画布后备存储实际使用的 DPR：在 {@link resolveDevicePixelRatio} 的基础上，
+ * 遇到 iOS 的画布面积上限时按面积反算，最低回到 1（绝不放大到超过原始 DPR）。
+ */
+export function resolveCanvasDevicePixelRatio(
+  reported: number | undefined,
+  sizeDip: Vec2,
+): number {
+  const devicePixelRatio = resolveDevicePixelRatio(reported)
+  if (!isLikelyIos()) {
+    return devicePixelRatio
+  }
+  const areaDip = sizeDip.x * sizeDip.y
+  if (!Number.isFinite(areaDip) || areaDip <= 0) {
+    return devicePixelRatio
+  }
+  // 只有真的越过上限才动手：否则会把浏览器给的小于 1 的 DPR 抬回 1（反而变糊）
+  if (areaDip * devicePixelRatio * devicePixelRatio <= MAX_CANVAS_AREA_PIXELS) {
+    return devicePixelRatio
+  }
+  const limitDpr = Math.sqrt(MAX_CANVAS_AREA_PIXELS / areaDip)
+  return Math.max(1, Math.min(devicePixelRatio, limitDpr))
+}
+
+/**
+ * 是否运行在 iOS/iPadOS 的浏览器上（用于画布面积上限这类平台补丁）。
+ *
+ * iPadOS 13 起默认发送桌面版 UA（`MacIntel`），只能靠“触摸点数 > 1”区分；
+ * 非浏览器环境（单测）返回 `false`。
+ */
+export function isLikelyIos(): boolean {
+  const scope = globalThis as unknown as {
+    navigator?: { userAgent?: string; platform?: string; maxTouchPoints?: number }
+  }
+  const navigator = scope.navigator
+  if (navigator === undefined) {
+    return false
+  }
+  const userAgent = navigator.userAgent ?? ''
+  if (/iP(hone|ad|od)/.test(userAgent)) {
+    return true
+  }
+  return navigator.platform === 'MacIntel' && (navigator.maxTouchPoints ?? 0) > 1
 }
 
 /** 后备存储像素尺寸：`DIP × DPR` 四舍五入，至少 1 像素。 */
