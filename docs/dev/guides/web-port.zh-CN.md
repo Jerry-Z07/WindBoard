@@ -102,7 +102,10 @@
 - 事实源：`WindBoard/Rendering/Board/{BoardSceneRenderer,BoardSceneMath}.cs`；规范见 `docs/dev/guides/ink-rendering.zh-CN.md`。
 - 网页端：`ink/geometry.ts`、`ink/outline.ts`、`render/scene.ts`。
 - 保障：`web/tests/unit/{ink-geometry,ink-outline}.test.ts`、`render-scene.test.ts`（断言绘制调用序列）、桌面侧 `WindBoard.Tests/Rendering/Snapshot/` 像素基线。**两端没有像素级交叉比对**，几何改动必须人工按 `ink-rendering` 文档逐条核对。
-- 漂移症状：笔迹粗细/拐角/箭头翼形状在两端看起来不同；同一 `.wbix` 打开后线条明显变形。
+- **锐利度**：桌面用 `ID2D1Ink::DrawInk` 由 D2D 在设备分辨率上重新细分，网页端展开成多边形再 `fill`。两者要看起来一致，关键在两点，改任何一处都要重新目视核对：
+  1. 后备存储必须等于 `DIP × 真实 DPR`（DPR 被夹小 → 浏览器放大画布 → 边缘过渡从 1 设备像素变 2 像素，见 §6 的 DPR 行）；
+  2. 折线细分容差必须是 **0.25 设备像素** = `0.25 / (zoom × DPR)` 世界单位（`ink/outline.ts` 的 `outlineScale`），只按 CSS 像素算会让 DPR 3 的屏幕上误差放大到 0.75 设备像素。
+- 漂移症状：笔迹粗细/拐角/箭头翼形状在两端看起来不同；同一 `.wbix` 打开后线条明显变形；**同几何下网页端边缘更软、放大后边缘有细碎折角**。
 
 ### 3.3 视口与坐标换算
 
@@ -222,7 +225,7 @@ CI（`.github/workflows/web.yml`）在 push/PR 时自动跑 `lint` → `typechec
 | 新增 `Ctrl+A` / `Esc` / `Delete` / `Backspace` 键盘路径 | `interaction/shortcuts.ts` + `canvas/board-controller.ts` | 桌面选择操作只在画布浮层按钮上，无键盘入口；按浏览器用户预期补充（用户明确要求加） |
 | 不识别 `Meta` / `Cmd` 组合键 | `interaction/shortcuts.ts` | 避免浏览器把 `Cmd+Z` 当成 `Ctrl+Z` 触发两次 |
 | 静态层缓存门槛按**采样点数**（30k），桌面用脏矩形 | `render/render-handle.ts`、`render/static-cache.ts` | 贴图成本随画布像素走、重绘成本随点数走；宁可少优化也不让缓存更慢 |
-| DPR 上限 2；iOS 另按 16 777 216 像素反算夹取 | `render/render-handle.ts` | WebKit 超限直接不出画面；刻意不做无条件夹取（否则把 <1 的 DPR 抬高更糊） |
+| DPR 不设固定上限，只按后备存储的单边（16 384）与面积（67 108 864；iOS 16 777 216）反算夹取 | `render/render-handle.ts` | 固定上限（曾为 2）会让 DPR 2.5 / 3 的屏幕用低一倍的后备存储铺满窗口，浏览器再放大画布，笔迹边缘从 1 设备像素变成 2 像素——这就是"网页版笔迹比桌面糊"的根因。夹取只在真的越过浏览器上限时发生，且绝不把 <1 的 DPR 抬高 |
 | 元素卡文案走词表、徽标用 Unicode/Fluent 图标、正文不自动换行（只按换行符裁切） | `render/element-card.ts` | 无 Segoe Fluent Icons 与 DirectWrite 排版引擎；`RenderContext2D` 也不暴露 `measureText`，尺寸配色仍按桌面真值 |
 | 设置为模态 `Dialog` + 侧栏，非独立窗口 | `ui/dialogs/SettingsWindow.tsx` | 浏览器只有一个窗口，无法复刻 `AppWindow` |
 | 「最小化」按钮保留但弹解释提醒；设置持久化用 `localStorage` | `ui/shell/DockBar.tsx`、`settings/service.ts` | 浏览器没有对应能力；导出设置文件另名为 `windboard-settings.json` |
@@ -232,8 +235,8 @@ CI（`.github/workflows/web.yml`）在 push/PR 时自动跑 `lint` → `typechec
 ## 7. 已知受限项
 
 - **视觉基线只适合本机 / 同镜像 CI**：截图含中文字形，跨环境需把字体打包进页面（属设计变更）。
-- **无 iPad / Safari 真机验证**：iOS 的 canvas 尺寸上限、`PointerEvent` 压感行为只做了代码层防护（`MAX_DEVICE_PIXEL_RATIO = 2`）。
-- **无 push/PR CI**：所有门禁只能本地执行；`.github/workflows/` 目前只有桌面发布的 `release.yml`，**不构建 `web/`**。
+- **无 iPad / Safari 真机验证**：iOS 的 canvas 尺寸上限、`PointerEvent` 压感行为只做了代码层防护（`MAX_CANVAS_AREA_PIXELS = 16 777 216`）。
+- **CI 只跑 `web/` 的 verify 作业**：`.github/workflows/web.yml` 覆盖 lint / typecheck / test / build / i18n 漂移；`pnpm e2e`（需真实 Chrome 与字体一致的基线）与 `pnpm interop`（需 Windows + .NET 构建 WinUI）仍是本地闸门，`interop` 只在手动触发时跑。
 - **组件级测试只到冒烟**：`ui-shell-smoke.test.tsx` 覆盖挂载与关键交互，视觉正确性依赖 Playwright 基线。
 - **两端没有交叉像素比对**：几何一致性靠 `ink-rendering` 文档 + 双方各自的测试，不靠图像 diff。
 

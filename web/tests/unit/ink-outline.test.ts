@@ -43,6 +43,15 @@ describe('ink/outline：缩放容差与分桶', () => {
     expect(outlineToleranceForZoom(Number.NaN)).toBe(0.25)
   })
 
+  it('容差按设备像素而不是 CSS 像素：DPR 越高折线越密', () => {
+    // 0.25 设备像素的误差在 DPR 3 上只对应 0.0833 CSS 像素
+    expect(outlineToleranceForZoom(1, 3)).toBeCloseTo(0.25 / 3, 10)
+    expect(outlineToleranceForZoom(10, 2)).toBeCloseTo(0.0125, 10)
+    // 非法 DPR 按 1 处理，不会把容差放大到无限大
+    expect(outlineToleranceForZoom(1, 0)).toBe(0.25)
+    expect(outlineToleranceForZoom(1, Number.NaN)).toBe(0.25)
+  })
+
   it('缩放分桶按 ceil(log2(zoom))', () => {
     expect(outlineZoomBucket(1)).toBe(0)
     expect(outlineZoomBucket(1.1)).toBe(1)
@@ -52,6 +61,12 @@ describe('ink/outline：缩放容差与分桶', () => {
     expect(outlineZoomBucket(0.05)).toBe(-4)
     expect(outlineZoomBucket(32)).toBe(5)
     expect(outlineZoomBucket(0)).toBe(0)
+  })
+
+  it('分桶用 zoom × DPR 的乘积：容差只取决于乘积，同桶内换 DPR 可复用', () => {
+    expect(outlineZoomBucket(2, 1)).toBe(outlineZoomBucket(1, 2))
+    expect(outlineZoomBucket(8, 2)).toBe(4)
+    expect(outlineToleranceForZoom(2, 1)).toBe(outlineToleranceForZoom(1, 2))
   })
 })
 

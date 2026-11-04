@@ -2,9 +2,10 @@
  * 画布渲染句柄：渲染层唯一接触 DOM 的边界。
  *
  * 职责：
- * 1. **后备存储尺寸**：`canvas.width/height = DIP × DPR`，DPR 上限 2
+ * 1. **后备存储尺寸**：`canvas.width/height = DIP × DPR`
  *    （桌面参照 `WindBoard/Rendering/DxSwapChainPanelRenderer.cs:392-411`：`CompositionScale` 参与
- *    像素尺寸与 DPI 计算；网页端直接用 `devicePixelRatio`，并夹到 2 防止高密度屏像素爆炸）；
+ *    像素尺寸与 DPI 计算；网页端直接用 `devicePixelRatio`，只在后备存储的单边 / 面积
+ *    越过浏览器上限时才夹取，见 `resolveCanvasDevicePixelRatio`）；
  * 2. **帧调度**：rAF 合并重绘 + `maxFps` 上限（桌面 `MaxInteractiveFps = 60`，
  *    `BoardCanvasControl.xaml.cs:26`），具体实现见 `frame-scheduler.ts`；
  * 3. **尺寸变化**：`ResizeObserver` 监听 CSS 尺寸 → `viewport.updateViewportSize` → 重绘；
@@ -60,8 +61,25 @@ export interface RenderSources extends SceneRenderSources {
   selection?: SelectionOverlay | null
 }
 
-/** 设备像素比上限：超过 2 时按 2 计算后备存储。 */
-export const MAX_DEVICE_PIXEL_RATIO = 2
+/**
+ * 后备存储单边像素上限（所有平台）。
+ *
+ * 浏览器 Canvas2D 走 GPU 纹理，主流实现的单边上限是 16384；越过之后
+ * **不会报错，而是整块画布画不出东西**，所以按边长反算 DPR 上限。
+ */
+export const MAX_CANVAS_BACKING_DIMENSION = 16_384
+
+/**
+ * 后备存储像素面积上限（非 iOS 平台）。
+ *
+ * 67 108 864 = 8192 × 8192，RGBA 约占 256 MiB。DPR **不设固定上限**：
+ * 固定上限（原先是 2）会让 DPR 2.5 / 3 的屏幕（250%~300% 缩放、绝大多数手机）
+ * 用 2 倍的后备存储去铺满更高分辨率的窗口，浏览器再把画布放大，
+ * 笔迹边缘因此从 1 设备像素的过渡变成 1.5~2 像素——桌面端同屏是清晰的，
+ * 表现就是“网页版笔迹更模糊、放大后更明显”。
+ * 但内存仍要有界：1920×1080 的窗口在 DPR 3 下只有 18.7M 像素，远低于此上限。
+ */
+export const MAX_CANVAS_BACKING_AREA_PIXELS = 67_108_864
 
 /**
  * 单个画布的后备存储像素面积上限（iOS Safari 的硬限制）。
@@ -69,7 +87,7 @@ export const MAX_DEVICE_PIXEL_RATIO = 2
  * WebKit（iOS/iPadOS）把单张 canvas 的像素总数限制在 16 777 216（4096×4096）；
  * 超过限制时画布**不会报错，而是直接画不出东西**，表现为“整块画布空白”。
  * 桌面版走 DXGI 交换链没有这个限制，因此这是一处浏览器特有的补充，
- * 只对 iOS 生效，其它平台维持原样。
+ * 只对 iOS 生效，其它平台用 {@link MAX_CANVAS_BACKING_AREA_PIXELS}。
  *
  * 触屏设备的常规组合撞不上去（iPad Pro 12.9 横屏 1366×1024 DIP × DPR 2 ≈ 5.6M 像素），
  * 但外接显示器 / 分屏放大窗口之后可能越过上限，所以按面积反算一个安全的 DPR，
@@ -348,39 +366,48 @@ export function createBoardRenderHandle(
 }
 
 /**
- * 设备像素比归一化：非有限值 / 非正值回退 1，超过 2 时夹到 2。
+ * 设备像素比归一化：非有限值 / 非正值回退 1。
  *
  * 小于 1 的情况（浏览器整体缩小）保留原值，此时后备存储反而更小，属于预期行为。
+ * 上限不在这里夹：上限取决于窗口尺寸（面积 / 单边），见 {@link resolveCanvasDevicePixelRatio}。
  */
 export function resolveDevicePixelRatio(raw: number | undefined): number {
   if (raw === undefined || !Number.isFinite(raw) || raw <= 0) {
     return 1
   }
-  return Math.min(MAX_DEVICE_PIXEL_RATIO, raw)
+  return raw
 }
 
 /**
  * 画布后备存储实际使用的 DPR：在 {@link resolveDevicePixelRatio} 的基础上，
- * 遇到 iOS 的画布面积上限时按面积反算，最低回到 1（绝不放大到超过原始 DPR）。
+ * 按后备存储的**单边上限**与**面积上限**反算（iOS 的面积上限更小）。
+ *
+ * 只有上限真的低于浏览器报告的 DPR 时才夹取；夹取结果不低于 1
+ * （画面可能被放大变糊，但不能退化成 0 倍），也**绝不**把小于 1 的 DPR 抬回 1。
  */
 export function resolveCanvasDevicePixelRatio(
   reported: number | undefined,
   sizeDip: Vec2,
 ): number {
   const devicePixelRatio = resolveDevicePixelRatio(reported)
-  if (!isLikelyIos()) {
-    return devicePixelRatio
-  }
   const areaDip = sizeDip.x * sizeDip.y
   if (!Number.isFinite(areaDip) || areaDip <= 0) {
     return devicePixelRatio
   }
+  const areaBudget = isLikelyIos() ? MAX_CANVAS_AREA_PIXELS : MAX_CANVAS_BACKING_AREA_PIXELS
+  const longestSideDip = Math.max(sizeDip.x, sizeDip.y)
+  const limitDpr =
+    longestSideDip > 0
+      ? Math.min(
+          Math.sqrt(areaBudget / areaDip),
+          MAX_CANVAS_BACKING_DIMENSION / longestSideDip,
+        )
+      : Number.POSITIVE_INFINITY
   // 只有真的越过上限才动手：否则会把浏览器给的小于 1 的 DPR 抬回 1（反而变糊）
-  if (areaDip * devicePixelRatio * devicePixelRatio <= MAX_CANVAS_AREA_PIXELS) {
+  if (!(limitDpr < devicePixelRatio)) {
     return devicePixelRatio
   }
-  const limitDpr = Math.sqrt(MAX_CANVAS_AREA_PIXELS / areaDip)
-  return Math.max(1, Math.min(devicePixelRatio, limitDpr))
+  return Math.max(1, limitDpr)
 }
 
 /**

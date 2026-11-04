@@ -2,15 +2,17 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import {
   MAX_CANVAS_AREA_PIXELS,
-  MAX_DEVICE_PIXEL_RATIO,
+  MAX_CANVAS_BACKING_AREA_PIXELS,
+  MAX_CANVAS_BACKING_DIMENSION,
   isLikelyIos,
   resolveCanvasDevicePixelRatio,
   resolveDevicePixelRatio,
 } from '../../src/render/render-handle.ts'
 
 /**
- * iOS 画布面积上限（P5.3）：WebKit 对单张 canvas 的像素总数有硬限制，
- * 超过后画布直接空白且不报错。这里验证上限只在 iOS 生效、且不放大 DPR。
+ * 后备存储上限：DPR 不再有固定上限（固定上限会让高 DPI 屏幕的画布被浏览器放大，
+ * 笔迹发糊），改成按 Canvas2D 的实际能力（单边 16384 / 面积）反算。
+ * iOS 另有更小的面积硬限制（16.7M），越过之后画布直接空白且不报错。
  */
 
 function stubNavigator(value: unknown): void {
@@ -48,13 +50,29 @@ describe('isLikelyIos', () => {
 })
 
 describe('resolveCanvasDevicePixelRatio', () => {
-  it('非 iOS 平台完全沿用原有 DPR 规则', () => {
+  it('常规窗口不夹取 DPR：DPR 3 照原样使用', () => {
     stubNavigator({ userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)', platform: 'Win32' })
-    // 这个尺寸在 iOS 上会被夹，但 Windows 上不该受影响
-    expect(resolveCanvasDevicePixelRatio(2, { x: 3000, y: 3000 })).toBe(
-      MAX_DEVICE_PIXEL_RATIO,
-    )
-    expect(resolveCanvasDevicePixelRatio(1.5, { x: 3000, y: 3000 })).toBe(1.5)
+    // 1920×1080 × 3² = 18.7M 像素，远低于桌面面积上限
+    expect(resolveCanvasDevicePixelRatio(3, { x: 1920, y: 1080 })).toBe(3)
+    expect(resolveCanvasDevicePixelRatio(2.5, { x: 1512, y: 982 })).toBe(2.5)
+  })
+
+  it('非 iOS 平台只受单边与面积上限约束', () => {
+    stubNavigator({ userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)', platform: 'Win32' })
+    // 3000×3000 × 2² = 36M < 67.1M，不受（更小的）iOS 面积上限影响
+    expect(resolveCanvasDevicePixelRatio(2, { x: 3000, y: 3000 })).toBe(2)
+    const huge = resolveCanvasDevicePixelRatio(3, { x: 8000, y: 8000 })
+    expect(8000 * huge).toBeLessThanOrEqual(MAX_CANVAS_BACKING_DIMENSION + 1)
+    expect(huge * huge * 8000 * 8000).toBeLessThanOrEqual(MAX_CANVAS_BACKING_AREA_PIXELS + 1)
+  })
+
+  it('单边超过 16384 时按边长反算 DPR', () => {
+    stubNavigator({ userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)', platform: 'Win32' })
+    // 细长窗口：面积不超但单边超了
+    const sizeDip = { x: 9000, y: 400 }
+    const dpr = resolveCanvasDevicePixelRatio(3, sizeDip)
+    expect(sizeDip.x * dpr).toBeLessThanOrEqual(MAX_CANVAS_BACKING_DIMENSION + 1)
+    expect(dpr).toBeCloseTo(MAX_CANVAS_BACKING_DIMENSION / 9000, 6)
   })
 
   it('iOS 上未超面积上限时保持原 DPR', () => {

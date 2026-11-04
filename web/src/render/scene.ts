@@ -82,7 +82,12 @@ export interface SceneSurface {
   readonly pixelWidth: number
   /** 后备存储像素高（`canvas.height`）。 */
   readonly pixelHeight: number
-  /** 已按上限（2）裁剪的设备像素比。 */
+  /**
+   * 后备存储相对 CSS 的设备像素比（浏览器报告值，仅在越过画布上限时才被夹取）。
+   *
+   * 除变换矩阵外，它也参与笔迹轮廓的细分容差：`0.25 / (zoom × DPR)` 世界单位，
+   * 保证折线误差始终是 0.25 **设备像素**而不是 0.25 CSS 像素。
+   */
   readonly devicePixelRatio: number
 }
 
@@ -157,7 +162,7 @@ export function drawSceneBase(
 
   // 4. 文档墨迹条目（顺序第 2 步）：数组顺序即绘制顺序，未知条目静默跳过。
   for (const item of document.items) {
-    drawInkItem(ctx, item, visibleWorld, zoom, outlineCache)
+    drawInkItem(ctx, item, visibleWorld, zoom, scale, outlineCache)
   }
 
   // 5. 笔迹上方元素（顺序第 3 步）。
@@ -205,7 +210,7 @@ export function drawLivePreview(
   const visibleWorld = viewport.getVisibleWorldBounds()
   const zoom = viewport.zoom
   if (sources.liveStroke !== null) {
-    drawStroke(ctx, sources.liveStroke, visibleWorld, zoom, outlineCache)
+    drawStroke(ctx, sources.liveStroke, visibleWorld, zoom, scale, outlineCache)
   }
   if (sources.liveShape !== null) {
     drawShape(ctx, sources.liveShape, visibleWorld)
@@ -259,11 +264,12 @@ function drawInkItem(
   item: InkItem,
   visibleWorld: WorldBounds,
   zoom: number,
+  devicePixelRatio: number,
   outlineCache: StrokeOutlineCache,
 ): void {
   switch (item.kind) {
     case 'stroke':
-      drawStroke(ctx, item, visibleWorld, zoom, outlineCache)
+      drawStroke(ctx, item, visibleWorld, zoom, devicePixelRatio, outlineCache)
       return
     case 'line':
     case 'rect':
@@ -282,12 +288,17 @@ function drawInkItem(
  *
  * 轮廓（含单点圆、变宽胶囊链）全部来自 `web/src/ink/outline.ts`，这里只负责填色：
  * 桌面笔迹为整条单色（`ink-rendering.zh-CN.md` §5），因此用一次 `fill()` 即可。
+ *
+ * `zoom` 与 `devicePixelRatio` 一起决定轮廓细分容差（`0.25 / (zoom × DPR)` 世界单位），
+ * 使折线误差恒为 0.25 **设备像素**：DPR 3 的屏幕上轮廓同样细，不会因为容差按 CSS
+ * 像素算而放大到 0.75 设备像素（那会表现为放大后边缘有细碎折角）。
  */
 function drawStroke(
   ctx: RenderContext2D,
   stroke: Stroke,
   visibleWorld: WorldBounds,
   zoom: number,
+  devicePixelRatio: number,
   outlineCache: StrokeOutlineCache,
 ): void {
   const bounds = getStrokeBounds(stroke)
@@ -295,7 +306,7 @@ function drawStroke(
     return
   }
 
-  const outline = outlineCache.get(stroke, zoom)
+  const outline = outlineCache.get(stroke, zoom, devicePixelRatio)
   if (outline === null || outline.points.length < 3) {
     return
   }

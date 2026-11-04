@@ -6,7 +6,6 @@ import {
   computeBackingStoreSize,
   createBoardRenderHandle,
   DEFAULT_BACKGROUND,
-  MAX_DEVICE_PIXEL_RATIO,
   resolveDevicePixelRatio,
   type BoardRenderHandle,
   type RenderSources,
@@ -93,11 +92,11 @@ describe('渲染句柄（render-handle）', () => {
     expect(harness.canvas.height).toBe(1200)
   })
 
-  it('设备像素比上限为 2', () => {
+  it('DPR 不设固定上限：DPR 3 的屏幕按 3 倍后备存储渲染', () => {
+    // 曾经夹到 2，结果高 DPI 屏幕上浏览器把画布放大 1.5 倍，笔迹发糊。
     const harness = createHarness({ dpr: 3 })
-    expect(MAX_DEVICE_PIXEL_RATIO).toBe(2)
-    expect(harness.canvas.width).toBe(1600)
-    expect(harness.canvas.height).toBe(1200)
+    expect(harness.canvas.width).toBe(2400)
+    expect(harness.canvas.height).toBe(1800)
   })
 
   it('未设置 devicePixelRatio 时按 1 计算', () => {
@@ -265,11 +264,11 @@ describe('后备存储与 DPR 计算', () => {
     expect(computeBackingStoreSize({ x: 0.2, y: 0.2 }, 1)).toEqual({ width: 1, height: 1 })
   })
 
-  it('DPR 归一化：非法值回退 1，超过 2 夹到 2', () => {
+  it('DPR 归一化：非法值回退 1，合法值原样保留（上限取决于窗口尺寸）', () => {
     expect(resolveDevicePixelRatio(undefined)).toBe(1)
     expect(resolveDevicePixelRatio(0)).toBe(1)
     expect(resolveDevicePixelRatio(Number.NaN)).toBe(1)
     expect(resolveDevicePixelRatio(1.5)).toBe(1.5)
-    expect(resolveDevicePixelRatio(3)).toBe(2)
+    expect(resolveDevicePixelRatio(3)).toBe(3)
   })
 })

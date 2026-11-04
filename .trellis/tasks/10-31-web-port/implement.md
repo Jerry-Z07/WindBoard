@@ -612,7 +612,9 @@ interface LocalizedMessage { key: MessageKey; args?: readonly (string | number)[
 限制在 16 777 216（4096×4096），**超限不报错、直接空白**。新增
 `MAX_CANVAS_AREA_PIXELS` + `resolveCanvasDevicePixelRatio(reported, sizeDip)`：
 只在 iOS（`isLikelyIos()`：UA 含 iPhone/iPad/iPod，或 iPadOS 13+ 的 `MacIntel` + 触摸点数 > 1）
-且真的超限时，按面积反算一个安全 DPR；其它平台完全沿用原规则（`MAX_DEVICE_PIXEL_RATIO = 2`）。
+且真的超限时，按面积反算一个安全 DPR；其它平台当时沿用原规则（`MAX_DEVICE_PIXEL_RATIO = 2`）。
+> 2026-11-04 更新：那个固定上限已删除（它正是高 DPI 屏上笔迹发糊的根因），现按后备存储的
+> 单边与面积反算，见「P7 笔迹锐利度」记录。
 刻意不把「夹取」做成无条件行为——否则会把浏览器给的小于 1 的 DPR 抬回 1，反而更糊。
 单测 `web/tests/unit/render-canvas-limit.test.ts`（10 例）覆盖：非 iOS 不受影响、iOS 未超限
 保持原值、超限按面积反算、极端尺寸停在 1、尺寸未知不夹取、无 `navigator` 返回 false。
@@ -734,6 +736,67 @@ P0~P5 完成后，`docs/dev/guides/web-port.zh-CN.md` 的 §7.1 列出了一批�
   `pnpm e2e` 11 例全绿（3 触屏 + 8 视觉，10 张基线）、`pnpm interop` A~E 五步全绿。
 - 桌面侧：`dotnet build WindBoard.slnx -c Release -p:Platform=x64 -p:CodeAnalysisTreatWarningsAsErrors=true`
   0 警告 0 错误；`dotnet test WindBoard.slnx` **650 通过 / 1 跳过**（新增的默认值语料测试 +1）。
+
+## P7 笔迹锐利度：DPR 上限与轮廓容差（2026-11-04）
+
+用户反馈：**「网页版的笔迹相较桌面端更模糊且锯齿严重（尤其是放大后）」**。
+
+### 取证（先量化，再动手）
+
+- **桌面参照**：用既有离屏 harness 渲染**同一几何**（桌面真源是 `ID2D1Ink` + `DrawInk`，
+  由 D2D 在设备分辨率上重新细分），临时测试输出到 `WindBoard.Tests/artifacts/aa-dump/`
+  （该目录被 gitignore，测试文件用完即删，不入库）。
+- **测量口径**：把像素值换算成覆盖度 `c = (v - 46) / 209`，在**像素中心**（`index + 0.5`）上
+  线性插值求 50% 覆盖点。第一版把像素索引当连续坐标，残差虚高约 3 倍、读数不可用——
+  记在这里，因为"边缘在哪"的全部结论都建立在口径正确之上。
+- **结论一**：DPR ≤ 2 时网页与桌面**几乎逐像素一致**。圆弧（r=10、baseSize=3）在 zoom 8 下
+  `meanAbsDiff 0.025`、差值 > 16 的像素占比 `0.07%`、> 64 的一个也没有；细笔迹（3 DIP 折线）
+  网页端边缘略软 7~10%、总墨量少 3~5%，并排 6 倍放大肉眼无差别。
+  → 「轮廓折线化导致锯齿」**被否证**：相对理想圆的折线误差在 DPR1 是 max 0.207 / median 0.069
+  设备像素，DPR1.5 是 max 0.434，都在亚像素级。
+- **结论二（真因）**：`MAX_DEVICE_PIXEL_RATIO = 2` 把 DPR 2.5 / 3 的屏幕夹到 2 倍后备存储，
+  浏览器再把整块画布放大 1.25 / 1.5 倍，**边缘过渡从 1 设备像素变成 2 像素**——这才是"糊"。
+  同一脚本实测 CSS 900×587 的画布：修复前后备存储 1800×1174（= CSS × 2），修复后 2250×1468
+  （= CSS × 2.5）；DPR 1/1.5/2/2.5/3 的边缘过渡宽度修复前是 1/1/1/2/2 像素，修复后全是 1。
+- **结论三（顺带）**：轮廓细分容差只按 `zoom` 算、不按 DPR，DPR 3 时折线误差会被放大到
+  0.75 设备像素（分桶在桶顶最差），必须一起改。
+
+### 改动
+
+- `web/src/render/render-handle.ts`：删除 `MAX_DEVICE_PIXEL_RATIO`，改为**只在真的越过浏览器
+  上限时才夹取**——`MAX_CANVAS_BACKING_DIMENSION = 16 384`（Canvas2D 单边上限，超限整块画布不显示）
+  与 `MAX_CANVAS_BACKING_AREA_PIXELS = 67 108 864`（8192²，RGBA 约 256 MiB）。`resolveDevicePixelRatio`
+  只做非法值回退 1；`resolveCanvasDevicePixelRatio` 用
+  `min(sqrt(预算 / 面积), 边长上限 / 最长边)` 得 `limitDpr`，只有 `limitDpr < devicePixelRatio` 时才降级，
+  **且绝不把 < 1 的 DPR 抬高**（抬高反而更糊）。
+- `web/src/ink/outline.ts`：新增 `outlineScale(zoom, devicePixelRatio)`，容差与分桶都改用
+  `zoom × DPR` 的**乘积**（容差只取决于乘积，所以同桶内换 DPR 仍可复用缓存，不必存 dpr 字段）。
+- `web/src/render/scene.ts`：`drawInkItem` / `drawStroke` 增 `devicePixelRatio` 形参，
+  `drawSceneBase` 与 `drawLivePreview` 都传 `surface.devicePixelRatio`。
+- `web/src/ui/shell/PageThumbnail.tsx`：缩略图同样走 `resolveCanvasDevicePixelRatio`。
+
+### 代价与取舍
+
+- 后备存储随 DPR 线性增长（内存与填充率）。DPR 3 + 1600×900 视口、24k 点实测整帧
+  p50 6.9ms / p90 10.4ms（DPR1 为 3.3ms），仍在 60fps 预算内；4K 屏 DPR 2 时面积预算
+  67M 像素（约 268 MiB）会先触发，按面积反算降级——这是有意的上限，不是缺陷。
+- **不做无条件夹取**：宁可多吃内存，也不让浏览器去放大一张小画布。
+
+### 验证
+
+- `npx tsc -b` 0 错误、`npx oxlint src tests` 0/0、
+  `pnpm verify` 59 文件 / 1442 例、`pnpm e2e` 11 例、`pnpm interop` A~E 全绿。
+- 浏览器复测 DPR 1 / 1.5 / 2 / 2.5 / 3 的边缘过渡宽度全为 1 设备像素；
+  压感笔迹在 DPR 3 + zoom 10 下目视平滑。
+- 单测锁定：`render-handle.test.ts` 的「上限为 2」改为「DPR 3 按 3 倍后备存储（2400×1800）」；
+  `render-canvas-limit.test.ts` 拆成 DPR3 原样、非 iOS 只受单边/面积约束、单边超限按边长反算三条；
+  `ink-outline.test.ts` 新增「容差按设备像素」「分桶用 zoom×DPR 乘积」两条。
+
+### 仍未覆盖
+
+- 没有 DPR > 2 的实机（含手机 PWA）人工确认，只有 Playwright 的 DPR 仿真。
+- 两端仍**没有自动的像素级交叉比对**：桌面 D2D 与网页 Canvas2D 的抗锯齿策略不同，
+  改几何或改后备存储策略都必须人工按 `docs/dev/guides/ink-rendering.zh-CN.md` 复核。
 
 ---
 

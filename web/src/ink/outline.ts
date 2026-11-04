@@ -15,17 +15,21 @@ import type { StrokeSample } from './geometry.ts'
  * 3. 段与段之间用圆弧连接（圆角连接），首尾用圆弧端帽；
  * 4. 输出闭合点序列（首尾不重复），渲染层直接 `moveTo` / `lineTo` / `closePath`。
  *
- * 容差按**屏幕像素**给出：`toleranceWorld = 0.25 / zoom`，因此放大后轮廓更密、
- * 缩小后更稀；缓存按 `ceil(log2(zoom))` 分桶，缩放跨桶时重建。
+ * 容差按**设备像素**给出：`toleranceWorld = 0.25 / (zoom × DPR)`（`DPR` 即后备存储
+ * 相对 CSS 的缩放），因此放大后轮廓更密、缩小后更稀，且 DPR 越高折线越密——
+ * 折线误差始终不超过 0.25 设备像素，不受屏幕密度影响。
  *
- * 桶内容差的已知取舍：轮廓按**首次构建时**的 zoom 计算，而同一桶内的 zoom 最大可到
- * 桶底的两倍，故桶顶处的实际屏幕误差可达约 0.5px。仍在亚像素范围（视觉不可辨），
+ * 缓存按 `ceil(log2(zoom × DPR))` 分桶，缩放或 DPR 变化跨桶时重建。分桶用**乘积**
+ * 而不是单独的 zoom：容差只取决于乘积，所以同桶内 DPR 变了也不必重建。
+ *
+ * 桶内容差的已知取舍：轮廓按**首次构建时**的乘积计算，而同一桶内的乘积最大可到
+ * 桶底的两倍，故桶顶处的实际误差可达约 0.5 设备像素。仍在亚像素范围（视觉不可辨）。
  * 若改为按桶顶 `0.25 / 2^bucket` 计算会为同样的观感多出一倍顶点，不划算，故保持现状。
  *
  * 注意：本模块输出的是世界坐标点序列，不依赖 `Path2D` / Canvas 等 DOM 类型。
  */
 
-/** 轮廓展开的屏幕像素容差（design D2：0.25 屏幕像素）。 */
+/** 轮廓展开的设备像素容差（design D2：0.25 屏幕像素）。 */
 export const OUTLINE_SCREEN_TOLERANCE_PX = 0.25
 
 /** 轮廓展开允许的最小世界容差（防止 0 / 负数 / NaN 导致无限细分）。 */
@@ -57,19 +61,34 @@ export interface StrokeOutline {
   bounds: WorldBounds
 }
 
-/** 屏幕像素容差 → 世界容差（`0.25 / zoom`）。 */
-export function outlineToleranceForZoom(zoom: number): number {
-  return OUTLINE_SCREEN_TOLERANCE_PX / safeZoom(zoom)
+/**
+ * 容差换算用的“每世界单位的像素数”：`zoom × DPR`。
+ *
+ * 世界坐标 → 设备像素的线性放大倍数。DPR 缺省按 1 处理（Node 环境 / 纯逻辑单测）。
+ */
+export function outlineScale(zoom: number, devicePixelRatio = 1): number {
+  const safeDpr =
+    Number.isFinite(devicePixelRatio) && devicePixelRatio > 0 ? devicePixelRatio : 1
+  return safeZoom(zoom) * safeDpr
 }
 
-/** 缩放分桶：`ceil(log2(zoom))`，同一桶内复用同一份轮廓。 */
-export function outlineZoomBucket(zoom: number): number {
-  return Math.ceil(Math.log2(safeZoom(zoom)))
+/** 设备像素容差 → 世界容差（`0.25 / (zoom × DPR)`）。 */
+export function outlineToleranceForZoom(zoom: number, devicePixelRatio = 1): number {
+  return OUTLINE_SCREEN_TOLERANCE_PX / outlineScale(zoom, devicePixelRatio)
 }
 
-/** 按屏幕缩放展开笔迹轮廓（容差取 `0.25 / zoom`）。 */
-export function buildStrokeOutlineForZoom(stroke: Stroke, zoom: number): StrokeOutline | null {
-  return buildStrokeOutline(stroke, outlineToleranceForZoom(zoom))
+/** 缩放分桶：`ceil(log2(zoom × DPR))`，同一桶内复用同一份轮廓。 */
+export function outlineZoomBucket(zoom: number, devicePixelRatio = 1): number {
+  return Math.ceil(Math.log2(outlineScale(zoom, devicePixelRatio)))
+}
+
+/** 按屏幕缩放与 DPR 展开笔迹轮廓（容差取 `0.25 / (zoom × DPR)`）。 */
+export function buildStrokeOutlineForZoom(
+  stroke: Stroke,
+  zoom: number,
+  devicePixelRatio = 1,
+): StrokeOutline | null {
+  return buildStrokeOutline(stroke, outlineToleranceForZoom(zoom, devicePixelRatio))
 }
 
 /**
@@ -97,9 +116,10 @@ export function buildStrokeOutline(stroke: Stroke, toleranceWorld: number): Stro
 }
 
 /**
- * 笔迹轮廓缓存（design D2：按 `ceil(log2(zoom))` 分桶）。
+ * 笔迹轮廓缓存（design D2：按 `ceil(log2(zoom × DPR))` 分桶）。
  *
- * 每条笔迹只保留最近一次构建的桶与轮廓；缩放跨桶时重建。
+ * 每条笔迹只保留最近一次构建的桶与轮廓；缩放或 DPR 变化跨桶时重建
+ * （容差只取决于乘积，所以同桶内 DPR 变化可以复用）。
  * 笔迹对象按不可变处理：若就地修改点集（P2 变换），调用方需先 `invalidate`。
  */
 export class StrokeOutlineCache {
@@ -110,15 +130,18 @@ export class StrokeOutlineCache {
     return this._entries.size
   }
 
-  /** 取（或构建）某条笔迹在当前缩放下的轮廓。 */
-  get(stroke: Stroke, zoom: number): StrokeOutline | null {
-    const bucket = outlineZoomBucket(zoom)
+  /** 取（或构建）某条笔迹在当前缩放与 DPR 下的轮廓。 */
+  get(stroke: Stroke, zoom: number, devicePixelRatio = 1): StrokeOutline | null {
+    const bucket = outlineZoomBucket(zoom, devicePixelRatio)
     const entry = this._entries.get(stroke)
     if (entry !== undefined && entry.bucket === bucket) {
       return entry.outline
     }
 
-    const outline = buildStrokeOutline(stroke, outlineToleranceForZoom(zoom))
+    const outline = buildStrokeOutline(
+      stroke,
+      outlineToleranceForZoom(zoom, devicePixelRatio),
+    )
     this._entries.set(stroke, { bucket, outline })
     return outline
   }
