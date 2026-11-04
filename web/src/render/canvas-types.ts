@@ -75,11 +75,36 @@ export interface RenderContext2D {
   fillText(text: string, x: number, y: number, maxWidth?: number): void
 }
 
+/**
+ * 画布的 CSS 布局矩形（`getBoundingClientRect()` 的数值子集）。
+ *
+ * 与 `clientWidth/clientHeight` 的区别是**带小数**：`clientWidth` 会四舍五入成整数，
+ * 而设备像素对齐必须知道真实的小数尺寸与原点（见 `render-handle.ts` 的
+ * `computeDeviceGridAlignment`）。
+ */
+export interface CanvasLayoutRect {
+  readonly left: number
+  readonly top: number
+  readonly width: number
+  readonly height: number
+}
+
+/**
+ * 画布元素上需要写入的内联样式（`CSSStyleDeclaration` 的数值子集）。
+ *
+ * 渲染层只写这三项：把 CSS 尺寸钉到整设备像素，并用位移把左上角对齐到整设备像素。
+ */
+export interface CanvasInlineStyle {
+  width: string
+  height: string
+  transform: string
+}
+
 /** 画布元素（`HTMLCanvasElement` 的最小结构视图）。 */
 export interface RenderCanvas {
-  /** CSS 像素宽（DIP）。 */
+  /** CSS 像素宽（DIP，整数，四舍五入后）。 */
   readonly clientWidth: number
-  /** CSS 像素高（DIP）。 */
+  /** CSS 像素高（DIP，整数，四舍五入后）。 */
   readonly clientHeight: number
   /** 后备存储像素宽；写它等于重置画布状态。 */
   width: number
@@ -87,4 +112,14 @@ export interface RenderCanvas {
   height: number
   /** 取 2D 上下文；渲染层在边界处收窄为 `RenderContext2D`。 */
   getContext(contextId: '2d'): unknown
+  /**
+   * 带小数的布局矩形（可选；缺省时退回 `clientWidth/clientHeight`）。
+   *
+   * 离屏画布（`static-cache.ts` 造的）不需要它：离屏层与主画布共用同一套设备像素。
+   */
+  readonly getBoundingClientRect?: () => CanvasLayoutRect
+  /**
+   * 内联样式（可选；缺省时跳过设备像素对齐，行为退化为「只算后备存储尺寸」）。
+   */
+  readonly style?: CanvasInlineStyle
 }

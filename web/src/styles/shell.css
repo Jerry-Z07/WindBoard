@@ -60,6 +60,8 @@
 .wb-surface {
   position: absolute;
   inset: 0;
+  /* 画布尺寸被渲染层钉成整设备像素（可能比布局盒多出不到 1px），这里裁掉溢出 */
+  overflow: hidden;
 }
 
 .wb-surface__canvas {

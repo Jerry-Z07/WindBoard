@@ -102,9 +102,10 @@
 - 事实源：`WindBoard/Rendering/Board/{BoardSceneRenderer,BoardSceneMath}.cs`；规范见 `docs/dev/guides/ink-rendering.zh-CN.md`。
 - 网页端：`ink/geometry.ts`、`ink/outline.ts`、`render/scene.ts`。
 - 保障：`web/tests/unit/{ink-geometry,ink-outline}.test.ts`、`render-scene.test.ts`（断言绘制调用序列）、桌面侧 `WindBoard.Tests/Rendering/Snapshot/` 像素基线。**两端没有像素级交叉比对**，几何改动必须人工按 `ink-rendering` 文档逐条核对。
-- **锐利度**：桌面用 `ID2D1Ink::DrawInk` 由 D2D 在设备分辨率上重新细分，网页端展开成多边形再 `fill`。两者要看起来一致，关键在两点，改任何一处都要重新目视核对：
+- **锐利度**：桌面用 `ID2D1Ink::DrawInk` 由 D2D 在设备分辨率上重新细分，网页端展开成多边形再 `fill`。两者要看起来一致，关键在三点，改任何一处都要重新目视核对：
   1. 后备存储必须等于 `DIP × 真实 DPR`（DPR 被夹小 → 浏览器放大画布 → 边缘过渡从 1 设备像素变 2 像素，见 §6 的 DPR 行）；
-  2. 折线细分容差必须是 **0.25 设备像素** = `0.25 / (zoom × DPR)` 世界单位（`ink/outline.ts` 的 `outlineScale`），只按 CSS 像素算会让 DPR 3 的屏幕上误差放大到 0.75 设备像素。
+  2. 折线细分容差必须是 **0.25 设备像素** = `0.25 / (zoom × DPR)` 世界单位（`ink/outline.ts` 的 `outlineScale`），只按 CSS 像素算会让 DPR 3 的屏幕上误差放大到 0.75 设备像素；
+  3. 后备存储与画布左上角必须落在**整设备像素**上（`render/render-handle.ts` 的 `computeDeviceGridAlignment`）：`clientWidth/clientHeight` 是四舍五入后的整数，拿它算后备存储会与小数布局盒差 1 行（约 0.1% 整图缩放）；合成层原点落在半设备像素上时 Chromium 还会整层双线性重采样。两条都会让小数缩放（Windows 125%/150%、浏览器缩放 110%）下的边缘从 1 个设备像素过渡变成 2 个。`web/tests/unit/render-device-grid.test.ts` 锁住算法。
 - 漂移症状：笔迹粗细/拐角/箭头翼形状在两端看起来不同；同一 `.wbix` 打开后线条明显变形；**同几何下网页端边缘更软、放大后边缘有细碎折角**。
 
 ### 3.3 视口与坐标换算

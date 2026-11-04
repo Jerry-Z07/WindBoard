@@ -409,7 +409,9 @@ export function BoardSurface(props: BoardSurfaceProps): ReactNode {
   }
 
   return (
-    <div className="wb-surface">
+    // 背景色与画布内的填充色保持一致：画布尺寸被钉成整设备像素，最多差半个像素，
+    // 少掉的那条缝露出的就是这里的内联背景色，不会出现异色细线。
+    <div className="wb-surface" style={{ background }}>
       <canvas ref={canvasRef} className="wb-surface__canvas" />
       {/* P2.3 覆盖层：桌面这两块是 XAML 浮层（`BoardCanvasControl.xaml:74-168`），
           选择框与手柄则由 canvas 自己绘制。 */}

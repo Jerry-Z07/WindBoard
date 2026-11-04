@@ -8,7 +8,11 @@
  * `getBoundingClientRect` / 指针捕获三件套，外加测试侧 `emit()` 派发。
  */
 
-import type { RenderCanvas } from '../../../src/render/canvas-types.ts'
+import type {
+  CanvasInlineStyle,
+  CanvasLayoutRect,
+  RenderCanvas,
+} from '../../../src/render/canvas-types.ts'
 import type { DomCanvasLike, DomEventListener, DomRectLike } from '../../../src/canvas/dom-types.ts'
 import { FakeContext2D } from './fake-2d-context.ts'
 
@@ -22,6 +26,11 @@ export class FakeCanvas implements RenderCanvas, DomCanvasLike {
   /** 画布左上角在视口中的位置（`getBoundingClientRect` 用）。 */
   rectLeft = 0
   rectTop = 0
+  /** 布局矩形宽高（`getBoundingClientRect` 用）；`null` 表示取整数 `clientWidth/clientHeight`。 */
+  rectWidth: number | null = null
+  rectHeight: number | null = null
+  /** 内联样式写入记录（设备像素对齐断言用）。 */
+  readonly style: CanvasInlineStyle = { width: '', height: '', transform: '' }
 
   private readonly _context: FakeContext2D | null
   private readonly _listeners = new Map<string, Set<DomEventListener>>()
@@ -44,9 +53,14 @@ export class FakeCanvas implements RenderCanvas, DomCanvasLike {
     return contextId === '2d' ? this._context : null
   }
 
-  /** 画布在视口中的矩形（只关心左上角）。 */
-  getBoundingClientRect(): DomRectLike {
-    return { left: this.rectLeft, top: this.rectTop }
+  /** 画布在视口中的矩形（左上角 + 带小数的宽高）。 */
+  getBoundingClientRect(): CanvasLayoutRect & DomRectLike {
+    return {
+      left: this.rectLeft,
+      top: this.rectTop,
+      width: this.rectWidth ?? this.clientWidth,
+      height: this.rectHeight ?? this.clientHeight,
+    }
   }
 
   addEventListener(type: string, listener: DomEventListener): void {

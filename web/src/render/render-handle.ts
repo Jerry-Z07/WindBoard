@@ -22,7 +22,7 @@
 import type { Shape } from '../board/model/shape.ts'
 import type { Stroke, Vec2 } from '../board/model/stroke.ts'
 import { StrokeOutlineCache } from '../ink/outline.ts'
-import type { RenderCanvas, RenderContext2D } from './canvas-types.ts'
+import type { CanvasLayoutRect, RenderCanvas, RenderContext2D } from './canvas-types.ts'
 import { createFrameScheduler, normalizeMaxFps } from './frame-scheduler.ts'
 import {
   drawLivePreview,
@@ -201,6 +201,8 @@ export function createBoardRenderHandle(
   let staticSignature: number | null = null
   let disposed = false
   let surface: SceneSurface = { pixelWidth: 1, pixelHeight: 1, devicePixelRatio: 1 }
+  /** 已经写进画布内联样式的位移（CSS 像素），用于把 `getBoundingClientRect()` 读数还原成布局原点。 */
+  let appliedTranslate: Vec2 = { x: 0, y: 0 }
 
   /**
    * 一帧：同步尺寸 → 清理轮廓缓存 → （静态层）场景 + 实时预览 → 覆盖层。
@@ -264,31 +266,63 @@ export function createBoardRenderHandle(
   }
 
   /**
-   * 同步后备存储尺寸与视口尺寸。
+   * 同步后备存储尺寸、CSS 尺寸与设备像素对齐，并把视口尺寸喂给视口。
    *
-   * - CSS 尺寸（`clientWidth/clientHeight`，单位 DIP）变化时先喂给视口；
-   * - 画布尚未布局（尺寸为 0，例如 `display: none`）时沿用视口已有尺寸，避免把视口压成 1×1；
-   * - 只有像素尺寸真的变化时才写 `canvas.width/height`（写它会重置画布状态）。
+   * 为什么不能只用 `clientWidth/clientHeight`（浏览器实测，DPR 1.25 / 1.5）：
+   * - `clientWidth/clientHeight` 是**四舍五入后的整数**，而布局盒可能是小数
+   *   （例：DPR 1.5、盒高 710.67 → `clientHeight` 711 → 后备存储 1067 行，
+   *   实际设备高度 1066 行）。差 1 行等于整张画布被缩放 0.1%，边缘被重采样；
+   * - 画布左上角落在半设备像素上时，合成器同样对整张画布做双线性重采样
+   *   （Chromium 已知行为，合成层位于小数偏移时会被重采样，见
+   *   <https://issues.chromium.org/40431598>）。
+   *
+   * 两者叠加的表现就是「网页端笔迹比桌面端糊」（桌面端 D2D 直绘在设备像素上，
+   * 不存在这两级重采样）。所以这里按 `getBoundingClientRect()` 的小数尺寸算出
+   * 整数设备像素，把 CSS 尺寸钉成 `设备像素 / DPR`，再用 `translate` 把原点补到
+   * 整设备像素上，见 {@link computeDeviceGridAlignment}。
+   *
+   * 画布尚未布局（尺寸为 0，例如 `display: none`）时沿用视口已有尺寸，
+   * 避免把视口压成 1×1；只有像素尺寸真的变化时才写 `canvas.width/height`
+   * （写它会重置画布状态）。
    */
   function syncSurface(): void {
-    const widthDip = canvas.clientWidth
-    const heightDip = canvas.clientHeight
-    if (widthDip > 0 && heightDip > 0) {
-      sources.viewport.updateViewportSize({ x: widthDip, y: heightDip })
+    const measured = readCanvasLayoutRect(canvas)
+    if (!(measured.width > 0 && measured.height > 0)) {
+      const sizeDip = sources.viewport.sizeDip
+      const devicePixelRatio = resolveCanvasDevicePixelRatio(readDevicePixelRatio(), sizeDip)
+      applySurface(computeBackingStoreSize(sizeDip, devicePixelRatio), devicePixelRatio)
+      return
     }
 
-    const sizeDip = sources.viewport.sizeDip
-    const devicePixelRatio = resolveCanvasDevicePixelRatio(readDevicePixelRatio(), sizeDip)
-    const size = computeBackingStoreSize(sizeDip, devicePixelRatio)
-    if (canvas.width !== size.width) {
-      canvas.width = size.width
+    // `getBoundingClientRect()` 含上一帧写入的位移，先还原成真实布局原点，
+    // 否则每帧都会把位移当成布局变化，对齐结果反复横跳。
+    const layout: CanvasLayoutRect = {
+      left: measured.left - appliedTranslate.x,
+      top: measured.top - appliedTranslate.y,
+      width: measured.width,
+      height: measured.height,
     }
-    if (canvas.height !== size.height) {
-      canvas.height = size.height
+    const devicePixelRatio = resolveCanvasDevicePixelRatio(readDevicePixelRatio(), {
+      x: layout.width,
+      y: layout.height,
+    })
+    const alignment = computeDeviceGridAlignment(layout, devicePixelRatio)
+    sources.viewport.updateViewportSize({ x: alignment.widthDip, y: alignment.heightDip })
+    applySurface(alignment.backing, devicePixelRatio)
+    appliedTranslate = applyDeviceGridStyles(canvas, alignment, appliedTranslate)
+  }
+
+  /** 写后备存储尺寸并更新本帧的渲染表面快照。 */
+  function applySurface(backing: BackingStoreSize, devicePixelRatio: number): void {
+    if (canvas.width !== backing.width) {
+      canvas.width = backing.width
+    }
+    if (canvas.height !== backing.height) {
+      canvas.height = backing.height
     }
     surface = {
-      pixelWidth: size.width,
-      pixelHeight: size.height,
+      pixelWidth: backing.width,
+      pixelHeight: backing.height,
       devicePixelRatio,
     }
   }
@@ -439,6 +473,94 @@ export function computeBackingStoreSize(sizeDip: Vec2, devicePixelRatio: number)
   }
 }
 
+/** 设备像素网格对齐结果。 */
+export interface DeviceGridAlignment {
+  /** 画布 CSS 宽（= 整数设备像素 / DPR），写给内联 `width`。 */
+  readonly widthDip: number
+  /** 画布 CSS 高（= 整数设备像素 / DPR），写给内联 `height`。 */
+  readonly heightDip: number
+  /** 后备存储尺寸（整数设备像素）。 */
+  readonly backing: BackingStoreSize
+  /** 需要叠加到左上角的位移（CSS 像素），让画布原点落在整设备像素上。 */
+  readonly translateDip: Vec2
+}
+
+/**
+ * 按布局矩形算出「把画布钉到设备像素网格」所需的三件事：后备存储尺寸、
+ * 内联 CSS 尺寸、原点位移。
+ *
+ * 尺寸用 `round`（不是 `ceil`）：写回 CSS 后下一帧会重新读到这个值，`ceil` 在
+ * 「乘积刚好略大于整数」时会每帧加 1 个设备像素（实测 1066.00003 → 1067 → 1068），
+ * 画布被逐步撑大；`round` 是幂等的（`round(round(x·r)/r·r) = round(x·r)`）。
+ * 代价是最多差半个设备像素：多出时由 `.wb-surface` 的 `overflow: hidden` 裁掉，
+ * 少掉时露出的是同色背景（`.wb-surface` 内联了画布背景色）。
+ *
+ * 位移是 `round(设备像素) - 设备像素` 除以 DPR：画布原点落在半设备像素上时，
+ * Chromium 会对整张合成层做双线性重采样（实测边缘从 1 个设备像素过渡变成 2 个）。
+ */
+export function computeDeviceGridAlignment(
+  layout: CanvasLayoutRect,
+  devicePixelRatio: number,
+): DeviceGridAlignment {
+  const ratio = Number.isFinite(devicePixelRatio) && devicePixelRatio > 0 ? devicePixelRatio : 1
+  const backing: BackingStoreSize = {
+    width: Math.max(1, Math.round(layout.width * ratio)),
+    height: Math.max(1, Math.round(layout.height * ratio)),
+  }
+  return {
+    widthDip: backing.width / ratio,
+    heightDip: backing.height / ratio,
+    backing,
+    translateDip: {
+      x: snapToDevicePixel(layout.left, ratio),
+      y: snapToDevicePixel(layout.top, ratio),
+    },
+  }
+}
+
+/** 把 `offsetDip` 对齐到整设备像素所需的位移（CSS 像素）。 */
+export function snapToDevicePixel(offsetDip: number, devicePixelRatio: number): number {
+  if (!Number.isFinite(offsetDip) || !Number.isFinite(devicePixelRatio) || devicePixelRatio <= 0) {
+    return 0
+  }
+  const deviceOffset = offsetDip * devicePixelRatio
+  return (Math.round(deviceOffset) - deviceOffset) / devicePixelRatio
+}
+
+/** 读画布的小数布局矩形；实现不支持时退回整数 `clientWidth/clientHeight`。 */
+function readCanvasLayoutRect(canvas: RenderCanvas): CanvasLayoutRect {
+  const rect = canvas.getBoundingClientRect?.()
+  if (rect !== undefined) {
+    return rect
+  }
+  return { left: 0, top: 0, width: canvas.clientWidth, height: canvas.clientHeight }
+}
+
+/** 把对齐结果写进内联样式；返回本次实际生效的位移。 */
+function applyDeviceGridStyles(
+  canvas: RenderCanvas,
+  alignment: DeviceGridAlignment,
+  applied: Vec2,
+): Vec2 {
+  const style = canvas.style
+  if (style === undefined) {
+    return applied
+  }
+  const width = `${alignment.widthDip}px`
+  const height = `${alignment.heightDip}px`
+  const transform = `translate(${alignment.translateDip.x}px, ${alignment.translateDip.y}px)`
+  if (style.width !== width) {
+    style.width = width
+  }
+  if (style.height !== height) {
+    style.height = height
+  }
+  if (style.transform !== transform) {
+    style.transform = transform
+  }
+  return alignment.translateDip
+}
+
 /** 从全局读取 `devicePixelRatio`（非浏览器环境返回 undefined）。 */
 function readDevicePixelRatio(): number | undefined {
   const scope = globalThis as unknown as { devicePixelRatio?: number }
@@ -453,6 +575,18 @@ interface CanvasResizeObserver {
 
 /** `ResizeObserver` 构造器的最小结构视图。 */
 type CanvasResizeObserverConstructor = new (callback: () => void) => CanvasResizeObserver
+
+/**
+ * 观察尺寸变化的元素。
+ *
+ * 画布的尺寸被渲染层写成了具体的设备像素网格（见 `syncSurface`），不再跟随
+ * `width: 100%` 的布局伸缩，因此必须观察**父元素**才能收到窗口/布局尺寸变化；
+ * 没有父元素的场景（离屏画布、单测里的假画布）退回观察画布自身。
+ */
+function resolveResizeTarget(canvas: RenderCanvas): RenderCanvas {
+  const parent = (canvas as { readonly parentElement?: unknown }).parentElement
+  return typeof parent === 'object' && parent !== null ? (parent as RenderCanvas) : canvas
+}
 
 /**
  * 监听画布 CSS 尺寸变化；环境没有 `ResizeObserver` 时返回 `null`。
@@ -472,6 +606,6 @@ function observeCanvasResize(
     return null
   }
   const observer = new ResizeObserverConstructor(onChange)
-  observer.observe(canvas)
+  observer.observe(resolveResizeTarget(canvas))
   return observer
 }

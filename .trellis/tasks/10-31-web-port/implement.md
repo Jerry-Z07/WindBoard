@@ -798,6 +798,52 @@ P0~P5 完成后，`docs/dev/guides/web-port.zh-CN.md` 的 §7.1 列出了一批�
 - 两端仍**没有自动的像素级交叉比对**：桌面 D2D 与网页 Canvas2D 的抗锯齿策略不同，
   改几何或改后备存储策略都必须人工按 `docs/dev/guides/ink-rendering.zh-CN.md` 复核。
 
+### 第二轮：小数缩放下的整设备像素对齐（2026-11-04 晚补）
+
+用户确认「看到问题时的 Windows 显示缩放是 100%~150%」——DPR 上限修复（只影响 >200%）
+**解释不了他的观感**，于是继续查小数缩放路径，最后定位到两处独立的重采样。
+
+**取证手段（真机，非 Playwright 截图）**：用 `chrome --force-device-scale-factor=1.5/1.25`
+起真实窗口，CDP 注入同一支笔迹，再用 PowerShell `CopyFromScreen` 抓**真实屏幕**，
+在物理像素上量笔迹上边缘的过渡宽度（`strong` = 值落在 90~210 的行数，1 行为清晰）。
+
+| 场景 | runMean | strongMean |
+|---|---|---|
+| DSF 1（基线） | 1.039 | 0.675 |
+| DSF 1.5，修复前 | 1.894 | 1.141 |
+| DSF 1.5，修复后 | **1.165** | **0.694** |
+| DSF 1.25，修复后 | 1.052 | 0.649 |
+
+**真因（两条叠加）**：
+
+1. `syncSurface` 用 `clientWidth/clientHeight`（**四舍五入后的整数**）算后备存储。DSF 1.5 下
+   画布布局盒是 1086×710.667，`clientHeight` 报 711 → 后备存储 1067 行，而实际设备高度是
+   `710.667 × 1.5 = 1066` 行。差 1 行 = 整张图缩放 0.094%，相位沿纵向漂移，中段变成
+   2 像素过渡。DSF 1 下 CSS 尺寸正好整数，所以从没暴露。
+2. 画布原点落在半设备像素上时，Chromium 会把整张合成层双线性重采样（
+   <https://issues.chromium.org/40431598>）。裸 canvas 扫描证实：DPR 1.5、`top` 为整数设备像素
+   （0 / 34 / 36 → 设备 0 / 51 / 54）时过渡 1 行，`top: 33`（设备 49.5）时 2 行；`<img>` 同样如此，
+   与 canvas 无关。
+
+**改动**：
+
+- `web/src/render/render-handle.ts`：新增 `computeDeviceGridAlignment(layout, dpr)` 与
+  `snapToDevicePixel(offsetDip, dpr)`。`syncSurface` 改用 `getBoundingClientRect()` 的小数尺寸，
+  算整数设备像素 → 写后备存储 → 把 CSS 尺寸钉成 `设备像素 / DPR` → 用 `translate` 把原点补到整设备像素。
+  用 `round` 而不是 `ceil`：写回后下一帧会重新读到这个值，`ceil` 在"乘积刚好略大于整数"时会每帧
+  加 1 个设备像素（实测 1066.00003 → 1067 → 1068），`round` 是幂等的。
+  已写入的位移会从下一帧的 `getBoundingClientRect()` 里减掉，避免把位移当成布局变化反复横跳。
+- `web/src/render/render-handle.ts`：`ResizeObserver` 改为观察**父元素**——画布尺寸已被钉成具体
+  像素，不再跟随 `width: 100%` 伸缩，观察自己收不到窗口变化。
+- `web/src/styles/shell.css`：`.wb-surface` 加 `overflow: hidden`（裁掉不到 1px 的溢出）。
+- `web/src/ui/shell/BoardSurface.tsx`：`.wb-surface` 内联画布背景色，少掉半个像素的缝露出的是
+  同色背景，不会出现异色细线。
+- 新增 `web/tests/unit/render-device-grid.test.ts`（13 例）：位移补偿、多 DPR 下的尺寸换算、
+  **换算幂等性**、小数布局盒下的内联样式、连续多帧稳定、视口尺寸取对齐后的 CSS 尺寸、未布局时保留旧尺寸。
+
+**仍未覆盖**：只实测了 Windows Chrome；Firefox / Safari 的合成器行为未验证（代码路径与浏览器无关，
+对齐规则同样适用，但"是否真会重采样"没有实测）；iOS 真机仍缺。
+
 ---
 
 ## 依赖与顺序
