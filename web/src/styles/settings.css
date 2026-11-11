@@ -449,6 +449,31 @@
   .wb-settings-nav__item[aria-current='page']::before {
     display: none;
   }
+
+  /*
+   * 卡片在窄屏改成纵向堆叠：桌面卡片的控件（下拉/开关）是固定宽度、贴右对齐，
+   * 手机 360 宽时控件会占掉整行，把左侧标题区挤到 0 宽（实测标题竖排成一字一行）。
+   * 这里让标题行独占第一行、控件换到第二行并拉满宽。
+   */
+  .wb-settings-card {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .wb-settings-card__text {
+    flex: 1 1 100%;
+  }
+
+  .wb-settings-card__control {
+    flex: 1 1 100%;
+    align-items: stretch;
+    min-width: 0;
+  }
+
+  /* 可点击卡片右侧的"当前值"同样换行，避免被压窄 */
+  .wb-settings-card--clickable {
+    align-items: flex-start;
+  }
 }
 
 /* ===== Dock 顺序编辑器（设置 → Dock，桌面 `DockSettingsPage.xaml:30-229`） ===== */

@@ -165,6 +165,15 @@
 - 保障：`web/tests/unit/render-thumbnail.test.ts`（13 例，按桌面实际行为断言，包括「1000 点降采样后是 251 点」这种非整数拷贝行为）。
 - 已知有意偏差：网页端额外绘制形状（桌面只画笔迹），否则「只有形状的页」缩略图会全空白。
 
+### 3.10 窄屏（手机）布局
+
+- 事实源：**无**。桌面 WinUI 窗口的最小宽度足以横排三段 Dock，没有窄屏概念；这一节全部是网页端新增，不属于移植项。
+- 断点：`styles/shell.css` 与 `ui/shell/use-narrow-layout.ts` 里的 **700px**，两处必须同时改（`NARROW_LAYOUT_QUERY` 的注释已声明这条约束）。取值依据是实测的三段 Dock 原始宽度：左 198 + 中 395 + 右 62，横排不溢出要 ≥700；中段绝对居中的排法在 <819 会与左段压叠，由 `@media (max-width: 900px) and (min-width: 701px)` 改成不脱流的居中排法单独处理。
+- 窄屏形态：单段紧凑栏（`ui/shell/DockBar.tsx` 的 `NarrowDock`）= 4 个工具 + 分隔线 + 撤销/重做 + 「更多」浮层；页面组（上一页/指示器/下一页/新增页）与导入/导出/设置/全屏/最小化/页面管理全部收进「更多」浮层（`NarrowMoreButton`）。
+- 安全区：`index.html` 的 `viewport-fit=cover` + `styles/shell.css` 里标题栏、Dock 层、提醒栈的 `env(safe-area-inset-*)`。
+- 保障：`web/tests/unit/ui-narrow-shell.test.tsx`（4 例，装 `matchMedia` 桩锁住窄屏分支的按钮集合与浮层入口）；宽屏分支由 `ui-shell-smoke.test.tsx` 覆盖。像素级尺寸（44×44 触摸目标、隐藏文字）只能靠浏览器截图复核。
+- 踩坑：移动端 Chrome 遇到横向溢出会**撑宽布局视口且不再收回**（实测 360 → 413，`position: fixed` 的外壳与 Dock 一起被推着变宽）。因此 `html, body` 必须 `overflow: hidden`，且窄屏浮层宽度必须固定——浮层内展开子面板会改变宽度时，Fluent 按旧尺寸算好位置再塞进更大的内容，右边缘瞬间冲出视口就触发了这个行为。
+
 ## 4. 同步流程：改了桌面之后做什么
 
 第一步永远是判断「这次改动是否落在契约面上」。下表按桌面改动位置给出必查的网页端位置与必跑命令。
@@ -232,6 +241,9 @@ CI（`.github/workflows/web.yml`）在 push/PR 时自动跑 `lint` → `typechec
 | 「最小化」按钮保留但弹解释提醒；设置持久化用 `localStorage` | `ui/shell/DockBar.tsx`、`settings/service.ts` | 浏览器没有对应能力；导出设置文件另名为 `windboard-settings.json` |
 | Dock 文字用 `--wb-dock-text-primary`（89.4% 黑，不随主题） | `styles/tokens.css` | Dock 区强制浅色底板，深色主题下白字会看不见 |
 | 自动保存 / 崩溃恢复 | `persistence/autosave*.ts`、`ui/dialogs/RecoveryDialog.tsx` | 网页端增强，桌面没有；不是移植项 |
+| 窄屏（≤700px）改用单段紧凑栏，页面组与导入/导出/设置/全屏/最小化收进「更多」浮层 | `ui/shell/use-narrow-layout.ts`、`ui/shell/DockBar.tsx`、`styles/shell.css`、`styles/dock.css` | 桌面窗口放得下三段 Dock；360px 下三段实测 198+395+62，互相压叠且按钮点不到 |
+| 安全区内边距 `env(safe-area-inset-*)` + `viewport-fit=cover` | `index.html`、`styles/shell.css` | 刘海屏/圆角屏会遮挡标题栏与 Dock；桌面无此概念 |
+| 窄屏设置卡片改为纵向堆叠 | `styles/settings.css` | 360px 下控件会把标题区挤成 0 宽（实测竖排一字一行） |
 
 ## 7. 已知受限项
 

@@ -15,8 +15,13 @@ import type { DockItemId } from '../../settings/model.ts'
 import type { PenColor } from '../../tools/tool-settings.ts'
 import type { MessageKey } from '../../i18n/locales/zh-CN.generated.ts'
 
-/** Dock 三个浮层的位置（`MainWindow.xaml:54-70`：左/中/右三块分别对齐）。 */
-export type DockPlacement = 'left' | 'center' | 'right'
+/**
+ * Dock 三块浮层的位置（`MainWindow.xaml:54-70`：左/中/右三块分别对齐）。
+ *
+ * `narrow` 是网页端为手机新增的第四种：窄屏下三段横排会互相覆盖（实测视口 <900 即压叠），
+ * 因此合并成单段紧凑栏，详见 `ui/shell/use-narrow-layout.ts` 的头注释。
+ */
+export type DockPlacement = 'left' | 'center' | 'right' | 'narrow'
 
 // ===== 色板网格 =====
 

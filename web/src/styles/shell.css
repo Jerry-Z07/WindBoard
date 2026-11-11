@@ -9,6 +9,21 @@
  * 尺寸与颜色一律来自 `tokens.css`，这里只负责摆放。
  */
 
+/*
+ * 外壳独占整个视口，文档本身永远不滚动。
+ *
+ * `overflow: hidden` 不只为了挡滚动条：移动端 `width=device-width` 下，内容溢出会把
+ * **布局视口**撑宽（实测打开内嵌页面列表后从 360 涨到 427），而 `position: fixed; inset: 0`
+ * 的外壳以布局视口为准，会跟着一起变宽，整块 Dock 被推着右移，右侧按钮直接出界。
+ */
+html,
+body {
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
 .wb-app {
   position: fixed;
   inset: 0;
@@ -23,9 +38,12 @@
 }
 
 /* ===== 标题栏 ===== */
+/* 安全区：装上 PWA 后 iOS 的刘海/状态栏会盖住页面顶部，`viewport-fit=cover` + 这里的内边距
+   把标题栏压回可视区。桌面上 `env(safe-area-inset-*)` 恒为 0，等于没有这条规则。 */
 .wb-titlebar {
   flex: 0 0 auto;
-  height: var(--wb-titlebar-height);
+  height: calc(var(--wb-titlebar-height) + env(safe-area-inset-top, 0px));
+  padding-top: env(safe-area-inset-top, 0px);
   display: flex;
   align-items: center;
   gap: 12px;
@@ -76,8 +94,8 @@
 /* ===== 右上提醒栈（`MainWindow.xaml:43-49`） ===== */
 .wb-reminder-stack {
   position: absolute;
-  top: var(--wb-overlay-margin);
-  right: var(--wb-overlay-margin);
+  top: calc(var(--wb-overlay-margin) + env(safe-area-inset-top, 0px));
+  right: calc(var(--wb-overlay-margin) + env(safe-area-inset-right, 0px));
   display: flex;
   flex-direction: column;
   gap: var(--wb-reminder-stack-gap);
@@ -93,9 +111,9 @@
 /* ===== 底部 Dock 层（`MainWindow.xaml:54-70`） ===== */
 .wb-dock-layer {
   position: absolute;
-  left: var(--wb-overlay-margin);
-  right: var(--wb-overlay-margin);
-  bottom: var(--wb-overlay-margin);
+  left: calc(var(--wb-overlay-margin) + env(safe-area-inset-left, 0px));
+  right: calc(var(--wb-overlay-margin) + env(safe-area-inset-right, 0px));
+  bottom: calc(var(--wb-overlay-margin) + env(safe-area-inset-bottom, 0px));
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
@@ -113,6 +131,30 @@
   left: 50%;
   bottom: 0;
   transform: translateX(-50%);
+}
+
+/*
+ * 中等宽度（701~900）：三段仍并排，但中段不再"绝对居中"。
+ *
+ * 中段宽 395、左段 198，视口 <819 时 `left:50%` 的中心块会压在左段上（实测 800 宽时
+ * 左段右端 212、中段左端 203，直接盖住 9px，按钮点不到）。改成不脱流后三块首尾相接、
+ * 整体居中，700 宽以上就完全不重叠。
+ */
+@media (max-width: 900px) and (min-width: 701px) {
+  .wb-dock-layer {
+    justify-content: center;
+    gap: 8px;
+  }
+
+  .wb-dock-layer__center {
+    position: static;
+    transform: none;
+  }
+}
+
+/* 窄屏（≤700）的单段紧凑栏：整段居中，不再有左/中/右三段 */
+.wb-dock-layer--narrow {
+  justify-content: center;
 }
 
 /* ===== Dock 底板与按钮 ===== */
@@ -196,4 +238,38 @@
   min-width: var(--wb-page-indicator-width);
   font-size: var(--wb-page-indicator-size);
   font-weight: 600;
+}
+
+/*
+ * ===== 窄屏（≤700）的紧凑 Dock =====
+ *
+ * 触摸目标 44×44（Material 最小 48、Apple HIG 44；这里取 44 是因为 360 宽扣掉两侧 8 的
+ * 外边距后只剩 344，7 个按钮 × 44 + 间距 24 + 内边距 8 = 340 刚好放得下）。
+ * 文字全部隐藏——44 高的按钮塞不下"图标 20 + 文字 11 + 间距 3"，
+ * 隐藏后无障碍名回落到按钮的 `title`（工具与撤销重做都已带上）。
+ */
+@media (max-width: 700px) {
+  :root {
+    --wb-overlay-margin: 8px;
+    --wb-dock-padding: 4px;
+    --wb-dock-gap: 4px;
+    --wb-dock-button-width: 44px;
+    --wb-dock-button-height: 44px;
+    --wb-dock-button-padding-x: 0px;
+    --wb-dock-button-padding-y: 0px;
+    --wb-dock-separator-size: 24px;
+  }
+
+  .wb-dock-button__label {
+    display: none;
+  }
+
+  .wb-dock-button {
+    gap: 0;
+  }
+
+  /* 提醒条在窄屏占满整行，避免被压到只剩一半宽 */
+  .wb-reminder-stack {
+    top: calc(var(--wb-overlay-margin) + env(safe-area-inset-top, 0px));
+  }
 }

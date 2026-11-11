@@ -23,6 +23,7 @@ import { BoardSurface } from './BoardSurface.tsx'
 import { DockBar } from './DockBar.tsx'
 import { ReminderStack } from './ReminderStack.tsx'
 import { TitleBar } from './TitleBar.tsx'
+import { useNarrowLayout } from './use-narrow-layout.ts'
 import { SettingsWindow } from '../dialogs/SettingsWindow.tsx'
 import { ExportDialog } from '../dialogs/ExportDialog.tsx'
 import { ImportDialog } from '../dialogs/ImportDialog.tsx'
@@ -34,6 +35,8 @@ export function AppShell(): ReactNode {
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [exportOpen, setExportOpen] = useState(false)
   const [importOpen, setImportOpen] = useState(false)
+  // 窄屏（手机）把三段 Dock 合并成一段紧凑栏，否则三段横排会互相覆盖
+  const narrow = useNarrowLayout()
 
   const actions = useMemo<ShellActions>(
     () => ({
@@ -62,13 +65,19 @@ export function AppShell(): ReactNode {
           {controller === null ? null : (
             <BoardControllerProvider controller={controller}>
               <ReminderStack />
-              <div className="wb-dock-layer">
-                <DockBar placement="left" />
-                <div className="wb-dock-layer__center">
-                  <DockBar placement="center" />
+              {narrow ? (
+                <div className="wb-dock-layer wb-dock-layer--narrow">
+                  <DockBar placement="narrow" />
                 </div>
-                <DockBar placement="right" />
-              </div>
+              ) : (
+                <div className="wb-dock-layer">
+                  <DockBar placement="left" />
+                  <div className="wb-dock-layer__center">
+                    <DockBar placement="center" />
+                  </div>
+                  <DockBar placement="right" />
+                </div>
+              )}
             </BoardControllerProvider>
           )}
         </div>

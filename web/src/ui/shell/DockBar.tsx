@@ -15,7 +15,7 @@
  *    计算后驱动受控 `Popover`，不使用 `PopoverTrigger` 的默认开合。
  */
 
-import type { ReactElement, ReactNode } from 'react'
+import { useState, type ReactElement, type ReactNode } from 'react'
 import {
   FluentProvider,
   Menu,
@@ -131,13 +131,15 @@ const SURFACE_STYLE = {
 /** 弹出层里的主题容器：同样抵消默认背景。 */
 const SURFACE_THEME_STYLE = { background: 'transparent' } as const
 
-/** Dock（按 placement 分派到三块浮层）。 */
+/** Dock（按 placement 分派到三块浮层；窄屏走合并后的紧凑栏）。 */
 export function DockBar(props: DockBarProps): ReactNode {
   const content =
     props.placement === 'left' ? (
       <LeftDock />
     ) : props.placement === 'center' ? (
       <CenterDock />
+    ) : props.placement === 'narrow' ? (
+      <NarrowDock />
     ) : (
       <RightDock />
     )
@@ -248,8 +250,13 @@ function MoreButton(): ReactNode {
 
 // ===== 主 Dock（`MainWindow.xaml:441-558`） =====
 
-/** 主 Dock：选择 / 笔 / 橡皮 / 形状 + 分隔线 + 撤销 / 重做。 */
-function CenterDock(): ReactNode {
+/**
+ * 工具组：选择 / 笔 / 橡皮 / 形状。
+ *
+ * 独立成组件是因为窄屏紧凑栏（`NarrowDock`）要复用同一组按钮与弹出面板，
+ * 复制一份会漏掉"二次点击才弹面板"这类行为。
+ */
+function ToolButtons(): ReactNode {
   const { t } = useI18n()
   const controller = useBoardController()
   const snapshot = useBoardSnapshot()
@@ -349,6 +356,21 @@ function CenterDock(): ReactNode {
     )
   }
 
+  return <>{ordered.map(renderTool)}</>
+}
+
+/**
+ * 撤销 / 重做组。
+ *
+ * 桌面把这一组和工具组放在同一块浮层里、用一条 1×30 的分隔线隔开
+ * （`MainWindow.xaml:522-527`）；"是否显示"由设置项 `dock.isUndoRedoVisible` 决定，
+ * 隐藏时连分隔线一起去掉，所以分隔线由调用方按同一开关渲染。
+ */
+function UndoRedoButtons(): ReactNode {
+  const { t } = useI18n()
+  const controller = useBoardController()
+  const snapshot = useBoardSnapshot()
+  const settings = useSettings()
   const showUndoRedo = settings.dock.isUndoRedoVisible
   const undoRedoOrder = settings.dock.undoRedoOrder
 
@@ -360,6 +382,8 @@ function CenterDock(): ReactNode {
             key={id}
             icon={<ArrowUndoRegular fontSize={20} />}
             label={t('Common_Undo')}
+            // 窄屏隐藏文字后，无障碍名会回落到 title；桌面也顺手有了悬停提示
+            title={t('Common_Undo')}
             disabled={!snapshot.canUndo}
             onClick={() => {
               controller.undo()
@@ -372,6 +396,7 @@ function CenterDock(): ReactNode {
             key={id}
             icon={<ArrowRedoRegular fontSize={20} />}
             label={t('Common_Redo')}
+            title={t('Common_Redo')}
             disabled={!snapshot.canRedo}
             onClick={() => {
               controller.redo()
@@ -383,16 +408,23 @@ function CenterDock(): ReactNode {
     }
   }
 
+  return !showUndoRedo ? null : (
+    <div className="wb-dock__undo-redo">
+      {applyDockOrder(['undo', 'redo'] as const, (id) => id, undoRedoOrder).map(renderUndoRedo)}
+    </div>
+  )
+}
+
+/** 主 Dock：工具组 + 分隔线 + 撤销 / 重做（`MainWindow.xaml:441-558`）。 */
+function CenterDock(): ReactNode {
+  const settings = useSettings()
+
   return (
     <div className="wb-dock wb-dock--center">
-      {ordered.map(renderTool)}
+      <ToolButtons />
       {/* 分隔线 1×30、40% 黑（`MainWindow.xaml:522-527`）；撤销重做整组隐藏时一并隐藏 */}
-      {showUndoRedo ? <div className="wb-dock__separator" aria-hidden /> : null}
-      {showUndoRedo ? (
-        <div className="wb-dock__undo-redo">
-          {applyDockOrder(['undo', 'redo'] as const, (id) => id, undoRedoOrder).map(renderUndoRedo)}
-        </div>
-      ) : null}
+      {settings.dock.isUndoRedoVisible ? <div className="wb-dock__separator" aria-hidden /> : null}
+      <UndoRedoButtons />
     </div>
   )
 }
@@ -518,4 +550,185 @@ function RightDock(): ReactNode {
   }
 
   return <div className="wb-dock wb-dock--pages">{ordered.map(renderItem)}</div>
+}
+
+// ===== 窄屏紧凑栏（网页端新增，桌面无对应实现） =====
+
+/**
+ * 窄屏（视口 <600，见 `use-narrow-layout.ts`）的 Dock。
+ *
+ * 桌面窗口最窄也有几百 DIP 的余量，三段横排永远不会打架；手机竖屏只有 360~430，
+ * 三段实测宽 198 / 395 / 62，横排必然互相覆盖（`playwright-cli` 实测：中段按钮被
+ * 中段容器自身盖住，点击直接命中错误元素）。所以在窄屏把三段合并成一段：
+ *
+ * - 保留：4 个工具 + 撤销 / 重做（书写闭环的高频操作，不能藏）；
+ * - 收进「更多」：导入 / 设置 / 导出 / 全屏 / 最小化 / 页面（上一页、页码、下一页、新增、管理）。
+ *
+ * 为什么是 7 个按钮：44×44 触摸目标 + 间距 4 + 内边距 4，7 个约 340，加上两侧 8 的外边距
+ * 刚好放进 360 宽；8 个就要 388，放不下。
+ */
+function NarrowDock(): ReactNode {
+  const settings = useSettings()
+
+  return (
+    <div className="wb-dock wb-dock--narrow">
+      <ToolButtons />
+      {settings.dock.isUndoRedoVisible ? <div className="wb-dock__separator" aria-hidden /> : null}
+      <UndoRedoButtons />
+      <NarrowMoreButton />
+    </div>
+  )
+}
+
+/** 紧凑栏里的小按钮：图标 20 + 文字 11，触摸目标 48×48（`styles/dock.css` 的 `.wb-sheet-button`）。 */
+function SheetButton(props: {
+  readonly icon: ReactNode
+  readonly label: string
+  readonly disabled?: boolean
+  readonly onClick: () => void
+}): ReactNode {
+  return (
+    <button
+      type="button"
+      className="wb-sheet-button"
+      disabled={props.disabled}
+      onClick={props.onClick}
+    >
+      <span className="wb-sheet-button__icon" aria-hidden>
+        {props.icon}
+      </span>
+      <span className="wb-sheet-button__label">{props.label}</span>
+    </button>
+  )
+}
+
+/**
+ * 窄屏的「更多」浮层：页面行 + 动作网格 + 可展开的页面管理面板。
+ *
+ * 用 `Popover` 而不是 `Menu`：面板里既有图标按钮网格，又要内嵌 `PagesFlyout`
+ * （Fluent 的 `MenuList` 只能放菜单项，塞不进这种结构）。开合受控，
+ * 点动作后统一关闭，避免浮层残留挡住画布。
+ */
+function NarrowMoreButton(): ReactNode {
+  const { t } = useI18n()
+  const actions = useShellActions()
+  const controller = useBoardController()
+  const snapshot = useBoardSnapshot()
+  const reminders = useReminderService()
+  const indicatorText = usePageIndicatorText()
+  const [open, setOpen] = useState(false)
+  const [pagesOpen, setPagesOpen] = useState(false)
+
+  const close = (): void => {
+    setOpen(false)
+    setPagesOpen(false)
+  }
+
+  /** 执行动作并关闭浮层。 */
+  const run = (action: () => void) => (): void => {
+    close()
+    action()
+  }
+
+  return (
+    <Popover
+      open={open}
+      onOpenChange={(_event, data) => {
+        // 浮层是受控的：触发器自己只会报告开合意图，必须两边都接住，
+        // 否则（只处理关闭）点按钮永远打不开
+        if (data.open) {
+          setOpen(true)
+        } else {
+          close()
+        }
+      }}
+      positioning={{ position: 'above', align: 'end' }}
+    >
+      <PopoverTrigger disableButtonEnhancement>
+        <DockButton icon={<MoreHorizontalRegular fontSize={20} />} title={t('Common_More')} />
+      </PopoverTrigger>
+      <PopoverSurface style={SURFACE_STYLE}>
+        <FluentProvider theme={webLightTheme} style={SURFACE_THEME_STYLE}>
+          <div className="wb-sheet">
+            <div className="wb-sheet__pages">
+              <SheetButton
+                icon={<ChevronLeftRegular fontSize={20} />}
+                label={t('Common_PreviousPage')}
+                disabled={snapshot.currentPageIndex <= 0}
+                onClick={run(() => {
+                  controller.setCurrentPageIndex(snapshot.currentPageIndex - 1)
+                })}
+              />
+              {/* 页码不可点：点它没有更自然的动作，页面切换用左右两个按钮 + 下面的"页面管理" */}
+              <div className="wb-sheet__indicator" aria-label={t('MainWindow_PageManager_Title')}>
+                {indicatorText}
+              </div>
+              <SheetButton
+                icon={<ChevronRightRegular fontSize={20} />}
+                label={t('Common_NextPage')}
+                disabled={snapshot.currentPageIndex >= snapshot.pageCount - 1}
+                onClick={run(() => {
+                  controller.setCurrentPageIndex(snapshot.currentPageIndex + 1)
+                })}
+              />
+              <SheetButton
+                icon={<AddRegular fontSize={20} />}
+                label={t('Web_AddPage')}
+                onClick={run(() => {
+                  controller.addPage()
+                })}
+              />
+            </div>
+
+            <div className="wb-sheet__actions">
+              <SheetButton
+                icon={<ArrowImportRegular fontSize={20} />}
+                label={t('Common_Import')}
+                onClick={run(actions.openImport)}
+              />
+              <SheetButton
+                icon={<ArrowExportRegular fontSize={20} />}
+                label={t('Common_Export')}
+                onClick={run(actions.openExport)}
+              />
+              <SheetButton
+                icon={<SettingsRegular fontSize={20} />}
+                label={t('Common_Settings')}
+                onClick={run(actions.openSettings)}
+              />
+              <SheetButton
+                icon={<FullScreenMaximizeRegular fontSize={20} />}
+                label={t(actions.isFullscreen ? 'Common_ExitFullScreen' : 'Common_FullScreen')}
+                onClick={run(actions.toggleFullscreen)}
+              />
+              <SheetButton
+                icon={<SubtractRegular fontSize={20} />}
+                label={t('Common_Minimize')}
+                onClick={run(() => {
+                  // 与桌面左 Dock 的最小化按钮同样的处理：浏览器没有最小化窗口的能力
+                  reminders.push({
+                    message: t('Web_MinimizeUnsupported_Message'),
+                    severity: 'informational',
+                  })
+                })}
+              />
+              <SheetButton
+                icon={<EditRegular fontSize={20} />}
+                label={t('MainWindow_PageManager_Title')}
+                onClick={() => {
+                  setPagesOpen(!pagesOpen)
+                }}
+              />
+            </div>
+
+            {pagesOpen ? (
+              <div className="wb-sheet__pages-panel">
+                <PagesFlyout onClose={close} />
+              </div>
+            ) : null}
+          </div>
+        </FluentProvider>
+      </PopoverSurface>
+    </Popover>
+  )
 }

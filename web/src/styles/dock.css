@@ -387,3 +387,122 @@
   display: block;
   max-width: 100%;
 }
+
+/*
+ * ===== 窄屏「更多」浮层（网页端新增） =====
+ *
+ * 外观沿用弹出面板：浅色底 + 1px 描边 + 圆角 14（`.wb-flyout--panel` 同款令牌），
+ * 但内容是"页面行 + 动作网格 + 可展开的页面管理"，与桌面任何一种浮层都不对应。
+ */
+.wb-sheet {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  background: var(--wb-dock-plate-color);
+  border: 1px solid var(--wb-dock-separator-color);
+  border-radius: var(--wb-dock-plate-radius);
+  color: var(--wb-dock-text-primary);
+  box-sizing: border-box;
+}
+
+.wb-sheet__pages {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+}
+
+.wb-sheet__indicator {
+  min-width: 52px;
+  text-align: center;
+  font-size: var(--wb-page-indicator-size);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.wb-sheet__actions {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2px;
+  padding-top: 8px;
+  border-top: 1px solid rgb(0 0 0 / 10%);
+}
+
+/* 触摸目标 48×48：手机上的最小可点尺寸（Material 48dp / Apple HIG 44pt） */
+.wb-sheet-button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  min-width: 48px;
+  min-height: 48px;
+  padding: 6px 4px;
+  border: 0;
+  border-radius: var(--wb-dock-button-radius);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: default;
+  box-sizing: border-box;
+}
+
+.wb-sheet-button:hover {
+  background: var(--wb-dock-hover);
+}
+
+.wb-sheet-button:active {
+  background: var(--wb-dock-pressed);
+}
+
+.wb-sheet-button:disabled {
+  opacity: 0.4;
+}
+
+.wb-sheet-button__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--wb-dock-icon-size);
+  height: var(--wb-dock-icon-size);
+  font-size: var(--wb-dock-icon-size);
+  line-height: 1;
+}
+
+.wb-sheet-button__label {
+  font-size: var(--wb-dock-label-size);
+  line-height: 1;
+  white-space: nowrap;
+}
+
+/* 内嵌的页面管理面板：屏幕矮时自己滚动，不要把整个浮层撑出视口 */
+.wb-sheet__pages-panel {
+  max-height: 40vh;
+  overflow-y: auto;
+}
+
+/*
+ * 窄屏浮层不能超过视口：内嵌的页面管理面板是固定 280 宽（桌面 `MainWindow.xaml:603`），
+ * 与浮层内边距相加会顶到屏幕边缘，进而把布局视口撑宽（见 `shell.css` 的 html/body 规则）。
+ * 这里让面板在浮层内自适应收窄，窄过 280 时才真的变小。
+ *
+ * 宽度必须**固定**：浮层内的页面管理面板是展开/收起切换的，若浮层宽度随之变化，
+ * Fluent 会按旧尺寸算好位置再塞进更大的内容，右边缘瞬间冲出视口——移动端 Chrome 遇到
+ * 内容溢出会把布局视口撑宽且不再收回（实测 360 → 413，外壳与 Dock 一起被推着变宽）。
+ * 固定宽后，展开面板只改变高度，不触发横向重排。
+ */
+.wb-sheet {
+  width: min(288px, calc(100vw - 32px));
+  max-width: calc(100vw - 16px);
+}
+
+.wb-sheet__pages-panel .wb-flyout--pages {
+  width: 100%;
+  max-width: var(--wb-pages-flyout-width);
+}
+
+.wb-sheet__pages-panel .wb-pages__row {
+  width: 100%;
+  max-width: var(--wb-pages-flyout-row-width);
+}

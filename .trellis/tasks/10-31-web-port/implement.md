@@ -846,6 +846,83 @@ P0~P5 完成后，`docs/dev/guides/web-port.zh-CN.md` 的 §7.1 列出了一批�
 
 ---
 
+## P8 大量笔迹性能复测 + 手机端适配（2026-11-11）
+
+用户指令（原文）："那先搁置，然后确认：性能优化情况（大量笔迹下的表现）、手机端适配（从此处开始使用playwright-cli进行调试）"
+——笔迹锯齿议题搁置，本节只记录这两项。
+
+### 性能复测：瓶颈在"整帧重绘"，不在静止
+
+方法：`playwright-cli` 开 headless Chrome，替换 `requestAnimationFrame` 记录回调耗时，每帧先 `controller.requestRender()`
+再等下一帧。视口 1280×687、DPR 1、本机软件光栅化（rAF 上限 ~7.8ms ≈ 128Hz）。
+
+| 笔迹 / 点数 | 平移（p50 / p90 / max，>33ms 帧数） | 静止 |
+|---|---|---|
+| 1000 / 12k | 7.7 / 8.2 / 8.7，0/89 | 7.8 |
+| 5000 / 60k | 8.1 / 16.0 / 23.4，0/89 | 7.8 |
+| 10000 / 120k | **30.9 / 45.9 / 54.2，32/89** | 8.0（p99 30.8） |
+| 20000 / 240k | **70.6 / 78.7 / 538.6，88/89** | 8.0（p99 55.5） |
+
+- 结论一：**静止不动时静态层缓存生效**，1 万笔迹仍在 8ms/帧（≈125fps）；这也验证了 P5.2 的门槛选择。
+- 结论二：**平移/缩放每帧整帧重绘**是瓶颈（10k ≈ 31ms/帧 ≈ 32fps，20k ≈ 71ms/帧 ≈ 14fps）。
+  根因在 `render/static-cache.ts` 的 `computeSceneSignature` 把变换矩阵混进了指纹——视图一变就失效，
+  而平移恰恰是"内容没变、只有变换变"的场景。
+- 结论三：在 1 万笔迹之上实时书写时 mean 15.5ms / p90 30.2ms，书写本身不受影响（只走 `drawLivePreview`）。
+- 未做优化（记入待办）：把指纹拆成"内容指纹"与"视图变换"，命中内容指纹时用 `drawImage` 的 `setTransform`
+  复用静态层贴图。移动端小视口 AABB 剔除后可见笔迹少，实测 20k 平移 mean 24.8ms，不是同一基准，不能拿来当"手机更快"。
+
+### 手机端：三个必须修的问题（实测）
+
+`playwright-cli open --mobile`（Pixel 10，360×732，DPR 3）下逐项取证：
+
+1. **Dock 三段互相压叠、按钮点不到**。`click` 直接报 `... from .wb-dock-layer__center subtree intercepts pointer events`。
+   三段实测宽度：左 198（更多/最小化/导入）、中 395（四工具 + 撤销/重做）、右 62（单页时只剩"+"）。
+   360 宽时中段 x=-17 压住左段；**800px 的桌面窗口同样压叠**（左段到 212，中段起于 203）。
+2. **设置页卡片坍缩**。360 下 `.wb-settings-card__text` 宽度为 **0**，标题竖排成一字一行，控件列 250 溢出。
+3. **无安全区处理**。全仓没有 `env(safe-area-inset-*)`，`viewport` 也没有 `viewport-fit=cover`。
+
+顺带确认：触屏书写本身可用（派发 `pointerType:'touch'` 的 PointerEvent → 页面上出现 1 条笔迹）；
+导出对话框（312×726）与画笔浮层（190×315）在 360 下都不溢出。
+
+### 改动
+
+- `ui/shell/use-narrow-layout.ts`（新增）：`useSyncExternalStore` + `matchMedia('(max-width: 700px)')`。
+  用 `useSyncExternalStore` 而不是 `useState`+`useEffect`，既避开 oxlint 的 `react(set-state-in-effect)`，
+  也少一帧闪跳（先渲染宽屏再切窄屏）。
+- `ui/shell/dock-layout.ts`：`DockPlacement` 增加 `'narrow'`。
+- `ui/shell/DockBar.tsx`：把 `CenterDock` 拆成 `ToolButtons` / `UndoRedoButtons` 两个片段供复用；
+  新增 `NarrowDock`（四工具 + 分隔线 + 撤销/重做 + 「更多」）与 `NarrowMoreButton`
+  （受控 `Popover`，内含页面行、动作网格、可展开的内嵌 `PagesFlyout`）。撤销/重做补 `title`，
+  因为窄屏隐藏了文字标签，无障碍名不能丢。
+- `styles/shell.css`：`html, body { overflow: hidden }`（理由见下）、标题栏/Dock 层/提醒栈加安全区、
+  `@media (max-width: 900px) and (min-width: 701px)` 把中段从绝对居中改成不脱流的居中、
+  `@media (max-width: 700px)` 压小 Dock 令牌并隐藏按钮文字。
+- `styles/dock.css`：`.wb-sheet*` 浮层样式（固定 288 宽、48×48 触摸目标、内嵌面板限高 40vh）。
+- `styles/settings.css`：窄屏卡片改纵向堆叠（标题在上、控件占满宽）。
+- `index.html`：`viewport-fit=cover`。
+- `web/tests/unit/ui-narrow-shell.test.tsx`（新增 4 例）：装 `matchMedia` 桩，锁住窄屏分支的按钮集合与浮层入口。
+
+### 踩坑：布局视口会被撑宽且不收回
+
+内嵌页面管理面板展开后，`document.documentElement.scrollWidth` 从 360 变成 **427**，`innerWidth` 同步变 427，
+`position: fixed` 的外壳与 Dock 一起被推着变宽（`.wb-app` 宽 427）。加 `html, body { overflow: hidden }` 后降到 413 仍不达标。
+最终定因：**浮层宽度随内容变化**——Fluent 按旧尺寸算好位置，再塞进更大的内容，右边缘瞬间冲出视口，
+移动端 Chrome 就把布局视口撑开了。把 `.wb-sheet` 宽度钉成 `min(288px, calc(100vw - 32px))` 后回到 360，收工。
+
+### 验证
+
+- 360×732：紧凑栏 7 个 44×44 按钮，Dock 占 8..349，无压叠；浮层 `[61,349,288]`，展开页面面板后 `innerWidth` 仍 360。
+- 800×700：三段 `[65,263] [271,666] [674,736]`，`overlap:false`（改前是重叠的）。
+- 732×360 横屏：仍走三段（732 > 700），`[31,229] [237,632] [640,702]`，无压叠。
+- 设置窗口 360：卡片 text 宽 180（原 0），标题与控件纵向排布可读。
+- 浮层「新增页」实测生效（指示器 `1 / 2` → `2 / 2`）；触屏书写仍可画出笔迹。
+- 门禁：`tsc -b` 0、`oxlint` 0/0（192 文件）、`vitest` **61 文件 / 1459 例**、`pnpm e2e` 11 例（10 张基线未变，1200×800 走宽屏分支）、`pnpm verify` 通过。
+
+**仍未覆盖**：iPad / iOS Safari 真机（安全区与 `dvh` 只在桌面 Chrome 的移动仿真里验证）；
+横屏 + 软键盘同时出现的场景；窄屏下拖拽框选的触摸手势体验未做专门调优。
+
+---
+
 ## 依赖与顺序
 
 ```
