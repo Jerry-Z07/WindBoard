@@ -923,6 +923,28 @@ P0~P5 完成后，`docs/dev/guides/web-port.zh-CN.md` 的 §7.1 列出了一批�
 
 ---
 
+## P9 去掉顶部栏（2026-11-11）
+
+用户指令（原文）："去掉顶部栏"。网页端原本照搬了桌面 `MainWindow.xaml:25-37` 的 `TitleBar`
+（图标 + 标题 + 1px 分隔线，32 DIP），但那段 XAML 是给**无边框窗口**做拖拽区与标题显示的：
+浏览器窗口自带标题栏，PWA 装到桌面后由系统绘制，网页端再画一条纯属重复，手机上是整整一行。
+
+改动：
+
+- 删除 `web/src/ui/shell/TitleBar.tsx`；`AppShell.tsx` 不再渲染它，顶部注释写明这是有意偏差。
+- 删除 `styles/shell.css` 的 `.wb-titlebar*`、`styles/chrome.css` 的标题栏视觉细节、
+  `styles/tokens.css` 的 `--wb-titlebar-height` / `--wb-titlebar-background` / `--wb-titlebar-foreground`。
+- 安全区不丢：原来由标题栏的 `padding-top: env(safe-area-inset-top)` 吸收，现在由 `.wb-body` 承担
+  （绝对定位子元素以 padding box 定位，画布与浮层一起让开刘海；上方窄条由 `.wb-app` 的画布底色填充，无缝）。
+- 窗口标题仍在 `index.html` 的 `<title>` 与 PWA `manifest.webmanifest` 的 `name`/`short_name` 里。
+
+验证：`ui-shell-smoke.test.tsx` 的断言从「有标题栏」改成「没有 `.wb-titlebar`」；
+`tsc -b` 0、`oxlint` 0/0（191 文件）、`vitest` 61 文件 / 1459 例、
+`pnpm e2e` 11 例（`canvas-empty` / `canvas-strokes-and-shapes` 两张基线因画布高了 32px 重建，
+其余 8 张是元素级截图、不受影响——反过来印证这次只挪了顶部，没动 Dock 与浮层）。
+
+---
+
 ## 依赖与顺序
 
 ```

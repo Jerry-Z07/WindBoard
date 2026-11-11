@@ -3,7 +3,7 @@
  *
  * 结构对应 `WindBoard/MainWindow.xaml` 的两行 Grid：
  * ```
- * Row 0  TitleBar（全屏时隐藏）
+ * （桌面 Row 0 的 TitleBar 在网页端不渲染，画布直接铺满）
  * Row 1  BoardSurface + 右上提醒栈 + 底部 Dock（三块分别左/居中/右对齐）
  * ```
  * 尺寸与颜色一律来自 `tokens.css`，这里只负责摆放。
@@ -37,42 +37,16 @@ body {
   touch-action: none;
 }
 
-/* ===== 标题栏 ===== */
-/* 安全区：装上 PWA 后 iOS 的刘海/状态栏会盖住页面顶部，`viewport-fit=cover` + 这里的内边距
-   把标题栏压回可视区。桌面上 `env(safe-area-inset-*)` 恒为 0，等于没有这条规则。 */
-.wb-titlebar {
-  flex: 0 0 auto;
-  height: calc(var(--wb-titlebar-height) + env(safe-area-inset-top, 0px));
-  padding-top: env(safe-area-inset-top, 0px);
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding-inline: 16px;
-  background: var(--wb-titlebar-background);
-  color: var(--wb-titlebar-foreground);
-  font-size: 12px;
-  /* 桌面为 Mica，网页端用 1px 分隔线表达同一条边界 */
-  border-bottom: 1px solid rgb(0 0 0 / 8%);
-}
-
-.wb-titlebar__icon {
-  width: 16px;
-  height: 16px;
-  border-radius: 3px;
-  background: linear-gradient(135deg, #7cc4ff, #3a8ee6);
-  flex: 0 0 auto;
-}
-
-.wb-titlebar__title {
-  font-size: 12px;
-  line-height: 1;
-}
-
 /* ===== 画布区 ===== */
 .wb-body {
   position: relative;
   flex: 1 1 auto;
   min-height: 0;
+  /* 安全区：装上 PWA 后 iOS 的刘海/状态栏会盖住页面顶部。原来由标题栏吸收这条内边距，
+     标题栏去掉后改由这里承担——绝对定位的子元素以 padding box 定位，画布与浮层会一起
+     让开刘海，上方留出的窄条由 `.wb-app` 的画布底色填充，与画布无缝。
+     桌面上 `env(safe-area-inset-top)` 恒为 0，等于没有这条规则。 */
+  padding-top: env(safe-area-inset-top, 0px);
 }
 
 .wb-surface {

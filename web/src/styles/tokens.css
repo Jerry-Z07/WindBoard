@@ -6,7 +6,7 @@
  * 主题约定（与桌面一致）：
  * - 画布区：跟随设置的画布背景色（默认 #2E2F33，属深色）；
  * - 底部 Dock：**强制浅色**（`MainWindow.xaml:54` 的 `RequestedTheme="Light"`），不随系统切换；
- * - 标题栏：跟随系统主题（`MicaBackdrop` + `TitleBar` 的默认行为）。
+ * - 标题栏：**网页端不渲染**（浏览器/PWA 自带窗口标题），因此没有对应令牌。
  */
 
 :root {
@@ -15,8 +15,6 @@
   --wb-canvas-background: #2e2f33;
 
   /* ===== 窗口骨架（`MainWindow.xaml:19-70`） ===== */
-  /* WinUI 标准 TitleBar 高度 32 DIP（`TitleBar` 控件默认值） */
-  --wb-titlebar-height: 32px;
   /* 底部浮层外边距 `Margin="14,0,14,14"`；提醒栈 `Margin="14,14,14,0"` */
   --wb-overlay-margin: 14px;
   /* 提醒栈 `MaxWidth="420"`、`Spacing="10"` */
@@ -120,20 +118,9 @@
   --wb-selection-handle-color: #ffffff;
 }
 
-/* 标题栏：跟随系统主题（浅色 = 白，深色 = WinUI 深色标题栏基色） */
-:root,
-:root[data-theme='light'] {
-  --wb-titlebar-background: #ffffff;
-  /* 标题文字：`TitleBarForegroundBrush` → `TextFillColorPrimaryBrush`（`generic.xaml:2857`），
-     Light 取值 #E4000000 = 89.4% 黑（原先写的 #1a1a1a 是网页端自定的近似值） */
-  --wb-titlebar-foreground: rgb(0 0 0 / 89.4%);
-}
-
+/* 深色主题的文本前景。WinUI `generic.xaml:2024-2027` 的 Dark 字典：
+   Primary #FFFFFF / Secondary #C5FFFFFF / Tertiary #87FFFFFF / Disabled #5DFFFFFF */
 :root[data-theme='dark'] {
-  --wb-titlebar-background: #202020;
-  --wb-titlebar-foreground: #ffffff;
-  /* WinUI `generic.xaml:2024-2027` 的 Dark 字典：
-     Primary #FFFFFF / Secondary #C5FFFFFF / Tertiary #87FFFFFF / Disabled #5DFFFFFF */
   --wb-text-primary: #ffffff;
   --wb-text-secondary: rgb(255 255 255 / 77.3%);
   --wb-text-tertiary: rgb(255 255 255 / 52.9%);

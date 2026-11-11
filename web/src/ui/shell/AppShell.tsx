@@ -1,9 +1,13 @@
 /**
- * 应用外壳：把标题栏、画布、提醒栈、Dock 与窗口级对话框摆到桌面的对应位置。
+ * 应用外壳：把画布、提醒栈、Dock 与窗口级对话框摆到桌面的对应位置。
+ *
+ * 与桌面的一处差异：**不渲染标题栏**。桌面 `MainWindow.xaml:25-37` 的 `TitleBar` 是给
+ * 无边框窗口做拖拽区与标题显示的；浏览器窗口自带标题栏，PWA 装到桌面后由系统绘制，
+ * 再画一条只会白占 32 DIP（手机上是整整一行）。窗口标题仍在 `<title>` 与 PWA `name` 里。
  *
  * 结构对应 `WindBoard/MainWindow.xaml`：
  * ```
- * Row0 TitleBar（全屏隐藏）
+ * （Row0 TitleBar 在网页端不渲染）
  * Row1 Grid {
  *        BoardCanvasControl
  *        右上 ReminderBannerStackPanel（Margin 14,14,14,0）
@@ -22,7 +26,6 @@ import type { BoardController } from '../../canvas/board-controller.ts'
 import { BoardSurface } from './BoardSurface.tsx'
 import { DockBar } from './DockBar.tsx'
 import { ReminderStack } from './ReminderStack.tsx'
-import { TitleBar } from './TitleBar.tsx'
 import { useNarrowLayout } from './use-narrow-layout.ts'
 import { SettingsWindow } from '../dialogs/SettingsWindow.tsx'
 import { ExportDialog } from '../dialogs/ExportDialog.tsx'
@@ -58,7 +61,6 @@ export function AppShell(): ReactNode {
   return (
     <ShellActionsProvider value={actions}>
       <div className="wb-app">
-        <TitleBar visible={!isFullscreen} />
         <div className="wb-body">
           <BoardSurface onControllerChange={setController} />
           {/* 工具栏依赖控制器存在，而控制器要等画布元素挂载后才创建，所以这层先不渲染。 */}

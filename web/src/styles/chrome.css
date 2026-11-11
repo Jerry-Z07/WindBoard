@@ -1,7 +1,9 @@
 /**
- * 标题栏与提醒栈样式（P3.1 / P3.4）。
+ * 提醒栈样式（P3.4）。
  *
- * 布局骨架在 `shell.css`（`.wb-titlebar` / `.wb-reminder-stack`），这里只放视觉细节。
+ * 布局骨架在 `shell.css`（`.wb-reminder-stack`），这里只放视觉细节。
+ *
+ * 标题栏不在网页端渲染（见 `AppShell.tsx` 顶部说明），原先的视觉细节随组件一起删除。
  *
  * 颜色来源约定：
  * - 提醒卡片的严重级配色**按 WinUI `InfoBar` 的真实取色**写成 CSS 变量（`--wb-reminder-*`），
@@ -11,27 +13,11 @@
  * - 其余中性色（焦点描边等）继续用 `FluentProvider` 注入的 CSS 变量。
  *
  * 尺寸来源：
- * - 标题栏高 32 / 内边距 16 / 图标 16×16 / 标题 12 号 / 1px 分隔线：`tokens.css` 与
- *   `shell.css` 已实现（桌面 `MainWindow.xaml:19-37` + WinUI `TitleBar` 默认度量）；
  * - 提醒栈外边距 14 / 条目间距 10 / 最大宽 420：`tokens.css`（桌面 `MainWindow.xaml:43-49`）；
  * - 提醒卡片内部度量：**逐条取自 WinUI 3 `InfoBar` 的默认模板**，出处见下方每条规则上的注释。
  *   引用文件为 `~/.nuget/packages/microsoft.windowsappsdk.winui/2.6.4/lib/native/Microsoft.UI/Themes/generic.xaml`
  *   （下称 `generic.xaml`）。
  */
-
-/* ===== 标题栏（P3.1） ===== */
-
-/* 窗口很窄时标题优先省略，图标与内边距保持不变（桌面标题栏同样不换行） */
-.wb-titlebar {
-  overflow: hidden;
-  white-space: nowrap;
-}
-
-.wb-titlebar__title {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
 
 /* ===== 提醒栈卡片（P3.4，对齐 WinUI InfoBar 默认模板） ===== */
 
