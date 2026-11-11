@@ -124,3 +124,5 @@ appsettings.*.Local.json
 web/node_modules/
 web/dist/
 web/.interop/
+# playwright-cli 的会话日志与快照（调试用，不入库）
+.playwright-cli/
