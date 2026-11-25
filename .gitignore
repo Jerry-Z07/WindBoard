@@ -129,3 +129,5 @@ web/.interop/
 
 # deja 会话记忆工具的本地状态（工具生成，不入库）
 .deja/
+
+web/e2e/__screenshots__/
