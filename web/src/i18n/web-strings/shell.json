@@ -1,7 +1,6 @@
 {
   "zh-CN": {
     "Web_AddPage": "新增页",
-    "Web_MinimizeUnsupported_Message": "浏览器不支持最小化窗口",
     "Web_OpenedFile_Title": "已打开文件",
     "Web_OpenedFile_Message_Fmt": "{0} 已插入到最后一页之后。",
     "Web_OpenFileFailed_Message_Fmt": "无法打开 {0}，文件可能已损坏或不是 WBIX。",
@@ -9,7 +8,6 @@
   },
   "en-US": {
     "Web_AddPage": "New page",
-    "Web_MinimizeUnsupported_Message": "The browser cannot minimize the window",
     "Web_OpenedFile_Title": "File opened",
     "Web_OpenedFile_Message_Fmt": "{0} was appended after the last page.",
     "Web_OpenFileFailed_Message_Fmt": "Cannot open {0}. The file may be damaged or not a WBIX file.",

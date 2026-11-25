@@ -945,6 +945,32 @@ P0~P5 完成后，`docs/dev/guides/web-port.zh-CN.md` 的 §7.1 列出了一批�
 
 ---
 
+## P10 网页端收紧：右键菜单与桌面专属入口（2026-11-25）
+
+用户指令（原文）："1.取消浏览器自带右键菜单，它会与右键拖动冲突 2.删掉浏览器内仅桌面端可用的功能（如最小化等）"。
+
+改动：
+
+- **画布取消右键菜单**：`canvas/dom-input.ts` 给画布绑定 `contextmenu` 并 `preventDefault()`，
+  detach 时同步解绑。右键拖动平移（桌面 `ShouldStartPan`）在按键抬起时原本会弹出浏览器菜单；
+  触控笔笔杆键与移动端长按同理。只绑画布，设置窗口的输入框保留原生复制/粘贴菜单。
+  依据 MDN：`contextmenu` 可取消；Firefox 下 Shift+右键不派发该事件，属无法拦截的浏览器保留行为。
+- **删除最小化**：左 Dock 只渲染「更多 / 导入」（新增 `settings/model.ts` 的 `WEB_LEFT_DOCK_ITEMS`），
+  窄屏「更多」浮层删除最小化按钮与 `Web_MinimizeUnsupported_Message`；Dock 设置预览过滤该 id，
+  重排写回时用 `mergeVisibleOrder` 把它留在原位置。P3 偏差 #4「保留按钮弹解释提醒」就此作废。
+  设置模型与默认值里的 `minimize` **不动**：`settings-defaults` 跨端一致性测试要求
+  `DEFAULT_SETTINGS` 与桌面 `WindBoard.Tests/Fixtures/settings/defaults.json` 逐字段相同。
+- **删除两个浏览器无效的设置项**：常规页「启动时窗口形态」（`general.startupWindowMode`）、
+  Dock 页「显示快捷入口 Dock」（`dock.isShortcutDocksVisible`）。字段仍读写并随设置文件导出，
+  只是网页端不暴露 UI（详见 `docs/dev/guides/web-port.zh-CN.md` §3.8）。
+
+验证：`pnpm verify`（tsc 0 错误、vitest **61 文件 / 1460 例**、build 通过）；
+`pnpm lint` 0 错误（仅 `BoardSurface` 的存量 warning）；`pnpm e2e` 13 例通过，
+重建 4 张基线（`dock-left`、`settings-general`，以及叠加了 Dock 的 `canvas-empty` /
+`canvas-strokes-and-shapes`）。`pnpm i18n` 重新生成双语词表。
+
+---
+
 ## 依赖与顺序
 
 ```

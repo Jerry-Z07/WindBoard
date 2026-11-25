@@ -77,7 +77,7 @@ describe('AppShell 冒烟', () => {
     renderShell()
     // 标题栏在网页端不渲染：浏览器/PWA 自带窗口标题，不再画一条占 32 DIP 的条
     expect(document.querySelector('.wb-titlebar')).toBeNull()
-    for (const label of ['更多', '最小化', '导入', '选择', '书写', '擦除', '形状', '撤销', '重做']) {
+    for (const label of ['更多', '导入', '选择', '书写', '擦除', '形状', '撤销', '重做']) {
       expect(findButton(label)).toBeTruthy()
     }
     // 右侧 Dock 只有「+」（单页时不显示翻页三件套）

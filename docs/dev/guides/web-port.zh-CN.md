@@ -145,7 +145,7 @@
 | `SelectTool.IsScreenPointInsideSelectedBounds` | 屏幕命中测试 | `ctx.insideSelectionBounds` |
 | `PointerRouteState.HasActivePointerCapture` | 活动工具操作或任一手势 | `ctx.hasActivePointerCapture` |
 
-- 网页端独有的分支（桌面没有对应逻辑）：笔按下期间忽略触摸（掌拒护栏），水平滚轮平移结果 `-0` 归一化。
+- 网页端独有的分支（桌面没有对应逻辑）：笔按下期间忽略触摸（掌拒护栏），水平滚轮平移结果 `-0` 归一化；画布上的 `contextmenu` 一律 `preventDefault`（`canvas/dom-input.ts`），否则右键拖动平移一松手就会弹出浏览器菜单。
 
 ### 3.5 领域模型与撤销粒度
 
@@ -181,6 +181,7 @@
 - 保障：`web/tests/unit/{settings-model,settings-service,settings-file}.test.ts` + `web/tests/conformance/settings-defaults.test.ts`（读 `WindBoard.Tests/Fixtures/settings/defaults.json` 与 `DEFAULT_SETTINGS` 逐字段比对；语料由 `WindBoard.Tests/Settings/SettingsDefaultsGoldenTests.cs` 守护，桌面改默认值 → 桌面语料测试先红 → 重建语料 → 网页端测试再红）。
 - 重建默认值语料：`WINBOARD_REGEN_SETTINGS_GOLDEN=1 dotnet test WindBoard.slnx --filter FullyQualifiedName~SettingsDefaultsGoldenTests`，改动理由写进提交说明。
 - 漂移症状：导入桌面设置后某些项回落默认值（通常是新增字段或归一化规则变了）。
+- 桌面才有意义的项不在网页端暴露 UI，但字段照旧读写（保证设置文件互通）：`general.startupWindowMode`（浏览器无法控制启动窗口形态）、`dock.isShortcutDocksVisible`（v1 不实现快捷 Dock）、`dock.leftOrder` 里的 `minimize`（浏览器没有最小化窗口能力，主 Dock 与 Dock 设置预览都不渲染）。
 
 ### 3.9 页面缩略图
 
@@ -192,8 +193,8 @@
 ### 3.10 窄屏（手机）布局
 
 - 事实源：**无**。桌面 WinUI 窗口的最小宽度足以横排三段 Dock，没有窄屏概念；全部是网页端新增，不属于移植项。
-- 断点：`styles/shell.css` 与 `ui/shell/use-narrow-layout.ts` 里的 **700px**，两处必须同时改（`NARROW_LAYOUT_QUERY` 的注释已声明这条约束）。取值依据是实测的三段 Dock 原始宽度：左 198 + 中 395 + 右 62，横排不溢出要 ≥700；中段绝对居中的排法在 <819 会与左段压叠，由 `@media (max-width: 900px) and (min-width: 701px)` 改成不脱流的居中排法单独处理。
-- 窄屏形态：单段紧凑栏（`ui/shell/DockBar.tsx` 的 `NarrowDock`）= 4 个工具 + 分隔线 + 撤销/重做 + 「更多」浮层；页面组（上一页/指示器/下一页/新增页）与导入/导出/设置/全屏/最小化/页面管理全部收进「更多」浮层（`NarrowMoreButton`）。
+- 断点：`styles/shell.css` 与 `ui/shell/use-narrow-layout.ts` 里的 **700px**，两处必须同时改（`NARROW_LAYOUT_QUERY` 的注释已声明这条约束）。取值依据是实测的三段 Dock 原始宽度：左 134 + 中 395 + 右 62；700 的阈值是按去掉「最小化」前的左段宽度（198）留的余量，不随左段收窄而下调；中段绝对居中的排法在 <819 会与左段压叠，由 `@media (max-width: 900px) and (min-width: 701px)` 改成不脱流的居中排法单独处理。
+- 窄屏形态：单段紧凑栏（`ui/shell/DockBar.tsx` 的 `NarrowDock`）= 4 个工具 + 分隔线 + 撤销/重做 + 「更多」浮层；页面组（上一页/指示器/下一页/新增页）与导入/导出/设置/全屏/页面管理全部收进「更多」浮层（`NarrowMoreButton`）。
 - 安全区：`index.html` 的 `viewport-fit=cover` + `styles/shell.css` 里 `.wb-body`、Dock 层、提醒栈的 `env(safe-area-inset-*)`。
 - 保障：`web/tests/unit/ui-narrow-shell.test.tsx`（4 例，装 `matchMedia` 桩锁住窄屏分支的按钮集合与浮层入口）；宽屏分支由 `ui-shell-smoke.test.tsx` 覆盖。像素级尺寸（44×44 触摸目标、隐藏文字）只能靠浏览器截图复核。
 - 踩坑：移动端 Chrome 遇到横向溢出会**撑宽布局视口且不再收回**（实测 360 → 413，`position: fixed` 的外壳与 Dock 一起被推着变宽）。因此 `html, body` 必须 `overflow: hidden`，且窄屏浮层宽度必须固定：浮层内展开子面板会改变宽度时，Fluent 按旧尺寸算好位置再塞进更大的内容，右边缘瞬间冲出视口就触发了这个行为。
@@ -262,11 +263,11 @@ CI（`.github/workflows/web.yml`）在 push/PR 时自动跑 `lint` → `typechec
 | DPR 不设固定上限，只按后备存储的单边（16 384）与面积（67 108 864；iOS 16 777 216）反算夹取 | `render/render-handle.ts` | 固定上限（曾为 2）会让 DPR 2.5 / 3 的屏幕用低一倍的后备存储铺满窗口，浏览器再放大画布，笔迹边缘从 1 设备像素变成 2 像素，这就是「网页版笔迹比桌面糊」的根因。夹取只在真的越过浏览器上限时发生，且绝不把 <1 的 DPR 抬高 |
 | 元素卡文案走词表、徽标用 Unicode/Fluent 图标、正文不自动换行（只按换行符裁切） | `render/element-card.ts` | 无 Segoe Fluent Icons 与 DirectWrite 排版引擎；`RenderContext2D` 也不暴露 `measureText`，尺寸配色仍按桌面真值 |
 | 设置为模态 `Dialog` + 侧栏，非独立窗口 | `ui/dialogs/SettingsWindow.tsx` | 浏览器只有一个窗口，无法复刻 `AppWindow` |
-| 「最小化」按钮保留但弹解释提醒；设置持久化用 `localStorage` | `ui/shell/DockBar.tsx`、`settings/service.ts` | 浏览器没有对应能力；导出设置文件另名为 `windboard-settings.json` |
+| 不渲染「最小化」Dock 项（设置里仍保留该 id）；设置持久化用 `localStorage` | `ui/shell/DockBar.tsx`、`settings/pages/DockPage.tsx`、`settings/service.ts` | 浏览器没有对应能力；导出设置文件另名为 `windboard-settings.json` |
 | Dock 文字用 `--wb-dock-text-primary`（89.4% 黑，不随主题） | `styles/tokens.css` | Dock 区强制浅色底板，深色主题下白字会看不见 |
 | 自动保存 / 崩溃恢复 | `persistence/autosave*.ts`、`ui/dialogs/RecoveryDialog.tsx` | 网页端增强，桌面没有；不是移植项 |
 | 不渲染标题栏 | `ui/shell/AppShell.tsx`（原 `TitleBar.tsx` 已删除）、`styles/shell.css` | 桌面的 `TitleBar` 是给无边框窗口做拖拽区与标题显示的；浏览器窗口自带标题栏，PWA 由系统绘制，再画一条白占 32 DIP（手机上是整整一行）。窗口标题仍在 `<title>`/PWA `name` 里，安全区改由 `.wb-body` 的 `padding-top` 承担 |
-| 窄屏（≤700px）改用单段紧凑栏，页面组与导入/导出/设置/全屏/最小化收进「更多」浮层 | `ui/shell/use-narrow-layout.ts`、`ui/shell/DockBar.tsx`、`styles/shell.css`、`styles/dock.css` | 桌面窗口放得下三段 Dock；360px 下三段实测 198+395+62，互相压叠且按钮点不到 |
+| 窄屏（≤700px）改用单段紧凑栏，页面组与导入/导出/设置/全屏收进「更多」浮层 | `ui/shell/use-narrow-layout.ts`、`ui/shell/DockBar.tsx`、`styles/shell.css`、`styles/dock.css` | 桌面窗口放得下三段 Dock；360px 下三段实测 198+395+62，互相压叠且按钮点不到 |
 | 安全区内边距 `env(safe-area-inset-*)` + `viewport-fit=cover` | `index.html`、`styles/shell.css` | 刘海屏/圆角屏会遮挡标题栏与 Dock；桌面无此概念 |
 | 窄屏设置卡片改为纵向堆叠 | `styles/settings.css` | 360px 下控件会把标题区挤成 0 宽（实测竖排一字一行） |
 

@@ -31,7 +31,6 @@ import {
   FullScreenMaximizeRegular,
   MoreHorizontalRegular,
   SettingsRegular,
-  SubtractRegular,
 } from '@fluentui/react-icons'
 import {
   useBoardController,
@@ -39,7 +38,6 @@ import {
   useFlyoutMachine,
   useOpenFlyout,
   usePageIndicatorText,
-  useReminderService,
   useSettings,
   useShellActions,
   useShowPagePager,
@@ -47,7 +45,7 @@ import {
 import { useI18n } from '../../i18n/context.ts'
 import type { MessageKey } from '../../i18n/locales/zh-CN.generated.ts'
 import type { ToolKind } from '../../interaction/pointer-router.ts'
-import type { DockItemId } from '../../settings/model.ts'
+import { WEB_LEFT_DOCK_ITEMS, type DockItemId } from '../../settings/model.ts'
 import { EraserFlyout } from '../flyouts/EraserFlyout.tsx'
 import { PagesFlyout } from '../flyouts/PagesFlyout.tsx'
 import { PenFlyout } from '../flyouts/PenFlyout.tsx'
@@ -67,8 +65,8 @@ export interface DockBarProps {
   readonly placement: DockPlacement
 }
 
-/** 左 Dock 的项与默认顺序（`Features/Dock/Models/DockItemIds.cs:11-61`）。 */
-const LEFT_DOCK_ITEMS: readonly DockItemId[] = ['more', 'minimize', 'import']
+/** 左 Dock 的项与默认顺序（桌面 `Features/Dock/Models/DockItemIds.cs:34-38` 去掉「最小化」，浏览器没有窗口最小化能力）。 */
+const LEFT_DOCK_ITEMS: readonly DockItemId[] = WEB_LEFT_DOCK_ITEMS
 
 /** 主 Dock 的工具项与默认顺序（同上）。 */
 const TOOL_DOCK_ITEMS: readonly DockItemId[] = ['toolSelect', 'toolPen', 'toolEraser', 'toolShape']
@@ -137,11 +135,10 @@ export function DockBar(props: DockBarProps): ReactNode {
 
 // 左 Dock（`MainWindow.xaml:82-160`）
 
-/** 左 Dock：更多（菜单）/ 最小化 / 导入。 */
+/** 左 Dock：更多（菜单）/ 导入。 */
 function LeftDock(): ReactNode {
   const { t } = useI18n()
   const actions = useShellActions()
-  const reminders = useReminderService()
   const settings = useSettings()
   const ordered = applyDockOrder(LEFT_DOCK_ITEMS, (id) => id, settings.dock.leftOrder)
 
@@ -149,19 +146,6 @@ function LeftDock(): ReactNode {
     switch (id) {
       case 'more':
         return <MoreButton key={id} />
-      case 'minimize':
-        return (
-          <DockButton
-            key={id}
-            icon={<SubtractRegular fontSize={20} />}
-            label={t('Common_Minimize')}
-            onClick={() => {
-              // 浏览器没有"最小化窗口"能力（桌面 `MainWindow.xaml:133-145` 的 `BackToWindow`）。
-              // 保留按钮位置以维持与桌面一致的 Dock 结构，点击时用提醒解释为什么不可用。
-              reminders.push({ message: t('Web_MinimizeUnsupported_Message'), severity: 'informational' })
-            }}
-          />
-        )
       case 'import':
         return (
           <DockButton
@@ -533,7 +517,7 @@ function RightDock(): ReactNode {
 
 /**
  * 窄屏（视口 <600，见 use-narrow-layout.ts）的 Dock：三段合并成一段。桌面窗口最窄也有几百 DIP 余量，手机竖屏只有 360~430，三段实测宽 198 / 395 / 62，横排必然互相覆盖（playwright-cli 实测：中段按钮被中段容器自身盖住，点击直接命中错误元素）。
- * 保留 4 个工具加撤销重做（书写闭环的高频操作），导入、设置、导出、全屏、最小化、页面收进【更多】。7 个按钮是上限：44×44 触摸目标加间距 4 加内边距 4 约 340，加两侧 8 的外边距刚好放进 360 宽，8 个要 388 放不下。
+ * 保留 4 个工具加撤销重做（书写闭环的高频操作），导入、设置、导出、全屏、页面收进【更多】。7 个按钮是上限：44×44 触摸目标加间距 4 加内边距 4 约 340，加两侧 8 的外边距刚好放进 360 宽，8 个要 388 放不下。
  */
 function NarrowDock(): ReactNode {
   const settings = useSettings()
@@ -578,7 +562,6 @@ function NarrowMoreButton(): ReactNode {
   const actions = useShellActions()
   const controller = useBoardController()
   const snapshot = useBoardSnapshot()
-  const reminders = useReminderService()
   const indicatorText = usePageIndicatorText()
   const [open, setOpen] = useState(false)
   const [pagesOpen, setPagesOpen] = useState(false)
@@ -666,17 +649,6 @@ function NarrowMoreButton(): ReactNode {
                   icon={<FullScreenMaximizeRegular fontSize={20} />}
                   label={t(actions.isFullscreen ? 'Common_ExitFullScreen' : 'Common_FullScreen')}
                   onClick={run(actions.toggleFullscreen)}
-                />
-                <SheetButton
-                  icon={<SubtractRegular fontSize={20} />}
-                  label={t('Common_Minimize')}
-                  onClick={run(() => {
-                    // 与桌面左 Dock 的最小化按钮同样的处理：浏览器没有最小化窗口的能力
-                    reminders.push({
-                      message: t('Web_MinimizeUnsupported_Message'),
-                      severity: 'informational',
-                    })
-                  })}
                 />
                 <SheetButton
                   icon={<EditRegular fontSize={20} />}

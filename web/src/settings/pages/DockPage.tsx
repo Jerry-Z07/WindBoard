@@ -1,5 +1,5 @@
 /**
- * 设置 → Dock（桌面 Features/Dock/UI/DockSettingsPage.xaml）。结构对齐桌面：拖动提示（:34-37，Settings_Dock_DragHint）；预览区（:40，Common_Preview）为四组可重排列表（左侧 Dock、工具、撤销重做、页面），分组与默认顺序取自 Features/Dock/Models/DockItemIds.cs，与 settings/model.ts 的 DEFAULT_*_DOCK_ITEMS 一一对应；选项区（:231，Common_Options）含显示撤销重做、显示快捷入口 Dock、恢复默认布局。
+ * 设置 → Dock（桌面 Features/Dock/UI/DockSettingsPage.xaml）。结构对齐桌面：拖动提示（:34-37，Settings_Dock_DragHint）；预览区（:40，Common_Preview）为四组可重排列表（左侧 Dock、工具、撤销重做、页面），分组与默认顺序取自 Features/Dock/Models/DockItemIds.cs（左组用 settings/model.ts 的 `WEB_LEFT_DOCK_ITEMS`，其余与 DEFAULT_*_DOCK_ITEMS 一一对应）；选项区（:231，Common_Options）含显示撤销重做与恢复默认布局。网页端不显示「最小化」（浏览器没有窗口最小化能力），也不提供「显示快捷入口 Dock」开关（v1 不实现快捷 Dock，字段仅随设置文件保留）。
  * 网页端的实现约束：拖动用 Pointer Events 自己实现（见 DockOrderGroup），鼠标、触摸、笔都能拖，未引入第三方拖拽库；拖动结束只写发生变化的那一组（桌面一次性写回四组，DockSettingsPage.xaml.cs:395-412），避免无意义的重渲染与存储写入；预览为可访问性补了组标题（桌面靠上中下三行位置区分，:47-229）；拖动反馈用拖动项半透明加落点高亮（桌面有系统拖动浮层）。
  */
 
@@ -19,7 +19,6 @@ import {
   EraserRegular,
   MoreHorizontalRegular,
   ReOrderDotsVerticalRegular,
-  SubtractRegular,
 } from '@fluentui/react-icons'
 import { useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react'
 import { useSettings, useSettingsService } from '../../app/hooks.ts'
@@ -27,11 +26,11 @@ import { useI18n } from '../../i18n/context.ts'
 import type { MessageKey } from '../../i18n/locales/zh-CN.generated.ts'
 import { isSameOrder, moveItem, moveItemDown, moveItemUp } from '../dock-order.ts'
 import {
-  DEFAULT_LEFT_DOCK_ITEMS,
   DEFAULT_PAGE_DOCK_ITEMS,
   DEFAULT_SETTINGS,
   DEFAULT_TOOL_DOCK_ITEMS,
   DEFAULT_UNDO_REDO_DOCK_ITEMS,
+  WEB_LEFT_DOCK_ITEMS,
   type DockItemId,
 } from '../model.ts'
 import { SETTINGS_ANCHORS } from '../search-targets.ts'
@@ -50,9 +49,9 @@ interface DockGroupDefinition {
   readonly items: readonly DockItemId[]
 }
 
-/** 四组的分组顺序与桌面 XAML 的摆放一致：左 → 中（工具 + 撤销重做）→ 右。 */
+/** 四组的分组顺序与桌面 XAML 的摆放一致：左 → 中（工具 + 撤销重做）→ 右。左组用网页端实际渲染的项（无「最小化」）。 */
 const DOCK_GROUPS: readonly DockGroupDefinition[] = [
-  { orderKey: 'leftOrder', titleKey: 'Web_Settings_DockGroupLeft', items: DEFAULT_LEFT_DOCK_ITEMS },
+  { orderKey: 'leftOrder', titleKey: 'Web_Settings_DockGroupLeft', items: WEB_LEFT_DOCK_ITEMS },
   { orderKey: 'toolsOrder', titleKey: 'Web_Settings_DockGroupTools', items: DEFAULT_TOOL_DOCK_ITEMS },
   {
     orderKey: 'undoRedoOrder',
@@ -61,6 +60,32 @@ const DOCK_GROUPS: readonly DockGroupDefinition[] = [
   },
   { orderKey: 'pagesOrder', titleKey: 'Web_Settings_DockGroupPages', items: DEFAULT_PAGE_DOCK_ITEMS },
 ]
+
+/**
+ * 网页端不渲染的 Dock 项：浏览器没有窗口最小化能力（桌面 `MainWindow.xaml:133-145`）。
+ * 设置文件里仍保留该 id（默认顺序必须与桌面语料一致），预览与主 Dock 都不出现。
+ */
+type HiddenDockItemId = 'minimize'
+
+/** 网页端实际渲染的 Dock 项 id。 */
+type WebDockItemId = Exclude<DockItemId, HiddenDockItemId>
+
+/** 类型守卫：判断设置里的 Dock id 是否会在网页端渲染。 */
+function isWebDockItemId(id: DockItemId): id is WebDockItemId {
+  return id !== 'minimize'
+}
+
+/**
+ * 把预览里重排后的可见项合并回完整顺序：不渲染的项（最小化）保持原下标不动，可见项按新顺序依次填入。
+ * 这样写回的 `leftOrder` 不会丢掉桌面端需要的「最小化」（导出设置文件后桌面仍能正常还原布局）。
+ */
+function mergeVisibleOrder(
+  full: readonly DockItemId[],
+  visible: readonly WebDockItemId[],
+): readonly DockItemId[] {
+  let index = 0
+  return full.map((id) => (isWebDockItemId(id) ? (visible[index++] ?? id) : id))
+}
 
 /** 单项的显示信息。 */
 interface DockItemMeta {
@@ -74,11 +99,9 @@ interface DockItemMeta {
  *
  * 桌面字形出处：`Features/Dock/UI/DockSettingsPage.xaml.cs:424-441`（`CreateItem` 的 switch）。
  */
-const DOCK_ITEM_META: Record<DockItemId, DockItemMeta> = {
+const DOCK_ITEM_META: Record<WebDockItemId, DockItemMeta> = {
   // 桌面 Symbol.More（更多）
   more: { labelKey: 'Common_More', icon: <MoreHorizontalRegular fontSize={20} /> },
-  // 桌面 Symbol.BackToWindow；主 Dock 用最小化横线 `SubtractRegular`（见 DockBar.tsx:158），预览沿用主 Dock
-  minimize: { labelKey: 'Common_Minimize', icon: <SubtractRegular fontSize={20} /> },
   // 桌面 Symbol.Download（导入）
   import: { labelKey: 'Common_Import', icon: <ArrowImportRegular fontSize={20} /> },
   // 桌面 Symbol.TouchPointer；Fluent 无同名图标，主 Dock 用 CursorRegular（见 DockBar.tsx:275-278）
@@ -124,21 +147,21 @@ function ShapeToolIcon(): ReactNode {
 /** 拖动状态：哪一组的哪一项正被拖到哪一项上。 */
 interface DragState {
   readonly orderKey: DockOrderKey
-  readonly id: DockItemId
-  readonly overId: DockItemId
+  readonly id: WebDockItemId
+  readonly overId: WebDockItemId
 }
 
 /** 单组可重排列表的属性。 */
 interface DockOrderGroupProps {
   readonly group: DockGroupDefinition
-  readonly order: readonly DockItemId[]
+  readonly order: readonly WebDockItemId[]
   readonly drag: DragState | null
-  readonly onDragStart: (orderKey: DockOrderKey, id: DockItemId) => void
-  readonly onDragOver: (orderKey: DockOrderKey, overId: DockItemId) => void
+  readonly onDragStart: (orderKey: DockOrderKey, id: WebDockItemId) => void
+  readonly onDragOver: (orderKey: DockOrderKey, overId: WebDockItemId) => void
   readonly onDragEnd: (
     orderKey: DockOrderKey,
-    id: DockItemId,
-    overId: DockItemId | null,
+    id: WebDockItemId,
+    overId: WebDockItemId | null,
   ) => void
   readonly onMoveUp: (orderKey: DockOrderKey, index: number) => void
   readonly onMoveDown: (orderKey: DockOrderKey, index: number) => void
@@ -154,7 +177,7 @@ function DockOrderGroup(props: DockOrderGroupProps): ReactNode {
   const { t } = useI18n()
 
   /** 指针当前落在哪一项上（用 DOM 矩形判断，兼容换行布局）。 */
-  const resolveOverId = (clientX: number, clientY: number): DockItemId | null => {
+  const resolveOverId = (clientX: number, clientY: number): WebDockItemId | null => {
     const list = listRef.current
     if (list === null) {
       return null
@@ -168,7 +191,7 @@ function DockOrderGroup(props: DockOrderGroupProps): ReactNode {
       }
       const id = element.dataset.dockItemId
       if (id !== undefined && (order as readonly string[]).includes(id)) {
-        return id as DockItemId
+        return id as WebDockItemId
       }
     }
     return null
@@ -286,8 +309,13 @@ export function DockPage(): ReactNode {
   const [drag, setDrag] = useState<DragState | null>(null)
   const { t } = useI18n()
 
+  /** 某一组在预览里展示的顺序：去掉网页端不渲染的项（最小化），其余保持设置里的顺序。 */
+  const visibleOrderOf = (orderKey: DockOrderKey): readonly WebDockItemId[] =>
+    settings.dock[orderKey].filter(isWebDockItemId)
+
   /** 写入某一组的顺序；内容没变就跳过，避免无意义的持久化与重渲染。 */
-  const commitOrder = (orderKey: DockOrderKey, next: readonly DockItemId[]): void => {
+  const commitOrder = (orderKey: DockOrderKey, nextVisible: readonly WebDockItemId[]): void => {
+    const next = mergeVisibleOrder(settings.dock[orderKey], nextVisible)
     if (isSameOrder(settings.dock[orderKey], next)) {
       return
     }
@@ -307,11 +335,11 @@ export function DockPage(): ReactNode {
     }
   }
 
-  const handleDragStart = (orderKey: DockOrderKey, id: DockItemId): void => {
+  const handleDragStart = (orderKey: DockOrderKey, id: WebDockItemId): void => {
     setDrag({ orderKey, id, overId: id })
   }
 
-  const handleDragOver = (orderKey: DockOrderKey, overId: DockItemId): void => {
+  const handleDragOver = (orderKey: DockOrderKey, overId: WebDockItemId): void => {
     setDrag((current) => {
       if (current === null || current.orderKey !== orderKey || current.overId === overId) {
         return current
@@ -323,14 +351,14 @@ export function DockPage(): ReactNode {
   /** 松手：按"拖动项 → 落点项"算出新顺序并落盘；`overId` 为 null 表示取消。 */
   const handleDragEnd = (
     orderKey: DockOrderKey,
-    id: DockItemId,
-    overId: DockItemId | null,
+    id: WebDockItemId,
+    overId: WebDockItemId | null,
   ): void => {
     setDrag(null)
     if (overId === null || overId === id) {
       return
     }
-    const order = settings.dock[orderKey]
+    const order = visibleOrderOf(orderKey)
     const fromIndex = order.indexOf(id)
     const toIndex = order.indexOf(overId)
     if (fromIndex < 0 || toIndex < 0) {
@@ -340,11 +368,11 @@ export function DockPage(): ReactNode {
   }
 
   const handleMoveUp = (orderKey: DockOrderKey, index: number): void => {
-    commitOrder(orderKey, moveItemUp(settings.dock[orderKey], index))
+    commitOrder(orderKey, moveItemUp(visibleOrderOf(orderKey), index))
   }
 
   const handleMoveDown = (orderKey: DockOrderKey, index: number): void => {
-    commitOrder(orderKey, moveItemDown(settings.dock[orderKey], index))
+    commitOrder(orderKey, moveItemDown(visibleOrderOf(orderKey), index))
   }
 
   return (
@@ -359,7 +387,7 @@ export function DockPage(): ReactNode {
           <DockOrderGroup
             key={group.orderKey}
             group={group}
-            order={settings.dock[group.orderKey]}
+            order={visibleOrderOf(group.orderKey)}
             drag={drag}
             onDragStart={handleDragStart}
             onDragOver={handleDragOver}
@@ -381,19 +409,6 @@ export function DockPage(): ReactNode {
             aria-label={t('Settings_Dock_ShowUndoRedo_Header')}
             onChange={(_, data) => {
               settingsService.patch({ dock: { isUndoRedoVisible: data.checked } })
-            }}
-          />
-        </SettingsCard>
-
-        <SettingsCard
-          title={t('Settings_Dock_ShowShortcutDocks_Header')}
-          description={t('Web_Settings_DockShortcutDocks_Description')}
-        >
-          <Switch
-            checked={settings.dock.isShortcutDocksVisible}
-            aria-label={t('Settings_Dock_ShowShortcutDocks_Header')}
-            onChange={(_, data) => {
-              settingsService.patch({ dock: { isShortcutDocksVisible: data.checked } })
             }}
           />
         </SettingsCard>

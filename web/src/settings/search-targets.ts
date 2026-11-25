@@ -14,7 +14,6 @@ import { findSettingsPage, type SettingsPageId } from './window-model.ts'
  */
 export const SETTINGS_ANCHORS = {
   generalLanguage: 'settings-card-general-language',
-  generalStartupWindowMode: 'settings-card-general-startup-window-mode',
   appearanceCanvasBackground: 'settings-card-appearance-canvas-background',
   appearanceDockSettings: 'settings-card-appearance-dock-settings',
   appearanceElementCardTheme: 'settings-card-appearance-element-card-theme',
@@ -57,13 +56,6 @@ export const SETTINGS_SEARCH_TARGETS: readonly SettingsSearchTarget[] = Object.f
     descriptionKey: 'Settings_General_Language_Description',
     anchor: SETTINGS_ANCHORS.generalLanguage,
     field: 'general.languagePreference',
-  },
-  {
-    pageId: 'general',
-    cardTitleKey: 'Settings_General_StartupWindowMode_Title',
-    descriptionKey: 'Settings_General_StartupWindowMode_Description',
-    anchor: SETTINGS_ANCHORS.generalStartupWindowMode,
-    field: 'general.startupWindowMode',
   },
 
   // 外观（桌面 `Settings/Pages/AppearanceSettingsPage.xaml`）

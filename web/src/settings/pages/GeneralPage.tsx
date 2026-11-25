@@ -1,5 +1,5 @@
 /**
- * 设置 → 常规（桌面 WindBoard/Settings/Pages/GeneralSettingsPage.xaml）。网页端只保留语言与启动窗口形态两个字段；桌面页还有「最小化时进入屏幕批注」与伪装入口，浏览器无对应能力（见 research/03-ui-inventory.md §9）。
+ * 设置 → 常规（桌面 WindBoard/Settings/Pages/GeneralSettingsPage.xaml）。网页端只保留语言：启动窗口形态、最小化时进入屏幕批注与伪装入口在浏览器都没有对应能力（见 research/03-ui-inventory.md §9）。`general.startupWindowMode` 仍留在设置模型里，只为与桌面设置文件互通，网页端不暴露。
  */
 
 import { Dropdown, Option } from '@fluentui/react-components'
@@ -7,7 +7,7 @@ import type { ReactNode } from 'react'
 import { useSettings, useSettingsService } from '../../app/hooks.ts'
 import { useI18n, type Translator } from '../../i18n/context.ts'
 import type { MessageKey } from '../../i18n/locales/zh-CN.generated.ts'
-import type { LanguagePreference, StartupWindowMode } from '../model.ts'
+import type { LanguagePreference } from '../model.ts'
 import { SETTINGS_ANCHORS } from '../search-targets.ts'
 import { SettingsCard } from './SettingsCard.tsx'
 
@@ -24,12 +24,6 @@ const LANGUAGE_CHOICES: readonly Choice<LanguagePreference>[] = [
   { value: 'system', labelKey: 'Settings_General_Language_FollowSystem' },
   { value: 'zh-CN', labelKey: 'Settings_General_Language_Chinese' },
   { value: 'en-US', labelKey: 'Settings_General_Language_English' },
-]
-
-/** 启动窗口形态选项（桌面 `StartupWindowMode`）。 */
-const STARTUP_CHOICES: readonly Choice<StartupWindowMode>[] = [
-  { value: 'windowed', labelKey: 'Settings_General_StartupWindowMode_Windowed' },
-  { value: 'fullscreen', labelKey: 'Settings_General_StartupWindowMode_FullScreen' },
 ]
 
 /** 取选项显示文案（值非法时回退原值，正常情况下模型已保证合法）。 */
@@ -67,30 +61,6 @@ export function GeneralPage(): ReactNode {
           }}
         >
           {LANGUAGE_CHOICES.map((choice) => (
-            <Option key={choice.value} value={choice.value}>
-              {t(choice.labelKey)}
-            </Option>
-          ))}
-        </Dropdown>
-      </SettingsCard>
-
-      <SettingsCard
-        title={t('Settings_General_StartupWindowMode_Title')}
-        description={t('Settings_General_StartupWindowMode_Description')}
-        anchor={SETTINGS_ANCHORS.generalStartupWindowMode}
-      >
-        <Dropdown
-          aria-label={t('Settings_General_StartupWindowMode_Title')}
-          value={labelOf(STARTUP_CHOICES, settings.general.startupWindowMode, t)}
-          selectedOptions={[settings.general.startupWindowMode]}
-          onOptionSelect={(_, data) => {
-            const next = STARTUP_CHOICES.find((choice) => choice.value === data.optionValue)
-            if (next !== undefined) {
-              settingsService.patch({ general: { startupWindowMode: next.value } })
-            }
-          }}
-        >
-          {STARTUP_CHOICES.map((choice) => (
             <Option key={choice.value} value={choice.value}>
               {t(choice.labelKey)}
             </Option>

@@ -1,11 +1,12 @@
 /**
  * 画布 DOM 输入适配器：把真实 PointerEvent / WheelEvent / KeyboardEvent 转成 BoardController 的样本结构。这是唯一接触 DOM 事件的地方（board-controller.ts 本身不读 window），因此事件语义到纯决策的边界只在这里出现一次；事件类型用 dom-types.ts 的结构化视图，既能在 node 单测里构造，又能直接接真实 DOM 对象。
- * 浏览器与桌面的差异处理：坐标用 clientX/Y 减 canvasRect 得到画布内 DIP；getCoalescedEvents() 取回被浏览器合并掉的中间采样点逐个喂给控制器以保住采样密度；pointerdown 时 setPointerCapture 保证移出画布仍收到 pointermove（桌面 CapturePointer），lostpointercapture 不当作取消（桌面 CaptureLost 按提交处理）；滚轮监听必须 `{ passive: false }` 才能 preventDefault，否则页面会跟着滚动；画布需要 touch-action: none（由调用方 CSS 提供），否则手势会被浏览器接管。
+ * 浏览器与桌面的差异处理：坐标用 clientX/Y 减 canvasRect 得到画布内 DIP；getCoalescedEvents() 取回被浏览器合并掉的中间采样点逐个喂给控制器以保住采样密度；pointerdown 时 setPointerCapture 保证移出画布仍收到 pointermove（桌面 CapturePointer），lostpointercapture 不当作取消（桌面 CaptureLost 按提交处理）；滚轮监听必须 `{ passive: false }` 才能 preventDefault，否则页面会跟着滚动；画布需要 touch-action: none（由调用方 CSS 提供），否则手势会被浏览器接管；右键菜单必须在画布上取消，否则右键拖动平移一松手就弹出浏览器菜单。
  */
 
 import type { BoardController, PointerSample, WheelSample } from './board-controller.ts'
 import type {
   DomCanvasLike,
+  DomEventLike,
   DomEventSourceLike,
   DomKeyboardLike,
   DomModifierState,
@@ -156,11 +157,22 @@ export function attachBoardInput(controller: BoardController, options: DomInputO
     }
   }
 
+  /**
+   * 取消浏览器自带的右键菜单。画布的右键拖动是平移手势（桌面 `ShouldStartPan`），
+   * 菜单会在按键抬起时弹出，与平移冲突；触控笔的笔杆键与触摸长按（移动端 Chrome）同理。
+   * `contextmenu` 可取消，`preventDefault()` 即不弹菜单（Firefox 下 Shift+右键不派发该事件，
+   * 属浏览器保留的逃生口，无法拦截）。只绑定在画布上，设置窗口的输入框仍保留原生复制/粘贴菜单。
+   */
+  function onContextMenu(event: DomEventLike): void {
+    event.preventDefault()
+  }
+
   canvas.addEventListener('pointerdown', onPointerDown)
   canvas.addEventListener('pointermove', onPointerMove)
   canvas.addEventListener('pointerup', onPointerUp)
   canvas.addEventListener('pointercancel', onPointerCancel)
   canvas.addEventListener('lostpointercapture', onLostPointerCapture)
+  canvas.addEventListener('contextmenu', onContextMenu)
   canvas.addEventListener('wheel', onWheel, { passive: false })
   keyTarget?.addEventListener('keydown', onKeyDown)
 
@@ -171,6 +183,7 @@ export function attachBoardInput(controller: BoardController, options: DomInputO
       canvas.removeEventListener('pointerup', onPointerUp)
       canvas.removeEventListener('pointercancel', onPointerCancel)
       canvas.removeEventListener('lostpointercapture', onLostPointerCapture)
+      canvas.removeEventListener('contextmenu', onContextMenu)
       canvas.removeEventListener('wheel', onWheel)
       keyTarget?.removeEventListener('keydown', onKeyDown)
     },

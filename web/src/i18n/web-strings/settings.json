@@ -1,7 +1,7 @@
 {
   "zh-CN": {
     "Web_SettingsDockTab": "Dock",
-    "Web_Settings_General_Description": "语言与启动时的窗口形态",
+    "Web_Settings_General_Description": "界面语言",
     "Web_Settings_Appearance_Description": "画布背景颜色与元素卡片主题",
     "Web_Settings_Writing_Description": "画笔色板、粗细档位与滑条开关",
     "Web_Settings_Shortcuts_Description": "撤销/重做手势与鼠标组合快捷键",
@@ -18,7 +18,6 @@
     "Web_Settings_Version_Description": "与桌面版分开编号。",
     "Web_Settings_ExportSettings_Description": "导出当前全部设置到 JSON 文件（与桌面版格式兼容）",
     "Web_Settings_ImportSettings_Description": "从 JSON 文件导入并覆盖当前全部设置（忽略未知字段，非法值回落默认）",
-    "Web_Settings_DockShortcutDocks_Description": "网页端不显示快捷入口，设置会保留。",
     "Web_Settings_DockReset_Description": "恢复默认顺序与显示项",
     "Web_Settings_ShortcutPlaceholder": "例如 Ctrl+Z",
     "Web_Settings_ClearShortcut": "清除",
@@ -39,14 +38,14 @@
     "Web_Settings_DockItemAria_Fmt": "{0}，第 {1} 项，共 {2} 项",
     "Web_Settings_MoveUp_Fmt": "上移 {0}",
     "Web_Settings_MoveDown_Fmt": "下移 {0}",
-    "Web_Settings_LanguageHint": "切换语言后立即生效。启动形态只保存偏好，网页端启动时不会用到它。",
+    "Web_Settings_LanguageHint": "切换语言后立即生效。",
     "Web_Settings_ExportFailed_Fmt": "导出设置失败：{0}",
     "Web_Settings_ImportFailed_Fmt": "导入设置失败：{0}",
     "Web_Settings_FileFormatInvalid": "文件格式不正确"
   },
   "en-US": {
     "Web_SettingsDockTab": "Dock",
-    "Web_Settings_General_Description": "Language and startup window mode",
+    "Web_Settings_General_Description": "Interface language",
     "Web_Settings_Appearance_Description": "Canvas background color and element card theme",
     "Web_Settings_Writing_Description": "Pen palette, thickness presets and slider switch",
     "Web_Settings_Shortcuts_Description": "Undo/redo shortcuts and mouse gesture combinations",
@@ -63,7 +62,6 @@
     "Web_Settings_Version_Description": "Numbered separately from the desktop app.",
     "Web_Settings_ExportSettings_Description": "Export all settings to a JSON file (format compatible with the desktop app)",
     "Web_Settings_ImportSettings_Description": "Import and overwrite all settings from a JSON file (unknown fields are ignored, invalid values fall back to defaults)",
-    "Web_Settings_DockShortcutDocks_Description": "Shortcut docks are not shown in the web app; the setting is kept.",
     "Web_Settings_DockReset_Description": "Restore the default order and visible items",
     "Web_Settings_ShortcutPlaceholder": "e.g. Ctrl+Z",
     "Web_Settings_ClearShortcut": "Clear",
@@ -84,7 +82,7 @@
     "Web_Settings_DockItemAria_Fmt": "{0}, item {1} of {2}",
     "Web_Settings_MoveUp_Fmt": "Move {0} up",
     "Web_Settings_MoveDown_Fmt": "Move {0} down",
-    "Web_Settings_LanguageHint": "Language changes apply immediately. The startup mode is stored as a preference only and is not used by the web app.",
+    "Web_Settings_LanguageHint": "Language changes apply immediately.",
     "Web_Settings_ExportFailed_Fmt": "Failed to export settings: {0}",
     "Web_Settings_ImportFailed_Fmt": "Failed to import settings: {0}",
     "Web_Settings_FileFormatInvalid": "Invalid file format"

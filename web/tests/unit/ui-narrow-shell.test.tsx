@@ -114,7 +114,7 @@ describe('窄屏外壳', () => {
     const labels = Array.from(sheet?.querySelectorAll('.wb-sheet-button') ?? []).map(
       (element) => (element.textContent ?? '').trim(),
     )
-    // 页面行（上一页/下一页/新增页）+ 动作网格（导入/导出/设置/全屏/最小化/页面管理）
+    // 页面行（上一页/下一页/新增页）+ 动作网格（导入/导出/设置/全屏/页面管理）
     expect(labels).toEqual([
       '上一页',
       '下一页',
@@ -123,7 +123,6 @@ describe('窄屏外壳', () => {
       '导出',
       '设置',
       '全屏',
-      '最小化',
       '页面管理',
     ])
     expect(sheet?.querySelector('.wb-sheet__indicator')?.textContent).toBe('1 / 1')

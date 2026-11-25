@@ -1,9 +1,9 @@
 /**
  * DOM 输入适配器测试（`src/canvas/dom-input.ts`）。
  *
- * 适配器是 P1 唯一接触真实 DOM 事件的代码，因此这里用假画布 + 合成事件覆盖它的四条职责：
+ * 适配器是 P1 唯一接触真实 DOM 事件的代码，因此这里用假画布 + 合成事件覆盖它的几条职责：
  * 坐标换算（视口坐标 → 画布内 DIP）、合并事件保采样密度、滚轮/快捷键的 `preventDefault`、
- * 以及解绑后不再影响控制器。
+ * 右键菜单的取消、以及解绑后不再影响控制器。
  *
  * 事件对象按 `src/canvas/dom-types.ts` 的结构化视图构造，因此不需要（也不能）引用 DOM 类型名。
  */
@@ -165,6 +165,20 @@ describe('滚轮', () => {
   })
 })
 
+describe('右键菜单', () => {
+  it('取消画布上的 contextmenu（右键拖动平移不被浏览器菜单打断）', () => {
+    let prevented = false
+    canvas.emit('contextmenu', {
+      timeStamp: 0,
+      preventDefault: () => {
+        prevented = true
+      },
+    })
+
+    expect(prevented).toBe(true)
+  })
+})
+
 describe('快捷键', () => {
   /** 构造合成键盘事件。 */
   function keyEvent(overrides: Partial<DomKeyboardLike> & { key: string }): DomKeyboardLike {
@@ -226,6 +240,7 @@ describe('解绑', () => {
   it('detach 后事件不再影响控制器', () => {
     input.detach()
     expect(canvas.listenerCount('pointerdown')).toBe(0)
+    expect(canvas.listenerCount('contextmenu')).toBe(0)
     expect(canvas.listenerCount('wheel')).toBe(0)
     expect(keyTarget.listenerCount('keydown')).toBe(0)
 

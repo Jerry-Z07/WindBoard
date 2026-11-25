@@ -30,8 +30,13 @@ export type DockItemId =
   | 'pageNext'
   | 'pageAdd'
 
-/** 各 Dock 分组的默认顺序（桌面 `DockItemIds.cs`）。 */
+/** 各 Dock 分组的默认顺序（桌面 `DockItemIds.cs`）。默认值必须与桌面语料逐字段一致，因此保留「最小化」。 */
 export const DEFAULT_LEFT_DOCK_ITEMS: readonly DockItemId[] = ['more', 'minimize', 'import']
+/**
+ * 网页端左 Dock 实际渲染的项：浏览器没有最小化窗口的能力（桌面 `MainWindow.xaml:133-145` 的 `BackToWindow`），
+ * 主 Dock 与设置预览都不显示「最小化」；它仍留在 `DEFAULT_LEFT_DOCK_ITEMS` 里，只是为了与桌面默认设置文件保持一致。
+ */
+export const WEB_LEFT_DOCK_ITEMS: readonly DockItemId[] = ['more', 'import']
 export const DEFAULT_TOOL_DOCK_ITEMS: readonly DockItemId[] = [
   'toolSelect',
   'toolPen',
