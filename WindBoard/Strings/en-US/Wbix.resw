@@ -43,4 +43,16 @@
   <data name="Wbix_PageParseFailed_Fmt" xml:space="preserve">
     <value>Failed to parse WBIX page: {0}.</value>
   </data>
+  <data name="Wbix_Media_Image" xml:space="preserve">
+    <value>Image</value>
+  </data>
+  <data name="Wbix_Media_Audio" xml:space="preserve">
+    <value>Audio</value>
+  </data>
+  <data name="Wbix_Media_Video" xml:space="preserve">
+    <value>Video</value>
+  </data>
+  <data name="Wbix_Media_File" xml:space="preserve">
+    <value>File</value>
+  </data>
 </root>

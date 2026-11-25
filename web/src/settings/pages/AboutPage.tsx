@@ -10,6 +10,8 @@ import {
   DialogContent,
   DialogSurface,
   DialogTitle,
+  MessageBar,
+  MessageBarBody,
 } from '@fluentui/react-components'
 import { ArrowExport24Regular, ArrowImport24Regular, ArrowReset24Regular } from '@fluentui/react-icons'
 import { useState, type ReactNode } from 'react'
@@ -118,6 +120,11 @@ export function AboutPage(): ReactNode {
       </SettingsCard>
 
       <SettingsSection title={t('Settings_About_SettingsManagement_SectionTitle')}>
+        {busy ? (
+          <MessageBar intent="info">
+            <MessageBarBody>{t('Web_Settings_Busy_Message')}</MessageBarBody>
+          </MessageBar>
+        ) : null}
         <SettingsCard
           title={t('Settings_About_SettingsManagement_Export_Title')}
           description={t('Web_Settings_ExportSettings_Description')}

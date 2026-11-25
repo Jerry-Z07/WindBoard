@@ -35,7 +35,7 @@
     <value>Unknown page scope.</value>
   </data>
   <data name="Export_Busy_Default_Message" xml:space="preserve">
-    <value>The saved location is shown when export finishes.</value>
+    <value>Exporting. The saved location is shown when it finishes.</value>
   </data>
   <data name="Export_Busy_Wbix_Title" xml:space="preserve">
     <value>Exporting WBIX…</value>

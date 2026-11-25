@@ -118,4 +118,22 @@ Created: {3}</value>
   <data name="Import_MissingResources_More_Fmt" xml:space="preserve">
     <value>{0} more are not listed.</value>
   </data>
+  <data name="Import_MissingVideo_Fmt" xml:space="preserve">
+    <value>Video file not found: {0}</value>
+  </data>
+  <data name="Import_MissingImageAsset_Fmt" xml:space="preserve">
+    <value>Embedded image resource missing: {0}</value>
+  </data>
+  <data name="Import_MissingImage_Fmt" xml:space="preserve">
+    <value>Image file not found: {0}</value>
+  </data>
+  <data name="Import_Media_Video" xml:space="preserve">
+    <value>Video</value>
+  </data>
+  <data name="Import_Media_Image" xml:space="preserve">
+    <value>Image</value>
+  </data>
+  <data name="Import_Wbix_ParseFailed_Fmt" xml:space="preserve">
+    <value>Could not parse the file: {0}</value>
+  </data>
 </root>

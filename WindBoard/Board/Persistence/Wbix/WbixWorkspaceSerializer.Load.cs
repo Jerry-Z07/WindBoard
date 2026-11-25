@@ -262,7 +262,11 @@ namespace WindBoard.Board.Persistence.Wbix
                 sourcePath ??= string.Empty;
                 if (string.IsNullOrWhiteSpace(displayName))
                 {
-                    displayName = kind == BoardMediaKind.Image ? "图片" : kind == BoardMediaKind.Audio ? "音频" : "视频";
+                    displayName = kind == BoardMediaKind.Image
+                        ? L10n.Get("Wbix_Media_Image")
+                        : kind == BoardMediaKind.Audio
+                            ? L10n.Get("Wbix_Media_Audio")
+                            : L10n.Get("Wbix_Media_Video");
                 }
 
                 return new BoardMediaElementSnapshot(id, pos, size, order, kind, sourcePath, displayName);
@@ -274,7 +278,7 @@ namespace WindBoard.Board.Persistence.Wbix
                 string sourcePath = TryGetString(data, "sourcePath") ?? string.Empty;
                 if (string.IsNullOrWhiteSpace(displayName))
                 {
-                    displayName = string.IsNullOrWhiteSpace(sourcePath) ? "文件" : (Path.GetFileName(sourcePath) ?? string.Empty);
+                    displayName = string.IsNullOrWhiteSpace(sourcePath) ? L10n.Get("Wbix_Media_File") : (Path.GetFileName(sourcePath) ?? string.Empty);
                 }
 
                 return new BoardFileElementSnapshot(id, pos, size, order, sourcePath, displayName);

@@ -75,7 +75,11 @@ export function SelectionActionBar(props: SelectionActionBarProps): ReactNode {
             // 图标判别值 → Fluent 图标：up = 桌面 `Symbol.Up`，undo = 桌面 `Symbol.Undo`
             icon={bringToFront.icon === 'undo' ? <ArrowUndoRegular /> : <ArrowUpRegular />}
             label={bringToFrontLabel}
-            title={bringToFrontLabel}
+            title={
+              props.bringToFrontState === 'disabled'
+                ? t('Web_BringToFront_Disabled_Hint')
+                : bringToFrontLabel
+            }
             disabled={bringToFront.disabled}
             onClick={props.onBringToFront}
           />

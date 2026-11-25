@@ -397,6 +397,18 @@
                                              FontWeight="SemiBold"
                                              HorizontalAlignment="Center"
                                              VerticalAlignment="Center" />
+                                         <!-- 键盘入口：与滑块等大的透明按钮，不参与指针命中；Tab 到它按回车走确认框 -->
+                                         <Button
+                                             x:Name="ClearCanvasSlideKeyboardButton"
+                                             HorizontalAlignment="Stretch"
+                                             VerticalAlignment="Stretch"
+                                             Padding="0"
+                                             Background="Transparent"
+                                             BorderThickness="0"
+                                             IsHitTestVisible="False"
+                                             AutomationProperties.Name="{l10n:Loc Key=MainWindow_ClearCanvas_Action}"
+                                             ToolTipService.ToolTip="{l10n:Loc Key=MainWindow_ClearCanvas_Action}"
+                                             Click="OnClearCanvasKeyboardInvoke" />
 
                                         <!-- 拖动圆形把手：使用指针捕获实现拖动，避免 Thumb 在 Flyout 场景下失效 -->
                                         <Border
@@ -584,18 +596,18 @@
                 VerticalAlignment="Bottom">
                 <!-- 页面管理弹出层：以整个右侧 Dock 作为锚点，保证弹出区域正对 Dock 上方 -->
                 <FlyoutBase.AttachedFlyout>
-                    <Flyout x:Name="PagesFlyout" Placement="TopEdgeAlignedRight">
+                    <Flyout
+                        x:Name="PagesFlyout"
+                        Placement="TopEdgeAlignedRight"
+                        Opened="OnPagesFlyoutOpened">
                         <Flyout.FlyoutPresenterStyle>
                             <Style TargetType="FlyoutPresenter">
-                                <!-- 禁用 Flyout 默认边框/阴影/焦点框 -->
+                                <!-- 只去掉 presenter 自身的边框与阴影；焦点框保留，键盘用户需要看到当前项 -->
                                 <Setter Property="Background" Value="Transparent" />
                                 <Setter Property="BorderThickness" Value="0" />
                                 <Setter Property="Padding" Value="0" />
                                 <Setter Property="Shadow" Value="{x:Null}" />
                                 <Setter Property="IsTabStop" Value="False" />
-                                <Setter Property="UseSystemFocusVisuals" Value="False" />
-                                <Setter Property="FocusVisualPrimaryBrush" Value="Transparent" />
-                                <Setter Property="FocusVisualSecondaryBrush" Value="Transparent" />
                             </Style>
                         </Flyout.FlyoutPresenterStyle>
 

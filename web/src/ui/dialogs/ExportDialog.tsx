@@ -18,6 +18,7 @@ import {
   MessageBar,
   MessageBarBody,
   Option,
+  ProgressBar,
   Text,
 } from '@fluentui/react-components'
 import { ArrowExportRegular, DismissRegular } from '@fluentui/react-icons'
@@ -140,6 +141,7 @@ function ExportDialogForm(props: { readonly onClose: () => void }): ReactNode {
   // 打开时刻决定默认文件名；表单存活期间保持不变，避免用户看到文件名每帧跳变。
   const [now] = useState(() => new Date())
   const [options, setOptions] = useState<ExportOptions>(() => DEFAULT_EXPORT_OPTIONS)
+  const [busy, setBusy] = useState(false)
 
   const update = (patch: Partial<ExportOptions>): void => {
     setOptions((previous) => ({ ...previous, ...patch }))
@@ -172,14 +174,17 @@ function ExportDialogForm(props: { readonly onClose: () => void }): ReactNode {
   const folderName = formatPngFolderName(now)
 
   const handleExport = (): void => {
-    if (!validation.valid) {
+    if (!validation.valid || busy) {
       return
     }
 
-    // 真实导出：桌面顺序见 WindBoard/Features/Export/ExportFlow.cs:43-233（快照 → 光栅选项 → WBIX 整库 → 页范围 → 按格式分派），细节在 export-runner.ts。导出是异步的（编码 + 写盘），所以这里先关对话框再跑，失败信息走提醒条。
-    props.onClose()
+    // 真实导出：桌面顺序见 WindBoard/Features/Export/ExportFlow.cs（快照 → 光栅选项 → WBIX 整库 → 页范围 → 按格式分派），细节在 export-runner.ts。编码与写盘期间留在对话框里显示进度，结束后再关。
+    setBusy(true)
     void (async () => {
       try {
+        await new Promise<void>((resolve) => {
+          setTimeout(resolve, 0)
+        })
         const outcome = await runExport(options, {
           controller,
           background: settings.appearance.canvasBackgroundHex,
@@ -209,6 +214,9 @@ function ExportDialogForm(props: { readonly onClose: () => void }): ReactNode {
           message: `${t('Export_Failed_Title')}：${error instanceof Error ? error.message : String(error)}`,
           severity: 'error',
         })
+      } finally {
+        setBusy(false)
+        props.onClose()
       }
     })()
   }
@@ -222,6 +230,7 @@ function ExportDialogForm(props: { readonly onClose: () => void }): ReactNode {
             appearance="subtle"
             icon={<DismissRegular />}
             aria-label={t('Common_Close')}
+            disabled={busy}
             onClick={props.onClose}
           />
         }
@@ -412,6 +421,15 @@ function ExportDialogForm(props: { readonly onClose: () => void }): ReactNode {
           <Text className="wb-dialog__hint">{t('Web_Export_WbixWholeWorkspace')}</Text>
         ) : null}
 
+        {busy ? (
+          <>
+            <ProgressBar />
+            <MessageBar intent="info">
+              <MessageBarBody>{t('Export_Busy_Default_Message')}</MessageBarBody>
+            </MessageBar>
+          </>
+        ) : null}
+
         {/*
           静态提示（桌面 `Export_Hint_Text`，`Export.resw:128-130`；在桌面面板里是最后一个子元素，
           `ExportDialog.cs:85-90` 定义、`:157` 加入 `panel.Children`），放在动态提示之后、文件名之前。
@@ -424,7 +442,7 @@ function ExportDialogForm(props: { readonly onClose: () => void }): ReactNode {
 
       <DialogActions>
         {/* `Common_Cancel` = "取消"（`Common.resw:23-25`；桌面 `ExportDialog.cs:164` 的 `CloseButtonText`） */}
-        <Button appearance="secondary" onClick={props.onClose}>
+        <Button appearance="secondary" disabled={busy} onClick={props.onClose}>
           {t('Common_Cancel')}
         </Button>
         {/*
@@ -435,7 +453,7 @@ function ExportDialogForm(props: { readonly onClose: () => void }): ReactNode {
         <Button
           appearance="primary"
           icon={<ArrowExportRegular />}
-          disabled={!validation.valid}
+          disabled={!validation.valid || busy}
           onClick={handleExport}
         >
           {t('Common_Next')}

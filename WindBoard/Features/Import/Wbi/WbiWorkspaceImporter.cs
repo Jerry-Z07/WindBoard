@@ -344,14 +344,14 @@ namespace WindBoard.Features.Import.Wbi
             string path = att.FilePath ?? string.Empty;
             if (!string.IsNullOrWhiteSpace(path) && !File.Exists(path))
             {
-                missingResources.Add($"视频文件不存在：{path}");
+                missingResources.Add(L10n.Format("Import_MissingVideo_Fmt", path));
             }
 
             return new BoardMediaElement
             {
                 Kind = BoardMediaKind.Video,
                 SourcePath = path,
-                DisplayName = string.IsNullOrWhiteSpace(path) ? "视频" : Path.GetFileName(path),
+                DisplayName = string.IsNullOrWhiteSpace(path) ? L10n.Get("Import_Media_Video") : Path.GetFileName(path),
             };
         }
 
@@ -361,7 +361,7 @@ namespace WindBoard.Features.Import.Wbi
             CancellationToken cancellationToken = context.CancellationToken;
 
             string? sourcePath = null;
-            string displayName = "图片";
+            string displayName = L10n.Get("Import_Media_Image");
 
             if (manifest.IncludeImageAssets && !string.IsNullOrWhiteSpace(att.AssetFile))
             {
@@ -388,7 +388,7 @@ namespace WindBoard.Features.Import.Wbi
                 }
                 else
                 {
-                    context.MissingResources.Add($"缺少内嵌图片资源：{assetEntryPath}");
+                    context.MissingResources.Add(L10n.Format("Import_MissingImageAsset_Fmt", assetEntryPath));
                 }
             }
             else if (!string.IsNullOrWhiteSpace(att.FilePath))
@@ -398,7 +398,7 @@ namespace WindBoard.Features.Import.Wbi
 
                 if (!File.Exists(att.FilePath))
                 {
-                    context.MissingResources.Add($"图片文件不存在：{att.FilePath}");
+                    context.MissingResources.Add(L10n.Format("Import_MissingImage_Fmt", att.FilePath));
                 }
             }
 

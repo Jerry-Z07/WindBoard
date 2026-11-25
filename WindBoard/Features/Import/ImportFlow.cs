@@ -261,7 +261,7 @@ namespace WindBoard.Features.Import
             catch (Exception ex)
             {
                 AppLog.Error("WBIX", $"导入失败：'{file.Path}'", ex);
-                await DialogHelpers.ShowMessageAsync(xamlRoot, L10n.Get("Import_Failed_Title"), L10n.Get("Import_Wbix_ParseFailed_Message"));
+                await DialogHelpers.ShowMessageAsync(xamlRoot, L10n.Get("Import_Failed_Title"), L10n.Format("Import_Wbix_ParseFailed_Fmt", file.Path));
             }
         }
 
@@ -382,7 +382,7 @@ namespace WindBoard.Features.Import
             catch (Exception ex)
             {
                 AppLog.Error("WBI", $"导入失败：'{file.Path}'", ex);
-                await DialogHelpers.ShowMessageAsync(xamlRoot, L10n.Get("Import_Failed_Title"), L10n.Get("Import_Wbix_ParseFailed_Message"));
+                await DialogHelpers.ShowMessageAsync(xamlRoot, L10n.Get("Import_Failed_Title"), L10n.Format("Import_Wbix_ParseFailed_Fmt", file.Path));
                 return;
             }
 

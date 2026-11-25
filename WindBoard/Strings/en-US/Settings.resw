@@ -474,7 +474,7 @@
     <value>Adjust positions and visibility of items in the Dock</value>
   </data>
   <data name="Settings_Dock_DragHint" xml:space="preserve">
-    <value>Drag the buttons below to reorder them; on touch, press and hold first.</value>
+    <value>Drag the buttons below to reorder them, or select one and press Ctrl+Left/Right; on touch, press and hold first.</value>
   </data>
   <data name="Settings_Dock_ShowUndoRedo_Header" xml:space="preserve">
     <value>Show Undo/Redo section</value>
@@ -577,5 +577,23 @@
   </data>
   <data name="Settings_Writing_Pen_Description" xml:space="preserve">
     <value>Adjust the fixed palette and thickness mode</value>
+  </data>
+  <data name="Settings_Camouflage_Error_ExePathMissing" xml:space="preserve">
+    <value>Could not determine the application path.</value>
+  </data>
+  <data name="Settings_Camouflage_Error_SourceMissing" xml:space="preserve">
+    <value>The file does not exist.</value>
+  </data>
+  <data name="Settings_Camouflage_Error_IconUnreadable" xml:space="preserve">
+    <value>Could not read the icon or image.</value>
+  </data>
+  <data name="Settings_Camouflage_Error_Unexpected" xml:space="preserve">
+    <value>The operation failed. Details are in the log.</value>
+  </data>
+  <data name="Settings_Dock_ShortcutItems_Empty" xml:space="preserve">
+    <value>No shortcut entries yet. Add one with the card below.</value>
+  </data>
+  <data name="Settings_Dock_ResetConfirm_Content" xml:space="preserve">
+    <value>The order of all four groups and both visibility switches return to their defaults. Shortcut entries are cleared.</value>
   </data>
 </root>

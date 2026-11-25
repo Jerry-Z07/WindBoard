@@ -810,26 +810,6 @@ namespace WindBoard
             await StartImportAsync();
         }
 
-
-        private async Task ShowNotImplementedDialogAsync(string featureName)
-        {
-            XamlRoot? xamlRoot = TryGetDialogXamlRoot();
-            if (xamlRoot is null)
-            {
-                return;
-            }
-
-            var dialog = new ContentDialog
-            {
-                Title = L10n.Get("MainWindow_FeatureWip_Title"),
-                Content = L10n.Format("MainWindow_FeatureWip_Content_Fmt", featureName),
-                CloseButtonText = L10n.Get("Common_Close"),
-                XamlRoot = xamlRoot,
-            };
-
-            await dialog.ShowAsync();
-        }
-
         /// <summary>
         /// 取得用于展示 ContentDialog 的 XamlRoot（WinUI 3 中 ContentDialog 必须指定 XamlRoot）。
         /// 供主窗口内部与启动阶段的应用级流程（如旧安装版数据迁移）共用，避免各调用点各写一套回退逻辑。

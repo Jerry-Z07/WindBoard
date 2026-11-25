@@ -7,6 +7,7 @@ using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text;
 using WindBoard.Features.Camouflage.Models;
+using WindBoard.Localization;
 using WindBoard.Logging;
 using WindBoard.Persistence;
 using WindBoard.Settings;
@@ -217,7 +218,7 @@ namespace WindBoard.Features.Camouflage.Services
                 string exePath = ResolveShortcutExecutablePath(Environment.ProcessPath, AppContext.BaseDirectory);
                 if (string.IsNullOrWhiteSpace(exePath))
                 {
-                    errorMessage = "无法获取程序路径。";
+                    errorMessage = L10n.Get("Settings_Camouflage_Error_ExePathMissing");
                     return false;
                 }
 
@@ -249,7 +250,7 @@ namespace WindBoard.Features.Camouflage.Services
             catch (Exception ex)
             {
                 AppLog.Error("Camouflage", "更新桌面快捷方式失败", ex);
-                errorMessage = ex.Message;
+                errorMessage = L10n.Get("Settings_Camouflage_Error_Unexpected");
                 return false;
             }
             finally
@@ -472,7 +473,7 @@ namespace WindBoard.Features.Camouflage.Services
             {
                 if (string.IsNullOrWhiteSpace(sourcePath) || !File.Exists(sourcePath))
                 {
-                    errorMessage = "文件不存在。";
+                    errorMessage = L10n.Get("Settings_Camouflage_Error_SourceMissing");
                     return false;
                 }
 
@@ -494,7 +495,7 @@ namespace WindBoard.Features.Camouflage.Services
 
                 if (bitmap is null)
                 {
-                    errorMessage = "无法读取图标/图片。";
+                    errorMessage = L10n.Get("Settings_Camouflage_Error_IconUnreadable");
                     cachePath = string.Empty;
                     return false;
                 }
@@ -511,7 +512,7 @@ namespace WindBoard.Features.Camouflage.Services
                 AppLog.Warn("Camouflage", $"构建图标缓存失败：source='{sourcePath}'", ex);
                 cachePath = string.Empty;
                 previewBytes = null;
-                errorMessage = ex.Message;
+                errorMessage = L10n.Get("Settings_Camouflage_Error_Unexpected");
                 return false;
             }
         }

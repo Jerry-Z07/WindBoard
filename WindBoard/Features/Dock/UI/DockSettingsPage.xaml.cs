@@ -5,16 +5,20 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using Microsoft.UI.Dispatching;
+using Microsoft.UI.Input;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
+using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
 using Windows.Storage;
 using Windows.Storage.Pickers;
+using Windows.UI.Core;
 using WindBoard.Fonts;
 using WindBoard.Features.Dock.Models;
 using WindBoard.Localization;
 using WindBoard.Settings;
+using WindBoard.UI.Common;
 
 namespace WindBoard.Features.Dock.UI
 {
@@ -355,6 +359,65 @@ namespace WindBoard.Features.Dock.UI
         private void UpdateAddShortcutDockItemButtonState()
         {
             AddShortcutDockItemButton.IsEnabled = ShortcutDocksVisibleToggleSwitch.IsOn && ShortcutDockItems.Count < 5;
+
+            if (ShortcutDockEmptyHint is not null)
+            {
+                ShortcutDockEmptyHint.Visibility = ShortcutDockItems.Count == 0 ? Visibility.Visible : Visibility.Collapsed;
+            }
+        }
+
+        /// <summary>
+        /// 预览区的键盘排序：选中按钮后按 Ctrl+左右方向键移动。拖动对键盘不可达，这里补齐同一条路径。
+        /// </summary>
+        private void OnDockItemsKeyDown(object sender, KeyRoutedEventArgs e)
+        {
+            if (_isSyncingFromSettings || sender is not ListViewBase list)
+            {
+                return;
+            }
+
+            if (e.Key is not (Windows.System.VirtualKey.Left or Windows.System.VirtualKey.Right))
+            {
+                return;
+            }
+
+            bool controlDown = InputKeyboardSource
+                .GetKeyStateForCurrentThread(Windows.System.VirtualKey.Control)
+                .HasFlag(CoreVirtualKeyStates.Down);
+            if (!controlDown || list.SelectedItem is not DockItemViewModel item)
+            {
+                return;
+            }
+
+            ObservableCollection<DockItemViewModel>? items = (list.Tag as string) switch
+            {
+                "left" => LeftDockItems,
+                "tools" => ToolsDockItems,
+                "undoRedo" => UndoRedoDockItems,
+                "pages" => PagesDockItems,
+                _ => null,
+            };
+            if (items is null)
+            {
+                return;
+            }
+
+            int index = items.IndexOf(item);
+            int targetIndex = e.Key == Windows.System.VirtualKey.Left ? index - 1 : index + 1;
+            if (index < 0 || targetIndex < 0 || targetIndex >= items.Count)
+            {
+                return;
+            }
+
+            e.Handled = true;
+            items.Move(index, targetIndex);
+            list.SelectedIndex = targetIndex;
+            PersistOrdersToSettings();
+
+            if (list.ContainerFromIndex(targetIndex) is ListViewItem container)
+            {
+                container.Focus(FocusState.Keyboard);
+            }
         }
 
         private static IntPtr TryGetHostWindowHandle()
@@ -402,8 +465,19 @@ namespace WindBoard.Features.Dock.UI
             });
         }
 
-        private void OnResetToDefaultClicked(object sender, RoutedEventArgs e)
+        private async void OnResetToDefaultClicked(object sender, RoutedEventArgs e)
         {
+            bool confirmed = await DialogHelpers.ShowConfirmAsync(
+                XamlRoot,
+                L10n.Get("Settings_Dock_ResetLayout_Button"),
+                L10n.Get("Settings_Dock_ResetConfirm_Content"),
+                L10n.Get("Common_ResetToDefault"),
+                L10n.Get("Common_Cancel"));
+            if (!confirmed)
+            {
+                return;
+            }
+
             AppSettingsService.Instance.Update(s => s.Dock = new DockSettings());
         }
 

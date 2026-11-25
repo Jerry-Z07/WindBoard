@@ -118,4 +118,22 @@
   <data name="Import_MissingResources_More_Fmt" xml:space="preserve">
     <value>另有 {0} 项未列出。</value>
   </data>
+  <data name="Import_MissingVideo_Fmt" xml:space="preserve">
+    <value>视频文件不存在：{0}</value>
+  </data>
+  <data name="Import_MissingImageAsset_Fmt" xml:space="preserve">
+    <value>缺少内嵌图片资源：{0}</value>
+  </data>
+  <data name="Import_MissingImage_Fmt" xml:space="preserve">
+    <value>图片文件不存在：{0}</value>
+  </data>
+  <data name="Import_Media_Video" xml:space="preserve">
+    <value>视频</value>
+  </data>
+  <data name="Import_Media_Image" xml:space="preserve">
+    <value>图片</value>
+  </data>
+  <data name="Import_Wbix_ParseFailed_Fmt" xml:space="preserve">
+    <value>无法解析文件：{0}</value>
+  </data>
 </root>

@@ -474,7 +474,7 @@
     <value>调整 Dock 内组件的位置与显隐</value>
   </data>
   <data name="Settings_Dock_DragHint" xml:space="preserve">
-    <value>拖动下方按钮可调整顺序，触摸时需要长按后再拖动。</value>
+    <value>拖动下方按钮可调整顺序；选中后按 Ctrl+左右方向键也能移动，触摸时长按再拖动。</value>
   </data>
   <data name="Settings_Dock_ShowUndoRedo_Header" xml:space="preserve">
     <value>显示撤销/重做区域</value>
@@ -577,5 +577,23 @@
   </data>
   <data name="Settings_Writing_Pen_Description" xml:space="preserve">
     <value>调整固定色板与粗细调节方式</value>
+  </data>
+  <data name="Settings_Camouflage_Error_ExePathMissing" xml:space="preserve">
+    <value>无法获取程序路径。</value>
+  </data>
+  <data name="Settings_Camouflage_Error_SourceMissing" xml:space="preserve">
+    <value>文件不存在。</value>
+  </data>
+  <data name="Settings_Camouflage_Error_IconUnreadable" xml:space="preserve">
+    <value>无法读取图标或图片。</value>
+  </data>
+  <data name="Settings_Camouflage_Error_Unexpected" xml:space="preserve">
+    <value>操作失败，详细信息已记入日志。</value>
+  </data>
+  <data name="Settings_Dock_ShortcutItems_Empty" xml:space="preserve">
+    <value>还没有快捷入口。</value>
+  </data>
+  <data name="Settings_Dock_ResetConfirm_Content" xml:space="preserve">
+    <value>四组顺序与两个显隐开关恢复默认，快捷入口会被清空。</value>
   </data>
 </root>

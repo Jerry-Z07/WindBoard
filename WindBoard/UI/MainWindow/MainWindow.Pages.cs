@@ -125,6 +125,13 @@ namespace WindBoard
             }
         }
 
+        private void OnPagesFlyoutOpened(object? sender, object e)
+        {
+            // 打开后把焦点交给列表：否则键盘用户停在触发按钮上，方向键无法进入页面项。
+            SelectCurrentPageInListView();
+            PagesListView.Focus(FocusState.Programmatic);
+        }
+
         private void OnPagesListItemClick(object sender, ItemClickEventArgs e)
         {
             if (_isUpdatingPageSelection)

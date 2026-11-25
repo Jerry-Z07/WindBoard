@@ -3,7 +3,7 @@
  * 桌面用指针捕获加 TranslateTransform 做拖动，网页端用 Pointer Events 加同样的阈值判定，位移用 CSS transform 表达。
  */
 
-import type { PointerEvent as ReactPointerEvent, ReactNode } from 'react'
+import type { KeyboardEvent as ReactKeyboardEvent, PointerEvent as ReactPointerEvent, ReactNode } from 'react'
 import { useRef, useState } from 'react'
 import { Radio, RadioGroup } from '@fluentui/react-components'
 import { DeleteRegular } from '@fluentui/react-icons'
@@ -109,6 +109,39 @@ export function EraserFlyout(props: EraserFlyoutProps): ReactNode {
     reset()
   }
 
+  /**
+   * 键盘等价操作：方向键按 10% 步进移动把手，移到末端即视为完成滑动（与拖到 90% 后松手同一判定），Home 复位。
+   * 滑动手势本身对键盘不可达，缺这段的话读屏用户永远清不了画布。
+   */
+  const onKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>): void => {
+    if (!canClear) {
+      return
+    }
+    const max = maxOffset()
+    const step = max / 10
+    const current = offsetRef.current
+    let next = current
+    if (event.key === 'ArrowRight' || event.key === 'ArrowUp') {
+      next = Math.min(current + step, max)
+    } else if (event.key === 'ArrowLeft' || event.key === 'ArrowDown') {
+      next = Math.max(current - step, 0)
+    } else if (event.key === 'Home') {
+      next = 0
+    } else {
+      return
+    }
+
+    event.preventDefault()
+    offsetRef.current = next
+    setOffset(next)
+    setMaxOffsetPx(max)
+    if (next >= max && isClearSlideComplete(next, max)) {
+      reset()
+      controller.clearPage()
+      props.onClose()
+    }
+  }
+
   return (
     <div className="wb-flyout wb-flyout--eraser">
       <div className="wb-flyout__card">
@@ -140,12 +173,15 @@ export function EraserFlyout(props: EraserFlyoutProps): ReactNode {
           aria-valuemin={0}
           aria-valuemax={100}
           aria-valuenow={Math.round(clearSlideProgress(offset, maxOffsetPx) * 100)}
+          aria-valuetext={t('Web_ClearCanvas_Progress_Fmt', Math.round(clearSlideProgress(offset, maxOffsetPx) * 100))}
           aria-disabled={!canClear}
+          title={canClear ? undefined : t('MainWindow_ClearCanvas_Empty_Hint')}
           style={{ transform: `translateX(${offset}px)` }}
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
           onPointerUp={onPointerUp}
           onPointerCancel={onPointerCancel}
+          onKeyDown={onKeyDown}
         >
           <DeleteRegular fontSize={16} />
         </div>

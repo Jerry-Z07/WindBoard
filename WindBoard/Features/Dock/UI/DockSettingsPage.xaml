@@ -57,7 +57,9 @@
                                 <ListView
                                     x:Name="LeftDockListView"
                                     ItemsSource="{x:Bind LeftDockItems, Mode=OneWay}"
-                                    SelectionMode="None"
+                                    SelectionMode="Single"
+                                    Tag="left"
+                                    KeyDown="OnDockItemsKeyDown"
                                     AllowDrop="True"
                                     CanDragItems="True"
                                     CanReorderItems="True"
@@ -104,7 +106,9 @@
                                     <ListView
                                         x:Name="ToolsDockListView"
                                         ItemsSource="{x:Bind ToolsDockItems, Mode=OneWay}"
-                                        SelectionMode="None"
+                                        SelectionMode="Single"
+                                        Tag="tools"
+                                        KeyDown="OnDockItemsKeyDown"
                                         AllowDrop="True"
                                         CanDragItems="True"
                                         CanReorderItems="True"
@@ -144,7 +148,9 @@
                                     <ListView
                                         x:Name="UndoRedoDockListView"
                                         ItemsSource="{x:Bind UndoRedoDockItems, Mode=OneWay}"
-                                        SelectionMode="None"
+                                        SelectionMode="Single"
+                                        Tag="undoRedo"
+                                        KeyDown="OnDockItemsKeyDown"
                                         AllowDrop="True"
                                         CanDragItems="True"
                                         CanReorderItems="True"
@@ -189,7 +195,9 @@
                                 <ListView
                                     x:Name="PagesDockListView"
                                     ItemsSource="{x:Bind PagesDockItems, Mode=OneWay}"
-                                    SelectionMode="None"
+                                    SelectionMode="Single"
+                                    Tag="pages"
+                                    KeyDown="OnDockItemsKeyDown"
                                     AllowDrop="True"
                                     CanDragItems="True"
                                     CanReorderItems="True"
@@ -258,6 +266,13 @@
                             Text="{l10n:Loc Key=Settings_Dock_ShortcutItems_Hint}"
                             Opacity="0.75"
                             TextWrapping="WrapWholeWords" />
+
+                        <TextBlock
+                            x:Name="ShortcutDockEmptyHint"
+                            Text="{l10n:Loc Key=Settings_Dock_ShortcutItems_Empty}"
+                            Opacity="0.75"
+                            TextWrapping="WrapWholeWords"
+                            Visibility="Collapsed" />
 
                         <ListView
                             x:Name="ShortcutDockItemsListView"

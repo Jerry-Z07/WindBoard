@@ -105,6 +105,11 @@ export function BoardSurface(props: BoardSurfaceProps): ReactNode {
   const autosaveServiceRef = useRef<AutosaveService | null>(null)
   const flushRef = useRef<(() => void) | null>(null)
   const [pendingAutosave, setPendingAutosave] = useState<AutosaveMeta | null>(null)
+  /** 自动保存失败只提示一次，避免每次重试都弹一条。 */
+  const autosaveErrorNotifiedRef = useRef(false)
+  /** 提醒服务引用：自动保存 effect 只在控制器变化时重建，不能把服务实例钉进依赖。 */
+  const remindersRef = useRef(reminders)
+  remindersRef.current = reminders
 
   // 语言切换后画布上的元素卡文案要重画：`translate` 读的是 ref，值已经更新，
   // 但没有任何交互会触发新帧，这里显式请求一次（`t` 的身份随语言变化）。
@@ -236,8 +241,16 @@ export function BoardSurface(props: BoardSurfaceProps): ReactNode {
           return { pageCount: controller.workspace.pages.length, itemCount }
         },
         onError: () => {
-          // 写盘失败只记录一次，不打断书写（下一步操作还会再试）
+          // 写盘失败只提示一次，不打断书写（下一步操作还会再试）
           console.warn('[autosave] 自动保存失败')
+          if (autosaveErrorNotifiedRef.current) {
+            return
+          }
+          autosaveErrorNotifiedRef.current = true
+          remindersRef.current.push({
+            message: translateRef.current('Web_AutosaveFailed_Message'),
+            severity: 'warning',
+          })
         },
       })
       autosaveServiceRef.current = service
