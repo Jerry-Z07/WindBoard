@@ -1,10 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <root>
-  <!--
-    说明：
-    - 本文件为 zh-CN 语言资源（按功能拆分）。
-    - Key 前缀：MainWindow_*
-  -->
+  <!-- zh-CN 语言资源，Key 前缀 MainWindow_* -->
   <resheader name="resmimetype">
     <value>text/microsoft-resx</value>
   </resheader>
@@ -49,5 +45,11 @@
   </data>
   <data name="MainWindow_ScreenAnnotationStartFailed_Content_Fmt" xml:space="preserve">
     <value>进入屏幕批注失败。原因：{0}</value>
+  </data>
+  <data name="MainWindow_AddPage_Button" xml:space="preserve">
+    <value>添加页面</value>
+  </data>
+  <data name="MainWindow_DeletePage_Button" xml:space="preserve">
+    <value>删除页面</value>
   </data>
 </root>

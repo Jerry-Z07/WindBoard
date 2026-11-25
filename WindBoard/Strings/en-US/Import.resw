@@ -1,10 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <root>
-  <!--
-    说明：
-    - 本文件为 en-US 语言资源（按功能拆分）。
-    - Key 前缀：Import_*
-  -->
+  <!-- en-US 语言资源，Key 前缀 Import_* -->
   <resheader name="resmimetype">
     <value>text/microsoft-resx</value>
   </resheader>
@@ -75,26 +71,16 @@
     <value>Importing WBIX/WBI…</value>
   </data>
   <data name="Import_Wbix_Busy_Message" xml:space="preserve">
-    <value>Importing, please wait…</value>
+    <value>Keep the window open while importing.</value>
   </data>
   <data name="Import_Risk_Title" xml:space="preserve">
     <value>Risk warning</value>
   </data>
   <data name="Import_Risk_ReplaceWorkspace_Content" xml:space="preserve">
-    <value>Choosing "Replace entire workspace" will replace all current pages.
-
-We recommend exporting a backup (WBIX) before replacing.
-
-Continue?</value>
+    <value>The imported file replaces every page. Export a WBIX backup first.</value>
   </data>
   <data name="Import_Risk_ReplaceCurrentPage_Content" xml:space="preserve">
-    <value>Choosing "Replace current page" will replace the current page and insert the remaining imported pages after it.
-
-The current page content will be lost and this action cannot be undone.
-
-We recommend exporting a backup (WBIX) before replacing.
-
-Continue?</value>
+    <value>The first page of the imported file replaces the current page, and the remaining pages follow it. The current page content is lost and cannot be undone. Export a WBIX backup first.</value>
   </data>
   <data name="Import_Risk_ContinueOverwrite" xml:space="preserve">
     <value>Continue and replace</value>
@@ -125,5 +111,11 @@ Created: {3}</value>
   </data>
   <data name="Import_TextReadFailed_Placeholder" xml:space="preserve">
     <value>(Read failed)</value>
+  </data>
+  <data name="Import_MissingResources_Header" xml:space="preserve">
+    <value>The import finished, but these resources are missing or unreadable:</value>
+  </data>
+  <data name="Import_MissingResources_More_Fmt" xml:space="preserve">
+    <value>{0} more are not listed.</value>
   </data>
 </root>

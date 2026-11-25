@@ -1,10 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <root>
-  <!--
-    说明：
-    - 本文件为 zh-CN 语言资源（按功能拆分）。
-    - Key 前缀：Settings_*
-  -->
+  <!-- zh-CN 语言资源，Key 前缀 Settings_* -->
   <resheader name="resmimetype">
     <value>text/microsoft-resx</value>
   </resheader>
@@ -21,7 +17,7 @@
     <value>快捷键</value>
   </data>
   <data name="Settings_Shortcuts_Description" xml:space="preserve">
-    <value>配置撤销/重做键盘快捷键，并查看鼠标组合快捷键（暂不支持修改）。</value>
+    <value>配置撤销与重做的键盘快捷键。</value>
   </data>
   <data name="Settings_Shortcuts_Keyboard_SectionTitle" xml:space="preserve">
     <value>键盘快捷键</value>
@@ -186,23 +182,20 @@
     <value>设置 JSON 文件</value>
   </data>
   <data name="Settings_About_SettingsManagement_OverwriteExport_Content_Fmt" xml:space="preserve">
-    <value>文件已存在：{0}
-是否覆盖导出的设置文件？</value>
+    <value>文件已存在：{0}</value>
   </data>
   <data name="Settings_About_SettingsManagement_ImportConfirm_Title" xml:space="preserve">
     <value>确认导入设置</value>
   </data>
   <data name="Settings_About_SettingsManagement_ImportConfirm_Content_Fmt" xml:space="preserve">
-    <value>即将从以下文件导入设置，并覆盖当前全部设置：
-{0}
-
-此操作会立即保存到当前设备，是否继续？</value>
+    <value>将用以下文件覆盖当前全部设置，并立即保存到本机：
+{0}</value>
   </data>
   <data name="Settings_About_SettingsManagement_ResetConfirm_Title" xml:space="preserve">
     <value>确认恢复默认设置</value>
   </data>
   <data name="Settings_About_SettingsManagement_ResetConfirm_Content" xml:space="preserve">
-    <value>当前全部设置将恢复为默认值，并清空现有设置记录。此操作会立即保存，是否继续？</value>
+    <value>当前全部设置将恢复为默认值，包括语言与快捷键记录。此操作会立即生效。</value>
   </data>
   <data name="Settings_About_SettingsManagement_Exported_Fmt" xml:space="preserve">
     <value>已导出设置：{0}</value>
@@ -226,13 +219,13 @@
     <value>选中的设置文件不存在或不可用。</value>
   </data>
   <data name="Settings_About_SettingsManagement_ExportFailed_Message" xml:space="preserve">
-    <value>导出设置失败。请稍后重试。</value>
+    <value>导出设置失败。</value>
   </data>
   <data name="Settings_About_SettingsManagement_ImportFailed_Message" xml:space="preserve">
     <value>导入设置失败。请检查所选文件后重试。</value>
   </data>
   <data name="Settings_About_SettingsManagement_ResetFailed_Message" xml:space="preserve">
-    <value>恢复默认设置失败。请稍后重试。</value>
+    <value>恢复默认设置失败。</value>
   </data>
   <data name="Settings_About_AutoCheckUpdates" xml:space="preserve">
     <value>自动检查更新</value>
@@ -331,7 +324,7 @@
     <value>确认崩溃测试</value>
   </data>
   <data name="Settings_Debug_CrashConfirm_Body" xml:space="preserve">
-    <value>此操作会故意触发崩溃，用于验证崩溃处理链路（写崩溃报告、弹出崩溃对话框并退出）。请先保存工作。</value>
+    <value>应用会立刻崩溃，用来验证崩溃处理流程：写崩溃报告、弹出对话框后退出。未保存的内容会丢失。</value>
   </data>
   <data name="Settings_Debug_CrashConfirm_Placeholder" xml:space="preserve">
     <value>输入 CRASH 以继续</value>
@@ -421,7 +414,7 @@
     <value>选择或输入图标文件路径</value>
   </data>
   <data name="Settings_Camouflage_Icon_SupportHint" xml:space="preserve">
-    <value>支持 .exe/.ico/.png/.jpg/.jpeg</value>
+    <value>可用格式：.exe/.ico/.png/.jpg/.jpeg</value>
   </data>
   <data name="Settings_Camouflage_NoFileSelected" xml:space="preserve">
     <value>未选择文件</value>
@@ -442,7 +435,7 @@
     <value>打开文件选择器失败：{0}</value>
   </data>
   <data name="Settings_Camouflage_Shortcut_Description" xml:space="preserve">
-    <value>桌面快捷方式不会在每次启动时自动更新。如需重新生成，请点击按钮（修改伪装设置时会自动更新一次）。</value>
+    <value>修改伪装设置时会更新一次桌面快捷方式，其余时候需要手动生成。</value>
   </data>
   <data name="Settings_Camouflage_CreateShortcut_Button" xml:space="preserve">
     <value>生成桌面快捷方式</value>
@@ -481,16 +474,16 @@
     <value>调整 Dock 内组件的位置与显隐</value>
   </data>
   <data name="Settings_Dock_DragHint" xml:space="preserve">
-    <value>长按并拖动下方按钮，可调整它们在 Dock 中的显示顺序（支持触摸拖动）。</value>
+    <value>拖动下方按钮可调整顺序，触摸时需要长按后再拖动。</value>
   </data>
   <data name="Settings_Dock_ShowUndoRedo_Header" xml:space="preserve">
     <value>显示撤销/重做区域</value>
   </data>
   <data name="Settings_Dock_ShowShortcutDocks_Header" xml:space="preserve">
-    <value>显示快捷入口 Dock（主 Dock 左右侧）</value>
+    <value>显示快捷入口 Dock</value>
   </data>
   <data name="Settings_Dock_ShortcutItems_Hint" xml:space="preserve">
-    <value>最多添加 5 个快捷入口，可选择放在主 Dock 的左侧或右侧。</value>
+    <value>最多添加 5 个，可放在主 Dock 的左侧或右侧。</value>
   </data>
   <data name="Settings_Dock_UnknownItemId_Message" xml:space="preserve">
     <value>未知的 Dock 项标识符。</value>
@@ -544,7 +537,7 @@
     <value>颜色数量</value>
   </data>
   <data name="Settings_Pen_PaletteHint" xml:space="preserve">
-    <value>提示：可保留空色块（未设置颜色），后续再选择色块并设置颜色。</value>
+    <value>空色块可以先留着，之后再设置颜色。</value>
   </data>
   <data name="Settings_Pen_DefaultColorEdit_Title" xml:space="preserve">
     <value>默认颜色更改</value>
@@ -553,7 +546,7 @@
     <value>默认颜色更改（第 {0} 个色块）</value>
   </data>
   <data name="Settings_Pen_SelectColorHint" xml:space="preserve">
-    <value>请先在上方预览区选择一个颜色块，然后再使用颜色选择器修改。</value>
+    <value>先选择一个色块，再修改它的颜色。</value>
   </data>
   <data name="Settings_Pen_ClearSwatch_Button" xml:space="preserve">
     <value>清空该色块</value>

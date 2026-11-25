@@ -1,10 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <root>
-  <!--
-    说明：
-    - 本文件为 zh-CN 语言资源（按功能拆分）。
-    - Key 前缀：Reminder_*
-  -->
+  <!-- zh-CN 语言资源，Key 前缀 Reminder_* -->
   <resheader name="resmimetype">
     <value>text/microsoft-resx</value>
   </resheader>
@@ -17,6 +13,9 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
+  <data name="Reminder_Action_OpenDataDirectory" xml:space="preserve">
+    <value>打开数据目录</value>
+  </data>
   <data name="Reminder_Shortcuts_AutoFix_Title" xml:space="preserve">
     <value>快捷键设置已自动修复</value>
   </data>
@@ -42,6 +41,6 @@
     <value>便携版 data 目录不可写</value>
   </data>
   <data name="Reminder_Data_PortableNotWritable_Body_Fmt" xml:space="preserve">
-    <value>已自动回退到本机数据目录保存。点击此提醒打开当前数据目录。</value>
+    <value>便携目录不可写，数据改为保存到本机应用数据目录。</value>
   </data>
 </root>

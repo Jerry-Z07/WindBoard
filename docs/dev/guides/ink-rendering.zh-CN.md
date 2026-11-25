@@ -1,14 +1,14 @@
 # 笔迹与图形渲染几何规范（ink-rendering）
 
-本文档固化 WindBoard 画布上「笔迹（stroke）」与「图形（shape）」的**几何绘制契约**：坐标换算、绘制顺序、笔宽与半径、端点与连接样式、图形与箭头翼的构造、编辑覆盖层尺寸，以及对应的常量。
+**几何绘制契约**覆盖 WindBoard 画布上的「笔迹（stroke）」与「图形（shape）」：坐标换算、绘制顺序、笔宽与半径、端点与连接样式、图形与箭头翼的构造、编辑覆盖层尺寸，以及对应的常量。
 
 用途：
 
-- 网页端（PWA）移植需要一个**独立实现**，几何口径必须与桌面端一致；本文是唯一依据。
+- 网页端（PWA）移植需要一个**独立实现**，几何口径必须与桌面端一致；这份契约是唯一依据。
   网页端实现落在 `web/src/ink/{geometry,outline}.ts` 与 `web/src/render/scene.ts`，双端模块对应与同步义务见
   `docs/dev/guides/web-port.zh-CN.md` §3.2。
-- 桌面端重构渲染代码时，用本文校对「几何是否被改动」。
-- 本文只约定**几何与颜色**，不约定抗锯齿、亚像素采样、GPU 实现细节——这些允许存在差异。
+- 桌面端重构渲染代码时，对照检查几何有无改动。
+- **几何与颜色**是契约内容；抗锯齿、亚像素采样、GPU 实现细节不在其中，允许存在差异。
 
 所有长度单位均为 **DIP**（与世界坐标同一量纲，见 §2）。代码出处以 `file:line` 标注，行号以当前 `develop` 分支为准。
 
@@ -49,13 +49,13 @@ world  = (screen - viewportSize / 2) / max(0.0001, zoom) + cameraWorld
 - `zoom` 取值范围（`BoardViewport.cs`）：
   - 交互态：`0.05 ~ 32`
   - 导出（PNG/PDF）态：`0.0001 ~ 4096`
-- `zoom = 1` 时 1 世界单位 = 1 DIP；屏幕上「1 DIP」到设备像素的换算由渲染目标的 DPI 处理，不属于本文契约。
+- `zoom = 1` 时 1 世界单位 = 1 DIP；屏幕上「1 DIP」到设备像素的换算由渲染目标的 DPI 处理，不在契约范围内。
 
 ## 3. 背景
 
 - 画布背景是**纯色填充**，默认 `#2E2F33`（`WindBoard/Controls/BoardCanvasControl.xaml.cs:38`，应用到渲染器 `:437`）。
 - **没有网格、没有纸张纹理、没有阴影**；每帧以该颜色 `Clear` 整个目标。
-- 网页端实现应支持同一默认值，并允许用户设置覆盖（设置项不属于本文契约）。
+- 网页端实现应支持同一默认值，并允许用户设置覆盖（设置项不在契约范围内）。
 
 ## 4. 绘制顺序
 
@@ -80,7 +80,7 @@ world  = (screen - viewportSize / 2) / max(0.0001, zoom) + cameraWorld
 widthFactor = enablePressure ? clamp(pressure, 0.1, 1.0) : 1.0
 ```
 
-`clamp` 的下限 **0.1** 与上限 **1.0** 见 `BoardSceneMath.GetStrokeWidthFactor`（`WindBoard/Rendering/Board/BoardSceneMath.cs`）。即压感再小，笔宽也不会低于基础笔宽的 10%；压感大于 1 时按 1 处理。
+`clamp` 的下限 **0.1** 与上限 **1.0** 见 `BoardSceneMath.GetStrokeWidthFactor`（`WindBoard/Rendering/Board/BoardSceneMath.cs`）。压感再小，笔宽也不会低于基础笔宽的 10%；压感大于 1 时按 1 处理。
 
 ### 5.2 点半径
 
@@ -90,7 +90,7 @@ radius   = diameter / 2
 ```
 
 - `max(0.5, ...)` 是**最小可见直径下限 0.5 DIP**（`BoardSceneRenderer.cs:1324-1336` 的 `CreateInkPoint`；多点的兜底绘制路径 `:496` 同样取 `max(0.5, baseSize * widthFactor)`）。
-- 半径沿折线**逐点**计算：每个采样点按自己的 `pressure` 得到自己的半径。
+- 半径沿折线**逐点**计算：每个采样点按自己的 `pressure` 算出半径。
 
 ### 5.3 单点笔迹
 
@@ -101,14 +101,14 @@ center = points[0].position
 radius = max(0.5, baseSize * widthFactor(points[0].pressure) / 2)
 ```
 
-注意这里的下限作用于**半径**（0.5 DIP），不是作用于直径——与 §5.2 的多点笔迹不同：
+这里的下限作用于**半径**（0.5 DIP），不是直径，与 §5.2 的多点笔迹不同：
 
 | 形态 | 计算 | 半径下限 |
 |---|---|---|
 | 单点笔迹 | `max(0.5, baseSize * wf / 2)` | **0.5** DIP |
 | 多点笔迹的每个采样点 | `max(0.5, baseSize * wf) / 2` | 0.25 DIP |
 
-即：单点笔迹的最小可见直径是 1 DIP，而多点笔迹的采样点最小直径是 0.5 DIP。这是桌面端的既有行为（`BoardSceneRenderer.cs:452-457`：`ctx.FillEllipse(new Ellipse(position, radius, radius), brush)`），移植时须照搬，不要"统一"。
+单点笔迹的最小可见直径是 1 DIP，多点笔迹的采样点最小直径是 0.5 DIP。这是桌面端的既有行为（`BoardSceneRenderer.cs:452-457`：`ctx.FillEllipse(new Ellipse(position, radius, radius), brush)`），移植时须照搬，不要"统一"。
 
 零个采样点的笔迹直接跳过，不报错。
 
@@ -122,7 +122,7 @@ r1 = r0 + (r3 - r0) / 3
 r2 = r0 + 2 * (r3 - r0) / 3
 ```
 
-  即笔迹是一条**宽度沿走向连续变化**的带状区域（不是逐段恒定宽度的折线）。
+  笔迹是一条**宽度沿走向连续变化**的带状区域，不是逐段恒定宽度的折线。
 - **端点**：圆头（`StartCap = EndCap = Round`），因此单段笔迹两端是半圆。
 - **连接**：圆角（`LineJoin.Round`）；`MiterLimit = 2.0` 一并设置，但圆角连接下不参与外观（`BoardSceneRenderer.cs:1061-1078`）。
 - **颜色**：整条笔迹一个颜色，没有逐点渐变。
@@ -136,7 +136,7 @@ r2 = r0 + 2 * (r3 - r0) / 3
 strokeWidth = max(0.5, baseSize * widthFactor((p0.pressure + p1.pressure) / 2))
 ```
 
-即每段用**两端压感的平均值**取一个恒定宽度，而不是两端各自半径的线性插值。视觉上非常接近，但不是同一条几何；网页端实现应以 §5.4 的**线性插值半径**为准（这是主路径，也是用户实际看到的效果）。
+每段用**两端压感的平均值**取一个恒定宽度，而不是两端各自半径的线性插值。视觉上非常接近，但不是同一条几何；网页端实现应以 §5.4 的**线性插值半径**为准（这是主路径，也是用户实际看到的效果）。
 
 ## 6. 图形（shape）几何
 
@@ -164,7 +164,7 @@ right = max(start.x, end.x)  bottom = max(start.y, end.y)
 rect = (left, top, right - left, bottom - top)
 ```
 
-描边该矩形（直角矩形，圆角只作用于线条端头/连接，不作用于矩形角）。
+描边该矩形；四个角保持直角，圆角只作用于线条端头/连接。
 
 ### 6.3 ellipse
 
@@ -196,7 +196,7 @@ wingRight = end + (bx * cos + by * sin, -bx * sin + by * cos)
 
 - 两条翼各自以 `strokeWidth` 画直线：`end → wingLeft`、`end → wingRight`。
 
-注意 `headLength` 随 `strokeWidth` 线性放大（3 倍），所以粗箭头的翼也随之变长，不是固定长度。
+`headLength` 随 `strokeWidth` 线性放大（3 倍），所以粗箭头的翼也随之变长，不是固定长度。
 
 ## 7. 编辑覆盖层（选择/手柄/光标）
 
@@ -240,9 +240,9 @@ wingRight = end + (bx * cos + by * sin, -bx * sin + by * cos)
 
 ## 10. 明确不保证的部分
 
-以下差异允许存在，不属于本契约：
+以下差异允许存在，不在契约范围内：
 
 - 抗锯齿、亚像素采样、GPU 光栅化差异导致的像素级不同。
 - §5.5 的降级路径与主路径之间的细微宽度差异（网页端按主路径实现）。
-- 文本元素的字体、排版、行高（文本渲染不在本文范围）。
-- 实时预览笔迹（`activeInkItem`）的采样率——它只影响绘制过程中的中间帧，落盘时已是完整点集。
+- 文本元素的字体、排版、行高（文本渲染不在范围内）。
+- 实时预览笔迹（`activeInkItem`）的采样率：它只影响绘制过程中的中间帧，落盘时已是完整点集。

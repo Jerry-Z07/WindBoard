@@ -1,10 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <root>
-  <!--
-    说明：
-    - 本文件为 en-US 语言资源（按功能拆分）。
-    - Key 前缀：ImportDialog_*
-  -->
+  <!-- en-US 语言资源，Key 前缀 ImportDialog_* -->
   <resheader name="resmimetype">
     <value>text/microsoft-resx</value>
   </resheader>
@@ -78,7 +74,7 @@
     <value>Clear</value>
   </data>
   <data name="ImportDialog_Queue_EmptyHint" xml:space="preserve">
-    <value>Queue is empty. Add items from the left.</value>
+    <value>Nothing added yet.</value>
   </data>
   <data name="ImportDialog_RemoveFromQueue" xml:space="preserve">
     <value>Remove from queue</value>

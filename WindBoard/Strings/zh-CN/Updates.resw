@@ -1,10 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <root>
-  <!--
-    说明：
-    - 本文件为 zh-CN 语言资源（按功能拆分）。
-    - Key 前缀：Updates_*
-  -->
+  <!-- zh-CN 语言资源，Key 前缀 Updates_* -->
   <resheader name="resmimetype">
     <value>text/microsoft-resx</value>
   </resheader>
@@ -126,21 +122,21 @@
     <value>更新由 Microsoft Store 托管</value>
   </data>
   <data name="Updates_StoreManaged_Description" xml:space="preserve">
-    <value>当前版本通过 Microsoft Store 安装，更新由商店统一管理，应用内不再提供下载与安装。</value>
+    <value>此版本由 Microsoft Store 更新，应用内不提供下载与安装。</value>
   </data>
   <data name="Updates_StoreManaged_OpenStorePage" xml:space="preserve">
     <value>打开 Store 页面</value>
   </data>
   <data name="Updates_CheckFailed_Timeout" xml:space="preserve">
-    <value>检查更新超时，请稍后重试。</value>
+    <value>检查更新超时。</value>
   </data>
   <data name="Updates_CheckFailed_Network" xml:space="preserve">
     <value>网络请求失败，请检查网络后重试。</value>
   </data>
   <data name="Updates_CheckFailed_Parse" xml:space="preserve">
-    <value>更新信息解析失败，请稍后重试。</value>
+    <value>更新信息无法解析。</value>
   </data>
   <data name="Updates_CheckFailed_Generic" xml:space="preserve">
-    <value>检查更新失败，请稍后重试。</value>
+    <value>检查更新失败。</value>
   </data>
 </root>

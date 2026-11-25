@@ -3,7 +3,7 @@
     "Web_Export_PageRangeLabel": "页码范围",
     "Web_Export_PageCount_Fmt": "将导出 {0} 页",
     "Web_Export_SizeSuffix_Fmt": "，画面 {0}×{1}",
-    "Web_Export_MultiPageFolder_Fmt": "多页 PNG 将导出到 {0} 子目录",
+    "Web_Export_MultiPageFolder_Fmt": "多页 PNG 存到 {0} 子文件夹",
     "Web_Export_WbixWholeWorkspace": "WBIX 会导出整个工作区（忽略页范围）。",
     "Web_Export_UnknownFormat": "未知导出格式。",
     "Web_Export_UnknownPageScope": "未知页范围。",

@@ -1,10 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <root>
-  <!--
-    说明：
-    - 本文件为 zh-CN 语言资源（按功能拆分）。
-    - Key 前缀：Import_*
-  -->
+  <!-- zh-CN 语言资源，Key 前缀 Import_* -->
   <resheader name="resmimetype">
     <value>text/microsoft-resx</value>
   </resheader>
@@ -75,26 +71,16 @@
     <value>正在导入 WBIX/WBI…</value>
   </data>
   <data name="Import_Wbix_Busy_Message" xml:space="preserve">
-    <value>正在导入，请稍候…</value>
+    <value>导入期间请勿关闭窗口。</value>
   </data>
   <data name="Import_Risk_Title" xml:space="preserve">
     <value>风险提示</value>
   </data>
   <data name="Import_Risk_ReplaceWorkspace_Content" xml:space="preserve">
-    <value>选择“覆盖整个工作区”将替换当前所有页面内容。
-
-建议在覆盖前先导出备份（WBIX）。
-
-是否继续？</value>
+    <value>导入的文件会替换全部页面。建议先导出 WBIX 备份。</value>
   </data>
   <data name="Import_Risk_ReplaceCurrentPage_Content" xml:space="preserve">
-    <value>选择“覆盖当前页”将替换当前页内容，并在其后插入导入文件的其余页面。
-
-当前页内容将丢失，且该操作无法撤销。
-
-建议覆盖前先导出备份（WBIX）。
-
-是否继续？</value>
+    <value>导入文件的第一页会替换当前页，其余页面插在它之后。当前页内容会丢失，且无法撤销。建议先导出 WBIX 备份。</value>
   </data>
   <data name="Import_Risk_ContinueOverwrite" xml:space="preserve">
     <value>继续覆盖</value>
@@ -125,5 +111,11 @@
   </data>
   <data name="Import_TextReadFailed_Placeholder" xml:space="preserve">
     <value>（读取失败）</value>
+  </data>
+  <data name="Import_MissingResources_Header" xml:space="preserve">
+    <value>导入完成，但以下资源未找到或无法读取：</value>
+  </data>
+  <data name="Import_MissingResources_More_Fmt" xml:space="preserve">
+    <value>另有 {0} 项未列出。</value>
   </data>
 </root>

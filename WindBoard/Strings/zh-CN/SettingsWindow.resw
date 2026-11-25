@@ -1,10 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <root>
-  <!--
-    说明：
-    - 本文件为 zh-CN 语言资源（按功能拆分）。
-    - Key 前缀：SettingsWindow_*
-  -->
+  <!-- zh-CN 语言资源，Key 前缀 SettingsWindow_* -->
   <resheader name="resmimetype">
     <value>text/microsoft-resx</value>
   </resheader>
@@ -46,5 +42,8 @@
   </data>
   <data name="SettingsWindow_Announcement_InstallerDistribution_Action" xml:space="preserve">
     <value>去备份设置</value>
+  </data>
+  <data name="SettingsWindow_Search_NoResults" xml:space="preserve">
+    <value>没有匹配的设置</value>
   </data>
 </root>

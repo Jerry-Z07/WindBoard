@@ -1,10 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <root>
-  <!--
-    说明：
-    - 本文件为 en-US 语言资源（按功能拆分）。
-    - Key 前缀：Settings_*
-  -->
+  <!-- en-US 语言资源，Key 前缀 Settings_* -->
   <resheader name="resmimetype">
     <value>text/microsoft-resx</value>
   </resheader>
@@ -21,7 +17,7 @@
     <value>Shortcuts</value>
   </data>
   <data name="Settings_Shortcuts_Description" xml:space="preserve">
-    <value>Configure keyboard shortcuts for Undo/Redo, and view mouse gesture shortcuts (not editable yet).</value>
+    <value>Configure the undo and redo keyboard shortcuts.</value>
   </data>
   <data name="Settings_Shortcuts_Keyboard_SectionTitle" xml:space="preserve">
     <value>Keyboard shortcuts</value>
@@ -186,23 +182,20 @@
     <value>Settings JSON file</value>
   </data>
   <data name="Settings_About_SettingsManagement_OverwriteExport_Content_Fmt" xml:space="preserve">
-    <value>File already exists: {0}
-Overwrite the exported settings file?</value>
+    <value>File already exists: {0}</value>
   </data>
   <data name="Settings_About_SettingsManagement_ImportConfirm_Title" xml:space="preserve">
     <value>Confirm import settings</value>
   </data>
   <data name="Settings_About_SettingsManagement_ImportConfirm_Content_Fmt" xml:space="preserve">
-    <value>The following file will be imported and all current settings will be overwritten:
-{0}
-
-This action will be saved to the current device immediately. Continue?</value>
+    <value>The following file replaces all current settings and is saved to this device immediately:
+{0}</value>
   </data>
   <data name="Settings_About_SettingsManagement_ResetConfirm_Title" xml:space="preserve">
     <value>Confirm reset settings</value>
   </data>
   <data name="Settings_About_SettingsManagement_ResetConfirm_Content" xml:space="preserve">
-    <value>All current settings will be restored to default values, and existing settings records will be cleared. This action will be saved immediately. Continue?</value>
+    <value>All current settings will be restored to default values, including language and keyboard shortcuts. This action is saved immediately.</value>
   </data>
   <data name="Settings_About_SettingsManagement_Exported_Fmt" xml:space="preserve">
     <value>Settings exported: {0}</value>
@@ -226,13 +219,13 @@ This action will be saved to the current device immediately. Continue?</value>
     <value>The selected settings file doesn't exist or is unavailable.</value>
   </data>
   <data name="Settings_About_SettingsManagement_ExportFailed_Message" xml:space="preserve">
-    <value>Failed to export settings. Please try again later.</value>
+    <value>Could not export settings.</value>
   </data>
   <data name="Settings_About_SettingsManagement_ImportFailed_Message" xml:space="preserve">
     <value>Failed to import settings. Check the selected file and try again.</value>
   </data>
   <data name="Settings_About_SettingsManagement_ResetFailed_Message" xml:space="preserve">
-    <value>Failed to restore default settings. Please try again later.</value>
+    <value>Could not restore the default settings.</value>
   </data>
   <data name="Settings_About_AutoCheckUpdates" xml:space="preserve">
     <value>Automatically check for updates</value>
@@ -331,7 +324,7 @@ This action will be saved to the current device immediately. Continue?</value>
     <value>Confirm crash test</value>
   </data>
   <data name="Settings_Debug_CrashConfirm_Body" xml:space="preserve">
-    <value>This action will intentionally crash the app to verify the crash handling pipeline (write a crash report, show a crash dialog, and exit). Please save your work first.</value>
+    <value>The app crashes immediately to test the crash pipeline: it writes a report, shows a dialog, then exits. Unsaved work is lost.</value>
   </data>
   <data name="Settings_Debug_CrashConfirm_Placeholder" xml:space="preserve">
     <value>Type CRASH to continue</value>
@@ -421,7 +414,7 @@ This action will be saved to the current device immediately. Continue?</value>
     <value>Choose or enter an icon file path</value>
   </data>
   <data name="Settings_Camouflage_Icon_SupportHint" xml:space="preserve">
-    <value>Supports .exe/.ico/.png/.jpg/.jpeg</value>
+    <value>Formats: .exe/.ico/.png/.jpg/.jpeg</value>
   </data>
   <data name="Settings_Camouflage_NoFileSelected" xml:space="preserve">
     <value>No file selected</value>
@@ -442,7 +435,7 @@ This action will be saved to the current device immediately. Continue?</value>
     <value>Failed to open file picker: {0}</value>
   </data>
   <data name="Settings_Camouflage_Shortcut_Description" xml:space="preserve">
-    <value>Desktop shortcut won't update automatically on every launch. To regenerate it, click the button (it will update once when you change camouflage settings).</value>
+    <value>The desktop shortcut updates once when you change camouflage settings; otherwise generate it yourself.</value>
   </data>
   <data name="Settings_Camouflage_CreateShortcut_Button" xml:space="preserve">
     <value>Create desktop shortcut</value>
@@ -481,16 +474,16 @@ This action will be saved to the current device immediately. Continue?</value>
     <value>Adjust positions and visibility of items in the Dock</value>
   </data>
   <data name="Settings_Dock_DragHint" xml:space="preserve">
-    <value>Press and hold, then drag the buttons below to adjust their order in the Dock (touch drag supported).</value>
+    <value>Drag the buttons below to reorder them; on touch, press and hold first.</value>
   </data>
   <data name="Settings_Dock_ShowUndoRedo_Header" xml:space="preserve">
     <value>Show Undo/Redo section</value>
   </data>
   <data name="Settings_Dock_ShowShortcutDocks_Header" xml:space="preserve">
-    <value>Show shortcut docks (left/right of the main Dock)</value>
+    <value>Show shortcut docks</value>
   </data>
   <data name="Settings_Dock_ShortcutItems_Hint" xml:space="preserve">
-    <value>You can add up to 5 shortcuts and place them on the left or right of the main Dock.</value>
+    <value>Up to 5 shortcuts, placed on the left or right of the main Dock.</value>
   </data>
   <data name="Settings_Dock_UnknownItemId_Message" xml:space="preserve">
     <value>Unknown Dock item identifier.</value>
@@ -544,7 +537,7 @@ This action will be saved to the current device immediately. Continue?</value>
     <value>Color count</value>
   </data>
   <data name="Settings_Pen_PaletteHint" xml:space="preserve">
-    <value>Hint: You can keep empty swatches (unset colors) and set them later by selecting a swatch and choosing a color.</value>
+    <value>Empty swatches are allowed; set their colors later.</value>
   </data>
   <data name="Settings_Pen_DefaultColorEdit_Title" xml:space="preserve">
     <value>Default color change</value>
@@ -553,7 +546,7 @@ This action will be saved to the current device immediately. Continue?</value>
     <value>Default color change (swatch {0})</value>
   </data>
   <data name="Settings_Pen_SelectColorHint" xml:space="preserve">
-    <value>Select a color swatch in the preview area first, then use the color picker to change it.</value>
+    <value>Select a swatch before changing its color.</value>
   </data>
   <data name="Settings_Pen_ClearSwatch_Button" xml:space="preserve">
     <value>Clear this swatch</value>

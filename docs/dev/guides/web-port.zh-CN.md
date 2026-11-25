@@ -1,6 +1,6 @@
 # 网页端移植与双端同步规范（web-port）
 
-本文约定 `web/`（网页端 PWA）与桌面主程序之间的**对应关系与同步义务**，回答两个问题：
+`web/`（网页端 PWA）与桌面主程序之间的**对应关系与同步义务**，落在两个问题上：
 
 1. 桌面侧改了某处，网页端的对应实现落在哪个文件？
 2. 用什么命令证明两端没有漂？
@@ -91,9 +91,9 @@
 - 事实源：`WindBoard/Board/Persistence/Wbix/**`（读写、JSON 选项、页 payload、资源上限）。
 - 网页端：`persistence/wbix/**`。
 - 保障：
-  - `web/tests/unit/{json-options,f32-format,manifest,page-payload,ink-codec,wbix}.test.ts` —— 逐字符断言 JSON 文本、f32 文本、键序、转义、CRLF。
+  - `web/tests/unit/{json-options,f32-format,manifest,page-payload,ink-codec,wbix}.test.ts`：逐字符断言 JSON 文本、f32 文本、键序、转义、CRLF。
   - `web/tests/conformance/` 直读 `WindBoard.Tests/Fixtures/wbix/`（`model/*.json`、`expected/**`、`files/*.wbix`）。
-  - `pnpm interop` —— 双端 A~E 五步（详见 `web/README.md`）：网页端读桌面产物、桌面读网页端产物、重写后再读，dump 逐字段比对。
+  - `pnpm interop`，双端 A~E 五步（详见 `web/README.md`）：网页端读桌面产物、桌面读网页端产物、重写后再读，dump 逐字段比对。
 - 漂移症状：桌面能打开但网页端打不开（或反之）；`pnpm interop` 在某个 `pages[i].xxx` 路径报差异。
 - **版本升级义务**：`.wbix` 的 `version` 是真契约。桌面加 `version=4` 时必须同时给网页端加 reader 分派（`persistence/wbix/read.ts` 的 reader 注册表，对应桌面 `WbixWorkspaceSerializer.Readers.cs` 的 `MinVersion/MaxVersion` 区间），并补 golden 语料。绝不能只改桌面。
 
@@ -120,8 +120,32 @@
 - 事实源：`WindBoard/Interaction/**`（`BoardInputController` 的 partial 拆分、`Tools/*Tool.cs`）。
 - 网页端：`interaction/pointer-router.ts`（纯决策表）+ `canvas/board-controller.ts`（状态机装入）+ `tools/*.ts`。
 - 保障：`web/tests/unit/{pointer-router,board-controller,select-tool,tool-pen,tool-shape,tool-eraser}.test.ts`、`dom-input.test.ts`。
-- 漂移症状：某一手势（双击、双指、框选阈值、亚阈值拖拽）在两端行为不同。**桌面这里最容易变**（历史多次改过时序），因此 `pointer-router` 的改动必须写清单测。
-- 特别提醒：双指手势的「结束单指操作」与「开始手势」是**两个先后时刻**，判定必须按「结束之后」的状态算——这条时序在桌面侧改过，改桌面 `BoardInputController.Pointer.cs` 的 MultiFinger 分支时务必同步网页端。
+- 漂移症状：某一手势（双击、双指、框选阈值、亚阈值拖拽）在两端行为不同。**桌面这里最容易变**（历史多次改过时序），因此 `pointer-router` 的改动必须补单测。
+- 双指手势的「结束单指操作」与「开始手势」是**两个先后时刻**，判定必须按「结束之后」的状态算。这条时序在桌面侧改过，改桌面 `BoardInputController.Pointer.cs` 的 MultiFinger 分支时务必同步网页端。
+
+桌面判断与网页决策条目的对照如下，按符号名记录，不记行号：
+
+| 桌面 | 判断 | 网页端 |
+| --- | --- | --- |
+| `PointerRoutingDecisions.ShouldStartStroke` | 鼠标需左键，笔与触摸恒为 true | `decidePointerAction` 的非触控落笔门 |
+| `PointerRoutingDecisions.ShouldStartPan` | `allowViewport && Mouse && 右键` | `decidePointerAction` 的非触控 pan 分支 |
+| `PointerRoutingDecisions.NormalizePressure` | 非笔 1.0，笔夹到 0.1~1 | `normalizePressure` |
+| `PointerRoutingDecisions.ResolveTouchPressRoute` | 双指、选择手势、有捕获时忽略、笔橡皮 | `decidePointerAction` 的触摸按下四分支 |
+| `PointerRoutingDecisions.ResolveTouchGestureEnd` | 五种结束结果 | `decideTouchGestureEnd` |
+| `PointerRoutingDecisions.EvaluateWheelZoomTick` | 空闲 150ms 结束 | `decideWheelZoomTick` |
+| `PointerRoutingDecisions.ResolveHorizontalWheelPanScreenDelta` | `(-Δ, 0)` | `horizontalWheelPanScreenDelta` |
+| `Manipulation.cs` 的 `OnCanvasPointerWheelChanged` | 六步顺序，横向平移先于修饰键变换 | `decideWheelAction` |
+| `Manipulation.cs` 的 `HasBlockingInteractionForWheel`、`HasBlockingInteractionForManipulation` | 有活动工具操作或手势时阻塞 | `ctx.hasBlockingInteraction`、`ctx.blockingInteraction` |
+| `Pointer.cs` 的 `HandleTouchPointerPressed` | 选择工具下恒起框选，即使点在选区内 | 触摸按下 + 选择工具单指 → `select-marquee` |
+| `Pointer.cs` 的 `HandleNonTouchPointerPressed`、`TryBeginSelectGesture`、`TryBeginNonSelectGesture` | 捕获门之后分选择与非选择两路 | `decidePointerAction` 的非触控分支 |
+| `ManipulationStarting` | `select && target == Selection && 有选中` 时为选区手势 | `resolveTouchManipulationTarget`、`gesture.target` |
+| `Open.cs` 的 `HandleElementClickForMaybeOpen` | 抬起时同元素、500ms、10DIP 内 | 抬起相位的 `open-element`，常量 `ELEMENT_DOUBLE_CLICK_TIMEOUT_MS`、`ELEMENT_DOUBLE_CLICK_MAX_DISTANCE_DIP` |
+| `Pointer.MoveEnd.cs` 的 `HandlePointerEnded` | pan → marquee → selection → active | 抬起与取消相位 → `end` |
+| `PointerRouteState.ResolveMoveRoute` | 按 `pointerId` 归属路由 | 移动相位按 `activeGesture` 路由 |
+| `SelectTool.IsScreenPointInsideSelectedBounds` | 屏幕命中测试 | `ctx.insideSelectionBounds` |
+| `PointerRouteState.HasActivePointerCapture` | 活动工具操作或任一手势 | `ctx.hasActivePointerCapture` |
+
+- 网页端独有的分支（桌面没有对应逻辑）：笔按下期间忽略触摸（掌拒护栏），水平滚轮平移结果 `-0` 归一化。
 
 ### 3.5 领域模型与撤销粒度
 
@@ -134,8 +158,8 @@
 
 - 事实源：`WindBoard/MainWindow.xaml`、`WindBoard/App.xaml`（按钮/色块/托盘样式）、`WindBoard/Settings/*.xaml`、`WindBoard/Features/**/UI/*.xaml`。
 - 网页端：`ui/**`（结构）+ `styles/tokens.css`（颜色、圆角、尺寸）+ `styles/{shell,dock,settings,dialogs,overlay}.css`。
-- 保障：`web/tests/conformance/desktop-tokens.test.ts` —— **直接读桌面 XAML 源码**，把 Dock 底板/按钮/页码/页面面板/选择手柄等 20 余个数值与 `styles/*.css` 的令牌逐个比对（颜色按 ARGB→RGBA 换算后比通道）。改桌面数值不同步网页端 → 该测试立刻红。
-- 另外：`web/e2e/`（`visual.spec.ts` 8 个用例 / 10 张界面基线截图 + `touch.spec.ts` 3 个触屏用例）+ `web/tests/unit/dock-layout.test.ts`、`web/tests/unit/ui-shell-smoke.test.tsx`（挂载与关键交互冒烟）。未纳入令牌测试的 XAML 数值仍靠人工核对，新增令牌时请顺手加一条规则。
+- 保障：`web/tests/conformance/desktop-tokens.test.ts`：**直接读桌面 XAML 源码**，把 Dock 底板/按钮/页码/页面面板/选择手柄等 20 余个数值与 `styles/*.css` 的令牌逐个比对（颜色按 ARGB→RGBA 换算后比通道）。改桌面数值不同步网页端 → 该测试立刻红。
+- `web/e2e/`（`visual.spec.ts` 8 个用例 / 10 张界面基线截图 + `touch.spec.ts` 3 个触屏用例）+ `web/tests/unit/dock-layout.test.ts`、`web/tests/unit/ui-shell-smoke.test.tsx`（挂载与关键交互冒烟）。未纳入令牌测试的 XAML 数值仍靠人工核对，新增令牌时请顺手加一条规则。
 - 漂移症状：面板尺寸/圆角/选中态颜色不对。
 - **坑（已踩过两次）**：XAML 的 8 位十六进制颜色是 **ARGB**，CSS 的 8 位是 **RGBA**，直接抄会得到完全不同的颜色（`#E4000000` 在浏览器里是不透明红，`#08FFFFFF` 是青色）。所有带 alpha 的颜色必须写成 `rgb(r g b / a%)`。
 - **坑（Fluent UI v9）**：Griffel 用原子类下发 `width`/`height`/`display` 等属性，与单类选择器同权重但注入更晚。覆盖 Fluent 组件自身设置过的属性必须用双类选择器（`.fui-DialogSurface.wb-settings-surface`）。
@@ -146,7 +170,7 @@
 - 网页端：`i18n/locales/*.generated.ts`（**构建期生成，提交入库**）、`i18n/index.ts`、`i18n/message.ts`。
 - **新增 / 修改 resw key 后，网页端必须跑 `pnpm i18n` 重新生成并提交生成物**；生成器会校验两语言 key 集合一致。
 - 网页独有文案（浏览器才有的概念：自动保存恢复、Service Worker、把设置导出成 JSON 等）放在 `i18n/web-strings/*.json`，key 一律 `Web_` 前缀。**不要**把这类文案塞进桌面 `.resw`：那会让桌面背死 key，并干扰桌面侧的 key 审计（`WindBoard.Tests/Localization/LocalizationKeyAuditTests.cs` 要求 key 被 C# 引用）。
-- 保障：`web/tests/unit/i18n.test.ts` —— 重新解析 18 个 `.resw` 与 web-strings，与生成物逐 key 比对（过期即失败），并校验前缀、集合一致、无空文案。
+- 保障：`web/tests/unit/i18n.test.ts`：重新解析 18 个 `.resw` 与 web-strings，与生成物逐 key 比对（过期即失败），并校验前缀、集合一致、无空文案。
 - 编码约定：C# 用 `L10n.Get/Format("Key")`；网页端组件里 `const { t } = useI18n()` 后 `t('Key')`。**模块级常量表不要存中文**，存 `MessageKey`（如 `labelKey`），渲染处取词。
 - 开发者诊断文本（解析错误、`console.warn`、不变量异常）**不本地化**，与桌面保持一致。
 
@@ -167,16 +191,16 @@
 
 ### 3.10 窄屏（手机）布局
 
-- 事实源：**无**。桌面 WinUI 窗口的最小宽度足以横排三段 Dock，没有窄屏概念；这一节全部是网页端新增，不属于移植项。
+- 事实源：**无**。桌面 WinUI 窗口的最小宽度足以横排三段 Dock，没有窄屏概念；全部是网页端新增，不属于移植项。
 - 断点：`styles/shell.css` 与 `ui/shell/use-narrow-layout.ts` 里的 **700px**，两处必须同时改（`NARROW_LAYOUT_QUERY` 的注释已声明这条约束）。取值依据是实测的三段 Dock 原始宽度：左 198 + 中 395 + 右 62，横排不溢出要 ≥700；中段绝对居中的排法在 <819 会与左段压叠，由 `@media (max-width: 900px) and (min-width: 701px)` 改成不脱流的居中排法单独处理。
 - 窄屏形态：单段紧凑栏（`ui/shell/DockBar.tsx` 的 `NarrowDock`）= 4 个工具 + 分隔线 + 撤销/重做 + 「更多」浮层；页面组（上一页/指示器/下一页/新增页）与导入/导出/设置/全屏/最小化/页面管理全部收进「更多」浮层（`NarrowMoreButton`）。
 - 安全区：`index.html` 的 `viewport-fit=cover` + `styles/shell.css` 里 `.wb-body`、Dock 层、提醒栈的 `env(safe-area-inset-*)`。
 - 保障：`web/tests/unit/ui-narrow-shell.test.tsx`（4 例，装 `matchMedia` 桩锁住窄屏分支的按钮集合与浮层入口）；宽屏分支由 `ui-shell-smoke.test.tsx` 覆盖。像素级尺寸（44×44 触摸目标、隐藏文字）只能靠浏览器截图复核。
-- 踩坑：移动端 Chrome 遇到横向溢出会**撑宽布局视口且不再收回**（实测 360 → 413，`position: fixed` 的外壳与 Dock 一起被推着变宽）。因此 `html, body` 必须 `overflow: hidden`，且窄屏浮层宽度必须固定——浮层内展开子面板会改变宽度时，Fluent 按旧尺寸算好位置再塞进更大的内容，右边缘瞬间冲出视口就触发了这个行为。
+- 踩坑：移动端 Chrome 遇到横向溢出会**撑宽布局视口且不再收回**（实测 360 → 413，`position: fixed` 的外壳与 Dock 一起被推着变宽）。因此 `html, body` 必须 `overflow: hidden`，且窄屏浮层宽度必须固定：浮层内展开子面板会改变宽度时，Fluent 按旧尺寸算好位置再塞进更大的内容，右边缘瞬间冲出视口就触发了这个行为。
 
 ## 4. 同步流程：改了桌面之后做什么
 
-第一步永远是判断「这次改动是否落在契约面上」。下表按桌面改动位置给出必查的网页端位置与必跑命令。
+第一步永远是判断「这次改动是否落在契约面上」。按桌面改动位置，必查的网页端位置与必跑命令如下。
 
 | 改动了 | 网页端必查 | 必跑 |
 |---|---|---|
@@ -223,7 +247,7 @@ CI（`.github/workflows/web.yml`）在 push/PR 时自动跑 `lint` → `typechec
 
 ## 6. 有意偏差（不要"顺手修正"）
 
-以下差异是**刻意**的，改回去会破坏体验，动手前先读代码里的注释：
+以下差异是**刻意**的，改回去会破坏体验。动手前先读代码里的注释：
 
 | 偏差 | 位置 | 理由 |
 |---|---|---|
@@ -235,7 +259,7 @@ CI（`.github/workflows/web.yml`）在 push/PR 时自动跑 `lint` → `typechec
 | 新增 `Ctrl+A` / `Esc` / `Delete` / `Backspace` 键盘路径 | `interaction/shortcuts.ts` + `canvas/board-controller.ts` | 桌面选择操作只在画布浮层按钮上，无键盘入口；按浏览器用户预期补充（用户明确要求加） |
 | 不识别 `Meta` / `Cmd` 组合键 | `interaction/shortcuts.ts` | 避免浏览器把 `Cmd+Z` 当成 `Ctrl+Z` 触发两次 |
 | 静态层缓存门槛按**采样点数**（30k），桌面用脏矩形 | `render/render-handle.ts`、`render/static-cache.ts` | 贴图成本随画布像素走、重绘成本随点数走；宁可少优化也不让缓存更慢 |
-| DPR 不设固定上限，只按后备存储的单边（16 384）与面积（67 108 864；iOS 16 777 216）反算夹取 | `render/render-handle.ts` | 固定上限（曾为 2）会让 DPR 2.5 / 3 的屏幕用低一倍的后备存储铺满窗口，浏览器再放大画布，笔迹边缘从 1 设备像素变成 2 像素——这就是"网页版笔迹比桌面糊"的根因。夹取只在真的越过浏览器上限时发生，且绝不把 <1 的 DPR 抬高 |
+| DPR 不设固定上限，只按后备存储的单边（16 384）与面积（67 108 864；iOS 16 777 216）反算夹取 | `render/render-handle.ts` | 固定上限（曾为 2）会让 DPR 2.5 / 3 的屏幕用低一倍的后备存储铺满窗口，浏览器再放大画布，笔迹边缘从 1 设备像素变成 2 像素，这就是「网页版笔迹比桌面糊」的根因。夹取只在真的越过浏览器上限时发生，且绝不把 <1 的 DPR 抬高 |
 | 元素卡文案走词表、徽标用 Unicode/Fluent 图标、正文不自动换行（只按换行符裁切） | `render/element-card.ts` | 无 Segoe Fluent Icons 与 DirectWrite 排版引擎；`RenderContext2D` 也不暴露 `measureText`，尺寸配色仍按桌面真值 |
 | 设置为模态 `Dialog` + 侧栏，非独立窗口 | `ui/dialogs/SettingsWindow.tsx` | 浏览器只有一个窗口，无法复刻 `AppWindow` |
 | 「最小化」按钮保留但弹解释提醒；设置持久化用 `localStorage` | `ui/shell/DockBar.tsx`、`settings/service.ts` | 浏览器没有对应能力；导出设置文件另名为 `windboard-settings.json` |
@@ -260,7 +284,7 @@ CI（`.github/workflows/web.yml`）在 push/PR 时自动跑 `lint` → `typechec
 
 | 项目 | 现状 |
 |---|---|
-| `MainWindow.xaml` / `App.xaml` / 设置页 XAML 的数值（圆角、间距、尺寸） | 已被 `tests/conformance/desktop-tokens.test.ts` 覆盖 20 余项；**未加规则的新令牌仍需人工核对**（新增令牌时请顺手加一条规则） |
+| `MainWindow.xaml` / `App.xaml` / 设置页 XAML 的数值（圆角、间距、尺寸） | `tests/conformance/desktop-tokens.test.ts` 已覆盖 20 余项；**未加规则的新令牌仍需人工核对**（新增令牌时请顺手加一条规则） |
 | 两端渲染像素 | 桌面 D2D 快照与网页 Canvas 各自独立，无图像 diff |
 | `UI/MainWindow/MainWindow.*.cs` 的编排时序（导出/导入/分页/快捷键） | 网页端 `ui/shell/**` 按行为重写，无对账测试 |
 | 设置默认值与归一化规则 | 默认值已由 `WindBoard.Tests/Fixtures/settings/defaults.json` 强制两端一致；**归一化规则**（非法值回落）仍各自单测 |
@@ -278,9 +302,9 @@ CI（`.github/workflows/web.yml`）在 push/PR 时自动跑 `lint` → `typechec
 - **行尾 LF、缩进 2 空格**（`web/.editorconfig` 覆盖根配置的 CRLF + 4 空格；根 `.gitattributes` 里 `web/** text eol=lf`）。工具批量写回 CRLF 时要先归一化再提交，否则 `git commit` 会报 "CRLF will be replaced by LF"。
 - **相对 import 带扩展名**（`from './scene.ts'`），与 `allowImportingTsExtensions` 一致。
 - **不使用 default export**，唯一例外是 `src/App.tsx`（`main.tsx` 按入口约定引入）。
-- **领域层不碰浏览器**：`board/**`、`ink/**`、`persistence/**`、`features/**` 的纯计算部分不得 import React、不得访问 `window`/`document`——这是让它们能在 node 环境跑单测的前提。DOM 适配集中在 `canvas/dom-input.ts` 与 `canvas/dom-types.ts`。
+- **领域层不碰浏览器**：`board/**`、`ink/**`、`persistence/**`、`features/**` 的纯计算部分不得 import React、不得访问 `window`/`document`，这是让它们能在 node 环境跑单测的前提。DOM 适配集中在 `canvas/dom-input.ts` 与 `canvas/dom-types.ts`。
 - **测试入口**：`vite.config.ts` 的 `test.include` 只收 `tests/**/*.test.ts` 与 `tests/**/*.test.tsx`；默认 node 环境，组件测试在文件头写 `/** @vitest-environment jsdom */`。断言对象用 `toEqual`（`toBe` 是 `Object.is`，会失败）。
-- **副作用必须可注入**：导出文件名取 `now`、自动保存取 `setTimeoutFn`/`clearTimeoutFn`、离屏渲染取 `surfaceFactory`——否则测试要劫持全局时钟。
+- **副作用必须可注入**：导出文件名取 `now`、自动保存取 `setTimeoutFn`/`clearTimeoutFn`、离屏渲染取 `surfaceFactory`，否则测试要劫持全局时钟。
 - **oxlint 的四个坑**（都踩过）：内部函数名 `useXxx` 会被 `react/rules-of-hooks` 当成 Hook（改叫 `shouldUseXxx`）；`react(refs)` 禁止渲染期读 ref（要展示的值镜像进 state）；`react(purity)` 禁止渲染期调用 `Date.now()`（用 `useState(() => Date.now())`）；`react(set-state-in-effect)` 禁止在 effect 里同步 setState。
 - **覆盖 Fluent 组件的样式必须双类选择器**（`.fui-DialogSurface.wb-settings-surface`），单类会被 Griffel 的原子类盖掉，详见 §3.6。
 

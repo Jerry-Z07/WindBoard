@@ -1,10 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <root>
-  <!--
-    说明：
-    - 本文件为 zh-CN 语言资源（按功能拆分）。
-    - Key 前缀：Export_*
-  -->
+  <!-- zh-CN 语言资源，Key 前缀 Export_* -->
   <resheader name="resmimetype">
     <value>text/microsoft-resx</value>
   </resheader>
@@ -39,7 +35,7 @@
     <value>未知页范围。</value>
   </data>
   <data name="Export_Busy_Default_Message" xml:space="preserve">
-    <value>正在导出，请稍候…</value>
+    <value>导出完成后会提示保存位置。</value>
   </data>
   <data name="Export_Busy_Wbix_Title" xml:space="preserve">
     <value>正在导出 WBIX…</value>
@@ -81,7 +77,7 @@
     <value>全部页</value>
   </data>
   <data name="Export_PageScope_Range" xml:space="preserve">
-    <value>指定范围（例如：1,3-5）</value>
+    <value>指定范围</value>
   </data>
   <data name="Export_PageRange_Placeholder" xml:space="preserve">
     <value>例如：1,3-5</value>
@@ -126,11 +122,10 @@
     <value>超清（288 DPI）</value>
   </data>
   <data name="Export_Hint_Text" xml:space="preserve">
-    <value>提示：PNG 会按固定比例/分辨率导出（内容等比缩放并居中）；PNG 多页会导出到文件夹；PDF 会生成多页文档；WBIX 会包含全部页面与后续资源扩展位。</value>
+    <value>PNG 按所选比例与分辨率导出，内容等比缩放并居中；多页 PNG 存入独立文件夹；PDF 为多页文档；WBIX 包含整个工作区。</value>
   </data>
   <data name="Export_OverwriteFile_Content_Fmt" xml:space="preserve">
-    <value>文件已存在：{0}
-是否覆盖？</value>
+    <value>文件已存在：{0}</value>
   </data>
   <data name="Export_OverwritePreview_More_Fmt" xml:space="preserve">
     <value>……（共 {0} 个）</value>
@@ -138,10 +133,8 @@
   <data name="Export_OverwriteFiles_Content_Fmt" xml:space="preserve">
     <value>目标目录中存在同名文件：{0}
 
-将覆盖以下文件：
-{1}
-
-是否继续？</value>
+将被覆盖的文件：
+{1}</value>
   </data>
   <data name="Export_PathEmpty_Message" xml:space="preserve">
     <value>导出路径不能为空。</value>
@@ -193,5 +186,8 @@
   </data>
   <data name="Export_PageRange_OutOfRange_Fmt" xml:space="preserve">
     <value>页码超出范围：当前共 {0} 页。</value>
+  </data>
+  <data name="Export_Failed_Message" xml:space="preserve">
+    <value>导出没有完成。详细信息已记入日志。</value>
   </data>
 </root>

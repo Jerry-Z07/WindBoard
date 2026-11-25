@@ -1,10 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <root>
-  <!--
-    说明：
-    - 本文件为 en-US 语言资源（按功能拆分）。
-    - Key 前缀：Updates_*
-  -->
+  <!-- en-US 语言资源，Key 前缀 Updates_* -->
   <resheader name="resmimetype">
     <value>text/microsoft-resx</value>
   </resheader>
@@ -126,21 +122,21 @@
     <value>Updates are managed by the Microsoft Store</value>
   </data>
   <data name="Updates_StoreManaged_Description" xml:space="preserve">
-    <value>This version was installed from the Microsoft Store. Updates are delivered by the Store, so the app no longer downloads or installs them itself.</value>
+    <value>This version updates through the Microsoft Store; the app does not download or install updates itself.</value>
   </data>
   <data name="Updates_StoreManaged_OpenStorePage" xml:space="preserve">
     <value>Open Store page</value>
   </data>
   <data name="Updates_CheckFailed_Timeout" xml:space="preserve">
-    <value>Update check timed out. Please try again later.</value>
+    <value>Update check timed out.</value>
   </data>
   <data name="Updates_CheckFailed_Network" xml:space="preserve">
     <value>Network request failed. Check your connection and try again.</value>
   </data>
   <data name="Updates_CheckFailed_Parse" xml:space="preserve">
-    <value>Failed to parse update info. Please try again later.</value>
+    <value>The update info could not be parsed.</value>
   </data>
   <data name="Updates_CheckFailed_Generic" xml:space="preserve">
-    <value>Failed to check for updates. Please try again later.</value>
+    <value>Could not check for updates.</value>
   </data>
 </root>

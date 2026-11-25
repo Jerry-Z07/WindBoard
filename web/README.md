@@ -5,10 +5,10 @@ WindBoard 的网页端（纯静态、本地优先的 PWA）。目标是与桌面
 
 > 同步规范（桌面改了哪里、网页端该改哪里、跑什么命令）见
 > [`docs/dev/guides/web-port.zh-CN.md`](../docs/dev/guides/web-port.zh-CN.md)。
-> 本文只讲**怎么用这套工程**。
+> 以下内容只讲**怎么用这套工程**。
 
 当前状态：P0（格式层）~ P5（性能 / 视觉回归 / 触屏 / i18n / PWA）已完成。画布、工具、
-选择与元素、导出导入、设置、自动保存、离线安装能力均已落地。
+选择与元素、导出导入、设置、自动保存、离线安装能力均已实现。
 
 ## 命令
 
@@ -65,7 +65,7 @@ pnpm samples:check  # 自检：读回样本再写，确认 JSON 文本逐字节�
    `\r\n`；文件末尾**没有**尾随换行。读侧同时容忍 LF 与 CRLF。
 2. **f32 文本规则**：所有数值都是 float32。最短往返表示 + 指数阈值（十进制指数 `>= 9` 或 `< -4`
    用科学计数法，大写 `E`、指数至少两位）；整数不带小数点；`-0` 写作 `-0`。见 `src/persistence/wbix/f32-format.ts`。
-3. **字符串转义**：等价于 .NET 的 `JavaScriptEncoder.Default` —— 非 ASCII 全部 `\uXXXX`（大写），
+3. **字符串转义**：与 .NET 的 `JavaScriptEncoder.Default` 等价，非 ASCII 全部 `\uXXXX`（大写），
    且 `< > & ' + "` 也转义（`"` 写作 `\u0022`）。见 `src/persistence/wbix/json-options.ts`。
 4. **null 成员照常输出**（未设 `DefaultIgnoreCondition`），键序等于 C# 类型的声明顺序。
 5. **时间**：`DateTimeOffset` 写 `+00:00`（不是 `Z`），小数位 0~7 位可变（去掉末尾的 0）。

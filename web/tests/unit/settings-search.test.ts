@@ -74,9 +74,9 @@ describe('匹配规则（对应 RefreshSearchSuggestions）', () => {
   })
 
   it('大小写不敏感（对应 OrdinalIgnoreCase）', () => {
-    // “JSON” 出现在导出/导入的描述里，“package.json” 出现在版本的描述里，三条都该命中
+    // “JSON” 只出现在导出/导入的描述里，两条都该命中且大小写无关
     const lower = searchSettings('json', t).map((result) => t(result.target.cardTitleKey))
-    expect(lower).toEqual(['版本', '导出设置', '导入设置'])
+    expect(lower).toEqual(['导出设置', '导入设置'])
     expect(searchSettings('JSON', t).map((result) => t(result.target.cardTitleKey))).toEqual(lower)
   })
 
@@ -91,9 +91,9 @@ describe('匹配规则（对应 RefreshSearchSuggestions）', () => {
       '重做',
       '快捷键冲突提醒',
     ])
-    // 只有描述里出现的词（“package.json” 只在「版本」卡片的描述里）
+    // 只有描述里出现的词（“分开编号” 只在「版本」卡片的描述里）
     expect(
-      searchSettings('package.json', t).map((result) => t(result.target.cardTitleKey)),
+      searchSettings('分开编号', t).map((result) => t(result.target.cardTitleKey)),
     ).toEqual(['版本'])
   })
 
@@ -117,10 +117,10 @@ describe('匹配规则（对应 RefreshSearchSuggestions）', () => {
   })
 
   it('匹配结果同时带出显示文本、描述与搜索文本', () => {
-    const [result] = searchSettings('package.json', t)
+    const [result] = searchSettings('分开编号', t)
     expect(result?.displayText).toBe('关于 / 版本')
-    expect(result?.description).toBe('网页端版本号（与 package.json 保持一致）')
-    expect(result?.searchText).toBe('关于 / 版本 网页端版本号（与 package.json 保持一致）')
+    expect(result?.description).toBe('与桌面版分开编号。')
+    expect(result?.searchText).toBe('关于 / 版本 与桌面版分开编号。')
   })
 })
 

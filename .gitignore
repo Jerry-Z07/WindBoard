@@ -126,3 +126,6 @@ web/dist/
 web/.interop/
 # playwright-cli 的会话日志与快照（调试用，不入库）
 .playwright-cli/
+
+# deja 会话记忆工具的本地状态（工具生成，不入库）
+.deja/
