@@ -52,16 +52,7 @@ export function RecoveryDialog(props: RecoveryDialogProps): ReactNode {
   }
 
   return (
-    <Dialog
-      open
-      modalType="alert"
-      onOpenChange={(_, data) => {
-        // 只处理关闭（Esc/点外部）：等同于"丢弃"，避免存档永远挂着反复弹。
-        if (!data.open) {
-          props.onDiscard()
-        }
-      }}
-    >
+    <Dialog open modalType="alert">
       <DialogSurface className="wb-dialog">
         <DialogBody>
           <DialogTitle>{t('Web_Recovery_Title')}</DialogTitle>

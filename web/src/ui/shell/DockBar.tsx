@@ -51,6 +51,7 @@ import type { DockItemId } from '../../settings/model.ts'
 import { EraserFlyout } from '../flyouts/EraserFlyout.tsx'
 import { PagesFlyout } from '../flyouts/PagesFlyout.tsx'
 import { PenFlyout } from '../flyouts/PenFlyout.tsx'
+import { usePageDeletion } from '../flyouts/use-page-deletion.tsx'
 import { ShapeFlyout } from '../flyouts/ShapeFlyout.tsx'
 import { planToolButtonClick } from '../flyouts/flyout-machine.ts'
 import { DockButton } from './DockButton.tsx'
@@ -432,6 +433,7 @@ function RightDock(): ReactNode {
   const openFlyout = useOpenFlyout()
   const indicatorText = usePageIndicatorText()
   const showPager = useShowPagePager()
+  const deletion = usePageDeletion()
   const ordered = applyDockOrder(PAGE_DOCK_ITEMS, (id) => id, settings.dock.pagesOrder)
 
   const closeFlyout = (): void => {
@@ -486,7 +488,7 @@ function RightDock(): ReactNode {
             <PopoverTrigger disableButtonEnhancement>{indicatorButton}</PopoverTrigger>
             <PopoverSurface style={SURFACE_STYLE}>
               <FluentProvider theme={webLightTheme} style={SURFACE_THEME_STYLE}>
-                <PagesFlyout onClose={closeFlyout} />
+                <PagesFlyout onClose={closeFlyout} onRequestDeletePage={deletion.requestDeletePage} />
               </FluentProvider>
             </PopoverSurface>
           </Popover>
@@ -519,7 +521,12 @@ function RightDock(): ReactNode {
     }
   }
 
-  return <div className="wb-dock wb-dock--pages">{ordered.map(renderItem)}</div>
+  return (
+    <>
+      <div className="wb-dock wb-dock--pages">{ordered.map(renderItem)}</div>
+      {deletion.confirmDialog}
+    </>
+  )
 }
 
 // 窄屏紧凑栏（网页端新增，桌面无对应实现）
@@ -575,6 +582,7 @@ function NarrowMoreButton(): ReactNode {
   const indicatorText = usePageIndicatorText()
   const [open, setOpen] = useState(false)
   const [pagesOpen, setPagesOpen] = useState(false)
+  const deletion = usePageDeletion()
 
   const close = (): void => {
     setOpen(false)
@@ -588,104 +596,107 @@ function NarrowMoreButton(): ReactNode {
   }
 
   return (
-    <Popover
-      open={open}
-      onOpenChange={(_event, data) => {
-        // 浮层是受控的：触发器自己只会报告开合意图，必须两边都接住，
-        // 否则（只处理关闭）点按钮永远打不开
-        if (data.open) {
-          setOpen(true)
-        } else {
-          close()
-        }
-      }}
-      positioning={{ position: 'above', align: 'end' }}
-    >
-      <PopoverTrigger disableButtonEnhancement>
-        <DockButton icon={<MoreHorizontalRegular fontSize={20} />} title={t('Common_More')} />
-      </PopoverTrigger>
-      <PopoverSurface style={SURFACE_STYLE}>
-        <FluentProvider theme={webLightTheme} style={SURFACE_THEME_STYLE}>
-          <div className="wb-sheet">
-            <div className="wb-sheet__pages">
-              <SheetButton
-                icon={<ChevronLeftRegular fontSize={20} />}
-                label={t('Common_PreviousPage')}
-                disabled={snapshot.currentPageIndex <= 0}
-                onClick={run(() => {
-                  controller.setCurrentPageIndex(snapshot.currentPageIndex - 1)
-                })}
-              />
-              {/* 页码不可点：点它没有更自然的动作，页面切换用左右两个按钮 + 下面的"页面管理" */}
-              <div className="wb-sheet__indicator" aria-label={t('MainWindow_PageManager_Title')}>
-                {indicatorText}
+    <>
+      <Popover
+        open={open}
+        onOpenChange={(_event, data) => {
+          // 浮层是受控的：触发器自己只会报告开合意图，必须两边都接住，
+          // 否则（只处理关闭）点按钮永远打不开
+          if (data.open) {
+            setOpen(true)
+          } else {
+            close()
+          }
+        }}
+        positioning={{ position: 'above', align: 'end' }}
+      >
+        <PopoverTrigger disableButtonEnhancement>
+          <DockButton icon={<MoreHorizontalRegular fontSize={20} />} title={t('Common_More')} />
+        </PopoverTrigger>
+        <PopoverSurface style={SURFACE_STYLE}>
+          <FluentProvider theme={webLightTheme} style={SURFACE_THEME_STYLE}>
+            <div className="wb-sheet">
+              <div className="wb-sheet__pages">
+                <SheetButton
+                  icon={<ChevronLeftRegular fontSize={20} />}
+                  label={t('Common_PreviousPage')}
+                  disabled={snapshot.currentPageIndex <= 0}
+                  onClick={run(() => {
+                    controller.setCurrentPageIndex(snapshot.currentPageIndex - 1)
+                  })}
+                />
+                {/* 页码不可点：点它没有更自然的动作，页面切换用左右两个按钮 + 下面的"页面管理" */}
+                <div className="wb-sheet__indicator" aria-label={t('MainWindow_PageManager_Title')}>
+                  {indicatorText}
+                </div>
+                <SheetButton
+                  icon={<ChevronRightRegular fontSize={20} />}
+                  label={t('Common_NextPage')}
+                  disabled={snapshot.currentPageIndex >= snapshot.pageCount - 1}
+                  onClick={run(() => {
+                    controller.setCurrentPageIndex(snapshot.currentPageIndex + 1)
+                  })}
+                />
+                <SheetButton
+                  icon={<AddRegular fontSize={20} />}
+                  label={t('Web_AddPage')}
+                  onClick={run(() => {
+                    controller.addPage()
+                  })}
+                />
               </div>
-              <SheetButton
-                icon={<ChevronRightRegular fontSize={20} />}
-                label={t('Common_NextPage')}
-                disabled={snapshot.currentPageIndex >= snapshot.pageCount - 1}
-                onClick={run(() => {
-                  controller.setCurrentPageIndex(snapshot.currentPageIndex + 1)
-                })}
-              />
-              <SheetButton
-                icon={<AddRegular fontSize={20} />}
-                label={t('Web_AddPage')}
-                onClick={run(() => {
-                  controller.addPage()
-                })}
-              />
-            </div>
 
-            <div className="wb-sheet__actions">
-              <SheetButton
-                icon={<ArrowImportRegular fontSize={20} />}
-                label={t('Common_Import')}
-                onClick={run(actions.openImport)}
-              />
-              <SheetButton
-                icon={<ArrowExportRegular fontSize={20} />}
-                label={t('Common_Export')}
-                onClick={run(actions.openExport)}
-              />
-              <SheetButton
-                icon={<SettingsRegular fontSize={20} />}
-                label={t('Common_Settings')}
-                onClick={run(actions.openSettings)}
-              />
-              <SheetButton
-                icon={<FullScreenMaximizeRegular fontSize={20} />}
-                label={t(actions.isFullscreen ? 'Common_ExitFullScreen' : 'Common_FullScreen')}
-                onClick={run(actions.toggleFullscreen)}
-              />
-              <SheetButton
-                icon={<SubtractRegular fontSize={20} />}
-                label={t('Common_Minimize')}
-                onClick={run(() => {
-                  // 与桌面左 Dock 的最小化按钮同样的处理：浏览器没有最小化窗口的能力
-                  reminders.push({
-                    message: t('Web_MinimizeUnsupported_Message'),
-                    severity: 'informational',
-                  })
-                })}
-              />
-              <SheetButton
-                icon={<EditRegular fontSize={20} />}
-                label={t('MainWindow_PageManager_Title')}
-                onClick={() => {
-                  setPagesOpen(!pagesOpen)
-                }}
-              />
-            </div>
-
-            {pagesOpen ? (
-              <div className="wb-sheet__pages-panel">
-                <PagesFlyout onClose={close} />
+              <div className="wb-sheet__actions">
+                <SheetButton
+                  icon={<ArrowImportRegular fontSize={20} />}
+                  label={t('Common_Import')}
+                  onClick={run(actions.openImport)}
+                />
+                <SheetButton
+                  icon={<ArrowExportRegular fontSize={20} />}
+                  label={t('Common_Export')}
+                  onClick={run(actions.openExport)}
+                />
+                <SheetButton
+                  icon={<SettingsRegular fontSize={20} />}
+                  label={t('Common_Settings')}
+                  onClick={run(actions.openSettings)}
+                />
+                <SheetButton
+                  icon={<FullScreenMaximizeRegular fontSize={20} />}
+                  label={t(actions.isFullscreen ? 'Common_ExitFullScreen' : 'Common_FullScreen')}
+                  onClick={run(actions.toggleFullscreen)}
+                />
+                <SheetButton
+                  icon={<SubtractRegular fontSize={20} />}
+                  label={t('Common_Minimize')}
+                  onClick={run(() => {
+                    // 与桌面左 Dock 的最小化按钮同样的处理：浏览器没有最小化窗口的能力
+                    reminders.push({
+                      message: t('Web_MinimizeUnsupported_Message'),
+                      severity: 'informational',
+                    })
+                  })}
+                />
+                <SheetButton
+                  icon={<EditRegular fontSize={20} />}
+                  label={t('MainWindow_PageManager_Title')}
+                  onClick={() => {
+                    setPagesOpen(!pagesOpen)
+                  }}
+                />
               </div>
-            ) : null}
-          </div>
-        </FluentProvider>
-      </PopoverSurface>
-    </Popover>
+
+              {pagesOpen ? (
+                <div className="wb-sheet__pages-panel">
+                  <PagesFlyout onClose={close} onRequestDeletePage={deletion.requestDeletePage} />
+                </div>
+              ) : null}
+            </div>
+          </FluentProvider>
+        </PopoverSurface>
+      </Popover>
+      {deletion.confirmDialog}
+    </>
   )
 }

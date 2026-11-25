@@ -19,6 +19,9 @@
   <data name="Common_Cancel" xml:space="preserve">
     <value>Cancel</value>
   </data>
+  <data name="Common_Canceling" xml:space="preserve">
+    <value>Canceling…</value>
+  </data>
   <data name="Common_Settings" xml:space="preserve">
     <value>Settings</value>
   </data>

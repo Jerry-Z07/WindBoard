@@ -208,13 +208,13 @@ namespace WindBoard.Features.Import
 
             try
             {
-                await DialogHelpers.RunBusyAsync(xamlRoot, L10n.Get("Import_Wbix_Busy_Title"), L10n.Get("Import_Wbix_Busy_Message"), async () =>
+                await DialogHelpers.RunBusyAsync(xamlRoot, L10n.Get("Import_Wbix_Busy_Title"), L10n.Get("Import_Wbix_Busy_Message"), async cancellationToken =>
                 {
                     BoardWorkspaceSnapshot snapshot = await Task.Run(async () =>
                     {
                         await using var stream = new FileStream(file.Path, FileMode.Open, FileAccess.Read, FileShare.Read);
-                        return await serializer.LoadAsync(stream);
-                    });
+                        return await serializer.LoadAsync(stream, cancellationToken);
+                    }, cancellationToken);
 
                     // WBIX 页面的元素图像解码耗时，放到后台线程执行；解码失败不阻断导入，渲染端降级为占位卡片。
                     List<BoardPage> pages = await Task.Run(async () =>
@@ -253,6 +253,10 @@ namespace WindBoard.Features.Import
                     int targetIndex = Math.Clamp(startIndex + importCurrent, 0, Math.Max(0, _workspace.Pages.Count - 1));
                     _workspace.SetCurrentIndex(targetIndex);
                 }, logTag: "Import");
+            }
+            catch (OperationCanceledException)
+            {
+                AppLog.Info("WBIX", $"用户取消导入：'{file.Path}'");
             }
             catch (Exception ex)
             {
@@ -329,9 +333,9 @@ namespace WindBoard.Features.Import
 
             try
             {
-                await DialogHelpers.RunBusyAsync(xamlRoot, L10n.Get("Import_Wbix_Busy_Title"), L10n.Get("Import_Wbix_Busy_Message"), async () =>
+                await DialogHelpers.RunBusyAsync(xamlRoot, L10n.Get("Import_Wbix_Busy_Title"), L10n.Get("Import_Wbix_Busy_Message"), async cancellationToken =>
                 {
-                    WbiWorkspaceImportResult importResult = await Task.Run(() => importer.ImportAsync(file.Path));
+                    WbiWorkspaceImportResult importResult = await Task.Run(() => importer.ImportAsync(file.Path, cancellationToken));
                     if (!importResult.Success)
                     {
                         throw new InvalidDataException(importResult.ErrorMessage ?? L10n.Get("Import_Wbix_ParseFailed_Message"));
@@ -370,6 +374,10 @@ namespace WindBoard.Features.Import
                     int targetIndex = Math.Clamp(startIndex + importCurrent, 0, Math.Max(0, _workspace.Pages.Count - 1));
                     _workspace.SetCurrentIndex(targetIndex);
                 }, logTag: "Import");
+            }
+            catch (OperationCanceledException)
+            {
+                AppLog.Info("WBI", $"用户取消导入：'{file.Path}'");
             }
             catch (Exception ex)
             {

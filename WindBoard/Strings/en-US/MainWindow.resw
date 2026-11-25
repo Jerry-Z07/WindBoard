@@ -52,4 +52,7 @@
   <data name="MainWindow_DeletePage_Button" xml:space="preserve">
     <value>Delete page</value>
   </data>
+  <data name="MainWindow_DeletePage_Confirm_Fmt" xml:space="preserve">
+    <value>Page {0} will be removed from the workspace. Its content cannot be restored.</value>
+  </data>
 </root>

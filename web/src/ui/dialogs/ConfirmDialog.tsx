@@ -1,5 +1,5 @@
 /**
- * 通用确认对话框。桌面等价物是各处直接 new 的 ContentDialog（例如覆盖确认 ExportPickers.cs:127-167、导入风险确认 ImportFlow.cs:398-412）；网页端把它们收敛成一个可复用组件，供导出、导入流程与设置页（恢复默认、清空等）共用。
+ * 通用确认对话框。桌面等价物是各处直接 new 的 ContentDialog（例如覆盖确认 ExportPickers.cs:127-167、导入风险确认 ImportFlow.cs:398-412、删除页面 MainWindow.Pages.cs）。
  */
 
 import type { CSSProperties, ReactNode } from 'react'

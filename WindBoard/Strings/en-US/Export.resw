@@ -97,6 +97,9 @@
   <data name="Export_Padding_Placeholder" xml:space="preserve">
     <value>Padding (DIP)</value>
   </data>
+  <data name="Export_PaddingError_Message" xml:space="preserve">
+    <value>Padding must be 0 or greater.</value>
+  </data>
   <data name="Export_PngAspect_Square" xml:space="preserve">
     <value>1:1 (square)</value>
   </data>

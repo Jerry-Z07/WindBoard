@@ -53,7 +53,7 @@ namespace WindBoard.Features.Export
             ExportDialogSelection? selection = null;
             try
             {
-                selection = await ExportDialog.ShowAsync(xamlRoot);
+                selection = await ExportDialog.ShowAsync(xamlRoot, _workspace.Pages.Count);
                 if (selection is null)
                 {
                     return;
@@ -104,6 +104,10 @@ namespace WindBoard.Features.Export
                         await DialogHelpers.ShowMessageAsync(xamlRoot, L10n.Get("Export_Failed_Title"), L10n.Get("Export_UnknownFormat_Message"));
                         return;
                 }
+            }
+            catch (OperationCanceledException)
+            {
+                AppLog.Info("Export", "用户取消导出。");
             }
             catch (Exception ex)
             {
@@ -158,9 +162,9 @@ namespace WindBoard.Features.Export
                 return;
             }
 
-            await DialogHelpers.RunBusyAsync(xamlRoot, L10n.Get("Export_Busy_Wbix_Title"), L10n.Get("Export_Busy_Default_Message"), async () =>
+            await DialogHelpers.RunBusyAsync(xamlRoot, L10n.Get("Export_Busy_Wbix_Title"), L10n.Get("Export_Busy_Default_Message"), async cancellationToken =>
             {
-                await _exportService.ExportWbixAsync(snapshot, file.Path);
+                await _exportService.ExportWbixAsync(snapshot, file.Path, cancellationToken);
             }, logTag: "Export");
 
             await DialogHelpers.ShowMessageAsync(xamlRoot, L10n.Get("Export_Completed_Title"), L10n.Format("Export_Completed_File_Fmt", file.Path));
@@ -176,9 +180,9 @@ namespace WindBoard.Features.Export
 
             var options = new BoardPdfExportOptions(rasterOptions);
 
-            await DialogHelpers.RunBusyAsync(xamlRoot, L10n.Get("Export_Busy_Pdf_Title"), L10n.Get("Export_Busy_Default_Message"), async () =>
+            await DialogHelpers.RunBusyAsync(xamlRoot, L10n.Get("Export_Busy_Pdf_Title"), L10n.Get("Export_Busy_Default_Message"), async cancellationToken =>
             {
-                await _exportService.ExportPdfAsync(snapshot, pageIndices, file.Path, options);
+                await _exportService.ExportPdfAsync(snapshot, pageIndices, file.Path, options, cancellationToken);
             }, logTag: "Export");
 
             await DialogHelpers.ShowMessageAsync(xamlRoot, L10n.Get("Export_Completed_Title"), L10n.Format("Export_Completed_File_Fmt", file.Path));
@@ -194,9 +198,9 @@ namespace WindBoard.Features.Export
                     return;
                 }
 
-                await DialogHelpers.RunBusyAsync(xamlRoot, L10n.Get("Export_Busy_Png_Title"), L10n.Get("Export_Busy_Default_Message"), async () =>
+                await DialogHelpers.RunBusyAsync(xamlRoot, L10n.Get("Export_Busy_Png_Title"), L10n.Get("Export_Busy_Default_Message"), async cancellationToken =>
                 {
-                    await _exportService.ExportPngAsync(snapshot, pageIndices[0], file.Path, rasterOptions);
+                    await _exportService.ExportPngAsync(snapshot, pageIndices[0], file.Path, rasterOptions, cancellationToken);
                 }, logTag: "Export");
 
                 await DialogHelpers.ShowMessageAsync(xamlRoot, L10n.Get("Export_Completed_Title"), L10n.Format("Export_Completed_File_Fmt", file.Path));
@@ -224,9 +228,9 @@ namespace WindBoard.Features.Export
                 }
             }
 
-            await DialogHelpers.RunBusyAsync(xamlRoot, L10n.Get("Export_Busy_Png_Title"), L10n.Get("Export_Busy_Default_Message"), async () =>
+            await DialogHelpers.RunBusyAsync(xamlRoot, L10n.Get("Export_Busy_Png_Title"), L10n.Get("Export_Busy_Default_Message"), async cancellationToken =>
             {
-                await _exportService.ExportPngPagesToFolderAsync(snapshot, pageIndices, exportFolderPath, date, rasterOptions);
+                await _exportService.ExportPngPagesToFolderAsync(snapshot, pageIndices, exportFolderPath, date, rasterOptions, cancellationToken);
             }, logTag: "Export");
 
             await DialogHelpers.ShowMessageAsync(xamlRoot, L10n.Get("Export_Completed_Title"), L10n.Format("Export_Completed_Folder_Fmt", exportFolderPath));

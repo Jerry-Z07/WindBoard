@@ -97,6 +97,9 @@
   <data name="Export_Padding_Placeholder" xml:space="preserve">
     <value>边距（DIP）</value>
   </data>
+  <data name="Export_PaddingError_Message" xml:space="preserve">
+    <value>留白需要填写 0 或更大的数字。</value>
+  </data>
   <data name="Export_PngAspect_Square" xml:space="preserve">
     <value>1:1（方形）</value>
   </data>

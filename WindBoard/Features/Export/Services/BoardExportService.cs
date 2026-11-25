@@ -26,6 +26,8 @@ namespace WindBoard.Features.Export.Services
         private const long MaxEmbeddedImageBytes = 32L * 1024 * 1024;
         private const long MaxTotalEmbeddedImageBytes = 256L * 1024 * 1024;
 
+        private const string TempFileSuffix = ".part";
+
         public Task ExportWbixAsync(BoardWorkspaceSnapshot snapshot, string filePath, CancellationToken cancellationToken = default)
         {
             ArgumentNullException.ThrowIfNull(snapshot);
@@ -50,8 +52,11 @@ namespace WindBoard.Features.Export.Services
 
                 TryAddWbixEmbeddedImageResources(snapshot, resources, cancellationToken);
 
-                await using var stream = new FileStream(filePath, FileMode.Create, FileAccess.Write, FileShare.None);
-                await _wbixSerializer.SaveAsync(snapshot, stream, resources, cancellationToken).ConfigureAwait(false);
+                await WriteAtomicallyAsync(filePath, async tempPath =>
+                {
+                    await using var stream = new FileStream(tempPath, FileMode.Create, FileAccess.Write, FileShare.None);
+                    await _wbixSerializer.SaveAsync(snapshot, stream, resources, cancellationToken).ConfigureAwait(false);
+                }).ConfigureAwait(false);
             }, cancellationToken);
         }
 
@@ -139,7 +144,7 @@ namespace WindBoard.Features.Export.Services
                 throw new ArgumentException(L10n.Get("Export_PathEmpty_Message"), nameof(filePath));
             }
 
-            return Task.Run(() =>
+            return Task.Run(async () =>
             {
                 cancellationToken.ThrowIfCancellationRequested();
 
@@ -159,8 +164,44 @@ namespace WindBoard.Features.Export.Services
                     throw new InvalidOperationException(L10n.Get("Export_NoPagesSelected_Message"));
                 }
 
-                BoardPdfExporter.Export(pages, filePath, options, cancellationToken);
+                await WriteAtomicallyAsync(filePath, tempPath =>
+                {
+                    BoardPdfExporter.Export(pages, tempPath, options, cancellationToken);
+                    return Task.CompletedTask;
+                }).ConfigureAwait(false);
             }, cancellationToken);
+        }
+
+        /// <summary>
+        /// 写同目录临时文件，成功后替换目标文件；取消或失败时删除临时文件，目标位置不留半成品。
+        /// </summary>
+        private static async Task WriteAtomicallyAsync(string filePath, Func<string, Task> write)
+        {
+            string tempPath = filePath + TempFileSuffix;
+            try
+            {
+                await write(tempPath).ConfigureAwait(false);
+                File.Move(tempPath, filePath, overwrite: true);
+            }
+            finally
+            {
+                TryDeleteTempFile(tempPath);
+            }
+        }
+
+        private static void TryDeleteTempFile(string tempPath)
+        {
+            try
+            {
+                if (File.Exists(tempPath))
+                {
+                    File.Delete(tempPath);
+                }
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                AppLog.Warn("Export", $"临时文件清理失败：'{tempPath}'", ex);
+            }
         }
 
         private static bool TryCreateWbixCoverResource(BoardWorkspaceSnapshot snapshot, CancellationToken cancellationToken, out WbixResourceFile? coverResource)

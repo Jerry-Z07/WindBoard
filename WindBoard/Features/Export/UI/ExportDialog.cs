@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using WindBoard.Features.Export.Models;
+using WindBoard.Features.Export.Services;
 using WindBoard.Localization;
 
 namespace WindBoard.Features.Export.UI
@@ -12,7 +13,7 @@ namespace WindBoard.Features.Export.UI
     /// </summary>
     internal static class ExportDialog
     {
-        public static async Task<ExportDialogSelection?> ShowAsync(XamlRoot xamlRoot)
+        public static async Task<ExportDialogSelection?> ShowAsync(XamlRoot xamlRoot, int pageCount)
         {
             ArgumentNullException.ThrowIfNull(xamlRoot);
 
@@ -82,6 +83,13 @@ namespace WindBoard.Features.Export.UI
             var dpiLabel = new TextBlock { Text = L10n.Get("Export_PdfDpi_Label") };
             var paddingLabel = new TextBlock { Text = L10n.Get("Export_Padding_Label") };
 
+            var errorBar = new InfoBar
+            {
+                Severity = InfoBarSeverity.Error,
+                IsOpen = false,
+                IsClosable = false,
+            };
+
             var hintText = new TextBlock
             {
                 Text = L10n.Get("Export_Hint_Text"),
@@ -92,6 +100,28 @@ namespace WindBoard.Features.Export.UI
             void UpdateRangeEnabled()
             {
                 rangeBox.IsEnabled = scopeCombo.SelectedIndex == (int)ExportPageScope.Range;
+            }
+
+            bool IsRasterVisible()
+            {
+                return formatCombo.SelectedIndex is (int)ExportFormat.Png or (int)ExportFormat.Pdf;
+            }
+
+            string? GetValidationError()
+            {
+                if (scopeCombo.SelectedIndex == (int)ExportPageScope.Range
+                    && !PageRangeParser.TryParse(rangeBox.Text, pageCount, out _, out string rangeError))
+                {
+                    return rangeError;
+                }
+
+                if (IsRasterVisible()
+                    && (!float.TryParse(paddingBox.Text, out float padding) || padding < 0.0f))
+                {
+                    return L10n.Get("Export_PaddingError_Message");
+                }
+
+                return null;
             }
 
             void UpdatePngSizeItems()
@@ -154,6 +184,7 @@ namespace WindBoard.Features.Export.UI
             panel.Children.Add(dpiCombo);
             panel.Children.Add(paddingLabel);
             panel.Children.Add(paddingBox);
+            panel.Children.Add(errorBar);
             panel.Children.Add(hintText);
 
             var dialog = new ContentDialog
@@ -165,6 +196,20 @@ namespace WindBoard.Features.Export.UI
                 DefaultButton = ContentDialogButton.Primary,
                 XamlRoot = xamlRoot,
             };
+
+            void UpdateValidation()
+            {
+                string? error = GetValidationError();
+                errorBar.Message = error ?? string.Empty;
+                errorBar.IsOpen = error is not null;
+                dialog.IsPrimaryButtonEnabled = error is null;
+            }
+
+            scopeCombo.SelectionChanged += (_, _) => UpdateValidation();
+            formatCombo.SelectionChanged += (_, _) => UpdateValidation();
+            rangeBox.TextChanged += (_, _) => UpdateValidation();
+            paddingBox.TextChanged += (_, _) => UpdateValidation();
+            UpdateValidation();
 
             ContentDialogResult result = await dialog.ShowAsync();
             if (result != ContentDialogResult.Primary)
@@ -185,9 +230,9 @@ namespace WindBoard.Features.Export.UI
                 : 96;
 
             float paddingDip = 24.0f;
-            if (float.TryParse(paddingBox.Text, out float parsedPadding))
+            if (IsRasterVisible() && float.TryParse(paddingBox.Text, out float parsedPadding))
             {
-                paddingDip = Math.Max(0.0f, parsedPadding);
+                paddingDip = parsedPadding;
             }
 
             BoardRasterFixedFrame? pngFrame = null;

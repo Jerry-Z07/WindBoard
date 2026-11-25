@@ -287,7 +287,11 @@ export function BoardSurface(props: BoardSurfaceProps): ReactNode {
         controller?.workspace.replaceWithSnapshots(imported.snapshots, imported.currentIndex)
         await store.clear()
       } catch {
-        // 存档损坏：清掉并让用户从空白开始（不弹二次错误，避免打扰）
+        // 存档读不出来只能丢弃，但必须让用户知道内容没了，否则下次打开是空白画板且没有任何解释
+        reminders.push({
+          message: t('Web_AutosaveCorrupt_Message'),
+          severity: 'warning',
+        })
         await store.clear()
       }
     })()

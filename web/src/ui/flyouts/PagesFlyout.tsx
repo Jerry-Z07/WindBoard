@@ -13,6 +13,8 @@ import { useI18n } from '../../i18n/context.ts'
 export interface PagesFlyoutProps {
   /** 关闭面板（桌面点击列表项不关闭面板，删除后也不关闭，因此本组件不调用）。 */
   readonly onClose: () => void
+  /** 请求删除某一页（1-based 之外的 0-based 下标）；确认对话框由 `usePageDeletion` 提供。 */
+  readonly onRequestDeletePage: (index: number) => void
 }
 
 /** 面板内容。 */
@@ -34,13 +36,6 @@ export function PagesFlyout(props: PagesFlyoutProps): ReactNode {
     if (index !== snapshot.currentPageIndex) {
       controller.setCurrentPageIndex(index)
     }
-  }
-
-  const deletePage = (index: number): void => {
-    // 控制器只暴露"删除当前页"，因此先切到目标页再删（桌面 `RemovePage(page)` 会自行修正当前下标，
-    // 网页端由 `BoardWorkspace.removePage` 把当前下标夹到 `min(index, count - 1)`，结果一致）
-    selectPage(index)
-    controller.removeCurrentPage()
   }
 
   return (
@@ -77,7 +72,7 @@ export function PagesFlyout(props: PagesFlyoutProps): ReactNode {
                   onClick={(event) => {
                     // 阻止冒泡，避免删除时同时触发"切换页"
                     event.stopPropagation()
-                    deletePage(index)
+                    props.onRequestDeletePage(index)
                   }}
                 >
                   <DeleteRegular fontSize={12} />

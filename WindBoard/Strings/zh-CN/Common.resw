@@ -19,6 +19,9 @@
   <data name="Common_Cancel" xml:space="preserve">
     <value>取消</value>
   </data>
+  <data name="Common_Canceling" xml:space="preserve">
+    <value>正在取消…</value>
+  </data>
   <data name="Common_Settings" xml:space="preserve">
     <value>设置</value>
   </data>
