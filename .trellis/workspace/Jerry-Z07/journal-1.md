@@ -848,3 +848,25 @@ P1/P3 并行完成后做整体质量审查：定位并修复 E2E 导出用例的
 ### Next Steps
 
 - 如需支持跨显示器拖动后重算布局，可在 DpiChanged 中重新应用换算（design.md 第 6 节已记录）
+
+
+## Session 22: Dock 就地编辑与撤销/重做显隐收敛
+<!-- trellis-session: v=2 fp=07a0bd2b14548824 -->
+
+**Date**: 2026-11-26
+**Task**: Dock 就地编辑与撤销/重做显隐收敛
+**Branch**: `develop`
+
+### Summary
+
+Dock 设置改为设置页入口 + 主界面就地编辑：拖动排序、逐条隐藏/恢复、快捷入口增删改与拖放，两侧同步 hiddenItems；移除 isUndoRedoVisible，撤销/重做显隐改由单条隐藏控制。桌面 662 单测、Dock E2E 4 例、网页 1471 单测与 20 E2E 通过。
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `c605675` | feat(dock): 支持在主界面就地编辑 Dock 布局 |
+
+### Status
+
+[OK] **Completed**
