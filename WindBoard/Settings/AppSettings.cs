@@ -28,24 +28,18 @@ namespace WindBoard.Settings
     internal sealed class GeneralSettings
     {
         /// <summary>
-        /// 应用显示语言偏好：
-        /// - system：跟随系统
-        /// - 其它：CultureName（例如 zh-CN/en-US/ja-JP）
+        /// 应用显示语言偏好：system 跟随系统，其它值为 CultureName（例如 zh-CN/en-US/ja-JP）。
         /// </summary>
         public string LanguagePreference { get; set; } = AppLanguagePreferenceParser.SystemValue;
 
         /// <summary>
-        /// 启动时窗口形态：
-        /// - windowed：窗口化（默认）
-        /// - fullscreen：全屏
+        /// 启动时窗口形态：windowed 窗口化（默认），fullscreen 全屏。
         /// </summary>
         public string StartupWindowMode { get; set; } = StartupWindowModeParser.WindowedValue;
 
         /// <summary>
-        /// 最小化时是否进入屏幕批注：
-        /// - true：最小化时进入屏幕批注（默认）
-        /// - false：仅普通最小化
-        /// 说明：使用可空 bool 兼容历史 settings.json 缺失字段的场景。
+        /// 最小化时是否进入屏幕批注：true 进入（默认），false 仅普通最小化。
+        /// 使用可空 bool 兼容历史 settings.json 缺失该字段的场景。
         /// </summary>
         public bool? EnterScreenAnnotationWhenMinimized { get; set; } = true;
 
@@ -108,15 +102,12 @@ namespace WindBoard.Settings
         public string LastNotifiedVersion { get; set; } = string.Empty;
 
         /// <summary>
-        /// 下载源策略：
-        /// - auto：自动测速选择最快源（会写入 DownloadSourceId）
-        /// - fixed：固定使用 DownloadSourceId（失败时仍会自动尝试其它源兜底）
+        /// 下载源策略：auto 自动测速选择最快源（会写入 DownloadSourceId），fixed 固定使用 DownloadSourceId（失败时仍会自动尝试其它源兜底）。
         /// </summary>
         public string DownloadSourcePolicy { get; set; } = DownloadSourcePolicyParser.AutoValue;
 
         /// <summary>
-        /// 当前选择的下载源（github/gh-proxy/07）。
-        /// 说明：当 DownloadSourcePolicy=auto 时，该值表示“最近一次测速选出的最快源”。
+        /// 当前选择的下载源（github/gh-proxy/07）；DownloadSourcePolicy=auto 时表示最近一次测速选出的最快源。
         /// </summary>
         public string DownloadSourceId { get; set; } = DownloadSourceIdParser.GithubValue;
 
@@ -137,9 +128,7 @@ namespace WindBoard.Settings
         /// 元素卡片主题（深/浅）：用于导入的图片/文件/文本/链接等“卡片”外观。
         /// </summary>
         /// <remarks>
-        /// 约定：持久化为字符串，便于用户手动编辑 settings.json。
-        /// - dark：深色卡片（默认）
-        /// - light：浅色卡片
+        /// 持久化为字符串，便于用户手工编辑 settings.json：dark 深色卡片（默认），light 浅色卡片。
         /// </remarks>
         public string ElementCardTheme { get; set; } = ElementCardThemeParser.DarkValue;
     }
@@ -152,11 +141,7 @@ namespace WindBoard.Settings
     internal sealed class PenSettings
     {
         /// <summary>
-        /// 画笔颜色面板的固定色板（长度即显示数量）。
-        /// 
-        /// 约定：
-        /// - 支持 null：表示“空色块”（未配置颜色）
-        /// - 非空时为 #RRGGBB 或 #AARRGGBB
+        /// 画笔颜色面板的固定色板（长度即显示数量）：null 表示未配置颜色的空色块，非空时为 #RRGGBB 或 #AARRGGBB。
         /// </summary>
         public List<string?> PaletteHexes { get; set; } = new(PenSettingsDefaults.DefaultPaletteHexes);
 

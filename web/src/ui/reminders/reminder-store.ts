@@ -1,13 +1,6 @@
 /**
- * 提醒栈（右上角 InfoBar）：状态与自动关闭策略。
- *
- * 逐条对齐桌面 `UI/MainWindow/MainWindow.Reminders.cs`：
- * - 新消息插到**最上方**（`Children.Insert(0, bar)`），避免重要提醒被旧消息压住；
- * - 同时最多显示 **3** 条（`MaxBannerCount`），超出时从**末尾**移除最旧的；
- * - 自动关闭延迟按严重级：Error 10s / Warning 8s / 其余 6s；
- * - 每条都可手动关闭（`IsClosable = true`）且带图标（`IsIconVisible = true`）。
- *
- * 计时器通过参数注入，所以本模块可在 node 环境用假计时器完整测试。
+ * 提醒栈（右上角 InfoBar）的状态与自动关闭策略，逐条对齐桌面 UI/MainWindow/MainWindow.Reminders.cs：新消息插到最上方（Children.Insert(0, bar)），避免重要提醒被旧消息压住；同时最多显示 3 条（MaxBannerCount），超出时从末尾移除最旧的；自动关闭延迟按严重级为 Error 10 秒、Warning 8 秒、其余 6 秒；每条都可手动关闭（IsClosable = true）且带图标（IsIconVisible = true）。
+ * 计时器通过参数注入，因此本模块可在 node 环境用假计时器完整测试。
  */
 
 /** 提醒严重级（对应 `AppReminderSeverity` + `InfoBarSeverity` 的映射）。 */

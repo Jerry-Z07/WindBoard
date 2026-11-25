@@ -1,13 +1,6 @@
 /**
- * 「可本地化的消息」：把文案从纯逻辑里挪出来，逻辑只产出 key + 实参。
- *
- * 背景：`features/export/page-range.ts`、`features/export/export-options.ts` 这类模块
- * 是纯函数（node 环境可测、不依赖 React），但它们要把失败原因交给 UI 展示。
- * 直接在纯函数里拼中文，等于把语言钉死在逻辑层——`t()` 进不来，英文界面就只能是中文报错。
- *
- * 于是约定：纯函数返回 {@link LocalizedMessage}，由组件用 {@link formatLocalized} 渲染。
- * 这里刻意不 import React 侧的 `Translator`（那会把 React 拖进纯逻辑的依赖图），
- * 只要求一个结构性兼容的窄函数类型。
+ * 「可本地化的消息」：把文案从纯逻辑里挪出来，逻辑只产出 key 与实参。features/export/page-range.ts、features/export/export-options.ts 这类模块是纯函数（node 环境可测、不依赖 React），但失败原因要交给 UI 展示；直接在纯函数里拼中文等于把语言钉死在逻辑层，t() 进不来，英文界面就只剩中文报错。因此约定纯函数返回 {@link LocalizedMessage}，由组件用 {@link formatLocalized} 渲染。
+ * 这里刻意不 import React 侧的 Translator（那会把 React 拖进纯逻辑的依赖图），只要求一个结构性兼容的窄函数类型。
  */
 
 import type { MessageKey } from './locales/zh-CN.generated.ts'

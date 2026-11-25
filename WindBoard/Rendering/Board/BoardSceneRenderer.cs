@@ -130,15 +130,8 @@ namespace WindBoard.Rendering.Board
         /// 绘制“笔迹层之下”的背景（用于活动笔迹叠加渲染）。
         /// </summary>
         /// <remarks>
-        /// 该方法会绘制：
-        /// - 元素（下层）
-        /// - 文档笔迹
-        /// 
-        /// 不会绘制：
-        /// - 元素（上层）
-        /// - 活动笔迹
-        /// 
-        /// 目的：保证“活动笔迹”与“上层元素”的遮挡关系正确（上层元素应覆盖活动笔迹）。
+        /// 绘制元素（下层）与文档笔迹，不绘制元素（上层）与活动笔迹。
+        /// 这样活动笔迹与上层元素的遮挡关系才正确，上层元素覆盖活动笔迹。
         /// </remarks>
         public void DrawBackgroundUnderInk(ID2D1RenderTarget ctx, BoardDocument document, BoardViewport viewport)
         {
@@ -264,11 +257,7 @@ namespace WindBoard.Rendering.Board
             IBoardInkItem? activeInkItem,
             VisibleWorldBounds visibleWorldBounds)
         {
-            // 绘制顺序：
-            // 1) 元素（笔迹下层）
-            // 2) 笔迹（按条目类型单点分发）
-            // 3) 元素（笔迹上层）
-            // 4) 活动笔迹（可选）
+            // 绘制顺序：元素下层、笔迹、元素上层、活动笔迹（可选）。
 
             DrawElementsIfVisible(ctx, document.ElementsBelowInk, visibleWorldBounds.Min, visibleWorldBounds.Max);
 
@@ -326,8 +315,7 @@ namespace WindBoard.Rendering.Board
         /// 绘制一个笔迹层条目（渲染的“按条目类型单点分发”入口）。
         /// </summary>
         /// <remarks>
-        /// 阶段二起承载折线笔迹（Stroke）与形状（BoardShape）两个分支，
-        /// 新增条目类型时在此 switch 中补充对应分支，不再新增散落式分发。
+        /// 承载折线笔迹与形状两个分支，新增条目类型时在此 switch 中补分支，不再新增散落式分发。
         /// Ink 几何缓存仅用于 Stroke 分支（缓存键保持 Stroke 类型）。
         /// </remarks>
         private void DrawInkItem(ID2D1RenderTarget ctx, ID2D1DeviceContext2? ctx2, IBoardInkItem item)
@@ -405,9 +393,8 @@ namespace WindBoard.Rendering.Board
         /// 绘制箭头头部（End 端点两条后掠翼线）。
         /// </summary>
         /// <remarks>
-        /// 头部尺寸（翼长）= 常量系数 × 线宽，取 3 倍：箭头在线宽 1~10 范围内视觉均衡
-        /// （翼长过短不可辨、过长喧宾夺主）；张角取 ±30°（经典箭头外观）。
-        /// 无额外域状态（MVP），未来若需要可调头部再考虑扩展快照。
+        /// 翼长为常量系数乘线宽，取 3 倍：线宽 1~10 范围内视觉均衡，过短不可辨、过长喧宾夺主；张角取 ±30°。
+        /// 无额外域状态（MVP），需要可调头部时再扩展快照。
         /// </remarks>
         private void DrawArrowHead(ID2D1RenderTarget ctx, Vector2 start, Vector2 end, float strokeWidth)
         {
@@ -665,9 +652,7 @@ namespace WindBoard.Rendering.Board
             {
                 Rect dest = ComputeAspectFitRect(inner, element.PixelWidth, element.PixelHeight);
 
-                // 注意：Vortice 的 ID2D1RenderTarget.DrawBitmap(bitmap, opacity, mode, rect) 这个重载的 rect 是“源矩形”，
-                // 会导致把元素世界坐标误当成位图裁剪区域，从而出现“图片不在框内 / 移动框体能看到更多图片”的错位现象。
-                // 这里显式使用 destination + source 的重载，source 传整张位图，destination 才是要绘制到的目标区域。
+                // Vortice 的 DrawBitmap(bitmap, opacity, mode, rect) 重载里 rect 是源矩形，误用会把世界坐标当成位图裁剪区，故显式用 destination + source 重载。
                 Rect src = Rect.FromLTRB(0.0f, 0.0f, element.PixelWidth, element.PixelHeight);
                 ctx.DrawBitmap(bitmap, dest, 1.0f, BitmapInterpolationMode.Linear, src);
             }
@@ -1072,8 +1057,7 @@ namespace WindBoard.Rendering.Board
             };
 
             // 必须从渲染目标的所属工厂创建（D2D 约定：资源与渲染目标同工厂）。
-            // 此前用自建工厂创建 _strokeStyle，跨工厂资源使 EndDraw 返回 D2DERR_WRONG_FACTORY，
-            // 整帧呈现失败（画布停留在旧帧）——形状绘制是首个常态携带该样式的路径，故形状全部不可见。
+            // 跨工厂资源令 EndDraw 返回 D2DERR_WRONG_FACTORY，整帧呈现失败，画布停留在旧帧。
             _strokeStyle = ctx.Factory.CreateStrokeStyle(props);
         }
 
@@ -1195,10 +1179,8 @@ namespace WindBoard.Rendering.Board
             }
             else if (pointCount == entry.PointCount)
             {
-                // 点数没变但坐标变了（例如选择工具拖动/缩放/旋转）时，Ink 缓存会过期，导致笔迹渲染停在旧位置，
-                // 从而出现“笔迹与选择框错位”。这里做一次轻量更新：
-                // - 若首尾点位移一致：认为是纯平移，复用 Ink，并记录 DrawOffsetWorld
-                // - 否则：重建 Ink（旋转/缩放会改变相对位置，无法用平移修正）
+                // 点数不变但坐标变化（选择工具拖动、缩放、旋转）会让 Ink 缓存过期，笔迹停在旧位置并与选择框错位。
+                // 首尾点位移一致按纯平移复用 Ink 并记录 DrawOffsetWorld，否则重建（旋转缩放改变相对位置）。
                 if (!TryUpdateInkDrawOffset(entry, firstPos, lastPos))
                 {
                     RebuildInkCacheEntry(ctx2, stroke, entry);

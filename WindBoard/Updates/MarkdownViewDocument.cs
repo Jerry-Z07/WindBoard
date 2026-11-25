@@ -9,10 +9,8 @@ using Markdig.Syntax.Inlines;
 namespace WindBoard.Updates
 {
     /// <summary>
-    /// Markdown 轻量视图文档：
-    /// - 只保留更新日志需要的常见结构；
-    /// - 供单元测试与 WinUI 原生渲染共用；
-    /// - 未支持语法尽量降级为纯文本。
+    /// Markdown 轻量视图文档。
+    /// 只保留更新日志需要的常见结构，供单元测试与 WinUI 原生渲染共用，未支持语法尽量降级为纯文本。
     /// </summary>
     internal sealed record MarkdownViewDocument(IReadOnlyList<MarkdownViewBlock> Blocks);
 

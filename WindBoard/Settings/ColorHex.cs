@@ -5,12 +5,7 @@ using Windows.UI;
 namespace WindBoard.Settings
 {
     /// <summary>
-    /// HEX 颜色字符串与 <see cref="Color"/> 之间的转换工具。
-    /// 
-    /// 约定：
-    /// - 支持 #RRGGBB / RRGGBB
-    /// - 兼容 #AARRGGBB / AARRGGBB（与 WinUI/XAML 常见格式一致）
-    /// - 输出统一为 #RRGGBB（不含透明度）
+    /// HEX 颜色字符串与 <see cref="Color"/> 之间的转换：接受 #RRGGBB 与 RRGGBB，兼容 #AARRGGBB 与 AARRGGBB（与 WinUI/XAML 常见格式一致），输出统一为不含透明度的 #RRGGBB。
     /// </summary>
     internal static class ColorHex
     {

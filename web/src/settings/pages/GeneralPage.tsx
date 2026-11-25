@@ -1,8 +1,5 @@
 /**
- * 设置 → 常规（桌面 `WindBoard/Settings/Pages/GeneralSettingsPage.xaml`）。
- *
- * 网页端只保留语言与启动窗口形态两个字段（桌面页还有"最小化时进入屏幕批注"与伪装入口，
- * 浏览器无对应能力，见 `research/03-ui-inventory.md` §9）。
+ * 设置 → 常规（桌面 WindBoard/Settings/Pages/GeneralSettingsPage.xaml）。网页端只保留语言与启动窗口形态两个字段；桌面页还有「最小化时进入屏幕批注」与伪装入口，浏览器无对应能力（见 research/03-ui-inventory.md §9）。
  */
 
 import { Dropdown, Option } from '@fluentui/react-components'
@@ -15,10 +12,7 @@ import { SETTINGS_ANCHORS } from '../search-targets.ts'
 import { SettingsCard } from './SettingsCard.tsx'
 
 /**
- * 下拉选项。
- *
- * 存文案 key 而不是中文：`t(...)` 只能在组件里调用（模块顶层没有 Provider），
- * 所以选项表只记 key，渲染时再取词。
+ * 下拉选项。存文案 key 而不是中文：t(...) 只能在组件里调用（模块顶层没有 Provider），所以选项表只记 key，渲染时再取词。
  */
 interface Choice<T extends string> {
   readonly value: T

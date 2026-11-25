@@ -46,9 +46,7 @@ namespace WindBoard.UI.Common
         /// 显示“忙碌”对话框并执行指定异步操作。
         /// </summary>
         /// <remarks>
-        /// 说明：
-        /// - 该方法不会吞掉 <paramref name="action"/> 的异常，调用方应自行捕获并提示用户；
-        /// - Hide() 失败不应影响流程：记录日志后忽略。
+        /// 该方法不会吞掉 <paramref name="action"/> 的异常，调用方应自行捕获并提示用户；Hide() 失败不应影响流程，记录日志后忽略。
         /// </remarks>
         internal static async Task RunBusyAsync(XamlRoot xamlRoot, string title, string message, Func<Task> action, string logTag)
         {

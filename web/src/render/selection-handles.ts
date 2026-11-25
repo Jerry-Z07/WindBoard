@@ -1,22 +1,6 @@
 /**
- * 选择框缩放手柄的纯几何（屏幕 DIP 坐标；只算位置，不绘制、不接触 DOM）。
- *
- * 事实源（桌面用 XAML 覆盖层实现，不是 D2D 绘制）：
- * - 手柄尺寸：`WindBoard/Controls/BoardCanvasControl.SelectionHandles.cs:19`
- *   `private const float SelectionHandleSizeDip = 14.0f;`；
- * - 手柄外观：`WindBoard/Controls/BoardCanvasControl.xaml:13-33` 的 `SelectionHandleThumbStyle`
- *   （14×14、白底、`SystemAccentColor` 2px 描边、圆角 3）；
- * - 手柄定位：`BoardCanvasControl.SelectionHandles.cs:196-227` `ShowSelectionHandlesOverlay`：
- *   以包围盒的角点 / 边中点为**中心**，左上角 = 中心 − `SelectionHandleSizeDip / 2`；
- * - 顺序：XAML 子元素顺序 TL、T、TR、L、R、BL、B、BR（`BoardCanvasControl.xaml:56-71`）；
- * - 命中：桌面每个 `Thumb` 自身 14×14 就是命中区，**没有额外容差**
- *   （`SelectionHandles.cs` 里不做命中测试，交给 XAML 命中测试）；
- *   网页端在同一命中区上再加一条"角优先于边"，避免小包围盒上边手柄盖住角手柄。
- *
- * 注意：桌面只在**选中单个元素**时显示手柄（`BoardCanvasControl.Rendering.cs:228-234`
- * `ShowSelectedElementOverlay`）；选中笔迹时只画选择框、不画手柄（`:210-226`
- * `ShowSelectedItemsOverlay` 里调的是 `HideSelectionHandlesOverlay`）。
- * 因此本模块只按给定包围盒算几何，"要不要显示手柄"由调用方决定。
+ * 选择框缩放手柄的纯几何（屏幕 DIP 坐标，只算位置，不绘制、不接触 DOM）。桌面用 XAML 覆盖层：手柄 14 DIP（SelectionHandles.cs:19）、外观 14×14 白底 SystemAccentColor 2px 描边圆角 3（BoardCanvasControl.xaml:13-33）、以包围盒角点或边中点为定位中心（左上角等于中心减 SelectionHandleSizeDip / 2，:196-227）、XAML 子元素顺序 TL、T、TR、L、R、BL、B、BR（:56-71）。
+ * 命中：桌面每个 Thumb 自身 14×14 就是命中区、没有额外容差，网页端在同一命中区上再加一条角优先于边，避免小包围盒上边手柄盖住角手柄。桌面只在选中单个元素时显示手柄（Rendering.cs:228-234），选中笔迹时调 HideSelectionHandlesOverlay（:210-226），因此要不要显示由调用方决定。
  */
 
 import type { Vec2 } from '../board/model/stroke.ts'
@@ -28,10 +12,7 @@ export const SELECTION_HANDLE_WIDTH = 14
 export const SELECTION_HANDLE_HEIGHT = 14
 
 /**
- * 命中容差（DIP，向四周外扩）。
- *
- * 桌面 `Thumb` 的命中区就是自身 14×14（没有外扩），所以这里取 0；
- * 单独留成常量是为了将来做触屏放大时只改一处。
+ * 命中容差（DIP，向四周外扩）。桌面 Thumb 的命中区就是自身 14×14（没有外扩），所以这里取 0；单独留成常量是为了将来做触屏放大时只改一处。
  */
 export const SELECTION_HANDLE_HIT_TOLERANCE = 0
 
@@ -46,11 +27,7 @@ export interface SelectionHandle {
 }
 
 /**
- * 屏幕（DIP）坐标包围盒。
- *
- * 与编辑层 `web/src/board/editing/ink-bounds.ts` 的 `ScreenBounds` 同构
- * （TS 结构化类型，两者可以直接互相传递）；这里先本地声明，等该模块落盘后
- * 可以直接换成 `import type { ScreenBounds } from '../board/editing/ink-bounds.ts'`。
+ * 屏幕（DIP）坐标包围盒。与编辑层 web/src/board/editing/ink-bounds.ts 的 ScreenBounds 同构（TS 结构化类型，两者可以直接互相传递）；这里先本地声明，等该模块落盘后可以直接换成 import type。
  */
 export interface ScreenBounds {
   readonly min: Vec2
@@ -67,10 +44,7 @@ const CORNER_HANDLES: readonly SelectionHandleId[] = ['nw', 'ne', 'se', 'sw']
 const EDGE_HANDLES: readonly SelectionHandleId[] = ['n', 'e', 's', 'w']
 
 /**
- * 计算 8 个手柄的中心点（顺序照抄桌面 XAML 子元素顺序）。
- *
- * 坐标为屏幕 DIP；包围盒退化（宽或高为 0）时手柄会重合，这是预期行为
- * （桌面同样把重合的 `Thumb` 叠在一起，只是网页端命中时优先返回角手柄）。
+ * 计算 8 个手柄的中心点（顺序照抄桌面 XAML 子元素顺序）。坐标为屏幕 DIP；包围盒退化（宽或高为 0）时手柄会重合，这是预期行为（桌面同样把重合的 Thumb 叠在一起，网页端命中时优先返回角手柄）。
  */
 export function computeSelectionHandles(bounds: ScreenBounds): readonly SelectionHandle[] {
   const left = bounds.min.x
@@ -95,10 +69,7 @@ export function computeSelectionHandles(bounds: ScreenBounds): readonly Selectio
 }
 
 /**
- * 命中测试：返回命中的手柄标识，未命中返回 `null`。
- *
- * 顺序：先四个角（nw → ne → se → sw），再四条边（n → e → s → w）；
- * 命中区为手柄自身尺寸（14×14，含边界）向外扩 `SELECTION_HANDLE_HIT_TOLERANCE`。
+ * 命中测试：返回命中的手柄标识，未命中返回 null。顺序先四个角（nw、ne、se、sw），再四条边（n、e、s、w）；命中区为手柄自身尺寸（14×14，含边界）向外扩 SELECTION_HANDLE_HIT_TOLERANCE。
  */
 export function hitTestSelectionHandle(
   bounds: ScreenBounds,
@@ -124,11 +95,7 @@ export function hitTestSelectionHandle(
 }
 
 /**
- * 手柄对应的 CSS `cursor`。
- *
- * 桌面 `SelectionHandleThumbStyle` 没设 `Cursor`（`BoardCanvasControl.xaml:13-33`），
- * 指针落在 `Thumb` 上时仍是系统默认箭头；网页端按"缩放手柄"的通行做法给出方向光标，
- * 属于网页端的可用性改进（不影响几何与命中）。
+ * 手柄对应的 CSS cursor。桌面 SelectionHandleThumbStyle 没设 Cursor（BoardCanvasControl.xaml:13-33），指针落在 Thumb 上时仍是系统默认箭头；网页端按缩放手柄的通行做法给出方向光标，属可用性改进，不影响几何与命中。
  */
 export function selectionHandleCursor(id: SelectionHandleId): string {
   return HANDLE_CURSORS[id]

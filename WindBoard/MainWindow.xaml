@@ -500,9 +500,8 @@
                         </FlyoutBase.AttachedFlyout>
 
                         <StackPanel Orientation="Vertical">
-                            <!-- 自绘“形状组合”图标（矩形+圆沿对角线排列、互不重叠），语义与 Flyout 内四项画法同构。
-                                 注：Segoe Fluent Icons 无名为 Shapes 的图标（E714 实为 Video，观感似“录制”），故不用字体图标；
-                                 视觉参数对齐字体图标：主体约占画布七成（四周留白）、笔画 1.5、无交叉线，避免观感过重。 -->
+                            <!-- 自绘“形状组合”图标：Segoe Fluent Icons 的 E714 实为 Video，没有可用的 Shapes 图标。
+                                 视觉参数对齐字体图标：主体约占七成，笔画 1.5，无交叉线。 -->
                             <Path
                                 x:Name="ShapeToolIconPath"
                                 Width="20"
@@ -654,6 +653,8 @@
                                                             HorizontalContentAlignment="Center"
                                                             VerticalContentAlignment="Center"
                                                             Tag="{Binding}"
+                                                            AutomationProperties.Name="{l10n:Loc Key=MainWindow_DeletePage_Button}"
+                                                            ToolTipService.ToolTip="{l10n:Loc Key=MainWindow_DeletePage_Button}"
                                                             Click="OnDeletePageClicked">
                                                             <FontIcon
                                                                 FontFamily="{ThemeResource SymbolThemeFontFamily}"
@@ -686,6 +687,8 @@
                     <Button
                         x:Name="PagePrevButton"
                         AutomationProperties.AutomationId="Pages_PrevButton"
+                        AutomationProperties.Name="{l10n:Loc Key=Common_PreviousPage}"
+                        ToolTipService.ToolTip="{l10n:Loc Key=Common_PreviousPage}"
                         MinWidth="52"
                         MinHeight="52"
                         Padding="0"
@@ -715,6 +718,8 @@
                     <Button
                         x:Name="PageNextButton"
                         AutomationProperties.AutomationId="Pages_NextButton"
+                        AutomationProperties.Name="{l10n:Loc Key=Common_NextPage}"
+                        ToolTipService.ToolTip="{l10n:Loc Key=Common_NextPage}"
                         MinWidth="52"
                         MinHeight="52"
                         Padding="0"
@@ -726,6 +731,9 @@
 
                     <Button
                         x:Name="AddButton"
+                        AutomationProperties.AutomationId="Pages_AddButton"
+                        AutomationProperties.Name="{l10n:Loc Key=MainWindow_AddPage_Button}"
+                        ToolTipService.ToolTip="{l10n:Loc Key=MainWindow_AddPage_Button}"
                         MinWidth="52"
                         MinHeight="52"
                         Padding="0"

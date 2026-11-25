@@ -133,8 +133,6 @@ namespace WindBoard.Persistence
             }
         }
 
-        // ---- 以下方法供单元测试直接调用 ----
-
         internal static Match? TryMatchInstallerVersion(string fileName)
         {
             if (string.IsNullOrWhiteSpace(fileName))

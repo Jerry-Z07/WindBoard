@@ -1,16 +1,6 @@
 /**
- * 设置窗口的页面清单与导航模型（纯逻辑，node 环境可直接测试）。
- *
- * 桌面出处：`WindBoard/Settings/SettingsWindow.xaml:75-111` 的 NavigationView 可见项
- * （常规 / 外观 / 书写 / 快捷键 / Debug / 关于）。网页端按
- * `research/03-ui-inventory.md` §9 去掉 Debug 页；桌面"外观"页里以二级弹窗进入的
- * Dock 设置（`WindBoard/Features/Dock/UI/DockSettingsPage.xaml`）在网页端提升为独立一页，
- * 因此仍是 6 页。
- *
- * 文案以 **key** 而不是中文字符串保存：导航项标题复用桌面 resw 的
- * `SettingsWindow_Nav_*`（与 `SettingsWindow.xaml` 的 NavigationView 同源），页面说明与
- * Dock 页标题是网页端独有文案，放在 `src/i18n/web-strings/settings.json`。
- * 取词统一走 `settingsPageLabel` / `settingsPageDescription`，组件不要直接读 key。
+ * 设置窗口的页面清单与导航模型（纯逻辑，node 环境可直接测试）。桌面出处 Settings/SettingsWindow.xaml:75-111 的 NavigationView 可见项（常规、外观、书写、快捷键、Debug、关于），网页端按 research/03-ui-inventory.md §9 去掉 Debug 页，并把桌面外观页里以二级弹窗进入的 Dock 设置（Features/Dock/UI/DockSettingsPage.xaml）提升为独立一页，因此仍是 6 页。
+ * 文案以 key 而不是中文字符串保存：导航项标题复用桌面 resw 的 SettingsWindow_Nav_*（与 SettingsWindow.xaml 的 NavigationView 同源），页面说明与 Dock 页标题是网页端独有文案，放在 src/i18n/web-strings/settings.json；取词统一走 settingsPageLabel 与 settingsPageDescription，组件不要直接读 key。
  */
 
 import type { Translator } from '../i18n/context.ts'

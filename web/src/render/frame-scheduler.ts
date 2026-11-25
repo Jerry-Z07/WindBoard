@@ -1,13 +1,6 @@
 /**
- * 帧调度：把“随时可能到来的重绘请求”合并成受 `maxFps` 限制的 requestAnimationFrame 帧。
- *
- * 桌面参照：
- * - `WindBoard/Controls/BoardCanvasControl.xaml.cs:26`：`MaxInteractiveFps = 60`；
- * - `:590-608`：用 `CompositionTarget.Rendering` 驱动渲染循环；
- * - `WindBoard/Rendering/DxSwapChainPanelRenderer.cs:18-21`：脏矩形与交互降质常量。
- *
- * 网页端用 rAF 实现同一语义：同一帧内的多次请求只画一次，且相邻两次绘制至少间隔
- * `1000 / maxFps` 毫秒。宿主（rAF / 时钟）可注入，便于在 Node 单测里确定性推进时间。
+ * 帧调度：把随时可能到来的重绘请求合并成受 maxFps 限制的 requestAnimationFrame 帧。桌面参照 BoardCanvasControl.xaml.cs:26 的 MaxInteractiveFps = 60、:590-608 用 CompositionTarget.Rendering 驱动渲染循环、Rendering/DxSwapChainPanelRenderer.cs:18-21 的脏矩形与交互降质常量。
+ * 网页端用 rAF 实现同一语义：同一帧内的多次请求只画一次，相邻两次绘制至少间隔 1000 / maxFps 毫秒；宿主（rAF 与时钟）可注入，便于在 Node 单测里确定性推进时间。
  */
 
 /** 默认最大帧率（与桌面 `MaxInteractiveFps` 一致）。 */
@@ -129,10 +122,7 @@ export function createFrameScheduler(options: FrameSchedulerOptions): FrameSched
 }
 
 /**
- * 默认宿主：取全局 rAF + `performance.now()`。
- *
- * 没有 rAF 的环境（未注入假实现的 Node 单测、极老浏览器）退化为 16ms 定时器，
- * 保证渲染句柄仍可工作，而不是直接抛错。
+ * 默认宿主：取全局 rAF + performance.now()。没有 rAF 的环境（未注入假实现的 Node 单测、极老浏览器）退化为 16ms 定时器，保证渲染句柄仍可工作，而不是直接抛错。
  */
 function createDefaultHost(): FrameSchedulerHost {
   const scope = globalThis as unknown as {

@@ -7,7 +7,6 @@ namespace WindBoard.Tests.Board.Editing;
 
 public sealed class BoardSessionTests
 {
-    // Execute/Undo/Redo 会正确更新状态并触发事件
     [Fact]
     public void Execute_Undo_Redo_UpdatesStateAndRaisesEvent()
     {
@@ -35,7 +34,6 @@ public sealed class BoardSessionTests
         Assert.Equal(3, stateChangedCount);
     }
 
-    // Undo/Redo 在无历史时是安全的空操作
     [Fact]
     public void Undo_Redo_AreNoOps_WhenNoHistory()
     {
@@ -51,7 +49,6 @@ public sealed class BoardSessionTests
         Assert.Equal(0, stateChangedCount);
     }
 
-    // Execute 会清空 Redo 栈
     [Fact]
     public void Execute_ClearsRedoStack()
     {
@@ -70,7 +67,6 @@ public sealed class BoardSessionTests
         Assert.Same(b, session.Document.InkItems[0]);
     }
 
-    // ClearAll 有笔迹时会清空并可撤销
     [Fact]
     public void ClearAll_ClearsAndIsUndoable_WhenHasStrokes()
     {
@@ -90,7 +86,6 @@ public sealed class BoardSessionTests
         Assert.Same(b, session.Document.InkItems[1]);
     }
 
-    // ClearAll 无笔迹时不会产生撤销记录
     [Fact]
     public void ClearAll_DoesNotCreateUndoRecord_WhenNoStrokes()
     {

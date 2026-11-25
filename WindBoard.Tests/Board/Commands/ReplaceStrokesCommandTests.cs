@@ -8,7 +8,6 @@ namespace WindBoard.Tests.Board.Commands;
 
 public sealed class ReplaceStrokesCommandTests
 {
-    // Do：会把笔迹替换为 after 快照；Undo：会恢复 before 快照
     [Fact]
     public void Do_ReplacesStrokesWithAfterSnapshot_UndoRestoresBeforeSnapshot()
     {

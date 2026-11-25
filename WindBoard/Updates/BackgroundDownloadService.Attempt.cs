@@ -26,7 +26,7 @@ namespace WindBoard.Updates
             CancellationToken attemptToken = attemptCts.Token;
 
             // 空闲超时：一段时间无任何进度则视为“卡死”，主动取消并切换源。
-            // 说明：镜像源偶发连接建立成功但长期无数据，此逻辑可避免无限等待。
+            // 镜像源偶发连接建立成功但长期无数据，此逻辑可避免无限等待。
             long lastProgressTicks = DateTimeOffset.UtcNow.Ticks;
             StartIdleTimeoutMonitor(attemptCts, context.IdleTimeout, () => Interlocked.Read(ref lastProgressTicks));
 

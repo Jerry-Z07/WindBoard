@@ -1,21 +1,6 @@
 /**
- * 元素卡片绘制（文本 / 链接 / 媒体 / 文件）。
- *
- * 事实源：`WindBoard/Rendering/Board/BoardSceneRenderer.cs`
- * - 卡片几何：`DrawCardElement`（`:554-634`）
- * - 图片卡片：`DrawImageElement`（`:636-680`，等比适配 + 裁剪）
- * - 配色：`DarkPalette` / `LightPalette`（`:74-88`）、`GetCardPalette`（`:90-93`）
- * - 类型视觉：`GetElementCardVisual`（`:742-799`）、强调色（`:744-750`）
- * - 文案：`GetFileKindLabel`（`:838-864`）、`BuildTextElementPreview`（`:801-812`）、
- *   `GetBestDisplayName`（`:814-836`）
- * - 字体：标题 Segoe UI SemiBold 15、正文 Segoe UI Normal 13、徽标 16（`:880-953`）
- *
- * 与桌面的取舍（详见各函数注释）：
- * - 桌面徽标用 Segoe Fluent Icons 的图标字形（`Symbol` 枚举码位），网页端改用 Unicode 占位字形，
- *   保证非 Windows 环境不出现"豆腐块"；徽标尺寸、圆形底色、文字色仍按桌面真值；
- * - 桌面正文用 DirectWrite 自动换行（`WordWrapping.Wrap`），Canvas2D 无排版引擎且
- *   `RenderContext2D` 不暴露 `measureText`，因此只按消息里显式的 `\n` 换行，并用裁剪矩形限制溢出
- *   （等价于桌面 `DrawTextOptions.Clip`，`:623-633`）。
+ * 元素卡片绘制（文本、链接、媒体、文件），事实源是桌面 BoardSceneRenderer.cs：卡片几何 DrawCardElement（:554-634）、图片 DrawImageElement（:636-680，等比适配加裁剪）、配色 DarkPalette 与 LightPalette 及 GetCardPalette（:74-93）、类型视觉 GetElementCardVisual（:742-799）、文案（:801-864）、字体标题 Segoe UI SemiBold 15 与正文 Normal 13、徽标 16（:880-953）。
+ * 两处取舍：桌面徽标用 Segoe Fluent Icons 字形，这里换 Unicode 占位字形，避免非 Windows 环境出现豆腐块（尺寸、圆形底色、文字色仍按桌面真值）；桌面正文靠 DirectWrite 自动换行，Canvas2D 无排版引擎且 RenderContext2D 不暴露 measureText，故只按显式换行符分行，并用裁剪矩形限制溢出（等价桌面 DrawTextOptions.Clip，:623-633）。
  */
 
 import type { BoardElement } from '../board/model/element.ts'
@@ -27,11 +12,7 @@ import { colorToCss } from './color.ts'
 import type { RenderContext2D } from './canvas-types.ts'
 
 /**
- * 缺省取词函数（默认语言）。
- *
- * 卡片标题/副标题是**画布上可见的文字**，必须随语言切换；但渲染层同时被单测、导出
- * 等无 UI 上下文的地方直接调用，所以 `t` 是可选的：没传就退回默认语言，
- * 而不是把 key 画到画布上（那会直接破坏视觉基线）。
+ * 缺省取词函数（默认语言）。卡片标题与副标题是画布上可见的文字，必须随语言切换；但渲染层同时被单测、导出等无 UI 上下文的地方直接调用，所以 t 是可选的，没传就退回默认语言，不会把 key 画到画布上（那会直接破坏视觉基线）。
  */
 const DEFAULT_TRANSLATOR: MessageTranslator = createTranslator(DEFAULT_LOCALE)
 
@@ -39,14 +20,7 @@ const DEFAULT_TRANSLATOR: MessageTranslator = createTranslator(DEFAULT_LOCALE)
 export type ElementCardThemeMode = 'dark' | 'light'
 
 /**
- * 一套卡片配色。
- *
- * 字段对应桌面 `ElementCardPalette`（`BoardSceneRenderer.cs:66-72`）里的
- * `Background / Border / Text / SecondaryText / IconText`。
- *
- * 桌面还多一个 `ImageBorder`（浅色下 `rgba(0,0,0,0.35)`，`:85`），但它只在**绘制真实位图**时
- * 用作图片卡片描边（`DrawImageElement`，`:646-649`）；本模块暂无位图路径（位图由 P4 资源层提供，
- * 届时桌面行为是"有图就画图、没图才画卡片"，`:539-552`），因此这里不预先加这个字段。
+ * 一套卡片配色，字段对应桌面 ElementCardPalette（BoardSceneRenderer.cs:66-72）的 Background / Border / Text / SecondaryText / IconText。桌面多一个 ImageBorder（浅色下 rgba(0,0,0,0.35)，:85），只在绘制真实位图时用作图片卡片描边（:646-649），本模块暂无位图路径，故不预置。
  */
 export interface ElementCardPalette {
   /** 卡片底色（桌面 `Background`）。 */
@@ -66,18 +40,11 @@ export interface ElementCardOptions {
   /** 卡片主题（桌面 `Appearance.ElementCardTheme`）。 */
   readonly theme: ElementCardThemeMode
   /**
-   * 当前缩放。
-   *
-   * 桌面 `DrawCardElement`（`:554-634`）**没有**任何依赖缩放的规则：文字始终按世界坐标排版，
-   * 只靠 `DrawTextOptions.Clip` 裁掉越界部分。因此这里暂不使用该值，
-   * 保留字段以便 P5 性能阶段（缩小时省略细节文字）接入时不必改调用方签名。
+   * 当前缩放。桌面 DrawCardElement（:554-634）没有任何依赖缩放的规则：文字始终按世界坐标排版，只靠 DrawTextOptions.Clip 裁掉越界部分；因此这里暂不使用该值，保留字段以便缩小时省略细节文字时不必改调用方签名。
    */
   readonly zoom: number
   /**
-   * 取词函数（缺省用默认语言）。
-   *
-   * 卡片上的「双击外部打开」「（未命名）」「PDF 文档」等都是用户可见文案，
-   * 由上层（`BoardController` → `RenderSources.t`）注入当前语言。
+   * 取词函数（缺省用默认语言）。卡片上的「双击外部打开」「（未命名）」「PDF 文档」等是用户可见文案，由上层（BoardController → RenderSources.t）注入当前语言。
    */
   readonly t?: MessageTranslator
 }
@@ -113,10 +80,7 @@ export const ELEMENT_CARD_BODY_FONT_SIZE = 13
 export const ELEMENT_CARD_ICON_FONT_SIZE = 16
 
 /**
- * 多行文字的行距系数。
- *
- * 桌面由 DirectWrite 按 Segoe UI 的字体度量自动排布；Canvas2D 的 `fillText` 只按基线定位，
- * 这里用"字号 × 1.35"近似 WinUI 常用的 20/14 行距比例（仅为观感近似，不影响几何断言）。
+ * 多行文字的行距系数。桌面由 DirectWrite 按 Segoe UI 的字体度量自动排布，Canvas2D 的 fillText 只按基线定位，这里用「字号 × 1.35」近似 WinUI 常用的 20/14 行距比例（仅观感近似，不影响几何断言）。
  */
 const LINE_HEIGHT_FACTOR = 1.35
 
@@ -126,12 +90,8 @@ const MAX_TEXT_PREVIEW_CHARS = 4096
 /** 一个完整圆周（弧度）。 */
 const TAU = Math.PI * 2
 
-// ===== 配色 =====
-
 /**
- * 深色主题配色：桌面 `DarkPalette`（`BoardSceneRenderer.cs:74-80`）。
- *
- * 原值是 `Color4`（0~1 浮点）而非 XAML 的 8 位 ARGB；注释保留桌面源码里的十六进制写法。
+ * 深色主题配色：桌面 DarkPalette（BoardSceneRenderer.cs:74-80）。原值是 Color4（0~1 浮点）而非 XAML 的 8 位 ARGB，注释保留桌面源码里的十六进制写法。
  */
 const DARK_PALETTE_COLORS = {
   /** #202126（`:75`） */
@@ -174,7 +134,7 @@ export function elementCardPalette(mode: ElementCardThemeMode): ElementCardPalet
   }
 }
 
-// ===== 类型强调色（桌面 `GetElementCardVisual` 内的局部函数，`:744-750`） =====
+// 类型强调色（桌面 `GetElementCardVisual` 内的局部函数，`:744-750`）
 
 /** 链接：`new Color4(0.04f, 0.52f, 1.00f, 1.00f)`（`:745`）→ `rgb(10, 133, 255)`。 */
 const ACCENT_BLUE = 'rgb(10, 133, 255)'
@@ -189,19 +149,16 @@ const ACCENT_GRAY = 'rgb(140, 140, 148)'
 /** 图片：`new Color4(0.35f, 0.78f, 0.98f, 1.00f)`（`:750`）→ `rgb(89, 199, 250)`。 */
 const ACCENT_CYAN = 'rgb(89, 199, 250)'
 
-// ===== 字体 =====
-
 /** 标题字体：桌面 `"Segoe UI"` + `FontWeight.SemiBold` + `15.0f`（`:886-891`）。 */
 const TITLE_FONT = `600 ${ELEMENT_CARD_TITLE_FONT_SIZE}px "Segoe UI", system-ui, sans-serif`
 /** 正文字体：桌面 `"Segoe UI"` + `FontWeight.Normal` + `13.0f`（`:898-905`）。 */
 const BODY_FONT = `${ELEMENT_CARD_BODY_FONT_SIZE}px "Segoe UI", system-ui, sans-serif`
 /**
- * 徽标字体：桌面用 `SegoeFluentIconsFontLoader` 的图标字体 16px（`:908-953`）。
- * 网页端徽标是 Unicode 占位字形，用系统字体即可。
+ * 徽标字体：桌面用 SegoeFluentIconsFontLoader 的图标字体 16px（:908-953）；网页端徽标是 Unicode 占位字形，用系统字体即可。
  */
 const ICON_FONT = `${ELEMENT_CARD_ICON_FONT_SIZE}px "Segoe UI", system-ui, sans-serif`
 
-// ===== 文案 key（桌面 `WindBoard/Strings/zh-CN/ElementCard.resw`；取值由调用方的 `t` 完成） =====
+// 文案 key（桌面 `WindBoard/Strings/zh-CN/ElementCard.resw`；取值由调用方的 `t` 完成）
 
 /** `ElementCard_DoubleClickToOpenLink`。 */
 const KEY_OPEN_LINK_HINT: MessageKey = 'ElementCard_DoubleClickToOpenLink'
@@ -213,9 +170,7 @@ const KEY_TEXT_TITLE: MessageKey = 'ElementCard_Text_Title'
 const KEY_UNNAMED: MessageKey = 'ElementCard_Unnamed'
 
 /**
- * 媒体类型 → 标签 key（桌面 `GetElementCardVisual`，`:765-777`）。
- *
- * `generic` 对应桌面 `_ =>` 的兜底分支（未知媒体种类）。
+ * 媒体类型 → 标签 key（桌面 GetElementCardVisual，:765-777）。generic 对应桌面 `_ =>` 的兜底分支（未知媒体种类）。
  */
 const MEDIA_KIND_LABEL_KEYS = {
   audio: 'ElementCard_MediaKind_Audio',
@@ -225,17 +180,12 @@ const MEDIA_KIND_LABEL_KEYS = {
 } as const satisfies Readonly<Record<'audio' | 'video' | 'image' | 'generic', MessageKey>>
 
 /**
- * 「类型 + 换行 + 打开提示」的模板 key（桌面 `ElementCard_Kind_OpenExternal_Fmt`）。
- *
- * 桌面模板值是 `"{0}\r\n{1}"`（CRLF）；Canvas 2D 没有排版引擎，绘制时按 `/\r?\n/` 拆行，
- * 因此两种换行都能得到同样的两行文字。
+ * 「类型 + 换行 + 打开提示」的模板 key（桌面 ElementCard_Kind_OpenExternal_Fmt）。桌面模板值是 "{0}\r\n{1}"（CRLF），Canvas 2D 没有排版引擎，绘制时按 /\r?\n/ 拆行，因此两种换行都能得到同样的两行文字。
  */
 const KEY_KIND_OPEN_EXTERNAL_FMT: MessageKey = 'ElementCard_Kind_OpenExternal_Fmt'
 
 /**
- * 已知扩展名 → 文件类型标签 key（桌面 `GetFileKindLabel`，`:854-863`）。
- *
- * 注意桌面用的是**完整标签**（"PDF 文档"），不是裸扩展名。
+ * 已知扩展名 → 文件类型标签 key（桌面 GetFileKindLabel，:854-863）。桌面用的是完整标签（如「PDF 文档」），并非裸扩展名。
  */
 const FILE_KIND_LABEL_KEYS: Readonly<Record<string, MessageKey>> = {
   '.pdf': 'ElementCard_FileKind_Pdf',
@@ -273,13 +223,7 @@ interface CardRect {
 }
 
 /**
- * 绘制一个元素卡片（调用方已把变换设到世界空间，并已完成可见性剔除）。
- *
- * 绘制顺序与桌面 `DrawCardElement`（`:554-634`）一致：
- * 1. 圆角底板填充 + 1.5 描边；
- * 2. 左上角圆形徽标（强调色底 + 图标字形）；
- * 3. 标题（裁剪到 22 高的标题行）；
- * 4. 副标题（裁剪到剩余区域，按 `\n` 分行）。
+ * 绘制一个元素卡片（调用方已把变换设到世界空间并完成可见性剔除），顺序与桌面 DrawCardElement（:554-634）一致：圆角底板填充加 1.5 描边 → 左上角圆形徽标（强调色底加字形）→ 标题（裁剪到 22 高的标题行）→ 副标题（裁剪到剩余区域，按显式换行符分行）。
  */
 export function drawElementCard(
   ctx: RenderContext2D,
@@ -297,7 +241,7 @@ export function drawElementCard(
 
   ctx.save()
 
-  // 1. 底板：圆角矩形填充 + 描边（`:582-587`）。
+  // 底板：圆角矩形填充与描边（:582-587）。
   traceRoundedRect(ctx, bounds, ELEMENT_CARD_CORNER_RADIUS)
   ctx.fillStyle = palette.surface
   ctx.fill()
@@ -305,7 +249,7 @@ export function drawElementCard(
   ctx.lineWidth = ELEMENT_CARD_BORDER_WIDTH
   ctx.stroke()
 
-  // 2. 徽标：`iconRect = (left+pad, top+pad, iconSize, iconSize)`，圆心居中（`:592-605`）。
+  // 徽标：iconRect = (left+pad, top+pad, iconSize, iconSize)，圆心居中（:592-605）。
   const iconLeft = bounds.left + ELEMENT_CARD_PADDING
   const iconTop = bounds.top + ELEMENT_CARD_PADDING
   const iconRadius = ELEMENT_CARD_ICON_SIZE / 2
@@ -317,7 +261,7 @@ export function drawElementCard(
     drawCenteredGlyph(ctx, visual.glyph, iconLeft + iconRadius, iconTop + iconRadius, palette.icon)
   }
 
-  // 3. 标题行：`textLeft = iconRect.Right + iconGap`、`textRight = bounds.Right - pad`（`:607-621`）。
+  // 标题行：textLeft = iconRect.Right + iconGap、textRight = bounds.Right - pad（:607-621）。
   const textLeft = iconLeft + ELEMENT_CARD_ICON_SIZE + ELEMENT_CARD_ICON_GAP
   const textWidth = bounds.left + bounds.width - ELEMENT_CARD_PADDING - textLeft
   const titleTop = bounds.top + ELEMENT_CARD_PADDING
@@ -333,10 +277,7 @@ export function drawElementCard(
     })
   }
 
-  // 4. 副标题：从标题行下方 `titleGap` 处到卡片底部内边距（`:617-633`）。
-  // 桌面用真换行符连接"标题/副标题"的多行内容（C# 字符串里的换行转义编译后就是真换行，
-  // `ElementCard_Kind_OpenExternal_Fmt` 的模板值还是 CRLF）；Canvas 2D 没有排版引擎，
-  // 这里按 `\r?\n` 拆行后逐行 fillText，两种换行都能得到同样的两行文字。
+  // 副标题：从标题行下方 titleGap 处到卡片底部内边距（:617-633）。桌面用真换行符连接标题与副标题的多行内容（C# 字符串里的换行转义编译后就是真换行，ElementCard_Kind_OpenExternal_Fmt 的模板值还是 CRLF）；Canvas 2D 没有排版引擎，这里按 \r?\n 拆行后逐行 fillText，两种换行都能得到同样的两行文字。
   const bodyTop = titleTop + ELEMENT_CARD_TITLE_HEIGHT + ELEMENT_CARD_TITLE_GAP
   const bodyHeight = bounds.top + bounds.height - ELEMENT_CARD_PADDING - bodyTop
   if (visual.secondary.length > 0 && bodyHeight > 0) {
@@ -355,8 +296,7 @@ export function drawElementCard(
 }
 
 /**
- * 元素的世界坐标矩形（桌面 `BoardElement.GetBoundsWorld()`，`BoardElement.cs:31-47`：
- * `positionWorld` 与 `positionWorld + sizeWorld` 取 min/max，容忍负尺寸）。
+ * 元素的世界坐标矩形（桌面 BoardElement.GetBoundsWorld()，BoardElement.cs:31-47：positionWorld 与 positionWorld + sizeWorld 取 min/max，容忍负尺寸）。
  */
 export function getElementCardBounds(element: BoardElement): CardRect {
   const left = element.positionWorld.x
@@ -431,10 +371,7 @@ function drawCenteredGlyph(
 }
 
 /**
- * 按元素类型推导视觉参数（桌面 `GetElementCardVisual`，`:742-799`）。
- *
- * 徽标字形：桌面用 `Symbol` 枚举码位（Link / MusicInfo / Video / Pictures / OpenFile /
- * Document / Page / Edit / Help），网页端改为语义相近的 Unicode 字符。
+ * 按元素类型推导视觉参数（桌面 GetElementCardVisual，:742-799）。徽标字形桌面用 Symbol 枚举码位（Link、MusicInfo、Video、Pictures、OpenFile、Document、Page、Edit、Help），网页端改为语义相近的 Unicode 字符。
  */
 function getElementCardVisual(element: BoardElement, t: MessageTranslator): ElementCardVisual {
   switch (element.type) {
@@ -546,14 +483,7 @@ function getFileName(path: string | null | undefined): string {
 }
 
 /**
- * 文件类型标签 key（桌面 `GetFileKindLabel`，`:838-864`）。
- *
- * 返回 `null` 表示"未知类型"，调用方据此改用灰色徽标 + 通用字形（`:788`）。
- *
- * 注意：桌面在未知分支仍会算出 `文件（{ext}）`（`ElementCard_File_Ext_Fmt`，`ext` 含点，`:861`）
- * 或 `文件`（`Common_File`，`:861` 的另一分支），但随后 `secondary = known ? kindLabel + "
-" + hint : hint`
- * （`:784`）把该标签**丢弃**了——未知文件的卡片上只有"双击外部打开"一行。这里照做，不显示该标签。
+ * 文件类型标签 key（桌面 GetFileKindLabel，:838-864）；返回 null 表示未知类型，调用方改用灰色徽标加通用字形（:788）。桌面在未知分支仍算出 `文件（{ext}）` 或 `文件`，但随后被 `secondary = known ? kindLabel + hint : hint`（:784）丢弃，卡片上只剩双击外部打开一行，这里照做。
  */
 function getFileKindLabelKey(
   displayName: string | undefined,

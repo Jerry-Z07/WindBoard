@@ -28,10 +28,7 @@ namespace WindBoard
 
         /// <summary>
         /// 切换“把内容扩展到标题栏区域”。
-        /// 说明：WinUI 启用该扩展时会为系统标题栏预留 1 个物理像素，XAML 内容岛
-        /// （DesktopChildSiteBridge）随之整体下移 1 像素、高度少 1 像素；全屏时该缝隙
-        /// 会露出窗口背景（浅色主题下为白色），表现为屏幕顶部一条 1px 白线。
-        /// 全屏不需要自定义标题栏，因此全屏时关闭该扩展让内容岛覆盖窗口首行；窗口化时恢复。
+        /// WinUI 启用该扩展时会为系统标题栏预留 1 个物理像素，XAML 内容岛（DesktopChildSiteBridge）随之整体下移 1 像素、高度少 1 像素，全屏时该缝隙会露出窗口背景（浅色主题下为白色），表现为屏幕顶部一条 1px 白线；全屏不需要自定义标题栏，因此全屏时关闭该扩展让内容岛覆盖窗口首行，窗口化时恢复。
         /// </summary>
         private void ApplyExtendedContentIntoTitleBar(bool enabled)
         {

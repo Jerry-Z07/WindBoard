@@ -53,9 +53,7 @@ namespace WindBoard.Interaction
     }
 
     /// <summary>
-    /// 指针路由与输入判定的纯决策函数集合：仅接收原始数据（设备类型/按键/触点数/时间戳），
-    /// 不依赖 WinUI 控件与事件参数（PointerRoutedEventArgs 等在测试中不可构造），
-    /// 由 <see cref="BoardInputController"/> 的事件处理器提取原始数据后转发调用。
+    /// 指针路由与输入判定的纯决策函数集合：只接收原始数据（设备类型、按键、触点数、时间戳），不依赖 WinUI 控件与事件参数（PointerRoutedEventArgs 在测试中不可构造），由 <see cref="BoardInputController"/> 的事件处理器提取后转发调用。
     /// </summary>
     internal static class PointerRoutingDecisions
     {
@@ -212,11 +210,8 @@ namespace WindBoard.Interaction
         /// 横向滚轮（触控板双指横移）→ 视口横向平移的屏幕位移（DIP）。
         /// </summary>
         /// <remarks>
-        /// 触控板双指滑动由系统转换为滚轮消息（横向为 WM_MOUSEHWHEEL，PointerPointProperties.IsHorizontalMouseWheel 为 true），
-        /// 应用层无法与鼠标倾斜滚轮区分，因此统一按“系统滚动”语义处理：<paramref name="wheelDelta"/> 正向表示向右滚动，
-        /// 对应视口右移、画面内容左移（与 ScrollViewer 横向滚动观感一致，并自动遵循系统“滚动方向”设置）；
-        /// <see cref="WindBoard.Board.Viewport.BoardViewport.PanByScreenDelta"/> 的入参是“画面内容位移”，故取反。
-        /// 竖向滚轮不走此路径，保持既有行为（缩放视口）。
+        /// 触控板双指滑动的横向分量由系统转为 WM_MOUSEHWHEEL（PointerPointProperties.IsHorizontalMouseWheel 为 true），应用层无法与鼠标倾斜滚轮区分，统一按系统滚动语义处理。
+        /// <paramref name="wheelDelta"/> 正向表示向右滚动，对应视口右移、画面内容左移（与 ScrollViewer 横向滚动观感一致，并遵循系统滚动方向设置），而 <see cref="WindBoard.Board.Viewport.BoardViewport.PanByScreenDelta"/> 的入参是画面内容位移，故取反；竖向滚轮不走此路径。
         /// </remarks>
         internal static Vector2 ResolveHorizontalWheelPanScreenDelta(int wheelDelta)
         {

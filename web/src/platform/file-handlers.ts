@@ -1,14 +1,6 @@
 /**
- * 系统级「用 WindBoard 打开 .wbix」支持（PWA 的 `file_handlers`）。
- *
- * 链路：`public/manifest.webmanifest` 的 `file_handlers` 声明可打开的扩展名 →
- * 用户双击 `.wbix` 时浏览器把文件通过 `window.launchQueue` 递进来 →
- * 本模块读出字节 → 交给宿主（`BoardSurface`）导入。
- *
- * 为什么走「注册回调」而不是直接调用导入逻辑：
- * 启动顺序不确定（`launchQueue` 可能在 React 挂载前就派发），所以这里既存
- * 「待取队列」也存「消费者」，两边谁先到都能接上；而且 `platform/` 层不依赖
- * `board/` 与 React，便于单测。
+ * 系统级「用 WindBoard 打开 .wbix」支持（PWA 的 file_handlers）。链路：public/manifest.webmanifest 的 file_handlers 声明可打开的扩展名，用户双击 .wbix 时浏览器通过 window.launchQueue 把文件递进来，本模块读出字节交给宿主（BoardSurface）导入。
+ * 走注册回调而不是直接调用导入逻辑：启动顺序不确定（launchQueue 可能在 React 挂载前就派发），所以这里既存待取队列也存消费者，两边谁先到都能接上；platform/ 层也不依赖 board/ 与 React，便于单测。
  */
 
 /** 从系统"打开方式"传进来的一个文件。 */
@@ -64,9 +56,7 @@ function deliver(files: readonly LaunchedFile[]): void {
 }
 
 /**
- * 挂上 `launchQueue` 消费者。整个应用只需在入口调用一次。
- *
- * 不支持该 API 时静默返回——「双击 .wbix 打开」是增强能力，不是可用性前提。
+ * 挂上 launchQueue 消费者。整个应用只需在入口调用一次。不支持该 API 时静默返回：「双击 .wbix 打开」是增强能力，不是可用性前提。
  * @returns {void}
  */
 export function attachLaunchQueue(): void {

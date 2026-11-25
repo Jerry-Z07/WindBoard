@@ -1,21 +1,6 @@
 /**
- * 页面管理（缩略图列表 + 删除）面板内容。
- *
- * 桌面出处：`WindBoard/MainWindow.xaml:586-678`（`PagesFlyout`）。
- * - 面板：宽 280、最大高 520、圆角 14、内边距 12（`:603-608`）
- * - 布局：标题行 + 列表，行间距 10（`:609-613`）
- * - 列表项：**宽 240**、圆角 12、1px 描边、内边距 8、下外边距 8（`:633-640`）
- *   （任务描述里写的"行高 240"应是对这条 `Width="240"` 的误读；桌面没有固定行高，
- *   行高由内容撑开：头部 24 + 间距 6 + 缩略图 104 + 内边距 16）
- * - 头部：页码 14 号 SemiBold + 右侧 24×24 删除按钮（圆角 7、图标 12 号）（`:641-663`）
- * - 缩略图：高 104、底色为画布背景（`:665-669`）
- * - 点击切换页、删除按钮删除该页（`UI/MainWindow/MainWindow.Pages.cs` 的 `OnPagesListItemClick` /
- *   `OnDeletePageClicked`）
- *
- * 缩略图由 `PageThumbnail` 用 Canvas2D 绘制（算法见 `render/thumbnail.ts`，照搬桌面
- * `PageThumbnailControl` 的折线近似）。
- *
- * 本组件只渲染**面板内容**，锚点与开合由 `DockBar` 的 Fluent `Popover` 负责。
+ * 页面管理（缩略图列表加删除）面板内容，桌面出处 MainWindow.xaml:586-678（PagesFlyout）：面板宽 280、最大高 520、圆角 14、内边距 12（:603-608）；标题行加列表、行间距 10（:609-613）；列表项宽 240、圆角 12、1px 描边、内边距 8、下外边距 8（:633-640），桌面没有固定行高，由内容撑开（头部 24 加间距 6 加缩略图 104 加内边距 16）；头部为 14 号 SemiBold 页码加右侧 24×24 删除按钮（圆角 7、图标 12 号，:641-663）；缩略图高 104、底色为画布背景（:665-669）；点击切换页、点删除按钮删页（MainWindow.Pages.cs 的 OnPagesListItemClick / OnDeletePageClicked）。
+ * 缩略图由 PageThumbnail 用 Canvas2D 绘制（算法见 render/thumbnail.ts，照搬桌面 PageThumbnailControl 的折线近似）；本组件只渲染面板内容，锚点与开合由 DockBar 的 Fluent Popover 负责。
  */
 
 import type { ReactNode } from 'react'

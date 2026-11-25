@@ -1,11 +1,5 @@
 /**
- * DOM 事件与画布的结构化视图（只列 `dom-input.ts` 实际用到的成员）。
- *
- * 为什么不用 DOM 类型名：`web/tsconfig.test.json` 的 `lib` 只有 `ES2023`（单测跑在 node 环境），
- * 直接写 `PointerEvent` / `HTMLCanvasElement` 会让测试工程编译失败——这与
- * `src/render/canvas-types.ts` 的处理方式一致。浏览器侧的真实类型
- * （`PointerEvent` / `WheelEvent` / `KeyboardEvent` / `HTMLCanvasElement`）在结构上满足这些接口，
- * 因此 `attachBoardInput(controller, { canvas })` 可以直接传真实画布。
+ * DOM 事件与画布的结构化视图（只列 dom-input.ts 实际用到的成员）。不使用 DOM 类型名的原因：web/tsconfig.test.json 的 lib 只有 ES2023（单测跑在 node 环境），直接写 PointerEvent 或 HTMLCanvasElement 会让测试工程编译失败，处理方式与 src/render/canvas-types.ts 一致；浏览器侧真实类型在结构上满足这些接口，因此 attachBoardInput(controller, { canvas }) 可以直接传真实画布。
  */
 
 import type { KeyboardLike } from '../interaction/shortcuts.ts'
@@ -55,12 +49,7 @@ export interface DomRectLike {
 }
 
 /**
- * 事件监听器类型。
- *
- * 用「双变（bivariance）技巧」声明：`addEventListener` 在 DOM 里是重载方法，其监听器参数类型是
- * `EventListenerOrEventListenerObject`，若这里声明为 `(event: never) => void` 或
- * `(event: unknown) => void`，`HTMLCanvasElement` 都会因为参数逆变检查而不再满足本接口。
- * 双变声明同时接受 DOM 的真实监听器与本地窄类型处理器（如 `(event: DomPointerLike) => void`）。
+ * 事件监听器类型。用双变（bivariance）技巧声明：addEventListener 在 DOM 里是重载方法，其监听器参数类型是 EventListenerOrEventListenerObject，若这里声明为 (event: never) => void 或 (event: unknown) => void，HTMLCanvasElement 都会因为参数逆变检查而不再满足本接口；双变声明同时接受 DOM 的真实监听器与本地窄类型处理器（如 (event: DomPointerLike) => void）。
  */
 export type DomEventListener = {
   bivarianceHack(event: unknown): void

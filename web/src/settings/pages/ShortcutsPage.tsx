@@ -1,12 +1,6 @@
 /**
- * 设置 → 快捷键（桌面 `WindBoard/Features/Shortcuts/`，设置页在
- * `WindBoard/Settings/Pages/` 之外，由 `SettingsWindow.xaml` 的导航项承载）。
- *
- * 桌面只有撤销/重做两个可改绑槽位（`KeyboardShortcutsDefaults.cs:8-9`）；
- * 校验规则与桌面一致（`KeyboardShortcutGesture.cs:125-134`）：
- * 必须含 Ctrl 或 Alt、按键不能是修饰键、空字符串表示禁用。
- * 解析/规范化直接复用 `interaction/shortcuts.ts`，本页不重复实现。
- * 鼠标手势是只读说明（桌面同样不可修改，见 `03-ui-inventory.md` §5）。
+ * 设置 → 快捷键（桌面在 Features/Shortcuts/，设置页由 SettingsWindow.xaml 的导航项承载）。桌面只有撤销与重做两个可改绑槽位（KeyboardShortcutsDefaults.cs:8-9）；校验规则与桌面一致（KeyboardShortcutGesture.cs:125-134）：必须含 Ctrl 或 Alt、按键不能是修饰键、空字符串表示禁用；解析与规范化直接复用 interaction/shortcuts.ts，本页不重复实现。
+ * 鼠标手势是只读说明（桌面同样不可修改，见 03-ui-inventory.md §5）。
  */
 
 import { Button, Input, Switch } from '@fluentui/react-components'
@@ -57,15 +51,11 @@ interface ShortcutEditorProps {
 }
 
 /**
- * 快捷键编辑器：输入框 + 清除按钮。
- *
- * 输入框内直接按组合键可录入（只接管带 Ctrl/Alt 的单字符键，避免抢走普通文本编辑）；
- * 也支持手动输入 `Ctrl+Z` 这类文本。失焦或回车时校验并提交。
+ * 快捷键编辑器：输入框 + 清除按钮。输入框内直接按组合键可录入（只接管带 Ctrl/Alt 的单字符键，避免抢走普通文本编辑），也支持手动输入 Ctrl+Z 这类文本。失焦或回车时校验并提交。
  */
 function ShortcutEditor(props: ShortcutEditorProps): ReactNode {
   // null = 未在编辑，输入框跟随设置；非 null = 用户正在编辑的草稿。
-  // 用"草稿优先、提交后归零"的派生写法，避免在 effect 里 setState，
-  // 也不会在组件里留一份独立的设置副本（设置仍是唯一事实源）。
+  // 用"草稿优先、提交后归零"的派生写法，避免在 effect 里 setState，也不会在组件里留一份独立的设置副本（设置仍是唯一事实源）。
   const [draft, setDraft] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const { t } = useI18n()

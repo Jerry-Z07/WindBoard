@@ -2,36 +2,16 @@ import { WbixError } from './errors.ts'
 import { formatF32 } from './f32-format.ts'
 
 /**
- * JSON 文本形态契约（对齐桌面 `WbixWorkspaceSerializer` 的 `JsonSerializerOptions`）。
- *
- * 桌面侧选项（`WindBoard/Board/Persistence/Wbix/WbixWorkspaceSerializer.cs:32-41`）：
- * `PropertyNamingPolicy = CamelCase`、`WriteIndented = true`、`AllowTrailingCommas = true`、
- * `ReadCommentHandling = Skip`、`PropertyNameCaseInsensitive = true`、`IncludeFields = true`，
- * **未设置** `DefaultIgnoreCondition`（null 成员必须输出）、**未设置** `Encoder`
- * （即 `JavaScriptEncoder.Default`）。
- *
- * 由此确定的文本形态：
- * - 缩进 2 空格、`"key": value` 冒号后一个空格、**行尾 CRLF**、文件末尾无换行；
- * - 空对象/空数组同行写成 `{}` / `[]`；
- * - 字符串按 `JavaScriptEncoder.Default` 转义：非 ASCII 一律 `\uXXXX`（大写十六进制），
- *   `<` `>` `&` `'` `+` `"` 也转义（`"` 写作 `\u0022`），`\n` `\r` `\t` `\b` `\f` `\\` 用短转义。
+ * JSON 文本形态契约（对齐桌面 WbixWorkspaceSerializer 的 JsonSerializerOptions，WbixWorkspaceSerializer.cs:32-41）：CamelCase、WriteIndented、AllowTrailingCommas、ReadCommentHandling=Skip、PropertyNameCaseInsensitive、IncludeFields，未设 DefaultIgnoreCondition（null 成员必须输出），未设 Encoder（即 JavaScriptEncoder.Default）。
+ * 由此确定：缩进 2 空格、冒号后一个空格、行尾 CRLF、文件末尾无换行；空对象与空数组同行写成 {} 与 []；非 ASCII 一律写成 \uXXXX（大写十六进制），< > & ' 与双引号也转义（双引号写作 \u0022），\n \r \t \b \f 与反斜杠用短转义。
  */
 
 /** 缩进宽度（.NET `WriteIndented` 默认 2）。 */
 export const JSON_INDENT_SIZE = 2
 
 /**
- * 换行符：**固定 CRLF**。
- *
- * 依据（两处独立证据）：
- * 1. `dotnet/runtime` `release/10.0` 的 `JsonWriterOptions.NewLine` 文档写明默认值是
- *    `Environment.NewLine`（实现为 `get => ... : Environment.NewLine`）；桌面端运行在 Windows，
- *    因此 `WriteIndented = true` 写出的换行是 `\r\n`，且 `JsonSerializerOptions` 未覆盖该值。
- * 2. 桌面端真实产物佐证：`WindBoard.Tests/Fixtures/wbix/expected/**` 的 golden 文本、
- *    以及应用运行期写出的 `data/settings.json` 都是 CRLF。
- *
- * 注意：这与 `web/` 源码文件自身的 LF 行尾约定无关——源码行尾与生成物内容的行尾是两件事。
- * 网页端运行在任何操作系统上都固定输出 CRLF，才能与 Windows 桌面版逐字节一致。
+ * 换行符固定 CRLF，两处独立证据：dotnet/runtime release/10.0 的 JsonWriterOptions.NewLine 默认值取 Environment.NewLine，桌面运行在 Windows 且 JsonSerializerOptions 未覆盖该值；桌面真实产物（WindBoard.Tests/Fixtures/wbix/expected/** 的 golden 文本、运行期写出的 data/settings.json）也都是 CRLF。
+ * 这与 web/ 源码自身的 LF 约定无关，源码行尾与生成物内容的行尾是两件事：网页端在任何操作系统上都固定输出 CRLF，才能与 Windows 桌面版逐字节一致。
  */
 export const JSON_NEWLINE = '\r\n'
 
@@ -45,10 +25,7 @@ function escapeHex4(code: number): string {
 const HTML_SENSITIVE_CODES = new Set([0x26, 0x27, 0x2b, 0x3c, 0x3e])
 
 /**
- * 按 `JavaScriptEncoder.Default` 转义并加上双引号。
- *
- * 说明：按 UTF-16 码元逐个处理，因此 emoji 等增补平面字符会拆成两个 `\uXXXX`
- * （与 .NET 实测一致：`😀` → `\uD83D\uDE00`）。
+ * 按 JavaScriptEncoder.Default 转义并加上双引号。按 UTF-16 码元逐个处理，因此 emoji 等增补平面字符会拆成两个 \uXXXX（与 .NET 实测一致：😀 → \uD83D\uDE00）。
  */
 export function escapeJsonString(value: string): string {
   const parts: string[] = ['"']
@@ -95,14 +72,8 @@ export function escapeJsonString(value: string): string {
 }
 
 /**
- * 把 UTC 时间格式化为 .NET `DateTimeOffset` 的 JSON 文本（对齐 STJ `TrimDateTimeOffset`）。
- *
- * 形态：`2026-10-31T13:45:12.123+00:00`
- * - 小数秒最多 7 位，**从尾部去掉 0**；全 0 时连小数点一起去掉；
- * - UTC 偏移写作 `+00:00`（不是 `Z`）。
- *
- * 说明：JS `Date` 只有毫秒精度，所以小数部分最多 3 位；与桌面 7 位精度相比，
- * 亚毫秒位为 0 时两者文本一致。
+ * 把 UTC 时间格式化为 .NET DateTimeOffset 的 JSON 文本（对齐 STJ 的 TrimDateTimeOffset），形态 `2026-10-31T13:45:12.123+00:00`：小数秒最多 7 位并从尾部去掉 0（全 0 时连小数点一起去掉），UTC 偏移写作 +00:00 而非 Z。
+ * JS Date 只有毫秒精度，故小数部分最多 3 位；亚毫秒位为 0 时与桌面 7 位精度的文本一致。
  */
 export function formatUtcDateTimeOffset(date: Date): string {
   if (!(date instanceof Date) || Number.isNaN(date.getTime())) {
@@ -122,10 +93,7 @@ const DATE_TIME_OFFSET_PATTERN =
   /^(\d{4})-(\d{2})-(\d{2})[Tt](\d{2}):(\d{2}):(\d{2})(?:\.(\d{1,7}))?(?:([Zz])|([+-])(\d{2}):(\d{2}))$/
 
 /**
- * 解析 ISO-8601 / .NET `DateTimeOffset` 文本。
- *
- * 说明：`Date.parse` 对 7 位小数秒的行为在不同引擎不一致（Safari 可能直接返回 NaN），
- * 因此这里显式解析。亚毫秒位按 JS `Date` 精度截断（读 `createdUtc` 不需要亚毫秒）。
+ * 解析 ISO-8601 与 .NET DateTimeOffset 文本。Date.parse 对 7 位小数秒的行为在不同引擎不一致（Safari 可能直接返回 NaN），因此这里显式解析，亚毫秒位按 JS Date 精度截断（读 createdUtc 不需要亚毫秒）。
  */
 export function parseDateTimeOffset(value: unknown): Date | null {
   if (typeof value !== 'string') {
@@ -168,10 +136,8 @@ export function parseDateTimeOffset(value: unknown): Date | null {
 }
 
 /**
- * 解析 JSON 文本，容忍注释与尾随逗号（对齐桌面 `ReadCommentHandling = Skip` +
- * `AllowTrailingCommas = true`）。
- *
- * @throws WbixError `json-parse-failed`
+ * 解析 JSON 文本，容忍注释与尾随逗号（对齐桌面 ReadCommentHandling = Skip 与 AllowTrailingCommas = true）。
+ * @throws WbixError json-parse-failed
  */
 export function parseJsonTolerant(text: string): unknown {
   try {
@@ -289,10 +255,7 @@ export function encodeUtf8(text: string): Uint8Array {
 }
 
 /**
- * UTF-8 解码。
- *
- * 说明：桌面侧按严格 UTF-8 解析（非法字节 → JsonException）；这里用替换字符兜底，
- * 非法字节通常会让后续 JSON 解析失败，最终仍是致命错误。
+ * UTF-8 解码。桌面侧按严格 UTF-8 解析（非法字节 → JsonException）；这里用替换字符兜底，非法字节通常会让后续 JSON 解析失败，最终仍是致命错误。
  */
 export function decodeUtf8(bytes: Uint8Array): string {
   return new TextDecoder('utf-8').decode(bytes)
@@ -304,11 +267,7 @@ export function isPlainObject(value: unknown): value is Record<string, unknown> 
 }
 
 /**
- * 按属性名读取 JSON 对象成员，**大小写不敏感**（对齐 `PropertyNameCaseInsensitive = true`）。
- *
- * 说明：仅用于按 CLR 类型反序列化的位置（manifest 顶层、笔迹条目字段）；
- * 页面元素 `data` 在桌面侧走 `JsonElement.TryGetProperty`，是**大小写敏感**的，
- * 不要复用本函数。
+ * 按属性名读取 JSON 对象成员，大小写不敏感（对齐 PropertyNameCaseInsensitive = true）。仅用于按 CLR 类型反序列化的位置（manifest 顶层、笔迹条目字段）；页面元素 data 在桌面侧走 JsonElement.TryGetProperty，是大小写敏感的，不要复用本函数。
  */
 export function getJsonProperty(
   obj: Record<string, unknown>,
@@ -335,10 +294,7 @@ interface WriterFrame {
 }
 
 /**
- * 逐字符可控的 JSON 文本写入器。
- *
- * 为什么不用 `JSON.stringify`：桌面侧 `WriteIndented` 的输出形态（空数组同行、null 成员保留、
- * 属性顺序即声明顺序、float 文本规则）需要逐字符控制，`JSON.stringify` 无法覆盖。
+ * 逐字符可控的 JSON 文本写入器。桌面 WriteIndented 的输出形态（空数组同行、null 成员保留、属性顺序即声明顺序、float 文本规则）需要逐字符控制，JSON.stringify 无法覆盖。
  */
 export class JsonTextWriter {
   private readonly chunks: string[] = []
@@ -401,22 +357,14 @@ export class JsonTextWriter {
   }
 
   /**
-   * 写 `DateTimeOffset` 值。
-   *
-   * 为什么不能走 `stringValue`：桌面 `Utf8JsonWriter.WriteString(DateTimeOffset)` 走的是
-   * `JsonWriterHelper.WriteDateTimeOffsetTrimmed`，**不经过字符串转义**，因此偏移里的 `+`
-   * 在 .NET 输出里是字面量 `+00:00`；若按 `JavaScriptEncoder.Default` 转义会变成
-   * `\u002B00:00`，与桌面字节不一致。
+   * 写 DateTimeOffset 值。桌面 Utf8JsonWriter.WriteString(DateTimeOffset) 走 JsonWriterHelper.WriteDateTimeOffsetTrimmed，不经过字符串转义，因此偏移里的 + 在 .NET 输出里是字面量 +00:00；按 JavaScriptEncoder.Default 转义会变成 \u002B00:00，与桌面字节不一致，所以这里不能走 stringValue。
    */
   dateTimeOffsetValue(value: Date): void {
     this.emitValue(`"${formatUtcDateTimeOffset(value)}"`)
   }
 
   /**
-   * 原样写一段 `DateTimeOffset` 文本（同样不转义）。
-   *
-   * 用途：`Date` 只有毫秒精度，而桌面写出的时间最多 7 位小数；读入后若要逐字节往返，
-   * 需要把原始文本带回来（见 `WbixManifest.createdUtcText`）。
+   * 原样写一段 DateTimeOffset 文本（同样不转义）。Date 只有毫秒精度，而桌面写出的时间最多 7 位小数，读入后若要逐字节往返，需要把原始文本带回来（见 WbixManifest.createdUtcText）。
    */
   dateTimeOffsetTextValue(text: string): void {
     this.emitValue(`"${text}"`)

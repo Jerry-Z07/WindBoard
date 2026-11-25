@@ -6,11 +6,7 @@ namespace WindBoard.Persistence
 {
     /// <summary>
     /// 应用数据路径入口：根据安装形态（MSIX/安装版/便携版）决定数据落盘目录。
-    ///
-    /// 约定：
-    /// - MSIX（Store）版与安装版：%LocalAppData%\WindBoard（MSIX 下的“包私有重定向”由系统虚拟化处理，路径表达式不变）
-    /// - 便携版：{AppContext.BaseDirectory}\data
-    /// - 便携版但 data 目录不可写：自动回退到 %LocalAppData%\WindBoard（避免启动失败）
+    /// MSIX（Store）版与安装版用 %LocalAppData%\\WindBoard（包私有重定向由系统虚拟化处理，路径表达式不变）；便携版用 {AppContext.BaseDirectory}\\data，该目录不可写时回退 %LocalAppData%\\WindBoard，避免启动失败。
     /// </summary>
     internal static class AppDataPaths
     {
@@ -53,10 +49,7 @@ namespace WindBoard.Persistence
         /// 计算数据目录快照（便于单元测试注入 install/baseDir/localAppData 与可写性探测）。
         /// </summary>
         /// <param name="localAppDataDirectory"><c>SpecialFolder.LocalApplicationData</c> 的取值（自身读写落点用）。</param>
-        /// <param name="localAppDataEnvironmentValue">
-        /// 环境变量 <c>LOCALAPPDATA</c> 的原始取值，仅用于计算“旧安装版数据目录”（迁移只读来源）。
-        /// 打包进程内 <c>GetFolderPath</c> 的返回值不确定（design.md §1.2 需实测项 V5），因此优先信任环境变量。
-        /// </param>
+        /// <param name="localAppDataEnvironmentValue">环境变量 <c>LOCALAPPDATA</c> 的原始取值，仅用于计算“旧安装版数据目录”（迁移只读来源）；打包进程内 <c>GetFolderPath</c> 返回值不确定（design.md §1.2 需实测项 V5），因此优先信任环境变量。</param>
         internal static AppDataPathsSnapshot ComputeSnapshot(
             AppInstallProbeResult install,
             string appBaseDirectory,

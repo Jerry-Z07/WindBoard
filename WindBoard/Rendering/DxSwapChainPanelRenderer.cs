@@ -211,9 +211,8 @@ namespace WindBoard.Rendering
                 ctx.Transform = Matrix3x2.Identity;
 
                 ctx.PushAxisAlignedClip(clipDip, AntialiasMode.Aliased);
-                // 透明/半透明背景（如屏幕批注穿透桌面）：DrawBitmap 是预乘叠加而非覆盖，
-                // 透明区域会保留上一帧内容（形状预览为整体几何替换，逐帧叠加即残影轨迹）。
-                // 先清除裁剪区恢复干净底再叠加缓存背景与 overlay；不透明背景跳过（保持免 Clear 优化）。
+                // DrawBitmap 按预乘叠加而非覆盖，透明背景（如屏幕批注穿透桌面）下未清除的区域会保留上一帧，形状预览逐帧叠加即残影。
+                // 先清除裁剪区再叠加缓存背景与 overlay；不透明背景跳过 Clear 以保持免清屏优化。
                 if (_clearColor.A < 1.0f)
                 {
                     ctx.Clear(_clearColor);

@@ -12,13 +12,7 @@ export function normalizeZipPath(path: string): string {
 }
 
 /**
- * 判断归一化后的路径是否安全（对齐 `IsSafeZipPath`）。
- *
- * 规则：
- * 1. 非空白；
- * 2. 以 `requiredPrefix` 开头（忽略大小写）；
- * 3. 不含 `..`；
- * 4. 不以 `/` 或 `\` 开头。
+ * 判断归一化后的路径是否安全（对齐 IsSafeZipPath）。规则：非空白；以 requiredPrefix 开头（忽略大小写）；不含 ..；不以 / 或 \ 开头。
  */
 export function isSafeZipPath(path: string, requiredPrefix = ''): boolean {
   if (path.trim().length === 0) {

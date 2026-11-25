@@ -1,8 +1,5 @@
 /**
- * 应用级 React hooks：全部通过 `useSyncExternalStore` 订阅服务快照。
- *
- * 之所以统一用 `useSyncExternalStore`：服务的快照引用只在真正变更时替换，
- * 这样组件不会因为"每次调用都返回新对象"而无限重渲染（`useState` + 手动订阅做不到）。
+ * 应用级 React hooks：全部通过 useSyncExternalStore 订阅服务快照。统一用它的原因：服务的快照引用只在真正变更时替换，组件不会因为每次调用都返回新对象而无限重渲染（useState 加手动订阅做不到）。
  */
 
 import { useContext, useMemo, useSyncExternalStore } from 'react'
@@ -90,11 +87,7 @@ export function usePageIndicatorText(): string {
 }
 
 /**
- * 是否显示"翻页三件套"（上一页/指示器/下一页）。
- *
- * 单页时只隐藏这三项，**「+」始终可见**（`UI/MainWindow/MainWindow.Pages.cs:81-101`：
- * `showPager = total > 1` 只折叠 `PagePrevButton`/`PageNextButton`/`PageIndicatorButton`）。
- * 若把整个右侧 Dock 一起隐藏，用户就没有任何入口新增第二页。
+ * 是否显示「翻页三件套」（上一页、指示器、下一页）。单页时只隐藏这三项，「+」始终可见（UI/MainWindow/MainWindow.Pages.cs:81-101：showPager = total > 1 只折叠 PagePrevButton、PageNextButton、PageIndicatorButton），若把整个右侧 Dock 一起隐藏，用户就没有任何入口新增第二页。
  */
 export function useShowPagePager(): boolean {
   const snapshot = useBoardSnapshot()

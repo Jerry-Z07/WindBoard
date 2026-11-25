@@ -1,15 +1,6 @@
 /**
- * 设置搜索框（桌面 `WindBoard/Settings/SettingsWindow.xaml:23-44` 的 `AutoSuggestBox`）。
- *
- * 桌面行为对照：
- * - 占位符 `SettingsWindow_Search_Placeholder`（`Strings/zh-CN/SettingsWindow.resw`）= “搜索设置”；
- * - `QueryIcon="Find"` → Fluent `SearchBox` 自带的放大镜图标；
- * - 输入即出建议（`TextChanged` → `RefreshSearchSuggestions`），空白输入不出建议；
- * - 选中建议后输入框文本变成该条的显示文本（`OnSettingsSearchSuggestionChosen`），
- *   并跳转到对应设置页（本组件通过 `onSelect` 交给窗口处理）；
- * - 回车提交（`OnSettingsSearchQuerySubmitted`）：有高亮项选高亮项，否则选第一条。
- *
- * 匹配规则全部在 `settings/search-targets.ts` 的纯函数里，本组件只管交互与渲染。
+ * 设置搜索框（对应桌面 Settings/SettingsWindow.xaml:23-44 的 AutoSuggestBox）：占位符用 SettingsWindow_Search_Placeholder（Strings/zh-CN/SettingsWindow.resw，即「搜索设置」）；QueryIcon="Find" 对应 Fluent SearchBox 自带的放大镜图标；输入即出建议（桌面 TextChanged 到 RefreshSearchSuggestions），空白输入不出建议；选中建议后输入框文本变成该条的显示文本（OnSettingsSearchSuggestionChosen），并跳转到对应设置页（本组件通过 onSelect 交给窗口处理）；回车提交（OnSettingsSearchQuerySubmitted）时有高亮项选高亮项，否则选第一条。
+ * 匹配规则全部在 settings/search-targets.ts 的纯函数里，本组件只管交互与渲染。
  */
 
 import { SearchBox } from '@fluentui/react-components'

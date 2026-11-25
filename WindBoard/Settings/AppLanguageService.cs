@@ -6,12 +6,8 @@ using AppSdkApplicationLanguages = Microsoft.Windows.Globalization.ApplicationLa
 namespace WindBoard.Settings
 {
     /// <summary>
-    /// 应用语言切换/覆盖服务。
-    /// 
-    /// 说明：
-    /// - 本项目的本地化字符串读取基于 <see cref="CultureInfo.CurrentUICulture"/>（见 Localization/L10n.cs）。
-    /// - XAML 的 MarkupExtension（LocExtension）会在控件加载时取值，因此语言应尽量在任何 UI 创建前应用；
-    /// - 运行中切换语言通常需要重启或重载页面/窗口才能完全生效（设置页会提示）。
+    /// 应用语言切换与覆盖服务。
+    /// 本地化字符串读取基于 <see cref="CultureInfo.CurrentUICulture"/>（见 Localization/L10n.cs）；XAML 的 LocExtension 在控件加载时取值，故语言要在任何 UI 创建前应用，运行中切换通常需重启或重载页面、窗口才完全生效。
     /// </summary>
     internal static class AppLanguageService
     {
@@ -110,15 +106,11 @@ namespace WindBoard.Settings
 
         private static string ApplyPrimaryLanguageOverride(string desiredOverride)
         {
-            // 与 WinUI 的语言选择保持一致（对内置控件文本/方向等更友好）。
-            // 说明：
-            // - 对于“跟随系统”（desiredOverride 为空）场景，如果当前已经没有 override，则不写入，避免某些环境下对空字符串赋值会抛异常并刷警告；
-            // - 在“无包身份/运行时差异”等环境下，该 API 可能不可用：这里不阻断主流程（应用自身的本地化仍由 CultureInfo 驱动）。
+            // 与 WinUI 的语言选择保持一致，对内置控件文本与方向更友好。
+            // 跟随系统时若已无 override 则不写入，部分环境下对空字符串赋值会抛异常并刷警告；无包身份等环境下该 API 可能不可用，此处不阻断主流程，应用本地化仍由 CultureInfo 驱动。
             if (!TryGetPrimaryLanguageOverride(out string currentOverride))
             {
-                // 无法读取时：
-                // - “跟随系统”不强制写入（系统默认行为即可）；
-                // - 显式语言偏好仍尝试写入（后续会记录失败）。
+                // 读取失败时跟随系统不强制写入，显式语言偏好仍尝试写入，失败由后续记录。
                 currentOverride = string.Empty;
             }
 
@@ -138,7 +130,7 @@ namespace WindBoard.Settings
                 }
 
                 // 降级策略：若清空失败，则至少把 override 设置为启动时捕获到的系统 UI 语言，避免残留旧值导致语言不一致。
-                // 注意：该降级仅影响内置控件语言，不影响 WindBoard 自身资源读取。
+                // 该降级仅影响内置控件语言，不影响 WindBoard 自身资源读取。
                 string fallback = string.IsNullOrWhiteSpace(_systemUiCulture.Name) ? string.Empty : _systemUiCulture.Name;
                 if (!string.IsNullOrEmpty(fallback) && TrySetPrimaryLanguageOverride(fallback, out _))
                 {

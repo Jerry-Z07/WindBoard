@@ -17,11 +17,8 @@ using WindBoard.Settings;
 namespace WindBoard.Updates
 {
     /// <summary>
-    /// 更新检查服务：
-    /// - 拉取 GitHub Release 的 latest.json
-    /// - 对比当前版本与最新版本
-    /// - 选择推荐下载项（含安装包 -fd 区分）
-    /// - 自动检查时结合设置做节流与“提醒一次”
+    /// 更新检查服务。
+    /// 拉取 GitHub Release 的 latest.json，对比当前版本与最新版本，选择推荐下载项（含安装包 -fd 区分）；自动检查时结合设置做节流与“提醒一次”。
     /// </summary>
     internal sealed class AppUpdateService
     {
@@ -327,7 +324,7 @@ namespace WindBoard.Updates
                 fastest = DownloadSourceId.Github;
             }
 
-            // 约定：auto 模式测速后写入最快源；fixed 模式不应进入测速分支（由策略保证）。
+            // auto 模式测速后写入最快源；fixed 模式不应进入测速分支（由策略保证）。
             AppSettingsService.Instance.SetUpdateDownloadSourceId(fastest);
             AppSettingsService.Instance.SetUpdateDownloadSourceLastTestUtc(nowUtc);
 
@@ -509,7 +506,7 @@ namespace WindBoard.Updates
                 return exact;
             }
 
-            // 约定：优先中文，其次英文。
+            // 优先中文，其次英文。
             if (culture.StartsWith("zh", StringComparison.OrdinalIgnoreCase) && Latest.Changelog.TryGetValue("zh-CN", out string? zh))
             {
                 return zh;

@@ -54,9 +54,7 @@ namespace WindBoard.Features.Shortcuts.Services
 
         private static string BuildShortcutIssuesSignature(IEnumerable<KeyboardShortcutNormalizationIssue> issues)
         {
-            // “提醒一次”口径：同一问题不重复弹。为此把问题集合归一化为稳定签名：
-            // - 排序（避免顺序影响）
-            // - 去重（避免重复记录导致签名变化）
+            // “提醒一次”要求同一问题不重复弹，因此把问题集合归一化为稳定签名：先排序避免顺序影响，再去重避免重复记录改变签名。
             List<string> tokens = issues
                 .Where(i => i is not null)
                 .Select(i => $"{i.Kind}|{i.Slot}|{i.ConflictWithSlot ?? "-"}|{i.NewValue}")

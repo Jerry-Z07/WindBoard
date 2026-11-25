@@ -1,14 +1,6 @@
 /**
- * 最小 PDF 写入器（对应桌面 `Features/Export/Services/BoardPdfExporter.cs`）。
- *
- * 桌面是"每页一张整页位图，图用 FlateDecode 压缩后塞进 Image XObject"，
- * 见 `BoardPdfExporter.cs:37`（对象布局）、`:98-110`（image 对象）、`:110-130`（content 与 page 对象）、
- * `:216-260`（xref/trailer）。这里逐条复刻，因为结构一致才谈得上"两端导出的 PDF 等价"。
- *
- * 对象布局（`totalObjects = 2 + pages*3`）：
- * - 1：Catalog（`/Pages 2 0 R`）；
- * - 2：Pages（`/Kids [...]`、`/Count`）；
- * - 每页三个：page / content / image，编号 `3+3i`、`4+3i`、`5+3i`。
+ * 最小 PDF 写入器（对应桌面 Features/Export/Services/BoardPdfExporter.cs）。桌面是每页一张整页位图，图用 FlateDecode 压缩后塞进 Image XObject（对象布局 :37、image 对象 :98-110、content 与 page 对象 :110-130、xref 与 trailer :216-260），这里逐条复刻，结构一致才谈得上两端导出的 PDF 等价。
+ * 对象布局共 2 + pages*3 个对象：1 为 Catalog（/Pages 2 0 R），2 为 Pages（/Kids [...]、/Count），每页三个对象（page、content、image），编号 3+3i、4+3i、5+3i。
  */
 
 import { deflateSync } from 'fflate'
@@ -91,11 +83,7 @@ class PdfBuffer {
 }
 
 /**
- * 生成多页 PDF。
- *
- * 图像用 `FlateDecode`（`fflate.deflateSync`）；content 流把图铺满整页：
- * 桌面用的是 `q <w> 0 0 <h> 0 0 cm /Im0 Do Q`（`BoardPdfExporter.cs:116-130`），
- * 即"先缩放再平移"的坐标矩阵，图像左下角对齐页面左下角。
+ * 生成多页 PDF。图像用 FlateDecode（fflate.deflateSync）；content 流把图铺满整页，桌面用的是 q <w> 0 0 <h> 0 0 cm /Im0 Do Q（BoardPdfExporter.cs:116-130），即先缩放再平移的坐标矩阵，图像左下角对齐页面左下角。
  */
 export function buildPdf(pages: readonly PdfPageImage[]): Uint8Array {
   const buffer = new PdfBuffer()
@@ -126,7 +114,6 @@ export function buildPdf(pages: readonly PdfPageImage[]): Uint8Array {
     const contentObject = 4 + i * 3
     const imageObject = 5 + i * 3
 
-    // ===== image XObject =====
     const compressed = deflateSync(page.rgb)
     buffer.beginObject(imageObject)
     buffer.writeText('<< /Type /XObject /Subtype /Image ')
@@ -138,7 +125,6 @@ export function buildPdf(pages: readonly PdfPageImage[]): Uint8Array {
     buffer.writeText('\nendstream\n')
     buffer.endObject()
 
-    // ===== content 流 =====
     const content = `q\n${formatNumber(page.pageWidthPt)} 0 0 ${formatNumber(page.pageHeightPt)} 0 0 cm\n/Im0 Do\nQ\n`
     const contentBytes = new Uint8Array(content.length)
     for (let c = 0; c < content.length; c += 1) {
@@ -151,7 +137,6 @@ export function buildPdf(pages: readonly PdfPageImage[]): Uint8Array {
     buffer.writeText('endstream\n')
     buffer.endObject()
 
-    // ===== page 对象 =====
     buffer.beginObject(pageObject)
     buffer.writeText('<< /Type /Page ')
     buffer.writeText(`/Parent ${pagesObject} 0 R `)
@@ -161,7 +146,6 @@ export function buildPdf(pages: readonly PdfPageImage[]): Uint8Array {
     buffer.endObject()
   }
 
-  // ===== xref + trailer =====
   const xrefStart = buffer.size
   buffer.writeText('xref\n')
   buffer.writeText(`0 ${totalObjects + 1}\n`)
@@ -190,10 +174,7 @@ export function pixelsToPoints(pixels: number, dpi: number): number {
 }
 
 /**
- * 把 RGBA 像素转成 PDF 需要的 RGB（丢弃 alpha，按黑底预乘以免透明边变白）。
- *
- * 导出用的是不透明背景（画布背景色），正常情况下 alpha 恒为 255，
- * 这里仍做一次合成，避免半透明笔迹在 PDF 里出现白边。
+ * 把 RGBA 像素转成 PDF 需要的 RGB（丢弃 alpha，按黑底预乘以免透明边变白）。导出用不透明背景（画布背景色），正常情况下 alpha 恒为 255，这里仍做一次合成，避免半透明笔迹在 PDF 里出现白边。
  */
 export function rgbaToRgb(rgba: Uint8Array): Uint8Array {
   const pixels = Math.floor(rgba.length / 4)

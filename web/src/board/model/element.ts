@@ -2,12 +2,7 @@ import type { Guid } from './ids.ts'
 import type { Vec2 } from './stroke.ts'
 
 /**
- * 页面元素域模型（对应桌面 `BoardElementSnapshot` 家族）。
- *
- * 说明：
- * - WBIX 里元素是 `{ type, data }`，`data` 内的字段随类型不同（见 `persistence/wbix/page-payload.ts`）；
- * - `layer` 决定元素在笔迹下方还是上方，`order` 是层内绘制/命中顺序；
- * - 媒体元素的内嵌图片通过 `resourceId` 引用 `manifest.resources` 里的资源条目。
+ * 页面元素域模型（对应桌面 BoardElementSnapshot 家族）。WBIX 里元素是 { type, data }，data 内的字段随类型不同（见 persistence/wbix/page-payload.ts）；layer 决定元素在笔迹下方还是上方，order 是层内绘制与命中顺序；媒体元素的内嵌图片通过 resourceId 引用 manifest.resources 里的资源条目。
  */
 
 /** 元素层级（桌面 `"belowInk"` / `"aboveInk"`）。 */

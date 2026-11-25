@@ -145,9 +145,7 @@ namespace WindBoard.Interaction
                 return false;
             }
 
-            // 选择模式（框选）：
-            // - 鼠标右键：平移视口
-            // - 其它：单指/鼠标左键/触控笔拖拽 → 框选；在已选中笔迹范围内拖拽 → 移动选中笔迹
+            // 框选：鼠标右键平移视口；单指、鼠标左键或触控笔拖拽框选，在已选中笔迹范围内拖拽则移动选中笔迹。
             if (PointerRoutingDecisions.ShouldStartPan(_allowViewportManipulation, e.Pointer.PointerDeviceType, point.Properties.IsRightButtonPressed))
             {
                 BeginPanGesture(e.Pointer, point);

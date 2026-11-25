@@ -1,15 +1,6 @@
 /**
- * 设置文件互转（对应桌面 `WindBoard/Settings/AppSettingsStore.cs`）。
- *
- * 目标：网页端导出的 `windboard-settings.json` 能直接喂给桌面版，桌面版的设置文件也能被网页端导入。
- *
- * 桌面序列化规则（`AppSettingsStore.cs:27-33`）：camelCase、允许注释与尾逗号、缩进输出。
- * 字段命名与内存模型**同构**（`settings/model.ts` 的 `AppSettings` 注释里也写明了这一点），
- * 所以这里只做「白名单挑选 + 归一化」，不做字段改名：
- * - 导出：只写网页端支持的字段；桌面独有的分区（`diagnostics` / `announcements` / `camouflage` /
- *   `updates`）不输出——桌面读侧对缺失字段会回落默认值（`AppSettings` 的属性初始化器）；
- * - 导入：只挑已知字段，**未知字段一律忽略**（不报错、不回写），再交给 `normalizeSettings` 收敛
- *   （非法颜色/粗细档位等都会回落到默认并留下说明）。
+ * 设置文件互转（对应桌面 Settings/AppSettingsStore.cs）：目标是网页端导出的 windboard-settings.json 能直接喂给桌面版，桌面版的设置文件也能被网页端导入。桌面序列化规则（AppSettingsStore.cs:27-33）为 camelCase、允许注释与尾逗号、缩进输出；字段命名与内存模型同构（settings/model.ts 的 AppSettings 注释里也写明了这一点），因此这里只做白名单挑选与归一化，不改字段名。
+ * 导出只写网页端支持的字段，桌面独有的分区（diagnostics、announcements、camouflage、updates）不输出，桌面读侧对缺失字段会回落默认值（AppSettings 的属性初始化器）；导入只挑已知字段，未知字段一律忽略（不报错、不回写），再交给 normalizeSettings 收敛，非法颜色与粗细档位等都会回落到默认并留下说明。
  */
 
 import { normalizeSettings, type AppSettings } from './model.ts'
@@ -111,10 +102,7 @@ export function parseSettingsFile(text: string): SettingsImportResult {
 }
 
 /**
- * 去掉 JSON 里的 `//` 与 `/* *\/` 注释和尾逗号。
- *
- * 桌面读侧用 `ReadCommentHandling = Skip` + `AllowTrailingCommas = true`，而网页端只有严格
- * `JSON.parse`，所以这里做一次最小预处理：字符串内的内容原样保留，避免误删 URL 里的 `//`。
+ * 去掉 JSON 里的 // 与 /* *\/ 注释和尾逗号。桌面读侧用 ReadCommentHandling = Skip 与 AllowTrailingCommas = true，而网页端只有严格 JSON.parse，因此这里做最小预处理：字符串内的内容原样保留，避免误删 URL 里的 //。
  */
 function stripJsonExtensions(text: string): string {
   let output = ''
@@ -176,10 +164,7 @@ function stripJsonExtensions(text: string): string {
 }
 
 /**
- * 收集"桌面有、但网页端不支持"的字段，给用户一句说明。
- *
- * 不把这些字段写回设置：网页端只维护自己认识的子集，静默丢弃会让用户以为设置丢了，
- * 所以导入后由 UI 提示一句"以下分区本版不支持，已忽略"。
+ * 收集「桌面有、但网页端不支持」的字段，给用户一句说明。不把这些字段写回设置：网页端只维护自己认识的子集，静默丢弃会让用户以为设置丢了，所以导入后由 UI 提示「以下分区本版不支持，已忽略」。
  */
 function collectNotes(
   record: Record<string, unknown>,

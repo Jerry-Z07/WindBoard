@@ -4,13 +4,8 @@ using System.Collections.Generic;
 namespace WindBoard.Board.Editing
 {
     /// <summary>
-    /// 多页面工作区（类似“文档/工程”）。
-    /// 
-    /// - 负责页面的新增/删除/切换
-    /// - 维护当前页索引
-    /// - 通过事件向 UI 层广播状态变化
-    /// 
-    /// 注意：本类型仅包含纯逻辑，不依赖 UI/渲染，便于单元测试与后续导入/导出复用。
+    /// 多页面工作区：负责页面的新增/删除/切换、维护当前页索引，并通过事件向 UI 层广播状态变化。
+    /// 纯逻辑类型，不依赖 UI 与渲染。
     /// </summary>
     internal sealed class BoardWorkspace
     {

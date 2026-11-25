@@ -116,7 +116,7 @@ namespace WindBoard.CrashReporter
                 AutoSize = true,
                 Font = new Font(Font.FontFamily, 9F, FontStyle.Regular),
                 ForeColor = Color.DimGray,
-                Text = "请复制错误信息并发送给开发者以协助定位问题",
+                Text = "错误信息可帮助开发者定位问题",
                 Margin = ScalePadding(new Padding(0, 0, 0, 8)),
             };
             header.Controls.Add(subtitle, column: 0, row: 1);

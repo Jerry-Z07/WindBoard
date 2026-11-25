@@ -1,9 +1,5 @@
 /**
- * 页面 / 元素标识（对应 .NET `System.Guid`）。
- *
- * WBIX 契约：
- * - 写侧固定小写带连字符（`"D"` 格式），例如 `a1b2c3d4-e5f6-7890-abcd-ef1234567890`；
- * - 读侧对齐桌面 `Guid.TryParse`，容忍花括号 / 圆括号包裹与 32 位无连字符（`"N"`）写法。
+ * 页面与元素标识（对应 .NET System.Guid）。WBIX 契约：写侧固定小写带连字符（"D" 格式），例如 a1b2c3d4-e5f6-7890-abcd-ef1234567890；读侧对齐桌面 Guid.TryParse，容忍花括号与圆括号包裹以及 32 位无连字符（"N"）写法。
  */
 export type Guid = string
 
@@ -16,10 +12,7 @@ export function isGuid(value: unknown): value is Guid {
 }
 
 /**
- * 解析 Guid 文本（对齐 `Guid.TryParse` 的常见形态）。
- *
- * 支持：`D`（带连字符）、`N`（32 位）、`B`（`{...}`）、`P`（`(...)`）。
- * 返回小写 `"D"` 格式；无法解析返回 null。
+ * 解析 Guid 文本（对齐 Guid.TryParse 的常见形态）。支持 D（带连字符）、N（32 位）、B（{...}）、P（(...)），返回小写 "D" 格式；无法解析返回 null。
  */
 export function parseGuid(value: unknown): Guid | null {
   if (typeof value !== 'string') {

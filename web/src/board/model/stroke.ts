@@ -1,8 +1,5 @@
 /**
- * 笔迹域模型（对应桌面 `WindBoard.Board.Stroke` 的持久化形态）。
- *
- * 数值约定（design D3）：所有几何与颜色分量都是 **float32** 语义，
- * 写入时由 `Math.fround` 收敛到单精度可表示值，避免 JSON 里出现 double 尾巴。
+ * 笔迹域模型（对应桌面 WindBoard.Board.Stroke 的持久化形态）。数值约定（design D3）：所有几何与颜色分量都是 float32 语义，写入时由 Math.fround 收敛到单精度可表示值，避免 JSON 里出现 double 尾巴。
  */
 
 /** float32 语义的数值（边界处已 `Math.fround`）。 */

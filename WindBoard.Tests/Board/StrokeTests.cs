@@ -6,7 +6,6 @@ namespace WindBoard.Tests.Board;
 
 public sealed class StrokeTests
 {
-    // 首次调用后会生成有效包围盒
     [Fact]
     public void ExpandBounds_CreatesValidBounds_OnFirstCall()
     {
@@ -25,7 +24,6 @@ public sealed class StrokeTests
         AssertEx.Equal(new Vector2(5.0f, 5.0f), stroke.BoundsMax);
     }
 
-    // 压力会影响笔迹宽度并被钳制
     [Fact]
     public void ExpandBounds_PressureAffectsWidth_AndIsClamped()
     {
@@ -46,7 +44,6 @@ public sealed class StrokeTests
         AssertEx.Equal(new Vector2(6.0f, 6.0f), stroke.BoundsMax);
     }
 
-    // 关闭压力后宽度不随压力变化
     [Fact]
     public void ExpandBounds_WidthUnaffectedByPressure_WhenPressureDisabled()
     {

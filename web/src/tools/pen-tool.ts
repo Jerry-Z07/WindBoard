@@ -6,21 +6,8 @@ import type { InkTool, PenSettingsProvider, ToolGestureContext } from './tool-se
 import { createDefaultPenSettings, normalizeToolPressure, toColorRgba } from './tool-settings.ts'
 
 /**
- * 笔工具状态机（对应桌面 `WindBoard/Interaction/Tools/PenTool.cs`，121 行）。
- *
- * 与桌面逐条对齐：
- * - 采样阈值是**世界距离** `0.5 / zoom`（`PenTool.cs:25,93-119`），不是屏幕距离；
- * - `begin()` 无条件落下第一个点，因此「点一下」也能提交单点笔迹（单点由渲染层画成实心圆，
- *   见 `docs/dev/guides/ink-rendering.zh-CN.md` §5.3）；
- * - `end()` 只要有 ≥1 个点就提交一条 `AddInkItemCommand`（`PenTool.cs:73-76`），
- *   **不**实现「≤1 点丢弃」——那是控制器的决策：桌面只有「触摸来源的手势被第二指打断」时
- *   才丢弃（`WindBoard/Interaction/BoardInputController/PointerRoutingDecisions.cs:167-173`
- *   `ResolveTouchGestureEnd`，调用点 `BoardInputController.Pointer.cs:94/97`；
- *   web 侧已落在 `web/src/interaction/pointer-router.ts` 的 `'discard-dot-stroke'` /
- *   `'commit-stroke'` 动作上）。即：**收到 `end()` 就提交，丢不丢由控制器决定是否调用 `end()`**。
- * - 压感归一化在工具内做：`enablePressure ? clamp(p, 0.1, 1) : 1`
- *   （桌面归一化在控制器 `BoardInputController.Operations.cs:83` →
- *   `PointerRoutingDecisions.NormalizePressure`，这里内聚到工具里，效果等价）。
+ * 笔工具状态机（对应桌面 Interaction/Tools/PenTool.cs，121 行）。与桌面逐条对齐：采样阈值是世界距离 `0.5 / zoom`（PenTool.cs:25,93-119），不是屏幕距离；begin() 无条件落下第一个点，因此点一下也能提交单点笔迹（单点由渲染层画成实心圆，见 docs/dev/guides/ink-rendering.zh-CN.md §5.3）；end() 只要有至少 1 个点就提交一条 AddInkItemCommand（PenTool.cs:73-76），是否丢弃单点由控制器决定：桌面只在触摸来源的手势被第二指打断时才丢弃（PointerRoutingDecisions.cs:167-173 ResolveTouchGestureEnd，调用点 BoardInputController.Pointer.cs:94/97），web 侧落在 interaction/pointer-router.ts 的 discard-dot-stroke 与 commit-stroke 动作上。
+ * 压感归一化内聚在工具里（`enablePressure ? clamp(p, 0.1, 1) : 1`）；桌面在控制器 Operations.cs:83 到 NormalizePressure 做，效果等价。
  */
 
 /** 相邻采样点的最小世界距离基准（zoom = 1 时）；桌面 `PenTool.MinAppendDistanceWorldBase`（`PenTool.cs:25`）。 */
@@ -35,11 +22,7 @@ export function minAppendDistanceWorld(zoom: number): number {
 }
 
 /**
- * 笔工具：一次手势 = 一条笔迹 = 一条 `AddInkItemCommand`。
- *
- * 预览对象**每次手势新建、手势期间原地追加点**（对应桌面 `ActiveStroke` / `PreviewItem`）：
- * `getPreviewStroke()` 返回的就是活动笔迹本体，渲染层每次 `move()` 返回 true 时重绘即可；
- * `end()` 提交的也是同一个对象，因此提交后不要再持有预览引用做增量修改。
+ * 笔工具：一次手势 = 一条笔迹 = 一条 AddInkItemCommand。预览对象每次手势新建、手势期间原地追加点（对应桌面 ActiveStroke 与 PreviewItem）：getPreviewStroke() 返回的就是活动笔迹本体，渲染层每次 move() 返回 true 时重绘即可；end() 提交的也是同一个对象，因此提交后不要再持有预览引用做增量修改。
  */
 export class PenTool implements InkTool {
   private readonly _getSettings: PenSettingsProvider
@@ -83,8 +66,7 @@ export class PenTool implements InkTool {
     const world = ctx.toWorld(screenDip)
     const last = stroke.points[stroke.points.length - 1]
 
-    // 世界距离过滤：`DistanceSquared < minDist²` 时丢弃（桌面 `PenTool.cs:100-105`）。
-    // 边界语义与桌面一致——距离**等于**阈值时追加（桌面用的是 `<` 而不是 `<=`）。
+    // 世界距离过滤：`DistanceSquared < minDist²` 时丢弃（桌面 `PenTool.cs:100-105`）。边界语义与桌面一致，距离等于阈值时追加（桌面用严格小于）。
     if (last !== undefined) {
       const minDistWorld = minAppendDistanceWorld(ctx.zoom)
       const dx = world.x - last.x

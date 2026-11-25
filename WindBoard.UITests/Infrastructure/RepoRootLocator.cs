@@ -38,8 +38,7 @@ namespace WindBoard.UITests.Infrastructure
 
             string tfm = "net10.0-windows10.0.26100.0";
 
-            // 优先明确路径（覆盖 RID 特定与平台无关两种输出布局），找不到再全量搜索兜底。
-            // 说明：主工程构建可能产出 win-x64 RID 子目录，两种都要覆盖；
+            // 优先明确路径并全量搜索兜底：主工程构建可能产出 win-x64 RID 子目录与平台无关两种输出布局，都要覆盖；
             // 且必须校验 exe 同目录存在 WindBoard.dll，避免选中孤立 apphost 启动失败。
             string[] candidates =
             {

@@ -1,15 +1,6 @@
 /**
- * 画布宿主：唯一一个把 React 与命令式画布控制器接起来的地方。
- *
- * 职责边界（刻意做窄，方便替换）：
- * - 创建/销毁 `BoardController`（内部含渲染句柄与 DOM 输入适配器）；
- * - 把设置里的画布背景色同步给控制器；
- * - 画布元素铺满容器，`touch-action: none` 由样式表保证；
- * - **P2.3 覆盖层**：选中后在选择框下方渲染"形状属性浮层"与"选中项 Dock"两块 DOM 浮层。
- *   选择框、8 个手柄、框选矩形是**画在 canvas 上**的（`render/selection.ts`，由控制器驱动），
- *   这里只负责桌面上那两块 XAML 浮层（`BoardCanvasControl.xaml:74-168`）。
- *
- * **不做**的事：工具栏、弹出面板、设置窗口。它们都由 shell 组件按控制器快照渲染。
+ * 画布宿主：唯一一个把 React 与命令式画布控制器接起来的地方。职责刻意做窄：创建与销毁 BoardController（内部含渲染句柄与 DOM 输入适配器）、把设置里的画布背景色同步给控制器、让画布元素铺满容器（touch-action: none 由样式表保证）、渲染 P2.3 覆盖层（选中后在选择框下方显示形状属性浮层与选中项 Dock）；选择框、8 个手柄与框选矩形画在 canvas 上（render/selection.ts，由控制器驱动），这里只负责桌面上那两块 XAML 浮层（BoardCanvasControl.xaml:74-168）。
+ * 工具栏、弹出面板与设置窗口不归它管，由 shell 组件按控制器快照渲染。
  */
 
 import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, type ReactNode } from 'react'
@@ -52,10 +43,7 @@ import {
 /** 属性。 */
 export interface BoardSurfaceProps {
   /**
-   * 控制器创建/销毁时回调。
-   *
-   * shell 用它来决定"什么时候可以渲染工具栏"——工具栏依赖控制器存在，
-   * 而控制器又必须等画布元素挂载后才能创建。
+   * 控制器创建与销毁时回调。工具栏依赖控制器存在，而控制器又必须等画布元素挂载后才能创建，shell 用它决定什么时候可以渲染工具栏。
    */
   readonly onControllerChange?: (controller: BoardController | null) => void
   /** 画布之上、同一容器内的覆盖层（保留给 shell 用）。 */
@@ -133,9 +121,7 @@ export function BoardSurface(props: BoardSurfaceProps): ReactNode {
       return
     }
 
-    // 启动时的画笔颜色取色板首个有效色（桌面 `ApplyInitialPenColor`，默认 #FFFFFF）；
-    // 色板全为空块时保留控制器默认值。粗细固定用默认 3.0（桌面不改写 `PenBaseSize`，
-    // 面板里"哪一档被选中"是打开时按 `|当前值 - 档位| < 0.001` 反推的）。
+    // 启动时的画笔颜色取色板首个有效色（桌面 `ApplyInitialPenColor`，默认 #FFFFFF）；色板全为空块时保留控制器默认值。粗细固定用默认 3.0（桌面不改写 `PenBaseSize`，面板里"哪一档被选中"是打开时按 `|当前值 - 档位| < 0.001` 反推的）。
     const initialColorHex = resolveInitialPenColorHex(paletteHexes)
     const penSettings = createDefaultPenSettings()
     if (initialColorHex !== null) {
@@ -169,11 +155,7 @@ export function BoardSurface(props: BoardSurfaceProps): ReactNode {
   }, [controller, background])
 
   /**
-   * 开发期调试句柄：把控制器挂到 `window` 上，供 DevTools / 性能脚本操作。
-   *
-   * 只用于本地开发（`import.meta.env.DEV`）：生产构建里这段会被整段摇掉，
-   * 因此不存在"线上暴露内部控制对象"的风险。存在的理由很实际——
-   * P5.2 的 1 万笔迹压测需要能批量灌入笔迹并直接读帧时间，靠模拟指针事件造数据既慢又失真。
+   * 开发期调试句柄：把控制器挂到 window 上，供 DevTools 与性能脚本操作。只在 import.meta.env.DEV 下存在，生产构建里整段被摇掉；1 万笔迹压测需要批量灌入笔迹并直接读帧时间，靠模拟指针事件造数据既慢又失真。
    */
   useEffect(() => {
     if (!import.meta.env.DEV || controller === null) {
@@ -187,10 +169,7 @@ export function BoardSurface(props: BoardSurfaceProps): ReactNode {
   }, [controller])
 
   /**
-   * 系统「用 WindBoard 打开 .wbix」：把 `file_handlers` 递进来的文件插到最后一页之后。
-   *
-   * 语义与导入对话框完全一致（桌面 `ImportFlow.cs:99-101` 只有 `AppendAfterLastPage` 一条活路径），
-   * 因此这里直接复用 `applyImportedWorkspace`，不另写一套覆盖/合并逻辑。
+   * 系统「用 WindBoard 打开 .wbix」：把 file_handlers 递进来的文件插到最后一页之后。语义与导入对话框一致（桌面 ImportFlow.cs:99-101 只有 AppendAfterLastPage 一条活路径），因此直接复用 applyImportedWorkspace，不另写覆盖或合并逻辑。
    */
   useEffect(() => {
     if (controller === null) {
@@ -222,10 +201,7 @@ export function BoardSurface(props: BoardSurfaceProps): ReactNode {
   }, [controller, reminders, t])
 
   /**
-   * 自动保存：控制器就绪后启动，文档/页变化时按 2s 节流落盘（网页端增强，桌面无此功能）。
-   *
-   * 恢复流程：启动时先读元数据，有存档就弹 `RecoveryDialog`；
-   * 恢复走"解析存档 → 替换工作区"，等价于导入自己刚存的 WBIX。
+   * 自动保存：控制器就绪后启动，文档与页变化时按 2s 节流落盘（网页端增强，桌面无此功能）。启动时先读元数据，有存档就弹 RecoveryDialog，恢复走「解析存档 → 替换工作区」，等价于导入自己刚存的 WBIX。
    */
   useEffect(() => {
     if (controller === null) {
@@ -328,10 +304,7 @@ export function BoardSurface(props: BoardSurfaceProps): ReactNode {
   const hasSelection = selection !== null && (selection.items.length > 0 || selection.element !== null)
 
   // 浮层是先渲染、再量尺寸、再定位（桌面也是 `Measure` 后 `Clamp`）。用 layout effect 保证不闪烁。
-  //
-  // 这里刻意不写依赖数组：每次渲染后都要重量（浮层内容随选中对象变化），而 `setMetrics` 只在
-  // 尺寸真的变了才换对象，所以不会形成更新循环（下一帧 `current === next` 直接返回原值）。
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+  // 这里刻意不写依赖数组：每次渲染后都要重量（浮层内容随选中对象变化），而 `setMetrics` 只在尺寸真的变了才换对象，不会形成更新循环（下一帧 `current === next` 直接返回原值）。
   useLayoutEffect(() => {
     const host = overlayHostRef.current
     if (host === null) {
@@ -359,11 +332,7 @@ export function BoardSurface(props: BoardSurfaceProps): ReactNode {
   const shapeFields = shape === null ? null : deriveShapePropertyFields(shape)
 
   /**
-   * 浮层锚点：选择框下沿中心（桌面 `bounds.Bottom + 8`），并按已量到的浮层宽度把 X 钳进画布。
-   *
-   * - 形状属性浮层：锚点直接是选择框下沿；
-   * - 选中项 Dock：有属性浮层时排在浮层下方（桌面 `panelBottom + 8`），否则也在选择框下沿。
-   *   两个组件内部都自带 `translate(-50%, 8px)`，所以这里传的是"下沿中心"，不需要自己补 8。
+   * 浮层锚点：选择框下沿中心（桌面 bounds.Bottom + 8），并按已量到的浮层宽度把 X 钳进画布。形状属性浮层直接锚在选择框下沿；选中项 Dock 在有属性浮层时排在浮层下方（桌面 panelBottom + 8），否则也在选择框下沿。两个组件内部都自带 translate(-50%, 8px)，所以这里传下沿中心即可。
    */
   const centerX = bounds === null ? 0 : (bounds.min.x + bounds.max.x) / 2
   const selectionBarAnchor =
@@ -459,11 +428,7 @@ export function BoardSurface(props: BoardSurfaceProps): ReactNode {
 }
 
 /**
- * 把"居中锚点"的 X 钳进画布范围。
- *
- * 桌面是把浮层的**结果矩形**钳到 `[0, 画布宽 - 浮层宽]`（`Rendering.cs:308-317`）；
- * 网页端浮层靠 `translate(-50%, 8px)` 居中，所以这里按半宽收边，等价于同一个结果矩形钳制。
- * 宽度首帧尚未量到时传 0，视为"未约束"，下一帧量到后自然收敛。
+ * 把「居中锚点」的 X 钳进画布范围。桌面是把浮层的结果矩形钳到 [0, 画布宽 - 浮层宽]（Rendering.cs:308-317），网页端浮层靠 translate(-50%, 8px) 居中，因此按半宽收边，等价于同一个结果矩形钳制；宽度首帧尚未量到时传 0，视为未约束，下一帧量到后自然收敛。
  */
 function clampAnchorCenterX(x: number, width: number, viewportWidth: number): number {
   if (width <= 0 || viewportWidth <= width) {

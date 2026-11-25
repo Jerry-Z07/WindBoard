@@ -65,9 +65,7 @@ namespace WindBoard.Features.Dock.Models
         public string? DisplayName { get; set; }
 
         /// <summary>
-        /// 路径或网址：
-        /// - 文件/程序：本地路径（例如 C:\a\b.txt 或 C:\a\app.exe）
-        /// - 链接：http/https URL
+        /// 本地路径（文件或程序）或 http/https 网址。
         /// </summary>
         public string Path { get; set; } = string.Empty;
 

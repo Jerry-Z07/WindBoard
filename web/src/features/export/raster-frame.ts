@@ -1,11 +1,5 @@
 /**
- * 导出画幅计算（对应桌面 `Features/Export/Services/BoardRasterExporter.cs:80-158`）。
- *
- * 两条分支：
- * - **固定画幅**（PNG 的 1:1 / 4:3 / 16:9）：输出像素由预设决定，内容等比缩放后居中；
- * - **自适应画幅**（PDF、以及 PNG 无预设时）：按内容包围盒 + 2× 留白裁切，尺寸随内容变化。
- *
- * 世界坐标与 DIP 等价（1 DIP = 1 世界单位），所以这里统一用 DIP 表达。
+ * 导出画幅计算（对应桌面 Features/Export/Services/BoardRasterExporter.cs:80-158）。固定画幅（PNG 的 1:1、4:3、16:9）输出像素由预设决定，内容等比缩放后居中；自适应画幅（PDF、以及 PNG 无预设时）按内容包围盒加 2× 留白裁切，尺寸随内容变化。世界坐标与 DIP 等价（1 DIP = 1 世界单位），所以这里统一用 DIP 表达。
  */
 
 import { getStrokeBounds } from '../../ink/geometry.ts'
@@ -78,12 +72,7 @@ function contentSize(bounds: ExportContentBounds): { width: number; height: numb
 }
 
 /**
- * 计算导出画幅。
- *
- * 逐条对应桌面实现，包括容易漏掉的细节：
- * - 固定画幅分支：`dpi` 固定 96；内容按 `min(可用宽/内容宽, 可用高/内容高)` 缩放后居中；
- * - 自适应分支：`widthDip = 内容宽 + 2×留白`，`cameraWorld` 取内容中心；
- * - 空内容：固定画幅分支 `cameraWorld` 取原点；自适应分支用 `fallbackViewportSizeDip`（避免导出 1×1）。
+ * 计算导出画幅，逐条对应桌面实现：固定画幅分支 dpi 固定 96，内容按 min(可用宽/内容宽, 可用高/内容高) 缩放后居中；自适应分支 widthDip = 内容宽 + 2×留白，cameraWorld 取内容中心；空内容时固定画幅分支 cameraWorld 取原点，自适应分支用 fallbackViewportSizeDip（避免导出 1×1）。
  */
 export function computeExportFrame(
   bounds: ExportContentBounds | null,
@@ -163,11 +152,7 @@ export function computeExportFrame(
 }
 
 /**
- * 计算一页内容的导出包围盒（世界坐标）。
- *
- * 桌面 `TryGetDocumentBounds`（`BoardRasterExporter.cs:222-260`）**只统计笔迹**，
- * 形状与元素不参与——这里保持同样口径，否则导出画幅会与桌面不一致。
- * 无有效包围盒的笔迹（空点集）跳过；没有任何有效笔迹返回 null。
+ * 计算一页内容的导出包围盒（世界坐标）。桌面 TryGetDocumentBounds（BoardRasterExporter.cs:222-260）只统计笔迹，形状与元素不参与，这里保持同样口径，否则导出画幅会与桌面不一致；无有效包围盒的笔迹（空点集）跳过，没有任何有效笔迹返回 null。
  */
 export function computePageContentBounds(items: readonly InkItem[]): ExportContentBounds | null {
   let minX = Number.POSITIVE_INFINITY

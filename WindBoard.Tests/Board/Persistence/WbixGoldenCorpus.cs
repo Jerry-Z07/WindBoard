@@ -10,20 +10,9 @@ namespace WindBoard.Tests.Board.Persistence;
 /// WBIX 字节级 golden 语料的定位、读取与重建（语料位于 <c>WindBoard.Tests/Fixtures/wbix/</c>，纳入版本库）。
 /// </summary>
 /// <remarks>
-/// 语料结构：
-/// - <c>model/*.json</c>：声明式输入模型（页与元素的快照形态），测试据此构造 <c>BoardWorkspaceSnapshot</c>；
-/// - <c>expected/{模型名}/entries.txt</c>：Zip 条目名与写出顺序（每行一个）；
-/// - <c>expected/{模型名}/&lt;条目名&gt;</c>：该条目解压后的期望文本（CRLF、无尾随换行）；
-/// - <c>files/*.wbix</c>：读侧一致性样本（v3 为生产写侧真实输出，v1/v2 为按格式手写的样本）。
-///
-/// 重建机制（与渲染快照的 <c>WINDBOARD_REGEN_SNAPSHOTS</c> 一致）：
-/// - 语料缺失视为测试失败（防止新增模型忘提交语料、语料被误删等情况被静默放过）；
-/// - 环境变量 <c>WINDBOARD_REGEN_WBIX_GOLDEN=1</c> 时用本次写出的结果覆盖语料并跳过断言，
-///   用于首次生成或写侧形态有意变更后重建；语料变更须在提交说明中说明理由。
-///
-/// 行尾约定：Zip 内 JSON 由 <c>System.Text.Json</c> 缩进写出，Windows 上换行为 CRLF。
-/// 语料文件按 CRLF 保存（与写出结果一致），比对时仍做 <c>\r\n</c>→<c>\n</c> 归一，
-/// 以免 <c>core.autocrlf</c> 等检出差异造成假失败；"写侧确实使用 CRLF" 由测试单独断言。
+/// 语料结构：<c>model/*.json</c> 是声明式输入模型（测试据此构造 <c>BoardWorkspaceSnapshot</c>）；<c>expected/{模型名}/entries.txt</c> 记 Zip 条目名与写出顺序（每行一个）；<c>expected/{模型名}/&lt;条目名&gt;</c> 为该条目解压后的期望文本（CRLF、无尾随换行）；<c>files/*.wbix</c> 是读侧一致性样本（v3 为生产写侧真实输出，v1/v2 按格式手写）。
+/// 重建机制与渲染快照的 <c>WINDBOARD_REGEN_SNAPSHOTS</c> 一致：语料缺失视为测试失败（防止新增模型忘提交语料、语料被误删等情况被静默放过）；<c>WINDBOARD_REGEN_WBIX_GOLDEN=1</c> 时用本次写出结果覆盖语料并跳过断言，用于首次生成或写侧形态有意变更后重建，语料变更须在提交说明中说明理由。
+/// 行尾约定：Zip 内 JSON 由 <c>System.Text.Json</c> 缩进写出，Windows 上换行为 CRLF；语料文件按 CRLF 保存（与写出结果一致），比对时仍做 <c>\r\n</c>→<c>\n</c> 归一，以免 <c>core.autocrlf</c> 等检出差异造成假失败；“写侧确实使用 CRLF”由测试单独断言。
 /// </remarks>
 internal static class WbixGoldenCorpus
 {
@@ -184,12 +173,8 @@ internal static class WbixGoldenCorpus
 /// golden 语料中的声明式模型（<c>model/*.json</c>）。
 /// </summary>
 /// <remarks>
-/// 说明：
-/// - <see cref="Pages"/> 的每个元素与 WBIX 页文件（<c>pages/page-XXX.json</c>）同构，
-///   因此 <see cref="WbixPagePayload"/> 可直接复用生产转换器解析；
-/// - 元素的 <c>data.layer</c> 决定其归入 belowInk 还是 aboveInk（写侧按层重排）；
-/// - <c>data.order</c> 为负数时表示"按层内数组下标重排"（与写侧规则一致）；
-/// - 元素 <c>data.resourceId</c> 不参与输入：写侧由 <see cref="Resources"/> 的 <c>meta</c> 推导。
+/// <see cref="Pages"/> 的每个元素与 WBIX 页文件（<c>pages/page-XXX.json</c>）同构，因此 <see cref="WbixPagePayload"/> 可直接复用生产转换器解析。
+/// 元素的 <c>data.layer</c> 决定归入 belowInk 还是 aboveInk（写侧按层重排）；<c>data.order</c> 为负数表示按层内数组下标重排；<c>data.resourceId</c> 不参与输入（写侧由 <see cref="Resources"/> 的 <c>meta</c> 推导）。
 /// </remarks>
 internal sealed record WbixGoldenModel(
     int CurrentIndex,

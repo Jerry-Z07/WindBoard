@@ -55,7 +55,7 @@ namespace WindBoard
 
         private DockMainWindowHost CreateDockHost()
         {
-            // 注意：这里是 MainWindow 与 Dock Feature 的桥接层，负责提供 Dock 所需的 UI 引用。
+            // 这里是 MainWindow 与 Dock Feature 的桥接层，负责提供 Dock 所需的 UI 引用。
             return new DockMainWindowHost
             {
                 LeftDockPanel = LeftDockPanel,

@@ -16,14 +16,11 @@ namespace WindBoard.Controls
     /// 画布控件：形状属性浮层（design F，R8）。
     /// </summary>
     /// <remarks>
-    /// - 仿 SelectionDock 的 overlay 模式：选中单个形状时显示，清选/多选/切换工具时隐藏，
-    ///   锚定选择包围盒下方（Dock 排在其下方）；
-    /// - 字段按 Kind：Line/Arrow = 长度+角度；Rectangle/Ellipse = 宽+高（圆 = 宽高相等的特例，不单设半径字段）；
-    /// - 长度/宽/高以厘米显示与编辑（1 世界单位 = 1/96 英寸，见 <see cref="ShapePropertyMath.WorldToCentimeters"/>），
-    ///   域存储仍为世界坐标；角度不换算；
-    /// - 编辑语义：Rectangle/Ellipse 以 TopLeft 为锚点改宽高，Line/Arrow 以 Start 为锚点按长度/角度重设 End；
-    /// - NumberBox 仅在提交时机（确认/失焦且值实际变化）触发 ValueChanged，经
-    ///   <see cref="UpdateShapeGeometryCommand"/> 提交可撤销，避免高频 ValueChanged 膨胀撤销栈；
+    /// - 仿 SelectionDock 的 overlay 模式：选中单个形状时显示，清选/多选/切换工具时隐藏，锚定选择包围盒下方（Dock 排在其下方）。
+    /// - 字段按 Kind：Line/Arrow 为长度加角度，Rectangle/Ellipse 为宽加高（圆是宽高相等的特例，不单设半径字段）。
+    /// - 长度/宽/高以厘米显示与编辑（1 世界单位 = 1/96 英寸，见 <see cref="ShapePropertyMath.WorldToCentimeters"/>），域存储仍为世界坐标，角度不换算。
+    /// - 编辑语义：Rectangle/Ellipse 以 TopLeft 为锚点改宽高，Line/Arrow 以 Start 为锚点按长度与角度重设 End。
+    /// - NumberBox 仅在提交时机（确认或失焦且值实际变化）触发 ValueChanged，经 <see cref="UpdateShapeGeometryCommand"/> 提交可撤销，避免高频 ValueChanged 膨胀撤销栈。
     /// - 撤销/重做/拖拽移动后面板数值随 UpdateSelectionOverlay 刷新。
     /// </remarks>
     public sealed partial class BoardCanvasControl
@@ -160,9 +157,8 @@ namespace WindBoard.Controls
 
         /// <summary>从形状读当前值刷新 NumberBox（长度类字段换算为厘米；撤销/重做/拖拽移动后经 UpdateSelectionOverlay 到达）。</summary>
         /// <remarks>
-        /// 任一 NumberBox 处于焦点编辑中时跳过同步，避免打断用户输入；编辑结束（失焦/确认）后由下一次刷新对齐。
-        /// 焦点保护只适用于同一目标的刷新：<paramref name="force"/> 为 true（切换服务目标）时必须回读，
-        /// 否则输入框里上一个形状的残留值会在后续提交时改写新形状。
+        /// 任一 NumberBox 处于焦点编辑中时跳过同步，避免打断用户输入；编辑结束（失焦或确认）后由下一次刷新对齐。
+        /// 焦点保护只适用于同一目标的刷新：<paramref name="force"/> 为 true（切换服务目标）时必须回读，否则输入框里上一个形状的残留值会在后续提交时改写新形状。
         /// </remarks>
         private void SyncShapePropertyBoxes(BoardShape shape, bool force = false)
         {
@@ -221,8 +217,7 @@ namespace WindBoard.Controls
         }
 
         /// <summary>
-        /// NumberBox 提交时机（确认/失焦且值实际变化）统一入口：长度类字段由厘米换回世界坐标，
-        /// 再按 Kind 换算新几何并经命令栈提交。
+        /// NumberBox 提交的统一入口（确认或失焦且值实际变化）：长度类字段由厘米换回世界坐标，再按 Kind 换算新几何并经命令栈提交。
         /// </summary>
         private void CommitShapePropertiesFromBoxes()
         {

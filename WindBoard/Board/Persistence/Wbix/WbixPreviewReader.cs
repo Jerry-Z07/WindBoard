@@ -9,11 +9,8 @@ using WindBoard.Localization;
 namespace WindBoard.Board.Persistence.Wbix
 {
     /// <summary>
-    /// WBIX 预读：用于导入确认对话框等“快速预览”场景。
-    /// 
-    /// 注意：
-    /// - 该预读只读取 manifest 与可选封面（assets/cover.png），不会加载所有页面数据；
-    /// - 预读失败应返回 null，并记录日志，不应阻断 UI 线程。
+    /// WBIX 预读，用于导入确认对话框等快速预览场景：只读 manifest 与可选封面（assets/cover.png），不加载页面数据。
+    /// 预读失败返回 null 并记日志，不阻断 UI 线程。
     /// </summary>
     internal static class WbixPreviewReader
     {

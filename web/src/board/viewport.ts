@@ -1,22 +1,8 @@
 import type { Vec2 } from './model/stroke.ts'
 
 /**
- * 画板视口（对应桌面 `WindBoard.Board.Viewport.BoardViewport`）。
- *
- * 坐标约定（与桌面 `BoardViewport.cs` 逐条对齐）：
- * - `cameraWorld` 是**视口中心**对应的世界坐标，不是左上角；
- * - 屏幕坐标单位为 DIP，原点在视口左上角，`sizeDip` 由调用方注入（域层不读 DOM）；
- * - 世界 → 屏幕：`screen = (world − cameraWorld) · zoom + sizeDip / 2`；
- * - 屏幕 → 世界：`world = (screen − sizeDip / 2) / max(0.0001, zoom) + cameraWorld`；
- * - 平移：`cameraWorld −= deltaScreen / max(0.0001, zoom)`；
- * - 锚点缩放：锚点下的世界点保持不动，`zoom' = clamp(zoom · factor, 0.05, 32)`，
- *   `|zoom' − zoom| < 1e-6` 视为死区（桌面同款）。
- *
- * 状态变更通知（`subscribe`）：
- * - 只有状态**实际变化**时才通知（零平移、死区缩放、尺寸不变都不通知）；
- * - `cameraWorld` / `sizeDip` 返回不可变快照，仅在变化时更换对象引用，
- *   便于 UI 侧用 `useSyncExternalStore` 安全订阅；
- * - `updateViewportSize` 也会通知：可见区域变化后渲染层需要重绘。
+ * 画板视口（对应桌面 WindBoard.Board.Viewport.BoardViewport）。坐标约定与 BoardViewport.cs 逐条对齐：cameraWorld 是视口中心对应的世界坐标而非左上角；屏幕坐标单位为 DIP，原点在视口左上角，sizeDip 由调用方注入（域层不读 DOM）；世界到屏幕为 `screen = (world − cameraWorld) · zoom + sizeDip / 2`，反向为 `world = (screen − sizeDip / 2) / max(0.0001, zoom) + cameraWorld`；平移为 `cameraWorld −= deltaScreen / max(0.0001, zoom)`；锚点缩放保持锚点下的世界点不动，`zoom' = clamp(zoom · factor, 0.05, 32)`，`|zoom' − zoom| < 1e-6` 视为死区（桌面同款）。
+ * subscribe 只在状态实际变化时通知（零平移、死区缩放、尺寸不变都不通知）；cameraWorld 与 sizeDip 返回不可变快照，仅在变化时更换引用，便于 UI 用 useSyncExternalStore 安全订阅；updateViewportSize 也会通知，因为可见区域变化后渲染层需要重绘。
  */
 
 /** 交互缩放下限（桌面 `BoardViewport.MinZoom`）。 */

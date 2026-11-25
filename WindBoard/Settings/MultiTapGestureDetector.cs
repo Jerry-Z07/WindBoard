@@ -4,10 +4,7 @@ namespace WindBoard.Settings
 {
     /// <summary>
     /// 多击（连击）检测器：在指定时间窗口内累计点击次数，达到阈值后触发一次并自动重置。
-    /// 
-    /// 设计目标：
-    /// - 纯逻辑可单测（由调用方传入时间戳）
-    /// - 防御时钟回拨（now &lt; lastTapAt 时重置计数）
+    /// 纯逻辑可单测（时间戳由调用方传入），并防御时钟回拨（now &lt; lastTapAt 时重置计数）。
     /// </summary>
     internal sealed class MultiTapGestureDetector
     {

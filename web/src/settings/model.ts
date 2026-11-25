@@ -1,17 +1,6 @@
 /**
- * 设置模型：字段名、默认值与归一化规则**逐条对齐桌面版** `settings.json`
- * （事实源：`.trellis/tasks/10-31-web-port/research/05-settings-format.md`）。
- *
- * 为什么字段名要和桌面一模一样：P4.6 要求"设置文件与桌面版互通"（design D10）。
- * 只要网页端的内存模型与桌面 schema 同构，导入导出就只剩序列化一层，不需要字段映射表。
- *
- * 网页端**丢弃**的桌面字段（连同理由）：
- * - `general.camouflage`：伪装是 Windows 进程/图标级能力，浏览器无法实现；
- * - `general.updates`：网页端由 Service Worker 静默更新，没有检查/下载源的概念；
- * - `general.enterScreenAnnotationWhenMinimized`：浏览器没有"最小化后接管屏幕"；
- * - `dock.shortcutItems`：快捷 Dock 在 v1 不实现（`isShortcutDocksVisible` 保留，恒 false）；
- * - `diagnostics` / `announcements`：日志与公告是桌面端基础设施。
- * 保留的字段即使当前 UI 未暴露，也按桌面默认值落盘，避免将来加回时出现"字段消失"。
+ * 设置模型：字段名、默认值与归一化规则逐条对齐桌面版 settings.json（事实源见 .trellis/tasks/10-31-web-port/research/05-settings-format.md）。字段名必须与桌面完全一致，因为设置文件要与桌面版互通（design D10），只要内存模型与桌面 schema 同构，导入导出就只剩序列化一层，不需要字段映射表。
+ * 网页端丢弃的桌面字段：general.camouflage（伪装是 Windows 进程与图标级能力）、general.updates（网页端由 Service Worker 静默更新）、general.enterScreenAnnotationWhenMinimized（浏览器没有最小化后接管屏幕）、dock.shortcutItems（v1 不实现快捷 Dock，isShortcutDocksVisible 保留且恒 false）、diagnostics 与 announcements（桌面端基础设施）。保留的字段即使当前 UI 未暴露也按桌面默认值落盘，避免将来加回时出现字段消失。
  */
 
 import { canonicalShortcutBinding, isValidShortcutBinding } from '../interaction/shortcuts.ts'
@@ -173,9 +162,7 @@ export const DEFAULT_SETTINGS: AppSettings = Object.freeze({
 const RGB_HEX_PATTERN = /^[0-9A-Fa-f]{6}$/
 
 /**
- * 归一化颜色：接受 `#RRGGBB` / `RRGGBB` / `#AARRGGBB` / `AARRGGBB`，输出大写 `#RRGGBB`（丢弃 alpha）。
- *
- * 对应桌面 `ColorHex.TryParse` + `ToHexRgb`。非法返回 `null`（调用方决定回退值）。
+ * 归一化颜色：接受 #RRGGBB / RRGGBB / #AARRGGBB / AARRGGBB，输出大写 #RRGGBB（丢弃 alpha）。对应桌面 ColorHex.TryParse + ToHexRgb，非法返回 null（调用方决定回退值）。
  */
 export function normalizeColorHex(value: unknown): string | null {
   if (typeof value !== 'string') {
@@ -201,13 +188,7 @@ export function normalizeColorHexOrDefault(value: unknown, defaultHex: string): 
 }
 
 /**
- * 取色板里第一个可解析的颜色，作为启动时的画笔颜色。
- *
- * 对应桌面 `MainWindow.ApplyInitialPenColor()`：启动时**只执行一次**，把 `ToolOptions.PenColor`
- * 改成色板首个有效色（默认色板首项是 `#FFFFFF`）。`BoardCanvasControl` 字段初始化里的黑色
- * 只是"这条逻辑跑之前"的兜底值，不是用户实际看到的默认笔色——照抄它会得到深色画布上的黑笔。
- *
- * 全部为空块时返回 `null`，调用方保留原有画笔颜色（桌面同样"不做兜底扩展"）。
+ * 取色板里第一个可解析的颜色，作为启动时的画笔颜色。对应桌面 MainWindow.ApplyInitialPenColor()：启动时只执行一次，把 ToolOptions.PenColor 改成色板首个有效色（默认色板首项是 #FFFFFF）。BoardCanvasControl 字段初始化里的黑色只是这条逻辑跑之前的兜底值，照抄它会得到深色画布上的黑笔；全部为空块时返回 null，调用方保留原有画笔颜色（桌面同样不做兜底扩展）。
  */
 export function resolveInitialPenColorHex(palette: readonly (string | null)[]): string | null {
   for (const entry of palette) {
@@ -313,9 +294,7 @@ export function normalizeThicknessPresets(value: unknown): [number, number, numb
 }
 
 /**
- * 归一化单个快捷键：空白 → `""`（禁用）；非法 → 回退默认；合法 → 规范格式。
- *
- * 对应桌面 `KeyboardShortcutsSettings` 的归一化规则。
+ * 归一化单个快捷键：空白 → ""（禁用）；非法 → 回退默认；合法 → 规范格式。对应桌面 KeyboardShortcutsSettings 的归一化规则。
  */
 function normalizeShortcutBinding(value: unknown, fallback: string): string {
   if (typeof value !== 'string') {
@@ -324,9 +303,7 @@ function normalizeShortcutBinding(value: unknown, fallback: string): string {
   if (value.trim() === '') {
     return ''
   }
-  // 桌面 `KeyboardShortcutGesture.IsValidForApp`（`:125-134`）要求必须含 Ctrl 或 Alt，
-  // 只做 `canonicalShortcutBinding` 会把 `Shift+Z` / `A` 这类"可解析但不可用"的值留下，
-  // 与桌面读设置文件的行为不一致。
+  // 桌面 KeyboardShortcutGesture.IsValidForApp（:125-134）要求必须含 Ctrl 或 Alt，只做 canonicalShortcutBinding 会把 Shift+Z / A 这类"可解析但不可用"的值留下，与桌面读设置文件的行为不一致。
   if (!isValidShortcutBinding(value)) {
     return fallback
   }
@@ -334,9 +311,7 @@ function normalizeShortcutBinding(value: unknown, fallback: string): string {
 }
 
 /**
- * 归一化完整设置：任何非法/缺失字段都回落到默认值，绝不抛异常。
- *
- * 对应桌面 `AppSettingsStore` 的读容错：**读不出来的东西不要炸，用默认值继续**。
+ * 归一化完整设置：任何非法或缺失字段都回落到默认值，绝不抛异常。对应桌面 AppSettingsStore 的读容错：读不出来的东西不要炸，用默认值继续。
  */
 export function normalizeSettings(raw: unknown): AppSettings {
   const source = (raw ?? {}) as Record<string, unknown>

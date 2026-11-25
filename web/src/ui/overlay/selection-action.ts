@@ -1,15 +1,6 @@
 /**
- * 选中项 Dock 的按钮状态推导（纯函数，node 可测）。
- *
- * 桌面出处：`WindBoard/Controls/BoardCanvasControl.Rendering.cs:262-290`：
- * - `SelectionBringToFrontButton.IsEnabled = !isTopMost || canCancelBringToFront`
- * - 文案 `canCancelBringToFront ? Common_CancelBringToFront : Common_BringToFront`
- * - 图标 `canCancelBringToFront ? Symbol.Undo : Symbol.Up`
- *
- * 也就是说"不可用"时文案与图标仍保持「置顶 / Up」，只有"可撤销的置顶"才切成「取消置顶 / Undo」。
- *
- * 图标用**判别值**（`'up' | 'undo'`）而不是 React 元素返回：这样本模块不依赖 React / Fluent，
- * 能在 node 环境直接单测；组件侧再映射成 `ArrowUpRegular` / `ArrowUndoRegular`。
+ * 选中项 Dock 的按钮状态推导（纯函数，node 可测）。桌面出处 Controls/BoardCanvasControl.Rendering.cs:262-290：SelectionBringToFrontButton.IsEnabled = !isTopMost || canCancelBringToFront，文案为 canCancelBringToFront ? Common_CancelBringToFront : Common_BringToFront，图标为 canCancelBringToFront ? Symbol.Undo : Symbol.Up；也就是说不可用时文案与图标仍保持「置顶 / Up」，只有可撤销的置顶才切成「取消置顶 / Undo」。
+ * 图标用判别值（'up' | 'undo'）而不是 React 元素返回，本模块因此不依赖 React 与 Fluent，能在 node 环境直接单测，组件侧再映射成 ArrowUpRegular 与 ArrowUndoRegular。
  */
 
 import type { MessageKey } from '../../i18n/locales/zh-CN.generated.ts'

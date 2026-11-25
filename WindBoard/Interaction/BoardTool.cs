@@ -4,8 +4,7 @@ namespace WindBoard.Interaction
     /// 画板当前使用的工具。
     /// </summary>
     /// <remarks>
-    /// 形状工具（阶段二 R5）复用 Pen 的颜色/粗细参数（<see cref="ToolOptions"/> 不扩展），
-    /// 工具身份由本枚举承载；形状种类与工具 id 的绑定在 <c>ShapeTool</c> 构造处单点映射。
+    /// 形状工具复用 Pen 的颜色/粗细参数（<see cref="ToolOptions"/> 不扩展），工具身份由本枚举承载；形状种类与工具 id 的绑定在 <c>ShapeTool</c> 构造处单点映射。
     /// </remarks>
     internal enum BoardTool
     {

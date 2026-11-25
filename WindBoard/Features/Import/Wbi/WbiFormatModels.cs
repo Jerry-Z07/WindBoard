@@ -5,12 +5,8 @@ using System.Text.Json.Serialization;
 namespace WindBoard.Features.Import.Wbi
 {
     /// <summary>
-    /// WBI（旧版 WindBoard Interchange）格式模型。
-    /// 
-    /// 注意：
-    /// - 这些类型仅用于“旧格式兼容导入”，不作为新版本的持久化格式；
-    /// - 字段名使用 snake_case，与旧版落盘 JSON 保持一致；
-    /// - 为兼容历史文件，属性尽量使用可空/默认值。
+    /// WBI（旧版 WindBoard Interchange）格式模型，仅用于旧格式兼容导入，不作为新版本的持久化格式。
+    /// 字段名沿用旧版落盘 JSON 的 snake_case；为兼容历史文件，属性尽量可空或带默认值。
     /// </summary>
     internal sealed class WbiManifest
     {

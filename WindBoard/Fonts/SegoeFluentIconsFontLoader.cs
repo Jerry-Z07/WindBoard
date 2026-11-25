@@ -10,13 +10,8 @@ using WindBoard.Updates;
 namespace WindBoard.Fonts
 {
     /// <summary>
-    /// Segoe Fluent Icons 字体可用性处理：
-    /// - Win11（Build >= 22000）：系统自带字体，直接使用。
-    /// - Win10：安装版由安装器写入系统字体；便携版与 MSIX（Store）版使用 AddFontResourceEx 进行“进程私有加载”。
-    ///
-    /// 重要：
-    /// - 本类只负责“让字体可用 + 统一设置 SymbolThemeFontFamily 资源”，不负责具体 Glyph 映射。
-    /// - 若字体不可用，需降级到 Segoe MDL2 Assets，避免 UI 出现大量空白/方块。
+    /// Segoe Fluent Icons 字体可用性处理：Win11（Build >= 22000）系统自带；Win10 安装版由安装器写入系统字体，便携版与 MSIX（Store）版用 AddFontResourceEx 进程私有加载。
+    /// 本类只负责让字体可用并统一设置 SymbolThemeFontFamily 资源，不做 Glyph 映射；字体不可用时降级到 Segoe MDL2 Assets，避免 UI 出现空白或方块。
     /// </summary>
     internal static class SegoeFluentIconsFontLoader
     {
@@ -47,7 +42,7 @@ namespace WindBoard.Fonts
 
         /// <summary>
         /// 初始化字体可用性（幂等）。
-        /// 说明：应尽量在 App.InitializeComponent() 之前调用，避免 XAML/渲染层过早创建图标控件导致缓存错误字体。
+        /// 应尽量在 App.InitializeComponent() 之前调用，避免 XAML/渲染层过早创建图标控件导致缓存错误字体。
         /// </summary>
         internal static void InitializeForCurrentProcess()
         {
@@ -55,9 +50,7 @@ namespace WindBoard.Fonts
         }
 
         /// <summary>
-        /// 把最终选择的图标字体写入应用资源：
-        /// - 通过覆盖 ThemeResource Key=SymbolThemeFontFamily
-        /// - 让所有 SymbolIcon / SymbolIconSource 等统一使用该字体渲染
+        /// 把最终选定的图标字体写入应用资源：覆盖 ThemeResource Key=SymbolThemeFontFamily，使 SymbolIcon / SymbolIconSource 等统一按该字体渲染。
         /// </summary>
         internal static void ApplyToResources(ResourceDictionary resources)
         {
@@ -136,10 +129,8 @@ namespace WindBoard.Fonts
                 return;
             }
 
-            // Win10：系统未安装 Fluent 图标字体。
-            // 各形态统一尝试“从 Assets 私有加载”（进程私有，不写系统字体目录）：
-            // - 便携版/打包版（MSIX）不能写系统字体目录，只能私有加载
-            // - 安装版理论上由安装器写入系统字体；若仍缺失，这里同样私有加载做兜底，避免 UI 变成方块
+            // Win10 系统未安装 Fluent 图标字体，各形态统一从 Assets 进程私有加载，不写系统字体目录：便携版与 MSIX 版写不了系统字体目录。
+            // 安装版理论上由安装器写入系统字体，若仍缺失同样私有加载兜底，避免 UI 变成方块。
             AppLog.Warn(
                 "Fonts",
                 $"Win10 检测到系统未安装 '{FluentFontFamilyName}'，将尝试从 Assets 私有加载：build={_windowsBuildNumber}, installKind={_installKind}, installDir='{install.InstallDir}'");
@@ -204,7 +195,7 @@ namespace WindBoard.Fonts
                 }
 
                 // 通知字体变化：某些组件可能在进程内缓存字体集合。
-                // 说明：FR_PRIVATE 理论上只影响当前进程，但发送 WM_FONTCHANGE 对当前进程也有正向作用。
+                // FR_PRIVATE 理论上只影响当前进程，但发送 WM_FONTCHANGE 对当前进程也有正向作用。
                 _ = SendMessage(new IntPtr(HWND_BROADCAST), WM_FONTCHANGE, IntPtr.Zero, IntPtr.Zero);
 
                 return true;
@@ -250,8 +241,6 @@ namespace WindBoard.Fonts
                 return false;
             }
         }
-
-        // -------- Win32 / NT API --------
 
         private const uint FR_PRIVATE = 0x10;
         private const uint FR_NOT_ENUM = 0x20;

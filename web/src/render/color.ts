@@ -3,11 +3,7 @@
 import type { ColorRgba } from '../board/model/stroke.ts'
 
 /**
- * `ColorRgba`（各分量 0~1，对应桌面 `Color4`）→ `rgba(r, g, b, a)` 文本。
- *
- * 说明：
- * - 与桌面一致使用 **非预乘** alpha（`Color4` 语义），Canvas2D 的 `rgba()` 同样是非预乘；
- * - 越界值按 0~1 收敛，避免损坏数据让画布整体失效。
+ * ColorRgba（各分量 0~1，对应桌面 Color4）→ rgba(r, g, b, a) 文本。与桌面一致使用非预乘 alpha（Color4 语义），Canvas2D 的 rgba() 同样是非预乘；越界值按 0~1 收敛，避免损坏数据让画布整体失效。
  */
 export function colorToCss(color: ColorRgba): string {
   return `rgba(${toByte(color.x)}, ${toByte(color.y)}, ${toByte(color.z)}, ${formatAlpha(color.w)})`

@@ -1,17 +1,6 @@
 /**
- * 选中项 Dock（P2.3）：悬浮在选择框下方的一组操作按钮。
- *
- * 桌面出处：`WindBoard/Controls/BoardCanvasControl.xaml:118-168`（`SelectionDockCanvas` /
- * `SelectionDockBorder`）与定位逻辑 `BoardCanvasControl.Rendering.cs:250-320`：
- * - 容器：背景 `SystemControlBackgroundChromeMediumLowBrush`、圆角 14、`Opacity=0.85`、`RequestedTheme=Light`
- *   （**强制浅色**，不跟随应用主题）；
- * - 内部：`StackPanel Orientation="Horizontal" Spacing="4" Margin="5"`；
- * - 三个按钮均为 `MinWidth=60 MinHeight=52 Padding="8,6"` + `DockButtonStyle`（`App.xaml:20-28`），
- *   结构 = 图标 + 文字（11 号 + `Margin="0,3,0,0"`），即与主 Dock 完全同规格；
- * - 定位：水平居中于选择框，垂直在选择框下沿 +8（`:225`/`:232` 的 `Bottom + 8.0`），并做画布边界钳制。
- *
- * 本组件只负责"把按钮摆到锚点下方"：锚点是**屏幕 DIP**坐标（选择框下沿中心），
- * 定位通过 CSS `transform` 完成（`styles/overlay.css`），不参与画布坐标换算。
+ * 选中项 Dock（P2.3）：悬浮在选择框下方的一组操作按钮。桌面出处 BoardCanvasControl.xaml:118-168（SelectionDockCanvas / SelectionDockBorder）与定位逻辑 BoardCanvasControl.Rendering.cs:250-320：容器背景 SystemControlBackgroundChromeMediumLowBrush、圆角 14、Opacity 0.85、RequestedTheme=Light 强制浅色（不跟随应用主题）；内部 StackPanel 横向 Spacing 4、Margin 5；三个按钮均 MinWidth 60、MinHeight 52、Padding 8,6 并套 DockButtonStyle（App.xaml:20-28），结构为图标加 11 号文字，与主 Dock 完全同规格；定位为水平居中于选择框、垂直在选择框下沿加 8（:225/:232），并做画布边界钳制。
+ * 本组件只负责把按钮摆到锚点下方：锚点取屏幕 DIP 坐标（选择框下沿中心），定位通过 styles/overlay.css 的 CSS transform 完成，不参与画布坐标换算。
  */
 
 import { ArrowUndoRegular, ArrowUpRegular, CopyRegular, DeleteRegular } from '@fluentui/react-icons'
@@ -42,12 +31,7 @@ export interface SelectionActionBarProps {
   /** 删除（桌面 `Common_Delete` = "删除"）；`undefined` 时按钮禁用。 */
   readonly onDelete?: () => void
   /**
-   * 置顶按钮的三态（桌面 `BoardCanvasControl.Rendering.cs:262-290`）：
-   * - `'default'`：显示「置顶」+ Up 图标；
-   * - `'cancel'`：已置顶且撤销栈顶就是这次置顶 → 显示「取消置顶」+ Undo 图标（点它 = 撤销那次置顶）；
-   * - `'disabled'`：不可用（已是最上层但没有可撤销的置顶记录）。
-   *
-   * 省略时按 `'default'`。
+   * 置顶按钮的三态（桌面 BoardCanvasControl.Rendering.cs:262-290）：default 显示「置顶」加 Up 图标；cancel 表示已置顶且撤销栈顶就是这次置顶，显示「取消置顶」加 Undo 图标，点它等于撤销那次置顶；disabled 表示已是最上层但没有可撤销的置顶记录。省略时按 default。
    */
   readonly bringToFrontState?: BringToFrontState
   /** 复制是否可用；省略按"回调存在即可用"处理。 */

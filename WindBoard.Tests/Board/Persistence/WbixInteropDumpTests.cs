@@ -21,57 +21,16 @@ namespace WindBoard.Tests.Board.Persistence;
 /// 供 <c>web/scripts/interop.mjs</c> 与网页端实现逐字段比对。
 /// </summary>
 /// <remarks>
-/// <para>
-/// 用法：本测试由 interop 脚本通过环境变量驱动；正常执行 <c>dotnet test</c> 时没有这些环境变量，
-/// 测试会优雅跳过（见 <see cref="SkipOrReturn"/>），不影响既有测试基线。
-/// </para>
-/// <list type="bullet">
-/// <item><c>WINDBOARD_WBIX_INTEROP_DIR</c>：待处理目录，只扫描该目录顶层的 <c>*.wbix</c>。</item>
-/// <item><c>WINDBOARD_WBIX_INTEROP_MODE</c>：<c>read</c>（默认，只产出 dump）或 <c>rewrite</c>（额外用生产写侧重写整包）。</item>
-/// </list>
-/// <para>
-/// 输出：<c>&lt;dir&gt;/dump-cs/&lt;包名&gt;.json</c>；rewrite 模式另写 <c>&lt;dir&gt;/rewritten-cs/&lt;包名&gt;.wbix</c>。
-/// </para>
-/// <para>
-/// <b>dump 规范（两端必须逐字一致；改这里必须同步改 <c>web/scripts/interop.mjs</c>）</b>：
-/// </para>
-/// <list type="number">
-/// <item>对象键按序数（ordinal）升序排列；数组保持原顺序。</item>
-/// <item>
-/// 所有浮点数输出为<b>字符串</b>，内容为 float32 的最短往返文本（本侧直接用 <c>JsonSerializer.Serialize(float)</c>，
-/// 它天然是 .NET 的最短往返格式；网页端用 <c>formatF32</c>）；整数（版本号、页码下标、order）保持 JSON 数值。
-/// </item>
-/// <item>顶层键：<c>format</c> / <c>version</c> / <c>createdUtc</c> / <c>currentIndex</c> / <c>viewport</c> / <c>pages</c> / <c>resources</c>。</item>
-/// <item>
-/// <c>createdUtc</c> 只记录<b>存在性</b>：有值时为占位符 <c>&lt;createdUtc&gt;</c>（生产写侧取
-/// <c>DateTimeOffset.UtcNow</c>，时钟不可注入），缺省时为 null。
-/// </item>
-/// <item><c>viewport</c> = <c>{ cameraWorld, zoom, sizeDip }</c>，缺省项输出 null。</item>
-/// <item>
-/// <c>pages[i]</c> = <c>{ id, strokes, elements }</c>；<c>strokes</c> 为墨迹条目数组（顺序即 z-order）；
-/// <c>elements</c> 先 belowInk 组、后 aboveInk 组，组内保持生产读侧给出的顺序。
-/// </item>
-/// <item>
-/// 墨迹条目：stroke 输出 <c>kind</c> / <c>points[{ position{x,y}, pressure }]</c> / <c>colorRgba{x,y,z,w}</c> /
-/// <c>baseSize</c> / <c>enablePressure</c>；形状输出 <c>kind</c> / <c>start{x,y}</c> / <c>end{x,y}</c> /
-/// <c>colorRgba{x,y,z,w}</c> / <c>width</c>。
-/// </item>
-/// <item>
-/// 元素公共字段 <c>id</c> / <c>layer</c> / <c>order</c> / <c>positionWorld</c> / <c>sizeWorld</c> / <c>type</c>；
-/// text 追加 <c>text</c>，link 追加 <c>url</c> / <c>title</c>，media 追加 <c>kind</c> / <c>displayName</c> /
-/// <c>resourceId</c>，file 追加 <c>sourcePath</c> / <c>displayName</c>。
-/// </item>
-/// <item>
-/// <b>media 元素的 <c>sourcePath</c> 不参与比对</b>：桌面读侧会把内嵌资源提取到临时文件并改写该字段（属平台相关
-/// 运行时行为，不是格式语义）。域模型也不保留 <c>resourceId</c>，因此这里从原始页 JSON 按元素 id 回填
-/// （见 <see cref="ReadMediaResourceIds"/>）。
-/// </item>
-/// <item><c>resources[i]</c> = <c>{ id, type, path, contentType, meta }</c>；<c>meta</c> 为 null 或字符串映射（键同样序数排序）。</item>
-/// </list>
-/// <para>
-/// 比对口径（AC12）：dump 与 diff 都在<b>解压后的文本层</b>做，只锁"条目名 + 条目顺序 + 条目文本"，
-/// 不锁 zip 压缩字节与整包 SHA-256。
-/// </para>
+/// 由 interop 脚本通过环境变量驱动；正常执行 <c>dotnet test</c> 时没有这些变量，测试优雅跳过（见 <see cref="SkipOrReturn"/>）。<c>WINDBOARD_WBIX_INTEROP_DIR</c> 为待处理目录（只扫顶层 <c>*.wbix</c>），<c>WINDBOARD_WBIX_INTEROP_MODE</c> 取 <c>read</c>（默认，只产出 dump）或 <c>rewrite</c>（额外用生产写侧重写整包）。
+/// 输出 <c>&lt;dir&gt;/dump-cs/&lt;包名&gt;.json</c>，rewrite 模式另写 <c>&lt;dir&gt;/rewritten-cs/&lt;包名&gt;.wbix</c>。
+/// dump 规范（两端必须逐字一致；改这里必须同步改 <c>web/scripts/interop.mjs</c>）：对象键按序数（ordinal）升序排列，数组保持原顺序；所有浮点数输出为字符串（float32 最短往返文本：本侧 <c>JsonSerializer.Serialize(float)</c>，网页端 <c>formatF32</c>），整数（版本号、页码下标、order）保持 JSON 数值；顶层键 format / version / createdUtc / currentIndex / viewport / pages / resources。
+/// <c>createdUtc</c> 只记录存在性：有值时为占位符 <c>&lt;createdUtc&gt;</c>（生产写侧取 <c>DateTimeOffset.UtcNow</c>，时钟不可注入），缺省为 null；<c>viewport</c> = <c>{ cameraWorld, zoom, sizeDip }</c>，缺省项输出 null。
+/// <c>pages[i]</c> = <c>{ id, strokes, elements }</c>；strokes 为墨迹条目数组（顺序即 z-order），elements 先 belowInk 组后 aboveInk 组，组内保持生产读侧给出的顺序。
+/// 墨迹条目：stroke 输出 <c>kind</c> / <c>points[{ position{x,y}, pressure }]</c> / <c>colorRgba{x,y,z,w}</c> / <c>baseSize</c> / <c>enablePressure</c>，形状输出 <c>kind</c> / <c>start{x,y}</c> / <c>end{x,y}</c> / <c>colorRgba{x,y,z,w}</c> / <c>width</c>。
+/// 元素公共字段 <c>id</c> / <c>layer</c> / <c>order</c> / <c>positionWorld</c> / <c>sizeWorld</c> / <c>type</c>，text 追加 <c>text</c>，link 追加 <c>url</c> / <c>title</c>，media 追加 <c>kind</c> / <c>displayName</c> / <c>resourceId</c>，file 追加 <c>sourcePath</c> / <c>displayName</c>。
+/// media 元素的 <c>sourcePath</c> 不参与比对：桌面读侧会把内嵌资源提取到临时文件并改写该字段（平台相关运行时行为，非格式语义）；域模型不保留 <c>resourceId</c>，故从原始页 JSON 按元素 id 回填（见 <see cref="ReadMediaResourceIds"/>）。
+/// <c>resources[i]</c> = <c>{ id, type, path, contentType, meta }</c>，<c>meta</c> 为 null 或字符串映射（键同样序数排序）。
+/// 比对口径（AC12）：dump 与 diff 都在解压后的文本层做，只锁条目名 + 条目顺序 + 条目文本，不锁 zip 压缩字节与整包 SHA-256。
 /// </remarks>
 public sealed class WbixInteropDumpTests
 {
@@ -667,12 +626,8 @@ public sealed class WbixInteropDumpTests
 /// 只在设置了 <see cref="WbixInteropDumpTests.InteropDirectoryVariable"/> 时才执行的 Fact。
 /// </summary>
 /// <remarks>
-/// 未设置环境变量时把 <see cref="FactAttribute.Skip"/> 填上，测试在发现阶段就被标记为"已跳过"，
-/// 因此正常的 <c>dotnet test WindBoard.slnx</c> 不会因为缺少 interop 目录而变红。
-/// <para>
-/// 这里不用"运行时抛 <c>Xunit.Sdk.SkipException</c>"的写法：xUnit v2 没有运行时 Skip 基础设施
-/// （<c>SkipException.ForSkip</c> 的文档写明 only works in v3 and later），运行时抛该异常只会让测试失败。
-/// </para>
+/// 未设置环境变量时把 <see cref="FactAttribute.Skip"/> 填上，测试在发现阶段就被标记为“已跳过”，正常的 <c>dotnet test WindBoard.slnx</c> 不会因为缺少 interop 目录而变红。
+/// 运行时抛 <c>Xunit.Sdk.SkipException</c> 不可行：xUnit v2 没有运行时 Skip 基础设施（<c>SkipException.ForSkip</c> 的文档写明 only works in v3 and later），抛该异常只会让测试失败。
 /// </remarks>
 public sealed class WbixInteropFactAttribute : FactAttribute
 {

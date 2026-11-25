@@ -11,12 +11,8 @@ using WindBoard.Localization;
 namespace WindBoard.Board.Persistence.Wbix
 {
     /// <summary>
-    /// 读侧版本分派：把 <c>manifest.version</c> 映射到对应的页读取器（版本契约的唯一落点）。
-    ///
-    /// 约定：
-    /// - 写侧永远只写 <see cref="CurrentVersion"/>；
-    /// - 读侧按版本分派，未知版本（&lt;= 0 或 &gt; <see cref="CurrentVersion"/>）抛 <see cref="InvalidDataException"/>；
-    /// - 破坏性变更 = 新增 reader + 提升 <see cref="CurrentVersion"/> + 补 golden 语料，既有 reader 一行不改。
+    /// 读侧版本分派：把 <c>manifest.version</c> 映射到对应的页读取器，是版本契约的唯一落点，写侧只写 <see cref="CurrentVersion"/>。
+    /// 未知版本（&lt;= 0 或 &gt; <see cref="CurrentVersion"/>）抛 <see cref="InvalidDataException"/>；破坏性变更需新增 reader、提升 <see cref="CurrentVersion"/> 并补 golden 语料，既有 reader 不改。
     /// </summary>
     internal sealed partial class WbixWorkspaceSerializer
     {

@@ -14,13 +14,7 @@ using Windows.UI;
 namespace WindBoard.Controls
 {
     /// <summary>
-    /// 页面缩略图控件。
-    /// 
-    /// 当前实现为轻量级预览：
-    /// - 基于页面笔迹数据在 XAML 侧绘制 Polyline
-    /// - 不依赖 DirectX 截屏（SwapChainPanel 无法直接用 RenderTargetBitmap）
-    /// 
-    /// 后续如果需要更高保真缩略图，可替换为离屏 DirectX 渲染到纹理再转 Bitmap。
+    /// 页面缩略图控件：基于页面笔迹数据在 XAML 侧绘制 Polyline，不依赖 DirectX 截屏，因为 SwapChainPanel 无法直接用 RenderTargetBitmap。
     /// </summary>
     public sealed partial class PageThumbnailControl : UserControl
     {
@@ -63,10 +57,7 @@ namespace WindBoard.Controls
                 new PropertyMetadata(null, OnPagePropertyChanged));
 
         /// <summary>
-        /// 缩略图背景（不跟随系统深浅色变化）。
-        /// 
-        /// 说明：后续接入“自定义画布背景”时，只需要在外部为该属性赋值即可，
-        /// 不必让缩略图依赖系统 ThemeResource，从而避免主题切换导致缩略图底色变化。
+        /// 缩略图背景，不跟随系统深浅色变化：不依赖系统 ThemeResource，避免主题切换改变底色，接入自定义画布背景时由外部赋值。
         /// </summary>
         public Brush ThumbnailBackground
         {

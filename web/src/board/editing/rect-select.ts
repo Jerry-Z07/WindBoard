@@ -1,20 +1,6 @@
 /**
- * 绘制条目的「框选」命中测试（按条目类型单点分发，纯计算逻辑）。
- *
- * 移植自桌面 `WindBoard/Board/Editing/InkItemRectSelectTest.cs`（262 行），逐条对齐：
- * - `HitTestInkItemsInWorldRect`（:27-42）：正序遍历，收集所有相交条目（保持列表顺序 = z 序）；
- * - `HitTestTopMostInkItemInWorldRect`（:47-62）：反向遍历，返回最上层相交条目；
- * - `IsInkItemIntersectWorldRect`（:67-92）：折线走折线几何，其余条目走「世界包围盒 AABB 相交」；
- * - `IsStrokeIntersectWorldRect`（:97-114）：先用等价包围盒快速剔除，再按「点/线段与矩形的真实距离」判定，
- *   避免仅 AABB 重叠时误命中；
- * - `IntersectsStrokeGeometry`（:116-148）：先看采样点（半径用该点自身压感）到矩形的距离，
- *   再看每一段（半径用两端压感平均值）与矩形是否相交；
- * - `IsSegmentIntersectWorldRect`（:196-227）：端点在矩形内 → 命中；与四条边相交 → 命中；
- *   端点到矩形距离 ≤ 半径 → 命中；矩形四角到线段距离 ≤ 半径 → 命中。
- *
- * 与桌面一致的细节：**快速剔除用调用方传入的原始 min/max（不归一化）**，
- * 只有 `IntersectsStrokeGeometry` 内部才归一化；形状分支全程不归一化（见 `isInkItemIntersectWorldRect`）。
- * 因此框选工具必须传入已归一化的矩形（min ≤ max），桌面调用方即如此。
+ * 绘制条目的框选命中测试（按条目类型单点分发，纯计算逻辑），移植自桌面 Board/Editing/InkItemRectSelectTest.cs（262 行）：HitTestInkItemsInWorldRect（:27-42）正序遍历收集相交条目，保持列表顺序即 z 序；HitTestTopMostInkItemInWorldRect（:47-62）反向遍历取最上层；折线走折线几何，其余条目走世界包围盒 AABB 相交（:67-92）；笔迹先用等价包围盒快速剔除，再按点与线段到矩形的真实距离判定，避免仅 AABB 重叠时误命中（:97-148），线段判定含端点在矩形内、与四边相交、端点到矩形距离不超过半径、矩形四角到线段距离不超过半径（:196-227）。
+ * 快速剔除用调用方传入的原始 min/max（不归一化），只有 IntersectsStrokeGeometry 内部才归一化，形状分支全程不归一化，因此框选工具必须传入已归一化的矩形（min ≤ max），桌面调用方即如此。
  */
 
 import { getShapeBounds, getStrokeBounds } from '../../ink/geometry.ts'
@@ -30,13 +16,7 @@ import type { InkItem } from '../model/workspace.ts'
 import type { WorldBounds } from '../viewport.ts'
 
 /**
- * 在给定世界坐标矩形范围内命中「所有相交」的条目（保持列表顺序：越靠后越靠上）。
- *
- * 对应桌面 `InkItemRectSelectTest.HitTestInkItemsInWorldRect`（`InkItemRectSelectTest.cs:27-42`）。
- * 用途：框选多个条目并作为整体进行移动/缩放等操作。
- *
- * 调用方契约：`minWorld` / `maxWorld` 必须已归一化（`minWorld.x <= maxWorld.x` 且
- * `minWorld.y <= maxWorld.y`）。本函数按桌面原样**不做归一化**，传入反向矩形时行为未定义。
+ * 命中矩形范围内所有相交条目，保持列表顺序（越靠后越靠上），用于框选后整体移动或缩放。对应桌面 InkItemRectSelectTest.HitTestInkItemsInWorldRect（InkItemRectSelectTest.cs:27-42）。调用方契约：minWorld/maxWorld 必须已归一化（minWorld.x <= maxWorld.x 且 minWorld.y <= maxWorld.y），本函数按桌面原样不做归一化，传入反向矩形时行为未定义。
  */
 export function hitTestInkItemsInWorldRect(
   items: readonly InkItem[],
@@ -54,10 +34,7 @@ export function hitTestInkItemsInWorldRect(
 }
 
 /**
- * 在给定世界坐标矩形范围内命中「最上层」条目（按列表顺序：越靠后越靠上）。
- *
- * 对应桌面 `InkItemRectSelectTest.HitTestTopMostInkItemInWorldRect`（`InkItemRectSelectTest.cs:47-62`）。
- * 调用方契约同 `hitTestInkItemsInWorldRect`：`minWorld` / `maxWorld` 必须已归一化，本函数不做归一化。
+ * 命中范围内最上层条目（按列表顺序：越靠后越靠上）。对应桌面 InkItemRectSelectTest.HitTestTopMostInkItemInWorldRect（InkItemRectSelectTest.cs:47-62）；调用方契约同 hitTestInkItemsInWorldRect，minWorld/maxWorld 必须已归一化，本函数不做归一化。
  */
 export function hitTestTopMostInkItemInWorldRect(
   items: readonly InkItem[],
@@ -76,13 +53,7 @@ export function hitTestTopMostInkItemInWorldRect(
 }
 
 /**
- * 判断某个绘制条目是否与给定世界坐标矩形相交（按条目类型分发）。
- *
- * 对应桌面 `InkItemRectSelectTest.IsInkItemIntersectWorldRect`（`InkItemRectSelectTest.cs:67-92`）。
- *
- * 调用方契约：`minWorld` / `maxWorld` 必须已归一化（`minWorld.x <= maxWorld.x` 且
- * `minWorld.y <= maxWorld.y`）。本函数按桌面原样**不做归一化**，传入反向矩形时行为未定义
- * （形状分支与笔迹的快速剔除都会直接用原始 min/max）。
+ * 判断绘制条目是否与矩形相交（按条目类型分发）。对应桌面 InkItemRectSelectTest.IsInkItemIntersectWorldRect（InkItemRectSelectTest.cs:67-92）。调用方契约：minWorld/maxWorld 必须已归一化，本函数按桌面原样不做归一化，形状分支与笔迹的快速剔除都直接用原始 min/max，传入反向矩形时行为未定义。
  */
 export function isInkItemIntersectWorldRect(
   item: InkItem,
@@ -103,13 +74,7 @@ export function isInkItemIntersectWorldRect(
 }
 
 /**
- * 判断某条折线笔迹是否与给定世界坐标矩形相交。
- *
- * 对应桌面 `InkItemRectSelectTest.IsStrokeIntersectWorldRect`（`InkItemRectSelectTest.cs:97-114`）。
- *
- * 调用方契约：`minWorld` / `maxWorld` 必须已归一化（`minWorld.x <= maxWorld.x` 且
- * `minWorld.y <= maxWorld.y`）。本函数按桌面原样**不做归一化**——包围盒快速剔除直接用原始
- * min/max，只有内部几何判定才归一化，传入反向矩形时行为未定义。
+ * 判断折线笔迹是否与矩形相交。对应桌面 InkItemRectSelectTest.IsStrokeIntersectWorldRect（InkItemRectSelectTest.cs:97-114）。调用方契约：minWorld/maxWorld 必须已归一化，本函数按桌面原样不做归一化，包围盒快速剔除直接用原始 min/max，只有内部几何判定才归一化，传入反向矩形时行为未定义。
  */
 export function isStrokeIntersectWorldRect(
   stroke: Stroke,
@@ -130,9 +95,7 @@ export function isStrokeIntersectWorldRect(
 }
 
 /**
- * 折线几何与矩形是否真实相交。
- *
- * 对应桌面 `InkItemRectSelectTest.IntersectsStrokeGeometry`（`InkItemRectSelectTest.cs:116-148`）。
+ * 折线几何与矩形是否真实相交。对应桌面 InkItemRectSelectTest.IntersectsStrokeGeometry（InkItemRectSelectTest.cs:116-148）。
  */
 function intersectsStrokeGeometry(
   stroke: Stroke,
@@ -163,9 +126,7 @@ function intersectsStrokeGeometry(
 }
 
 /**
- * 线段（含线宽半径）与矩形是否相交。
- *
- * 对应桌面 `InkItemRectSelectTest.IsSegmentIntersectWorldRect`（`InkItemRectSelectTest.cs:196-227`）。
+ * 线段（含线宽半径）与矩形是否相交。对应桌面 InkItemRectSelectTest.IsSegmentIntersectWorldRect（InkItemRectSelectTest.cs:196-227）。
  */
 function isSegmentIntersectWorldRect(
   from: Vec2,
@@ -209,9 +170,7 @@ function isSegmentIntersectWorldRect(
 }
 
 /**
- * 点是否在矩形内（闭区间）。
- *
- * 对应桌面 `InkItemRectSelectTest.IsPointInsideRect`（`InkItemRectSelectTest.cs:229-235`）。
+ * 点是否在矩形内（闭区间）。对应桌面 InkItemRectSelectTest.IsPointInsideRect（InkItemRectSelectTest.cs:229-235）。
  */
 function isPointInsideRect(point: Vec2, rectMin: Vec2, rectMax: Vec2): boolean {
   return (
@@ -223,9 +182,7 @@ function isPointInsideRect(point: Vec2, rectMin: Vec2, rectMax: Vec2): boolean {
 }
 
 /**
- * 点到矩形的最近距离平方（点在矩形内时为 0）。
- *
- * 对应桌面 `InkItemRectSelectTest.DistanceSquaredPointToRect`（`InkItemRectSelectTest.cs:237-260`）。
+ * 点到矩形的最近距离平方（点在矩形内时为 0）。对应桌面 InkItemRectSelectTest.DistanceSquaredPointToRect（InkItemRectSelectTest.cs:237-260）。
  */
 function distanceSquaredPointToRect(point: Vec2, rectMin: Vec2, rectMax: Vec2): number {
   let dx = 0
@@ -246,11 +203,7 @@ function distanceSquaredPointToRect(point: Vec2, rectMin: Vec2, rectMax: Vec2): 
 }
 
 /**
- * 两个 AABB 是否相交（闭区间，边界相接算相交）。
- *
- * 对应桌面 `InkItemRectSelectTest.IntersectsAabb`（`InkItemRectSelectTest.cs:188-194`），
- * 与 `web/src/render/bounds.ts` 的 `intersectsWorldBounds` 同式；此处保留私有实现，
- * 避免域层（`src/board/`）反向依赖渲染层（`src/render/`）。
+ * 两个 AABB 是否相交（闭区间，边界相接算相交）。对应桌面 InkItemRectSelectTest.IntersectsAabb（InkItemRectSelectTest.cs:188-194），与 web/src/render/bounds.ts 的 intersectsWorldBounds 同式；此处保留私有实现，避免域层（src/board/）反向依赖渲染层（src/render/）。
  */
 function intersectsAabb(a: WorldBounds, bMin: Vec2, bMax: Vec2): boolean {
   return (

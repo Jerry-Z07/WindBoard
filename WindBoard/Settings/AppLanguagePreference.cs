@@ -6,16 +6,8 @@ using WindBoard.Localization;
 namespace WindBoard.Settings
 {
     /// <summary>
-    /// 语言偏好解析与归一化（settings.json ⇄ 内存态）。
-    /// 
-    /// 约定：
-    /// - settings.json 存储值：
-    ///   - "system"：跟随系统；
-    ///   - 其它：<see cref="CultureInfo.Name"/>（例如 "zh-CN" / "en-US" / "ja-JP"）。
-    /// 
-    /// 设计目标：
-    /// - 新增语言时尽量不改代码：只要增加对应的 *.resw 资源目录，设置页即可自动出现该语言选项；
-    /// - 允许用户手工编辑 settings.json：支持大小写不敏感、'_' vs '-'、以及常见简写。
+    /// 语言偏好解析与归一化：settings.json 存 "system" 表示跟随系统，存其它值表示 <see cref="CultureInfo.Name"/>（如 "zh-CN" / "en-US" / "ja-JP"）。
+    /// 设计目标：新增语言只需增加对应 *.resw 资源目录，设置页即自动出现该选项；允许手工编辑 settings.json，兼容大小写不敏感、下划线与连字符以及常见简写。
     /// </summary>
     internal static class AppLanguagePreferenceParser
     {
@@ -29,8 +21,7 @@ namespace WindBoard.Settings
         /// 尝试把输入归一化为可持久化的设置值。
         /// </summary>
         /// <remarks>
-        /// - 只有“已提供资源”的语言才会被接受（避免出现“内置控件是 A 语言，但应用文案回退到默认语言”的混搭体验）。
-        /// - 返回值不会为 null，且不会包含空白。
+        /// 只接受已提供资源的语言，避免内置控件文案与应用文案语言混搭；返回值不为 null 且不含空白。
         /// </remarks>
         internal static bool TryNormalize(string? text, out string normalizedSettingValue)
         {

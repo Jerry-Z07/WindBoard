@@ -3,13 +3,8 @@ using System;
 namespace WindBoard.Board.Editing
 {
     /// <summary>
-    /// 画板“页面”。
-    /// 
-    /// 当前实现中，一个页面对应一个独立的 <see cref="BoardSession"/>：
-    /// - 笔迹数据隔离（<see cref="BoardSession.Document"/>）
-    /// - 撤销/重做历史隔离（<see cref="BoardSession"/> 内部栈）
-    /// 
-    /// 这样能保证切换页面后，上一页的撤销历史不会被新页面污染，便于后续做多页导出/导入。
+    /// 画板“页面”：一个页面对应一个独立的 <see cref="BoardSession"/>，笔迹数据（<see cref="BoardSession.Document"/>）与撤销/重做栈各自隔离。
+    /// 切换页面后上一页的撤销历史不会被新页面污染。
     /// </summary>
     internal sealed class BoardPage
     {

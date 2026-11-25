@@ -3,9 +3,7 @@ using System;
 namespace WindBoard.Settings
 {
     /// <summary>
-    /// 下载源策略：
-    /// - Auto：自动测速并选择最快源
-    /// - Fixed：固定使用指定源
+    /// 下载源策略：Auto 自动测速并选择最快源，Fixed 固定使用指定源。
     /// </summary>
     internal enum DownloadSourcePolicy
     {

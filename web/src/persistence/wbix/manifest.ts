@@ -11,13 +11,7 @@ import {
 } from './json-options.ts'
 
 /**
- * `manifest.json` 编解码。
- *
- * 形态（桌面 `WbixManifest`，record 参数顺序即 JSON 键序）：
- * `format, version, createdUtc, currentIndex, pages, resources, viewportCameraWorld, viewportZoom, viewportSizeDip`。
- *
- * 说明：桌面 `JsonSerializerOptions` 未设置 `DefaultIgnoreCondition`，因此**所有成员都会输出**，
- * 视口三项在无数据时写 `null`。
+ * manifest.json 编解码。形态同桌面 WbixManifest，record 参数顺序即 JSON 键序：format, version, createdUtc, currentIndex, pages, resources, viewportCameraWorld, viewportZoom, viewportSizeDip。桌面 JsonSerializerOptions 未设置 DefaultIgnoreCondition，所有成员都会输出，视口三项在无数据时写 null。
  */
 
 /** 格式标识（`WbixWorkspaceSerializer.FormatName`）。 */
@@ -59,11 +53,7 @@ export interface WbixManifest {
   format: string
   version: number
   /**
-   * 创建时间（毫秒精度）。
-   *
-   * 说明：桌面写侧取 `DateTimeOffset.UtcNow`，JSON 里最多带 7 位小数（100ns 精度），
-   * 而 JS `Date` 只有毫秒精度，因此读入 7 位小数的值会**丢失亚毫秒部分**。
-   * 需要逐字节往返时请改用 {@link createdUtcText}。
+   * 创建时间（毫秒精度）。桌面写侧取 DateTimeOffset.UtcNow，JSON 里最多带 7 位小数（100ns 精度），而 JS Date 只有毫秒精度，读入 7 位小数的值会丢失亚毫秒部分；需要逐字节往返时改用 {@link createdUtcText}。
    */
   createdUtc: Date | null
   /**
@@ -265,10 +255,7 @@ function readCreatedUtc(manifest: Record<string, unknown>): { value: Date | null
 }
 
 /** `DateTimeOffset` 文本形态（.NET `O` 格式去掉可选小数位）。 */
-// 桌面端写侧（`Utf8JsonWriter.WriteString(DateTimeOffset)`）产出的小数位是 **0~7 位可变**
-// （`TrimDateTimeOffset` 会去掉末尾的 0，秒为整时连小数点一起去掉），偏移恒为 `+00:00`。
-// 读侧这里对偏移放宽到任意 `±HH:MM`：手改/第三方工具产出的文件同样要能原样往返，
-// 只有"写回去"时才依赖原文本本身（不做任何重排）。
+// 桌面端写侧（`Utf8JsonWriter.WriteString(DateTimeOffset)`）产出的小数位是 **0~7 位可变**（`TrimDateTimeOffset` 会去掉末尾的 0，秒为整时连小数点一起去掉），偏移恒为 `+00:00`。读侧这里对偏移放宽到任意 `±HH:MM`：手改或第三方工具产出的文件同样要能原样往返，只有写回去时才依赖原文本本身（不做任何重排）。
 const DATE_TIME_OFFSET_TEXT = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,7})?[+-]\d{2}:\d{2}$/
 
 function isDateTimeOffsetText(text: string): boolean {

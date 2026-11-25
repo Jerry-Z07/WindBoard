@@ -12,15 +12,8 @@ import { JsonTextWriter, getJsonProperty, isPlainObject, parseJsonTolerant } fro
 import { fileNameOf } from './paths.ts'
 
 /**
- * 页面 payload（`pages/page-000.json`）编解码。
- *
- * 形态（桌面 `WbixPagePayload`）：`{ "id": Guid, "strokes": [...], "elements": [...] }`。
- *
- * 读侧容错逐条对齐 `WbixWorkspaceSerializer.Load.cs`：
- * - `strokes` 缺失/null → 空数组；单条 null 或未知 kind → 跳过；
- * - `elements` 缺失/null → 空数组；`type` 空白 → 跳过；未知 `type` → 跳过；单元素解析异常 → 跳过；
- * - 元素 `data` 内字段用**大小写敏感**查找（桌面走 `JsonElement.TryGetProperty`），
- *   缺失字段取桌面同样的默认值（`id` 新 Guid、位置 `(0,0)`、尺寸 `(320,180)`、`order` 取数组下标、`layer` 取 `belowInk`）。
+ * 页面 payload（pages/page-000.json）编解码，形态与桌面 WbixPagePayload 一致：`{ "id": Guid, "strokes": [...], "elements": [...] }`。
+ * 读侧容错逐条对齐 WbixWorkspaceSerializer.Load.cs：strokes 缺失或为 null 时取空数组，单条为 null 或未知 kind 跳过；elements 缺失或为 null 时取空数组，type 空白或未知跳过，单元素解析异常也跳过；元素 data 内字段按大小写敏感查找（桌面走 JsonElement.TryGetProperty），缺失时取桌面同样的默认值（id 新 Guid、位置 (0,0)、尺寸 (320,180)、order 取数组下标、layer 取 belowInk）。
  */
 
 /** 元素层级字面量。 */
@@ -55,7 +48,6 @@ export interface PagePayloadReadContext {
 
 /**
  * 读取页面 payload。
- *
  * @throws WbixError `page-parse-failed`（payload 结构非法，桌面侧会让整包导入失败）
  * @throws WbixError `ink-item-invalid`（笔迹条目结构非法，桌面侧会让整页解析失败）
  */
@@ -360,10 +352,7 @@ function readSingleField(obj: Record<string, unknown>, propertyName: string): nu
 }
 
 /**
- * 写出页面 payload 文本（固定 v3 形态）。
- *
- * 元素顺序对齐桌面 `CreateWbixPageElements`：先 `belowInk` 再 `aboveInk`，层内保持数组顺序；
- * 每个元素的 `order` 取自身值，`order < 0` 时用层内下标替代。
+ * 写出页面 payload 文本（固定 v3 形态）。元素顺序对齐桌面 CreateWbixPageElements：先 belowInk 再 aboveInk，层内保持数组顺序；每个元素的 order 取自身值，order < 0 时用层内下标替代。
  */
 export function writePagePayloadJson(page: PageSnapshot): string {
   if (!isGuid(page.id)) {

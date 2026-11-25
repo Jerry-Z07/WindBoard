@@ -1,17 +1,6 @@
 /**
- * 设置窗口（P3.5）：用 Fluent Dialog 承载桌面独立 SettingsWindow 的 NavigationView 结构。
- *
- * 桌面出处：`WindBoard/Settings/SettingsWindow.xaml`（NavigationView：左侧常规 / 外观 /
- * 书写 / 快捷键 / Debug / 关于，Debug 项默认折叠）。网页端用一个模态对话框表达：
- * 左侧竖向导航 + 右侧页面内容；页面清单与文案在 `settings/window-model.ts`，
- * 各页字段与桌面 `settings.json` 同构（见 `settings/model.ts` 文件头）。
- *
- * 标题行复刻桌面 `SettingsWindow.xaml:23-44` 的 TitleBar：左边标题，右边
- * `AutoSuggestBox`（本文件用 `SettingsSearchBox`）+ 关闭按钮。搜索选中后
- * 切到目标设置页、把对应卡片滚到视野中央并短暂高亮（桌面是
- * `NavigateToSearchTarget` `:429-443` + `TryBringPendingElementIntoView` 的"跳页并聚焦"）。
- *
- * 尺寸取任务书约定的 900 × 640（桌面窗口默认更大，网页端按可用视口收缩）。
+ * 设置窗口（P3.5）：用 Fluent Dialog 承载桌面独立 SettingsWindow 的 NavigationView 结构。桌面出处 Settings/SettingsWindow.xaml（左侧常规、外观、书写、快捷键、Debug、关于，Debug 项默认折叠），网页端用模态对话框表达为左侧竖向导航加右侧页面内容；页面清单与文案在 settings/window-model.ts，各页字段与桌面 settings.json 同构（见 settings/model.ts 文件头）。
+ * 标题行复刻桌面 SettingsWindow.xaml:23-44 的 TitleBar（左边标题、右边 AutoSuggestBox 与本文件的 SettingsSearchBox、关闭按钮）；搜索选中后切到目标设置页、把对应卡片滚到视野中央并短暂高亮（桌面是 NavigateToSearchTarget :429-443 与 TryBringPendingElementIntoView 的跳页并聚焦）。尺寸取任务书约定的 900 × 640，桌面窗口默认更大，网页端按可用视口收缩。
  */
 
 import { Button, Dialog, DialogBody, DialogSurface, DialogTitle } from '@fluentui/react-components'
@@ -80,10 +69,7 @@ function pageIcon(id: SettingsPageId): ReactElement {
 }
 
 /**
- * 按 id 渲染页面组件（与 `window-model.ts` 的页面清单一一对应）。
- *
- * `onNavigate` 供页面内部跳转到另一页（桌面 Outlook 风格设置页里的"跳页卡片"，
- * 例如外观页的 `DockSettingsCard` → `Frame.Navigate(typeof(DockSettingsPage))`）。
+ * 按 id 渲染页面组件（与 window-model.ts 的页面清单一一对应）。onNavigate 供页面内部跳转到另一页（桌面 Outlook 风格设置页里的跳页卡片，例如外观页的 DockSettingsCard 会 Frame.Navigate(typeof(DockSettingsPage))）。
  */
 function renderPage(id: SettingsPageId, onNavigate: (pageId: SettingsPageId) => void): ReactNode {
   switch (id) {

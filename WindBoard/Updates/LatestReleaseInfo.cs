@@ -37,7 +37,7 @@ namespace WindBoard.Updates
 
         /// <summary>
         /// 工作流生成时填充的 runtime 标记（当前：self-contained/installer）。
-        /// 注意：installer 里同时包含自包含与 -fd 变体，需要通过 fileName 再区分。
+        /// installer 里同时包含自包含与 -fd 变体，需要通过 fileName 再区分。
         /// </summary>
         [JsonPropertyName("runtime")]
         public string Runtime { get; set; } = string.Empty;

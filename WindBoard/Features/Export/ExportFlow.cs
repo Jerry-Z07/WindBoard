@@ -112,7 +112,7 @@ namespace WindBoard.Features.Export
                     : $"导出异常：format={selection.Format}, scope={selection.PageScope}, range='{selection.PageRangeText}'";
 
                 AppLog.Error("Export", message, ex);
-                await DialogHelpers.ShowMessageAsync(xamlRoot, L10n.Get("Export_Failed_Title"), ex.Message);
+                await DialogHelpers.ShowMessageAsync(xamlRoot, L10n.Get("Export_Failed_Title"), L10n.Get("Export_Failed_Message"));
             }
         }
 

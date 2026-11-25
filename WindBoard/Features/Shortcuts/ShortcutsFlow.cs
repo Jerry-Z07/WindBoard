@@ -9,10 +9,8 @@ using WindBoard.Logging;
 namespace WindBoard.Features.Shortcuts
 {
     /// <summary>
-    /// Shortcuts 功能编排：
-    /// - 读取快捷键设置快照
-    /// - 应用到主窗口（KeyboardAccelerator 绑定）
-    /// - 触发一次性提醒（快捷键非法/冲突自动修复）
+    /// Shortcuts 功能编排：读取快捷键设置快照并应用到主窗口（KeyboardAccelerator 绑定）。
+    /// 快捷键非法或冲突被自动修复时触发一次性提醒。
     /// </summary>
     internal sealed class ShortcutsFlow
     {

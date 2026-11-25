@@ -9,7 +9,6 @@
             <ResourceDictionary.MergedDictionaries>
                 <XamlControlsResources xmlns="using:Microsoft.UI.Xaml.Controls" />
                 <ResourceDictionary Source="ms-appx:///Settings/SettingsPageResources.xaml" />
-                <!-- Other merged dictionaries here -->
             </ResourceDictionary.MergedDictionaries>
 
             <!-- 画布背景色：供页面缩略图等 XAML 元素复用（运行时会同步为当前设置值）。 -->
@@ -89,12 +88,8 @@
                 <Setter Property="FocusVisualSecondaryBrush" Value="Transparent" />
             </Style>
 
-            <!--
-              图标字体：
-              - Win11（Build >= 22000）系统自带 Segoe Fluent Icons；
-              - Win10 安装版由安装器安装字体；便携版在启动时私有加载内置 ttf；
-              - 若最终不可用，会在启动时降级为 Segoe MDL2 Assets，避免图标变成方块。
-            -->
+            <!-- 图标字体按形态准备：Win11 自带 Segoe Fluent Icons，Win10 安装版由安装器安装、便携版启动时私有加载 ttf。
+                 都不可用时启动降级为 Segoe MDL2 Assets，图标不会出现方块。 -->
             <FontFamily x:Key="SymbolThemeFontFamily">Segoe Fluent Icons</FontFamily>
         </ResourceDictionary>
     </Application.Resources>

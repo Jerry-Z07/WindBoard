@@ -1,27 +1,13 @@
 /**
- * 快捷键匹配层（P1.7）：把桌面版的快捷键解析/校验/匹配收敛为纯函数。
- *
- * 权威来源（桌面版，WindBoard/Features/Shortcuts/）：
- * - Models/KeyboardShortcutGesture.cs：TryParse / ToSettingString / IsValidForApp / IsModifierKey；
- * - Models/KeyboardShortcutsDefaults.cs：Undo = "Ctrl+Z"、Redo = "Ctrl+Y"；
- * - ShortcutsFlow.cs：注册加速键（跳过空/非法/重复），命中后先查文本输入焦点再执行；
- * - Settings/AppSettingsStore.cs：NormalizeKeyboardShortcutsInPlace（空 = 禁用，非法回落默认）。
- *
- * 本模块不读 DOM、不注册监听：键盘事件由执行层转成 KeyboardLike 后传入，
- * “文本输入是否聚焦”通过注入的 isTextInputFocused 查询，保持 node 环境可测。
- *
- * Meta（Win/Cmd）说明：桌面语法只接受 Ctrl / Alt / Shift（TryParse 无 Meta 令牌，
- * IsValidForApp 要求必须含 Ctrl 或 Alt），因此本模块同样不支持 Meta——
- * 带 metaKey 的浏览器事件永远不会匹配任何绑定（避免把 Cmd+Z 误判成 Ctrl+Z）。
- * web 端与桌面一致：不支持 Cmd/Meta，macOS 上 Cmd+Z 不会触发撤销。
+ * 快捷键匹配层：把桌面版的快捷键解析、校验、匹配收敛为纯函数。权威来源在 WindBoard/Features/Shortcuts/：Models/KeyboardShortcutGesture.cs（TryParse / ToSettingString / IsValidForApp / IsModifierKey）、Models/KeyboardShortcutsDefaults.cs（Undo = "Ctrl+Z"、Redo = "Ctrl+Y"）、ShortcutsFlow.cs（注册加速键时跳过空、非法、重复项，命中后先查文本输入焦点再执行）、Settings/AppSettingsStore.cs（NormalizeKeyboardShortcutsInPlace：空为禁用，非法回落默认）。
+ * 本模块不读 DOM 也不注册监听，键盘事件由执行层转成 KeyboardLike 传入，文本输入是否聚焦通过注入的 isTextInputFocused 查询，保持 node 环境可测。桌面语法只接受 Ctrl / Alt / Shift（TryParse 无 Meta 令牌，IsValidForApp 要求含 Ctrl 或 Alt），故本模块同样不支持 Meta，带 metaKey 的浏览器事件永不匹配任何绑定，避免把 Cmd+Z 误判成 Ctrl+Z。
  */
 
 /** 快捷键槽位：桌面只有撤销/重做两个槽（KeyboardShortcutsDefaults.cs:8-9）。 */
 export type ShortcutId = 'undo' | 'redo'
 
 /**
- * 槽位顺序：对应桌面 AppSettingsStore.NormalizeKeyboardShortcutsInPlace 的冲突裁决顺序
- * （Undo → Redo，重复时后者的绑定被禁用），匹配时同样先注册者优先。
+ * 槽位顺序：对应桌面 AppSettingsStore.NormalizeKeyboardShortcutsInPlace 的冲突裁决顺序（Undo → Redo，重复时后者的绑定被禁用），匹配时同样先注册者优先。
  */
 export const SHORTCUT_IDS: readonly ShortcutId[] = ['undo', 'redo']
 
@@ -46,8 +32,7 @@ export interface KeyboardLike {
 }
 
 /**
- * 绑定表：槽位 → 桌面设置字符串（如 "Ctrl+Z"）。
- * 缺省槽位与空字符串都表示“禁用”（桌面空字符串不会自动回填默认值）。
+ * 绑定表：槽位 → 桌面设置字符串（如 "Ctrl+Z"）。缺省槽位与空字符串都表示“禁用”（桌面空字符串不会自动回填默认值）。
  */
 export type ShortcutBindings = Readonly<Partial<Record<ShortcutId, string>>>
 
@@ -67,10 +52,7 @@ export interface ShortcutMatchOptions {
 }
 
 /**
- * 按键 token 表：对应桌面 KeyboardShortcutGesture.TryParse 的 KeyAliases + VirtualKey 枚举名解析。
- *
- * 桌面用 Enum.TryParse<VirtualKey> 解析任意枚举名；本层只收录常用键与 F1-F12
- * （其余枚举名不参与匹配，需要时在此表增补）。键名大小写不敏感，与桌面一致。
+ * 按键 token 表：对应桌面 KeyboardShortcutGesture.TryParse 的 KeyAliases 与 VirtualKey 枚举名解析。桌面用 Enum.TryParse<VirtualKey> 解析任意枚举名，本层只收录常用键与 F1-F12，其余枚举名不参与匹配，需要时在此表增补；键名大小写不敏感，与桌面一致。
  */
 const KEY_TOKENS: ReadonlyMap<string, string> = buildKeyTokens()
 
@@ -128,10 +110,7 @@ const MODIFIER_KEYS: ReadonlySet<string> = new Set([
 ])
 
 /**
- * 解析快捷键设置字符串：对应桌面 KeyboardShortcutGesture.TryParse。
- *
- * 规则与桌面一致：按 '+' 切分（忽略空项并 trim），Ctrl/Control、Alt/Menu、Shift 为修饰键
- * （大小写不敏感），只允许出现一个非修饰键；修饰键顺序任意。
+ * 解析快捷键设置字符串：对应桌面 KeyboardShortcutGesture.TryParse。规则与桌面一致：按 '+' 切分（忽略空项并 trim），Ctrl 与 Control、Alt 与 Menu、Shift 为修饰键（大小写不敏感），只允许出现一个非修饰键，修饰键顺序任意。
  */
 export function parseShortcutBinding(gesture: string): ParsedShortcut | null {
   if (gesture.trim() === '') {
@@ -216,8 +195,7 @@ function parseKeyToken(token: string): string | null {
 }
 
 /**
- * 规范化输出：对应桌面 ToSettingString，固定顺序 Ctrl + Alt + Shift + Key，
- * 避免同义字符串导致冲突判断不一致。
+ * 规范化输出：对应桌面 ToSettingString，固定顺序 Ctrl + Alt + Shift + Key，避免同义字符串导致冲突判断不一致。
  */
 export function formatShortcutBinding(parsed: ParsedShortcut): string {
   const parts: string[] = []
@@ -244,8 +222,7 @@ export function canonicalShortcutBinding(gesture: string): string | null {
 }
 
 /**
- * 校验绑定是否可用于本应用：对应桌面 IsValidForApp。
- * 约束：必须含 Ctrl 或 Alt（避免单键/仅 Shift 误触），且按键不能是修饰键。
+ * 校验绑定是否可用于本应用：对应桌面 IsValidForApp。约束：必须含 Ctrl 或 Alt（避免单键或仅 Shift 误触），且按键不能是修饰键。
  */
 export function isValidShortcutBinding(gesture: string): boolean {
   const parsed = parseShortcutBinding(gesture)
@@ -266,11 +243,7 @@ interface ParsedKeyboardEvent extends ParsedShortcut {
 }
 
 /**
- * 匹配快捷键：对应桌面 ShortcutsFlow 的加速键注册与命中流程。
- *
- * - 绑定为空 / 非法 / 与先前槽位重复的组合不参与匹配（桌面注册时跳过）；
- * - 命中后若 isTextInputFocused() 为 true 则忽略（交还给输入框）；
- * - metaKey 参与的事件永不匹配（桌面语法不含 Meta）。
+ * 匹配快捷键：对应桌面 ShortcutsFlow 的加速键注册与命中流程。绑定为空、非法或与先前槽位重复的组合不参与匹配（桌面注册时跳过）；命中后若 isTextInputFocused() 为 true 则忽略，交还给输入框；metaKey 参与的事件永不匹配（桌面语法不含 Meta）。
  */
 export function matchShortcut(
   event: KeyboardLike,
@@ -301,18 +274,7 @@ export function matchShortcut(
 }
 
 /**
- * 网页端新增的选择快捷键（**桌面没有对应键盘路径**）。
- *
- * 桌面把选择相关的操作全放在了画布浮层按钮上（`BoardCanvasControl.xaml:118-168` 的
- * 置顶/复制/删除三个 `Button`），全仓库没有任何 `Ctrl+A` / `Escape` / `Delete` 的键盘路径
- * （P2 期间 grep `VirtualKey`/`KeyboardAccelerator` 已确认）。网页端按用户预期补上这三个键，
- * 属于**浏览器增强**，不是桌面行为的复刻——两端的差异记录在 `implement.md` 的 P2 记录里。
- *
- * 约束（保持"不抢浏览器/不误触"）：
- * - 只在选择工具下生效（控制器侧判定），且焦点在文本输入框时一律不处理；
- * - `Ctrl+A` 只接受 Ctrl（不带 Alt/Shift/Meta），`Escape`/`Delete`/`Backspace` 不接受任何修饰键；
- * - `Backspace` 与 `Delete` 等价（两者都是"删除"，`Backspace` 需要调用方 `preventDefault`
- *   以免触发浏览器的"后退"）。
+ * 网页端新增的选择快捷键，桌面没有对应键盘路径：桌面把置顶、复制、删除放在画布浮层按钮上（BoardCanvasControl.xaml:118-168），全仓库没有 Ctrl+A / Escape / Delete 的键盘路径，这里按用户预期补齐。约束：只在选择工具下生效（控制器侧判定），焦点在文本输入框时一律不处理；Ctrl+A 只接受 Ctrl（不带 Alt/Shift/Meta），Escape 与 Delete 不接受修饰键；Backspace 与 Delete 等价，调用方需 preventDefault 以免触发浏览器后退。
  */
 export type SelectionShortcutId = 'selectAll' | 'clearSelection' | 'deleteSelection'
 
@@ -398,9 +360,7 @@ function parseKeyboardEvent(event: KeyboardLike): ParsedKeyboardEvent | null {
 }
 
 /**
- * 浏览器 event.key → 桌面按键 token。
- * 具名键映射到桌面 VirtualKey 名称；字母统一大写（Ctrl+Z 时浏览器给的是 'z'）；
- * 修饰键本身（Control/Shift/Alt/Meta 等）返回 null，对应桌面 IsModifierKey 不参与绑定。
+ * 浏览器 event.key → 桌面按键 token。具名键映射到桌面 VirtualKey 名称；字母统一大写（Ctrl+Z 时浏览器给的是 'z'）；修饰键本身（Control/Shift/Alt/Meta 等）返回 null，对应桌面 IsModifierKey 不参与绑定。
  */
 function parseEventKey(key: string): string | null {
   // 空格键的 event.key 是单个空格，需在“单字符”分支之前特判。

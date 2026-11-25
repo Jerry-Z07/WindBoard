@@ -10,10 +10,8 @@ using Xunit;
 namespace WindBoard.Tests.Board.Persistence;
 
 /// <summary>
-/// WBIX 版本契约（读侧分派）测试。
-///
-/// 契约：<c>manifest.version</c> 决定使用哪个页读取器；未知版本在读取任何页之前被拒绝；
-/// v1/v2 读扁平条目、v3 读包装条目，且两种形态互相容忍（v3 遇扁平条目走兜底，每文件告警一次）。
+/// <c>manifest.version</c> 决定使用哪个页读取器：未知版本在任何页读取之前被拒绝；v1/v2 读扁平条目、v3 读包装条目。
+/// 两种形态互相容忍：v3 遇扁平条目走兜底，每文件告警一次。
 /// </summary>
 public sealed class WbixVersionContractTests
 {

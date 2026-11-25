@@ -68,8 +68,7 @@ namespace WindBoard.Features.ScreenAnnotation.Services
 
                 HookWindowEvents();
 
-                // 关键：两个窗口都必须在首次显示（Activate）之前完成无边框与透明背景配置。
-                // 否则 WinUI 顶层窗口会先以主题底色（浅色主题为白）绘制首帧，用户看到明显白闪；
+                // 两个窗口都必须在首次显示（Activate）前完成无边框与透明背景配置，否则 WinUI 顶层窗口会先以主题底色绘制首帧（浅色主题为白），出现白闪。
                 // 具体失败原因由窗口层记录（ScreenAnnotation.Interop）。
                 if (!_annotationWindow.TryInitializeForDisplay()
                     || !_toolbarWindow.TryInitializeForDisplay())

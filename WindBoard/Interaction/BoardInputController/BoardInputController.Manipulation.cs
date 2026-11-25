@@ -38,9 +38,8 @@ namespace WindBoard.Interaction
                 return;
             }
 
-            // 横向滚轮：触控板双指横移经系统转换为 WM_MOUSEHWHEEL（IsHorizontalMouseWheel 为 true），
-            // 与鼠标倾斜滚轮在应用层不可区分，统一按“系统滚动”语义做横向平移视口（不缩放，也不参与下面的选区变换）。
-            // 竖向滚轮保持既有行为：缩放视口（见下方 factor2 分支）。
+            // 横向滚轮（触控板双指横移经系统转为 WM_MOUSEHWHEEL，IsHorizontalMouseWheel 为 true）与鼠标倾斜滚轮在应用层不可区分，统一按系统滚动横向平移视口。
+            // 该分支不缩放，也不参与下方的选区变换；竖向滚轮仍缩放视口。
             if (point.Properties.IsHorizontalMouseWheel)
             {
                 Vector2 panScreenDelta = PointerRoutingDecisions.ResolveHorizontalWheelPanScreenDelta(delta);
@@ -56,10 +55,8 @@ namespace WindBoard.Interaction
 
             Windows.System.VirtualKeyModifiers mods = e.KeyModifiers;
 
-            // 选择模式下，按住修饰键对“选中笔迹集合”做变换（将多笔迹视为整体）：
-            // - Ctrl + 滚轮：缩放（以鼠标位置为锚点）
-            // - Shift + 滚轮：旋转（以选中集合中心为锚点）
-            // 形状跳过矩阵变换（design D）：纯形状选择时不进入该分支，滚轮透传为视口缩放。
+            // 选择模式下按住修饰键将多笔迹视为整体变换：Ctrl + 滚轮以鼠标位置为锚点缩放，Shift + 滚轮以选中集合中心为锚点旋转。
+            // 形状跳过矩阵变换，纯形状选择不进入该分支，滚轮透传为视口缩放。
             if (Tool == BoardTool.Select
                 && _selectTool.HasTransformableStrokes
                 && (mods.HasFlag(Windows.System.VirtualKeyModifiers.Control) || mods.HasFlag(Windows.System.VirtualKeyModifiers.Shift)))
@@ -416,9 +413,7 @@ namespace WindBoard.Interaction
 
         private bool HasBlockingInteractionForManipulation()
         {
-            // Manipulation 属于触摸手势通道，与“指针捕获 + 工具动作”互斥：
-            // - 正在画线/擦除时不进入手势
-            // - 正在鼠标右键平移/框选/移动选中时不进入手势
+            // Manipulation 是触摸手势通道，与指针捕获加工具动作互斥：画线、擦除、右键平移、框选、移动选中期间都不进入手势。
             return HasActiveToolInteraction || HasPointerGesture;
         }
 

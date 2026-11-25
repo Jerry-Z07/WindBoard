@@ -1,22 +1,6 @@
 /**
- * 画布渲染句柄：渲染层唯一接触 DOM 的边界。
- *
- * 职责：
- * 1. **后备存储尺寸**：`canvas.width/height = DIP × DPR`
- *    （桌面参照 `WindBoard/Rendering/DxSwapChainPanelRenderer.cs:392-411`：`CompositionScale` 参与
- *    像素尺寸与 DPI 计算；网页端直接用 `devicePixelRatio`，只在后备存储的单边 / 面积
- *    越过浏览器上限时才夹取，见 `resolveCanvasDevicePixelRatio`）；
- * 2. **帧调度**：rAF 合并重绘 + `maxFps` 上限（桌面 `MaxInteractiveFps = 60`，
- *    `BoardCanvasControl.xaml.cs:26`），具体实现见 `frame-scheduler.ts`；
- * 3. **尺寸变化**：`ResizeObserver` 监听 CSS 尺寸 → `viewport.updateViewportSize` → 重绘；
- * 4. **场景绘制**：委托 `scene.ts`（绘制顺序、笔迹轮廓、形状、元素卡片）；
- * 5. **覆盖层**：`setSelection` 的选择框/手柄/框选矩形在场景之后绘制（`selection.ts`），
- *    永远压在实时预览之上。
- *
- * P1.4 范围说明：本阶段只落地“正确的整帧重绘”。脏矩形局部重绘与视口交互降质
- * （桌面 `DxSwapChainPanelRenderer.cs:18-21` 的 `DirtyRectExtraPixels = 2` /
- * `InteractiveRenderScale = 0.95`）**只保留钩子**（`enableDirtyRect` / `interactiveQualityScale`），
- * 真正的优化留待 P5 性能阶段。
+ * 画布渲染句柄：渲染层唯一接触 DOM 的边界，负责后备存储尺寸（canvas.width = DIP × DPR，越过单边或面积上限时夹取 DPR）、rAF 帧调度、ResizeObserver 尺寸变化与覆盖层补画。
+ * 脏矩形与视口交互降质只保留钩子（enableDirtyRect / interactiveQualityScale），分别对应桌面 DxSwapChainPanelRenderer.cs:18-21 的 DirtyRectExtraPixels = 2 与 InteractiveRenderScale = 0.95，实现留待 P5。
  */
 
 import type { Shape } from '../board/model/shape.ts'
@@ -46,11 +30,7 @@ export { DEFAULT_BACKGROUND } from './scene.ts'
 export { DEFAULT_MAX_FPS } from './frame-scheduler.ts'
 
 /**
- * 渲染数据源：场景（`scene.ts`）+ 可选的选择覆盖层。
- *
- * 覆盖层字段放在这里而不是 `scene.ts`：P2 的选择框/手柄/marquee 不属于场景内容
- * （它永远画在实时预览之上），由本文件在 `drawScene` 之后补画；
- * `scene.ts` 因此完全不用改动。
+ * 渲染数据源：场景（scene.ts）加可选的选择覆盖层；覆盖层不属于场景内容，由本文件在 drawScene 之后补画，scene.ts 因此无需改动。
  */
 export interface RenderSources extends SceneRenderSources {
   /**
@@ -62,55 +42,23 @@ export interface RenderSources extends SceneRenderSources {
 }
 
 /**
- * 后备存储单边像素上限（所有平台）。
- *
- * 浏览器 Canvas2D 走 GPU 纹理，主流实现的单边上限是 16384；越过之后
- * **不会报错，而是整块画布画不出东西**，所以按边长反算 DPR 上限。
+ * 后备存储单边像素上限 16384：主流 Canvas2D 走 GPU 纹理，越过之后不报错但整块画布画不出东西，所以按边长反算 DPR 上限。
  */
 export const MAX_CANVAS_BACKING_DIMENSION = 16_384
 
 /**
- * 后备存储像素面积上限（非 iOS 平台）。
- *
- * 67 108 864 = 8192 × 8192，RGBA 约占 256 MiB。DPR **不设固定上限**：
- * 固定上限（原先是 2）会让 DPR 2.5 / 3 的屏幕（250%~300% 缩放、绝大多数手机）
- * 用 2 倍的后备存储去铺满更高分辨率的窗口，浏览器再把画布放大，
- * 笔迹边缘因此从 1 设备像素的过渡变成 1.5~2 像素——桌面端同屏是清晰的，
- * 表现就是“网页版笔迹更模糊、放大后更明显”。
- * 但内存仍要有界：1920×1080 的窗口在 DPR 3 下只有 18.7M 像素，远低于此上限。
+ * 后备存储像素面积上限 67 108 864（8192 × 8192，RGBA 约 256 MiB）。DPR 不设固定上限：限成 2 会让 250%~300% 缩放的屏幕用 2 倍后备存储铺满窗口再被浏览器放大，笔迹边缘因此变糊。
  */
 export const MAX_CANVAS_BACKING_AREA_PIXELS = 67_108_864
 
 /**
- * 单个画布的后备存储像素面积上限（iOS Safari 的硬限制）。
- *
- * WebKit（iOS/iPadOS）把单张 canvas 的像素总数限制在 16 777 216（4096×4096）；
- * 超过限制时画布**不会报错，而是直接画不出东西**，表现为“整块画布空白”。
- * 桌面版走 DXGI 交换链没有这个限制，因此这是一处浏览器特有的补充，
- * 只对 iOS 生效，其它平台用 {@link MAX_CANVAS_BACKING_AREA_PIXELS}。
- *
- * 触屏设备的常规组合撞不上去（iPad Pro 12.9 横屏 1366×1024 DIP × DPR 2 ≈ 5.6M 像素），
- * 但外接显示器 / 分屏放大窗口之后可能越过上限，所以按面积反算一个安全的 DPR，
- * 而不是放弃渲染。
+ * iOS Safari 的单画布像素面积上限 16 777 216（4096×4096），越过时整块画布空白；常规触屏组合撞不到，外接显示器或分屏放大后可能越过，所以按面积反算安全 DPR，其它平台用 MAX_CANVAS_BACKING_AREA_PIXELS。
  */
 export const MAX_CANVAS_AREA_PIXELS = 16_777_216
 
 /**
- * 静态层缓存的默认启用门槛（采样点数）。
- *
- * 实测（1600×795 视口、DPR 1.5、软件光栅化，单位 ms/帧 p50）：
- *
- * | 点数   | 缓存命中（贴图） | 缓存未命中（整帧重绘） |
- * |--------|------------------|------------------------|
- * | 12k    | —（低于门槛）    | 1.9                    |
- * | 30k    | 2.4              | 5.6                    |
- * | 120k   | 6.7              | 23.1                   |
- *
- * 两条曲线的交点约 13k 点（贴图 2.4ms ≈ 重绘 13k 点）。门槛取 30000 而不是 13000，
- * 因为**贴图成本随画布像素数走、重绘成本随点数走**：窗口放大到 4K 时贴图会涨几倍，
- * 而点数不变。留出这个余量，宁可少优化一档，也不让缓存比不缓存更慢。
- *
- * 门槛按点数而不是条目数，理由见 `countScenePoints`。
+ * 静态层缓存的默认启用门槛（采样点数）。1600×795 视口、DPR 1.5、软件光栅化实测（ms/帧 p50）：30k 点贴图 2.4、重绘 5.6，120k 点 6.7、23.1，交点约 13k 点；取 30000 是因为贴图成本随画布像素涨、重绘成本随点数涨，4K 窗口下贴图会涨几倍。
+ * 门槛按点数而非条目数，理由见 countScenePoints。
  */
 export const DEFAULT_STATIC_CACHE_THRESHOLD_POINTS = 30_000
 
@@ -125,26 +73,15 @@ export interface RenderHandleOptions {
   /** 最大帧率（缺省 60，对应桌面 `MaxInteractiveFps`，`BoardCanvasControl.xaml.cs:26`）。 */
   maxFps?: number
   /**
-   * 脏矩形局部重绘开关。
-   *
-   * P1.4 只保留钩子：默认 `false` 表示每帧整帧重绘；置 `true` 也不会改变当前行为，
-   * 实现留待 P5 性能阶段（桌面参照 `DxSwapChainPanelRenderer.cs:157-230`）。
+   * 脏矩形局部重绘开关，默认 false 即整帧重绘；P1.4 只保留钩子，置 true 也不改变行为，实现留待 P5（桌面参照 DxSwapChainPanelRenderer.cs:157-230）。
    */
   enableDirtyRect?: boolean
   /**
-   * 视口交互降质系数钩子。
-   *
-   * P1.4 只保留钩子：默认 `1`（不降质）；桌面在连续平移/缩放时用 `0.95`
-   * （`DxSwapChainPanelRenderer.cs:21`），实现留待 P5 性能阶段。
+   * 视口交互降质系数钩子，默认 1；桌面在连续平移/缩放时用 0.95（DxSwapChainPanelRenderer.cs:21），实现留待 P5。
    */
   interactiveQualityScale?: number
   /**
-   * 静态层缓存的启用门槛（**采样点数**，见 `countScenePoints`）。
-   *
-   * 默认 30000：缓存命中时每帧的固定成本是一次全屏贴图（实测软件光栅化下约 7ms，
-   * 真机 GPU 上远低于此），未命中时是整帧重绘（实测约 0.24µs/点）。两者相交在
-   * ~30k 点，取整到 30000 并留了余量——宁可少优化，也不要让缓存比不缓存更慢。
-   * 传 `0` 表示始终启用，传 `Number.POSITIVE_INFINITY` 表示禁用。
+   * 静态层缓存启用门槛（采样点数，见 countScenePoints），默认 30000：命中时每帧一次全屏贴图（软件光栅化约 7ms），未命中时整帧重绘（约 0.24µs/点），交点约 30k；传 0 始终启用，传 Number.POSITIVE_INFINITY 禁用。
    */
   staticCacheThresholdPoints?: number
   /**
@@ -166,10 +103,7 @@ export interface BoardRenderHandle {
   /** 更新实时预览形状；传 `null` 表示结束拖拽。 */
   setLiveShape(shape: Shape | null): void
   /**
-   * 更新选择覆盖层；传 `null` 表示取消选中与框选。
-   *
-   * 覆盖层永远画在场景与实时预览之上（桌面同样是独立的 XAML 覆盖层，
-   * 见 `BoardCanvasControl.xaml:38-71`）。
+   * 更新选择覆盖层，传 null 表示取消选中与框选；覆盖层永远画在场景与实时预览之上（桌面同样是独立的 XAML 覆盖层，BoardCanvasControl.xaml:38-71）。
    */
   setSelection(selection: SelectionOverlay | null): void
   /** 释放监听与缓存；之后所有绘制请求都会被忽略。 */
@@ -178,8 +112,7 @@ export interface BoardRenderHandle {
 
 /**
  * 创建画布渲染句柄。
- *
- * @param canvas 目标画布（浏览器传 `HTMLCanvasElement`；其结构满足 `RenderCanvas`）
+ * @param canvas 目标画布（浏览器传 HTMLCanvasElement；其结构满足 RenderCanvas）
  * @param sources 渲染数据源（文档 / 视口 / 背景 / 实时预览）
  * @param options 帧率与性能钩子
  */
@@ -205,10 +138,7 @@ export function createBoardRenderHandle(
   let appliedTranslate: Vec2 = { x: 0, y: 0 }
 
   /**
-   * 一帧：同步尺寸 → 清理轮廓缓存 → （静态层）场景 + 实时预览 → 覆盖层。
-   *
-   * 静态层缓存启用时，场景部分只在指纹变化时重画，其余帧只做一次 1:1 贴图；
-   * 未启用时退回整帧重绘（小场景更快，也保持了 P1 以来的行为）。
+   * 一帧：同步尺寸 → 清理轮廓缓存 → （静态层）场景加实时预览 → 覆盖层；静态层缓存启用时场景只在指纹变化时重画，其余帧只做一次 1:1 贴图。
    */
   function renderFrame(): void {
     if (disposed || context === null) {
@@ -266,24 +196,8 @@ export function createBoardRenderHandle(
   }
 
   /**
-   * 同步后备存储尺寸、CSS 尺寸与设备像素对齐，并把视口尺寸喂给视口。
-   *
-   * 为什么不能只用 `clientWidth/clientHeight`（浏览器实测，DPR 1.25 / 1.5）：
-   * - `clientWidth/clientHeight` 是**四舍五入后的整数**，而布局盒可能是小数
-   *   （例：DPR 1.5、盒高 710.67 → `clientHeight` 711 → 后备存储 1067 行，
-   *   实际设备高度 1066 行）。差 1 行等于整张画布被缩放 0.1%，边缘被重采样；
-   * - 画布左上角落在半设备像素上时，合成器同样对整张画布做双线性重采样
-   *   （Chromium 已知行为，合成层位于小数偏移时会被重采样，见
-   *   <https://issues.chromium.org/40431598>）。
-   *
-   * 两者叠加的表现就是「网页端笔迹比桌面端糊」（桌面端 D2D 直绘在设备像素上，
-   * 不存在这两级重采样）。所以这里按 `getBoundingClientRect()` 的小数尺寸算出
-   * 整数设备像素，把 CSS 尺寸钉成 `设备像素 / DPR`，再用 `translate` 把原点补到
-   * 整设备像素上，见 {@link computeDeviceGridAlignment}。
-   *
-   * 画布尚未布局（尺寸为 0，例如 `display: none`）时沿用视口已有尺寸，
-   * 避免把视口压成 1×1；只有像素尺寸真的变化时才写 `canvas.width/height`
-   * （写它会重置画布状态）。
+   * 同步后备存储尺寸、CSS 尺寸与设备像素对齐，并把视口尺寸喂给视口。clientWidth/clientHeight 是四舍五入的整数，DPR 1.25/1.5 下会与设备像素差 1 行，整张画布被缩放约 0.1% 后重采样；画布落在半设备像素上时 Chromium 还会对合成层双线性重采样（https://issues.chromium.org/40431598），表现为网页笔迹比桌面糊。
+   * 因此按 getBoundingClientRect() 的小数尺寸算整数设备像素，把 CSS 尺寸钉成设备像素 / DPR，再用 translate 补原点（见 computeDeviceGridAlignment）；尺寸为 0 时沿用视口已有尺寸，只有像素尺寸真的变化才写 canvas.width/height。
    */
   function syncSurface(): void {
     const measured = readCanvasLayoutRect(canvas)
@@ -400,10 +314,7 @@ export function createBoardRenderHandle(
 }
 
 /**
- * 设备像素比归一化：非有限值 / 非正值回退 1。
- *
- * 小于 1 的情况（浏览器整体缩小）保留原值，此时后备存储反而更小，属于预期行为。
- * 上限不在这里夹：上限取决于窗口尺寸（面积 / 单边），见 {@link resolveCanvasDevicePixelRatio}。
+ * 设备像素比归一化：非有限值或非正值回退 1；小于 1 的保留原值（浏览器整体缩小，后备存储更小属于预期）。上限不在这里夹，见 resolveCanvasDevicePixelRatio。
  */
 export function resolveDevicePixelRatio(raw: number | undefined): number {
   if (raw === undefined || !Number.isFinite(raw) || raw <= 0) {
@@ -413,11 +324,7 @@ export function resolveDevicePixelRatio(raw: number | undefined): number {
 }
 
 /**
- * 画布后备存储实际使用的 DPR：在 {@link resolveDevicePixelRatio} 的基础上，
- * 按后备存储的**单边上限**与**面积上限**反算（iOS 的面积上限更小）。
- *
- * 只有上限真的低于浏览器报告的 DPR 时才夹取；夹取结果不低于 1
- * （画面可能被放大变糊，但不能退化成 0 倍），也**绝不**把小于 1 的 DPR 抬回 1。
+ * 画布后备存储实际使用的 DPR：在 resolveDevicePixelRatio 基础上按单边与面积上限反算（iOS 面积上限更小），只有上限低于浏览器报告的 DPR 时才夹取，结果不低于 1，也不把小于 1 的 DPR 抬回 1。
  */
 export function resolveCanvasDevicePixelRatio(
   reported: number | undefined,
@@ -445,10 +352,7 @@ export function resolveCanvasDevicePixelRatio(
 }
 
 /**
- * 是否运行在 iOS/iPadOS 的浏览器上（用于画布面积上限这类平台补丁）。
- *
- * iPadOS 13 起默认发送桌面版 UA（`MacIntel`），只能靠“触摸点数 > 1”区分；
- * 非浏览器环境（单测）返回 `false`。
+ * 是否运行在 iOS/iPadOS 浏览器（用于画布面积上限这类平台补丁）：iPadOS 13 起默认发送桌面版 UA（MacIntel），只能靠触摸点数 > 1 区分；非浏览器环境（单测）返回 false。
  */
 export function isLikelyIos(): boolean {
   const scope = globalThis as unknown as {
@@ -486,17 +390,8 @@ export interface DeviceGridAlignment {
 }
 
 /**
- * 按布局矩形算出「把画布钉到设备像素网格」所需的三件事：后备存储尺寸、
- * 内联 CSS 尺寸、原点位移。
- *
- * 尺寸用 `round`（不是 `ceil`）：写回 CSS 后下一帧会重新读到这个值，`ceil` 在
- * 「乘积刚好略大于整数」时会每帧加 1 个设备像素（实测 1066.00003 → 1067 → 1068），
- * 画布被逐步撑大；`round` 是幂等的（`round(round(x·r)/r·r) = round(x·r)`）。
- * 代价是最多差半个设备像素：多出时由 `.wb-surface` 的 `overflow: hidden` 裁掉，
- * 少掉时露出的是同色背景（`.wb-surface` 内联了画布背景色）。
- *
- * 位移是 `round(设备像素) - 设备像素` 除以 DPR：画布原点落在半设备像素上时，
- * Chromium 会对整张合成层做双线性重采样（实测边缘从 1 个设备像素过渡变成 2 个）。
+ * 按布局矩形算出把画布钉到设备像素网格所需的后备存储尺寸、内联 CSS 尺寸与原点位移。尺寸用 round 而非 ceil，因为写回 CSS 后下一帧会重新读到该值，ceil 在乘积略大于整数时会每帧加 1 个设备像素把画布逐步撑大；代价是最多差半个设备像素，多出由 .wb-surface 的 overflow: hidden 裁掉，少掉露出的是同色背景。
+ * 位移是 round(设备像素) - 设备像素 除以 DPR，避免画布原点落在半设备像素上被 Chromium 双线性重采样（实测边缘从 1 个设备像素过渡变成 2 个）。
  */
 export function computeDeviceGridAlignment(
   layout: CanvasLayoutRect,
@@ -577,11 +472,7 @@ interface CanvasResizeObserver {
 type CanvasResizeObserverConstructor = new (callback: () => void) => CanvasResizeObserver
 
 /**
- * 观察尺寸变化的元素。
- *
- * 画布的尺寸被渲染层写成了具体的设备像素网格（见 `syncSurface`），不再跟随
- * `width: 100%` 的布局伸缩，因此必须观察**父元素**才能收到窗口/布局尺寸变化；
- * 没有父元素的场景（离屏画布、单测里的假画布）退回观察画布自身。
+ * 观察尺寸变化的元素：画布尺寸已被渲染层写成具体设备像素网格（见 syncSurface），不再跟随 width: 100% 的布局伸缩，必须观察父元素；离屏画布、单测假画布这类没有父元素的场景退回观察画布自身。
  */
 function resolveResizeTarget(canvas: RenderCanvas): RenderCanvas {
   const parent = (canvas as { readonly parentElement?: unknown }).parentElement
@@ -589,10 +480,7 @@ function resolveResizeTarget(canvas: RenderCanvas): RenderCanvas {
 }
 
 /**
- * 监听画布 CSS 尺寸变化；环境没有 `ResizeObserver` 时返回 `null`。
- *
- * 说明：没有 `ResizeObserver` 时仍可用——`renderFrame` 每次绘制都会同步尺寸，
- * 调用方只需在窗口尺寸变化后自行 `requestRender()`。
+ * 监听画布 CSS 尺寸变化，环境没有 ResizeObserver 时返回 null；此时 renderFrame 每次绘制仍会同步尺寸，调用方只需在窗口尺寸变化后自行 requestRender()。
  */
 function observeCanvasResize(
   canvas: RenderCanvas,

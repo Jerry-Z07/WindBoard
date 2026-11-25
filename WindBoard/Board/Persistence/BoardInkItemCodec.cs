@@ -12,19 +12,10 @@ namespace WindBoard.Board.Persistence
     /// 绘制条目"快照 ↔ 域对象"的单点转换器（Codec）。
     /// </summary>
     /// <remarks>
-    /// 说明（阶段一"序列化收敛"重构，R3；阶段二形状扩展，design E）：
-    /// - 快照到域的重建逻辑原先散落三处（BoardWorkspaceSnapshotApplier / BoardRasterExporter /
-    ///   WbiWorkspaceImporter），其中的 Stroke 构造与 Bounds 重算完全同构；本类型把它们收敛为单点，
-    ///   并作为"多态反序列化"的唯一 Kind 分发入口（命令栈的 <c>ReplaceStrokesCommand</c> 只持有
-    ///   <see cref="IBoardInkItem"/> 对象引用，不引入新的类型标识来源）；
-    /// - 序列化数据形态的兼容（v2 扁平 / v3 包装）由 <see cref="InkItemSnapshotJsonConverter"/> 负责，
-    ///   本类型只处理 Kind 分发与值换算；形状 Kind 字符串（line/rect/ellipse/arrow）与
-    ///   <see cref="BoardShapeKind"/> 的映射集中在本类型（单点）；
-    /// - Bounds 重算单点：所有"快照/外部数据 → <see cref="WindBoard.Board.Stroke"/>"路径统一调用
-    ///   <see cref="WindBoard.Board.Stroke.RecalculateBoundsFromPoints"/>，
-    ///   形状路径统一调用 <see cref="WindBoard.Board.Items.BoardShape.SetGeometry"/>；
-    /// - 未知 Kind：域→快照方向返回 null（调用方跳过），快照→域方向记 Warn 后跳过，
-    ///   保持"单个条目异常不阻断整个导入流程"的容错约定。
+    /// 快照与域对象互转的单点：Kind 分发与值换算在此，序列化形态兼容（v2 扁平/v3 包装）由 <see cref="InkItemSnapshotJsonConverter"/> 负责。
+    /// 快照到域的重建原先散落三处（BoardWorkspaceSnapshotApplier、BoardRasterExporter、WbiWorkspaceImporter）且构造与 Bounds 重算同构，现已收敛于此，并作为多态反序列化的唯一 Kind 入口。
+    /// Bounds 重算单点：快照到 <see cref="WindBoard.Board.Stroke"/> 统一调 <see cref="WindBoard.Board.Stroke.RecalculateBoundsFromPoints"/>，形状统一调 <see cref="WindBoard.Board.Items.BoardShape.SetGeometry"/>；形状 Kind 字符串（line/rect/ellipse/arrow）与 <see cref="BoardShapeKind"/> 的映射也在此。
+    /// 未知 Kind：域到快照方向返回 null 由调用方跳过，快照到域方向记 Warn 后跳过，单个条目异常不阻断整个导入流程。
     /// </remarks>
     internal static class BoardInkItemCodec
     {

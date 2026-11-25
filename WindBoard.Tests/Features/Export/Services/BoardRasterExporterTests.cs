@@ -13,8 +13,7 @@ public sealed class BoardRasterExporterTests
     [Fact]
     public void RenderRgbPage_RendersStrokePixels()
     {
-        // 该测试用于防止“导出全白/全透明”的回归。
-        // 选择白底 + 黑色粗线：只要渲染成功，输出像素中必然存在非白色像素。
+        // 白底 + 黑色粗线：渲染成功必然出现非白像素，防止“导出全白/全透明”的回归。
         var page = new BoardPageSnapshot(
             Id: Guid.NewGuid(),
             Strokes:
@@ -65,9 +64,8 @@ public sealed class BoardRasterExporterTests
     [Fact]
     public void RenderRgbPage_FixedFrame_ScalesContentToFillFrame()
     {
-        // 该测试用于防止“固定画面导出时缩放被限制”的回归。
-        // 选择非常小的内容包围盒，如果缩放被错误地夹在交互上限（例如 32x），
-        // 那么笔迹在 1080×1080 画布中会非常小，无法达到“压入标准分辨率画面”的预期效果。
+        // 内容包围盒取极小：缩放若被错误地夹在交互上限（例如 32x），笔迹在 1080×1080 画布中会过小，
+        // 无法压入标准分辨率画面。用于防止“固定画面导出时缩放被限制”的回归。
         var page = new BoardPageSnapshot(
             Id: Guid.NewGuid(),
             Strokes:

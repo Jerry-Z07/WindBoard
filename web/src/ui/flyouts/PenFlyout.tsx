@@ -1,17 +1,6 @@
 /**
- * 笔（颜色 + 粗细）面板内容。
- *
- * 桌面出处：`WindBoard/MainWindow.xaml:225-315`（`PenFlyout`）。
- * - 标题 14 号 SemiBold、`Margin="16,12,16,10"`、不透明度 0.85（`:242-248`）
- * - 分隔线 1px `#1A000000`（`:250`）
- * - 内容区 `Padding="14"`、`Spacing="12"`（`:252`）
- * - 颜色：网格 `RowSpacing/ColumnSpacing = 14`，列数 `ceil(sqrt(n))` 夹到 3~6（`:254-279` +
- *   `MainWindow.xaml.cs:528-533`），色块 44×44 圆角 22（`App.xaml:78-93`）
- * - 粗细：三档预设，按钮 44×44、内容是一条 `(12,22)-(32,22)` 的圆头线段、粗细即档位值
- *   （`:282-298` + `MainWindow.xaml.cs:496-526`）
- * - 粗细滑条：`Minimum=0.5 Maximum=64 StepFrequency=0.5`（`:300-310`）
- *
- * 本组件只渲染**面板内容**，锚点与开合由 `DockBar` 的 Fluent `Popover` 负责。
+ * 笔（颜色加粗细）面板内容，桌面出处 MainWindow.xaml:225-315（PenFlyout）：标题 14 号 SemiBold、Margin 16,12,16,10、不透明度 0.85（:242-248）；分隔线 1px #1A000000（:250）；内容区 Padding 14、Spacing 12（:252）；颜色网格 RowSpacing 与 ColumnSpacing 为 14，列数 ceil(sqrt(n)) 夹到 3~6（:254-279 与 MainWindow.xaml.cs:528-533），色块 44×44 圆角 22（App.xaml:78-93）；粗细三档预设按钮 44×44、内容是一条 (12,22)-(32,22) 的圆头线段、粗细即档位值（:282-298 与 MainWindow.xaml.cs:496-526）；粗细滑条 Minimum 0.5、Maximum 64、StepFrequency 0.5（:300-310）。
+ * 本组件只渲染面板内容，锚点与开合由 DockBar 的 Fluent Popover 负责。
  */
 
 import type { ReactNode } from 'react'

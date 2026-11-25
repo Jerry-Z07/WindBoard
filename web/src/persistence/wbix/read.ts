@@ -16,17 +16,8 @@ import type { PagePayloadReadContext, ResolvedResource } from './page-payload.ts
 import { isSafeZipPath, normalizeZipPath } from './paths.ts'
 
 /**
- * `.wbix` 读取入口（zip → manifest → 页 → 资源）。
- *
- * 读取顺序与致命/容忍判定逐条对齐桌面 `WbixWorkspaceSerializer.LoadAsync`：
- * 1. 缺 `manifest.json` → 致命；zip 无法解析 → 致命；
- * 2. `format` 不是 `wbix` → 致命；`version` 越界 → 致命（版本契约唯一落点）；
- * 3. 页按 `manifest.pages[].index` 稳定排序后逐个读取；
- * 4. 页路径归一化 + 安全校验（必须 `pages/` 前缀、无 `..`）失败或条目缺失 → 致命；
- * 5. 页 payload 非法 → 致命；单笔迹条目 / 单元素问题按容忍策略跳过并记录告警。
- *
- * 说明：本实现一次性把 zip 解压到内存（P0 阶段的语料与真实文件都在可接受范围内），
- * 资源字节按需解析并缓存。
+ * `.wbix` 读取入口（zip 到 manifest 到页与资源）。读取顺序与致命或容忍判定逐条对齐桌面 WbixWorkspaceSerializer.LoadAsync：缺 manifest.json、zip 无法解析、format 不是 wbix、version 越界均为致命（版本契约的唯一落点）；页按 manifest.pages[].index 稳定排序后逐个读取；页路径归一化与安全校验（必须 pages/ 前缀、无 ..）失败或条目缺失属致命；页 payload 非法属致命；单笔迹条目与单元素问题按容忍策略跳过并记录告警。
+ * 本实现一次性把 zip 解压到内存（P0 阶段的语料与真实文件都在可接受范围内），资源字节按需解析并缓存。
  */
 
 /** 单个资源的大小上限（`MaxResourceBytes`，32 MiB）。 */
@@ -53,11 +44,7 @@ interface WbixPageReader {
 }
 
 /**
- * 版本 → 页读取器。
- *
- * 说明：桌面侧 `WbixPageReaderV1V2` 与 `WbixPageReaderV3` 的差别只在
- * `InkItemReadMode`（是否对"v3 文件里的扁平条目"告警），两种模式都接受两种形态，
- * 因此这里共用同一自适应解码器，只按版本决定是否告警（见 `onLegacyFlatItem`）。
+ * 版本 → 页读取器。桌面侧 WbixPageReaderV1V2 与 WbixPageReaderV3 的差别只在 InkItemReadMode（是否对 v3 文件里的扁平条目告警），两种模式都接受两种形态，因此这里共用同一自适应解码器，只按版本决定是否告警（见 onLegacyFlatItem）。
  */
 const PAGE_READERS: readonly WbixPageReader[] = [
   { minVersion: 1, maxVersion: 2, read: readPagePayload },

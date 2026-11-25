@@ -14,14 +14,10 @@ namespace WindBoard.Interaction.Tools
     /// 选择工具：选中集、框选（marquee）与变换快照状态内聚（design B 节）。
     /// </summary>
     /// <remarks>
-    /// - <see cref="IBoardTool"/> 生命周期承载“框选”手势（Begin=起点、Move=拖动、End=提交、Cancel=取消）；
-    /// - 拖动选中项与滚轮/双指变换经专用方法由控制器调度（不在统一生命周期内）；
-    /// - 指针捕获与 pointerId 跟踪（_marqueePointerId/_selectionPointerId）仍由控制器负责；
-    /// - 命中测试按条目类型单点分发（<see cref="InkItemPickTest"/>/<see cref="InkItemRectSelectTest"/>）；
-    /// - 选中集变化经 <see cref="SelectionChanged"/> 通知控制器（转发 FrameInvalidated + StateChanged）；
-    /// - 选中集泛化为 <see cref="IBoardInkItem"/>（design D）：折线笔迹与两点式形状均可选中；
-    ///   矩阵变换（滚轮/双指缩放旋转）仅作用于笔迹，形状仅支持平移（轴对齐两点式几何
-    ///   无法无损承载旋转/非均匀缩放，为阶段二明示边界）。
+    /// - <see cref="IBoardTool"/> 生命周期承载框选手势（Begin 记起点、Move 拖动、End 提交、Cancel 取消），拖动选中项与滚轮/双指变换由控制器经专用方法调度。
+    /// - 指针捕获与 pointerId 跟踪（_marqueePointerId/_selectionPointerId）由控制器负责，选中集变化经 <see cref="SelectionChanged"/> 通知控制器（转发 FrameInvalidated 与 StateChanged）。
+    /// - 命中测试按条目类型单点分发（<see cref="InkItemPickTest"/>、<see cref="InkItemRectSelectTest"/>）。
+    /// - 选中集泛化为 <see cref="IBoardInkItem"/>，折线笔迹与两点式形状均可选中；矩阵变换仅作用于笔迹，形状只支持平移，因轴对齐两点式几何无法无损承载旋转与非均匀缩放。
     /// </remarks>
     internal sealed class SelectTool : IBoardTool
     {
@@ -84,8 +80,7 @@ namespace WindBoard.Interaction.Tools
         /// 选中集中是否包含笔迹。
         /// </summary>
         /// <remarks>
-        /// 矩阵变换（滚轮/双指缩放旋转）仅作用于笔迹（形状跳过——design D）；
-        /// 纯形状选择时控制器据此把缩放/旋转手势透传给视口，避免手势被吞掉后视口失效。
+        /// 矩阵变换仅作用于笔迹，纯形状选择时控制器据此把缩放/旋转手势透传给视口，避免手势被吞掉后视口失效。
         /// </remarks>
         public bool HasTransformableStrokes
         {
@@ -121,8 +116,6 @@ namespace WindBoard.Interaction.Tools
                         && _selectionElementBeforeSizeWorld is not null);
             }
         }
-
-        #region 框选（IBoardTool 生命周期）
 
         public void Begin(in ToolInput input)
         {
@@ -204,10 +197,6 @@ namespace WindBoard.Interaction.Tools
             return true;
         }
 
-        #endregion
-
-        #region 选中集管理
-
         /// <summary>清除选中（条目与元素）。</summary>
         public void ClearSelection()
         {
@@ -288,9 +277,7 @@ namespace WindBoard.Interaction.Tools
                 return;
             }
 
-            // 选择集合按文档顺序归一化：
-            // - 框选命中应保持相对层级顺序；
-            // - 过滤掉不在文档中的对象，避免撤销/重做后出现“幽灵选择”。
+            // 选中集按文档顺序归一化以保持框选命中的相对层级顺序，并过滤不在文档中的对象，避免撤销/重做后出现幽灵选择。
             var set = new HashSet<IBoardInkItem>();
             for (int i = 0; i < count; i++)
             {
@@ -339,10 +326,6 @@ namespace WindBoard.Interaction.Tools
         {
             SelectionChanged?.Invoke();
         }
-
-        #endregion
-
-        #region 选中范围判定与命中测试
 
         /// <summary>判定屏幕点（含容差）是否落在选中对象包围盒内（用于“拖动选中项”手势判定）。</summary>
         public bool IsScreenPointInsideSelectedBounds(Vector2 screenDip)
@@ -435,15 +418,9 @@ namespace WindBoard.Interaction.Tools
 
         private List<IBoardInkItem> HitTestSelectableItemsInWorldRect(Vector2 minWorld, Vector2 maxWorld)
         {
-            // 交互约定：元素只能通过“单击”选中，不支持框选。
-            // 框选命中按条目类型单点分发；笔迹与形状均可框选
-            // （SetSelectedItems 会按文档顺序重新归一化）。
+            // 交互约定：元素只能单击选中，不支持框选；笔迹与形状均可框选，命中按条目类型单点分发，选中集在 SetSelectedItems 中按文档顺序重新归一化。
             return InkItemRectSelectTest.HitTestInkItemsInWorldRect(_context.Document.InkItems, minWorld, maxWorld);
         }
-
-        #endregion
-
-        #region 选择变换（拖动选中项 / 滚轮 / 双指手势）
 
         /// <summary>
         /// 开始“拖动选中项”手势：对当前选中集或选中元素建立变换快照。
@@ -522,8 +499,7 @@ namespace WindBoard.Interaction.Tools
         /// 对选中集应用 2D 矩阵变换（滚轮缩放/旋转、双指捏合路径）。
         /// </summary>
         /// <remarks>
-        /// 形状跳过：轴对齐两点式几何无法无损承载旋转/非均匀缩放（design D 决策），
-        /// 混合选择时矩阵变换仅作用于笔迹（已知边界）。
+        /// 形状跳过：轴对齐两点式几何无法无损承载旋转与非均匀缩放，混合选择时矩阵变换仅作用于笔迹。
         /// </remarks>
         public void ApplyMatrixTransformToSelectedStrokes(Matrix3x2 transform)
         {
@@ -603,8 +579,7 @@ namespace WindBoard.Interaction.Tools
         /// 提交选择变换：把快照差异写入撤销记录（一次连续交互对应一次 Ctrl+Z）。
         /// </summary>
         /// <remarks>
-        /// pointerId/捕获释放由控制器负责；本方法只处理快照与命令。
-        /// 混合选择（笔迹+形状）时按条目类型生成各自命令，经 CompositeCommand 合并为一次撤销（design D）。
+        /// pointerId 与捕获释放由控制器负责，本方法只处理快照与命令；混合选择时按条目类型生成各自命令，经 CompositeCommand 合并为一次撤销。
         /// </remarks>
         public void CommitSelection()
         {
@@ -730,11 +705,8 @@ namespace WindBoard.Interaction.Tools
 
         private void BeginSelectionTransformSnapshotForItems(IReadOnlyList<IBoardInkItem> items)
         {
-            // 选择变换快照规则：
-            // - 一次连续交互（拖拽/触摸/滚轮）只创建一次“Before”快照；
-            // - 快照按当前选择集合顺序记录，提交时按相同顺序生成撤销命令；
-            // - 仅支持“条目集合”或“单元素”二选一，避免产生混合撤销记录；
-            // - 笔迹走点列快照、形状走两点几何快照，混合选择经命令层合并（design D）。
+            // 一次连续交互（拖拽/触摸/滚轮）只创建一次 Before 快照，按当前选择集合顺序记录，提交时按相同顺序生成撤销命令。
+            // 条目集合与单元素二选一以避开混合撤销记录；笔迹走点列快照、形状走两点几何快照，混合选择经命令层合并。
             if (IsSameSelectionSnapshot(items))
             {
                 return;
@@ -794,8 +766,6 @@ namespace WindBoard.Interaction.Tools
 
             return true;
         }
-
-        #endregion
 
         private static Rect CreateRectFromTwoPoints(Vector2 a, Vector2 b)
         {

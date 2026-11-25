@@ -1,9 +1,7 @@
 namespace WindBoard.Reminders
 {
     /// <summary>
-    /// 提醒点击动作：
-    /// - Windows Toast：点击通知触发
-    /// - 应用内弹条：点击消息触发
+    /// 提醒点击动作：Windows Toast 由点击通知触发，应用内弹条由点击消息触发。
     /// </summary>
     internal enum AppReminderClickAction
     {

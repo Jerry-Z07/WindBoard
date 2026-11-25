@@ -15,9 +15,8 @@ namespace WindBoard.Interaction
             Vector2 latestScreenDip,
             float extraPaddingDip)
         {
-            // 目标：在“增量书写”时只重绘必要区域，提高交互帧率。
-            // 规则：基于“最新点 + 上一个点（若存在）”形成的线段包围盒，再按笔宽与额外 padding 扩展。
-            // 注意：这里的 Rect 使用 DIP（屏幕坐标），由调用方统一用于局部重绘与 Present dirty rect 计算。
+            // 增量书写时只重绘必要区域以提高交互帧率：包围盒取最新点与上一个点连成的线段，再按笔宽与额外 padding 扩展。
+            // 返回的 Rect 使用 DIP（屏幕坐标），由调用方统一用于局部重绘与 Present dirty rect 计算。
 
             if (stroke.Points.Count == 0)
             {

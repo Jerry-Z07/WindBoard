@@ -16,11 +16,8 @@ using Windows.UI;
 namespace WindBoard.Features.Export.Services
 {
     /// <summary>
-    /// 导出服务（PNG / PDF / WBIX）。
-    /// 
-    /// 说明：
-    /// - 导出通常是耗时操作，这里统一在后台线程执行（Task.Run）；
-    /// - 输入建议使用 <see cref="BoardWorkspaceSnapshot"/>，避免导出过程中 UI 继续编辑导致数据竞争。
+    /// 导出服务（PNG / PDF / WBIX）：导出耗时，统一在后台线程执行（Task.Run）。
+    /// 输入使用 <see cref="BoardWorkspaceSnapshot"/>，避免导出过程中 UI 继续编辑造成数据竞争。
     /// </summary>
     internal sealed class BoardExportService : IBoardExportService
     {
@@ -42,10 +39,8 @@ namespace WindBoard.Features.Export.Services
             {
                 cancellationToken.ThrowIfCancellationRequested();
 
-                // 资源列表（封面 + 页面元素资源等）：用于后续导入/文件列表中快速识别内容与增强可移植性。
-                // 说明：
-                // - 封面图属于“可选资源”，即使生成失败也不应阻断 WBIX 导出；
-                // - 图片资源属于“可选增强”：尽量内嵌到 assets/，提高跨机可用性。
+                // 资源列表（封面与页面元素资源等）用于导入或文件列表快速识别内容，并增强可移植性。
+                // 封面与图片资源都是可选项：封面生成失败不阻断 WBIX 导出，图片尽量内嵌到 assets/ 以提高跨机可用性。
                 List<WbixResourceFile> resources = new();
                 if (TryCreateWbixCoverResource(snapshot, cancellationToken, out WbixResourceFile? cover)
                     && cover is not null)

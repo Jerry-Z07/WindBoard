@@ -40,10 +40,8 @@ namespace WindBoard.Features.Import.Wbi
     }
 
     /// <summary>
-    /// 旧格式 WBI（.wbi）工作区导入器：
-    /// - 读取 Zip + JSON（snake_case）；
-    /// - 从 ISF 解析笔迹并转换为新版本 Stroke；
-    /// - 将附件映射为新版本元素卡片（图片/视频/文本/链接）。
+    /// 旧格式 WBI（.wbi）工作区导入器：读取 Zip 与 snake_case JSON，从 ISF 解析笔迹并转换为新版本 Stroke。
+    /// 附件映射为新版本元素卡片（图片、视频、文本、链接）。
     /// </summary>
     internal sealed class WbiWorkspaceImporter
     {

@@ -1,16 +1,6 @@
 /**
- * 窄屏（手机）布局判定。
- *
- * 桌面 WinUI 没有这个概念——窗口最小宽度足以放下三段 Dock。网页端在手机上运行
- * （见 `docs/dev/guides/web-port.zh-CN.md` §6 的有意偏差），三段 Dock 横排会互相覆盖，
- * 因此需要一个**屏幕断点**把 Dock 重新组合成单段紧凑栏。
- *
- * 断点取值理由（实测 2026-11-11，Chromium 360×732 / 390×844 / 732×360 / 800×700）：
- * - 三段 Dock 原始宽度：左 198 + 中 395 + 右 62，加上块间距与两侧外边距，
- *   横排不溢出需要视口 ≥ 700；而"中段绝对居中"的排法在 <819 就会与左段压叠
- *   （`@media (max-width: 900px)` 已把中段改成不脱流的居中排法解决后者）；
- * - 紧凑栏需要 7 个 44×44 按钮 + 间距 24 + 内边距 8 ≈ 340，加两侧 8 外边距要 ≥ 356。
- * 700 正好是两者的分界，因此取 700。
+ * 窄屏（手机）布局判定。桌面 WinUI 没有这个概念，窗口最小宽度足以放下三段 Dock；网页端在手机上运行时三段 Dock 横排会互相覆盖（见 docs/dev/guides/web-port.zh-CN.md §6 的有意偏差），因此需要一个屏幕断点把 Dock 重新组合成单段紧凑栏。
+ * 断点取 700 的理由（实测 2026-11-11，Chromium 360×732 / 390×844 / 732×360 / 800×700）：三段 Dock 原始宽度为左 198 加中 395 加右 62，加上块间距与两侧外边距，横排不溢出需要视口至少 700；中段绝对居中的排法在小于 819 时会与左段压叠（`@media (max-width: 900px)` 已把中段改成不脱流的居中排法解决后者）；紧凑栏需要 7 个 44×44 按钮加间距 24 加内边距 8 约 340，加两侧 8 外边距要至少 356。700 正好是两者的分界，因此取 700。
  */
 
 import { useSyncExternalStore } from 'react'
@@ -44,10 +34,7 @@ function getServerSnapshot(): boolean {
 }
 
 /**
- * 当前是否为窄屏。
- *
- * 用 `useSyncExternalStore` 而不是 `useState` + effect：后者会在 effect 里同步 setState，
- * 既被 oxlint 的 `react(set-state-in-effect)` 拦截，也会多渲染一帧造成 Dock 闪跳。
+ * 当前是否为窄屏。用 useSyncExternalStore 而不是 useState + effect：后者会在 effect 里同步 setState，既被 oxlint 的 react(set-state-in-effect) 拦截，也会多渲染一帧造成 Dock 闪跳。
  */
 export function useNarrowLayout(): boolean {
   return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot)

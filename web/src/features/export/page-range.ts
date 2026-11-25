@@ -1,24 +1,12 @@
 /**
- * 页码范围解析器（1 基输入 → 0 基索引）。
- *
- * 逐条移植自桌面 `WindBoard/Features/Export/Services/PageRangeParser.cs:16-223`，语义必须一致：
- * - 逗号分隔多个片段；片段内 `a-b` 表示闭区间（含两端），单个数字表示单页；
- * - 输入是 1 基页码，输出是 0 基页索引；用集合去重后**升序**返回（对应 C# 的 `SortedSet<int>`）；
- * - 任一片段非法即整体失败，且**不返回部分结果**（C# 只在 `ok` 为真时才把 `indices` 回填到 `pageIndices`）；
- * - 容错优先：片段两端空白会被裁掉，空片段（`1,,3`、`1, ,3`）直接忽略。
- *
- * 桌面调用点：`WindBoard/Features/Export/ExportFlow.cs:144-145`（`PageScope.Range` 分支）。
- * 报错文案与 `WindBoard/Strings/zh-CN/Export.resw` 逐条对齐，key 见 {@link PAGE_RANGE_MESSAGES}；
- * 这里只产出 key + 实参，渲染交给 UI（`i18n/message.ts`），因此英文界面下报错也是英文。
+ * 页码范围解析器（1 基输入转 0 基索引），逐条移植自桌面 Features/Export/Services/PageRangeParser.cs:16-223，语义必须一致：逗号分隔多个片段，片段内 `a-b` 表示含两端的闭区间，单个数字表示单页；输入是 1 基页码、输出是 0 基页索引，用集合去重后升序返回（对应 C# 的 SortedSet<int>）；任一片段非法即整体失败且不返回部分结果（C# 只在 ok 为真时才把 indices 回填到 pageIndices）；片段两端空白会被裁掉，空片段（1,,3、1, ,3）直接忽略。
+ * 桌面调用点在 Features/Export/ExportFlow.cs:144-145 的 PageScope.Range 分支；报错文案与 Strings/zh-CN/Export.resw 逐条对齐，key 见 {@link PAGE_RANGE_MESSAGES}，这里只产出 key 与实参，渲染交给 UI（i18n/message.ts），因此英文界面下报错也是英文。
  */
 
 import { localized, type LocalizedMessage } from '../../i18n/message.ts'
 
 /**
- * 报错文案：只给 **key + 实参**，中文/英文由 UI 用 `t()` 渲染。
- *
- * 命名对应 `Export.resw` 里的 key：`*_Message` 不带占位符、`*_Fmt` 带 `{0}`。
- * 纯函数不拼中文，是为了让英文界面下的报错也是英文（见 `i18n/message.ts`）。
+ * 报错文案：只给 key + 实参，中文与英文由 UI 用 t() 渲染。命名对应 Export.resw 里的 key：*_Message 不带占位符、*_Fmt 带 {0}；纯函数不拼中文，是为了让英文界面下的报错也是英文（见 i18n/message.ts）。
  */
 export const PAGE_RANGE_MESSAGES = {
   /** `Export_PageRange_PageCountInvalid_Message`（`Export.resw:170-172`）。 */
@@ -69,10 +57,7 @@ const INT32_MAX = 2147483647
 const INTEGER_PATTERN = /^[+-]?\d+$/
 
 /**
- * 按 C# `int.TryParse` 的语义解析整数（失败返回 `null`）。
- *
- * 不用 `Number(text)` 直接判定的原因：`Number('')` 是 0、`Number('1e2')` 是 100、
- * `Number('0x10')` 是 16，都与 `int.TryParse` 不一致，会悄悄放宽桌面接受的输入。
+ * 按 C# int.TryParse 的语义解析整数（失败返回 null）。不直接用 Number(text) 判定：Number('') 是 0、Number('1e2') 是 100、Number('0x10') 是 16，都与 int.TryParse 不一致，会悄悄放宽桌面接受的输入。
  */
 function tryParseInt32(token: string): number | null {
   if (!INTEGER_PATTERN.test(token)) {
@@ -102,10 +87,7 @@ function parsePageNumber(token: string): PageNumberParse {
 }
 
 /**
- * 1 基区间校验（`PageRangeParser.cs:204-221` 的 `ValidateOneBasedRange`）。
- *
- * 注意：`start <= 0 || end <= 0` 分支在桌面其实不可达（`TryParsePageNumber` 已挡掉非正数），
- * 这里保留是为了与 C# 逐行对应，将来若放宽 `TryParsePageNumber` 不会漏掉兜底。
+ * 1 基区间校验（PageRangeParser.cs:204-221 的 ValidateOneBasedRange）。start <= 0 || end <= 0 分支在桌面其实不可达（TryParsePageNumber 已挡掉非正数），这里保留是为了与 C# 逐行对应，将来放宽 TryParsePageNumber 时不会漏掉兜底。
  */
 function validateOneBasedRange(
   start: number,
@@ -144,11 +126,7 @@ function addSinglePage(
 }
 
 /**
- * 区间片段（`PageRangeParser.cs:123-182` 的 `TryParseRangeAndAdd`）。
- *
- * 报错优先级与桌面完全一致：多中划线 → 半截区间 → 页码语法 → 起止顺序 → 越界。
- * 其中"顺序错误先于越界"是 `PageRangeParser.cs:162-171` 的实际顺序
- * （`5-2` 在只有 3 页时会报顺序错误，而不是超出范围）。
+ * 区间片段（PageRangeParser.cs:123-182 的 TryParseRangeAndAdd）。报错优先级与桌面完全一致：多中划线、半截区间、页码语法、起止顺序、越界；其中顺序错误先于越界是 PageRangeParser.cs:162-171 的实际顺序（5-2 在只有 3 页时报顺序错误，不报超出范围）。
  */
 function addRange(
   indices: Set<number>,
@@ -221,11 +199,10 @@ function failure(error: LocalizedMessage): PageRangeParseResult {
 }
 
 /**
- * 解析页码范围文本（`PageRangeParser.cs:18-77` 的 `TryParse`）。
- *
- * @param text 用户输入（1 基、逗号分隔）；`null` / 空白视为"未填写"。
- * @param pageCount 当前工作区页数；`<= 0` 时优先报"页面数量非法"（桌面顺序：先判页数，再判输入）。
- * @returns 解析结果；`ok` 为 `false` 时 `error` 必不为 `null`。
+ * 解析页码范围文本（PageRangeParser.cs:18-77 的 TryParse）。
+ * @param text 用户输入（1 基、逗号分隔）；null 或空白视为未填写。
+ * @param pageCount 当前工作区页数；<= 0 时优先报页面数量非法（桌面顺序：先判页数，再判输入）。
+ * @returns 解析结果；ok 为 false 时 error 必不为 null。
  */
 export function parsePageRange(
   text: string | null | undefined,

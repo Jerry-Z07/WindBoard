@@ -3,10 +3,7 @@ import type { Guid } from './model/ids.ts'
 import { BoardSession } from './session.ts'
 
 /**
- * 单页（对应桌面 `WindBoard.Board.Editing.BoardPage`）。
- *
- * 每页持有独立文档与撤销栈；页 id 用于 WBIX 读写与工作区持久化。
- * 与桌面构造语义一致：缺省 id 生成新 Guid，缺省会话创建空会话。
+ * 单页（对应桌面 WindBoard.Board.Editing.BoardPage）。每页持有独立文档与撤销栈；页 id 用于 WBIX 读写与工作区持久化。与桌面构造语义一致：缺省 id 生成新 Guid，缺省会话创建空会话。
  */
 export class BoardPage {
   /** 页面 id（WBIX 页 id 同源）。 */

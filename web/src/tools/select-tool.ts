@@ -20,25 +20,8 @@ import { getShapeBounds, getStrokeBounds } from '../ink/geometry.ts'
 import type { InkTool, ToolGestureContext } from './tool-settings.ts'
 
 /**
- * 选择工具状态机（P2），逐条移植桌面 `WindBoard/Interaction/Tools/SelectTool.cs`（910 行）。
- *
- * 分工（桌面注释 `SelectTool.cs:16-25`）：
- * - `begin` / `move` / `end` / `cancel` 只承载**框选（marquee）手势**（Begin=起点、Move=拖动、
- *   End=提交选择、Cancel=丢弃）；
- * - 拖动选中项、滚轮/双指变换由控制器调用本文件的专用方法
- *   （`beginSelectionMove` / `moveSelectionByScreenDelta` / `applyMatrixTransformToSelectedStrokes`
- *   / `commitSelection` / `cancelSelection`），**不在**统一生命周期内；
- * - 指针捕获、pointerId 跟踪由控制器负责，本文件不碰 DOM。
- *
- * 选中集泛化：笔迹与两点式形状都可选中（`InkItem = Stroke | Shape`）。
- * 矩阵变换（滚轮/双指缩放旋转）**只作用于笔迹**，形状只支持平移——轴对齐两点式几何无法无损
- * 承载旋转/非均匀缩放（`SelectTool.cs:22-24`、design D 明示边界）。
- *
- * 与桌面的两处实现差异（都不改变对外语义）：
- * 1. 桌面 `Stroke` 缓存 `BoundsMin/BoundsMax` 并在平移/变换后重算；web 侧笔迹是纯数据、不缓存
- *    包围盒（`ink/geometry.ts` 每次由点集重建），因此这里没有 `RecalculateBoundsFromPoints` 对应动作；
- * 2. 桌面选中项变更只发 `SelectionChanged`；本文件额外在「修改态 modified 翻转」时也发一次
- *    `onSelectionChanged`（lead 要求控制器据此刷新 UI），桌面此时仅靠控制器重绘。
+ * 选择工具状态机，逐条移植桌面 WindBoard/Interaction/Tools/SelectTool.cs（910 行）。按桌面注释（SelectTool.cs:16-25）的分工：begin / move / end / cancel 只承载框选手势（起点、拖动、提交、丢弃）；拖动选中项与滚轮、双指变换走本文件的专用方法（beginSelectionMove / moveSelectionByScreenDelta / applyMatrixTransformToSelectedStrokes / commitSelection / cancelSelection），不在统一生命周期内；指针捕获与 pointerId 跟踪由控制器负责，本文件不碰 DOM。
+ * 选中集泛化到 InkItem = Stroke | Shape，但矩阵变换只作用于笔迹，形状只支持平移，因为轴对齐两点式几何无法无损承载旋转与非均匀缩放（SelectTool.cs:22-24）。与桌面两处不改变对外语义的差异：web 侧笔迹是纯数据、不缓存包围盒（ink/geometry.ts 每次由点集重建），故没有 RecalculateBoundsFromPoints 对应动作；本文件在修改态 modified 翻转时也发一次 onSelectionChanged，供控制器据此刷新 UI。
  */
 
 /** 框选矩形宽高都不超过该阈值（DIP）时按「点击」处理（桌面 `MarqueeClickThresholdDip`，`SelectTool.cs:29`）。 */
@@ -51,10 +34,7 @@ export const SELECT_HIT_TOLERANCE_DIP = 8.0
 const MIN_ZOOM = 0.0001
 
 /**
- * 「拖动选中项」判定 modified 的屏幕增量阈值（平方）。
- *
- * 桌面 `SelectTool.cs:499`：`if (deltaScreenDip.LengthSquared() > 0.0001f)`。
- * 注意这是**平方**比较，即屏幕位移超过 0.01 DIP 才标记修改。
+ * 「拖动选中项」判定 modified 的屏幕增量阈值（平方）。桌面 SelectTool.cs:499 是 if (deltaScreenDip.LengthSquared() > 0.0001f)，即屏幕位移超过 0.01 DIP 才标记修改。
  */
 const MODIFIED_DELTA_SCREEN_SQUARED = 0.0001
 
@@ -81,10 +61,7 @@ export interface SelectionState {
   /** 框选进行中的屏幕矩形（DIP）；`null` 表示没有框选。 */
   readonly marquee: SelectionMarqueeRect | null
   /**
-   * 选中集里是否含笔迹（桌面 `HasTransformableStrokes`，`SelectTool.cs:90-104`）。
-   *
-   * 矩阵变换只作用于笔迹；纯形状选择时控制器据此把缩放/旋转手势透传给视口，
-   * 避免手势被吞掉后视口失效。
+   * 选中集里是否含笔迹（桌面 HasTransformableStrokes，SelectTool.cs:90-104）。矩阵变换只作用于笔迹，纯形状选择时控制器据此把缩放与旋转手势透传给视口，避免手势被吞掉后视口失效。
    */
   readonly hasTransformableStrokes: boolean
 }
@@ -117,13 +94,7 @@ interface ShapeSelectionSnapshot {
 type SelectionItemSnapshot = StrokeSelectionSnapshot | ShapeSelectionSnapshot
 
 /**
- * 选择工具。
- *
- * 手势语义（`SelectTool.cs:127-192`）：
- * - `begin` 记录框选起点；`move` 更新当前点；`end` 依据「宽高是否都 ≤ 6 DIP」分成
- *   点击路径（点选条目/元素）与框选路径（屏幕矩形 → 世界 AABB → 条目框选）；
- * - 元素**只能单击选中**，不参与框选（`SelectTool.cs:438-441`）；
- * - `cancel` 只丢弃框选，不影响已有选中集。
+ * 选择工具。手势语义见 SelectTool.cs:127-192：begin 记录框选起点、move 更新当前点、end 依据「宽高是否都 ≤ 6 DIP」分成点击路径（点选条目与元素）与框选路径（屏幕矩形 → 世界 AABB → 条目框选）；元素只能单击选中、不参与框选（SelectTool.cs:438-441）；cancel 只丢弃框选，不影响已有选中集。
  */
 export class SelectTool implements InkTool {
   private readonly _session: BoardSession
@@ -159,12 +130,8 @@ export class SelectTool implements InkTool {
     this._onSelectionChanged = options.onSelectionChanged
   }
 
-  // ==== 手势生命周期（= 框选）====
-
   /**
-   * 开始框选手势（`SelectTool.cs:127-132`）。
-   *
-   * 返回 `true`：选择工具总是接管被路由到它的事件（是否选中由 `end` 决定）。
+   * 开始框选手势（SelectTool.cs:127-132）。返回 true：选择工具总是接管被路由到它的事件，是否选中由 end 决定。
    */
   begin(screenDip: Vec2, _ctx: ToolGestureContext): boolean {
     this._isMarqueeActive = true
@@ -193,9 +160,7 @@ export class SelectTool implements InkTool {
   }
 
   /**
-   * 结束框选并提交选择（`SelectTool.cs:139-185`）。
-   *
-   * 注意：桌面**忽略** `End` 传入的指针位置，只用 begin/move 记下的起止点。
+   * 结束框选并提交选择（SelectTool.cs:139-185）。桌面忽略 End 传入的指针位置，只用 begin/move 记下的起止点。
    */
   end(_screenDip: Vec2, ctx: ToolGestureContext): void {
     if (!this._isMarqueeActive) {
@@ -258,8 +223,6 @@ export class SelectTool implements InkTool {
     this._invalidateState()
   }
 
-  // ==== 选择态 ====
-
   /** 当前选择态（含框选矩形；同一状态内返回同一对象引用）。 */
   getState(): SelectionState {
     const cached = this._stateCache
@@ -317,9 +280,7 @@ export class SelectTool implements InkTool {
   }
 
   /**
-   * 校验选中集是否仍存在于文档（撤销/重做后清理「幽灵选择」，`SelectTool.cs:236-273`）。
-   *
-   * 条目集合会按文档当前顺序重新归一化；元素被移除则清空选中。
+   * 校验选中集是否仍存在于文档（撤销/重做后清理「幽灵选择」，SelectTool.cs:236-273）。条目集合会按文档当前顺序重新归一化；元素被移除则清空选中。
    */
   validateSelection(): void {
     if (this._selectedItems.length > 0) {
@@ -354,13 +315,8 @@ export class SelectTool implements InkTool {
     this._raiseSelectionChanged()
   }
 
-  // ==== 选中范围判定 ====
-
   /**
-   * 屏幕点（含 8 DIP 容差）是否落在选中对象包围盒内（`SelectTool.cs:348-361`）。
-   *
-   * 控制器用它决定「在选区上按下并拖动」= `move-selection` 还是 `select-marquee`
-   * （web 侧对应 `interaction/pointer-router.ts` 的 `insideSelectionBounds`）。
+   * 屏幕点（含 8 DIP 容差）是否落在选中对象包围盒内（SelectTool.cs:348-361）。控制器用它决定「在选区上按下并拖动」走 move-selection 还是 select-marquee（web 侧对应 interaction/pointer-router.ts 的 insideSelectionBounds）。
    */
   isScreenPointInsideSelectedBounds(screenDip: Vec2): boolean {
     if (this._selectedItems.length > 0) {
@@ -398,8 +354,6 @@ export class SelectTool implements InkTool {
     return screenDip.x >= left && screenDip.x <= right && screenDip.y >= top && screenDip.y <= bottom
   }
 
-  // ==== 选择变换（拖动选中项 / 滚轮 / 双指手势）====
-
   /**
    * 开始「拖动选中项」手势（`SelectTool.cs:451-461`）：对选中集或选中元素建立变换快照。
    */
@@ -434,10 +388,7 @@ export class SelectTool implements InkTool {
   }
 
   /**
-   * 按屏幕增量平移选中对象（拖动选中项路径；`SelectTool.cs:483-503`）。
-   *
-   * 形状与笔迹都支持平移；元素只改 `positionWorld`。
-   * 与桌面一致：屏幕增量平方 ≤ 0.0001 时**仍然移动**，但不标记 modified（桌面 quirk）。
+   * 按屏幕增量平移选中对象（拖动选中项路径，SelectTool.cs:483-503）。形状与笔迹都支持平移，元素只改 positionWorld；与桌面一致，屏幕增量平方 ≤ 0.0001 时仍然移动但不标记 modified（桌面 quirk）。
    */
   moveSelectionByScreenDelta(deltaScreenDip: Vec2): void {
     const zoom = Math.max(MIN_ZOOM, this._viewport.zoom)
@@ -479,10 +430,7 @@ export class SelectTool implements InkTool {
   }
 
   /**
-   * 对选中集应用 2D 矩阵变换（滚轮缩放/旋转、双指捏合，`SelectTool.cs:528-539`）。
-   *
-   * **只作用于笔迹**：形状跳过（轴对齐两点式几何无法无损承载旋转/非均匀缩放，design D）。
-   * 与桌面一致：即使选中集里没有笔迹（或为空）也会标记 modified（桌面 quirk，见报告）。
+   * 对选中集应用 2D 矩阵变换（滚轮缩放与旋转、双指捏合，SelectTool.cs:528-539）。只作用于笔迹，形状跳过（轴对齐两点式几何无法无损承载旋转与非均匀缩放，design D）；与桌面一致，即使选中集里没有笔迹也会标记 modified（桌面 quirk，见报告）。
    */
   applyMatrixTransformToSelectedStrokes(transform: AffineMatrix2D): void {
     for (const item of this._selectedItems) {
@@ -500,11 +448,7 @@ export class SelectTool implements InkTool {
   }
 
   /**
-   * 选中条目集合的整体中心（世界坐标，滚轮旋转/缩放的锚点，`SelectTool.cs:550-600`）。
-   *
-   * 单条目沿用该条目中心（笔迹包围盒中心 → 无包围盒时点集平均；形状为包围盒中心）；
-   * 多条目取整体包围盒中心。没有选中条目时返回 `null`（桌面此处返回 `Vector2.Zero`，
-   * 返回 null 让控制器能区分「没有选中集」与「中心恰在原点」）。
+   * 选中条目集合的整体中心（世界坐标，滚轮旋转与缩放的锚点，SelectTool.cs:550-600）。单条目沿用该条目中心（笔迹包围盒中心，无包围盒时取点集平均；形状为包围盒中心），多条目取整体包围盒中心；没有选中条目时返回 null（桌面此处返回 Vector2.Zero，返回 null 让控制器能区分「没有选中集」与「中心恰在原点」）。
    */
   getSelectedItemsCenterWorld(): Vec2 | null {
     if (this._selectedItems.length === 0) {
@@ -538,13 +482,7 @@ export class SelectTool implements InkTool {
   }
 
   /**
-   * 提交选择变换：把快照差异写入撤销记录（一次连续交互 = 一次 Ctrl+Z，`SelectTool.cs:609-687`）。
-   *
-   * - 笔迹：点列 diff → `UpdateStrokePointsCommand`；
-   * - 形状：两点几何 diff → `UpdateShapeGeometryCommand`；
-   * - 元素：位置/尺寸 diff → `UpdateElementTransformCommand`；
-   * - 多条命令经 `CompositeCommand` 合并为一次撤销（混合选择只产生一条撤销记录）。
-   * 没有任何实际变化时**不入栈**（`IsSameSelectionSnapshot` / 点列与几何比对）。
+   * 提交选择变换：把快照差异写入撤销记录（一次连续交互 = 一次 Ctrl+Z，SelectTool.cs:609-687）。笔迹走点列 diff 到 UpdateStrokePointsCommand，形状走两点几何 diff 到 UpdateShapeGeometryCommand，元素走位置与尺寸 diff 到 UpdateElementTransformCommand，多条命令经 CompositeCommand 合并为一次撤销（混合选择只产生一条撤销记录）；没有任何实际变化时不入栈（IsSameSelectionSnapshot 与点列、几何比对）。
    */
   commitSelection(): void {
     const snapshots = this._selectionSnapshots
@@ -658,9 +596,7 @@ export class SelectTool implements InkTool {
   }
 
   /**
-   * 最后一次「点击选中元素」的元素与屏幕坐标（双击打开依赖，`SelectTool.cs:58-62`）。
-   *
-   * 只在点击路径命中元素时非 null；点选条目、框选、点击空白都会让它保持 null。
+   * 最后一次「点击选中元素」的元素与屏幕坐标（双击打开依赖，SelectTool.cs:58-62）。只在点击路径命中元素时非 null；点选条目、框选、点击空白都会让它保持 null。
    */
   getLastMarqueeClick(): { element: BoardElement; screenDip: Vec2 } | null {
     const element = this._lastMarqueeClickedElement
@@ -671,8 +607,6 @@ export class SelectTool implements InkTool {
     return { element, screenDip: copyVec2(this._lastMarqueeClickScreenDip) }
   }
 
-  // ==== 预览（选择工具没有未提交条目）====
-
   getPreviewStroke(): Stroke | null {
     return null
   }
@@ -680,8 +614,6 @@ export class SelectTool implements InkTool {
   getPreviewShape(): Shape | null {
     return null
   }
-
-  // ==== 内部实现 ====
 
   private _hasTransformableStrokes(): boolean {
     for (const item of this._selectedItems) {
@@ -694,10 +626,7 @@ export class SelectTool implements InkTool {
   }
 
   /**
-   * 点选命中（视觉优先级：上层元素 → 笔迹条目 → 下层元素，`SelectTool.cs:410-434`）。
-   *
-   * 与桌面的唯一差异：桌面分两次调 `HitTestTopMostElement`（分别传 above/below 列表），
-   * web 侧元素存单数组 + `layer` 字段，因此先取 `elementsAboveInk()` 再取 `elementsBelowInk()`。
+   * 点选命中（视觉优先级：上层元素 → 笔迹条目 → 下层元素，SelectTool.cs:410-434）。与桌面的差异只在元素列表的组织：桌面分两次调 HitTestTopMostElement（分别传 above 与 below 列表），web 侧元素存单数组加 layer 字段，因此先取 elementsAboveInk() 再取 elementsBelowInk()。
    */
   private _hitTestSelectableAtScreenPoint(
     screenDip: Vec2,
@@ -730,12 +659,7 @@ export class SelectTool implements InkTool {
   }
 
   /**
-   * 设置选中条目集合（`SelectTool.cs:275-324`）。
-   *
-   * 归一化规则（与桌面一致）：
-   * - 去重后按**文档顺序**排列（框选保持相对层级顺序）；
-   * - 过滤掉不在文档里的对象（避免撤销/重做后出现「幽灵选择」）；
-   * - 空集合等价于清空选中（条目 + 元素）。
+   * 设置选中条目集合（SelectTool.cs:275-324）。归一化规则与桌面一致：去重后按文档顺序排列（框选保持相对层级顺序），过滤掉不在文档里的对象（避免撤销与重做后出现幽灵选择），空集合等价于清空选中（条目加元素）。
    */
   private _setSelectedItems(items: readonly InkItem[] | null): void {
     if (items === null || items.length === 0) {
@@ -857,14 +781,8 @@ export class SelectTool implements InkTool {
   }
 
   /**
-   * 通知"选中对象的内容被就地修改了"（不改选中集本身，也不动 `modified` 标志）。
-   *
-   * 用途：外部经命令栈改了选中形状的几何 / 元素的位置尺寸后，`getState()` 的缓存仍是旧的，
-   * `BoardController.refreshSnapshot` 会因引用未变而判定"没变化"，于是 React 侧的覆盖层
-   * （形状属性浮层的数值、选中项 Dock 的三态）不会刷新——只有 canvas 因为按需重绘而正确。
-   * 桌面没有这个问题：XAML 浮层在 `CommitShapePropertiesFromBoxes` 里会主动回读。
-   *
-   * 语义等价于桌面 `SelectionChanged` 的"内容变更"分支。
+   * 令 getState() 的缓存失效：外部经命令栈改了选中形状的几何或元素的位置尺寸后，缓存仍是旧的，BoardController.refreshSnapshot 会因引用未变判成没变化，React 侧覆盖层（形状属性浮层数值、选中项 Dock 三态）就不刷新，只有按需重绘的 canvas 正确。
+   * 桌面没有这个问题，XAML 浮层在 CommitShapePropertiesFromBoxes 里会主动回读；本方法语义等价于桌面 SelectionChanged 的内容变更分支。
    */
   notifySelectionContentChanged(): void {
     this._raiseSelectionChanged()
@@ -879,8 +797,6 @@ export class SelectTool implements InkTool {
     this._stateCache = null
   }
 }
-
-// ==== 纯函数辅助（无状态，便于单测覆盖）====
 
 function copyVec2(value: Vec2): Vec2 {
   return { x: value.x, y: value.y }
@@ -914,9 +830,7 @@ function isSameInkItemList(a: readonly InkItem[], b: readonly InkItem[]): boolea
 }
 
 /**
- * 点列是否完全一致（桌面 `IsSameStrokePointList`，`SelectTool.cs:845-861`）。
- *
- * 桌面 `StrokePoint` 是 record struct，`!=` 逐字段比较（Position + Pressure），这里逐字段比。
+ * 点列是否完全一致（桌面 IsSameStrokePointList，SelectTool.cs:845-861）。桌面 StrokePoint 是 record struct，!= 逐字段比较（Position + Pressure），这里同样逐字段比。
  */
 function isSameStrokePointList(a: readonly StrokePoint[], b: readonly StrokePoint[]): boolean {
   if (a.length !== b.length) {
@@ -963,9 +877,7 @@ function setShapeGeometry(shape: Shape, geometry: ShapeGeometry): void {
 }
 
 /**
- * 平移单个条目（桌面 `Stroke.Translate` / `BoardShape.Translate`）。
- *
- * 世界增量平方 ≤ 0.0000001 时直接返回（桌面两个 `Translate` 都有该守卫）。
+ * 平移单个条目（桌面 Stroke.Translate / BoardShape.Translate）。世界增量平方 ≤ 0.0000001 时直接返回（桌面两个 Translate 都有该守卫）。
  */
 function translateInkItem(item: InkItem, deltaWorld: Vec2): void {
   if (deltaWorld.x * deltaWorld.x + deltaWorld.y * deltaWorld.y <= TRANSLATE_EPSILON_SQUARED) {
@@ -991,10 +903,7 @@ function translateInkItem(item: InkItem, deltaWorld: Vec2): void {
 }
 
 /**
- * 对笔迹点列应用仿射矩阵（桌面 `Stroke.Transform` → `Vector2.Transform`，`BoardDocument.cs:127-141`）。
- *
- * 矩阵字段顺序与 Canvas2D `setTransform(a,b,c,d,e,f)` 一致：`x' = a·x + c·y + e`、`y' = b·x + d·y + f`。
- * 压感不参与变换（与桌面一致）。
+ * 对笔迹点列应用仿射矩阵（桌面 Stroke.Transform → Vector2.Transform，BoardDocument.cs:127-141）。矩阵字段顺序与 Canvas2D setTransform(a,b,c,d,e,f) 一致：x' = a·x + c·y + e、y' = b·x + d·y + f；压感不参与变换（与桌面一致）。
  */
 function transformStroke(stroke: Stroke, transform: AffineMatrix2D): void {
   if (stroke.points.length === 0) {
@@ -1039,10 +948,7 @@ function getInkItemCenterWorld(item: InkItem): Vec2 {
 }
 
 /**
- * 多条目中心计算用的条目包围盒（`SelectTool.cs:563-597`）。
- *
- * 桌面：笔迹无包围盒则重算、仍无则跳过；形状宽高同时 ≤ 0.0001 视为无效。
- * web 侧 `getShapeBounds` 至少外扩 0.25，形状守卫不可达，保留以对齐语义。
+ * 多条目中心计算用的条目包围盒（SelectTool.cs:563-597）。桌面笔迹无包围盒则重算、仍无则跳过，形状宽高同时 ≤ 0.0001 视为无效；web 侧 getShapeBounds 至少外扩 0.25，形状守卫不可达，保留以对齐语义。
  */
 function getInkItemBoundsWorldForCenter(item: InkItem): { min: Vec2; max: Vec2 } | null {
   if (item.kind === STROKE_KIND) {

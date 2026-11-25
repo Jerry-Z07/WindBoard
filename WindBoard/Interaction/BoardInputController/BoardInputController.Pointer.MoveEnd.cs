@@ -74,12 +74,8 @@ namespace WindBoard.Interaction
 
         private void HandleActivePointerMoved(PointerRoutedEventArgs e)
         {
-            // 工具策略化调度：会话由 Begin 建立（_activePointerId 匹配保证配对），
-            // 画笔/橡皮/形状统一路由到各自策略对象。
-            // 与按下路径统一经 ResolveActiveToolId 解析（Select 回退画笔语义一致）。
-            // e.Handled 语义与原版对齐：橡皮会话始终消费事件；绘制类会话（画笔/形状）
-            // 在无活动预览条目时早退且不置 Handled（原 ActiveStroke == null 分支行为，
-            // 泛化为 PreviewItem 以同时覆盖形状预览）。
+            // 工具策略化调度：会话由 Begin 建立（_activePointerId 匹配保证配对），与按下路径共用 ResolveActiveToolId（Select 回退画笔语义）。
+            // 橡皮会话始终消费事件；画笔与形状会话在无活动预览条目时早退且不置 Handled，PreviewItem 同时覆盖形状预览。
             if (_toolRegistry.TryGetTool(ResolveActiveToolId(), out IBoardTool? tool))
             {
                 if (!_eraserTool.IsErasing && _context.PreviewItem is null)
@@ -117,11 +113,7 @@ namespace WindBoard.Interaction
 
         private void HandlePointerEnded(PointerRoutedEventArgs e, PointerEndMode mode, bool releasePointerCaptures)
         {
-            // 指针结束（释放/取消/捕获丢失）在结构上高度相似：
-            // 1) 先处理触摸触点集合
-            // 2) 再处理平移/框选/移动选中
-            // 3) 最后处理画线/擦除
-            // 统一入口可以减少重复代码，也更容易保证三种结束路径的状态清理一致。
+            // 释放、取消、捕获丢失三种结束路径走同一入口，保证状态清理顺序与结果一致。
             HandleTouchPointerEnded(e);
 
             if (TryHandlePanPointerEnded(e, releasePointerCaptures))

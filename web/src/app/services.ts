@@ -1,8 +1,5 @@
 /**
- * 应用级服务的创建与释放。
- *
- * 这一层刻意**不含 React**：服务本身是纯 TS 单例，可脱离组件树直接测试；
- * 与 React 的桥接（context / provider / hooks）在 `contexts.ts`、`providers.tsx`、`hooks.ts`。
+ * 应用级服务的创建与释放。这一层不含 React：服务本身是纯 TS 单例，可脱离组件树直接测试；与 React 的桥接（context / provider / hooks）在 contexts.ts、providers.tsx、hooks.ts。
  */
 
 import type { AppSettings } from '../settings/model.ts'

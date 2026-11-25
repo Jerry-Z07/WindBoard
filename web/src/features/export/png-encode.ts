@@ -1,13 +1,6 @@
 /**
- * PNG 的 DPI 元数据（`pHYs` 块）写入。
- *
- * 桌面用 WIC 保存 PNG 时会带上分辨率（`wicBitmap.SetResolution(dpi, dpi)`，
- * `BoardRasterExporter.cs:163`），所以导出的图在"插入 Word/打印"时尺寸正确。
- * 浏览器的 `canvas.toBlob('image/png')` **不写 DPI**，必须自己补 `pHYs`。
- *
- * PNG 结构：8 字节签名 + 若干块（长度 4B 大端 / 类型 4B / 数据 / CRC32 4B），
- * `pHYs` 规定放在 `IHDR` 之后、`IDAT` 之前，数据为 9 字节：
- * [每米像素 X 4B][每米像素 Y 4B][单位 1B，1 = 米]。
+ * PNG 的 DPI 元数据（pHYs 块）写入。桌面用 WIC 保存 PNG 时会带上分辨率（wicBitmap.SetResolution(dpi, dpi)，BoardRasterExporter.cs:163），导出的图在插入 Word 或打印时尺寸才正确；浏览器的 canvas.toBlob('image/png') 不写 DPI，必须自己补 pHYs。
+ * PNG 结构为 8 字节签名加若干块（长度 4B 大端、类型 4B、数据、CRC32 4B），pHYs 规定放在 IHDR 之后、IDAT 之前，数据 9 字节为每米像素 X 4B、每米像素 Y 4B、单位 1B（1 表示米）。
  */
 
 /** PNG 签名（89 50 4E 47 0D 0A 1A 0A）。 */

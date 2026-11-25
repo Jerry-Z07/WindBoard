@@ -1,13 +1,6 @@
 /**
- * 设置 → 外观（桌面 `WindBoard/Settings/Pages/AppearanceSettingsPage.xaml`）。
- *
- * 桌面这一页是**三张可点卡片**，编辑动作全在二级弹窗里完成：
- * - `CanvasBackgroundCard`（`:61-84`）→ `CanvasBackgroundDialog`（`:126-164`，取色器 + HEX）；
- * - `DockSettingsCard`（`:86-100`）→ `Frame.Navigate(typeof(DockSettingsPage))`（跳转到 Dock 设置页）；
- * - `ElementCardThemeCard`（`:102-124`）→ `ElementCardThemeDialog`（`:166-180`，深色/浅色二选一）。
- * 卡片右侧只是"当前值预览"（20×20 圆角色块 + HEX 文本 / 主题名），本身不可编辑——
- * 之前网页端把色板直接铺在卡片里、主题直接放单选组，与桌面的交互形状不一致，
- * 现在按桌面还原。
+ * 设置 → 外观（桌面 Settings/Pages/AppearanceSettingsPage.xaml）。桌面这一页是三张可点卡片，编辑动作全在二级弹窗里完成：CanvasBackgroundCard（:61-84）到 CanvasBackgroundDialog（:126-164，取色器加 HEX）；DockSettingsCard（:86-100）到 Frame.Navigate(typeof(DockSettingsPage))；ElementCardThemeCard（:102-124）到 ElementCardThemeDialog（:166-180，深色与浅色二选一）。
+ * 卡片右侧只是当前值预览（20×20 圆角色块加 HEX 文本、主题名），本身不可编辑，点击入口由卡片承担。
  */
 
 import type { ReactNode } from 'react'

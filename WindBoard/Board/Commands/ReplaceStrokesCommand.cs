@@ -8,8 +8,7 @@ namespace WindBoard.Board.Commands
     /// 用“快照列表”替换当前笔迹层条目列表（用于整笔擦除、未来的局部擦除/分段等）。
     /// </summary>
     /// <remarks>
-    /// 快照按 <see cref="IBoardInkItem"/> 记录：像素擦除只替换折线段，整笔删除可替换任意条目类型，
-    /// 撤销/重做均按对象引用恢复，与条目类型无关。
+    /// 快照按 <see cref="IBoardInkItem"/> 记录，撤销/重做按对象引用恢复，像素擦除只替换折线段，整笔删除可替换任意条目类型。
     /// </remarks>
     internal sealed class ReplaceStrokesCommand : IBoardCommand
     {

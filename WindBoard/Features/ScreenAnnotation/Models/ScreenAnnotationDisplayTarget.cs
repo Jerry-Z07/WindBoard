@@ -17,9 +17,7 @@ namespace WindBoard.Features.ScreenAnnotation.Models
         /// 计算工具栏默认位置。
         /// </summary>
         /// <remarks>
-        /// 约定：
-        /// - 优先放在工作区左下角；
-        /// - 若工具栏尺寸大于工作区，则钳制到工作区内，避免初始位置跑出屏幕。
+        /// 默认放工作区左下角；工具栏尺寸大于工作区时钳制到工作区内，避免初始位置跑出屏幕。
         /// </remarks>
         internal RectInt32 GetInitialToolbarBounds(int width, int height, int margin = DefaultToolbarMargin)
         {

@@ -22,8 +22,7 @@ namespace WindBoard.Interaction
         /// 取消当前工具会话（不提交命令，恢复会话前状态）。
         /// </summary>
         /// <remarks>
-        /// 工具策略化调度：预览挂载点与脏矩形由控制器在调度 Cancel 后统一清理
-        /// （<see cref="IBoardTool.Cancel"/> 无输入参数）。
+        /// 工具策略化调度：预览挂载点与脏矩形由控制器在调度 Cancel 后统一清理（<see cref="IBoardTool.Cancel"/> 无输入参数）。
         /// </remarks>
         private void DiscardActiveToolGesture()
         {
@@ -48,8 +47,7 @@ namespace WindBoard.Interaction
         /// 提交当前工具会话（写入撤销栈）。
         /// </summary>
         /// <remarks>
-        /// 画笔提交活动笔迹、橡皮提交擦除快照；End 的输入不携带指针信息（提交不依赖坐标），
-        /// 传默认 ToolInput 即可。形状提交成功后在手势状态清理之后经 <see cref="ShapeCommitted"/> 抛出结果。
+        /// 画笔提交活动笔迹、橡皮提交擦除快照；End 的输入不携带指针信息（提交不依赖坐标），传默认 ToolInput 即可；形状提交结果在手势状态清理之后经 <see cref="ShapeCommitted"/> 抛出。
         /// </remarks>
         private void CommitActiveToolGesture()
         {
@@ -86,9 +84,8 @@ namespace WindBoard.Interaction
 
         public void CancelActiveToolOperation()
         {
-            // 外部操作（例如工具切换/撤销/重做/清空）前，用于安全结束当前工具动作，避免留下捕获/状态。
-            // 画笔/橡皮会话互斥性保证不会与 pan/marquee/selection 同时存在，
-            // 未命中的分支落到末尾的 DiscardActiveToolGesture（无会话时静默返回，保持原早退语义）。
+            // 外部操作（工具切换、撤销、重做、清空）前用于安全结束当前工具动作，避免残留指针捕获或状态。
+            // 画笔/橡皮会话与 pan、框选、selection 互斥，未命中的分支落到末尾的 DiscardActiveToolGesture，无会话时静默返回。
             if (_routes.MarqueePointerId is not null)
             {
                 CancelMarqueeSelectionGesture(releasePointerCaptures: true);

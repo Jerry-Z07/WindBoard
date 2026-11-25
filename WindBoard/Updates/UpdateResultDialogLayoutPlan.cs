@@ -4,9 +4,8 @@ using System.Globalization;
 namespace WindBoard.Updates
 {
     /// <summary>
-    /// 更新结果弹窗的纯布局决策：
-    /// - 负责决定是否使用两栏布局（按窗口可用宽度，而非固定 MinWidth 硬撑）；
-    /// - 负责提供更新内容原文与滚动区高度建议，避免 UI 层重复判断。
+    /// 更新结果弹窗的纯布局决策。
+    /// 决定是否使用两栏布局（按窗口可用宽度，而非固定 MinWidth 硬撑），并提供更新内容原文与滚动区高度建议，避免 UI 层重复判断。
     /// </summary>
     internal sealed record UpdateResultDialogLayoutPlan(
         bool UseTwoColumnLayout,

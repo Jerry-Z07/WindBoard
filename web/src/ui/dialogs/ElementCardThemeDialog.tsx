@@ -1,15 +1,6 @@
 /**
- * 元素卡片主题二级对话框（外观设置页）。
- *
- * 桌面出处：`WindBoard/Settings/Pages/AppearanceSettingsPage.xaml:166-180`（`ElementCardThemeDialog`）
- * 与 `AppearanceSettingsPage.xaml.cs:78-104`（`OnElementCardThemeClicked`）。
- *
- * 与桌面逐条对齐的行为：
- * 1. **打开时同步当前值**：桌面在弹窗前把两个单选按钮按当前主题置位（`:80-82`）；
- * 2. **确定才写入**：只有 `ContentDialogResult.Primary` 才 `AppSettingsService.Update(...)`
- *    （`:90-98`），取消/关闭不改设置——与画布背景色弹窗的"即时写入"是相反的语义，
- *    所以这里不能用通用的"变化即写"组件；
- * 3. 按钮文案取 resw：`Common_OK` = 确定、`Common_Cancel` = 取消。
+ * 元素卡片主题二级对话框（外观设置页）。桌面出处 Settings/Pages/AppearanceSettingsPage.xaml:166-180（ElementCardThemeDialog）与 AppearanceSettingsPage.xaml.cs:78-104（OnElementCardThemeClicked）；打开时按当前主题置位两个单选按钮（:80-82），按钮文案取 resw 的 Common_OK 与 Common_Cancel。
+ * 只有 ContentDialogResult.Primary 才调 AppSettingsService.Update（:90-98），取消与关闭都不改设置，与画布背景色弹窗的即时写入语义相反，因此这里不能用通用的变化即写组件。
  */
 
 import type { ReactNode } from 'react'

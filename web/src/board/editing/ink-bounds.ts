@@ -1,14 +1,6 @@
 /**
- * 条目集合的屏幕包围盒（DIP）。
- *
- * 移植自桌面 `WindBoard/Board/Editing/InkItemScreenBounds.cs`（127 行），逐条对齐：
- * - 只统计「有有效世界包围盒」的条目（空点集笔迹、空矩形条目跳过，对应 `TryGetInkItemBoundsWorld`）；
- * - 世界包围盒按条目类型分发：折线笔迹用「点集重建的包围盒」，其余条目走通用包围盒契约；
- * - 世界 → 屏幕后**逐轴取 min/max**（桌面用 `Math.Min/Max` 兜住角点顺序，负缩放时不会翻转）；
- * - 没有任何有效条目时返回 `null`（对应桌面 `return false`）。
- *
- * 性能说明：桌面为了性能直接用缓存的 `BoundsMin/BoundsMax`（未缓存时才 `RecalculateBoundsFromPoints`
- * 兜底重建），web 侧笔迹是纯数据、不缓存包围盒，`getStrokeBounds` 直接由点集重建，语义等价。
+ * 条目集合的屏幕包围盒（DIP），移植自桌面 Board/Editing/InkItemScreenBounds.cs（127 行）：只统计有有效世界包围盒的条目（空点集笔迹与空矩形条目跳过，对应 TryGetInkItemBoundsWorld）；世界包围盒按条目类型分发，折线笔迹用点集重建的包围盒，其余条目走通用包围盒契约；世界转屏幕后逐轴取 min 与 max（桌面用 Math.Min/Max 兜住角点顺序，负缩放时不会翻转）；没有任何有效条目时返回 null（对应桌面 return false）。
+ * 性能说明：桌面为了性能直接用缓存的 BoundsMin 与 BoundsMax（未缓存时才 RecalculateBoundsFromPoints 兜底重建），web 侧笔迹是纯数据、不缓存包围盒，getStrokeBounds 直接由点集重建，语义等价。
  */
 
 import { getShapeBounds, getStrokeBounds } from '../../ink/geometry.ts'
@@ -24,10 +16,7 @@ export interface ScreenBounds {
 }
 
 /**
- * 计算条目集合在屏幕坐标（DIP）下的包围盒。
- *
- * 对应桌面 `InkItemScreenBounds.TryGetInkItemsBoundsScreenDip`（`InkItemScreenBounds.cs:29-83`）：
- * `null` 表示没有任何条目贡献有效包围盒（空列表、全部条目无有效包围盒）。
+ * 计算条目集合在屏幕坐标（DIP）下的包围盒。对应桌面 InkItemScreenBounds.TryGetInkItemsBoundsScreenDip（InkItemScreenBounds.cs:29-83）：null 表示没有任何条目贡献有效包围盒（空列表、全部条目无有效包围盒）。
  */
 export function getInkItemsScreenBounds(
   items: readonly InkItem[],

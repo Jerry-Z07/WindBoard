@@ -6,10 +6,7 @@ namespace WindBoard.Reminders
 {
     /// <summary>
     /// Windows Toast 通知携带的启动参数编解码。
-    /// 
-    /// 说明：
-    /// - 这里使用 query string 形式（k=v&amp;k2=v2），便于未来扩展；
-    /// - 参数仅用于“点击通知后执行动作”，不需要在 UI 中展示。
+    /// 使用 query string 形式（k=v&amp;k2=v2），便于未来扩展；参数仅用于“点击通知后执行动作”，不需要在 UI 中展示。
     /// </summary>
     internal static class AppReminderToastArguments
     {

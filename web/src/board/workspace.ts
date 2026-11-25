@@ -4,18 +4,8 @@ import { BoardPage } from './page.ts'
 import { BoardSession } from './session.ts'
 
 /**
- * 多页工作区（对应桌面 `WindBoard.Board.Editing.BoardWorkspace`）。
- *
- * 与桌面语义对齐：
- * - 工作区始终至少有一页；删除最后一页后会自动补一个空页；
- * - `addPage` 插入后立即切换为当前页；
- * - `removePage` 删除当前页时，当前下标收缩到 `min(index, count - 1)`；
- * - `setCurrentIndex` 越界抛 `RangeError`，与桌面 `ArgumentOutOfRangeException` 对应；
- * - 每页各自持有独立会话（文档 + 撤销栈）。
- *
- * 与桌面的差异：桌面暴露 `PagesChanged` / `CurrentPageChanged` 两个事件，
- * web 侧合并为单一 `subscribe`（UI 重新读取 `pages` / `currentIndex` 即可），
- * 减少订阅管理复杂度。
+ * 多页工作区（对应桌面 WindBoard.Board.Editing.BoardWorkspace）：工作区始终至少有一页，删除最后一页后自动补一个空页；addPage 插入后立即切换为当前页；removePage 删除当前页时下标收缩到 `min(index, count - 1)`；setCurrentIndex 越界抛 RangeError（对应桌面 ArgumentOutOfRangeException）；每页各自持有独立会话（文档加撤销栈）。
+ * 桌面暴露 PagesChanged 与 CurrentPageChanged 两个事件，web 侧合并为单一 subscribe（UI 重新读取 pages 与 currentIndex），减少订阅管理。
  */
 export class BoardWorkspace {
   private _pages: BoardPage[] = []
@@ -60,11 +50,8 @@ export class BoardWorkspace {
   }
 
   /**
-   * 删除指定页（对应桌面 `RemovePage`）。
-   *
-   * 删除最后一页时自动补一个空页，保证工作区恒有页面。
-   *
-   * @returns 是否真的删除了页面（页不在工作区时返回 `false`）。
+   * 删除指定页（对应桌面 RemovePage）。删除最后一页时自动补一个空页，保证工作区恒有页面。
+   * @returns 是否真的删除了页面（页不在工作区时返回 false）。
    */
   removePage(page: BoardPage): boolean {
     const index = this._pages.indexOf(page)
@@ -114,13 +101,8 @@ export class BoardWorkspace {
   }
 
   /**
-   * 用一组页面快照整体替换工作区（导入 `.wbix` 用；对应桌面 `BoardWorkspaceSnapshotApplier`）。
-   *
-   * 语义：
-   * - 每页按快照 id 与内容重建，撤销/重做栈全部丢弃（导入不是可撤销编辑）；
-   * - `currentIndex` 夹到 `[0, 页数-1]`（对应桌面 `Math.Clamp(manifest.CurrentIndex, ...)`）；
-   * - 空快照视为非法：工作区恒至少一页，调用方应在导入前保证 `pages` 非空。
-   *
+   * 用一组页面快照整体替换工作区（导入 .wbix 用，对应桌面 BoardWorkspaceSnapshotApplier）：每页按快照 id 与内容重建，撤销与重做栈全部丢弃（导入不是可撤销编辑）；currentIndex 夹到 [0, 页数-1]（对应桌面 Math.Clamp(manifest.CurrentIndex, ...)）。
+   * 空快照视为非法：工作区恒至少一页，调用方应在导入前保证 pages 非空。
    * @throws RangeError `snapshots` 为空
    */
   replaceWithSnapshots(snapshots: readonly PageSnapshot[], currentIndex: number): void {
@@ -137,15 +119,10 @@ export class BoardWorkspace {
   }
 
   /**
-   * 在末尾追加若干页并切到指定下标（对应桌面 `AppendPages`，`Features/Import/ImportFlow.cs:252-255`）。
-   *
-   * 与 `replaceWithSnapshots` 的区别：**已有页对象原样保留**（各自的会话与撤销栈不受影响），
-   * 只有新追加的页是新建的——WBIX 导入走这条路径，桌面 `AppendPages` 同样保留现有页的撤销栈。
-   *
-   * @param snapshots 追加的页快照；空数组是空操作（桌面在页数为 0 时只记日志后返回）。
-   * @param switchToIndex 追加完成后要切换到的**绝对**页下标；缺省停在第一张新页，
-   *   越界自动收敛到 `[0, count - 1]`。
-   * @returns 第一张新页的绝对下标；没有追加时返回 -1。
+   * 在末尾追加若干页并切到指定下标（对应桌面 AppendPages，Features/Import/ImportFlow.cs:252-255）。与 replaceWithSnapshots 的区别是已有页对象原样保留（各自会话与撤销栈不受影响），只有新追加的页是新建的；WBIX 导入走这条路径。
+   * @param snapshots 追加的页快照；空数组是空操作（桌面在页数为 0 时只记日志后返回）
+   * @param switchToIndex 追加完成后要切换到的绝对页下标；缺省停在第一张新页，越界自动收敛到 [0, count - 1]
+   * @returns 第一张新页的绝对下标；没有追加时返回 -1
    */
   appendPages(snapshots: readonly PageSnapshot[], switchToIndex?: number): number {
     if (snapshots.length === 0) {

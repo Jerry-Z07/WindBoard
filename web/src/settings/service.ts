@@ -1,14 +1,6 @@
 /**
- * 设置服务：单例式的内存状态 + 订阅 + 持久化。
- *
- * 对应桌面 `AppSettingsService`（静态单例 + 事件订阅）。网页端的差异：
- * - 持久化介质是 `localStorage`（桌面是 `data/settings.json`）；
- * - **不做**任何异步 IO，读写在构造/修改时同步完成，因此 UI 不需要处理加载态；
- * - 存储读写通过注入的 `SettingsStorage` 完成，测试可直接用内存实现，也可在无
- *   `localStorage` 的环境（SSR / node）下安全降级为"只存内存"。
- *
- * 与 P4.6 的关系：本文件只管内存与本地存储；与桌面 `settings.json` 文件互转时，
- * 由 `features/settings-file/`（P4 实现）在 `model.ts` 的字段名之上直接序列化。
+ * 设置服务：单例式的内存状态、订阅与持久化，对应桌面 AppSettingsService（静态单例加事件订阅）。网页端的差异：持久化介质是 localStorage（桌面是 data/settings.json）；不做任何异步 IO，读写在构造与修改时同步完成，因此 UI 不需要处理加载态；存储读写通过注入的 SettingsStorage 完成，测试可直接用内存实现，也可在无 localStorage 的环境（SSR 与 node）下安全降级为只存内存。
+ * 本文件只管内存与本地存储；与桌面 settings.json 文件互转时，由 features/settings-file/（P4 实现）在 model.ts 的字段名之上直接序列化。
  */
 
 import {
@@ -67,10 +59,7 @@ export function createMemorySettingsStorage(initial: string | null = null): Sett
 }
 
 /**
- * `localStorage` 存储。
- *
- * 访问 `localStorage` 本身可能抛异常（Safari 隐私模式、被策略禁用），因此读写都包了
- * try/catch 并在失败时静默降级——设置丢失比整个应用起不来要好。
+ * localStorage 存储。访问 localStorage 本身可能抛异常（Safari 隐私模式、被策略禁用），因此读写都包了 try/catch 并在失败时静默降级：设置丢失比整个应用起不来要好。
  */
 export function createLocalSettingsStorage(key: string = SETTINGS_STORAGE_KEY): SettingsStorage {
   const safeStorage = (): Storage | null => {

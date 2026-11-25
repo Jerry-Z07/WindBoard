@@ -1,15 +1,6 @@
 /**
- * 浏览器文件能力（PlatformIO 的网页实现）。
- *
- * 设计要点：
- * - **能力分级**：优先 File System Access API（`showSaveFilePicker` / `showDirectoryPicker`，
- *   Chromium 系支持，用户可指定文件名与目录）；不支持时回退到 `<a download>` / `<input type=file>`，
- *   行为上等价（用户仍能拿到文件），只是无法指定目标目录、也无法读回写入结果。
- * - **取消与失败必须区分**：用户关掉系统选择器时抛 `AbortError`，这不是错误，
- *   返回 `{ ok: false, cancelled: true }`，调用方据此静默返回而不是弹错误提示。
- * - **node/SSR 安全**：所有能力探测都走 `typeof window`/特性检测，没有 DOM 时返回失败结果而不抛，
- *   这样纯逻辑与单测可以在 node 环境里跑。
- * - 不引入依赖：ZIP 降级复用已有的 `fflate`。
+ * 浏览器文件能力（PlatformIO 的网页实现）。能力分级：优先 File System Access API（showSaveFilePicker 与 showDirectoryPicker，Chromium 系支持，用户可指定文件名与目录），不支持时回退到 `<a download>` 与 `<input type=file>`，行为上等价但无法指定目标目录、也无法读回写入结果。取消与失败必须区分：用户关掉系统选择器时抛 AbortError，这不是错误，返回 `{ ok: false, cancelled: true }`，调用方据此静默返回而不是弹错误提示。
+ * node/SSR 安全：所有能力探测都走 typeof window 与特性检测，没有 DOM 时返回失败结果而不抛，纯逻辑与单测可以在 node 环境里跑；不引入依赖，ZIP 降级复用已有的 fflate。
  */
 
 import { zipSync } from 'fflate'
@@ -73,10 +64,7 @@ function isAbortError(error: unknown): boolean {
 }
 
 /**
- * 把任意异常转成可本地化的错误消息。
- *
- * 浏览器的 `DOMException` 只有英文 `message`（如 `File picker already active.`），
- * 直接展示给用户很突兀，所以按 `name` 归类给出提示前缀，再附原始信息便于排查。
+ * 把任意异常转成可本地化的错误消息。浏览器的 DOMException 只有英文 message（如 File picker already active.），直接展示给用户很突兀，所以按 name 归类给出提示前缀，再附原始信息便于排查。
  */
 function describeError(error: unknown): LocalizedMessage {
   if (typeof error === 'object' && error !== null && 'name' in error) {
@@ -111,11 +99,7 @@ function pickerTypes(suggestedName: string, mimeType: string): { description: st
 }
 
 /**
- * 保存单个文件。
- *
- * - 支持 FSA：弹系统保存对话框，用户可改名/换目录；取消返回 `cancelled`；
- * - 否则回退 `<a download>`：直接下载到浏览器默认目录，**无法得知是否成功**，
- *   只要触发就返回 `ok: true`（这是回退路径的固有局限，注释里说明）。
+ * 保存单个文件。支持 FSA 时弹系统保存对话框，用户可改名与换目录，取消返回 cancelled；否则回退 <a download>，直接下载到浏览器默认目录，无法得知是否成功，只要触发就返回 ok: true（这是回退路径的固有局限）。
  */
 export async function saveFile(request: SaveFileRequest): Promise<SaveResult> {
   const scope = getWindow()
@@ -150,10 +134,7 @@ export async function saveFile(request: SaveFileRequest): Promise<SaveResult> {
 }
 
 /**
- * 保存多个文件到同一目录（多页 PNG）。
- *
- * - 支持 `showDirectoryPicker`：在用户选的目录下建 `folderName` 子目录并逐页写入；
- * - 否则打成 ZIP（`fflate.zipSync`，store 模式即可——PNG 本身已压缩）后走 `saveFile`。
+ * 保存多个文件到同一目录（多页 PNG）。支持 showDirectoryPicker 时在用户选的目录下建 folderName 子目录并逐页写入；否则打成 ZIP（fflate.zipSync，store 模式即可，PNG 本身已压缩）后走 saveFile。
  */
 export async function saveFilesToFolder(
   folderName: string,

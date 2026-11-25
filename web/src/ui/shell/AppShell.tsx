@@ -1,21 +1,6 @@
 /**
- * 应用外壳：把画布、提醒栈、Dock 与窗口级对话框摆到桌面的对应位置。
- *
- * 与桌面的一处差异：**不渲染标题栏**。桌面 `MainWindow.xaml:25-37` 的 `TitleBar` 是给
- * 无边框窗口做拖拽区与标题显示的；浏览器窗口自带标题栏，PWA 装到桌面后由系统绘制，
- * 再画一条只会白占 32 DIP（手机上是整整一行）。窗口标题仍在 `<title>` 与 PWA `name` 里。
- *
- * 结构对应 `WindBoard/MainWindow.xaml`：
- * ```
- * （Row0 TitleBar 在网页端不渲染）
- * Row1 Grid {
- *        BoardCanvasControl
- *        右上 ReminderBannerStackPanel（Margin 14,14,14,0）
- *        底部 Grid（Margin 14,0,14,14，RequestedTheme=Light）
- *          左 Dock（3 项） / 中部 Dock（工具 + 撤销重做） / 右 页面 Dock
- *      }
- * ```
- * Dock 的三块浮层**分别**对齐左/中/右，这样主 Dock 才能始终以窗口居中——不能用等距 flex 代替。
+ * 应用外壳：把画布、提醒栈、Dock 与窗口级对话框摆到桌面的对应位置，结构对应 MainWindow.xaml 的 Row1 Grid（BoardCanvasControl、右上 ReminderBannerStackPanel 外边距 14,14,14,0、底部 Grid 外边距 14,0,14,14 且强制浅色，内含左中右三块 Dock）。
+ * 不渲染标题栏：桌面的 TitleBar（MainWindow.xaml:25-37）给无边框窗口做拖拽区与标题显示，浏览器窗口自带标题栏、PWA 由系统绘制，再画一条只白占 32 DIP（手机上是一整行），窗口标题仍在 title 与 PWA name 里。Dock 三块浮层分别对齐左中右，主 Dock 才能始终以窗口居中，不能用等距 flex 代替。
  */
 
 import { useMemo, useState, type ReactNode } from 'react'

@@ -1,9 +1,7 @@
 namespace WindBoard.Board.Elements
 {
     /// <summary>
-    /// 多媒体元素：
-    /// - 图片：可在画布上直接绘制位图；
-    /// - 音频/视频：当前以占位卡片显示（后续可扩展内置播放或缩略图）。
+    /// 多媒体元素：图片在画布上直接绘制位图，音频/视频以占位卡片显示。
     /// </summary>
     internal sealed class BoardMediaElement : BoardElement
     {

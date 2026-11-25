@@ -5,9 +5,8 @@ using WindBoard.Settings;
 namespace WindBoard.Updates
 {
     /// <summary>
-    /// GitHub 下载链接改写：
-    /// - Github：保持原链接
-    /// - 镜像：镜像前缀 + 原链接（例如：https://gh-proxy.top/https://github.com/...）
+    /// GitHub 下载链接改写。
+    /// Github 源保持原链接，镜像源为镜像前缀加原链接（例如 https://gh-proxy.top/https://github.com/...）。
     /// </summary>
     internal static class DownloadSourceUrlRewriter
     {
@@ -40,7 +39,7 @@ namespace WindBoard.Updates
             }
 
             // 只对 GitHub 原链接做镜像拼接，避免把非 GitHub 链接误拼到镜像域名下。
-            // 约定：当前项目主要使用 github.com/release 附件链接。
+            // 当前项目主要使用 github.com/release 附件链接。
             if (!url.StartsWith("https://github.com/", StringComparison.OrdinalIgnoreCase))
             {
                 return url;
@@ -52,10 +51,7 @@ namespace WindBoard.Updates
 
         internal static IReadOnlyList<DownloadSourceId> BuildFailoverOrder(DownloadSourceId preferred)
         {
-            // 失败轮询切换顺序：
-            // - 优先使用 preferred
-            // - 其余镜像源兜底
-            // - Github 原链接最后兜底（最稳定，但可能较慢）
+            // 失败轮询切换顺序：优先使用 preferred，其余镜像源兜底，Github 原链接最后兜底（最稳定，但可能较慢）。
             var order = new List<DownloadSourceId>(capacity: 4);
 
             void Add(DownloadSourceId id)

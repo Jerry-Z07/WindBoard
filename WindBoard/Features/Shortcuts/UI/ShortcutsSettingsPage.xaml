@@ -159,10 +159,7 @@
                     Opacity="0.75"
                     TextWrapping="WrapWholeWords" />
 
-                <!--
-                    只读输入框：用于捕获 KeyDown 并展示当前“预览快捷键”。
-                    说明：不允许手工输入，避免输入格式引发歧义；统一由解析器输出规范字符串。
-                -->
+                <!-- 只用于捕获 KeyDown 并显示预览快捷键；禁止手工输入，值统一由解析器输出。 -->
                 <TextBox
                     x:Name="GestureCaptureTextBox"
                     IsReadOnly="True"

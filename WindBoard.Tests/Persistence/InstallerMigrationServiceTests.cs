@@ -5,12 +5,8 @@ using WindBoard.Updates;
 namespace WindBoard.Tests.Persistence;
 
 /// <summary>
-/// 旧安装版数据迁移（MSIX 首次运行）单测：
-/// - 决策与 JSON 解析是纯逻辑（<see cref="InstallerMigrationPolicy"/>），直接注入“已发生事实”覆盖各分支；
-/// - 迁移标记写入用临时目录验证（对应“取消后不再询问”）。
-///
-/// 说明：本测试类不改写 <c>CultureInfo</c> / MRT <c>PrimaryLanguageOverride</c>，
-/// 无需加入 <c>ProcessGlobalLanguageState</c> 集合串行执行。
+/// MSIX 首次运行迁移：决策与 JSON 解析是纯逻辑（<see cref="InstallerMigrationPolicy"/>），注入“已发生事实”覆盖各分支；标记写入用临时目录验证。
+/// 本类不改写 <c>CultureInfo</c> / MRT <c>PrimaryLanguageOverride</c>，无需加入 <c>ProcessGlobalLanguageState</c> 集合串行执行。
 /// </summary>
 public sealed class InstallerMigrationServiceTests
 {
@@ -27,9 +23,7 @@ public sealed class InstallerMigrationServiceTests
         }
         """;
 
-    // ---- 决策规则 ----
-
-    // 说明：AppInstallKind 是 internal 类型，不能出现在 public 测试方法的签名里（CS0051），故按名称传参。
+    // AppInstallKind 是 internal 类型，不能出现在 public 测试方法签名里（CS0051），故按名称传参。
     [Theory]
     [InlineData("Portable")]
     [InlineData("Installer")]
@@ -132,8 +126,6 @@ public sealed class InstallerMigrationServiceTests
         Assert.Equal(1, evaluation.NormalizationIssueCount);
     }
 
-    // ---- JSON 解析（复用既有反序列化 + 归一化） ----
-
     [Fact]
     public void TryParseLegacySettings_WhenJsonIsValid_ReturnsTrue()
     {
@@ -169,8 +161,6 @@ public sealed class InstallerMigrationServiceTests
         Assert.False(ok);
         Assert.False(string.IsNullOrWhiteSpace(error));
     }
-
-    // ---- 迁移标记：用户取消后不再询问 ----
 
     [Fact]
     public void TryWriteMarker_ThenMarkerExists_AndEvaluationSkipsAsAlreadyMigrated()

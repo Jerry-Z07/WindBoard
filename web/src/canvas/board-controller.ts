@@ -1,40 +1,6 @@
 /**
- * 画布控制器（P1 集成层）：把「指针事件 → 决策表 → 绘图工具 → 域模型 → 渲染句柄」接起来。
- *
- * 分层约定（与 design.md §2 一致）：
- * - 本文件**不接触 DOM**：画布只按 `RenderCanvas` 结构化接口使用，输入只按下面定义的
- *   事件样本结构接收。真实 DOM 事件到样本的转换在 `dom-input.ts`，因此本层可纯函数化测试。
- * - 决策全部委托 `web/src/interaction/pointer-router.ts`（桌面 `PointerRoutingDecisions.cs` 等），
- *   工具语义委托 `web/src/tools/*`，本层只做「状态归属 + 调用顺序」。
- *
- * 与桌面的对应关系（调用顺序按桌面事件链）：
- * | 环节 | 桌面位置 |
- * | --- | --- |
- * | 按下分流 | `BoardInputController.Pointer.cs:24-35`（按设备类型）→ `PointerRoutingDecisions.cs:119` |
- * | 单指操作开始 | `Pointer.cs:141/175`（capture 门 → select 门 → pan → stroke） |
- * | 双指手势 | `Manipulation.cs:195-240`（ManipulationStarting/Delta） |
- * | 多指打断单指 | `PointerRoutingDecisions.cs:154-187`（ResolveTouchGestureEnd） |
- * | 抬起结束 | `BoardInputController.Pointer.MoveEnd.cs:118`（pan → marquee → selection → active） |
- * | 滚轮 | `Manipulation.cs:22-133` |
- * | 快捷键 | `UI/MainWindow/MainWindow.Shortcuts.cs:66` + `Features/Shortcuts/ShortcutsFlow.cs` |
- *
- * P2 范围（本文件）：在 P1（笔 / 形状 / 橡皮 / 平移 / 缩放 / 撤销重做 / 多页切换）之上接入
- * **选择工具**：框选 / 点选 / 拖动选中项 / 选中集滚轮与双指变换 / 双击打开元素 / 选区操作
- * （全选、删除、置顶、复制、元素变换）。选择工具的状态机在 `tools/select-tool.ts`（toolkit 交付，
- * 本文件不修改），本层只负责「何时调用、按什么顺序调用、结果如何反映到渲染与快照」。
- *
- * 选择相关的桌面出处：
- * | 环节 | 桌面位置 |
- * | --- | --- |
- * | 选择工具按下/移动/抬起 | `BoardInputController.Pointer.cs:141-173`、`Pointer.MoveEnd.cs:145-192` |
- * | 框选点击阈值 | `SelectTool.cs:29、:139-185`（宽高 ≤ 6 DIP 视为点击） |
- * | 选中项拖动 | `SelectTool.cs:451-503`、`MoveEnd.cs:145-166` |
- * | 滚轮变换（Ctrl 缩放 / Shift 旋转） | `BoardInputController.Manipulation.cs:59-95` |
- * | 选中元素 Ctrl+滚轮缩放 | `BoardInputController.Manipulation.cs:99-127` |
- * | 双指选中集变换 | `BoardInputController.Manipulation.cs:266-391` |
- * | 双击打开元素 | `BoardInputController.Open.cs:26-53`（判定在抬起，500ms / 10 DIP） |
- * | 删除 / 复制 / 置顶 | `BoardCanvasControl.Rendering.cs:582、:510、:340` |
- * | 覆盖层手柄规则 | 单选元素画手柄，选中笔迹只画框（`BoardCanvasControl.Rendering.cs:356-420`） |
+ * 画布控制器：把指针事件、决策表、绘图工具、域模型与渲染句柄接起来。本文件不接触 DOM（画布按 RenderCanvas 结构化接口使用，事件样本由 dom-input.ts 转换），决策委托 interaction/pointer-router.ts，工具语义委托 tools/*，本层只做状态归属与调用顺序。
+ * 桌面事件链对照：按下分流 Pointer.cs:24-35、单指操作开始 Pointer.cs:141/175、双指手势 Manipulation.cs:195-240、多指打断单指 PointerRoutingDecisions.cs:154-187、抬起结束 Pointer.MoveEnd.cs:118、滚轮 Manipulation.cs:22-133；选择工具状态机在 tools/select-tool.ts。
  */
 
 import type { Vec2 } from '../board/model/stroke.ts'
@@ -147,8 +113,7 @@ export interface BoardControllerSnapshot {
   /** 当前页墨迹条目数（UI 只用来判断空/非空）。 */
   readonly itemCount: number
   /**
-   * 当前选择态（`tools/select-tool.ts` 的只读快照；无选中时是稳定的空值常量，
-   * 供 `SelectionActionBar` 等 UI 判断是否显示）。
+   * 当前选择态（tools/select-tool.ts 的只读快照；无选中时是稳定的空值常量，供 SelectionActionBar 等 UI 判断是否显示）。
    */
   readonly selection: SelectionState
 }
@@ -160,9 +125,7 @@ export interface SelectedElementTransform {
 }
 
 /**
- * 提醒推送入口（结构兼容 `ui/reminders/reminder-store.ts` 的 `ReminderService.push`）。
- *
- * 控制器位于 canvas 层，不直接依赖 UI 层实现；只按需注入最小结构，缺省时静默丢弃。
+ * 提醒推送入口（结构兼容 ui/reminders/reminder-store.ts 的 ReminderService.push）。控制器位于 canvas 层，不直接依赖 UI 层实现，只按需注入最小结构，缺省时静默丢弃。
  */
 export interface BoardReminderSink {
   push(input: {
@@ -198,18 +161,14 @@ export interface BoardControllerOptions {
   /** 提醒推送入口（双击打开失败时推 error 提醒，`Open.cs:53` 的异常分支）。 */
   readonly reminders?: BoardReminderSink
   /**
-   * 取词函数（用于把纯逻辑产出的 key 渲染成用户可见文案，例如“无法打开元素”）。
-   *
-   * 缺省用默认语言：控制器本身不依赖 React，语言由外壳注入；
-   * 外壳传 `t` 时应传一个**读最新语言**的包装函数（见 `BoardSurface`），
-   * 否则建好控制器后切语言不会生效。
+   * 取词函数（把纯逻辑产出的 key 渲染成用户可见文案，例如「无法打开元素」）。缺省用默认语言：控制器本身不依赖 React，语言由外壳注入。
+   * 外壳传 t 时应传一个读最新语言的包装函数（见 BoardSurface），否则建好控制器后切语言不会生效。
    */
   readonly translate?: MessageTranslator
   /** 打开元素的外部环境（测试可注入 `openWindow`，避免真的开新窗口）。 */
   readonly openElementEnv?: OpenElementEnv
   /**
-   * 定时器注入（滚轮变换的 150ms 空闲提交，桌面 `BeginWheelZoomInteraction` 的等价实现）。
-   * 缺省用 `globalThis.setTimeout` / `clearTimeout`；测试可注入手动调度器。
+   * 定时器注入（滚轮变换的 150ms 空闲提交，桌面 BeginWheelZoomInteraction 的等价实现）。缺省用 globalThis.setTimeout 与 clearTimeout；测试可注入手动调度器。
    */
   readonly scheduleTimeout?: (callback: () => void, delayMs: number) => unknown
   readonly cancelTimeout?: (handle: unknown) => void
@@ -273,11 +232,7 @@ export interface BoardController {
   /** 设置选中元素的几何（走命令栈，可撤销）；无选中元素或几何未变时返回 false。 */
   setSelectedElementTransform(next: SelectedElementTransform): boolean
   /**
-   * 把选中形状的两点几何改写为给定值（形状属性浮层用；走 `UpdateShapeGeometryCommand` 可撤销）。
-   *
-   * 只接受"单选一个形状"的情形：桌面属性浮层仅在此时显示
-   * （`BoardCanvasControl.xaml:74` 的注释、`BoardCanvasControl.ShapeProperties.cs`）。
-   * 返回值含义同 `setSelectedElementTransform`。
+   * 把选中形状的两点几何改写为给定值（形状属性浮层用，走 UpdateShapeGeometryCommand 可撤销）。只接受单选一个形状的情形，桌面属性浮层也仅此时显示（BoardCanvasControl.xaml:74 的注释、BoardCanvasControl.ShapeProperties.cs）；返回值含义同 setSelectedElementTransform。
    */
   applySelectedShapeGeometry(next: { readonly start: Vec2; readonly end: Vec2 }): boolean
   /** 选中集的屏幕包围盒（DIP，供覆盖层与 UI 定位；无选中返回 null）。 */
@@ -298,10 +253,7 @@ const WHEEL_LINES_PER_NOTCH = 3
 const WHEEL_PIXELS_PER_NOTCH = 100
 
 /**
- * 把 DOM 滚轮增量归一化成「滚轮单位」（一格 = 120，与桌面一致）。
- *
- * 桌面直接拿 `MouseWheelDelta`（一格 120）参与 `1.1^(delta/120)`；浏览器三种 `deltaMode`
- * 单位不同，必须先换算，否则不同浏览器缩放速度差异巨大。
+ * 把 DOM 滚轮增量归一化成「滚轮单位」（一格 = 120，与桌面一致）。桌面直接拿 MouseWheelDelta 参与 1.1^(delta/120)；浏览器三种 deltaMode 单位不同，必须先换算，否则不同浏览器缩放速度差异巨大。
  */
 export function normalizeWheelDelta(delta: number, deltaMode: number): number {
   if (!Number.isFinite(delta) || delta === 0) {
@@ -352,13 +304,11 @@ export function createBoardController(options: BoardControllerOptions): BoardCon
     maxFps: options.maxFps,
   })
 
-  // ---- 可调状态 ----
   let tool: ToolKind = options.tool ?? 'pen'
   let shapeKind: ShapeKind = options.shapeKind ?? 'line'
   let penSettings: PenSettings = options.penSettings ?? createDefaultPenSettings()
   let currentBackground = background
 
-  // ---- 工具实例 ----
   const penTool = new PenTool(() => penSettings)
   const eraserTool = new EraserTool({
     pixelStrategy: eraseItemsWithCapsule,
@@ -372,7 +322,6 @@ export function createBoardController(options: BoardControllerOptions): BoardCon
     ['arrow', new ShapeTool('arrow', () => penSettings)],
   ])
 
-  // ---- 交互状态 ----
   const pointers = new Map<number, PointerRecord>()
   let mode: InteractionMode | null = null
   /** 进行中的工具（`mode === 'tool'` 时非 null）。 */
@@ -406,7 +355,6 @@ export function createBoardController(options: BoardControllerOptions): BoardCon
       globalThis.clearTimeout(handle as Parameters<typeof globalThis.clearTimeout>[0])
     })
 
-  // ---- 快照 ----
   /** 无选中时的稳定空状态（UI 快照比较依赖引用稳定；必须在首次 buildSnapshot 之前初始化）。 */
   const EMPTY_SELECTION: SelectionState = Object.freeze({
     items: [],
@@ -428,8 +376,6 @@ export function createBoardController(options: BoardControllerOptions): BoardCon
       zoom: viewport.zoom,
     }
   }
-
-  // ==== 选择工具（P2）====
 
   /** 按给定会话创建选择工具；选择态变化时刷新覆盖层与快照。 */
   function createSelectTool(session: BoardSession): SelectTool {
@@ -481,10 +427,7 @@ export function createBoardController(options: BoardControllerOptions): BoardCon
   }
 
   /**
-   * 把选择态写进渲染句柄。
-   *
-   * 桌面覆盖层规则（`BoardCanvasControl.Rendering.cs:356-420`）：单选元素画框 + 手柄，
-   * 选中笔迹只画框（手柄隐藏），框选过程只画框选矩形。
+   * 把选择态写进渲染句柄。桌面覆盖层规则（BoardCanvasControl.Rendering.cs:356-420）：单选元素画框与手柄，选中笔迹只画框（手柄隐藏），框选过程只画框选矩形。
    */
   function applySelectionOverlayToRender(): void {
     const state = selectTool.getState()
@@ -536,10 +479,7 @@ export function createBoardController(options: BoardControllerOptions): BoardCon
   }
 
   /**
-   * 结束选择手势：抬起提交、取消回滚。
-   *
-   * 桌面顺序（`MoveEnd.cs:145-192`）：先提交/取消框选或选区拖动，再按需处理元素点击
-   * （`HandleElementClickForMaybeOpen`）；选区拖动路径要求 `!SelectionModified` 才允许触发打开。
+   * 结束选择手势：抬起提交、取消回滚。桌面顺序（MoveEnd.cs:145-192）：先提交或取消框选与选区拖动，再按需处理元素点击（HandleElementClickForMaybeOpen）；选区拖动路径要求 !SelectionModified 才允许触发打开。
    */
   function endSelectionGesture(sample: PointerSample, commit: boolean): void {
     if (mode === 'selection-marquee') {
@@ -592,10 +532,7 @@ export function createBoardController(options: BoardControllerOptions): BoardCon
   }
 
   /**
-   * 双击打开元素（桌面 `HandleElementClickForMaybeOpen`，`Open.cs:26-53`）。
-   *
-   * 判定交给 `createElementDoubleClickTracker`（同元素 && ≤500ms && ≤10 DIP）；
-   * 命中后调用 `openElementExternal`，失败按 `Open.cs:53` 的异常分支推一条 error 提醒。
+   * 双击打开元素（桌面 HandleElementClickForMaybeOpen，Open.cs:26-53）。判定交给 createElementDoubleClickTracker（同元素、≤500ms、≤10 DIP）；命中后调用 openElementExternal，失败按 Open.cs:53 的异常分支推一条 error 提醒。
    */
   function handleElementClickForMaybeOpen(element: BoardElement, screenDip: Vec2, nowMs: number): void {
     if (tool !== 'select') {
@@ -622,8 +559,9 @@ export function createBoardController(options: BoardControllerOptions): BoardCon
     })
   }
 
-  /** 安排「滚轮变换空闲提交」：150ms 内没有新滚轮事件就合并成一次撤销
-   *  （桌面 `BeginWheelZoomInteraction` + `EvaluateWheelZoomTick`，`Manipulation.cs:142-195`）。 */
+  /**
+   * 安排「滚轮变换空闲提交」：150ms 内没有新滚轮事件就合并成一次撤销（桌面 BeginWheelZoomInteraction + EvaluateWheelZoomTick，Manipulation.cs:142-195）。
+   */
   function scheduleWheelSelectionCommit(): void {
     if (wheelIdleHandle !== null) {
       cancelTimeout(wheelIdleHandle)
@@ -705,9 +643,7 @@ export function createBoardController(options: BoardControllerOptions): BoardCon
   }
 
   /**
-   * 应用双指选中集变换（桌面 `Manipulation.cs:266-391`）。
-   *
-   * 返回 false 表示桌面会退化为视口手势（纯形状选择、只有缩放/旋转而没有平移）。
+   * 应用双指选中集变换（桌面 Manipulation.cs:266-391）。返回 false 表示桌面会退化为视口手势（纯形状选择、只有缩放与旋转而没有平移）。
    */
   function applySelectionManipulationDelta(
     gesture: ManipulationState,
@@ -961,17 +897,8 @@ export function createBoardController(options: BoardControllerOptions): BoardCon
   }
 
   /**
-   * 是否存在阻塞交互（桌面 `HasBlockingInteractionForManipulation`）。
-   *
-   * 桌面该判断的求值时机是 `ManipulationStarting`（`BoardInputController.Manipulation.cs:204`），
-   * 而 `ManipulationStarting` 发生在**触摸按下路径之后**：`HandleTouchPointerPressed` 的
-   * MultiFinger 分支会先调 `EndTouchSingleFingerToolOperationForManipulation()`
-   * （`BoardInputController.Pointer.cs:50-59`）把触摸来源的单指画线/擦除/框选结束掉。
-   * 所以真正能阻塞手势的只剩「不会被触摸路径结束」的交互：
-   * 鼠标右键平移，以及非触摸来源（笔/鼠标）的工具手势。
-   *
-   * 决策表把「结束单指操作」与「开始手势」合并成一次判定，故此处必须按结束之后的状态计算，
-   * 否则双指按下会先被这里挡掉，触摸单指笔迹永远不会被提交/丢弃（实测回归）。
+   * 是否存在阻塞交互（桌面 HasBlockingInteractionForManipulation）。桌面在 ManipulationStarting 求值，而它发生在触摸按下路径之后，MultiFinger 分支先调 EndTouchSingleFingerToolOperationForManipulation 结束触摸来源的单指操作（Pointer.cs:50-59），所以真正阻塞手势的只剩鼠标右键平移与非触摸来源（笔、鼠标）的工具手势。
+   * 决策表把「结束单指操作」与「开始手势」合并成一次判定，故此处必须按结束之后的状态计算，否则双指按下会被挡掉、触摸单指笔迹永远不会被提交或丢弃。
    */
   function hasBlockingInteraction(): boolean {
     if (mode === 'pan') {
@@ -980,9 +907,7 @@ export function createBoardController(options: BoardControllerOptions): BoardCon
     if (mode === 'tool') {
       return toolOrigin !== 'touch'
     }
-    // 桌面 HasPointerGesture 包含框选/选区拖动指针；但触摸来源的单指操作会在
-    // HandleTouchPointerPressed 的 MultiFinger 分支里先被结束掉（Pointer.cs:50-59），
-    // 因此只有非触摸来源的选择手势才真正阻塞双指手势。
+    // 桌面 HasPointerGesture 包含框选与选区拖动指针；但触摸来源的单指操作会在 HandleTouchPointerPressed 的 MultiFinger 分支里先被结束掉（Pointer.cs:50-59），因此只有非触摸来源的选择手势才真正阻塞双指手势。
     if (mode === 'selection-marquee' || mode === 'selection-move') {
       return selectionOrigin !== 'touch'
     }
@@ -1331,8 +1256,7 @@ export function createBoardController(options: BoardControllerOptions): BoardCon
       return redo()
     }
 
-    // 网页端新增的选择快捷键（桌面没有这条路，见 `interaction/shortcuts.ts` 的说明）：
-    // 先让用户自定义的撤销/重做优先，再处理这三个键——避免把用户改绑到 Delete 的槽位抢走。
+    // 网页端新增的选择快捷键（桌面没有这条路，见 interaction/shortcuts.ts 的说明）：先让用户自定义的撤销与重做优先，再处理这三个键，避免把用户改绑到 Delete 的槽位抢走。
     const selectionAction = matchSelectionShortcut(event, {
       isTextInputFocused: options.isTextInputFocused,
     })
@@ -1343,11 +1267,7 @@ export function createBoardController(options: BoardControllerOptions): BoardCon
   }
 
   /**
-   * 执行选择快捷键。
-   *
-   * 只在选择工具下生效：其它工具里 `Ctrl+A`/`Delete` 没有可操作的选中集，误触反而会
-   * 在画线途中删掉东西。`Escape` 额外承担"取消进行中的框选"，与桌面
-   * `CancelMarqueeSelectionGesture` 的效果一致。
+   * 执行选择快捷键。只在选择工具下生效：其它工具里 Ctrl+A 与 Delete 没有可操作的选中集，误触反而会在画线途中删掉东西；Escape 额外承担取消进行中的框选，与桌面 CancelMarqueeSelectionGesture 的效果一致。
    */
   function applySelectionShortcut(action: SelectionShortcutId): boolean {
     if (action === 'clearSelection') {
@@ -1718,11 +1638,7 @@ function rotationMatrix(rad: number): AffineMatrix2D {
 }
 
 /**
- * 先应用 `first` 再应用 `second`（即 `second ∘ first`）。
- *
- * 与 `Matrix3x2.Multiply` / Canvas2D `setTransform` 的复合顺序一致：
- * 桌面 `CreateTranslation(-anchor) * CreateScale(factor) * CreateTranslation(anchor)`
- * 在本文件里写成 `multiplyAffine(multiplyAffine(T(-a), S), T(a))`。
+ * 先应用 first 再应用 second（即 second ∘ first）。与 Matrix3x2.Multiply、Canvas2D setTransform 的复合顺序一致：桌面 CreateTranslation(-anchor) * CreateScale(factor) * CreateTranslation(anchor) 在本文件里写成 multiplyAffine(multiplyAffine(T(-a), S), T(a))。
  */
 function multiplyAffine(first: AffineMatrix2D, second: AffineMatrix2D): AffineMatrix2D {
   return {
@@ -1748,10 +1664,7 @@ function rotationAboutMatrix(rad: number, anchor: Vec2): AffineMatrix2D {
 }
 
 /**
- * 双指选中集矩阵：`T(-anchor)*S*T(anchor)` → `R(rad, anchor)` → `T(translation)`。
- *
- * 桌面按顺序把三个矩阵乘到同一个 `Matrix3x2` 上（`Manipulation.cs:266-391`），
- * 缺失的分量按布尔开关跳过。
+ * 双指选中集矩阵：T(-anchor)*S*T(anchor) → R(rad, anchor) → T(translation)。桌面按顺序把三个矩阵乘到同一个 Matrix3x2 上（Manipulation.cs:266-391），缺失的分量按布尔开关跳过。
  */
 function selectionManipulationMatrix(
   anchor: Vec2,

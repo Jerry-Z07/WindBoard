@@ -1,13 +1,6 @@
 /**
- * 渲染层使用的“结构化”画布与 2D 上下文接口。
- *
- * 为什么不直接引用 DOM 类型：
- * - 渲染层必须能在 Node 环境的单测里运行（`web/vite.config.ts` 的 `environment: 'node'`），
- *   而 `web/tsconfig.test.json` 的 `lib` 不含 DOM。若在此直接写 `HTMLCanvasElement` /
- *   `CanvasRenderingContext2D`，测试工程会因找不到类型名而编译失败；
- * - 浏览器实现（`HTMLCanvasElement` / `CanvasRenderingContext2D`）在结构上满足这些接口，
- *   因此 `createBoardRenderHandle(canvas, …)` 可以直接传入真实画布；
- * - `getContext` 返回 `unknown`，真正的收窄放在渲染句柄的边界处（渲染层唯一接触 DOM 的地方）。
+ * 渲染层使用的结构化画布与 2D 上下文接口。不直接引用 DOM 类型的原因：渲染层必须能在 Node 环境的单测里跑（web/vite.config.ts 的 environment: 'node'），而 web/tsconfig.test.json 的 lib 不含 DOM，直接写 HTMLCanvasElement 与 CanvasRenderingContext2D 会让测试工程找不到类型名而编译失败。
+ * 浏览器实现（HTMLCanvasElement 与 CanvasRenderingContext2D）在结构上满足这些接口，因此 createBoardRenderHandle(canvas, …) 可以直接传入真实画布；getContext 返回 unknown，真正的收窄放在渲染句柄的边界处（渲染层唯一接触 DOM 的地方）。
  */
 
 /** 2D 上下文（`CanvasRenderingContext2D` 的最小结构视图，只列渲染层实际用到的方法）。 */
@@ -66,21 +59,14 @@ export interface RenderContext2D {
   clip(): void
   fillRect(x: number, y: number, width: number, height: number): void
   /**
-   * 把另一块画布/位图按 1:1 贴到目标位置（不缩放）。
-   *
-   * 静态层缓存（`static-cache.ts`）靠它把离屏画好的整帧贴到主画布上；
-   * 只声明三参数重载，因为渲染层只按设备像素 1:1 贴图。
+   * 把另一块画布或位图按 1:1 贴到目标位置（不缩放）。静态层缓存（static-cache.ts）靠它把离屏画好的整帧贴到主画布上；只声明三参数重载，因为渲染层只按设备像素 1:1 贴图。
    */
   drawImage(image: unknown, dx: number, dy: number): void
   fillText(text: string, x: number, y: number, maxWidth?: number): void
 }
 
 /**
- * 画布的 CSS 布局矩形（`getBoundingClientRect()` 的数值子集）。
- *
- * 与 `clientWidth/clientHeight` 的区别是**带小数**：`clientWidth` 会四舍五入成整数，
- * 而设备像素对齐必须知道真实的小数尺寸与原点（见 `render-handle.ts` 的
- * `computeDeviceGridAlignment`）。
+ * 画布的 CSS 布局矩形（getBoundingClientRect() 的数值子集）。与 clientWidth/clientHeight 的区别是带小数：clientWidth 会四舍五入成整数，而设备像素对齐必须知道真实的小数尺寸与原点（见 render-handle.ts 的 computeDeviceGridAlignment）。
  */
 export interface CanvasLayoutRect {
   readonly left: number

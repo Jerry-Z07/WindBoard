@@ -3,16 +3,8 @@ import type { Stroke, StrokePoint, Vec2 } from '../board/model/stroke.ts'
 import type { WorldBounds } from '../board/viewport.ts'
 
 /**
- * 笔迹与形状的纯几何计算（对应桌面 `BoardSceneRenderer` 的几何辅助、
- * `BoardSceneMath`、`BoardShape.RecalculateBounds` 与 `InkItemPickTest`）。
- *
- * 本模块只做数学，不依赖 DOM / React；所有坐标均为世界坐标。
- * 与桌面一致的关键规则：
- * - 压感宽度因子 `wf = enablePressure ? clamp(pressure, 0.1, 1) : 1`；
- * - 多点笔迹逐点直径 `max(0.5, baseSize · wf)`，半径为其一半（下限 0.25）；
- * - 单点笔迹绘制半径 `max(0.5, baseSize · wf / 2)`（桌面单点特例，下限 0.5）；
- * - 相邻点之间是三次贝塞尔（控制点取 1/3、2/3 处，几何上仍是直线），
- *   半径控制值按 `r1 = r0 + (r3 − r0) / 3`、`r2 = r0 + 2(r3 − r0) / 3` 线性插值。
+ * 笔迹与形状的纯几何计算（对应桌面 BoardSceneRenderer 的几何辅助、BoardSceneMath、BoardShape.RecalculateBounds 与 InkItemPickTest），只做数学，不依赖 DOM 与 React，所有坐标均为世界坐标。
+ * 与桌面一致的规则：压感宽度因子 wf = enablePressure ? clamp(pressure, 0.1, 1) : 1；多点笔迹逐点直径 max(0.5, baseSize · wf)，半径为其一半（下限 0.25）；单点笔迹绘制半径 max(0.5, baseSize · wf / 2)，下限 0.5 属桌面单点特例；相邻点之间是三次贝塞尔（控制点取 1/3、2/3 处，几何上仍是直线），半径控制值按 r1 = r0 + (r3 − r0) / 3、r2 = r0 + 2(r3 − r0) / 3 线性插值。
  */
 
 /** 最小可见直径（桌面 `0.5f`，形状描边也复用该下限）。 */
@@ -115,10 +107,7 @@ export function getStrokePointRadius(stroke: Stroke, pressure: number): number {
 }
 
 /**
- * 单点笔迹绘制半径（桌面 `DrawStroke` 单点分支）。
- *
- * 注意：桌面单点半径下限是 0.5（而不是多点半径下限 0.25），
- * 与 `docs/dev/guides/ink-rendering.zh-CN.md` §5.3 的写法不一致，以桌面源码为准。
+ * 单点笔迹绘制半径（桌面 DrawStroke 单点分支）。桌面单点半径下限是 0.5，与多点半径下限 0.25 不同，也和 docs/dev/guides/ink-rendering.zh-CN.md §5.3 的写法不一致，以桌面源码为准。
  */
 export function getSinglePointRadius(stroke: Stroke, pressure: number): number {
   return Math.max(MIN_SINGLE_POINT_RADIUS, (stroke.baseSize * getStrokeWidthFactor(stroke, pressure)) / 2)
@@ -293,7 +282,6 @@ function subdivideInto(
 
 /**
  * 按容差把一段贝塞尔自适应细分为折线采样点（含起点与终点）。
- *
  * @param tolerance 允许的最大几何偏差（世界坐标）。
  * @param fallbackTangent 切线退化时的兜底方向（首段可用笔迹方向）。
  */
@@ -331,12 +319,7 @@ export function distancePointToSegment(point: Vec2, start: Vec2, end: Vec2): num
 }
 
 /**
- * 点到笔迹**填充区域**的最短距离（世界坐标，0 表示点在笔迹内）。
- *
- * 语义与桌面 `InkItemPickTest.IsStrokeHitByPoint` 对齐：逐段用两端压感平均值
- * 得到半径，再用“点到线段距离 − 半径”取最小值；单点笔迹按半径
- * `max(0.25, baseSize · wf / 2)` 的圆处理（桌面 pick 语义，而非单点绘制半径 0.5）。
- *
+ * 点到笔迹填充区域的最短距离（世界坐标，0 表示点在笔迹内）。语义与桌面 InkItemPickTest.IsStrokeHitByPoint 对齐：逐段用两端压感平均值得到半径，再用「点到线段距离 − 半径」取最小值；单点笔迹按半径 max(0.25, baseSize · wf / 2) 的圆处理（桌面 pick 语义，与单点绘制半径 0.5 不同）。
  * 命中测试由调用方把返回值与容差（如 8 DIP / zoom）比较。
  */
 export function distancePointToStroke(point: Vec2, stroke: Stroke): number {

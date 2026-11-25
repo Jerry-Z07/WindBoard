@@ -4,11 +4,8 @@ using System.Numerics;
 namespace WindBoard.Board.Editing
 {
     /// <summary>
-    /// 2D 几何辅助：面向“线段/点”的基础运算。
-    ///
-    /// 说明：
-    /// - 这里的实现主要服务于擦除与命中测试（纯计算逻辑）。
-    /// - 输入为 <see cref="float"/>，因此用较小 epsilon 做数值容错。
+    /// 2D 几何辅助：面向“线段/点”的基础运算，服务于擦除与命中测试。
+    /// 输入为 <see cref="float"/>，因此用较小 epsilon 做数值容错。
     /// </summary>
     internal static class SegmentMath2D
     {
@@ -29,9 +26,7 @@ namespace WindBoard.Board.Editing
 
         internal static float DistanceSquaredSegmentToSegment(Vector2 a0, Vector2 a1, Vector2 b0, Vector2 b1)
         {
-            // 2D 线段-线段最短距离：
-            // 1) 若相交（含共线重叠），距离为 0；
-            // 2) 否则取四个“端点到对方线段”的最小值。
+            // 2D 线段-线段最短距离：相交（含共线重叠）为 0，否则取四个“端点到对方线段”的最小值。
             if (SegmentsIntersect(a0, a1, b0, b1))
             {
                 return 0.0f;

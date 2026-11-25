@@ -1,49 +1,6 @@
 /**
- * 指针输入决策层（P1.5）：把桌面版的“判断顺序”收敛为无副作用的纯函数。
- *
- * 权威来源（桌面版，WindBoard/Interaction/BoardInputController/）：
- * - PointerRoutingDecisions.cs：ShouldStartStroke / ShouldStartPan / NormalizePressure /
- *   ResolveTouchPressRoute / ResolveTouchGestureEnd / EvaluateWheelZoomTick /
- *   ResolveHorizontalWheelPanScreenDelta 及全部常量；
- * - BoardInputController.Pointer.cs：按下路由（触摸 / 非触摸两条链路）；
- * - BoardInputController.Pointer.MoveEnd.cs：移动与抬起路由；
- * - BoardInputController.Manipulation.cs：滚轮与双指手势；
- * - BoardInputController.Open.cs：双击元素打开；
- * - PointerRouteState.cs：手势归属与“是否有指针捕获”等派生状态。
- *
- * 桌面判断 → 决策条目对照（维护用，行号对应当前桌面源码）：
- * | 桌面位置 | 桌面判断 | 决策条目 |
- * | --- | --- | --- |
- * | PointerRoutingDecisions.cs:74 ShouldStartStroke | 鼠标需左键；笔/触摸恒 true | 非触控落笔门（笔杆键也会落笔） |
- * | PointerRoutingDecisions.cs:88 ShouldStartPan | allowViewport && Mouse && 右键 | 非触控 pan 分支（选择工具下排在 allowSelectionInteractions 之后） |
- * | PointerRoutingDecisions.cs:106 NormalizePressure | 非笔 1.0；笔 clamp(0.1,1) | normalizePressure() |
- * | PointerRoutingDecisions.cs:119 ResolveTouchPressRoute | 双指 / 选择手势 / 捕获忽略 / 笔橡皮 | decideTouchDown 四条分支 |
- * | PointerRoutingDecisions.cs:154 ResolveTouchGestureEnd | 5 种结束结果 | decideTouchGestureEnd() |
- * | PointerRoutingDecisions.cs:193 EvaluateWheelZoomTick | 150ms 空闲结束 | decideWheelZoomTick() |
- * | PointerRoutingDecisions.cs:221 ResolveHorizontalWheelPanScreenDelta | (-Δ, 0) | horizontalWheelPanScreenDelta() |
- * | Pointer.cs:37 HandleTouchPointerPressed | 选择手势恒起框选（即便点在选区内） | 触摸 + 选择工具单指 → select-marquee |
- * | Pointer.cs:115 HandleNonTouchPointerPressed | 捕获门 → 选择/非选择子分支 | decideNonTouchDown |
- * | Pointer.cs:141 TryBeginSelectGesture | 选择门 → pan → stroke → 选区/框选 | decideNonTouchDown 选择分支 |
- * | Pointer.cs:175 TryBeginNonSelectGesture | pan → stroke → 工具动作 | decideNonTouchDown 非选择分支 |
- * | Manipulation.cs:195 ManipulationStarting | select && target==Selection && 有选中 → 选区手势 | gesture.target |
- * | Manipulation.cs:417 HasBlockingInteractionForManipulation | 有活动工具操作/手势 → 不起手势 | ctx.blockingInteraction |
- * | Manipulation.cs:22-133 OnCanvasPointerWheelChanged | 六步顺序（横向先于修饰键变换） | decideWheelAction() |
- * | Manipulation.cs:135 HasBlockingInteractionForWheel | 阻塞滚轮 | WheelContext.hasBlockingInteraction |
- * | Open.cs:26 HandleElementClickForMaybeOpen | 抬起时 500ms / 10DIP / 同元素 | up 相位 → open-element |
- * | Pointer.MoveEnd.cs:118 HandlePointerEnded | pan → marquee → selection → active | up/cancel → end |
- * | Pointer.MoveEnd.cs:20 + PointerRouteState.ResolveMoveRoute | 按 pointerId 归属路由 | move 相位按 activeGesture 路由 |
- * | SelectTool.cs:348 IsScreenPointInsideSelectedBounds | 屏幕命中测试 | ctx.insideSelectionBounds |
- * | PointerRouteState.cs:69-72 HasActivePointerCapture | 活动工具操作或任一手势 | ctx.hasActivePointerCapture |
- *
- * 浏览器/任务补充（桌面无对应分支，代码内已就地标注）：掌拒 penActive（笔按下时忽略触摸）、
- * 水平滚轮平移结果 -0 归一化。
- *
- * 本模块只做“判断”，不做 DOM 监听、不持有可变状态、不读 window；
- * 执行层（后续任务）负责：指针捕获、工具状态机、命中测试、视口/选区变换数学与渲染。
- *
- * 与桌面的一处结构性差异：桌面 PointerRouteState 用 pointerId 记录“当前指针属于哪个手势”，
- * 纯函数无法持有该状态，因此 move/up/cancel 时由执行层通过 activeGesture 注入“本指针所属手势”
- * （不属于任何手势时传 null，对应桌面 ResolveMoveRoute 返回 None）。
+ * 指针决策层：把桌面版的判断顺序收敛为纯函数，对应 `PointerRoutingDecisions.cs`、`BoardInputController.Pointer/Pointer.MoveEnd/Manipulation/Open.cs` 与 `PointerRouteState.cs`，逐条对照见 `docs/dev/guides/web-port.zh-CN.md` 的输入路径一节；本模块只做判断，不监听 DOM、不持状态、不读 window。
+ * 与桌面的一处结构差异：桌面用 pointerId 记录手势归属，纯函数无法持有该状态，改由执行层传入 activeGesture，无归属时传 null（对应 ResolveMoveRoute 返回 None）。
  */
 
 /** 工具种类：桌面 BoardTool 的收敛（Line/Rectangle/Ellipse/Arrow 的路由行为一致，统一为 shape）。 */
@@ -69,32 +26,22 @@ export interface PointerModifiers {
 }
 
 /**
- * 指针上下文：决策函数的唯一输入。
- *
- * 前半部分为任务书约定的必填字段；后半部分（可选）是桌面控制器内部状态的显式化——
- * 纯函数无法持有这些状态，由执行层按需注入，缺省值等价于“桌面默认状态”。
+ * 指针上下文：决策函数的唯一输入。必填字段由调用方提供，可选字段把桌面控制器的内部状态显式化，缺省值等价于桌面默认状态。
  */
 export interface PointerContext {
-  /** 事件相位。 */
   readonly phase: PointerPhase
-  /** 设备类型。 */
   readonly pointerType: PointerDeviceType
   /** 本次事件按键：0=左/笔尖，1=中，2=右/笔杆键（对应 PointerEvent.button）。 */
   readonly button: number
   /** 按键位掩码（PointerEvent.buttons）：本层用 button 判定按下瞬间的键，保留该字段供执行层采样。 */
   readonly buttons: number
-  /** 修饰键状态。 */
   readonly modifiers: PointerModifiers
   /** 本次按下加入后的活动指针数（对应桌面 ActiveTouchPointers.Count，含本次按下）。 */
   readonly activePointerCount: number
-  /** 当前工具。 */
   readonly tool: ToolKind
-  /** 当前是否存在选中内容（笔迹或元素）。 */
   readonly hasSelection: boolean
   /**
-   * 距上一次“元素点击”的毫秒数；不在同一次点击序列时为 null。
-   * 桌面 HandleElementClickForMaybeOpen 在“抬起”时记录并比较（Open.cs:26-53），
-   * 因此这里语义是“距上一次元素点击”，执行层负责在非同元素或首次点击时传 null。
+   * 距上一次元素点击的毫秒数，不在同一次点击序列时为 null；桌面在抬起时记录并比较（Open.cs:26-53），非同元素或首次点击由执行层传 null。
    */
   readonly msSinceLastDown: number | null
   /** 距上一次“元素点击”的屏幕距离（DIP），语义同上。 */
@@ -107,19 +54,11 @@ export interface PointerContext {
   /** 桌面 HasActivePointerCapture（PointerRouteState.cs:72）：存在活动工具操作或任一手势，默认 false。 */
   readonly hasActivePointerCapture?: boolean
   /**
-   * 桌面 HasBlockingInteractionForManipulation（Manipulation.cs:417-423）：存在活动工具操作或任一手势。
-   * 桌面在 ManipulationStarting 起手前检查（Manipulation.cs:195-201），为 true 时双指不起手势；
-   * 缺省 false，等价于“无阻塞”，保持既有行为。
-   *
-   * **求值时机**：ManipulationStarting 发生在触摸按下路径（`HandleTouchPointerPressed` 的 MultiFinger
-   * 分支先调 `EndTouchSingleFingerToolOperationForManipulation`）之后，所以注入方必须按
-   * 「触摸来源的单指操作已被结束」之后的状态计算——触摸来源的工具手势不算阻塞，否则双指
-   * 永远进不了手势，触摸单指笔迹也不会被提交/丢弃。
+   * 桌面 HasBlockingInteractionForManipulation（Manipulation.cs:417-423）：存在活动工具操作或任一手势，为 true 时双指不起手势，缺省 false。注入方须按“触摸来源的单指操作已结束”之后的状态计算（ManipulationStarting 就在该结束调用之后），否则双指永远进不了手势。
    */
   readonly blockingInteraction?: boolean
   /**
-   * 桌面 IsScreenPointInsideSelectedBounds（SelectTool.cs:348-361）：屏幕点是否落在选中包围盒内。
-   * 纯函数没有命中测试能力，由执行层注入；缺省退化为 hasSelection（“有选中即可拖动”的近似）。
+   * 桌面 IsScreenPointInsideSelectedBounds（SelectTool.cs:348-361）：屏幕点是否落在选中包围盒内；纯函数无法命中测试，由执行层注入，缺省退化为 hasSelection。
    */
   readonly insideSelectionBounds?: boolean
   /** 本指针所属手势（桌面 ResolveMoveRoute 的 pointerId 归属）；不属于任何手势时为 null。 */
@@ -129,10 +68,7 @@ export interface PointerContext {
   /** 桌面 TouchManipulationTarget：单指触摸按下时记录，供后续双指手势判定目标。 */
   readonly touchManipulationTarget?: TouchManipulationTarget
   /**
-   * 本次抬起命中的元素 id（桌面 clickedElement / SelectTool.LastMarqueeClickedElement）。
-   * 只在桌面会产生“点击”的路径上提供，否则为 null：
-   * - 选区拖动路径：拖动未产生变换（!selectionModified）且命中的是已选元素；
-   * - 框选路径：按下与抬起距离不超过 MARQUEE_CLICK_THRESHOLD_DIP。
+   * 本次抬起命中的元素 id（桌面 clickedElement / SelectTool.LastMarqueeClickedElement），只在会产生点击的路径上提供：选区拖动未产生变换，或框选距离不超过 MARQUEE_CLICK_THRESHOLD_DIP；其余为 null。
    */
   readonly elementId?: string | null
   /** 上一次元素点击命中的元素 id（桌面 _lastElementClickId）。 */
@@ -142,13 +78,7 @@ export interface PointerContext {
 }
 
 /**
- * 决策结果。
- *
- * 与任务书建议动作集的差异（均已在注释中标注对应桌面分支）：
- * - 用 { type: 'gesture' } 取代 'zoom'：桌面双指手势在 ManipulationDelta 中同时处理平移与缩放
- *   （Manipulation.cs:242-264 / 393-415），拆成 pan/zoom 两个动作反而失真；
- * - 新增 { type: 'end' }：桌面 HandlePointerEnded 的提交/丢弃决策（MoveEnd.cs:118-192）；
- * - 保留 'open-element'：桌面 HandleElementClickForMaybeOpen 的打开决策（Open.cs:26-53）。
+ * 决策结果：'gesture' 取代任务书的 'zoom'，桌面双指在 ManipulationDelta 里同时平移与缩放（Manipulation.cs:242-264 / 393-415），拆开会失真。'end' 为新增条目，对应桌面 HandlePointerEnded 的提交/丢弃决策（MoveEnd.cs:118-192）。
  */
 export type PointerAction =
   /** 桌面 BeginPenOrEraserGesture（PenTool.Begin）。 */
@@ -164,16 +94,13 @@ export type PointerAction =
   /** 桌面 BeginSelectionMoveGesture（拖动选区）。 */
   | { readonly type: 'move-selection' }
   /**
-   * 桌面双指/多指手势（Pointer.cs:37-80 MultiFinger + Manipulation.cs:195-240 ManipulationStarting）。
-   * 执行层需先按 decideTouchGestureEnd 结束单指工具操作；HasBlockingInteractionForManipulation
-   * 门禁已由 blockingInteraction 字段表达（为 true 时不会返回本动作）。
+   * 桌面双指/多指手势（Pointer.cs:37-80 + Manipulation.cs:195-240）：执行层须先按 decideTouchGestureEnd 结束单指工具操作，blockingInteraction 为 true 时不会返回本动作。
    */
   | { readonly type: 'gesture'; readonly target: TouchManipulationTarget }
   /** 桌面 HandleElementClickForMaybeOpen 命中双击：抬起并打开元素（Open.cs:26-53）。 */
   | { readonly type: 'open-element' }
   /**
-   * 桌面 HandlePointerEnded：结束手势。commit=false 对应 pointercancel（丢弃），
-   * 平移没有回滚语义，commit 恒为 true。
+   * 桌面 HandlePointerEnded：结束手势；commit=false 对应 pointercancel，平移没有回滚语义所以 commit 恒为 true。
    */
   | { readonly type: 'end'; readonly gesture: ActiveGesture; readonly commit: boolean }
   /** 不产生任何动作：桌面各处的 Ignore / 提前 return / PointerMoveRoute.None。 */
@@ -210,24 +137,7 @@ const GESTURE_SELECTION: PointerAction = Object.freeze({ type: 'gesture', target
 const END_PAN: PointerAction = Object.freeze({ type: 'end', gesture: 'pan', commit: true })
 
 /**
- * 指针决策入口：按相位分派到桌面各事件处理器的判断顺序。
- *
- * 按下（down）判定顺序（越靠前优先级越高，括号内为桌面分支）：
- * | 顺序 | 条件 | 动作 |
- * | --- | --- | --- |
- * | 1 | 触摸 && 触控笔按下（浏览器补充的掌拒） | ignore |
- * | 2 | 触摸 && 活动指针 >= 2 && 允许视口操作 | gesture（目标见 ManipulationStarting） |
- * | 2' | 触摸 && 活动指针 >= 2 && 不允许视口操作 | ignore |
- * | 3 | 触摸 && 选择工具 && 允许选择交互 | select-marquee（单指一律框选） |
- * | 4 | 触摸 && 已有指针捕获 | ignore |
- * | 5 | 触摸 && 其它工具 | draw / erase / draw-shape（Select 映射为 Pen） |
- * | 6 | 非触摸 && 已有指针捕获 | ignore |
- * | 7 | 非触摸 && 选择工具 && !允许选择交互 | ignore |
- * | 8 | 非触摸 && 鼠标右键 && 允许视口操作 | pan |
- * | 9 | 非触摸 && 不满足 ShouldStartStroke（鼠标非左键） | ignore |
- * | 10 | 非触摸 && 选择工具 && 点在选中包围盒内 | move-selection |
- * | 11 | 非触摸 && 选择工具 | select-marquee |
- * | 12 | 非触摸 && 其它工具 && 满足 ShouldStartStroke | draw / erase / draw-shape |
+ * 指针决策入口：按相位分派到桌面各事件处理器的判断顺序。down 先走触摸链路：掌拒、多指起手势、选择工具单指起框选、已有捕获忽略、其余工具落笔。非触摸链路依次为已有捕获、选择交互门、鼠标右键平移、ShouldStartStroke、选区内拖动、框选、落笔；Select 工具在落笔链路映射为画笔。
  */
 export function decidePointerAction(ctx: PointerContext): PointerAction {
   switch (ctx.phase) {
@@ -252,10 +162,7 @@ function decideDown(ctx: PointerContext): PointerAction {
 }
 
 /**
- * 触摸按下：桌面 HandleTouchPointerPressed（Pointer.cs:37-80）。
- *
- * 注意顺序：ResolveTouchPressRoute 把“选择工具起框选”排在“已有指针捕获”之前，
- * 所以选择工具下即使已有捕获（例如鼠标正在画），触摸仍会起框选——这是桌面原样行为。
+ * 触摸按下：桌面 HandleTouchPointerPressed（Pointer.cs:37-80）。ResolveTouchPressRoute 把“选择工具起框选”排在“已有指针捕获”之前，所以已有捕获时触摸仍起框选，与桌面一致。
  */
 function decideTouchDown(ctx: PointerContext): PointerAction {
   // 浏览器补充（桌面无对应分支）：触控笔按下期间忽略触摸，避免手掌误触。
@@ -300,9 +207,7 @@ function decideTouchDown(ctx: PointerContext): PointerAction {
   return activeToolAction(ctx.tool)
 }
 
-/**
- * 非触摸按下：桌面 HandleNonTouchPointerPressed（Pointer.cs:115-137）及其两个子分支。
- */
+/** 非触摸按下：桌面 HandleNonTouchPointerPressed（Pointer.cs:115-137）及其两个子分支。 */
 function decideNonTouchDown(ctx: PointerContext): PointerAction {
   // 桌面 HandleNonTouchPointerPressed：已有指针捕获 → 直接 return（不产生手势）。
   if (hasActivePointerCapture(ctx)) {
@@ -353,8 +258,7 @@ function decideNonTouchDown(ctx: PointerContext): PointerAction {
 }
 
 /**
- * 移动相位：桌面 ResolveMoveRoute（PointerRouteState.cs:157-180）按 pointerId 归属依次匹配
- * Pan → Selection → Marquee → Active，执行层只在“本指针拥有该手势”时注入 activeGesture。
+ * 移动相位：桌面 ResolveMoveRoute（PointerRouteState.cs:157-180）按 pointerId 归属依次匹配 Pan、Selection、Marquee、Active，执行层只在本指针拥有该手势时注入 activeGesture。
  */
 function decideMove(ctx: PointerContext): PointerAction {
   const gesture = ctx.activeGesture ?? null
@@ -378,11 +282,7 @@ function decideMove(ctx: PointerContext): PointerAction {
 }
 
 /**
- * 抬起/取消相位：桌面 HandlePointerEnded（MoveEnd.cs:118-192）。
- *
- * 桌面按 pointerId 依次尝试：平移 → 框选 → 选区拖动 → 活动工具；
- * 同一指针只会拥有一个手势，因此这里按 activeGesture 单值分派。
- * 双击打开只在“抬起”时判定（桌面在提交选区/框选之后调用 HandleElementClickForMaybeOpen）。
+ * 抬起/取消相位：桌面 HandlePointerEnded（MoveEnd.cs:118-192）按 pointerId 依次尝试平移、框选、选区拖动、活动工具，同一指针只拥有一个手势，故按 activeGesture 单值分派。双击打开只在抬起时判定（桌面在提交选区/框选之后调用 HandleElementClickForMaybeOpen）。
  */
 function decideEnd(ctx: PointerContext, isUp: boolean): PointerAction {
   const gesture = ctx.activeGesture ?? null
@@ -404,12 +304,7 @@ function decideEnd(ctx: PointerContext, isUp: boolean): PointerAction {
 }
 
 /**
- * 双击打开元素：桌面 HandleElementClickForMaybeOpen（Open.cs:26-53）。
- *
- * 桌面在“抬起”时用 _lastElementClickId / _lastElementClickAt / _lastElementClickScreenDip 判定：
- * 同一元素 && 距上次点击 <= 500ms && 屏幕距离 <= 10 DIP。
- * 纯函数把“同一元素”交给执行层（elementId / lastElementClickId），“距上次点击”用
- * msSinceLastDown / dipSinceLastDown 表达。
+ * 双击打开元素：桌面 HandleElementClickForMaybeOpen（Open.cs:26-53）在抬起时要求同一元素、距上次点击不超过 500ms、屏幕距离不超过 10 DIP，纯函数用 elementId / lastElementClickId 与 msSinceLastDown / dipSinceLastDown 表达。
  */
 function shouldOpenElement(ctx: PointerContext, gesture: 'marquee' | 'selection-move'): boolean {
   // 桌面首行：非选择工具直接返回。
@@ -444,8 +339,7 @@ function shouldStartPan(ctx: PointerContext): boolean {
 }
 
 /**
- * 桌面 ShouldStartStroke：鼠标要求左键按下；触控笔/触摸默认允许。
- * 因此触控笔的笔杆键（button=2）也会落笔，这是桌面原样行为。
+ * 桌面 ShouldStartStroke：鼠标要求左键按下，触控笔/触摸默认允许；因此笔杆键（button=2）也会落笔，与桌面一致。
  */
 function shouldStartStroke(ctx: PointerContext): boolean {
   if (ctx.pointerType === 'mouse') {
@@ -456,8 +350,7 @@ function shouldStartStroke(ctx: PointerContext): boolean {
 }
 
 /**
- * 桌面 ResolveActiveToolId（BoardInputController.cs:111-114）：选择工具在落笔链路里映射为画笔，
- * 因此“触摸 + 选择工具 + 禁止选择交互”会退化为画笔绘制，而非忽略。
+ * 桌面 ResolveActiveToolId（BoardInputController.cs:111-114）：选择工具在落笔链路里映射为画笔，所以“触摸 + 选择工具 + 禁止选择交互”退化为绘制。
  */
 function activeToolAction(tool: ToolKind): PointerAction {
   switch (tool) {
@@ -489,9 +382,7 @@ function hasBlockingInteraction(ctx: PointerContext): boolean {
 }
 
 /**
- * 单指触摸按下时记录的手势目标：桌面 Pointer.cs:53-57
- * （TouchManipulationTarget = IsScreenPointInsideSelectedBounds ? Selection : Viewport）。
- * 执行层在起框选时需要记录该值，供后续双指手势判定使用。
+ * 单指触摸按下记录的手势目标：桌面 Pointer.cs:53-57（TouchManipulationTarget = 点在选区内 ? Selection : Viewport），执行层起框选时须保存该值供双指手势判定。
  */
 export function resolveTouchManipulationTarget(
   ctx: Pick<PointerContext, 'hasSelection' | 'insideSelectionBounds'>,
@@ -501,9 +392,7 @@ export function resolveTouchManipulationTarget(
 }
 
 /**
- * 压感归一化：桌面 NormalizePressure（PointerRoutingDecisions.cs:106-114）。
- * 触控笔收敛到 [0.1, 1]（避免零压力导致笔迹消失）；鼠标/触摸固定 1.0。
- * 浏览器里鼠标 PointerEvent.pressure 是 0.5（WinUI 一致），但桌面归一化后固定 1.0，这里保持桌面结果。
+ * 压感归一化：桌面 NormalizePressure（PointerRoutingDecisions.cs:106-114），触控笔收敛到 [0.1, 1] 以免零压力导致笔迹消失，鼠标与触摸固定 1.0。浏览器鼠标的 PointerEvent.pressure 是 0.5，这里仍保持桌面归一化后的结果。
  */
 export function normalizePressure(pointerType: PointerDeviceType, pressure: number): number {
   if (pointerType !== 'pen') {
@@ -517,8 +406,7 @@ export function normalizePressure(pointerType: PointerDeviceType, pressure: numb
 export type WheelZoomTickDecision = 'stop-idle' | 'wait' | 'end'
 
 /**
- * 滚轮缩放空闲检测：桌面 EvaluateWheelZoomTick（PointerRoutingDecisions.cs:193-209）。
- * 距最后一次滚轮事件不足 150ms 继续等待，否则结束缩放状态。
+ * 滚轮缩放空闲检测：桌面 EvaluateWheelZoomTick（PointerRoutingDecisions.cs:193-209），距最后一次滚轮事件不足 150ms 继续等待，否则结束缩放状态。
  */
 export function decideWheelZoomTick(
   isWheelZooming: boolean,
@@ -559,9 +447,7 @@ export interface TouchGestureEndInput {
 }
 
 /**
- * 多指手势打断单指操作：桌面 ResolveTouchGestureEnd（PointerRoutingDecisions.cs:154-187）。
- * 分支顺序：非触摸来源 → 笔迹（点数<=1 丢弃点笔迹，否则提交）→ 图形（丢弃）→ 橡皮（提交）。
- * 框选取消不在本决策内，由执行层按 MarqueePointerId 另行处理。
+ * 多指手势打断单指操作：桌面 ResolveTouchGestureEnd（PointerRoutingDecisions.cs:154-187），非触摸来源直接返回，笔迹点数<=1 丢弃否则提交，图形丢弃，橡皮提交；框选取消由执行层按 MarqueePointerId 处理。
  */
 export function decideTouchGestureEnd(input: TouchGestureEndInput): TouchGestureEndDecision {
   if (!input.isTouchOrigin) {
@@ -584,8 +470,7 @@ export function decideTouchGestureEnd(input: TouchGestureEndInput): TouchGesture
 }
 
 /**
- * 横向滚轮平移换算：桌面 ResolveHorizontalWheelPanScreenDelta（PointerRoutingDecisions.cs:221-224）。
- * 返回屏幕位移（DIP）；负号是因为 PanByScreenDelta 接收的是“内容位移”。
+ * 横向滚轮平移换算：桌面 ResolveHorizontalWheelPanScreenDelta（PointerRoutingDecisions.cs:221-224），返回屏幕位移（DIP），负号是因为 PanByScreenDelta 接收内容位移。
  */
 export function horizontalWheelPanScreenDelta(wheelDelta: number): { x: number; y: number } {
   const x = -wheelDelta * HORIZONTAL_WHEEL_PAN_DIP_PER_DELTA
@@ -609,8 +494,7 @@ export interface WheelContext {
   /** 桌面 _allowViewportManipulation，默认 true。 */
   readonly allowViewportManipulation?: boolean
   /**
-   * 桌面 HasBlockingInteractionForWheel（Manipulation.cs:135-140）：
-   * 存在活动工具交互（预览条目/正在擦除）、存在指针手势、或正在变换选区。
+   * 桌面 HasBlockingInteractionForWheel（Manipulation.cs:135-140）：存在活动工具交互（预览条目/正在擦除）、指针手势或选区变换。
    */
   readonly hasBlockingInteraction?: boolean
   /** 桌面 SelectTool.HasTransformableStrokes：选中项里含笔迹。 */
@@ -620,20 +504,7 @@ export interface WheelContext {
 }
 
 /**
- * 滚轮决策：桌面 OnCanvasPointerWheelChanged（Manipulation.cs:22-133）的判断顺序。
- *
- * | 顺序 | 条件 | 动作 |
- * | --- | --- | --- |
- * | 1 | !allowViewportManipulation | ignore |
- * | 2 | 存在阻塞交互 | ignore |
- * | 3 | delta == 0 | ignore |
- * | 4 | 横向滚轮（优先于修饰键变换） | pan-horizontal |
- * | 5 | 选择工具 && 含可变换笔迹 && (Ctrl || Shift) | transform-selection |
- * | 6 | 选择工具 && 选中元素 && Ctrl | transform-selection |
- * | 7 | 其它 | zoom |
- *
- * transform-selection 的具体数学（Ctrl 绕光标缩放、Shift 绕选区中心旋转 5°/格、
- * 元素缩放最小尺寸 0.01）属于执行层，见 Manipulation.cs:60-132。
+ * 滚轮决策：桌面 OnCanvasPointerWheelChanged（Manipulation.cs:22-133），禁止视口操作、存在阻塞交互、delta 为 0 均忽略，横向滚轮优先于修饰键变换，其次选择工具的 Ctrl/Shift 变换选区，其余缩放。transform-selection 的数学（Ctrl 绕光标缩放、Shift 绕中心旋转 5°/格、元素最小尺寸 0.01）在执行层，见 Manipulation.cs:60-132。
  */
 export function decideWheelAction(ctx: WheelContext): WheelAction {
   if (!(ctx.allowViewportManipulation ?? true)) {

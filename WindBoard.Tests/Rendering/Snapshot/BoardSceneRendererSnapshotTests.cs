@@ -13,20 +13,10 @@ namespace WindBoard.Tests.Rendering.Snapshot;
 /// <see cref="BoardSceneRenderer"/> 渲染快照（golden image）回归测试。
 /// </summary>
 /// <remarks>
-/// 测试流程：构造文档/视口 → WARP 离屏渲染 → 与基准 PNG 逐像素比对，失败时输出
-/// expected/actual/diff 三件套到 <c>WindBoard.Tests/artifacts/snapshot-failures/</c>。
-/// 基准重建方式见 <see cref="SnapshotBaseline"/>（<c>WINDBOARD_REGEN_SNAPSHOTS=1</c>）。
-///
-/// 同一 collection 内的用例由 xUnit 串行执行（本类与语言状态写方同属
-/// <see cref="ProcessGlobalLanguageState"/>，同时满足 D2D SingleThreaded 工厂的串行要求）。
-///
-/// 场景覆盖说明（对应 prd 场景清单 1-8）：
-/// - 场景 1-6 为 D2D 像素级快照（本类）；
-/// - 场景 7（选中态 overlay：选中框/手柄）与场景 8（框选 marquee 矩形）为 XAML 层元素
-///   （BoardCanvasControl 的 Border/Thumb，见 UpdateSelectionOverlay/ShowMarqueeSelectionOverlay），
-///   不经过 BoardSceneRenderer 的 D2D 输出，无法做 D2D 像素快照。其逻辑已有结构断言覆盖：
-///   marquee 状态机见 SelectToolTests.Marquee_*，选中框几何见 InkItemScreenBoundsTests；
-///   XAML 合成层的像素级验证**当前尚无自动化用例**（P3 E2E 冒烟未覆盖画布选择交互），列为后续增强。
+/// 流程：构造文档/视口 → WARP 离屏渲染 → 与基准 PNG 逐像素比对，失败时把 expected/actual/diff 三件套写到 <c>WindBoard.Tests/artifacts/snapshot-failures/</c>；重建见 <see cref="SnapshotBaseline"/>（<c>WINDBOARD_REGEN_SNAPSHOTS=1</c>）。
+/// 本类与语言状态写方同属 <see cref="ProcessGlobalLanguageState"/> 集合，xUnit 串行执行，同时满足 D2D SingleThreaded 工厂的串行要求。
+/// prd 场景清单 1-8：场景 1-6 为 D2D 像素级快照（本类）；场景 7（选中态 overlay：选中框/手柄）与 8（框选 marquee 矩形）是 XAML 层元素（BoardCanvasControl 的 Border/Thumb，见 UpdateSelectionOverlay/ShowMarqueeSelectionOverlay），不经 BoardSceneRenderer 的 D2D 输出，无法做像素快照，
+/// 其逻辑由结构断言覆盖（marquee 状态机见 SelectToolTests.Marquee_*，选中框几何见 InkItemScreenBoundsTests）；XAML 合成层的像素级验证当前尚无自动化用例（P3 E2E 冒烟未覆盖画布选择交互），列为后续增强。
 /// </remarks>
 [Collection(ProcessGlobalLanguageState.CollectionName)]
 public sealed class BoardSceneRendererSnapshotTests
@@ -137,15 +127,8 @@ public sealed class BoardSceneRendererSnapshotTests
     /// 文本卡片快照：渲染前固定 zh-CN 区域性并把进程级 MRT PrimaryLanguageOverride 固定为 zh-CN。
     /// </summary>
     /// <remarks>
-    /// 卡片标题/提示文案经 L10n 按 CurrentUICulture 解析（资源含 zh-CN/en-US），
-    /// 不固定区域性时跨机器 UI 语言差异会导致文本内容不同、基准不可比。
-    ///
-    /// 另需固定 <c>ApplicationLanguages.PrimaryLanguageOverride</c>（进程级全局状态）为 zh-CN：
-    /// MRT 候选语言会受该 override 影响，与本类显式设置的 zh-CN 上下文不一致时，
-    /// L10n 判定语言不匹配而回退输出 key 字符串，导致基准比对失败。
-    /// 语言状态的捕获/还原统一走 <see cref="TestLanguageState"/>（含 unpackaged 环境无法用空串
-    /// 清除 override 的降级处理）；与可能改写语言的 AppSettingsServiceTests 同属
-    /// <see cref="ProcessGlobalLanguageState"/>，由 xUnit 串行执行，消除写读竞态。
+    /// 卡片标题/提示文案经 L10n 按 CurrentUICulture 解析（资源含 zh-CN/en-US），不固定区域性时跨机器 UI 语言差异会让文本内容不同、基准不可比；MRT 候选语言还受进程级 <c>ApplicationLanguages.PrimaryLanguageOverride</c> 影响，未固定 zh-CN 时 L10n 判定语言不匹配而回退输出 key 字符串，导致基准比对失败。
+    /// 语言状态的捕获/还原统一走 <see cref="TestLanguageState"/>（含 unpackaged 环境无法用空串清除 override 的降级处理）；与可能改写语言的 AppSettingsServiceTests 同属 <see cref="ProcessGlobalLanguageState"/>，由 xUnit 串行执行，消除写读竞态。
     /// </remarks>
     private static void RunTextCardSnapshot(string snapshotName, ElementCardTheme theme)
     {

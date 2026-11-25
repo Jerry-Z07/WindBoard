@@ -1,8 +1,5 @@
 /**
- * React 上下文对象。
- *
- * 单独放在 `.ts` 文件里，是为了让 provider 文件（`.tsx`）**只导出组件**——
- * 否则 Fast Refresh 会因为"同一文件既导出组件又导出常量/函数"而失效（oxlint `react/only-export-components`）。
+ * React 上下文对象。单独放在 .ts 文件里，是为了让 provider 文件（.tsx）只导出组件，否则 Fast Refresh 会因为"同一文件既导出组件又导出常量/函数"而失效（oxlint react/only-export-components）。
  */
 
 import { createContext } from 'react'

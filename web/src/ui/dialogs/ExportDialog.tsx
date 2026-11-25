@@ -1,12 +1,6 @@
 /**
- * 导出对话框（PNG / PDF / WBIX）。
- *
- * 桌面权威源：`WindBoard/Features/Export/UI/ExportDialog.cs:19-233`——字段顺序、默认值、
- * PNG 画面尺寸算法与"仅 PNG / 仅 PDF / 仅位图"的显隐规则都在那里；
- * 文案取自 `WindBoard/Strings/zh-CN/Export.resw`。
- *
- * P3 只做 UI：点"下一步"后推一条提醒并关闭（`handleExport` 里标了 P4 接入点）。
- * 纸张/画面尺寸、文件名、页索引、校验等**纯逻辑**全部在 `features/export/export-options.ts`。
+ * 导出对话框（PNG、PDF、WBIX）。桌面权威源 Features/Export/UI/ExportDialog.cs:19-233：字段顺序、默认值、PNG 画面尺寸算法与「仅 PNG / 仅 PDF / 仅位图」的显隐规则都在那里；文案取自 Strings/zh-CN/Export.resw。
+ * 纸张与画面尺寸、文件名、页索引、校验等纯逻辑全部在 features/export/export-options.ts。
  */
 
 import { useMemo, useState, type ReactNode } from 'react'
@@ -182,9 +176,7 @@ function ExportDialogForm(props: { readonly onClose: () => void }): ReactNode {
       return
     }
 
-    // 真实导出：桌面顺序见 `WindBoard/Features/Export/ExportFlow.cs:43-233`
-    //（快照 → 光栅选项 → WBIX 整库 → 页范围 → 按格式分派），细节在 `export-runner.ts`。
-    // 导出是异步的（编码 + 写盘），所以这里先关对话框再跑，失败信息走提醒条。
+    // 真实导出：桌面顺序见 WindBoard/Features/Export/ExportFlow.cs:43-233（快照 → 光栅选项 → WBIX 整库 → 页范围 → 按格式分派），细节在 export-runner.ts。导出是异步的（编码 + 写盘），所以这里先关对话框再跑，失败信息走提醒条。
     props.onClose()
     void (async () => {
       try {

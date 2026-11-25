@@ -43,10 +43,7 @@
             </TitleBar.Content>
         </TitleBar>
 
-        <!--
-            壳层公告位：文案/Severity/动作按钮均由 code-behind 按公告定义赋值，这里只声明展示结构。
-            无公告时 IsOpen=false，该行高度为 0，不影响设置页原有布局。
-        -->
+        <!-- 文案、Severity 与动作按钮由 code-behind 按公告定义赋值；无公告时 IsOpen=false，行高为 0。 -->
         <InfoBar
             x:Name="AnnouncementBar"
             Grid.Row="1"

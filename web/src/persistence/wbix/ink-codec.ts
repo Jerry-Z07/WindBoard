@@ -8,20 +8,8 @@ import type { JsonTextWriter } from './json-options.ts'
 import { getJsonProperty, isPlainObject } from './json-options.ts'
 
 /**
- * 笔迹条目编解码（对齐桌面 `InkItemSnapshotJsonConverter` + `BoardInkItemCodec`）。
- *
- * 写侧（固定 v3 包装形态）：
- * - 笔迹：`{ "kind": "stroke", "stroke": { points, colorRgba, baseSize, enablePressure } }`
- * - 形状：`{ "kind": "line", "shape": { start, end, colorRgba, width } }`
- *
- * 读侧（形态自适应，与桌面同一套规则）：
- * - 有 `stroke` 对象 → v3 笔迹包装；
- * - 有 `shape` 对象 → v3 形状包装；
- * - 两者都没有 → 整个对象按 v1/v2 扁平 `StrokeSnapshot` 读取；
- * - `stroke` / `shape` 为 null 或非对象 → 致命（桌面抛 JsonException，整页失败）；
- * - 未知 kind → 跳过单条（桌面 `BoardInkItemCodec.ToItem` 记 Warn 后返回 null）；
- * - 形状 kind 但缺 `shape` 数据（或 stroke kind 但缺 `stroke` 数据）→ 致命
- *   （桌面 `BoardInkItemCodec` 抛 ArgumentException）。
+ * 笔迹条目编解码（对齐桌面 InkItemSnapshotJsonConverter 与 BoardInkItemCodec）。写侧固定 v3 包装形态：笔迹为 `{ "kind": "stroke", "stroke": { points, colorRgba, baseSize, enablePressure } }`，形状为 `{ "kind": "line", "shape": { start, end, colorRgba, width } }`。
+ * 读侧形态自适应且与桌面同一套规则：有 stroke 对象按 v3 笔迹读，有 shape 对象按 v3 形状读，两者都没有则整个对象按 v1/v2 扁平 StrokeSnapshot 读；stroke 或 shape 为 null 或非对象属致命（桌面抛 JsonException，整页失败）；未知 kind 跳过单条（桌面 BoardInkItemCodec.ToItem 记 Warn 后返回 null）；形状 kind 缺 shape 数据或笔迹 kind 缺 stroke 数据属致命（桌面抛 ArgumentException）。
  */
 
 const ZERO_VEC2: Vec2 = { x: 0, y: 0 }

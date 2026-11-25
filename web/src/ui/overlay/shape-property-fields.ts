@@ -1,17 +1,6 @@
 /**
- * 形状属性浮层的字段推导（纯函数，node 可测）。
- *
- * 桌面出处：`WindBoard/Controls/BoardCanvasControl.ShapeProperties.cs`
- * - 字段与范围配置：`ConfigureShapePropertyFields`（`:123-160`）
- * - 数值回读：`SyncShapePropertyBoxes`（`:169-200`）
- * - 换算：`ShapePropertyMath`（网页端对应 `web/src/board/editing/shape-property.ts`）
- *
- * 规则（design F / R8）：
- * - `line` / `arrow` → 主字段"长度 (cm)"、次字段"角度"（角度不换算、不显示单位符号）；
- * - `rect` / `ellipse` → 主字段"宽度 (cm)"、次字段"高度 (cm)"；
- * - 长度类字段下限 = `worldToCentimeters(MIN_SHAPE_PROPERTY_LENGTH)`（桌面把世界坐标下限换算成厘米后再设为
- *   `NumberBox.Minimum`，`:127-133`），上限无穷；
- * - 角度范围 `[-360, 360]`（`:142-146`）。
+ * 形状属性浮层的字段推导（纯函数，node 可测），桌面出处 Controls/BoardCanvasControl.ShapeProperties.cs 的 ConfigureShapePropertyFields（:123-160）与 SyncShapePropertyBoxes（:169-200），换算见 ShapePropertyMath（网页端在 board/editing/shape-property.ts）。
+ * 规则（design F / R8）：line 与 arrow 的主字段为长度 (cm)、次字段为角度（角度不换算、不显示单位符号）；rect 与 ellipse 为宽度 (cm) 与高度 (cm)；长度类字段下限为 `worldToCentimeters(MIN_SHAPE_PROPERTY_LENGTH)`（桌面把世界坐标下限换算成厘米后再设为 NumberBox.Minimum，:127-133），上限无穷；角度范围 `[-360, 360]`（:142-146）。
  */
 
 import {
@@ -58,10 +47,7 @@ const MIN_ANGLE = -360
 const MAX_ANGLE = 360
 
 /**
- * 显示值保留 2 位小数（桌面 `SetShapePropertyValue` 里的 `Math.Round(value, 2)`，`:196`）。
- *
- * 差异说明：C# `Math.Round(double, int)` 默认是"银行家舍入"（中点取偶），
- * 这里用 `Math.round`（中点远离零）。仅在恰好 .005 的边界上可能差 0.01，属显示层差异。
+ * 显示值保留 2 位小数（桌面 SetShapePropertyValue 里的 Math.Round(value, 2)，:196）。C# Math.Round(double, int) 默认是"银行家舍入"（中点取偶），这里用 Math.round（中点远离零），仅在恰好 .005 的边界上可能差 0.01，属显示层差异。
  */
 function roundForDisplay(value: number): number {
   return Math.round(value * 100) / 100

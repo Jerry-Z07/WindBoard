@@ -1,14 +1,5 @@
 /**
- * Dock 与弹出面板的**纯逻辑**（不依赖 React / DOM，可直接在 node 环境测试）。
- *
- * 这里的每个常量与算法都对应桌面端的一处源码，改动前请先看注释里的出处：
- * - 色板网格列数：`WindBoard/MainWindow.xaml.cs:528-533 ComputePaletteColumns`
- * - 色板槽位排布：`WindBoard/MainWindow.xaml.cs:413-447 ApplyPenPaletteToFlyout`
- * - 更多菜单：`WindBoard/MainWindow.xaml:92-124`
- * - Dock 顺序：`WindBoard/Features/Dock/Models/DockItemIds.cs` +
- *   `WindBoard/Settings/AppSettingsStore.cs` 的 `NormalizeOrder`
- * - 滑动清屏：`WindBoard/UI/Common/ClearCanvasSlideController.cs:12-14`
- * - 页码指示：`WindBoard/UI/MainWindow/MainWindow.Pages.cs`
+ * Dock 与弹出面板的纯逻辑（不依赖 React 与 DOM，可直接在 node 环境测试）。各常量与算法的桌面出处：色板网格列数见 MainWindow.xaml.cs:528-533 ComputePaletteColumns，色板槽位排布见 MainWindow.xaml.cs:413-447 ApplyPenPaletteToFlyout，更多菜单见 MainWindow.xaml:92-124，Dock 顺序见 Features/Dock/Models/DockItemIds.cs 与 Settings/AppSettingsStore.cs 的 NormalizeOrder，滑动清屏见 UI/Common/ClearCanvasSlideController.cs:12-14，页码指示见 UI/MainWindow/MainWindow.Pages.cs。
  */
 
 import type { DockItemId } from '../../settings/model.ts'
@@ -16,14 +7,9 @@ import type { PenColor } from '../../tools/tool-settings.ts'
 import type { MessageKey } from '../../i18n/locales/zh-CN.generated.ts'
 
 /**
- * Dock 三块浮层的位置（`MainWindow.xaml:54-70`：左/中/右三块分别对齐）。
- *
- * `narrow` 是网页端为手机新增的第四种：窄屏下三段横排会互相覆盖（实测视口 <900 即压叠），
- * 因此合并成单段紧凑栏，详见 `ui/shell/use-narrow-layout.ts` 的头注释。
+ * Dock 三块浮层的位置（MainWindow.xaml:54-70：左、中、右三块分别对齐）。narrow 是网页端为手机新增的第四种：窄屏下三段横排会互相覆盖（实测视口 <900 即压叠），因此合并成单段紧凑栏，详见 ui/shell/use-narrow-layout.ts 的头注释。
  */
 export type DockPlacement = 'left' | 'center' | 'right' | 'narrow'
-
-// ===== 色板网格 =====
 
 /** 色板列数下限（`MainWindow.xaml.cs:531` 的 `Math.Clamp(columns, 3, 6)`）。 */
 export const PALETTE_MIN_COLUMNS = 3
@@ -55,10 +41,7 @@ export interface PaletteSlot {
 }
 
 /**
- * 把色板展开成网格槽位（行优先，与桌面 `row = i / columns`、`col = i % columns` 一致）。
- *
- * **空槽位（`null` / 空白）直接跳过**：桌面会渲染成禁用的空圆
- * （`MainWindow.xaml.cs:455-462`），网页端按任务约定不渲染占位槽。
+ * 把色板展开成网格槽位（行优先，与桌面 row = i / columns、col = i % columns 一致）。空槽位（null 或空白）直接跳过：桌面会渲染成禁用的空圆（MainWindow.xaml.cs:455-462），网页端不渲染占位槽。
  */
 export function layoutPaletteSlots(paletteHexes: readonly (string | null)[]): readonly PaletteSlot[] {
   const hexes = paletteHexes.filter(
@@ -73,11 +56,7 @@ export function layoutPaletteSlots(paletteHexes: readonly (string | null)[]): re
 }
 
 /**
- * 解析 `#RRGGBB` / `RRGGBB` / `#AARRGGBB` / `AARRGGBB` 为 0~1 浮点颜色。
- *
- * 与桌面 `WindBoard/Settings/ColorHex.cs:TryParse` 一致：长度只认 6 或 8；
- * 6 位时 alpha 视为不透明（`0xFF`）；8 位是 **ARGB**（alpha 在前）。
- * 解析失败返回 `null`（对应桌面 `TryParse` 返回 `false`）。
+ * 解析 #RRGGBB、RRGGBB、#AARRGGBB、AARRGGBB 为 0~1 浮点颜色。与桌面 WindBoard/Settings/ColorHex.cs:TryParse 一致：长度只认 6 或 8，6 位时 alpha 视为不透明（0xFF），8 位是 ARGB（alpha 在前）；解析失败返回 null（对应桌面 TryParse 返回 false）。
  */
 export function hexToPenColor(hex: string): PenColor | null {
   const text = hex.trim().replace(/^#/, '')
@@ -108,10 +87,7 @@ function toByte(value: number): number {
 }
 
 /**
- * 当前画笔颜色是否等于某个色板颜色（用于高亮选中色块）。
- *
- * 桌面用 `_currentPenHex` 字符串比较（`MainWindow.xaml.cs:437-441`）；网页端画笔颜色是
- * 0~1 浮点，因此按字节量化后比较，避免浮点误差导致"明明选了却不亮"。
+ * 当前画笔颜色是否等于某个色板颜色（用于高亮选中色块）。桌面用 _currentPenHex 字符串比较（MainWindow.xaml.cs:437-441），网页端画笔颜色是 0~1 浮点，因此按字节量化后比较，避免浮点误差导致明明选了却不亮。
  */
 export function isActivePenHex(color: PenColor, hex: string): boolean {
   const parsed = hexToPenColor(hex)
@@ -126,8 +102,6 @@ export function isActivePenHex(color: PenColor, hex: string): boolean {
   )
 }
 
-// ===== 更多菜单 =====
-
 /** 更多菜单里可用的动作（桌面 `MainWindow.xaml:92-124` 去掉"屏幕批注"与"退出"）。 */
 export type MoreMenuActionId = 'settings' | 'export' | 'fullscreen'
 
@@ -137,12 +111,8 @@ export type MoreMenuEntry =
   | { readonly kind: 'divider' }
 
 /**
- * 构建更多菜单（桌面 `MainWindow.xaml:92-124` 的顺序：设置 / 分隔 / 导出 / 全屏）。
- *
- * 与桌面的差异：桌面还有"屏幕批注"（`:109-117`，默认 `Collapsed`）与"退出"（`:119-123`），
- * 浏览器没有对应能力，按任务约定不实现。
- *
- * @param isFullscreen 当前是否全屏；决定最后一项的文案（`Common_FullScreen` / `Common_ExitFullScreen`）
+ * 构建更多菜单（桌面 MainWindow.xaml:92-124 的顺序：设置、分隔、导出、全屏）。桌面还有屏幕批注（:109-117，默认 Collapsed）与退出（:119-123），浏览器没有对应能力，不实现。
+ * @param isFullscreen 当前是否全屏；决定最后一项的文案（Common_FullScreen 或 Common_ExitFullScreen）
  */
 export function buildMoreMenuEntries(isFullscreen: boolean): readonly MoreMenuEntry[] {
   return [
@@ -158,14 +128,8 @@ export function buildMoreMenuEntries(isFullscreen: boolean): readonly MoreMenuEn
   ]
 }
 
-// ===== Dock 顺序 =====
-
 /**
- * 按设置里的顺序排列 Dock 项。
- *
- * 桌面语义（`AppSettingsStore.NormalizeOrder`）：过滤掉未知项、去重保留首次出现、
- * 缺失项按默认顺序补齐。这里的输入已经是"当前渲染的项"，因此只做：
- * 按 `order` 依次取走匹配项 → 未在 `order` 里出现的项追加到末尾（防御性，正常不会发生）。
+ * 按设置里的顺序排列 Dock 项。桌面语义（AppSettingsStore.NormalizeOrder）是过滤未知项、去重保留首次出现、缺失项按默认顺序补齐；这里的输入已经是当前渲染的项，因此只做按 order 依次取走匹配项，未在 order 里出现的项追加到末尾（防御性，正常不会发生）。
  */
 export function applyDockOrder<T>(
   items: readonly T[],
@@ -184,8 +148,6 @@ export function applyDockOrder<T>(
   return ordered
 }
 
-// ===== 页码 =====
-
 /** 把页码夹到 `[0, pageCount - 1]`；页数为 0 时返回 0（桌面始终至少一页）。 */
 export function clampPageIndex(index: number, pageCount: number): number {
   if (!Number.isFinite(index)) {
@@ -196,16 +158,11 @@ export function clampPageIndex(index: number, pageCount: number): number {
 }
 
 /**
- * 翻页：`delta` 为 ±1。
- *
- * 桌面的上一页/下一页按钮在边界处不再移动（`MainWindow.Pages.cs` 的 `PreviousPage`/`NextPage`），
- * 因此这里同样夹取而不是循环。
+ * 翻页：delta 为 ±1。桌面的上一页与下一页按钮在边界处不再移动（MainWindow.Pages.cs 的 PreviousPage 与 NextPage），因此这里同样夹取而不是循环。
  */
 export function stepPageIndex(current: number, delta: number, pageCount: number): number {
   return clampPageIndex(clampPageIndex(current, pageCount) + delta, pageCount)
 }
-
-// ===== 滑动清屏 =====
 
 /** 把手与底板左右各留 6 DIP（`ClearCanvasSlideController.cs:12 ThumbInset`）。 */
 export const CLEAR_SLIDE_THUMB_INSET = 6

@@ -1,17 +1,6 @@
 /**
- * 橡皮（像素/整笔 + 滑动清屏）面板内容。
- *
- * 桌面出处：`WindBoard/MainWindow.xaml:332-429`（`EraserFlyout`）。
- * - 外层 `StackPanel Width="232" Spacing="10"`（`:338`）
- * - 擦除模式卡：圆角 14 + 1px 描边；标题 12 号、不透明度 0.85；两个 `RadioButton` 横向间距 16
- *   （`:338-382`）
- * - 滑动清屏条：`232 × 52`、圆角 14、文字 15 号 SemiBold；把手 44×44、圆角 22、左边距 6、
- *   底色 `#F2F2F2`、图标 16 号 `#6B6B6B`（`:386-429`）
- * - 拖拽阈值：拖到最大位移的 90% 才清屏，松手回弹（`UI/Common/ClearCanvasSlideController.cs:12-14,190-196`）
- * - 空页时整条置灰不可拖（`ClearCanvasSlideController.UpdateEnabledState`）
- *
- * 浏览器与桌面的差异：桌面用指针捕获 + `TranslateTransform` 做拖动；网页端用 Pointer Events +
- * 同样的阈值判定，位移用 CSS `transform` 表达。
+ * 橡皮（像素或整笔加滑动清屏）面板内容，桌面出处 MainWindow.xaml:332-429（EraserFlyout）：外层 StackPanel 宽 232、Spacing 10（:338）；擦除模式卡圆角 14 加 1px 描边，标题 12 号、不透明度 0.85，两个 RadioButton 横向间距 16（:338-382）；滑动清屏条 232×52、圆角 14、文字 15 号 SemiBold，把手 44×44、圆角 22、左边距 6、底色 #F2F2F2、图标 16 号 #6B6B6B（:386-429）；拖到最大位移的 90% 才清屏、松手回弹（UI/Common/ClearCanvasSlideController.cs:12-14,190-196），空页时整条置灰不可拖（UpdateEnabledState）。
+ * 桌面用指针捕获加 TranslateTransform 做拖动，网页端用 Pointer Events 加同样的阈值判定，位移用 CSS transform 表达。
  */
 
 import type { PointerEvent as ReactPointerEvent, ReactNode } from 'react'
@@ -48,12 +37,7 @@ export function EraserFlyout(props: EraserFlyoutProps): ReactNode {
   const { t } = useI18n()
   const [offset, setOffset] = useState(0)
   /**
-   * 位移的实时值。
-   *
-   * 必须在 ref 里同步维护：`pointerup` 处理器读的是**本次渲染闭包**里的 `offset`，而快速拖动时
-   * 最后一串 `pointermove` 与 `pointerup` 可能落在同一帧内，闭包里的值还没更新——直接用 state
-   * 判定阈值会漏掉最后一段位移，表现为"拖到底却不清屏"。桌面的把手读的是
-   * `TranslateTransform.X`（实时值），这里用 ref 对齐同一语义。
+   * 位移的实时值。必须在 ref 里同步维护：pointerup 处理器读的是本次渲染闭包里的 offset，而快速拖动时最后一串 pointermove 与 pointerup 可能落在同一帧内，闭包里的值还没更新，直接用 state 判定阈值会漏掉最后一段位移（表现为拖到底却不清屏）；桌面的把手读的是 TranslateTransform.X（实时值），这里用 ref 对齐同一语义。
    */
   const offsetRef = useRef(0)
   // 渲染期不能读 ref（oxlint `react/refs`），因此按下时把"最大位移"同步进 state，

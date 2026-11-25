@@ -43,9 +43,8 @@ namespace WindBoard.Features.Dock.Services
 
         private void ApplyShortcutDocksToUi(DockMainWindowHost host, DockSettings dock)
         {
-            // 快捷入口 Dock（主 Dock 左右两侧）：
-            // - 这里采用“重建按钮”方式，避免维护复杂的增量更新逻辑；
-            // - 图标加载为异步：先展示 fallback，再异步替换为文件/网站图标。
+            // 快捷入口 Dock（主 Dock 左右两侧）采用重建按钮的方式，避免维护复杂的增量更新逻辑。
+            // 图标异步加载：先展示 fallback，再替换为文件或网站图标。
             _shortcutDockApplyVersion++;
             int applyVersion = _shortcutDockApplyVersion;
 

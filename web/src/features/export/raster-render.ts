@@ -1,12 +1,6 @@
 /**
- * 把一页渲染成离屏光栅（对应桌面 `BoardRasterExporter.RenderToWicBitmap` 的绘制部分）。
- *
- * 与主渲染链的关系：复用同一个 `drawScene`（世界变换、笔迹轮廓缓存、元素卡、绘制顺序全部一致），
- * 只是把"当前视口"换成一个**临时视口**（相机 = 画幅中心、缩放 = 画幅折算的 zoom），
- * 并把 `devicePixelRatio` 换成 `dpi / 96`——桌面也是这么做的（`renderTarget.SetDpi(dpi, dpi)`）。
- *
- * 环境隔离：本模块不直接碰 `document.createElement('canvas')`，离屏表面由调用方注入，
- * 这样 node 单测可以用假上下文跑，浏览器侧传 `OffscreenCanvas` 包装。
+ * 把一页渲染成离屏光栅（对应桌面 BoardRasterExporter.RenderToWicBitmap 的绘制部分）。复用主渲染链的同一个 drawScene（世界变换、笔迹轮廓缓存、元素卡、绘制顺序全部一致），只把当前视口换成临时视口（相机取画幅中心、缩放取画幅折算的 zoom），并把 devicePixelRatio 换成 dpi / 96，桌面同样是 renderTarget.SetDpi(dpi, dpi)。
+ * 环境隔离：本模块不直接碰 document.createElement('canvas')，离屏表面由调用方注入，这样 node 单测可以用假上下文跑，浏览器侧传 OffscreenCanvas 包装。
  */
 
 import { BoardDocument } from '../../board/document.ts'
@@ -19,11 +13,7 @@ import type { MessageTranslator } from '../../i18n/message.ts'
 import type { ExportFrame } from './raster-frame.ts'
 
 /**
- * 离屏渲染表面（浏览器传 OffscreenCanvas/HTMLCanvas 的包装，测试传假实现）。
- *
- * 编码与读像素放在这里而不是由调用方转型：`OffscreenCanvas` 与 `HTMLCanvasElement`
- * 的取字节方式完全不同（`convertToBlob` vs `toBlob`），把差异封在创建处最省事，
- * 也避免在调用方写 `as unknown as Xxx` 这种转型（实测踩过：转型后运行时没有该方法）。
+ * 离屏渲染表面（浏览器传 OffscreenCanvas/HTMLCanvas 的包装，测试传假实现）。编码与读像素放在这里而不是由调用方转型：OffscreenCanvas 与 HTMLCanvasElement 的取字节方式完全不同（convertToBlob vs toBlob），把差异封在创建处最省事，也避免在调用方写 as unknown as Xxx（实测踩过：转型后运行时没有该方法）。
  */
 export interface RasterRenderTarget {
   readonly width: number
@@ -38,10 +28,7 @@ export interface RasterRenderTarget {
 
 /**
  * 把一页快照渲染到离屏表面。
- *
- * @returns 是否真的画了（上下文取不到时返回 false，不抛——桌面在同类情形下会抛
- *   `Export_Raster_OffscreenNotInitialized_Message`，但网页端"取不到上下文"更可能是
- *   环境限制（如 jsdom），由调用方决定是否提示）。
+ * @returns 是否真的画了（上下文取不到时返回 false，不抛：桌面在同类情形下会抛 Export_Raster_OffscreenNotInitialized_Message，网页端"取不到上下文"更可能是 jsdom 之类的环境限制，由调用方决定是否提示）。
  */
 export function renderPageToRaster(
   page: PageSnapshot,

@@ -1,27 +1,6 @@
 /**
- * 页面缩略图（页面管理面板里的小预览）。
- *
- * 桌面出处：`WindBoard/Controls/PageThumbnailControl.xaml.cs`。桌面刻意**不用** DirectX 截屏
- * （`SwapChainPanel` 无法直接 `RenderTargetBitmap`），而是在 XAML 侧用 `Polyline` 近似：
- *
- * - 只画 `Stroke`，形状/元素卡一律跳过（`:204-208`）；
- * - 少于 2 个点的笔迹跳过（`:210-213`）；
- * - 包围盒取所有笔迹的并集（`:238-262`）；
- * - `scale = min(availW / boundsW, availH / boundsH)`，且**上限 1.0**——只缩小不放大，
- *   避免一笔短线被放大到铺满（`:154-157`）；
- * - 居中摆放，四周留 8 DIP（`:26`、`:165-172`）；
- * - 线宽 `max(0.8, BaseSize * scale * 0.55)`，圆角连接、圆头端点（`:199-201`）；
- * - 每笔最多采样 240 点（`:27`、`:264-...`）。
- *
- * 网页端逐条照搬（含"只缩小不放大"这条容易被当成 bug 的规则），保证两端缩略图观感一致；
- * 将来桌面若改成离屏渲染，这里再同步换实现。
- *
- * **一处有意偏差**：桌面只画 `Stroke`，形状（直线/矩形/椭圆/箭头）会被跳过
- * （`:204-208`）。但在“只画了形状的页面”上，桌面缩略图会是一片空白，读起来像 bug。
- * 网页端把形状也按折线近似画出来（矩形取四角、椭圆采样、箭头带两翼），其余规则
- * （只缩小不放大、8 DIP 留白、线宽系数）保持不变。
- *
- * 本模块是纯函数 + 一个 `RenderContext2D` 绘制函数，不读 DOM，可直接在 node 里测。
+ * 页面缩略图（页面管理面板里的小预览）。桌面 PageThumbnailControl.xaml.cs 刻意不用 DirectX 截屏（SwapChainPanel 无法直接 RenderTargetBitmap），而在 XAML 侧用 Polyline 近似：只画 Stroke（:204-208），少于 2 个点的笔迹跳过（:210-213），包围盒取所有笔迹的并集（:238-262），scale = min(availW / boundsW, availH / boundsH) 且上限 1.0（只缩小不放大，避免一笔短线被放大到铺满，:154-157），居中摆放四周留 8 DIP，线宽 max(0.8, BaseSize * scale * 0.55)、圆角连接圆头端点（:199-201），每笔最多采样 240 点。
+ * 网页端逐条照搬，唯一有意偏差是把形状也按折线近似画出来（矩形取四角、椭圆采样、箭头带两翼），因为桌面在只画形状的页面上缩略图是一片空白，读起来像 bug。本模块是纯函数加一个 RenderContext2D 绘制函数，不读 DOM，可直接在 node 里测。
  */
 
 import type { RenderContext2D } from './canvas-types.ts'
@@ -140,10 +119,7 @@ function shapePolyline(shape: Shape): Vec2[] {
 }
 
 /**
- * 计算缩放与落点。
- *
- * 缩放上限固定为 1（`PageThumbnailControl.xaml.cs:155-156`）：桌面只用缩略图"缩小适配"，
- * 不做放大填充；下限 `1e-4` 防止极端退化笔迹把数值打爆。
+ * 计算缩放与落点。缩放上限固定为 1（PageThumbnailControl.xaml.cs:155-156）：桌面只用缩略图缩小适配，不做放大填充；下限 1e-4 防止极端退化笔迹把数值打爆。
  */
 export function computeThumbnailLayout(
   bounds: ThumbnailBounds,
@@ -196,13 +172,8 @@ export interface ThumbnailSurface {
 }
 
 /**
- * 把一页的墨迹画到缩略图画布上。
- *
- * `sizeDip` 是缩略图的 CSS 尺寸（DIP），`surface` 是后备存储尺寸与 DPR——内部先按像素铺满
- * 背景，再把变换切到 DIP 空间画线，与 `drawScene` 的写法保持一致。
- *
- * 背景由本函数负责填充：桌面里背景是控件外层 `Border` 的 `ThumbnailBackground`，网页端
- * 直接画在 canvas 上，效果一致且少一层 DOM。
+ * 把一页的墨迹画到缩略图画布上。sizeDip 是缩略图的 CSS 尺寸（DIP），surface 是后备存储尺寸与 DPR：内部先按像素铺满背景，再把变换切到 DIP 空间画线，与 drawScene 的写法保持一致。
+ * 背景由本函数负责填充：桌面里背景是控件外层 Border 的 ThumbnailBackground，网页端直接画在 canvas 上，效果一致且少一层 DOM。
  */
 export function drawPageThumbnail(
   ctx: RenderContext2D,
@@ -213,7 +184,7 @@ export function drawPageThumbnail(
 ): void {
   const dpr = surface.devicePixelRatio
 
-  // 1. 背景铺满后备存储（用恒等变换，避免缩放后留下未覆盖的边）
+  // 背景铺满后备存储（用恒等变换，避免缩放后留下未覆盖的边）。
   ctx.setTransform(1, 0, 0, 1, 0, 0)
   ctx.fillStyle = background
   ctx.fillRect(0, 0, surface.pixelWidth, surface.pixelHeight)
@@ -225,7 +196,7 @@ export function drawPageThumbnail(
 
   const layout = computeThumbnailLayout(bounds, sizeDip.width, sizeDip.height)
 
-  // 2. 切到 DIP 空间，后续坐标全部按 CSS 像素计算
+  // 切到 DIP 空间，后续坐标全部按 CSS 像素计算。
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
   ctx.lineCap = 'round'
   ctx.lineJoin = 'round'

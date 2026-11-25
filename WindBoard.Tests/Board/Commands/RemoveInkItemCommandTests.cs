@@ -6,7 +6,6 @@ namespace WindBoard.Tests.Board.Commands;
 
 public sealed class RemoveInkItemCommandTests
 {
-    // Do/Undo 应能删除并按原索引插回
     [Fact]
     public void Do_Undo_RemovesAndRestoresAtOriginalIndex()
     {

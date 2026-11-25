@@ -1,11 +1,5 @@
 /**
- * 应用根组件：只负责创建服务并交给外壳，不做布局（布局在 `ui/shell/AppShell.tsx`）。
- *
- * 主题策略（与桌面一致）：
- * - 外壳与设置窗口跟随系统深浅色（`FluentProvider` 的 App 级主题）；
- * - **底部 Dock 强制浅色**（桌面 `MainWindow.xaml:54` 的 `RequestedTheme="Light"`），
- *   由 `DockBar` 内部的嵌套 `FluentProvider` 单独包一层；
- * - 画布背景由设置决定（默认 #2E2F33），不受主题影响。
+ * 应用根组件：只负责创建服务并交给外壳，不做布局（布局在 ui/shell/AppShell.tsx）。主题策略与桌面一致：外壳与设置窗口跟随系统深浅色（FluentProvider 的 App 级主题）；底部 Dock 强制浅色（桌面 MainWindow.xaml:54 的 RequestedTheme="Light"），由 DockBar 内部的嵌套 FluentProvider 单独包一层；画布背景由设置决定（默认 #2E2F33），不受主题影响。
  */
 
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
@@ -27,10 +21,7 @@ function prefersDarkScheme(): boolean {
 }
 
 /**
- * 跟随系统主题选 App 级 Fluent 主题。
- *
- * 必须订阅 `matchMedia` 的 `change` 事件：桌面 WinUI 在系统切深浅色时会实时跟随，
- * 网页端若只在挂载时读一次，用户改了系统主题后界面会一直停在旧主题（实测确实如此）。
+ * 跟随系统主题选 App 级 Fluent 主题。必须订阅 matchMedia 的 change 事件：桌面 WinUI 在系统切深浅色时会实时跟随，网页端若只在挂载时读一次，用户改了系统主题后界面会一直停在旧主题。
  */
 function useSystemTheme(): typeof webLightTheme {
   const [isDark, setIsDark] = useState(prefersDarkScheme)

@@ -7,26 +7,8 @@ import type { EraserMode, InkTool, ToolGestureContext } from './tool-settings.ts
 import { DEFAULT_ERASER_MODE } from './tool-settings.ts'
 
 /**
- * 橡皮工具状态机（对应桌面 `WindBoard/Interaction/Tools/EraserTool.cs`，155 行）。
- *
- * 与桌面逐条对齐：
- * - **边擦边改文档**：`begin()` 记录 before 快照后，`move()` 每超过最小移动阈值就立即把
- *   擦除结果写回 `session.document.items`（桌面 `ApplyEraserSegment` 直接
- *   `_eraser.Erase(context.Document, ...)`，`EraserTool.cs:144-152`），用户能看到擦除进度；
- * - **一次手势 = 一条命令**：`end()` 比较 before / after（引用逐项比较，对应桌面
- *   `InkItemListComparer.IsSameList`），有变化才 `session.execute(new ReplaceInkItemsCommand(before, after))`
- *   （`EraserTool.cs:105-119`）；没变化不入栈；
- * - **取消不入栈**：`cancel()` 把文档恢复成 before 快照（`EraserTool.cs:126-140`）；
- * - 半径：桌面光标 48×72 DIP → 半径 (24, 36) DIP（`EraserTool.cs:43`），
- *   **两种模式共用**同一个 `RadiusDip / zoom` 的世界半径（`EraserTool.cs:144-152`；
- *   `WholeStrokeEraser.cs:12-28` 直接拿它做命中）。
- *
- * 两种模式通过注入策略实现（本任务不 import `ink/pixel-eraser.ts` / `ink/hit-test.ts`，
- * 二者由调用方在接线时注入）：
- * - `'pixel'` → `EraserStrategy`：像素擦除（真实实现为 `ink/pixel-eraser.ts` 的
- *   `eraseItemsWithCapsule`，局部擦除笔迹的点）；
- * - `'stroke'` → `StrokeEraserStrategy`：整笔删除（真实实现基于 `ink/hit-test.ts` 的
- *   `isItemHitByEraserSegment`，命中即整条移除）。
+ * 橡皮工具状态机（对应桌面 WindBoard/Interaction/Tools/EraserTool.cs，155 行）。边擦边改文档：begin() 记 before 快照后，move() 每超过最小移动阈值就把擦除结果写回 session.document.items（桌面 ApplyEraserSegment 直接调 _eraser.Erase，EraserTool.cs:144-152），用户能看到擦除进度；一次手势算一条命令，end() 逐项比较引用（对应桌面 InkItemListComparer.IsSameList），有变化才 execute ReplaceInkItemsCommand（:105-119），没变化不入栈；cancel() 把文档恢复成 before 快照（:126-140）。
+ * 半径：桌面光标 48×72 DIP 得半径 (24, 36) DIP（:43），两种模式共用同一个 RadiusDip / zoom 的世界半径（WholeStrokeEraser.cs:12-28 直接拿它做命中）。两种模式通过注入策略实现（本文件不 import ink/pixel-eraser.ts 与 ink/hit-test.ts，由调用方接线时注入）：pixel 走 EraserStrategy（真实实现为 eraseItemsWithCapsule，局部擦除笔迹的点），stroke 走 StrokeEraserStrategy（基于 isItemHitByEraserSegment，命中即整条移除）。
  */
 
 /** 一次擦除段的结果（策略返回值）。 */
@@ -38,10 +20,7 @@ export interface EraserResult {
 }
 
 /**
- * 像素擦除策略（由调用方注入真实实现）。
- *
- * `fromWorld` / `toWorld` 是本次擦除段的两个端点（同一位置表示「原地擦一下」），
- * `radiusWorld` 是光标半径换算到世界坐标后的椭圆半径（x = 24/zoom，y = 36/zoom）。
+ * 像素擦除策略（由调用方注入真实实现）。fromWorld 与 toWorld 是本次擦除段的两个端点（同一位置表示原地擦一下），radiusWorld 是光标半径换算到世界坐标后的椭圆半径（x = 24/zoom，y = 36/zoom）。
  */
 export interface EraserStrategy {
   (
@@ -53,10 +32,7 @@ export interface EraserStrategy {
 }
 
 /**
- * 整笔擦除策略（与 `EraserStrategy` 同签名，语义是「命中即整条删除」）。
- *
- * 单独定义一个接口是为了让控制器注入时不会把两种语义混用：
- * 像素擦除会改写笔迹点集，整笔擦除只做增删。
+ * 整笔擦除策略（与 EraserStrategy 同签名，语义是命中即整条删除）。单独定义接口是为了让控制器注入时不会把两种语义混用：像素擦除会改写笔迹点集，整笔擦除只做增删。
  */
 export interface StrokeEraserStrategy {
   (
@@ -123,11 +99,7 @@ function replaceItemsInPlace(session: BoardSession, items: readonly InkItem[]): 
 }
 
 /**
- * 橡皮工具：一次手势 = 一条 `ReplaceInkItemsCommand`（无变化则不入栈）。
- *
- * 手势期间文档是**实时变化**的：`move()` 返回 true 表示需要重绘。
- * 这期间不经过 `session.execute`，因此会话订阅者只会收到 `end()` 的一次通知
- * （与桌面「手势期间 `InvalidateFrame()`、结束时 `Execute`」一致）。
+ * 橡皮工具：一次手势 = 一条 ReplaceInkItemsCommand（无变化则不入栈）。手势期间文档实时变化，move() 返回 true 表示需要重绘；这期间不经过 session.execute，因此会话订阅者只会在 end() 收到一次通知（与桌面「手势期间 InvalidateFrame()、结束时 Execute」一致）。
  */
 export class EraserTool implements InkTool {
   private readonly _pixelStrategy: EraserStrategy
@@ -262,10 +234,7 @@ export class EraserTool implements InkTool {
 }
 
 /**
- * 清屏（滑动清屏的域操作）：`session.clearAll()` 已有实现，这里只做薄封装并返回是否真的入栈。
- *
- * 接线顺序（桌面 `BoardCanvasControl.xaml.cs:217-221`）：先取消活动工具手势（`tool.cancel()`），
- * 再调本函数——否则活动手势的 before 快照可能把刚清空的文档又恢复回来。
+ * 清屏（滑动清屏的域操作）：session.clearAll() 已有实现，这里只做薄封装并返回是否真的入栈。接线顺序见桌面 BoardCanvasControl.xaml.cs:217-221：先取消活动工具手势（tool.cancel()）再调本函数，否则活动手势的 before 快照可能把刚清空的文档又恢复回来。
  */
 export function clearScreen(session: BoardSession): boolean {
   if (session.document.items.length === 0) {

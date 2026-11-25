@@ -113,10 +113,7 @@ namespace WindBoard.Features.Dock.Services
                 ext = string.Empty;
             }
 
-            // 说明：
-            // - .exe：UseShellExecute=false 使用 CreateProcess，更稳定且参数行为更可控；
-            // - .bat/.cmd：通过 cmd.exe /c 执行，确保参数可用；
-            // - .lnk：交给 Shell 打开（参数不保证生效）。
+            // 按扩展名分派：.exe 以 UseShellExecute=false 走 CreateProcess，更稳定且参数可控；.bat/.cmd 经 cmd.exe /c 执行以保证参数可用；.lnk 交给 Shell 打开，参数不保证生效。
             if (string.Equals(ext, ".exe", StringComparison.Ordinal))
             {
                 return new ProcessStartInfo(target)

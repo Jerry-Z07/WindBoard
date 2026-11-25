@@ -4,11 +4,8 @@ using System.Threading.Tasks;
 namespace WindBoard.Errors
 {
     /// <summary>
-    /// 安全执行封装：统一捕获异常并走 AppErrorService 上报。
-    ///
-    /// 适用场景：
-    /// - UI 事件回调（避免异常冒泡导致崩溃/静默失败）
-    /// - fire-and-forget 异步任务（统一兜底与日志记录）
+    /// 安全执行封装：捕获异常并交给 AppErrorService 上报。
+    /// 用于 UI 事件回调（避免异常冒泡导致崩溃或静默失败）与 fire-and-forget 异步任务（统一兜底与日志）。
     /// </summary>
     internal static class AppErrorGuard
     {

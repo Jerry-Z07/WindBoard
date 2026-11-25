@@ -40,9 +40,8 @@ namespace WindBoard.UI.Common
         {
             ArgumentNullException.ThrowIfNull(ui);
 
-            // CA2208：paramName 须为方法真实参数。ArgumentNullException.ThrowIfNull 以
-            // CallerArgumentExpression（如 "ui.Host"）作为参数名，能准确标识哪个 UI 引用为空。
-            // UiRefs 为 init-only 自动属性，重复访问幂等，先校验后赋值等价于原 ?? throw 写法。
+            // CA2208：paramName 须为方法真实参数；ArgumentNullException.ThrowIfNull 以 CallerArgumentExpression（如 "ui.Host"）作为参数名，能准确标识哪个 UI 引用为空。
+            // UiRefs 为 init-only 自动属性且重复访问幂等，先校验后赋值等价于原 ?? throw 写法。
             ArgumentNullException.ThrowIfNull(ui.Host);
             ArgumentNullException.ThrowIfNull(ui.Thumb);
             ArgumentNullException.ThrowIfNull(ui.ThumbTransform);

@@ -5,14 +5,8 @@ using Vortice.Mathematics;
 namespace WindBoard.Board.Items
 {
     /// <summary>
-    /// 绘制条目（笔迹层对象）的统一契约。
-    ///
-    /// 设计意图（阶段一"可插拔绘制地基"重构）：
-    /// - 折线笔迹（<see cref="WindBoard.Board.Stroke"/>）与未来的几何形状共用一个笔迹层集合
-    ///   （<see cref="WindBoard.Board.BoardDocument.InkItems"/>），保证按创建顺序交错叠放（z-order 语义）；
-    /// - 渲染/命中/擦除按条目类型做"单点分发"，新增类型时不再触碰散落式 if/else；
-    /// - 本接口只承载"选择/变换"所需的最小契约（标识、包围盒、平移），
-    ///   类型专属能力（如折线点集）由具体实现类型提供。
+    /// 绘制条目（笔迹层对象）的统一契约：折线笔迹（<see cref="WindBoard.Board.Stroke"/>）与几何形状共用一个笔迹层集合（<see cref="WindBoard.Board.BoardDocument.InkItems"/>），按创建顺序交错叠放。
+    /// 只承载选择与变换所需的最小契约（标识、包围盒、平移），类型专属能力由具体实现提供，渲染/命中/擦除按类型单点分发。
     /// </summary>
     internal interface IBoardInkItem
     {

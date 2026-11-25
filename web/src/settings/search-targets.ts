@@ -1,28 +1,6 @@
 /**
- * 设置搜索：可搜索的设置项清单 + 纯匹配逻辑（node 环境可直接测试）。
- *
- * 桌面出处：`WindBoard/Settings/SettingsWindow.xaml:23-44` 的标题栏 `AutoSuggestBox`
- * （`MinWidth="220"`、`MaxWidth="420"`、`QueryIcon="Find"`）与
- * `WindBoard/Settings/SettingsWindow.xaml.cs`：
- * - `SearchTargetDefinitions`（`:27-53`）—— 每个可搜索项 = 根页 tag + 条目标题 + 可选描述；
- * - `AddSearchTarget()`（`:309-324`）—— 显示文本：根页标题与条目标题**完全相同**时只用条目标题，
- *   否则 `"{根页标题} / {条目标题}"`；搜索文本 = 显示文本 + 空格 + 描述（有描述时）；
- * - `RefreshSearchSuggestions()`（`:336-380`）—— 空白输入不出建议；`OrdinalIgnoreCase`
- *   子串匹配；按声明顺序最多取 **8** 条。
- *
- * 与桌面的差异（网页端取舍，逐条写在下面）：
- * - 只列**网页端真实渲染出来的设置卡片**：桌面还有自动更新 / 下载源 / 伪装 / Debug 等条目，
- *   网页端没有对应卡片，照抄会搜到不存在的位置，所以不列。
- * - 桌面另有"页面级"条目（只有页标题、没有描述，如 `new("general", null, () => 常规)`）。
- *   网页端不单列：卡片显示文本本身含页名（`常规 / 语言`），输入页名照样能命中该页所有卡片，
- *   而且页面级条目没有可滚动/高亮的卡片。
- * - `field` 是网页端附加的元数据（该卡片写入的设置字段，方便人读与后续深链），
- *   **不参与匹配**——桌面的搜索文本只含显示文本 + 描述，这里保持一致。
- *
- * 文案以 key 保存（`cardTitleKey` / `descriptionKey`）：卡片标题与设置页卡片是同一批 key
- * （桌面 resw 的 `Settings_*_Title` / `*_Header`），搜索框与卡片因此永远显示同一句话；
- * 网页端独有的描述放 `src/i18n/web-strings/settings.json`。取词一律经 `t` 注入，
- * 本模块不读全局语言状态，测试可直接传 `createTranslator('zh-CN')`。
+ * 设置搜索：可搜索的设置项清单与纯匹配逻辑（node 环境可直接测试）。桌面出处 SettingsWindow.xaml:23-44 的标题栏 AutoSuggestBox 与 SettingsWindow.xaml.cs：SearchTargetDefinitions（:27-53）每项由根页 tag、条目标题、可选描述组成；AddSearchTarget（:309-324）在根页标题与条目标题完全相同时只用条目标题，否则写 `{根页标题} / {条目标题}`，搜索文本为显示文本加空格加描述；RefreshSearchSuggestions（:336-380）空白输入不出建议，按 OrdinalIgnoreCase 子串匹配，按声明顺序最多取 8 条。
+ * 网页端取舍：只列真实渲染出来的设置卡片（自动更新、下载源、伪装、Debug 等条目网页端没有卡片，照抄会搜到不存在的位置）；不单列页面级条目，卡片显示文本本身含页名，输入页名照样命中该页所有卡片；field 只是供人读的元数据，不参与匹配。文案一律以 key 保存（cardTitleKey / descriptionKey，与设置页卡片同一批 resw key），网页端独有的描述放 src/i18n/web-strings/settings.json，取词经 t 注入，本模块不读全局语言状态，测试可直接传 createTranslator('zh-CN')。
  */
 
 import type { Translator } from '../i18n/context.ts'
@@ -69,14 +47,10 @@ export interface SettingsSearchTarget {
 }
 
 /**
- * 网页端 6 个设置页里真实存在的卡片，顺序 = 页面顺序 + 页内自上而下。
- *
- * 每条都要与页面组件里的 `<SettingsCard title=… description=… anchor=…>` 用**同一个 key**；
- * 改文案时改 resw / web-strings，两边一起生效
- * （`tests/unit/settings-search.test.ts` 会校验锚点唯一与非空）。
+ * 网页端 6 个设置页里真实存在的卡片，顺序 = 页面顺序 + 页内自上而下。每条都要与页面组件里的 <SettingsCard title=… description=… anchor=…> 用同一个 key，改文案时改 resw 或 web-strings，两边一起生效（tests/unit/settings-search.test.ts 会校验锚点唯一与非空）。
  */
 export const SETTINGS_SEARCH_TARGETS: readonly SettingsSearchTarget[] = Object.freeze([
-  // ===== 常规（桌面 `Settings/Pages/GeneralSettingsPage.xaml`）=====
+  // 常规（桌面 `Settings/Pages/GeneralSettingsPage.xaml`）
   {
     pageId: 'general',
     cardTitleKey: 'Settings_General_Language_Title',
@@ -92,7 +66,7 @@ export const SETTINGS_SEARCH_TARGETS: readonly SettingsSearchTarget[] = Object.f
     field: 'general.startupWindowMode',
   },
 
-  // ===== 外观（桌面 `Settings/Pages/AppearanceSettingsPage.xaml`）=====
+  // 外观（桌面 `Settings/Pages/AppearanceSettingsPage.xaml`）
   {
     pageId: 'appearance',
     cardTitleKey: 'Settings_Background_CanvasBackgroundColor_Title',
@@ -114,7 +88,7 @@ export const SETTINGS_SEARCH_TARGETS: readonly SettingsSearchTarget[] = Object.f
     field: 'appearance.elementCardTheme',
   },
 
-  // ===== 书写（桌面 `Settings/Pages/PenSettingsPage.xaml`）=====
+  // 书写（桌面 `Settings/Pages/PenSettingsPage.xaml`）
   {
     pageId: 'writing',
     cardTitleKey: 'Settings_Pen_PaletteCount_Header',
@@ -132,7 +106,7 @@ export const SETTINGS_SEARCH_TARGETS: readonly SettingsSearchTarget[] = Object.f
     field: 'writing.pen.useThicknessSlider',
   },
 
-  // ===== 快捷键（桌面 `SettingsWindow.xaml.cs` 的快捷键页）=====
+  // 快捷键（桌面 `SettingsWindow.xaml.cs` 的快捷键页）
   {
     pageId: 'shortcuts',
     cardTitleKey: 'Settings_Shortcuts_Undo_Title',
@@ -155,7 +129,7 @@ export const SETTINGS_SEARCH_TARGETS: readonly SettingsSearchTarget[] = Object.f
     field: 'keyboardShortcuts.conflictReminderEnabled',
   },
 
-  // ===== Dock（桌面 `Features/Dock/UI/DockSettingsPage.xaml`）=====
+  // Dock（桌面 `Features/Dock/UI/DockSettingsPage.xaml`）
   {
     pageId: 'dock',
     cardTitleKey: 'Settings_Dock_ShowUndoRedo_Header',
@@ -164,7 +138,7 @@ export const SETTINGS_SEARCH_TARGETS: readonly SettingsSearchTarget[] = Object.f
     field: 'dock.isUndoRedoVisible',
   },
 
-  // ===== 关于（桌面 `Settings/Pages/AboutSettingsPage.xaml` + `SettingsManagementPage.xaml`）=====
+  // 关于（桌面 `Settings/Pages/AboutSettingsPage.xaml` + `SettingsManagementPage.xaml`）
   {
     pageId: 'about',
     cardTitleKey: 'Settings_About_Version',
@@ -248,10 +222,7 @@ export function toSettingsSearchResult(
 }
 
 /**
- * 匹配逻辑（桌面 `RefreshSearchSuggestions`）：
- * - 空白查询返回空数组；
- * - 大小写不敏感的子串匹配（对应 `StringComparison.OrdinalIgnoreCase`）；
- * - 保持声明顺序，最多 `MAX_SETTINGS_SEARCH_SUGGESTIONS` 条。
+ * 匹配逻辑（桌面 RefreshSearchSuggestions）：空白查询返回空数组；大小写不敏感的子串匹配（对应 StringComparison.OrdinalIgnoreCase）；保持声明顺序，最多 MAX_SETTINGS_SEARCH_SUGGESTIONS 条。
  */
 export function matchSettingsSearchTargets(
   targets: readonly SettingsSearchTarget[],

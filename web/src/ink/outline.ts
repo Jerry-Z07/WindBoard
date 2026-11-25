@@ -4,29 +4,8 @@ import { getSinglePointRadius, getStrokeSegments, subdivideCubicBezier } from '.
 import type { StrokeSample } from './geometry.ts'
 
 /**
- * 笔迹轮廓展开（design D2：骨架是权威数据，轮廓只用于绘制）。
- *
- * 桌面端用 D2D Ink 直接绘制“变宽圆头笔迹”，其几何等价于
- * “沿骨架扫掠一个半径随压感变化的圆盘”的外包络。web 侧没有等价 API，
- * 因此按 `docs/dev/guides/ink-rendering.zh-CN.md` 的降级思路展开为填充多边形：
- *
- * 1. 按屏幕像素容差把每段三次贝塞尔自适应细分为折线（`subdivideCubicBezier`）；
- * 2. 沿折线两侧按逐点半径偏移，得到左右两条偏移链；
- * 3. 段与段之间用圆弧连接（圆角连接），首尾用圆弧端帽；
- * 4. 输出闭合点序列（首尾不重复），渲染层直接 `moveTo` / `lineTo` / `closePath`。
- *
- * 容差按**设备像素**给出：`toleranceWorld = 0.25 / (zoom × DPR)`（`DPR` 即后备存储
- * 相对 CSS 的缩放），因此放大后轮廓更密、缩小后更稀，且 DPR 越高折线越密——
- * 折线误差始终不超过 0.25 设备像素，不受屏幕密度影响。
- *
- * 缓存按 `ceil(log2(zoom × DPR))` 分桶，缩放或 DPR 变化跨桶时重建。分桶用**乘积**
- * 而不是单独的 zoom：容差只取决于乘积，所以同桶内 DPR 变了也不必重建。
- *
- * 桶内容差的已知取舍：轮廓按**首次构建时**的乘积计算，而同一桶内的乘积最大可到
- * 桶底的两倍，故桶顶处的实际误差可达约 0.5 设备像素。仍在亚像素范围（视觉不可辨）。
- * 若改为按桶顶 `0.25 / 2^bucket` 计算会为同样的观感多出一倍顶点，不划算，故保持现状。
- *
- * 注意：本模块输出的是世界坐标点序列，不依赖 `Path2D` / Canvas 等 DOM 类型。
+ * 笔迹轮廓展开（design D2：骨架是权威数据，轮廓只用于绘制）。桌面用 D2D Ink 画变宽圆头笔迹，几何上等价于沿骨架扫掠半径随压感变化的圆盘外包络；web 无等价 API，故按 docs/dev/guides/ink-rendering.zh-CN.md 的降级思路展开成填充多边形：三次贝塞尔按屏幕像素容差自适应细分成折线（subdivideCubicBezier）、沿折线两侧按逐点半径偏移出左右链、段间用圆弧连接、首尾用圆弧端帽，最后输出闭合点序列且首尾不重复。输出是世界坐标点序列，不依赖 Path2D 或 Canvas 等 DOM 类型。
+ * 容差按设备像素给出，toleranceWorld = 0.25 / (zoom × DPR)，折线误差始终不超过 0.25 设备像素。缓存按 ceil(log2(zoom × DPR)) 分桶，用乘积而非单独的 zoom 是因为容差只取决于乘积，同桶内 DPR 变化不必重建；已知取舍是轮廓按首次构建时的乘积计算，同桶乘积最大可到桶底两倍，桶顶实际误差约 0.5 设备像素，仍在亚像素范围，若按桶顶 0.25 / 2^bucket 算会为同样观感多出一倍顶点，不划算。
  */
 
 /** 轮廓展开的设备像素容差（design D2：0.25 屏幕像素）。 */
@@ -93,9 +72,8 @@ export function buildStrokeOutlineForZoom(
 
 /**
  * 展开笔迹轮廓。
- *
  * @param toleranceWorld 允许的最大几何偏差（世界坐标）。
- * @returns 空笔迹返回 `null`；单点返回圆；多点返回变宽胶囊链。
+ * @returns 空笔迹返回 null；单点返回圆；多点返回变宽胶囊链。
  */
 export function buildStrokeOutline(stroke: Stroke, toleranceWorld: number): StrokeOutline | null {
   const points = stroke.points
@@ -116,11 +94,7 @@ export function buildStrokeOutline(stroke: Stroke, toleranceWorld: number): Stro
 }
 
 /**
- * 笔迹轮廓缓存（design D2：按 `ceil(log2(zoom × DPR))` 分桶）。
- *
- * 每条笔迹只保留最近一次构建的桶与轮廓；缩放或 DPR 变化跨桶时重建
- * （容差只取决于乘积，所以同桶内 DPR 变化可以复用）。
- * 笔迹对象按不可变处理：若就地修改点集（P2 变换），调用方需先 `invalidate`。
+ * 笔迹轮廓缓存（design D2：按 ceil(log2(zoom × DPR)) 分桶）。每条笔迹只保留最近一次构建的桶与轮廓，缩放或 DPR 变化跨桶时重建（容差只取决于乘积，所以同桶内 DPR 变化可以复用）；笔迹对象按不可变处理，若就地修改点集（P2 变换），调用方需先 invalidate。
  */
 export class StrokeOutlineCache {
   private readonly _entries = new Map<Stroke, { bucket: number; outline: StrokeOutline | null }>()
@@ -202,13 +176,7 @@ function buildDotOutline(stroke: Stroke, tolerance: number): StrokeOutline {
 }
 
 /**
- * 多点笔迹：变宽胶囊链。
- *
- * 装配顺序（保证多边形首尾相接、朝向一致）：
- * 1. 左侧偏移链正向（段内采样点直线相连，段间用圆弧连接）；
- * 2. 终点圆帽（半圆，sweep = −π，从左侧法线扫到右侧法线）；
- * 3. 右侧偏移链反向（段间同样用圆弧连接）；
- * 4. 起点圆帽（半圆，sweep = −π，从右侧法线扫到左侧法线，回到首点）。
+ * 多点笔迹：变宽胶囊链。装配顺序保证多边形首尾相接、朝向一致：左侧偏移链正向（段内采样点直线相连，段间用圆弧连接）、终点圆帽（半圆，sweep = −π，从左侧法线扫到右侧法线）、右侧偏移链反向（段间同样用圆弧连接）、起点圆帽（半圆，sweep = −π，从右侧法线扫到左侧法线，回到首点）。
  */
 function buildCapsuleChainOutline(stroke: Stroke, tolerance: number): StrokeOutline {
   const segments = getStrokeSegments(stroke)
@@ -328,10 +296,7 @@ function normalAngle(tangent: Vec2, side: 1 | -1): number {
 }
 
 /**
- * 追加一段圆弧（从 `startAngle` 起按 `sweep` 扫过，半径 `radius`）。
- *
- * 圆弧按容差细分为折线：每段对应圆心角 `2·acos(1 − tolerance / radius)`，
- * 即弦高不超过容差。`includeEnd = false` 时不输出终点（由调用方闭合或复用）。
+ * 追加一段圆弧（从 startAngle 起按 sweep 扫过，半径 radius）。圆弧按容差细分为折线，每段对应圆心角 2·acos(1 − tolerance / radius)，即弦高不超过容差；includeEnd = false 时不输出终点（由调用方闭合或复用）。
  */
 function pushArc(
   points: Vec2[],

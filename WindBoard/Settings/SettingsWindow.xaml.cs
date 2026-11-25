@@ -359,6 +359,7 @@ namespace WindBoard.Settings
 
             if (_filteredSearchTargets.Count == 0)
             {
+                SettingsSearchBox.ItemsSource = new[] { L10n.Get("SettingsWindow_Search_NoResults") };
                 return;
             }
 

@@ -14,16 +14,8 @@ namespace WindBoard.Tests.Settings;
 /// 设置默认值的跨端 golden 测试：把"首次启动写出的默认设置"锁进语料，供网页端逐字段比对。
 /// </summary>
 /// <remarks>
-/// 动机：WBIX 有字节级 golden 语料强制两端一致，而设置项此前只靠人工核对
-/// （见 <c>docs/dev/guides/web-port.zh-CN.md</c> 的"没有自动保障"清单）。
-/// 桌面改一个默认色板/默认语言，网页端测试照样全绿，直到用户发现两端行为不同。
-///
-/// 语料只覆盖**两端共有的子集**（general / appearance / dock / writing.pen / keyboardShortcuts），
-/// 桌面独有的 camouflage / updates / diagnostics / announcements 不参与——网页端不实现这些能力。
-///
-/// 语料位于 <c>WindBoard.Tests/Fixtures/settings/defaults.json</c>（LF、两空格缩进、键序固定）。
-/// 重建：<c>WINBOARD_REGEN_SETTINGS_GOLDEN=1 dotnet test --filter SettingsDefaultsGoldenTests</c>；
-/// 语料变更须在提交说明中给出理由。
+/// 动机：WBIX 有字节级 golden 语料强制两端一致，设置项此前只靠人工核对（见 <c>docs/dev/guides/web-port.zh-CN.md</c> 的“没有自动保障”清单），桌面改默认色板/默认语言时网页端测试照样全绿；语料只覆盖两端共有的子集（general / appearance / dock / writing.pen / keyboardShortcuts）。
+/// 桌面独有的 camouflage / updates / diagnostics / announcements 不参与（网页端不实现这些能力）；语料位于 <c>WindBoard.Tests/Fixtures/settings/defaults.json</c>（LF、两空格缩进、键序固定），重建用 <c>WINBOARD_REGEN_SETTINGS_GOLDEN=1 dotnet test --filter SettingsDefaultsGoldenTests</c>，语料变更须在提交说明中给出理由。
 /// </remarks>
 public sealed class SettingsDefaultsGoldenTests
 {

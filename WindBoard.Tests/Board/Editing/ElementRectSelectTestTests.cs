@@ -8,7 +8,6 @@ namespace WindBoard.Tests.Board.Editing;
 
 public sealed class ElementRectSelectTestTests
 {
-    // 框选重叠区域时应优先命中“更靠上”的元素（列表末尾）
     [Fact]
     public void HitTestTopMostElementInWorldRect_PrefersLastElement()
     {
@@ -29,7 +28,6 @@ public sealed class ElementRectSelectTestTests
         Assert.Same(b, hit);
     }
 
-    // 框选区域与元素无交集时不应命中
     [Fact]
     public void HitTestTopMostElementInWorldRect_ReturnsNull_WhenNoIntersection()
     {

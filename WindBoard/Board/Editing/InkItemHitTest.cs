@@ -9,8 +9,7 @@ namespace WindBoard.Board.Editing
     /// 绘制条目的“橡皮擦轨迹线段”命中检测（按条目类型单点分发，纯计算逻辑）。
     /// </summary>
     /// <remarks>
-    /// 由原 <c>StrokeHitTest</c> 泛化而来：折线笔迹的线段距离算法保留为 Stroke 分支，
-    /// 其它条目类型走“世界包围盒 + 擦除轨迹 AABB 相交”的通用保守路径。
+    /// 折线笔迹按线段距离判定，其它条目类型走“世界包围盒 + 擦除轨迹 AABB 相交”的保守路径。
     /// </remarks>
     internal static class InkItemHitTest
     {

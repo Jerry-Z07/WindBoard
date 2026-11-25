@@ -41,11 +41,7 @@
 
                     <!-- Dock 预览固定为浅色主题，保持与主界面 Dock 视觉一致 -->
                     <Grid RequestedTheme="Light">
-                        <!--
-                            说明：设置页内容区域会受到左侧导航栏占用宽度的影响，
-                            如果把左/中/右三段 Dock 强行放在同一行，窗口稍窄就会互相挤压甚至重叠。
-                            这里改为“分三行预览”，既能保持左右/中部的相对定位，又能避免 UI 挤压。
-                        -->
+                        <!-- 三段 Dock 放在同一行时，窗口变窄会互相挤压重叠，因此分三行预览，各自保留左右与居中定位。 -->
                         <Grid x:Name="DockPreviewLayoutGrid" RowDefinitions="Auto,Auto,Auto" RowSpacing="8">
 
                             <!-- 左侧 Dock -->

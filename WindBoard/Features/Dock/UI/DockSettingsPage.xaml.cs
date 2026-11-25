@@ -253,7 +253,7 @@ namespace WindBoard.Features.Dock.UI
             var picker = new FileOpenPicker();
             WinRT.Interop.InitializeWithWindow.Initialize(picker, hwnd);
 
-            // 注意：FileOpenPicker 必须至少有一个 FileTypeFilter，否则会抛异常。
+            // FileOpenPicker 必须至少有一个 FileTypeFilter，否则会抛异常。
             picker.FileTypeFilter.Clear();
 
             if (string.Equals(item.Type, ShortcutDockItemTypes.Program, StringComparison.Ordinal))
@@ -675,7 +675,7 @@ namespace WindBoard.Features.Dock.UI
         {
             Id = string.IsNullOrWhiteSpace(settings.Id) ? Guid.NewGuid().ToString("N") : settings.Id;
 
-            // 注意：这里不要走属性 setter，避免初始化时触发 PropertyChanged，从而触发防抖保存。
+            // 这里不要走属性 setter，避免初始化时触发 PropertyChanged，从而触发防抖保存。
             _side = string.IsNullOrWhiteSpace(settings.Side) ? ShortcutDockSides.Left : settings.Side;
             _type = string.IsNullOrWhiteSpace(settings.Type) ? ShortcutDockItemTypes.File : settings.Type;
             _displayName = settings.DisplayName ?? string.Empty;

@@ -69,7 +69,7 @@ namespace WindBoard.Updates
 
             if (name.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
             {
-                // 约定：安装包 -fd 变体文件名以 -fd.exe 结尾。
+                // 安装包 -fd 变体文件名以 -fd.exe 结尾。
                 if (name.EndsWith("-fd.exe", StringComparison.OrdinalIgnoreCase))
                 {
                     return UpdateAssetKind.InstallerFrameworkDependent;
@@ -110,10 +110,7 @@ namespace WindBoard.Updates
             List<UpdateAssetPick> picks,
             AppInstallProbeResult install)
         {
-            // 排序目标：
-            // - 若为便携版：zip 在前
-            // - 若为安装版：优先列出两类安装包，再列出 zip
-            // - 最后做稳定排序：按 Kind + 文件名
+            // 排序目标：便携版 zip 在前，安装版优先列出两类安装包再列出 zip，最后按 Kind 与文件名做稳定排序。
             int GetRank(UpdateAssetPick p)
             {
                 if (install.Kind == AppInstallKind.Portable)

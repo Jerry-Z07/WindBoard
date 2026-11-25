@@ -1,12 +1,5 @@
 /**
- * 设置 → 书写（桌面 `WindBoard/Settings/Pages/WritingSettingsPage.xaml` 只是入口，
- * 实际编辑在 `PenSettingsPage.xaml`）。
- *
- * 字段对齐 `writing.pen`：
- * - `paletteHexes`：色板，桌面 3~24 槽（`PenSettingsDefaults.MinPaletteCount/MaxPaletteCount`），
- *   增删槽位时新增项为 `null`（空色块），删除从末位开始（`PenSettingsPage.xaml.cs:233-268`）；
- * - `thicknessPresets`：三档粗细，范围 0.5~64（`:330-353`）；
- * - `useThicknessSlider`：滑条/三档二选一（`:188-197`）。
+ * 设置 → 书写（桌面 Settings/Pages/WritingSettingsPage.xaml 只是入口，实际编辑在 PenSettingsPage.xaml）。字段对齐 writing.pen：paletteHexes 为色板，桌面 3~24 槽（PenSettingsDefaults.MinPaletteCount/MaxPaletteCount），增删槽位时新增项为 null（空色块），删除从末位开始（PenSettingsPage.xaml.cs:233-268）；thicknessPresets 为三档粗细，范围 0.5~64（:330-353）；useThicknessSlider 表示滑条与三档二选一（:188-197）。
  */
 
 import { Button, SpinButton, Switch } from '@fluentui/react-components'

@@ -7,7 +7,6 @@ namespace WindBoard.Tests.Rendering.Board;
 
 public sealed class BoardSceneMathTests
 {
-    // 会根据缩放自适应
     [Theory]
     [InlineData(1.0f, 40.0f)]
     [InlineData(0.1f, 320.0f)]
@@ -18,7 +17,6 @@ public sealed class BoardSceneMathTests
         AssertEx.Equal(expectedStep, step, tolerance: 0.0001f);
     }
 
-    // 会钳制到范围
     [Theory]
     [InlineData(-1.0f, 0.1f)]
     [InlineData(0.0f, 0.1f)]
@@ -32,7 +30,6 @@ public sealed class BoardSceneMathTests
         AssertEx.Equal(expectedFactor, factor, tolerance: 0.000001f);
     }
 
-    // 重叠返回 True；分离返回 False
     [Fact]
     public void IntersectsAabb_ReturnsTrue_WhenOverlaps_AndFalse_WhenSeparated()
     {
@@ -49,7 +46,6 @@ public sealed class BoardSceneMathTests
             new Vector2(3.0f, 3.0f)));
     }
 
-    // 无点不可见；无 Bounds 则默认可见
     [Fact]
     public void IsStrokeVisible_ReturnsFalse_WhenNoPoints_AndTrue_WhenNoBounds()
     {
@@ -62,7 +58,6 @@ public sealed class BoardSceneMathTests
         Assert.True(BoardSceneMath.IsStrokeVisible(stroke, new Vector2(-1.0f, -1.0f), new Vector2(1.0f, 1.0f)));
     }
 
-    // 有 Bounds 时按 AABB 判断
     [Fact]
     public void IsStrokeVisible_UsesAabb_WhenHasBounds()
     {

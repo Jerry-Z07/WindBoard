@@ -1,10 +1,8 @@
 namespace WindBoard.UITests.Infrastructure
 {
     /// <summary>
-    /// 无法标注 AutomationId 的系统/动态构建 UI 的文案常量。
-    /// 说明：应用默认语言为 zh-CN（资源缺失时回退），系统对话框文案取决于系统 UI 语言；
-    /// 这里按“zh-CN 优先、英文兜底”提供候选，并由调用方以经典对话框 AutomationId 兜底。
-    /// 若后续文案漂移，仅需修改本文件。
+    /// 无法标注 AutomationId 的系统/动态构建 UI 的文案常量：应用默认 zh-CN（资源缺失时回退），系统对话框文案取决于系统 UI 语言，
+    /// 故按“zh-CN 优先、英文兜底”提供候选，并由调用方以经典对话框 AutomationId 兜底；后续文案漂移时只改本文件。
     /// </summary>
     public static class UiText
     {

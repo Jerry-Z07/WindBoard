@@ -5,17 +5,8 @@ import type { InkItem } from '../model/workspace.ts'
 import { newGuid } from '../model/ids.ts'
 
 /**
- * 元素/笔迹条目复制（选择 Dock「复制」按钮用）。
- *
- * 桌面实现：`WindBoard/Controls/BoardCanvasControl.Rendering.cs`
- * - `OnSelectionDuplicateClicked`（:530-580）：复制后整体偏移 12 屏幕 DIP（世界坐标 12/zoom），
- *   逐条 `AddInkItemCommand` / 单个 `AddElementCommand` 入栈，并把选中集切到副本；
- * - `TryCloneElement`（:615-662）：按元素类型拷贝专有字段、保持所在层，`PositionWorld/SizeWorld` 拷贝；
- * - `CloneInkItem`（:696-716）/ `CloneStroke`（:718-730）：形状按 Kind/几何/颜色/线宽重建，
- *   笔迹按 Color/BaseSize/EnablePressure 重建并深拷贝点集。
- *
- * 偏移量依赖视口 zoom（12/zoom），桌面是在 `OnSelectionDuplicateClicked` 里应用、不在 Clone* 内部；
- * 因此这里把偏移做成可选参数（缺省 0 = 纯克隆），复制流程先调 `getDuplicateOffsetWorld(zoom)` 再传入。
+ * 元素与笔迹条目复制（选择 Dock 的复制按钮用），桌面实现见 Controls/BoardCanvasControl.Rendering.cs：OnSelectionDuplicateClicked（:530-580）复制后整体偏移 12 屏幕 DIP（世界坐标 12/zoom），笔迹逐条走 AddInkItemCommand、元素走单个 AddElementCommand 入栈，并把选中集切到副本；TryCloneElement（:615-662）按元素类型拷贝专有字段、保持所在层，PositionWorld 与 SizeWorld 一并拷贝；CloneInkItem（:696-716）与 CloneStroke（:718-730）中形状按 Kind、几何、颜色、线宽重建，笔迹按 Color、BaseSize、EnablePressure 重建并深拷贝点集。
+ * 偏移量依赖视口 zoom（12/zoom），桌面在 OnSelectionDuplicateClicked 里应用而不在 Clone* 内部，因此这里把偏移做成可选参数（缺省 0 即纯克隆），复制流程先调 getDuplicateOffsetWorld(zoom) 再传入。
  */
 
 /** 复制偏移（屏幕 DIP）：桌面固定 `new Vector2(12.0f, 12.0f)`（`BoardCanvasControl.Rendering.cs:543、:574`）。 */
@@ -85,10 +76,7 @@ export function cloneElement(
 }
 
 /**
- * 复制笔迹条目：笔迹深拷贝点集、形状重建几何；颜色等样式按桌面 `CloneInkItem` 口径拷贝。
- *
- * 说明：桌面 `Stroke.Id` 是运行期字段、不写入 WBIX，web 侧笔迹/形状模型未建模 id，
- * 因此副本只需是新对象（点集/坐标不共享引用），不另造 id 字段。
+ * 复制笔迹条目：笔迹深拷贝点集、形状重建几何；颜色等样式按桌面 CloneInkItem 口径拷贝。桌面 Stroke.Id 是运行期字段、不写入 WBIX，web 侧笔迹与形状模型未建模 id，因此副本只需是新对象（点集与坐标不共享引用），不另造 id 字段。
  */
 export function cloneInkItem(item: InkItem, offsetWorld: Readonly<Vec2> = ZERO_OFFSET): InkItem {
   if (item.kind === 'stroke') {

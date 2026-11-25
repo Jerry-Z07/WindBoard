@@ -12,24 +12,8 @@ import { STROKE_KIND } from '../board/model/stroke.ts'
 import type { InkItem } from '../board/model/workspace.ts'
 
 /**
- * 像素级（局部）擦除（纯函数，无 DOM / React 依赖）。
- *
- * 事实源：`WindBoard/Board/Editing/PixelStrokeEraser.cs`（439 行）——逐条移植，不做简化。
- *
- * 算法要点（与桌面一致）：
- * 1. 先用命中测试粗筛（`hit-test.ts` 的 `isItemHitByEraserSegment`），不命中则原样保留；
- * 2. 形状等不可分割条目命中即整条删除；折线笔迹进入“逐段采样 + 边界二分”的裁剪流程；
- * 3. 折线裁剪按线段采样：靠近橡皮擦的线段按 0.6 世界单位步长采样（每段上限 256 个样本），
- *    远离的线段只采样终点（1 个样本）；
- * 4. 采样点“保留/擦除”状态发生翻转时，用 10 次二分求出**保留侧**的边界点插入笔迹，
- *    从而让裁剪边界贴合橡皮擦轮廓，而不是贴到采样点网格上；
- * 5. 保留的连续片段各自生成一条派生笔迹（新对象），原笔迹不被修改。
- *
- * 已知的桌面行为（照搬，不“修”）：
- * - 采样上限 256 意味着**极长线段上的小橡皮擦可能漏擦**：步长被拉长到 `len / 256` 后，
- *   橡皮擦可能整个落在两个采样点之间；此时命中测试会判定命中，但裁剪流程没有采样点被擦除，
- *   于是 `removedAny` 保持 false、笔迹原样返回，`changed` 为 false（桌面同样如此）。
- * - 采样从 `t = 1 / samples` 开始（跳过 `t = 0`，避免与上一段末点重复），到 `t = 1` 结束。
+ * 像素级（局部）擦除（纯函数，无 DOM / React 依赖），逐条移植桌面 WindBoard/Board/Editing/PixelStrokeEraser.cs（439 行）。流程：先用 isItemHitByEraserSegment 粗筛，不命中则原样保留；形状等不可分割条目命中即整条删除；折线笔迹进入逐段采样加边界二分的裁剪，靠近橡皮擦的线段按 0.6 世界单位步长采样（每段上限 256 个样本），远离的线段只采样终点；采样点状态翻转处用 10 次二分求出保留侧边界点插入笔迹，使裁剪边界贴合橡皮擦轮廓而非采样网格；保留的连续片段各生成一条派生笔迹，原笔迹不被修改。
+ * 照搬桌面的已知行为：256 采样上限意味着极长线段上的小橡皮擦可能漏擦，步长被拉长到 len / 256 后橡皮擦可能整个落在两个采样点之间，此时命中测试判定命中但裁剪没有采样点被擦除，于是 removedAny 保持 false、笔迹原样返回、changed 为 false。采样从 t = 1 / samples 开始（跳过 t = 0，避免与上一段末点重复），到 t = 1 结束。
  */
 
 /** 近邻线段采样步长（世界单位；桌面 `NearSegmentSampleStepWorld`，`PixelStrokeEraser.cs:36`）。 */
@@ -91,10 +75,7 @@ interface StrokeEraseState {
 }
 
 /**
- * 单点是否被擦除（桌面 `IsPointErased`，`PixelStrokeEraser.cs:403-420`）。
- *
- * 关键口径：半宽取**该采样点自身的压感**（不是两端平均），扩展半径
- * `r = max(0, radiusWorld) + halfWidth`，逐轴归一化后做点-线段距离判定。
+ * 单点是否被擦除（桌面 IsPointErased，PixelStrokeEraser.cs:403-420）。半宽取该采样点自身的压感（不用两端平均），扩展半径 r = max(0, radiusWorld) + halfWidth，逐轴归一化后做点-线段距离判定。
  */
 function isPointErased(stroke: Stroke, point: StrokePoint, eraser: EraserCapsule): boolean {
   const inv = getEraserCapsuleInv(eraser.radiusWorld, getStrokeHalfWidth(stroke, point.pressure))
@@ -107,10 +88,7 @@ function isPointErased(stroke: Stroke, point: StrokePoint, eraser: EraserCapsule
 }
 
 /**
- * 线段是否“靠近”橡皮擦（桌面 `IsSegmentNearEraser`，`PixelStrokeEraser.cs:214-227`）。
- *
- * 用**最大可能半宽**做归一化粗筛（`maxInv`），因此这是“可能被擦除”的上界：
- * 粗筛通过才值得细采样，粗筛不通过则整段只需要 1 个采样点。
+ * 线段是否靠近橡皮擦（桌面 IsSegmentNearEraser，PixelStrokeEraser.cs:214-227）。用最大可能半宽做归一化粗筛（maxInv），得到「可能被擦除」的上界：粗筛通过才值得细采样，不通过则整段只需 1 个采样点。
  */
 function isSegmentNearEraser(
   start: StrokePoint,
@@ -128,12 +106,7 @@ function isSegmentNearEraser(
 }
 
 /**
- * 计算线段采样数（桌面 `GetSegmentSamplesCount`，`PixelStrokeEraser.cs:229-240`）。
- *
- * - 不靠近橡皮擦：1（只采终点）；
- * - 靠近：`ceil(长度 / 0.6)`，下限 2，上限 256。
- *
- * 注意：上限 256 是硬上限，长线段会被拉长步长（见文件头“已知的桌面行为”）。
+ * 计算线段采样数（桌面 GetSegmentSamplesCount，PixelStrokeEraser.cs:229-240）。不靠近橡皮擦时为 1（只采终点），靠近时为 ceil(长度 / 0.6)，下限 2、上限 256；256 是硬上限，长线段会被拉长步长（见文件头「已知的桌面行为」）。
  */
 function getSegmentSamplesCount(start: StrokePoint, end: StrokePoint, isNear: boolean): number {
   if (!isNear) {
@@ -148,10 +121,7 @@ function getSegmentSamplesCount(start: StrokePoint, end: StrokePoint, isNear: bo
 }
 
 /**
- * 采样点线性插值（桌面 `Lerp`，`PixelStrokeEraser.cs:396-401`）。
- *
- * 位置按 `a + (b - a) · t` 插值（与 `Vector2.Lerp` 同式），
- * **压感同样线性插值**——这是派生笔迹上新增点的压感来源。
+ * 采样点线性插值（桌面 Lerp，PixelStrokeEraser.cs:396-401）。位置按 a + (b - a) · t 插值（与 Vector2.Lerp 同式），压感同样线性插值，这是派生笔迹上新增点的压感来源。
  */
 function lerpStrokePoint(start: StrokePoint, end: StrokePoint, t: number): StrokePoint {
   return {
@@ -162,10 +132,7 @@ function lerpStrokePoint(start: StrokePoint, end: StrokePoint, t: number): Strok
 }
 
 /**
- * 创建派生笔迹（桌面 `CreateDerivedStroke`，`PixelStrokeEraser.cs:322-330`）。
- *
- * 只继承 `colorRgba` / `baseSize` / `enablePressure` 三项；`points` 从空开始。
- * 桌面 `Color` 是值类型，这里浅拷贝一份，避免与原笔迹共享同一个可变对象。
+ * 创建派生笔迹（桌面 CreateDerivedStroke，PixelStrokeEraser.cs:322-330）。只继承 colorRgba、baseSize、enablePressure 三项，points 从空开始；桌面 Color 是值类型，这里浅拷贝一份，避免与原笔迹共享同一个可变对象。
  */
 function createDerivedStroke(source: Stroke): Stroke {
   return {
@@ -178,10 +145,7 @@ function createDerivedStroke(source: Stroke): Stroke {
 }
 
 /**
- * 追加一个点，并跳过与末点几乎重合的点（桌面 `AddPointWithBounds`，`PixelStrokeEraser.cs:332-346`）。
- *
- * 桌面在追加时同步扩包围盒；web 侧 `Stroke` 不缓存包围盒（由 `geometry.ts` 的
- * `getStrokeBounds` 按需计算），所以这里只需做去重与追加。
+ * 追加一个点，并跳过与末点几乎重合的点（桌面 AddPointWithBounds，PixelStrokeEraser.cs:332-346）。桌面在追加时同步扩包围盒，web 侧 Stroke 不缓存包围盒（由 geometry.ts 的 getStrokeBounds 按需计算），这里只需去重与追加。
  */
 function appendPointIfDistinct(stroke: Stroke, point: StrokePoint): void {
   const points = stroke.points
@@ -197,10 +161,7 @@ function appendPointIfDistinct(stroke: Stroke, point: StrokePoint): void {
 }
 
 /**
- * 二分求“保留侧”的边界点（桌面 `FindBoundaryOutside`，`PixelStrokeEraser.cs:348-394`）。
- *
- * 已知 `start` 处状态为 `keepAtStart`、`end` 处状态相反，做 10 次二分后取
- * **保留侧**那一端的 `t`，因此插入的边界点仍在保留区间内（宁多留、不误擦）。
+ * 二分求「保留侧」的边界点（桌面 FindBoundaryOutside，PixelStrokeEraser.cs:348-394）。已知 start 处状态为 keepAtStart、end 处状态相反，做 10 次二分后取保留侧那一端的 t，使插入的边界点落在保留区间内（宁多留、不误擦）。
  */
 function findBoundaryOutside(
   stroke: Stroke,
@@ -274,10 +235,7 @@ function startKeptAfterErasedTransition(
 }
 
 /**
- * 处理单个采样点（桌面 `ProcessSample`，`PixelStrokeEraser.cs:242-287`）。
- *
- * 状态未翻转时：保留则把采样点追加到当前片段，擦除则什么都不做（但仍记录 `removedAny`）。
- * 状态翻转时：先二分出边界点，再按方向提交 / 新开片段。
+ * 处理单个采样点（桌面 ProcessSample，PixelStrokeEraser.cs:242-287）。状态未翻转时，保留则把采样点追加到当前片段，擦除则什么都不做（但仍记录 removedAny）；状态翻转时先二分出边界点，再按方向提交或新开片段。
  */
 function processSample(state: StrokeEraseState, sample: StrokePoint): void {
   const keep = !isPointErased(state.source, sample, state.eraser)
@@ -306,10 +264,7 @@ function processSample(state: StrokeEraseState, sample: StrokePoint): void {
 }
 
 /**
- * 逐段采样整条笔迹（桌面 `ProcessStrokeSegments`，`PixelStrokeEraser.cs:183-212`）。
- *
- * `t` 从 `1 / samples` 递增到 `1`（**跳过 `t = 0`**，避免与上一段末点重复），
- * 所以每段的终点总会被采样一次。
+ * 逐段采样整条笔迹（桌面 ProcessStrokeSegments，PixelStrokeEraser.cs:183-212）。t 从 1 / samples 递增到 1 并跳过 t = 0（避免与上一段末点重复），因此每段的终点总会被采样一次。
  */
 function processStrokeSegments(state: StrokeEraseState, maxInv: Vec2): void {
   const points = state.source.points
@@ -336,11 +291,7 @@ function eraseSinglePointStroke(stroke: Stroke, eraser: EraserCapsule): Stroke[]
 }
 
 /**
- * 裁剪一条折线笔迹（桌面 `EraseSingleStroke`，`PixelStrokeEraser.cs:94-141`）。
- *
- * 返回保留的片段序列：
- * - 完全没有采样点被擦除时返回 `[stroke]`（**同一个引用**，调用方据此判定“无变化”）；
- * - 否则返回 0..N 条派生笔迹。
+ * 裁剪一条折线笔迹（桌面 EraseSingleStroke，PixelStrokeEraser.cs:94-141）。返回保留的片段序列：完全没有采样点被擦除时返回 [stroke]（同一个引用，调用方据此判定无变化），否则返回 0..N 条派生笔迹。
  */
 function eraseSingleStroke(stroke: Stroke, eraser: EraserCapsule): Stroke[] {
   const points = stroke.points
@@ -382,14 +333,7 @@ function eraseSingleStroke(stroke: Stroke, eraser: EraserCapsule): Stroke[] {
 }
 
 /**
- * 用一条“橡皮擦轨迹线段 + 椭圆半径”擦除一批条目（桌面 `PixelStrokeEraser.Erase`，`PixelStrokeEraser.cs:44-92`）。
- *
- * 行为：
- * - 折线笔迹：按采样 + 二分裁剪成若干派生片段（可能为 0 段）；
- * - 形状等不可分割条目：命中即整条删除；
- * - 完全未命中时 `changed` 为 false，`items` 与入参**逐项同引用**且同序。
- *
- * 纯函数：入参数组与其中的笔迹都不会被修改。
+ * 用一条橡皮擦轨迹线段加椭圆半径擦除一批条目（桌面 PixelStrokeEraser.Erase，PixelStrokeEraser.cs:44-92）：折线笔迹按采样加二分裁剪成若干派生片段（可能为 0 段），形状等不可分割条目命中即整条删除；完全未命中时 changed 为 false，items 与入参逐项同引用且同序。纯函数，入参数组与其中的笔迹都不会被修改。
  */
 export function eraseItemsWithCapsule(
   items: readonly InkItem[],

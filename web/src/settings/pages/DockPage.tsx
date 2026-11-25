@@ -1,20 +1,6 @@
 /**
- * 设置 → Dock（桌面 `WindBoard/Features/Dock/UI/DockSettingsPage.xaml`）。
- *
- * 结构对齐桌面：
- * - 拖动提示：`DockSettingsPage.xaml:34-37`（`Settings_Dock_DragHint`）；
- * - 「预览」区（`:40`，`Common_Preview`）：四组可重排列表——左侧 Dock / 工具 / 撤销·重做 / 页面，
- *   分组与默认顺序取自 `WindBoard/Features/Dock/Models/DockItemIds.cs`（与
- *   `settings/model.ts` 的 `DEFAULT_*_DOCK_ITEMS` 一一对应）；
- * - 「选项」区（`:231`，`Common_Options`）：显示撤销/重做、显示快捷入口 Dock、恢复默认布局。
- *
- * 与桌面的差异（网页端实现约束，均已在此说明）：
- * - 桌面靠 `ListView.CanReorderItems` 的原生拖动；网页端用 Pointer Events 自己实现（见
- *   `DockOrderGroup`），鼠标 / 触摸 / 笔都能拖，未引入第三方拖拽库；
- * - 桌面拖动结束后一次性写回四组顺序（`DockSettingsPage.xaml.cs:395-412`），网页端只写
- *   发生变化的那一组，避免无意义的重渲染与存储写入；
- * - 桌面预览没有组标题（靠上/中/下三行的位置区分，`:47-229`），网页端为可访问性补了组标题；
- * - 桌面拖动有系统的拖动浮层（drag visual），网页端用"拖动项半透明 + 落点高亮"表达反馈。
+ * 设置 → Dock（桌面 Features/Dock/UI/DockSettingsPage.xaml）。结构对齐桌面：拖动提示（:34-37，Settings_Dock_DragHint）；预览区（:40，Common_Preview）为四组可重排列表（左侧 Dock、工具、撤销重做、页面），分组与默认顺序取自 Features/Dock/Models/DockItemIds.cs，与 settings/model.ts 的 DEFAULT_*_DOCK_ITEMS 一一对应；选项区（:231，Common_Options）含显示撤销重做、显示快捷入口 Dock、恢复默认布局。
+ * 网页端的实现约束：拖动用 Pointer Events 自己实现（见 DockOrderGroup），鼠标、触摸、笔都能拖，未引入第三方拖拽库；拖动结束只写发生变化的那一组（桌面一次性写回四组，DockSettingsPage.xaml.cs:395-412），避免无意义的重渲染与存储写入；预览为可访问性补了组标题（桌面靠上中下三行位置区分，:47-229）；拖动反馈用拖动项半透明加落点高亮（桌面有系统拖动浮层）。
  */
 
 import { Button, Switch } from '@fluentui/react-components'
@@ -118,11 +104,7 @@ const DOCK_ITEM_META: Record<DockItemId, DockItemMeta> = {
 }
 
 /**
- * 形状工具的自绘图标（`MainWindow.xaml:502-518` 的 `ShapeToolIconPath`）。
- *
- * 与 `ui/shell/DockBar.tsx` 的 `ShapeToolIcon` 是同一段 Path 数据（桌面刻意不用字体图标，
- * 因为 Segoe Fluent Icons 里没有"形状"语义的图标）。这里没有抽公共组件，是因为本次写域
- * 只包含设置页文件；后续如需统一，可把两者提到共享的图标模块。
+ * 形状工具的自绘图标（MainWindow.xaml:502-518 的 ShapeToolIconPath），与 ui/shell/DockBar.tsx 的 ShapeToolIcon 是同一段 Path 数据；桌面刻意不用字体图标，因为 Segoe Fluent Icons 里没有「形状」语义的图标。这里没有抽公共组件，改动时需两处同步。
  */
 function ShapeToolIcon(): ReactNode {
   return (
@@ -163,13 +145,7 @@ interface DockOrderGroupProps {
 }
 
 /**
- * 一组可重排的 Dock 项。
- *
- * 交互：
- * - 指针（鼠标/触摸/笔）按住任意一项后拖动，落点项高亮，松手时写入新顺序；
- *   点在「上移 / 下移」按钮上不会触发拖动（按钮自己处理点击）；
- * - 每项可聚焦（`tabIndex=0`），键盘用户通过项内的「上移 / 下移」按钮调整顺序，
- *   拖动中的项带 `aria-grabbed`，屏幕阅读器可感知拖动状态。
+ * 一组可重排的 Dock 项。交互：指针（鼠标、触摸、笔）按住任意一项后拖动，落点项高亮，松手时写入新顺序，点在「上移」「下移」按钮上不触发拖动（按钮自己处理点击）；每项可聚焦（tabIndex=0），键盘用户通过项内的「上移」「下移」按钮调整顺序，拖动中的项带 aria-grabbed，屏幕阅读器可感知拖动状态。
  */
 function DockOrderGroup(props: DockOrderGroupProps): ReactNode {
   const { group, order, drag } = props

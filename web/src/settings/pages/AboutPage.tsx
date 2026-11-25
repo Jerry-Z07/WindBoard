@@ -1,11 +1,5 @@
 /**
- * 设置 → 关于（桌面 `WindBoard/Settings/Pages/AboutSettingsPage.xaml` +
- * `SettingsManagementPage.xaml`）。
- *
- * 网页端保留"版本"与"设置管理"两块；桌面关于页的自动更新检查
- * （`AboutSettingsPage.Updates.cs`）与 Debug 入口按 `research/03-ui-inventory.md` §9 不做。
- * 三张卡（导出/导入/恢复默认）在 P4 全部接通：导出/导入走 `settings-file.ts` 的
- * 「白名单序列化 + 容忍注释/尾逗号解析」，文件读写走 `platform/io.ts`。
+ * 设置 → 关于（桌面 WindBoard/Settings/Pages/AboutSettingsPage.xaml 与 SettingsManagementPage.xaml）。网页端保留版本与设置管理两块；桌面关于页的自动更新检查（AboutSettingsPage.Updates.cs）与 Debug 入口按 research/03-ui-inventory.md §9 不做。导出、导入、恢复默认三张卡已接通：导出与导入走 settings-file.ts 的白名单序列化与容忍注释、尾逗号解析，文件读写走 platform/io.ts。
  */
 
 import {
@@ -28,10 +22,7 @@ import { SETTINGS_ANCHORS } from '../search-targets.ts'
 import { SettingsCard, SettingsSection } from './SettingsCard.tsx'
 
 /**
- * 网页端版本号。
- *
- * 浏览器里读不到 `package.json`（也没有构建期注入版本号），因此按任务要求写死；
- * 发版时需与 `web/package.json` 的 `version` 手动同步。
+ * 网页端版本号。浏览器里读不到 package.json，也没有构建期注入版本号，因此在此写死；发版时需与 web/package.json 的 version 手动同步。
  */
 const WEB_VERSION = '0.1.0'
 

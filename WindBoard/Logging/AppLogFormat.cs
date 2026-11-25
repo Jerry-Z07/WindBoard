@@ -11,8 +11,7 @@ namespace WindBoard.Logging
     {
         internal static string Format(in AppLogEntry entry)
         {
-            // 格式示例：
-            // 2026-02-12 20:06:01.234 +08:00 [INF] [Import] message
+            // 格式示例：2026-02-12 20:06:01.234 +08:00 [INF] [Import] message
             // System.Exception: ...
             var sb = new StringBuilder(capacity: 256);
 

@@ -1,17 +1,6 @@
 /**
- * 绘制条目的「点选」命中测试（按条目类型单点分发，纯计算逻辑）。
- *
- * 移植自桌面 `WindBoard/Board/Editing/InkItemPickTest.cs`（170 行），逐条对齐：
- * - `HitTestTopMostInkItem`（:23-38）：反向遍历，返回最上层命中项；
- * - `IsInkItemHitByPoint`（:43-58）：按条目类型分发（折线走折线段距离，其余走通用 AABB）；
- * - `IsShapeHitByPoint`（:67-77）：Line/Arrow 用「点到线段距离 ≤ 容差 + 半宽」，
- *   Rectangle/Ellipse 走通用 AABB（内部 + 边界都可点选）；
- * - `IsBoundsHitByPoint`（:82-94）：世界包围盒 + 容差，宽高同时 <= 0 视为无有效包围盒；
- * - `IsStrokeHitByPoint`（:105-152）：先做「包围盒 + 最大笔宽 + 容差」快速过滤，
- *   再按单点圆 / 逐段点到线段距离判定。
- *
- * 笔迹半宽口径与 `web/src/ink/geometry.ts`、`web/src/ink/hit-test.ts` 完全一致：
- * 单点用该点自身压感，多点用两端压感**平均值**再 clamp，快速过滤用忽略压感的 `max(0.25, baseSize/2)`。
+ * 绘制条目的点选命中测试（按条目类型单点分发，纯计算逻辑），移植自桌面 Board/Editing/InkItemPickTest.cs（170 行）：HitTestTopMostInkItem（:23-38）反向遍历返回最上层命中项；IsInkItemHitByPoint（:43-58）按条目类型分发，折线走折线段距离、其余走通用 AABB；IsShapeHitByPoint（:67-77）中 Line 与 Arrow 用点到线段距离不超过容差加半宽，Rectangle 与 Ellipse 走通用 AABB（内部与边界都可点选）；IsBoundsHitByPoint（:82-94）用世界包围盒加容差，宽高同时不超过 0 视为无有效包围盒；IsStrokeHitByPoint（:105-152）先做包围盒加最大笔宽加容差的快速过滤，再按单点圆或逐段点到线段距离判定。
+ * 笔迹半宽口径与 ink/geometry.ts、ink/hit-test.ts 完全一致：单点用该点自身压感，多点用两端压感平均值再 clamp，快速过滤用忽略压感的 `max(0.25, baseSize/2)`。
  */
 
 import { getShapeBounds, getShapeHalfWidth, getStrokeBounds } from '../../ink/geometry.ts'
@@ -66,11 +55,7 @@ export function isInkItemHitByPoint(
 }
 
 /**
- * 判断某个形状是否被「点选」命中。
- *
- * 对应桌面 `InkItemPickTest.IsShapeHitByPoint`（`InkItemPickTest.cs:67-77`）：
- * - Line/Arrow：按「点到线段距离 ≤ 容差 + 半宽」判定——包围盒 AABB 对斜线误命中区域过多；
- * - Rectangle/Ellipse：沿用通用 AABB 路径（内部 + 边界均可点选，符合直觉）。
+ * 判断某个形状是否被「点选」命中。对应桌面 InkItemPickTest.IsShapeHitByPoint（InkItemPickTest.cs:67-77）：Line 与 Arrow 按「点到线段距离 ≤ 容差 + 半宽」判定，包围盒 AABB 对斜线误命中区域过多；Rectangle 与 Ellipse 沿用通用 AABB 路径（内部与边界均可点选）。
  */
 export function isShapeHitByPoint(
   shape: Shape,
@@ -140,10 +125,7 @@ export function isStrokeHitByPoint(
 }
 
 /**
- * 通用 AABB 命中路径：世界包围盒 + 容差；无有效包围盒时不命中。
- *
- * 对应桌面 `InkItemPickTest.IsBoundsHitByPoint`（`InkItemPickTest.cs:82-94`）。
- * 注意 `pad` 由调用方先行 `max(0, ·)`，与桌面一致。
+ * 通用 AABB 命中路径：世界包围盒 + 容差；无有效包围盒时不命中。对应桌面 InkItemPickTest.IsBoundsHitByPoint（InkItemPickTest.cs:82-94）。pad 由调用方先行 max(0, ·)，与桌面一致。
  */
 function isBoundsHitByPoint(bounds: WorldBounds, pointWorld: Vec2, pad: number): boolean {
   if (bounds.max.x - bounds.min.x <= 0 && bounds.max.y - bounds.min.y <= 0) {

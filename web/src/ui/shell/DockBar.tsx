@@ -1,18 +1,6 @@
 /**
- * 底部 Dock：三块浮层（左入口组 / 中部工具组 / 右侧页面组）。
- *
- * 桌面出处：
- * - 三块浮层分别对齐左/中/右 + `RequestedTheme="Light"` + 交互态资源覆盖：`WindBoard/MainWindow.xaml:54-70`
- * - 左 Dock（更多/最小化/导入）：`:82-160`
- * - 主 Dock（工具 + 分隔线 + 撤销重做）：`:441-558`
- * - 页面 Dock（上一页/指示/下一页/新增）：`:685-737`
- * - 按钮样式 `DockButtonStyle`：`WindBoard/App.xaml:20-28`
- *
- * 两个关键还原点：
- * 1. **强制浅色**：整块 Dock 包一层 `FluentProvider theme={webLightTheme}`，
- *    不受 App 级深色主题影响（桌面靠 `RequestedTheme="Light"` 实现）；
- * 2. **二次点击才弹面板**：开合由 `planToolButtonClick`（`ui/flyouts/flyout-machine.ts`）
- *    计算后驱动受控 `Popover`，不使用 `PopoverTrigger` 的默认开合。
+ * 底部 Dock：三块浮层（左入口组、中部工具组、右侧页面组）。桌面出处：三块浮层对齐左中右并强制 RequestedTheme="Light"（MainWindow.xaml:54-70）、左 Dock（:82-160）、主 Dock 含工具与分隔线与撤销重做（:441-558）、页面 Dock（:685-737），按钮样式 DockButtonStyle 见 App.xaml:20-28。
+ * 两个还原点：整块 Dock 包一层 FluentProvider theme={webLightTheme}，不受 App 级深色主题影响（桌面靠 RequestedTheme="Light"）；开合由 planToolButtonClick（ui/flyouts/flyout-machine.ts）算好后驱动受控 Popover，不用 PopoverTrigger 的默认开合。
  */
 
 import { useState, type ReactElement, type ReactNode } from 'react'
@@ -96,10 +84,7 @@ const DOCK_TOOL_KIND: Readonly<Partial<Record<DockItemId, ToolKind>>> = {
 }
 
 /**
- * 工具项文案 key（`Strings/zh-CN/Tool.resw`：选择 / 书写 / 擦除 / 形状）。
- *
- * 这里存 key 而不是中文：调用点在渲染时用 `t(...)` 取词，
- * 语言切换（设置 → 常规 → 语言）后无需重新构造映射表。
+ * 工具项文案 key（Strings/zh-CN/Tool.resw：选择、书写、擦除、形状）。这里存 key 而不存中文，调用点渲染时用 t(...) 取词，语言切换（设置 → 常规 → 语言）后无需重新构造映射表。
  */
 const TOOL_LABEL_KEYS: Readonly<Record<ToolKind, MessageKey>> = {
   select: 'Tool_Select',
@@ -115,9 +100,7 @@ const TOOL_LABEL_KEYS: Readonly<Record<ToolKind, MessageKey>> = {
 const THEME_STYLE = { background: 'transparent', color: 'inherit', display: 'block' } as const
 
 /**
- * 弹出层容器的内联样式：桌面用 `CompactFlyoutPresenterStyle` 把 Fluent 自带的
- * 边框/阴影/内边距全部清掉，只留内层面板自己的圆角 14 与 1px 描边
- * （`WindBoard/App.xaml:41-53` + `MainWindow.xaml:230-234`）。
+ * 弹出层容器的内联样式：桌面用 CompactFlyoutPresenterStyle 把 Fluent 自带的边框、阴影、内边距全部清掉，只留内层面板自己的圆角 14 与 1px 描边（WindBoard/App.xaml:41-53 + MainWindow.xaml:230-234）。
  */
 const SURFACE_STYLE = {
   padding: 0,
@@ -151,7 +134,7 @@ export function DockBar(props: DockBarProps): ReactNode {
   )
 }
 
-// ===== 左 Dock（`MainWindow.xaml:82-160`） =====
+// 左 Dock（`MainWindow.xaml:82-160`）
 
 /** 左 Dock：更多（菜单）/ 最小化 / 导入。 */
 function LeftDock(): ReactNode {
@@ -248,13 +231,10 @@ function MoreButton(): ReactNode {
   )
 }
 
-// ===== 主 Dock（`MainWindow.xaml:441-558`） =====
+// 主 Dock（`MainWindow.xaml:441-558`）
 
 /**
- * 工具组：选择 / 笔 / 橡皮 / 形状。
- *
- * 独立成组件是因为窄屏紧凑栏（`NarrowDock`）要复用同一组按钮与弹出面板，
- * 复制一份会漏掉"二次点击才弹面板"这类行为。
+ * 工具组：选择、笔、橡皮、形状。独立成组件是因为窄屏紧凑栏（NarrowDock）要复用同一组按钮与弹出面板，复制一份会漏掉「二次点击才弹面板」这类行为。
  */
 function ToolButtons(): ReactNode {
   const { t } = useI18n()
@@ -280,10 +260,7 @@ function ToolButtons(): ReactNode {
   }
 
   /**
-   * 受控 Popover 的开合回调：只处理"关闭"。
-   *
-   * 打开由 `clickTool` 里的状态机决定，因此这里忽略 `open: true`——
-   * 这样 `PopoverTrigger` 自带的"点击切换"不会与桌面的"二次点击才弹"打架。
+   * 受控 Popover 的开合回调：只处理「关闭」。打开由 clickTool 里的状态机决定，因此这里忽略 open: true，这样 PopoverTrigger 自带的点击切换不会与桌面的「二次点击才弹」打架。
    */
   const onOpenChange = (_event: unknown, data: { open: boolean }): void => {
     if (!data.open) {
@@ -360,11 +337,7 @@ function ToolButtons(): ReactNode {
 }
 
 /**
- * 撤销 / 重做组。
- *
- * 桌面把这一组和工具组放在同一块浮层里、用一条 1×30 的分隔线隔开
- * （`MainWindow.xaml:522-527`）；"是否显示"由设置项 `dock.isUndoRedoVisible` 决定，
- * 隐藏时连分隔线一起去掉，所以分隔线由调用方按同一开关渲染。
+ * 撤销与重做组。桌面把这一组和工具组放在同一块浮层里、用一条 1×30 的分隔线隔开（MainWindow.xaml:522-527）；是否显示由设置项 dock.isUndoRedoVisible 决定，隐藏时连分隔线一起去掉，所以分隔线由调用方按同一开关渲染。
  */
 function UndoRedoButtons(): ReactNode {
   const { t } = useI18n()
@@ -430,10 +403,7 @@ function CenterDock(): ReactNode {
 }
 
 /**
- * 形状工具的自绘图标（`MainWindow.xaml:502-518` 的 `ShapeToolIconPath`）。
- *
- * 桌面刻意不用字体图标（Segoe Fluent Icons 里没有"形状"语义的图标），
- * 这里逐字复用同一条 Path 数据：20×20、描边 1.7、圆头圆角。
+ * 形状工具的自绘图标（MainWindow.xaml:502-518 的 ShapeToolIconPath）。Segoe Fluent Icons 里没有「形状」语义的图标，桌面因此用自绘 Path，这里逐字复用同一条数据：20×20、描边 1.7、圆头圆角。
  */
 function ShapeToolIcon(): ReactNode {
   return (
@@ -450,7 +420,7 @@ function ShapeToolIcon(): ReactNode {
   )
 }
 
-// ===== 页面 Dock（`MainWindow.xaml:685-737`） =====
+// 页面 Dock（`MainWindow.xaml:685-737`）
 
 /** 页面 Dock：上一页 / 指示器 / 下一页 / 新增（单页时整块隐藏）。 */
 function RightDock(): ReactNode {
@@ -552,20 +522,11 @@ function RightDock(): ReactNode {
   return <div className="wb-dock wb-dock--pages">{ordered.map(renderItem)}</div>
 }
 
-// ===== 窄屏紧凑栏（网页端新增，桌面无对应实现） =====
+// 窄屏紧凑栏（网页端新增，桌面无对应实现）
 
 /**
- * 窄屏（视口 <600，见 `use-narrow-layout.ts`）的 Dock。
- *
- * 桌面窗口最窄也有几百 DIP 的余量，三段横排永远不会打架；手机竖屏只有 360~430，
- * 三段实测宽 198 / 395 / 62，横排必然互相覆盖（`playwright-cli` 实测：中段按钮被
- * 中段容器自身盖住，点击直接命中错误元素）。所以在窄屏把三段合并成一段：
- *
- * - 保留：4 个工具 + 撤销 / 重做（书写闭环的高频操作，不能藏）；
- * - 收进「更多」：导入 / 设置 / 导出 / 全屏 / 最小化 / 页面（上一页、页码、下一页、新增、管理）。
- *
- * 为什么是 7 个按钮：44×44 触摸目标 + 间距 4 + 内边距 4，7 个约 340，加上两侧 8 的外边距
- * 刚好放进 360 宽；8 个就要 388，放不下。
+ * 窄屏（视口 <600，见 use-narrow-layout.ts）的 Dock：三段合并成一段。桌面窗口最窄也有几百 DIP 余量，手机竖屏只有 360~430，三段实测宽 198 / 395 / 62，横排必然互相覆盖（playwright-cli 实测：中段按钮被中段容器自身盖住，点击直接命中错误元素）。
+ * 保留 4 个工具加撤销重做（书写闭环的高频操作），导入、设置、导出、全屏、最小化、页面收进【更多】。7 个按钮是上限：44×44 触摸目标加间距 4 加内边距 4 约 340，加两侧 8 的外边距刚好放进 360 宽，8 个要 388 放不下。
  */
 function NarrowDock(): ReactNode {
   const settings = useSettings()
@@ -603,11 +564,7 @@ function SheetButton(props: {
 }
 
 /**
- * 窄屏的「更多」浮层：页面行 + 动作网格 + 可展开的页面管理面板。
- *
- * 用 `Popover` 而不是 `Menu`：面板里既有图标按钮网格，又要内嵌 `PagesFlyout`
- * （Fluent 的 `MenuList` 只能放菜单项，塞不进这种结构）。开合受控，
- * 点动作后统一关闭，避免浮层残留挡住画布。
+ * 窄屏的「更多」浮层：页面行、动作网格与可展开的页面管理面板。面板里既有图标按钮网格、又要内嵌 PagesFlyout，Fluent 的 MenuList 只能放菜单项，装不下这种结构，因此用 Popover；开合受控，点动作后统一关闭，避免浮层残留挡住画布。
  */
 function NarrowMoreButton(): ReactNode {
   const { t } = useI18n()

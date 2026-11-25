@@ -1,11 +1,6 @@
 /**
- * 页面缩略图画布（`PagesFlyout` 列表项里的预览）。
- *
- * 桌面出处：`WindBoard/MainWindow.xaml:665-669` 的 `PageThumbnailControl`，
- * 高度 104、底色为画布背景色。绘制算法逐条照搬在 `render/thumbnail.ts` 里。
- *
- * 这里只负责：按 DPR 设置后备存储、在挂载与依赖变化时重画。缩略图是只读展示，
- * 不参与指针交互，因此没有事件绑定。
+ * 页面缩略图画布（PagesFlyout 列表项里的预览）。桌面出处：WindBoard/MainWindow.xaml:665-669 的 PageThumbnailControl，高度 104、底色为画布背景色，绘制算法逐条照搬在 render/thumbnail.ts 里。
+ * 这里只负责按 DPR 设置后备存储、在挂载与依赖变化时重画；缩略图是只读展示，不参与指针交互，因此没有事件绑定。
  */
 
 import { useEffect, useRef, type ReactNode } from 'react'

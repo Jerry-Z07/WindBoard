@@ -1,15 +1,6 @@
 /**
- * 形状（直线/矩形/椭圆/箭头）面板内容。
- *
- * 桌面出处：`WindBoard/MainWindow.xaml:450-499`（`ShapeFlyout`）。
- * - 面板：圆角 14、1px 描边、浅色（`:456-461`）
- * - 内容：`StackPanel Orientation="Horizontal" Spacing="8" Padding="12"`（`:462`）
- * - 四项按钮复用 44×44 圆角 10 的共享样式（`App.xaml:60-74`），内容用 XAML 自绘图形：
- *   直线 `(6,26)-(26,6)`、矩形 20×20、椭圆 22×22、箭头 `M6,26 L26,6 M26,6 L15,6 M26,6 L26,17`
- *   （`:464-496`），描边 2.5、圆头
- * - 选中项高亮 + 选定后收起面板（`MainWindow.xaml.cs` 的 `OnShapeKindClicked`）
- *
- * 本组件只渲染**面板内容**，锚点与开合由 `DockBar` 的 Fluent `Popover` 负责。
+ * 形状（直线、矩形、椭圆、箭头）面板内容，桌面出处 MainWindow.xaml:450-499（ShapeFlyout）：面板圆角 14、1px 描边、浅色（:456-461）；内容为横向 StackPanel，Spacing 8、Padding 12（:462）；四项按钮复用 44×44 圆角 10 的共享样式（App.xaml:60-74），图形用 XAML 自绘（直线 (6,26)-(26,6)、矩形 20×20、椭圆 22×22、箭头 M6,26 L26,6 M26,6 L15,6 M26,6 L26,17，:464-496），描边 2.5、圆头；选中项高亮并在选定后收起面板（MainWindow.xaml.cs 的 OnShapeKindClicked）。
+ * 本组件只渲染面板内容，锚点与开合由 DockBar 的 Fluent Popover 负责。
  */
 
 import type { ReactNode } from 'react'

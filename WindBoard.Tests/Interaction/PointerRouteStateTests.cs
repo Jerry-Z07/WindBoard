@@ -211,7 +211,6 @@ public sealed class PointerRouteStateTests
         routes.ActiveTouchPointers.Add(11);
         Assert.Equal(2, routes.ActiveTouchPointers.Count);
 
-        // 单指抬起后回落到单指。
         routes.ActiveTouchPointers.Remove(10);
         Assert.Single(routes.ActiveTouchPointers);
 

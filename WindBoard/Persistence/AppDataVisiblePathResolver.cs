@@ -7,22 +7,13 @@ namespace WindBoard.Persistence
 {
     /// <summary>
     /// 把「应用自身使用的友好路径」推导为「外部进程（资源管理器 / 默认关联程序）可见的真实路径」。
-    ///
-    /// 背景（MSIX 打包形态，详见 .trellis/spec/backend/packaging-guidelines.md）：
-    /// - 打包进程内 <c>%LOCALAPPDATA%\WindBoard\...</c> 的新建内容会被系统重定向到包私有位置，
-    ///   且「合入真实 AppData 视图」只在**应用进程内**生效（官方 windows/msix/desktop/desktop-to-uwp-behind-the-scenes：
-    ///   “merged at runtime to appear in the real AppData location”）；
-    /// - 外部进程看到的是真实的 <c>%LOCALAPPDATA%</c>，那里并没有这些文件，因此把友好路径交给外部进程会「找不到路径」；
-    /// - 重定向落点写作 <c>&lt;LocalCache&gt;\Local\...</c>（官方 windows/msix/msix-troubleshooting-guide 的
-    ///   <c>%LocalAppData%\Packages\&lt;PFN&gt;\LocalCache\Local\VFS\</c> 示例 + 本机实测日志落点）。
-    ///
-    /// 因此「打开 / 复制」交给外部前必须先映射；映射失败由调用方给出失败反馈，不得静默回退到友好路径。
+    /// 打包进程内 <c>%LOCALAPPDATA%\\WindBoard\\...</c> 的新建内容被重定向到包私有位置，合入真实 AppData 视图只在应用进程内生效，外部进程看到的是真实 <c>%LOCALAPPDATA%</c> 且找不到这些文件；落点写作 <c>&lt;LocalCache&gt;\\Local\\...</c>（官方 desktop-to-uwp-behind-the-scenes 与 msix-troubleshooting-guide 示例加本机实测，详见 .trellis/spec/backend/packaging-guidelines.md）。因此交给外部前必须先映射，映射失败由调用方给出失败反馈，不得静默回退到友好路径。
     /// </summary>
     internal static class AppDataVisiblePathResolver
     {
         /// <summary>
         /// 重定向落点中 LocalCache 之下的固定子目录名：<c>%LOCALAPPDATA%</c> → <c>&lt;LocalCache&gt;\Local</c>。
-        /// 注意：该层由「官方文档示例 + 本机实测」共同支撑，**不是 API 契约**，改变量前请先看 spec 的落点契约与真机验证结论。
+        /// 该层由官方文档示例加本机实测共同支撑，不属于 API 契约；改变量前请先看 spec 的落点契约与真机验证结论。
         /// </summary>
         private const string LocalSubdirectoryName = "Local";
 
@@ -90,13 +81,7 @@ namespace WindBoard.Persistence
 
         /// <summary>
         /// 组合入口：按当前安装形态把友好路径推导为外部可见路径。
-        ///
-        /// 说明：
-        /// - 未打包形态不触碰 WinRT / WinAppSDK，直接返回友好路径；
-        /// - 打包形态才读取 <c>Microsoft.Windows.Storage.ApplicationData.GetDefault().LocalCachePath</c>
-        ///   （由本工程既有依赖 <c>Microsoft.WindowsAppSDK</c> 提供，官方语义等价于
-        ///   <c>Windows.Storage.ApplicationData.LocalCacheFolder</c> 的路径）；
-        /// - 任何异常（例如该 API 在 mediumIL 打包桌面应用中不可用）一律降级为 false，由调用方给出失败反馈。
+        /// 未打包形态不触碰 WinRT / WinAppSDK，直接返回友好路径；打包形态才读取 <c>Microsoft.Windows.Storage.ApplicationData.GetDefault().LocalCachePath</c>（由既有依赖 <c>Microsoft.WindowsAppSDK</c> 提供，语义等价于 <c>Windows.Storage.ApplicationData.LocalCacheFolder</c>）；任何异常（例如该 API 在 mediumIL 打包桌面应用中不可用）一律降级为 false，由调用方给出失败反馈。
         /// </summary>
         internal static bool TryResolve(string friendlyPath, out string visiblePath)
         {

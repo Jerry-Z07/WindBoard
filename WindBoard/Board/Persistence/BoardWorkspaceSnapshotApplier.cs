@@ -22,10 +22,8 @@ namespace WindBoard.Board.Persistence
                 BoardPageSnapshot page = snapshot.Pages[i];
                 var session = new BoardSession();
 
-                // 导入属于“重建初始状态”，这里直接填充 Document，
-                // 避免污染撤销/重做栈（导入后应视为新的起点）。
-                // 快照 → 域重建（含 Kind 分发与 Bounds 重算）收敛于 BoardInkItemCodec：
-                // 条目按快照顺序填充，保持 z-order 与文件一致。
+                // 导入是重建初始状态，直接填充 Document 以保持撤销/重做栈干净（导入后视为新起点）。
+                // 条目按快照顺序经 BoardInkItemCodec 重建（含 Kind 分发与 Bounds 重算），z-order 与文件一致。
                 session.Document.InkItems.AddRange(BoardInkItemCodec.ToItemList(page.Strokes));
 
                 // 导入页面元素（文本/链接/媒体/文件等）。

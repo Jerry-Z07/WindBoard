@@ -1,18 +1,6 @@
 /**
- * 浏览器里的「双击元素外部打开」执行层。
- *
- * 桌面 `BoardInputController.Open.cs` 的判定与文案已由 `element-open.ts` 移植；本模块只负责
- * **真正把东西打开**，并把结果收敛成 `OpenElementResult`（不抛异常、不弹窗）。
- *
- * 桌面 → 网页的语义映射（逐条对应 `Open.cs`）：
- * - 链接（`OpenLinkAsync`，`:84-104`）：桌面把 `Uri` 交给 `Windows.System.Launcher.LaunchUriAsync`；
- *   网页用新标签打开该 URL。桌面「系统未能打开该链接」对应网页「弹出窗口被拦截」。
- * - 媒体 / 文件（`OpenFilePathAsync`，`:127-153`）：桌面用 `StorageFile.GetFileFromPathAsync` +
- *   `Launcher.LaunchFileAsync` 启动本地默认程序。**浏览器没有等价能力**：网页拿不到本地文件系统路径，
- *   也不能启动本机程序。因此这里返回明确的「网页端无法打开本地文件」提示，而不是假装成功。
- *   将来 P4 资源层就绪后，可用 `resourceId` 解析出内嵌资源并打开 blob URL（见下方 `TODO`）。
- * - 文本（`OpenElementExternalAsync` 的 default 分支，`:73-74`）：桌面什么都不做，这里返回
- *   `{ ok: true }`（没有错误需要提示），由调用方决定是否忽略。
+ * 浏览器里的“双击元素外部打开”执行层：判定与文案由 element-open.ts 移植，这里只负责真正打开并把结果收敛成 OpenElementResult（不抛异常、不弹窗）。
+ * 语义映射：链接用新标签打开（桌面交给 LaunchUriAsync，桌面“系统未能打开该链接”对应网页“弹窗被拦截”）；媒体/文件拿不到本地路径，返回网页端无法打开的提示；文本与未知类型返回 { ok: true }。
  */
 
 import type { BoardElement } from '../model/element.ts'
@@ -26,11 +14,7 @@ import {
 } from './element-open.ts'
 
 /**
- * 网页端新增文案（桌面 resw 里没有对应 key，属于浏览器语义差异的补充说明）。
- *
- * 理由：桌面能启动本地程序，网页不能。若沿用桌面的 `Open_FileNotFound_Fmt` / `Open_Unauthorized_Fmt`
- * 会误导用户以为"文件丢了/没权限"，实际是"浏览器打不开本地文件"。
- * key 落在 `src/i18n/web-strings/element.json`。
+ * 网页端新增文案（桌面 resw 里没有对应 key）：桌面能启动本地程序，网页不能，沿用 Open_FileNotFound_Fmt / Open_Unauthorized_Fmt 会让用户以为文件丢了或没权限。key 落在 src/i18n/web-strings/element.json。
  */
 export const WEB_ONLY_OPEN_TEXTS = {
   /** 本地文件在浏览器里没有打开通道（`{0}` 为显示名，缺失时用路径）。 */
@@ -56,29 +40,10 @@ export interface OpenElementEnv {
 }
 
 /**
- * 浏览器里的「双击外部打开」。
- *
- * 行为（按元素类型）：
- * - link：规整 URL 后新标签打开；被拦截 → `Open_LaunchLinkFailed_Message`；格式非法 → `Open_InvalidLinkFormat_Fmt`。
- * - media / file：有 `resourceId` → 资源未加载；路径为空 → `Open_FilePathEmpty_Message`；否则 → 网页端不支持。
- * - text / 未知类型：no-op，返回 `{ ok: true }`。
- *
- * ## 打开链接时的取舍（不是疏漏，改前先读）
- *
- * 1. **不能与 `noopener,noreferrer` 同用**：按规范（MDN `Window.open`），features 里出现 `noopener`
- *    （`noreferrer` 隐含 `noopener`）时 `window.open` 无论是否成功都返回 `null`，于是「返回 null = 被拦截」
- *    这个判据失效 —— 照字面实现会让**每次成功打开都弹「系统未能打开该链接」**。因此缺省实现改为
- *    `window.open(url, '_blank')` 拿句柄（`null` 即被拦）后立刻 `handle.opener = null`，隔离效果与
- *    `noopener` 等价，代价是失去 `noreferrer`。
- * 2. **隐私影响范围**：不带 `noreferrer` 时仍受浏览器缺省 Referrer-Policy 约束
- *    （`strict-origin-when-cross-origin`）——跨源只发送**源站 origin**（如 `https://app.example/`），
- *    不含路径、查询串与片段；HTTPS 页面跳 HTTP 目标时不发送 Referer。故泄漏面仅为「用户来自哪个站点」。
- * 3. **若将来要求彻底不发 Referer**：改用 `<a href target="_blank" rel="noopener noreferrer">` 的程序化点击
- *    导航（`anchor.click()`），Referer 与 opener 都能完全按 `rel` 控制；代价是**拿不到任何返回值**，
- *    无法检测弹窗是否被拦截，只能一律视为成功（或另配"未响应"兜底提示）。
- *
+ * 浏览器里的“双击外部打开”：link 规整 URL 后新标签打开（被拦截给 Open_LaunchLinkFailed_Message，格式非法给 Open_InvalidLinkFormat_Fmt）；media/file 有 resourceId 报资源未加载，路径为空报 Open_FilePathEmpty_Message，否则报网页端不支持；text 与未知类型返回 { ok: true }。
+ * window.open 的 features 不能带 noopener（noreferrer 隐含 noopener），规范要求那时无论成败都返回 null，“返回 null 即被拦截”的判据失效；折中是普通打开拿句柄后立刻把 opener 置空，隔离等价但失去 noreferrer（跨源只按缺省 Referrer-Policy 泄漏来源 origin），改 anchor.click 则拿不到返回值、无法检测拦截。
  * @param element 被双击的元素
- * @param env 可注入的浏览器环境（单测用），缺省走 `window.open`
+ * @param env 可注入的浏览器环境（单测用），缺省走 window.open
  */
 export function openElementExternal(
   element: BoardElement,
@@ -115,17 +80,8 @@ export function openElementExternal(
 }
 
 /**
- * 打开媒体 / 文件目标。
- *
- * 浏览器能力边界（顺序有意如此）：
- * 1. 有 `resourceId`：网页端的内嵌资源由 P4 资源层解析成 blob URL 后打开；当前还没有该层，
- *    因此明确告知「尚未加载」。这一分支**先于**路径校验 —— WBIX 内嵌图片可能只有 `resourceId`
- *    而没有 `sourcePath`，此时报"文件路径为空"会误导用户（桌面侧导入时会把内嵌资源落成临时文件，
- *    网页端没有这一步）。
- * 2. 没有 `resourceId`：桌面会按 `SourcePath` 启动本地程序，浏览器**做不到**，返回网页端新增文案。
- *
- * TODO(P4)：资源层提供 `resolveResourceUrl(resourceId): string | null` 后，在此处打开返回的 blob URL
- * （`openWindow(blobUrl)` 即可），并保留失败分支。
+ * 打开媒体 / 文件目标：有 resourceId 先报“尚未加载”（P4 资源层未就绪，且 WBIX 内嵌图片可能只有 resourceId 没有 sourcePath，先校验路径会误导用户），没有 resourceId 则返回网页端无法打开本地文件。
+ * TODO(P4)：资源层提供 resolveResourceUrl(resourceId) 后在此打开返回的 blob URL（openWindow(blobUrl) 即可），并保留失败分支。
  */
 function openFileTarget(element: BoardElement, target: FileOpenTarget): OpenElementResult {
   const resourceId = (element.resourceId ?? '').trim()
@@ -166,16 +122,8 @@ function openUrl(url: string, env: OpenElementEnv): boolean {
 }
 
 /**
- * 缺省实现：用新标签打开 URL。
- *
- * 这里**没有**把 `noopener` 写进 features，原因（MDN `Window.open` 的 noopener 说明 + 本机 Chrome 实测）：
- * 一旦带上 `noopener`（`noreferrer` 同样隐含 noopener），规范要求 `window.open` 无论是否成功都返回
- * `null`，于是「返回 null = 被拦截」这个判据就失效了 —— 用户成功打开链接时反而会看到
- * 「系统未能打开该链接」。实测（Chrome）：带 `noopener,noreferrer` 返回 null；不带则返回句柄。
- * 折中做法是先普通打开拿到句柄（`null` 即被拦截，判据可靠），再立刻把 `opener` 置空，
- * 达到与 `noopener` 相同的隔离效果（目标页读不到 `window.opener`；实测跨源赋值不抛异常、置空后读回为 null）。
- * 代价是不带 `noreferrer`（会向目标站发送本站 URL 作为 Referer）；若更看重隐私，可改回
- * `noopener,noreferrer` 并接受"无法区分被拦截"。
+ * 缺省实现：用新标签打开 URL。这里不把 noopener 写进 features：带上后（noreferrer 同样隐含 noopener）规范要求 window.open 无论成败都返回 null，“返回 null 即被拦截”的判据失效，用户成功打开反而会看到失败提示（Chrome 实测）。
+ * 折中是普通打开拿到句柄后立刻把 opener 置空，目标页读不到 window.opener，隔离效果与 noopener 相同；代价是不发 noreferrer，目标站会收到本站 URL 作为 Referer。
  */
 function defaultOpenWindow(url: string): boolean {
   // 用 `globalThis` 而不是直接写 `window`：单测环境（node）没有 `window`，直接引用会抛 ReferenceError。

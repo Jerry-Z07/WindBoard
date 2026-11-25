@@ -5,24 +5,8 @@ import { STROKE_KIND } from '../board/model/stroke.ts'
 import type { InkItem } from '../board/model/workspace.ts'
 
 /**
- * 擦除命中测试（纯函数，无 DOM / React 依赖）。
- *
- * 事实源（逐条移植）：
- * - `WindBoard/Board/Editing/InkItemHitTest.cs`：按条目类型分发的命中判定；
- * - `WindBoard/Board/Editing/SegmentMath2D.cs`：点-线段 / 线段-线段最短距离。
- *
- * 几何口径（与桌面一致）：
- * - 橡皮擦轨迹是“线段 + X/Y 半径”的**椭圆**胶囊；判定统一在“按扩展半径归一化”
- *   的空间里做——该空间把椭圆胶囊映射为单位圆（见 `getEraserCapsuleInv`）；
- * - 折线笔迹自身半宽参与命中：单点用该点压感，多点用**两端压感平均值**再套宽度因子
- *   （桌面 `GetHalfStrokeWidthWorld(stroke, pressure0, pressure1)`），
- *   与 `web/src/ink/geometry.ts` 的 `distancePointToStroke` 保持同一口径；
- * - 形状等不可分割条目走桌面 `InkItemHitTest` 的**通用保守路径**：世界包围盒与
- *   橡皮擦 AABB 相交即算命中（不是精确几何相交，详见 `isItemHitByEraserSegment`）。
- *
- * 数值口径：桌面是 float32 运算，web 侧沿用既有 `geometry.ts` 的做法——输入值是
- * float32 语义的 `F32`，中间计算用 float64。极少数落在阈值 1e-7 量级上的边界
- * 用例可能与桌面差 1 ulp，正常交互尺度下无影响。
+ * 擦除命中测试（纯函数，无 DOM / React 依赖），逐条移植桌面 Board/Editing/InkItemHitTest.cs（按条目类型分发命中判定）与 SegmentMath2D.cs（点-线段、线段-线段最短距离）。几何口径：橡皮擦轨迹是线段加 X/Y 半径的椭圆胶囊，判定统一在“按扩展半径归一化”的空间里做（该空间把椭圆胶囊映射为单位圆，见 getEraserCapsuleInv）；折线笔迹自身半宽参与命中，单点用该点压感、多点用两端压感平均值再套宽度因子（桌面 GetHalfStrokeWidthWorld(stroke, pressure0, pressure1)），与 geometry.ts 的 distancePointToStroke 同一口径；形状等不可分割条目走桌面的通用保守路径，世界包围盒与橡皮擦 AABB 相交即算命中。
+ * 数值口径：桌面是 float32 运算，web 侧沿用 geometry.ts 的做法，输入值是 float32 语义的 F32、中间计算用 float64，极少数落在 1e-7 阈值上的边界用例可能与桌面差 1 ulp，正常交互尺度下无影响。
  */
 
 /** 判定“线段退化为点”的长度平方阈值（桌面 `SegmentMath2D` 的 `0.0000001f`）。 */
@@ -38,21 +22,14 @@ const INV_RADIUS_EPSILON = 1e-7
 const CAPSULE_HIT_DISTANCE_SQUARED = 1
 
 /**
- * 某压感下的笔迹半宽（桌面 `PixelStrokeEraser.GetHalfStrokeWidthWorld(stroke, pressure)`）。
- *
- * `halfWidth = max(0.25, baseSize · wf / 2)`，其中
- * `wf = enablePressure ? clamp(pressure, 0.1, 1) : 1`；与 `geometry.ts` 的
- * `getStrokePointRadius`（`max(0.5, baseSize · wf) / 2`）在数学上等价。
+ * 某压感下的笔迹半宽（桌面 PixelStrokeEraser.GetHalfStrokeWidthWorld(stroke, pressure)）。halfWidth = max(0.25, baseSize · wf / 2)，其中 wf = enablePressure ? clamp(pressure, 0.1, 1) : 1；与 geometry.ts 的 getStrokePointRadius（max(0.5, baseSize · wf) / 2）数学上等价。
  */
 export function getStrokeHalfWidth(stroke: Stroke, pressure: number): number {
   return Math.max(MIN_VISIBLE_RADIUS, (stroke.baseSize * getStrokeWidthFactor(stroke, pressure)) / 2)
 }
 
 /**
- * 一段折线的命中/裁剪半宽（桌面 `GetHalfStrokeWidthWorld(stroke, pressure0, pressure1)`）。
- *
- * 注意口径：先对**两端压感取平均**再套宽度因子与下限，而不是两端半径取平均
- * （两者在触发 0.25 下限时结果不同，桌面取前者）。
+ * 一段折线的命中与裁剪半宽（桌面 GetHalfStrokeWidthWorld(stroke, pressure0, pressure1)）。先对两端压感取平均再套宽度因子与下限；两端半径先取平均在触发 0.25 下限时结果不同，桌面取前者。
  */
 export function getStrokeSegmentHalfWidth(stroke: Stroke, pressure0: number, pressure1: number): number {
   const averagePressure = (pressure0 + pressure1) / 2
@@ -60,21 +37,14 @@ export function getStrokeSegmentHalfWidth(stroke: Stroke, pressure0: number, pre
 }
 
 /**
- * 采样快速过滤用的“最大可能半宽”（桌面 `GetMaxHalfStrokeWidthWorld`）。
- *
- * 桌面实现**忽略压感开关与压感值**，直接取 `max(0.25, baseSize / 2)`：
- * 宽度因子最大为 1，所以这确实是半宽的上界。
+ * 采样快速过滤用的「最大可能半宽」（桌面 GetMaxHalfStrokeWidthWorld）。桌面实现忽略压感开关与压感值，直接取 max(0.25, baseSize / 2)；宽度因子最大为 1，所以这确实是半宽的上界。
  */
 export function getMaxHalfStrokeWidth(stroke: Stroke): number {
   return Math.max(MIN_VISIBLE_RADIUS, stroke.baseSize / 2)
 }
 
 /**
- * 橡皮擦胶囊在各轴上的归一化系数（桌面 `1.0f / Math.Max(0.0000001f, r)`）。
- *
- * 扩展半径 `r = max(0, radiusWorld) + halfWidth`（逐轴），归一化后椭圆胶囊变成单位圆，
- * 于是“点是否在胶囊内”退化为“归一化空间里点到线段的距离平方是否 `<= 1`”。
- *
+ * 橡皮擦胶囊在各轴上的归一化系数（桌面 1.0f / Math.Max(0.0000001f, r)）。扩展半径 r = max(0, radiusWorld) + halfWidth 逐轴计算，归一化后椭圆胶囊变成单位圆，于是「点是否在胶囊内」退化为「归一化空间里点到线段的距离平方是否 <= 1」。
  * @param halfWidth 笔迹在该处的半宽；只判定橡皮擦本体时传 0。
  */
 export function getEraserCapsuleInv(radiusWorld: Vec2, halfWidth: number): Vec2 {
@@ -128,10 +98,7 @@ function isPointOnSegmentRange(a: Vec2, b: Vec2, point: Vec2): boolean {
 }
 
 /**
- * 线段相交测试（含共线重叠；桌面 `SegmentMath2D.SegmentsIntersect`）。
- *
- * 注意：桌面用严格 `o1 * o2 < 0` 判“跨立”，再对 4 个叉积逐一做 `|o| <= 1e-5` 的共线兜底，
- * 这里照搬（包括 `else if` 链的短路顺序，不改成更“优雅”的统一判断）。
+ * 线段相交测试（含共线重叠；桌面 SegmentMath2D.SegmentsIntersect）。桌面用严格 o1 * o2 < 0 判跨立，再对 4 个叉积逐一做 |o| <= 1e-5 的共线兜底，这里照搬，并保留 else if 链的短路顺序。
  */
 export function segmentsIntersect(a0: Vec2, a1: Vec2, b0: Vec2, b1: Vec2): boolean {
   const o1 = cross(a1.x - a0.x, a1.y - a0.y, b0.x - a0.x, b0.y - a0.y)
@@ -170,10 +137,7 @@ export function distanceSquaredSegmentToSegment(a0: Vec2, a1: Vec2, b0: Vec2, b1
 }
 
 /**
- * 橡皮擦轨迹线段的 AABB（按 X/Y 半径向外扩展；桌面 `InkItemHitTest.GetEraserSegmentAabb`）。
- *
- * 注意：桌面这里**没有**对半径做 `max(0, ·)` 截断（与 `IsPointErased` 不同），
- * 负半径会收缩 AABB。橡皮半径实际恒为正，这里照搬以保持行为一致。
+ * 橡皮擦轨迹线段的 AABB（按 X 与 Y 半径向外扩展；桌面 InkItemHitTest.GetEraserSegmentAabb）。桌面这里没有对半径做 max(0, ·) 截断（与 IsPointErased 不同），负半径会收缩 AABB；橡皮半径实际恒为正，这里照搬以保持行为一致。
  */
 function getEraserSegmentAabb(fromWorld: Vec2, toWorld: Vec2, radiusWorld: Vec2): { min: Vec2; max: Vec2 } {
   return {
@@ -194,13 +158,7 @@ function intersectsAabb(aMin: Vec2, aMax: Vec2, bMin: Vec2, bMax: Vec2): boolean
 }
 
 /**
- * 点是否落在“擦除胶囊”内（世界坐标；`radiusWorld` 的 x/y 可不等，即椭圆胶囊）。
- *
- * 等价于桌面 `SegmentMath2D.DistanceSquaredPointToSegment` 在归一化空间里 `<= 1`
- * 的判定（橡皮擦本体，不含笔迹半宽；带半宽的判定见 `pixel-eraser.ts` 的裁剪路径）。
- *
- * 边界为**闭区间**：恰好落在椭圆边界上的点算命中（桌面 `<= 1.0f`）。
- * `fromWorld === toWorld` 时退化为“点到点的椭圆距离”。
+ * 点是否落在「擦除胶囊」内（世界坐标；radiusWorld 的 x 与 y 可不等，即椭圆胶囊）。等价于桌面 SegmentMath2D.DistanceSquaredPointToSegment 在归一化空间里 <= 1 的判定，只算橡皮擦本体、不含笔迹半宽（带半宽的判定见 pixel-eraser.ts 的裁剪路径）；边界为闭区间，恰好落在椭圆边界上的点算命中（桌面 <= 1.0f），fromWorld === toWorld 时退化为点到点的椭圆距离。
  */
 export function isPointInEraserCapsule(
   point: Vec2,
@@ -218,14 +176,7 @@ export function isPointInEraserCapsule(
 }
 
 /**
- * 折线笔迹是否被橡皮擦轨迹线段命中（桌面 `InkItemHitTest.IsStrokeHitByEraserSegment`）。
- *
- * 分支顺序与桌面一致：
- * 1. 空点集不命中；
- * 2. 包围盒快速过滤（桌面用 `Stroke.HasBounds` 缓存；web 无缓存，用 `getStrokeBounds`
- *    按同一口径现算，结果等价，仅多一次 O(n) 遍历）；
- * 3. 单点笔迹：按半径 `max(0.25, baseSize · wf / 2)` 的圆点判定；
- * 4. 多点笔迹：逐段用“两端压感平均值”的半宽，做归一化后的线段-线段距离判定。
+ * 折线笔迹是否被橡皮擦轨迹线段命中（桌面 InkItemHitTest.IsStrokeHitByEraserSegment），分支顺序与桌面一致：空点集不命中；包围盒快速过滤（桌面用 Stroke.HasBounds 缓存，web 无缓存，用 getStrokeBounds 按同一口径现算，结果等价，仅多一次 O(n) 遍历）；单点笔迹按半径 max(0.25, baseSize · wf / 2) 的圆点判定；多点笔迹逐段用两端压感平均值的半宽，做归一化后的线段-线段距离判定。
  */
 export function isStrokeHitByEraserSegment(
   stroke: Stroke,
@@ -279,12 +230,7 @@ export function isStrokeHitByEraserSegment(
 }
 
 /**
- * 形状是否被橡皮擦轨迹线段命中（桌面 `InkItemHitTest` 的通用路径）。
- *
- * 桌面口径是**保守**的：用“形状世界包围盒（AABB 外扩半宽）”与“橡皮擦 AABB（外扩半径）”
- * 做闭区间相交，不做精确几何求交。因此矩形/椭圆即使橡皮擦只穿过**空心内部**（没碰到描边）
- * 也会被判定命中，进而整条删除——这是桌面既有行为，像素擦除器与整笔擦除器共用它，
- * 这里照搬不做“优化”。
+ * 形状是否被橡皮擦轨迹线段命中（桌面 InkItemHitTest 的通用路径）。桌面口径保守：用「形状世界包围盒（AABB 外扩半宽）」与「橡皮擦 AABB（外扩半径）」做闭区间相交，不做精确几何求交，因此矩形与椭圆即使橡皮擦只穿过空心内部（没碰到描边）也会判命中并整条删除；像素擦除器与整笔擦除器共用这条路径，这里照搬。
  */
 export function isShapeHitByEraserSegment(
   shape: Shape,
@@ -293,8 +239,7 @@ export function isShapeHitByEraserSegment(
   eraserRadiusWorld: Vec2,
 ): boolean {
   const bounds = getShapeBounds(shape)
-  // 桌面：条目无有效包围盒（宽高同时 <= 0）时不命中。属于防御性分支——`getShapeBounds`
-  // 至少外扩 0.25，宽高恒 >= 0.5，因此这里实际不可达；保留以对齐桌面判定顺序。
+  // 桌面：条目无有效包围盒（宽高同时 <= 0）时不命中。属于防御性分支：`getShapeBounds` 至少外扩 0.25，宽高恒 >= 0.5，因此这里实际不可达；保留以对齐桌面判定顺序。
   if (bounds.max.x - bounds.min.x <= 0 && bounds.max.y - bounds.min.y <= 0) {
     return false
   }

@@ -6,7 +6,6 @@ namespace WindBoard.Tests.Board.Commands;
 
 public sealed class BringInkItemToFrontCommandTests
 {
-    // Do/Undo 应能把指定条目移动到末尾，并可撤销恢复
     [Fact]
     public void Do_Undo_MovesStrokeToEndAndRestores()
     {

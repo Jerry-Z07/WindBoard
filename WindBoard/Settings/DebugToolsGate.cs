@@ -5,11 +5,7 @@ using WindBoard.Logging;
 namespace WindBoard.Settings
 {
     /// <summary>
-    /// 调试入口开关（会话级，不落盘）。
-    /// 
-    /// 约定：
-    /// - Debug 构建：入口始终显示（无需解锁）。
-    /// - Release 构建：默认隐藏；可在运行时解锁本次会话显示。
+    /// 调试入口开关（会话级，不落盘）：Debug 构建入口始终显示；Release 构建默认隐藏，可在运行时解锁本次会话显示。
     /// </summary>
     internal static class DebugToolsGate
     {

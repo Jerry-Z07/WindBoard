@@ -30,9 +30,7 @@ namespace WindBoard.Features.Import.Services
 
             Vector2 sizeWorld = sizeDip / z;
 
-            // 放置策略：
-            // - 以视口中心为基准进行居中放置；
-            // - 多个导入元素按网格向右/向下铺开。
+            // 放置策略：以视口中心为基准居中，多个导入元素按网格向右或向下铺开。
             element.SizeWorld = sizeWorld;
             element.PositionWorld = cameraWorld - sizeWorld / 2.0f + offsetWorld;
         }

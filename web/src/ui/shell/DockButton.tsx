@@ -1,16 +1,6 @@
 /**
- * Dock 按钮：对应桌面的 `DockButtonStyle`（`WindBoard/App.xaml:20-28`）与
- * `DockToggleButtonStyle`（`WindBoard/App.xaml:30-39`）。
- *
- * 视觉规格（尺寸/颜色/交互态）全部由 `styles/tokens.css` + `styles/shell.css` 的
- * `.wb-dock-button*` 承担，本组件只负责**结构与可访问性**：
- * - 图标 20 + 文字 11 + 间距 3，纵向居中（`MainWindow.xaml:127-130` 的 `StackPanel` 结构）；
- * - 工具类按钮用 `aria-pressed` 表达选中态，由
- *   `.wb-dock-button[aria-pressed='true']` 上 `#1976D2` 底 + 白字（`MainWindow.xaml:64-68`）；
- * - 纯图标按钮（页面 Dock 的上一页/下一页/新增）用 `title` 作为无障碍名。
- *
- * 为什么 `ref` 是 props 而不是 `forwardRef`：React 19 起函数组件的 `ref` 就是普通 prop，
- * Fluent 的 `PopoverTrigger` 需要拿到真实 DOM 节点做定位，必须原样转发到 `<button>`。
+ * Dock 按钮：对应桌面的 DockButtonStyle（App.xaml:20-28）与 DockToggleButtonStyle（App.xaml:30-39）。尺寸、颜色与交互态由 styles/tokens.css 与 styles/shell.css 的 .wb-dock-button* 承担，本组件只负责结构与可访问性：图标 20 加文字 11 加间距 3，纵向居中（MainWindow.xaml:127-130 的 StackPanel 结构）；工具类按钮用 aria-pressed 表达选中态，由 .wb-dock-button[aria-pressed='true'] 上 #1976D2 底加白字（MainWindow.xaml:64-68）；纯图标按钮（页面 Dock 的上一页、下一页、新增）用 title 作为无障碍名。
+ * ref 用普通 props 而不是 forwardRef：React 19 起函数组件的 ref 就是普通 prop，Fluent 的 PopoverTrigger 需要拿到真实 DOM 节点做定位，必须原样转发到 button 元素。
  */
 
 import type { ReactNode, Ref } from 'react'

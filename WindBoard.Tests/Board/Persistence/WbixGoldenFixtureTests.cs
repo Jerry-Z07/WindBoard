@@ -19,12 +19,8 @@ namespace WindBoard.Tests.Board.Persistence;
 /// WBIX 字节级 golden 测试：把"写出形态"逐字节锁死，使第二个独立实现（网页端）能安全对齐。
 /// </summary>
 /// <remarks>
-/// 断言范围（对应 design D12 / prd AC12）：
-/// - Zip 条目名与写出顺序（pages → assets → manifest 最后）；
-/// - 每个文本条目解压后与语料逐字节一致（含缩进、键序、数字格式、转义）；
-/// - <c>createdUtc</c> 为 UTC ISO-8601 且固定 7 位小数（时间戳本身不可注入，故校验格式后归一化再比对）；
-/// - 读回一致：写出的文件重新读入后关键字段与模型一致。
-///
+/// 断言范围（对应 design D12 / prd AC12）：Zip 条目名与写出顺序（pages → assets → manifest 最后）；每个文本条目解压后与语料逐字节一致（含缩进、键序、数字格式、转义）。
+/// <c>createdUtc</c> 为 UTC ISO-8601 且固定 7 位小数（时间戳本身不可注入，故校验格式后归一化再比对）；写出的文件重新读入后关键字段与模型一致。
 /// 语料位于 <c>WindBoard.Tests/Fixtures/wbix/</c>，重建方式见 <see cref="WbixGoldenCorpus"/>。
 /// </remarks>
 public sealed partial class WbixGoldenFixtureTests
@@ -77,7 +73,7 @@ public sealed partial class WbixGoldenFixtureTests
             $"createdUtc 无法解析为 DateTimeOffset：'{createdUtcValue}'");
         Assert.Equal(TimeSpan.Zero, parsed.Offset);
 
-        // 规范性：写出的字符串必须是该值的规范形态——重新序列化后逐字符相同（web 端据此对齐）。
+        // 规范性：写出的字符串必须是该值的规范形态，重新序列化后逐字符相同（web 端据此对齐）。
         Assert.Equal($"\"{createdUtcValue}\"", JsonSerializer.Serialize(parsed));
 
         TimeSpan age = DateTimeOffset.UtcNow - parsed;

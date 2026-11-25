@@ -9,15 +9,8 @@ using WindBoard.Logging;
 namespace WindBoard.Localization
 {
     /// <summary>
-    /// 本地化字符串读取入口（基于 .resw / MRT Core）。
-    ///
-    /// 设计说明：
-    /// - 外部 API 继续保持 <c>L10n.Get/Format</c> 与 <c>LocExtension</c> 不变，避免大面积调用点改动；
-    /// - 底层通过 MRT Core 读取 <c>.resw</c> 资源，PRI 名称由构建形态决定：未打包形态
-    ///   （便携版 / 开发运行 / 单测）的输出目录只有 <c>WindBoard.pri</c>（<c>$(TargetName).pri</c>），
-    ///   必须显式传入文件名；打包（MSIX / Store）形态包内只有包根的 <c>resources.pri</c>，
-    ///   由默认构造自动加载、且不允许改名；
-    /// - 缺失 Key / 缺翻译不应导致崩溃：回退为 fallback（或 key 本身），并仅记录一次日志，便于排查漏配。
+    /// 本地化字符串读取入口：对外保持 <c>L10n.Get/Format</c> 与 <c>LocExtension</c> 不变，底层经 MRT Core 读 <c>.resw</c>；缺失 Key 或翻译时回退 fallback（或 key 本身）并只记录一次日志，不崩溃。
+    /// PRI 名称由构建形态决定：未打包形态（便携版、开发运行、单测）的输出目录只有 <c>WindBoard.pri</c>（<c>$(TargetName).pri</c>），须显式传入文件名；MSIX 包内只有包根 <c>resources.pri</c>，由默认构造自动加载且不允许改名。
     /// </summary>
     internal static class L10n
     {
@@ -216,9 +209,7 @@ namespace WindBoard.Localization
         }
 
         /// <summary>
-        /// 解析未打包形态使用的 PRI 文件名。
-        /// 应用目录存在 <c>WindBoard.pri</c> 时返回该文件名；否则返回 <c>null</c>，
-        /// 表示应使用默认构造读取包根 <c>resources.pri</c>（打包形态）。
+        /// 解析未打包形态使用的 PRI 文件名：应用目录存在 <c>WindBoard.pri</c> 时返回该文件名，否则返回 <c>null</c>，表示应使用默认构造读取包根 <c>resources.pri</c>（打包形态）。
         /// </summary>
         internal static string? ResolvePriFileName(string baseDirectory)
         {

@@ -1,9 +1,5 @@
 /**
- * WBIX 读写错误与容忍告警。
- *
- * 分层原则（对齐桌面 `WbixWorkspaceSerializer`）：
- * - **致命**：抛 `WbixError`，整个包读/写失败；
- * - **容忍**：收集 `WbixWarning`，跳过单条数据继续，语义与桌面 `AppLog.Warn` + 跳过一致。
+ * WBIX 读写错误与容忍告警。分层原则对齐桌面 WbixWorkspaceSerializer：致命错误抛 WbixError，整个包读写失败；容忍问题收集 WbixWarning，跳过单条数据继续，语义与桌面 AppLog.Warn 加跳过一致。
  */
 
 /** 致命错误码。 */

@@ -2,10 +2,7 @@ import { BoardDocument } from './document.ts'
 import { ClearCommand } from './commands.ts'
 
 /**
- * 可撤销命令（对应桌面 `WindBoard.Board.Commands.IBoardCommand`）。
- *
- * 与桌面签名一致：`do` / `undo` 接收目标文档，命令本身不持有文档引用，
- * 因此同一个命令对象可以复用到不同页的会话。
+ * 可撤销命令（对应桌面 WindBoard.Board.Commands.IBoardCommand）。与桌面签名一致：do 与 undo 接收目标文档，命令本身不持有文档引用，因此同一个命令对象可以复用到不同页的会话。
  */
 export interface BoardCommand {
   do(document: BoardDocument): void
@@ -13,13 +10,7 @@ export interface BoardCommand {
 }
 
 /**
- * 单页编辑会话（对应桌面 `WindBoard.Board.Editing.BoardSession`）。
- *
- * 语义与桌面一致：
- * - 每页一个实例，撤销/重做栈无上限；
- * - `execute` 执行命令后入撤销栈，并**清空重做栈**（新分支丢弃旧重做历史）；
- * - `undo` / `redo` 返回是否真的发生了状态变化；
- * - 任何状态变化（execute / undo / redo）都会通知订阅者。
+ * 单页编辑会话（对应桌面 WindBoard.Board.Editing.BoardSession）。语义与桌面一致：每页一个实例，撤销与重做栈无上限；execute 执行命令后入撤销栈并清空重做栈（新分支丢弃旧重做历史）；undo 与 redo 返回是否真的发生了状态变化；任何状态变化都会通知订阅者。
  */
 export class BoardSession {
   /** 会话绑定的文档（每页一个）。 */

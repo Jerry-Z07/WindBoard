@@ -1,11 +1,6 @@
 /**
- * i18n Provider：解析当前语言并交给上下文。
- *
- * 语言来源＝设置里的 `general.languagePreference`（`system` / `zh-CN` / `en-US`）。
- * `system` 时按 `navigator.languages` 解析，与桌面「跟随系统」同义。
- *
- * 副作用：把解析结果写到 `<html lang>`——它影响读屏发音、浏览器翻译提示与断词规则，
- * 无论有没有译文都该反映真实界面语言。
+ * i18n Provider：解析当前语言并交给上下文。语言来源是设置里的 general.languagePreference（system、zh-CN、en-US），system 时按 navigator.languages 解析，与桌面「跟随系统」同义。
+ * 副作用是把解析结果写到 <html lang>，它影响读屏发音、浏览器翻译提示与断词规则，无论有没有译文都该反映真实界面语言。
  */
 
 import { useEffect, useMemo, type ReactNode } from 'react'

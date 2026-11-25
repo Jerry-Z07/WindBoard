@@ -8,8 +8,7 @@ namespace WindBoard.Board.Commands
     /// 将指定绘制条目置顶（移动到列表末尾，视觉上最后绘制；可撤销）。
     /// </summary>
     /// <remarks>
-    /// 由原 <c>BringStrokeToFrontCommand</c> 泛化而来（design A）：选择 Dock 置顶
-    /// 需同时覆盖折线笔迹与形状，实现与类型无关。
+    /// 实现与条目类型无关，选择 Dock 置顶同时覆盖折线笔迹与形状。
     /// </remarks>
     internal sealed class BringInkItemToFrontCommand(IBoardInkItem item) : IBoardCommand
     {

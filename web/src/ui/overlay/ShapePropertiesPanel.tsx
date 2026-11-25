@@ -1,29 +1,6 @@
 /**
- * 形状属性浮层（P2.3）：选中单个形状时显示的两个数值输入框。
- *
- * 桌面出处：`WindBoard/Controls/BoardCanvasControl.xaml:74-114`（`ShapePropertiesCanvas` /
- * `ShapePropertiesBorder`）与 `BoardCanvasControl.ShapeProperties.cs`：
- * - 容器：背景 `SystemControlBackgroundChromeMediumLowBrush`、圆角 14、`Opacity=0.85`、`RequestedTheme=Light`
- *   （**强制浅色**）；
- * - 内部：`StackPanel Orientation="Horizontal" Spacing="12" Margin="12,8"`，两组纵向 `Spacing=2`：
- *   标签 `FontSize=11 Opacity=0.75` + `NumberBox Width=200 MinHeight=44 Padding="6,2"
- *   SpinButtonPlacementMode=Inline SmallChange=1 AcceptsExpression=False`；
- * - 仅"恰好选中一个形状"时显示，定位到选择框下沿 +8 居中（`Rendering.cs:213-226`）。
- *
- * 控件选型：Fluent v9 **没有** `NumberBox`（它是 `@fluentui/react-number-box-preview` 里的预览组件，
- * 本仓库未安装）。功能等价且稳定的组件是 `SpinButton`：内置输入框 + 步进按钮（对应
- * `SpinButtonPlacementMode=Inline`），并提供 `min` / `max` / `step` / `precision`。
- *
- * 提交时机（重要，与 Lead 的原始描述不同，已按实际 API 文档核对）：
- * - 桌面 `NumberBox.ValueChanged` **不是**每次按键触发，而是"提交"时触发（回车/失焦/点步进按钮），
- *   源码注释也写明"仅在提交时机…触发 ValueChanged，避免高频 ValueChanged 膨胀撤销栈"
- *   （`BoardCanvasControl.ShapeProperties.cs:27-31`）；
- * - Fluent `SpinButton.onChange` 的文档语义**同样是提交时触发**："commits edits to the input text by
- *   focusing away (blurring) or pressing enter. Note that this is NOT called for every key press"。
- *   因此两者语义一致，不存在"输入中间态每键回调"的问题；
- * - 唯一差异：输入框被清空时，桌面拿到的是 `double.NaN`（随后自行回读刷新，`:236-241`），
- *   而 Fluent 的 `data.value` 是 `undefined`。本组件对非有限值**不回调**，交由调用方在下一帧
- *   用最新的 `fields` 覆盖显示（与桌面"回读刷新"等效）。
+ * 形状属性浮层（P2.3）：选中单个形状时显示的两个数值输入框。桌面出处 BoardCanvasControl.xaml:74-114（ShapePropertiesCanvas / ShapePropertiesBorder）与 BoardCanvasControl.ShapeProperties.cs：容器背景 SystemControlBackgroundChromeMediumLowBrush、圆角 14、Opacity 0.85、强制浅色，内部横向 StackPanel 间距 12、外边距 12,8，每组标签 FontSize 11 Opacity 0.75 加 NumberBox（Width 200、MinHeight 44、内联步进、SmallChange 1、AcceptsExpression=False）；仅恰好选中一个形状时显示，定位到选择框下沿加 8 居中（Rendering.cs:213-226）。
+ * 控件选型与提交时机：Fluent v9 没有 NumberBox（它属 @fluentui/react-number-box-preview，本仓库未安装），改用功能等价的 SpinButton。桌面 NumberBox.ValueChanged 与 SpinButton.onChange 都只在提交时触发（回车、失焦、点步进按钮），源码注释与 API 文档均写明不是每键回调，故不存在输入中间态每键回调的问题；唯一差异是输入框清空时桌面拿到 double.NaN（随后回读刷新，:236-241）而 Fluent 给 undefined，本组件对非有限值不回调，交由调用方下一帧用最新 fields 覆盖显示，与桌面回读刷新等效。
  */
 
 import type { ReactNode } from 'react'

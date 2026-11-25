@@ -43,9 +43,7 @@ namespace WindBoard
         private static int _notificationInvokedHooked;
 
         /// <summary>
-        /// 获取主窗口引用（仅用于同程序集内部的调试/工具入口）。
-        /// 说明：调试页需要通过 MainWindow 提供的应用内弹条能力做通道测试；
-        /// 这里返回可空引用，调用方需自行处理窗口不存在的情况。
+        /// 获取主窗口引用，供程序集内的调试入口使用；窗口未创建时返回 null，调用方需自行判空。
         /// </summary>
         internal MainWindow? TryGetMainWindow() => _window as MainWindow;
 
@@ -62,16 +60,13 @@ namespace WindBoard
             AppLanguageService.CaptureSystemCulturesIfNeeded();
 
             // 全局异常捕获：避免“静默失败”，并把关键堆栈落盘到日志文件。
-            // 说明：尽量早 Hook（在 InitializeComponent 前），避免 XAML 初始化阶段异常漏掉。
+            // 尽量早 Hook（在 InitializeComponent 前），避免 XAML 初始化阶段异常漏掉。
             UnhandledException += OnAppUnhandledException;
             AppDomain.CurrentDomain.UnhandledException += OnAppDomainUnhandledException;
             TaskScheduler.UnobservedTaskException += OnUnobservedTaskException;
 
-            // 图标字体（Segoe Fluent Icons）可用性处理：
-            // - Win10 便携版：启动时私有加载内置 ttf
-            // - Win10 安装版：依赖安装器安装字体（这里也会做兜底处理）
-            // - Win11：系统自带
-            // 说明：尽量在 InitializeComponent 前执行，避免 XAML/渲染层过早创建图标控件导致缓存错误字体。
+            // 图标字体按平台准备：Win10 便携版私有加载内置 ttf，Win10 安装版依赖安装器安装字体并在此兜底，Win11 用系统自带。
+            // 须在 InitializeComponent 前执行，否则 XAML/渲染层会过早创建图标控件并缓存错误字体。
             SegoeFluentIconsFontLoader.InitializeForCurrentProcess();
 
             InitializeComponent();
@@ -83,9 +78,8 @@ namespace WindBoard
         /// <param name="args">Details about the launch request and process.</param>
         protected override void OnLaunched(Microsoft.UI.Xaml.LaunchActivatedEventArgs args)
         {
-            // 应用资源覆盖：统一让 SymbolIcon / SymbolIconSource 等走同一套图标字体。
-            // 说明：部分环境下在 App 构造函数阶段读取 Application.Resources 可能触发 COMException；
-            // 这里放到 OnLaunched（且在创建任何 Window 前）执行，兼容性更好。
+            // 应用资源覆盖：让 SymbolIcon / SymbolIconSource 等走同一套图标字体。
+            // 放到 OnLaunched（创建任何 Window 之前）执行，因为构造函数阶段读取 Application.Resources 在部分环境会抛 COMException。
             try
             {
                 SegoeFluentIconsFontLoader.ApplyToResources(Resources);
@@ -112,7 +106,7 @@ namespace WindBoard
             L10n.Initialize();
 
             // 统一提醒系统：注册 Windows Toast 通知通道。
-            // 说明：在某些环境（未注册/系统限制）下可能失败，这里不阻断启动，后续会自动降级为应用内弹条。
+            // 在某些环境（未注册/系统限制）下可能失败，这里不阻断启动，后续会自动降级为应用内弹条。
             try
             {
                 EnsureAppNotificationInvokedHandlerHooked();
@@ -213,10 +207,8 @@ namespace WindBoard
         }
 
         /// <summary>
-        /// 旧 Inno 安装版数据迁移（MSIX 形态首次运行）：
-        /// - 决策在 <see cref="InstallerMigrationService"/>（非 MSIX 形态直接跳过，零 I/O）；
-        /// - 命中才弹窗（需要主窗口 XamlRoot），确认后复用既有导入链路；
-        /// - 任何失败都只记录日志，绝不阻断启动。
+        /// 旧 Inno 安装版数据迁移（MSIX 形态首次运行）：是否执行由 <see cref="InstallerMigrationService"/> 决定，非 MSIX 形态直接跳过且不做 I/O。
+        /// 命中才弹窗（需要主窗口 XamlRoot），确认后复用既有导入链路；任何失败只记录日志，不阻断启动。
         /// </summary>
         private static void TryRunInstallerMigration(Window window)
         {

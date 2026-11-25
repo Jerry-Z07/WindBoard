@@ -6,16 +6,8 @@ import type { BoardDocument } from './document.ts'
 import type { BoardCommand } from './session.ts'
 
 /**
- * 可撤销命令（对应桌面 `WindBoard.Board.Commands.IBoardCommand`）。
- *
- * 与桌面签名一致：命令的 `do` / `undo` 接收目标文档，因此命令本身不持有文档引用，
- * 同一个命令对象可以在不同页的会话之间复用。
- *
- * 命令粒度（design §6，与桌面一致）：
- * - 画一笔 / 画一个形状 = 一条 `AddInkItemCommand`；
- * - 一次橡皮手势（可能擦除多段）= 一条 `ReplaceInkItemsCommand`；
- * - 一次选择变换（P2）= 一条 `CompositeCommand`；
- * - 清屏 = 一条 `ClearCommand`。
+ * 可撤销命令（对应桌面 WindBoard.Board.Commands.IBoardCommand）。与桌面签名一致：do 与 undo 接收目标文档，命令本身不持有文档引用，同一命令对象可在不同页的会话之间复用。
+ * 命令粒度与桌面一致（design §6）：画一笔或画一个形状为一条 AddInkItemCommand，一次橡皮手势（可能擦除多段）为一条 ReplaceInkItemsCommand，一次选择变换（P2）为一条 CompositeCommand，清屏为一条 ClearCommand。
  */
 
 /** 把文档的条目数组整体替换为给定内容（对应桌面 `ReplaceStrokesCommand.Replace`）。 */
@@ -79,10 +71,7 @@ export class ReplaceInkItemsCommand implements BoardCommand {
 }
 
 /**
- * 删除一组墨迹条目（桌面 `RemoveInkItemCommand` 的多条目泛化）。
- *
- * 首次执行时记录每个条目在文档中的下标；撤销时按下标升序插回，
- * 重做时按记录下标降序删除，保证多条目删除后顺序仍与撤销前一致。
+ * 删除一组墨迹条目（桌面 RemoveInkItemCommand 的多条目泛化）。首次执行时记录每个条目在文档中的下标，撤销时按下标升序插回，重做时按记录下标降序删除，保证多条目删除后顺序仍与撤销前一致。
  */
 export class RemoveInkItemsCommand implements BoardCommand {
   private readonly _items: readonly InkItem[]
@@ -181,12 +170,7 @@ export class ClearCommand implements BoardCommand {
 }
 
 /**
- * 元素命令（P2 选择与元素，对应桌面 `WindBoard/Board/Commands/` 下的元素命令）。
- *
- * web 侧元素存 `document.elements` 单数组 + `layer` 字段（见 `document.ts`），桌面侧分
- * `ElementsBelowInk` / `ElementsAboveInk` 两个列表。下面的命令把桌面"层内下标"映射到
- * 单数组的绝对位置：层内顺序 = 同层元素在数组中的相对顺序；层序 = 先 belowInk 后 aboveInk。
- * 运行时数组顺序即 z 序，`order` 只是 WBIX 持久化字段，这些命令不维护它。
+ * 元素命令（P2 选择与元素，对应桌面 Board/Commands/ 下的元素命令）。web 侧元素存 document.elements 单数组加 layer 字段（见 document.ts），桌面侧分 ElementsBelowInk 与 ElementsAboveInk 两个列表；下面这些命令把桌面的「层内下标」映射到单数组的绝对位置：层内顺序为同层元素在数组中的相对顺序，层序为先 belowInk 后 aboveInk。运行时数组顺序即 z 序，order 只是 WBIX 持久化字段，这些命令不维护它。
  */
 
 /** 某层的元素个数（对应桌面某个列表的 `Count`）。 */
@@ -214,10 +198,7 @@ function removeElementFromDocument(document: BoardDocument, element: BoardElemen
 }
 
 /**
- * 把元素插回指定层的层内下标处（`index` 越界时收敛到该层末尾）。
- *
- * 该层为空时：`belowInk` 插到文档最前、`aboveInk` 插到文档最后，
- * 以保持"先 belowInk 组、后 aboveInk 组"的规范顺序（读盘与渲染都依赖它）。
+ * 把元素插回指定层的层内下标处（index 越界时收敛到该层末尾）。该层为空时 belowInk 插到文档最前、aboveInk 插到文档最后，以保持「先 belowInk 组、后 aboveInk 组」的规范顺序（读盘与渲染都依赖它）。
  */
 function insertElementIntoLayer(
   document: BoardDocument,
@@ -264,12 +245,7 @@ function insertElementIntoLayer(
 }
 
 /**
- * 把某层全部元素的 `order` 置为 -1，让 WBIX 写侧按层内下标重算。
- *
- * 单边修复（网页端正确性优先）：桌面 `BringElementToFrontCommand` 只移动列表位置、不更新元素 `Order`，
- * 而桌面 `WbixWorkspaceSerializer.Save.cs:225` 与 web `persistence/wbix/page-payload.ts:405` 都按
- * `order < 0 ? 层内下标 : order` 写出 —— 桌面版"置顶 → 保存 → 重开"会保存过期 order（已知缺陷）。
- * 网页端数组顺序即权威 z 序，重排后把受影响层的 order 全部置 -1，保存结果始终等于真实层内顺序。
+ * 把某层全部元素的 order 置为 -1，让 WBIX 写侧按层内下标重算。桌面 BringElementToFrontCommand 只移动列表位置、不更新 Order，而桌面 WbixWorkspaceSerializer.Save.cs:225 与 web persistence/wbix/page-payload.ts:405 都按 order < 0 ? 层内下标 : order 写出，桌面版「置顶 → 保存 → 重开」会保存过期 order（已知缺陷）；网页端数组顺序即权威 z 序，重排后把受影响层的 order 全部置 -1，保存结果始终等于真实层内顺序。
  */
 function invalidateLayerOrder(document: BoardDocument, layer: Layer): void {
   for (const element of document.elements) {
@@ -507,11 +483,7 @@ export class UpdateElementTransformCommand implements BoardCommand {
 }
 
 /**
- * 把一批笔迹条目/元素一次性加入文档（桌面选择 Dock「复制」同款）。
- *
- * 桌面在 `OnSelectionDuplicateClicked` 里逐条构造 `AddInkItemCommand` / `AddElementCommand`，
- * 再按"1 条直接执行、多条包 `CompositeCommand`"合并（`BoardCanvasControl.Rendering.cs:554-560`）。
- * 返回 null 表示没有要添加的内容，调用方据此跳过 `execute`。
+ * 把一批笔迹条目与元素一次性加入文档（桌面选择 Dock 的「复制」同款）。桌面在 OnSelectionDuplicateClicked 里逐条构造 AddInkItemCommand 与 AddElementCommand，再按「1 条直接执行、多条包 CompositeCommand」合并（BoardCanvasControl.Rendering.cs:554-560）；返回 null 表示没有要添加的内容，调用方据此跳过 execute。
  */
 export function createAddItemsCommand(
   inkItems: readonly InkItem[] = [],
@@ -565,13 +537,8 @@ function applyStrokePoints(stroke: Stroke, points: readonly StrokePoint[]): void
 }
 
 /**
- * 用"点列快照"更新某条笔迹（对应桌面 `UpdateStrokePointsCommand`，`Commands/UpdateStrokePointsCommand.cs`）。
- *
- * 适用场景：选择工具对笔迹做平移/缩放/旋转、属性面板精调。命令原地改同一个 `Stroke` 对象
- * （选中集/渲染缓存按对象引用持有它），`do` 写 after、`undo` 写 before。
- *
- * web 侧与桌面的差异：桌面 `Apply` 末尾调 `Stroke.RecalculateBoundsFromPoints()` 刷新包围盒缓存；
- * web 的包围盒按需计算（`ink/geometry.ts` 的 `getStrokeBounds`），没有缓存需要刷新。
+ * 用点列快照更新某条笔迹（对应桌面 UpdateStrokePointsCommand，Commands/UpdateStrokePointsCommand.cs），用于选择工具对笔迹做平移、缩放、旋转与属性面板精调。命令原地改同一个 Stroke 对象（选中集与渲染缓存按对象引用持有它），do 写 after、undo 写 before。
+ * 与桌面的差异：桌面 Apply 末尾调 Stroke.RecalculateBoundsFromPoints() 刷新包围盒缓存，web 的包围盒按需计算（ink/geometry.ts 的 getStrokeBounds），没有缓存需要刷新。
  */
 export class UpdateStrokePointsCommand implements BoardCommand {
   private readonly _stroke: Stroke
@@ -596,11 +563,8 @@ export class UpdateStrokePointsCommand implements BoardCommand {
 }
 
 /**
- * 用"两点几何快照"更新某个形状（对应桌面 `UpdateShapeGeometryCommand`，`Commands/UpdateShapeGeometryCommand.cs`）。
- *
- * 与 `UpdateStrokePointsCommand` 同构：`do` 写 after、`undo` 写 before，原地改同一个 `Shape` 对象。
- * web 侧与桌面的差异：桌面 `Apply` 调 `BoardShape.SetGeometry`（内部重算 Bounds 缓存）；
- * web 的包围盒按需计算（`ink/geometry.ts` 的 `getShapeBounds`），直接写 `start`/`end` 即可。
+ * 用两点几何快照更新某个形状（对应桌面 UpdateShapeGeometryCommand，Commands/UpdateShapeGeometryCommand.cs），与 UpdateStrokePointsCommand 同构：do 写 after、undo 写 before，原地改同一个 Shape 对象。
+ * 与桌面的差异：桌面 Apply 调 BoardShape.SetGeometry（内部重算 Bounds 缓存），web 的包围盒按需计算（ink/geometry.ts 的 getShapeBounds），直接写 start 与 end 即可。
  */
 export class UpdateShapeGeometryCommand implements BoardCommand {
   private readonly _shape: Shape

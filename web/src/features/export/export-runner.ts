@@ -1,16 +1,6 @@
 /**
- * 导出执行层：把对话框里的选项变成真实文件（对应桌面 `Features/Export/ExportFlow.cs:43-233`）。
- *
- * 桌面顺序（本文件的步骤一一对应）：
- * 1) 取工作区快照（导出期间不再读实时文档）；
- * 2) 组装光栅选项（DPI / 留白 / 背景色 / 固定画面）；
- * 3) WBIX 直接导出整库（忽略页范围）；
- * 4) 页范围 → 0 基页索引（`resolvePageIndices`，已在 `export-options.ts`）；
- * 5) 按格式分派：PDF / PNG 单页 / PNG 多页（多页写进 `WindBoard-{date}` 目录）。
- *
- * 浏览器与桌面的两处必然差异（已在实现里显式处理）：
- * - 离屏渲染用 `OffscreenCanvas`（没有时回退 `document.createElement('canvas')`）；
- * - 落盘走 `platform/io.ts`（FSA 优先、`<a download>` 回退），多页 PNG 无目录权限时打成 ZIP。
+ * 导出执行层：把对话框里的选项变成真实文件（对应桌面 Features/Export/ExportFlow.cs:43-233）。步骤与桌面一一对应：取工作区快照（导出期间不再读实时文档）、组装光栅选项（DPI、留白、背景色、固定画面）、WBIX 直接导出整库并忽略页范围、页范围转 0 基页索引（resolvePageIndices，已在 export-options.ts）、按格式分派 PDF / PNG 单页 / PNG 多页（多页写进 WindBoard-{date} 目录）。
+ * 浏览器与桌面的两处必然差异：离屏渲染用 OffscreenCanvas，没有时回退 document.createElement('canvas')；落盘走 platform/io.ts（FSA 优先、`<a download>` 回退），多页 PNG 无目录权限时打成 ZIP。
  */
 
 import type { BoardController } from '../../canvas/board-controller.ts'
@@ -75,10 +65,7 @@ function datePrefixOfFolder(folderName: string): string {
 }
 
 /**
- * 浏览器默认的离屏渲染工厂。
- *
- * 两种画布分别处理：`OffscreenCanvas`（`convertToBlob`）优先，
- * 没有时回退 `document.createElement('canvas')`（`toBlob`）。
+ * 浏览器默认的离屏渲染工厂。优先用 OffscreenCanvas（convertToBlob），没有时回退 document.createElement('canvas')（toBlob）。
  */
 function createBrowserSurfaceFactory(): RasterSurfaceFactory | null {
   const hasOffscreen = typeof OffscreenCanvas !== 'undefined'
@@ -174,10 +161,7 @@ function renderPage(
 }
 
 /**
- * 执行导出。
- *
- * 调用方负责：校验选项（`validateExportOptions`）、确认覆盖（桌面在多页 PNG 冲突时会二次确认）、
- * 以及把结果转成提醒条。
+ * 执行导出。调用方负责校验选项（validateExportOptions）、确认覆盖（桌面在多页 PNG 冲突时会二次确认）以及把结果转成提醒条。
  */
 export async function runExport(options: ExportOptions, deps: ExportRunnerDeps): Promise<ExportOutcome> {
   try {
@@ -211,7 +195,7 @@ async function runExportInternal(
     options.pageRangeText,
   )
 
-  // ===== WBIX：整库导出，忽略页范围（`ExportFlow.cs:79-84`） =====
+  // WBIX：整库导出，忽略页范围（`ExportFlow.cs:79-84`）
   if (options.format === 'wbix') {
     const bytes = writeWbix(snapshot)
     const fileName = formatExportSuggestedFileName(now, 'wbix')
@@ -226,7 +210,6 @@ async function runExportInternal(
   const fallbackViewportSizeDip = deps.controller.viewport.sizeDip
   const paddingDip = options.paddingDip
 
-  // ===== PDF：每页自适应画幅，图上 FlateDecode 塞进 PDF =====
   if (options.format === 'pdf') {
     const pages: PdfPageImage[] = []
     for (const index of pageIndices) {
@@ -260,7 +243,6 @@ async function runExportInternal(
     return toOutcome(result, localized('Web_Export_DonePdf_Fmt', result.path ?? fileName))
   }
 
-  // ===== PNG：单页 or 多页（多页进目录/ZIP） =====
   const fixedFrame = computePngFrameSize(options.pngAspect, options.pngHeight)
   const rendered: { name: string; bytes: Uint8Array }[] = []
   let pageNumber = 1

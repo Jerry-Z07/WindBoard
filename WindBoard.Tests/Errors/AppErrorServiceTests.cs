@@ -8,8 +8,7 @@ namespace WindBoard.Tests.Errors;
 /// </summary>
 public sealed class AppErrorServiceTests
 {
-    // 说明：对应 AppErrorService.MaxExceptionMessageChars（见 design.md §2.2）。
-    // 此处用字面量固化契约：上限调整时该测试必须同步评审。
+    // 对应 AppErrorService.MaxExceptionMessageChars（design.md §2.2）：用字面量固化契约，上限调整时须同步评审。
     private const int NormalizedMessageCharLimit = 2000;
 
     [Theory]

@@ -7,11 +7,8 @@ using WindBoard.Board.Elements;
 namespace WindBoard.Board.Persistence
 {
     /// <summary>
-    /// 工作区快照（用于多页面导入/导出）。
-    /// 
-    /// 说明：
-    /// - 快照是“数据态”，不包含运行态对象（渲染器、输入控制器等）
-    /// - 当前覆盖：笔迹 + 页面元素；并预留视口元数据（仅记录，可用于导出等）
+    /// 工作区快照，用于多页面导入/导出：承载数据态，不含渲染器、输入控制器等运行态对象。
+    /// 当前覆盖笔迹与页面元素，并预留视口元数据（仅记录）。
     /// </summary>
     internal sealed record BoardWorkspaceSnapshot(
         IReadOnlyList<BoardPageSnapshot> Pages,
@@ -40,13 +37,9 @@ namespace WindBoard.Board.Persistence
     /// 绘制条目快照（扁平 + Kind 判别，与 Wbix 元素的 <c>{kind, data}</c> 模式一致）。
     /// </summary>
     /// <remarks>
-    /// 说明：
-    /// - <see cref="Kind"/> 为类型标识；JSON 中缺省/为 null 时按 <c>"stroke"</c> 处理，
-    ///   使 v1/v2 旧文件（无 Kind 字段）天然可读；
-    /// - <see cref="Stroke"/> 为折线笔迹数据；<see cref="Shape"/> 为形状数据（design E，
-    ///   v3 格式内的 kind 扩展，版本不升级）；
-    /// - 序列化兼容（v2 扁平形态与 v3 包装形态）由 <see cref="InkItemSnapshotJsonConverter"/> 单点处理，
-    ///   域对象与快照之间的转换由 <see cref="BoardInkItemCodec"/> 单点处理。
+    /// - <see cref="Kind"/> 为类型标识，JSON 中缺省或为 null 时按 <c>"stroke"</c> 处理，使无 Kind 字段的 v1/v2 旧文件天然可读。
+    /// - <see cref="Stroke"/> 为折线笔迹数据，<see cref="Shape"/> 为形状数据（v3 格式内的 kind 扩展，版本不升级）。
+    /// - 序列化形态兼容（v2 扁平与 v3 包装）由 <see cref="InkItemSnapshotJsonConverter"/> 单点处理，域对象与快照互转由 <see cref="BoardInkItemCodec"/> 单点处理。
     /// </remarks>
     [JsonConverter(typeof(InkItemSnapshotJsonConverter))]
     internal sealed class InkItemSnapshot

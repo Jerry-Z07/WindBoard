@@ -4,14 +4,7 @@ import type { Shape } from './shape.ts'
 import type { F32, Stroke, Vec2 } from './stroke.ts'
 
 /**
- * 工作区快照（对应桌面 `BoardWorkspaceSnapshot` / `BoardPageSnapshot`）。
- *
- * 说明：
- * - 快照是"数据态"，不含运行态对象（渲染器、输入控制器等）；
- * - 页面元素在桌面侧分 `ElementsBelowInk` / `ElementsAboveInk` 两个列表存放，
- *   WBIX 则写在同一个 `elements` 数组里靠 `layer` 区分。web 侧统一用单数组 +
- *   `layer` 字段表达，读写时按"先 below 后 above、层内按 (order, 原下标) 排序"转换，
- *   与桌面侧读入后的顺序一致（round-trip 稳定）。
+ * 工作区快照（对应桌面 BoardWorkspaceSnapshot 与 BoardPageSnapshot）。快照是数据态，不含渲染器、输入控制器等运行态对象；页面元素在桌面侧分 ElementsBelowInk 与 ElementsAboveInk 两个列表存放，WBIX 则写在同一个 elements 数组里靠 layer 区分，web 侧统一用单数组加 layer 字段表达，读写时按先 below 后 above、层内按 (order, 原下标) 排序转换，与桌面读入后的顺序一致（round-trip 稳定）。
  */
 
 /** 笔迹条目（折线笔迹或两点式形状）。 */

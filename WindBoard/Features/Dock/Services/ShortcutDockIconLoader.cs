@@ -17,12 +17,8 @@ using WindBoard.Features.Dock.Models;
 namespace WindBoard.Features.Dock.Services
 {
     /// <summary>
-    /// 快捷入口图标加载器：
-    /// - 支持自定义图标（本地文件）
-    /// - 支持链接 favicon（从 HTML 或常见路径探测）
-    /// - 支持本地文件/文件夹缩略图
-    /// 
-    /// 说明：图标加载属于“可选增强”，失败时返回 null，不应阻断 UI。
+    /// 快捷入口图标加载器：支持本地自定义图标、链接 favicon（从 HTML 或常见路径探测）与本地文件或文件夹缩略图。
+    /// 图标属于可选增强，失败时返回 null，不阻断 UI。
     /// </summary>
     internal static class ShortcutDockIconLoader
     {

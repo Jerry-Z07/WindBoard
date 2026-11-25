@@ -1,17 +1,6 @@
 /**
- * 本地化运行时：语言解析 + 查表 + `{0}` 占位符替换。
- *
- * 与桌面的对应关系：
- * - 文案表：`WindBoard/Strings/<locale>/*.resw` → 由 `scripts/gen-i18n.mjs` 生成
- *   `src/i18n/locales/<locale>.generated.ts`（key 名与桌面完全相同，便于对照）；
- * - 取值 API：桌面是 `L10n.Get(key)` / `L10n.Format(key, args)`，网页端是
- *   `translate(locale, key)` / `translate(locale, key, ...args)`；
- * - 占位符：桌面用 .NET `string.Format` 的 `{0}`，网页端保持同一写法
- *   （导出对话框等文案里已经这么写，换写法反而要改文案）。
- *
- * 回落顺序：目标语言 → 默认语言（`zh-CN`）→ key 本身。
- * 最后一步返回 key 而不是抛错：漏翻一条文案不该让整个界面挂掉，
- * 而「界面上出现一个 key」本身就很显眼，配合 `i18n.test.ts` 也不会漏进生产。
+ * 本地化运行时：语言解析、查表、`{0}` 占位符替换。与桌面的对应关系：文案表由 WindBoard/Strings/<locale>/*.resw 经 scripts/gen-i18n.mjs 生成 src/i18n/locales/<locale>.generated.ts（key 名与桌面完全相同，便于对照）；桌面取值为 L10n.Get 与 L10n.Format，网页端为 translate(locale, key) 与 translate(locale, key, ...args)；占位符保持桌面 string.Format 的 `{0}` 写法，导出对话框等文案里已经这么写，换写法反而要改文案。
+ * 回落顺序为目标语言、默认语言 zh-CN、key 本身；最后一步返回 key 而不抛错，漏翻一条文案不该让整个界面挂掉，界面上出现一个 key 本身很显眼，配合 i18n.test.ts 也不会漏进生产。
  */
 
 import { MESSAGES as EN_US } from './locales/en-US.generated.ts'
@@ -37,10 +26,8 @@ export const MESSAGES_BY_LOCALE: Readonly<Record<Locale, Readonly<Record<string,
 export type LanguagePreference = 'system' | Locale
 
 /**
- * 把任意语言标签归一到支持的语言。
- *
- * `zh-Hans-CN`、`zh-SG` 归到 `zh-CN`；`en-GB` 归到 `en-US`；其余一律默认语言。
- * @param {string} tag 语言标签（`navigator.language` 之类）
+ * 把任意语言标签归一到支持的语言：zh-Hans-CN、zh-SG 归到 zh-CN，en-GB 归到 en-US，其余一律用默认语言。
+ * @param {string} tag 语言标签（navigator.language 之类）
  * @returns {Locale}
  */
 export function normalizeLocale(tag: string): Locale {
@@ -62,7 +49,7 @@ export function normalizeLocale(tag: string): Locale {
 /**
  * 按偏好与系统语言解析出实际使用的语言。
  * @param {LanguagePreference} preference 用户偏好
- * @param {readonly string[]} systemLanguages 系统语言候选（`navigator.languages`）
+ * @param {readonly string[]} systemLanguages 系统语言候选（navigator.languages）
  * @returns {Locale}
  */
 export function resolveLocale(preference: LanguagePreference, systemLanguages: readonly string[]): Locale {
@@ -80,7 +67,7 @@ export function resolveLocale(preference: LanguagePreference, systemLanguages: r
 }
 
 /**
- * 把 `{0}`、`{1}` 占位符替换成实参。
+ * 把 {0}、{1} 占位符替换成实参。
  * @param {string} template 模板
  * @param {readonly unknown[]} args 实参
  * @returns {string}

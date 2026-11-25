@@ -1,11 +1,5 @@
 /**
- * 弹出面板状态机：同一时刻只允许一个面板打开，并实现桌面的"**二次点击才弹**"规则。
- *
- * 桌面出处（三条规则都在这里）：
- * - 笔：`MainWindow.xaml.cs:249-268 OnPenToolClicked` —— 首次点击只切工具，已在笔模式下再点才弹/收；
- * - 橡皮：`MainWindow.xaml.cs:616-635 OnEraserToolClicked` —— 同规则；
- * - 形状：`MainWindow.xaml.cs:679+ OnShapeToolClicked` —— 同规则；
- * - 离开形状模式时收起形状面板：`MainWindow.xaml.cs:230-233`。
+ * 弹出面板状态机：同一时刻只允许一个面板打开，并实现桌面「二次点击才弹」的规则。桌面出处：笔 MainWindow.xaml.cs:249-268 OnPenToolClicked（首次点击只切工具，已在笔模式下再点才弹或收）、橡皮 MainWindow.xaml.cs:616-635 OnEraserToolClicked、形状 MainWindow.xaml.cs:679+ OnShapeToolClicked 同一规则，离开形状模式时收起形状面板见 MainWindow.xaml.cs:230-233。
  */
 
 import type { ToolKind } from '../../interaction/pointer-router.ts'
@@ -30,7 +24,6 @@ export interface ToolButtonClickPlan {
 
 /**
  * 计算工具按钮点击后的面板状态。
- *
  * @param activeTool 点击前的当前工具
  * @param clickedTool 被点击的工具
  * @param openFlyout 点击前已打开的面板

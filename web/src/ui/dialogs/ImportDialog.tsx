@@ -1,13 +1,6 @@
 /**
- * 导入对话框（WBIX）。
- *
- * 桌面权威源：
- * - `WindBoard/UI/MainWindow/MainWindow.Import.cs:18-51`（导入入口）；
- * - `WindBoard/Features/Import/ImportFlow.cs:42-60`（选文件 → 提交）、`:99-101`（选中工作区文件时一律
- *   `AppendAfterLastPage`）、`:206-256`（解析 + 追加页 + 切当前页）、`:258-262`（失败提示）；
- * - 文案取自 `WindBoard/Strings/zh-CN/Import.resw` 与 `ImportDialog.resw`（下方常量逐条标注 key）。
- *
- * 纯逻辑在 `features/import/wbix-import.ts`：本组件只负责「选文件 → 解析 → 应用到工作区 → 提示」。
+ * 导入对话框（WBIX）。桌面权威源：MainWindow.Import.cs:18-51（导入入口）、ImportFlow.cs:42-60（选文件到提交）、:99-101（选中工作区文件时一律 AppendAfterLastPage）、:206-256（解析、追加页、切当前页）、:258-262（失败提示）；文案取自 Import.resw 与 ImportDialog.resw，下方常量逐条标注 key。
+ * 纯逻辑在 features/import/wbix-import.ts，本组件只负责选文件、解析、应用到工作区、提示。
  */
 
 import { useState, type ReactNode } from 'react'
@@ -30,21 +23,11 @@ import { applyImportedWorkspace, parseWbixForImport } from '../../features/impor
 import { pickFile } from '../../platform/io.ts'
 
 /**
- * 文案（逐条对应 resw key，未自造）：
- * - `Import_Wbix_Dialog_Title`：导入 WBIX/WBI
- * - `ImportDialog_PickWbix`：选择 WBIX/WBI 文件…
- * - `Import_Wbix_InsertMethod_Label` + `Import_Wbix_Mode_Append`：插入方式：/ 新增在最后一页之后
- * - `Import_Failed_Title`：导入失败
- * - `Import_Wbix_ParseFailed_Message`：WBIX/WBI 文件解析失败。
- * - `Import_Wbix_Busy_Message`：正在导入，请稍候…
- * - `Import_Tip_Title`：导入提示
- * - `ImportDialog_FilePicker_Failed_Fmt`：打开文件选择器失败：{0}
+ * 文案逐条对应 resw key，未自造：Import_Wbix_Dialog_Title 为「导入 WBIX/WBI」，ImportDialog_PickWbix 为「选择 WBIX/WBI 文件…」，Import_Wbix_InsertMethod_Label 加 Import_Wbix_Mode_Append 为「插入方式：」与「新增在最后一页之后」。
+ * 其余 key：Import_Failed_Title、Import_Wbix_ParseFailed_Message、Import_Wbix_Busy_Message、Import_Tip_Title、ImportDialog_FilePicker_Failed_Fmt（打开文件选择器失败：{0}）。
  */
 /**
- * 文件选择器的 accept 过滤。
- *
- * 只收 `.wbix`：桌面还支持旧格式 `.wbi`（`WbiWorkspaceImporter`），但 web 侧只移植了 WBIX 读取，
- * 允许选中 `.wbi` 只会得到一条"解析失败"，不如在选择器里就过滤掉。
+ * 文件选择器的 accept 过滤。只收 .wbix：桌面还支持旧格式 .wbi（WbiWorkspaceImporter），但 web 侧只移植了 WBIX 读取，允许选中 .wbi 只会得到一条"解析失败"，不如在选择器里就过滤掉。
  */
 const WBIX_ACCEPT = '.wbix'
 

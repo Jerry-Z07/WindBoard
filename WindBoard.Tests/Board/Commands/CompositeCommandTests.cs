@@ -7,7 +7,6 @@ namespace WindBoard.Tests.Board.Commands;
 
 public sealed class CompositeCommandTests
 {
-    // 复合命令应按顺序 Do，并按“反向顺序” Undo，保证可恢复到原始状态
     [Fact]
     public void Do_Undo_ExecutesInOrderAndUndoesInReverseOrder()
     {

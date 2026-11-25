@@ -1,22 +1,5 @@
 /**
- * 画布背景颜色二级对话框（外观设置页）。
- *
- * 桌面出处：`WindBoard/Settings/Pages/AppearanceSettingsPage.xaml:126-166`（`CanvasBackgroundDialog`）
- * 与其协调器 `WindBoard/Settings/Pages/CanvasBackgroundColorSettingsController.cs`。
- *
- * 与桌面逐条对齐的行为：
- * 1. **即时写入**：桌面在取色器/HEX 每次变化时立刻 `AppSettingsService.Update(...)` 写设置
- *    （`CanvasBackgroundColorSettingsController.cs:127`、`:170`），因此画布背景与卡片预览都是实时的；
- *    本组件同样每次变化立即 `patch()`。
- * 2. **取消即回滚**：桌面打开弹窗时记下原始颜色（`:88`），点"取消"时写回原值（`:97-105`）。
- *    本组件在挂载时记下原始色，取消时回滚。
- * 3. **HEX 非法不写设置、只报错**：桌面 `OnDialogHexTextChanged`（`:132-144`）里解析失败时
- *    `DialogHexErrorBar.IsOpen = !string.IsNullOrWhiteSpace(text)` 并 `return`——**按钮不禁用**，
- *    允许输入"中间态"（例如只输入了 `#`）；本组件同语义（错误条只在非空时出现）。
- * 4. **HEX 合法则归一化**：桌面把输入统一成大写 `#RRGGBB` 并同步取色器（`:146-172`）。
- * 5. **恢复默认**：桌面 `ResetDialogToDefault`（`:175-180`）把取色器与设置都改回
- *    `ColorHex.DefaultCanvasBackgroundHex`（`#2E2F33`）。
- *
+ * 画布背景颜色二级对话框（外观设置页），桌面出处 AppearanceSettingsPage.xaml:126-166 的 CanvasBackgroundDialog 与其协调器 CanvasBackgroundColorSettingsController.cs。逐条对齐的行为：取色器与 HEX 每次变化立刻 patch()（桌面 :127、:170 即时写 AppSettingsService）；挂载时记下原始色，取消时回滚（桌面 :88、:97-105）；HEX 解析失败只开错误条且按钮不禁用，允许 `#` 这类中间态（桌面 OnDialogHexTextChanged，:132-144）；合法输入归一化成大写 #RRGGBB 并同步取色器（:146-172）；恢复默认改回 ColorHex.DefaultCanvasBackgroundHex（#2E2F33，:175-180）。
  * 取色器差异见文件末尾注释。
  */
 
@@ -49,16 +32,8 @@ export interface CanvasColorDialogProps {
 }
 
 /**
- * Fluent 取色器使用的 HSV 颜色。
- *
- * 字段范围按 `@fluentui/react-color-picker` 的实现取值（该类型没有从包入口导出，
- * 而直接 import 传递依赖会破坏 pnpm 的严格依赖解析，因此本地声明一份结构相同的类型）：
- * - `h` 为 0~360 的角度；
- * - `s` / `v` 是 **0~1 的小数**，不是 0~100 的百分数——`useColorArea.js:34-35` 里
- *   `Math.round(hsvColor.s * 100)` 才转成进度百分比，拖动时也按 `deltaX / 100` 增量
- *   并夹到 `[0, 1]`（`:120-121`）。传百分数会让进度变量变成 `980%` 这种越界值，
- *   色域与滑条会被推到容器外（实测：整块内容被撑到 3633px 宽、缩略图跑到 x=-2643）。
- * - `a` 为 0~1 的透明度。
+ * Fluent 取色器使用的 HSV 颜色，字段范围按 @fluentui/react-color-picker 的实现取值（该类型未从包入口导出，直接 import 传递依赖会破坏 pnpm 的严格依赖解析，故本地声明同形类型）：h 为 0~360 的角度，s 与 v 是 0~1 的小数而非百分数，a 为 0~1 的透明度。
+ * s/v 传百分数会让进度变量变成 980% 这种越界值，色域与滑条被推出容器（实测内容被撑到 3633px 宽、缩略图跑到 x=-2643）；其内部按 Math.round(s * 100) 转百分比，拖动时按增量并夹到 [0, 1]（useColorArea.js:34-35、:120-121）。
  */
 interface Hsv {
   readonly h: number
@@ -196,10 +171,7 @@ function channelToByte(value: number): number {
 }
 
 /**
- * `#RRGGBB` → HSV（h 0~360、s/v **0~1**、a 恒为 1）。
- *
- * 桌面 ColorPicker 用 `Windows.UI.Color`（RGB）表示颜色，Fluent 的取色器用 HSV，
- * 这里做一次换算；`@fluentui/react-color-picker` 未导出换算函数，故就地实现。
+ * #RRGGBB → HSV（h 0~360、s/v 0~1、a 恒为 1）。桌面 ColorPicker 用 Windows.UI.Color（RGB）表示颜色，Fluent 的取色器用 HSV，这里做一次换算；@fluentui/react-color-picker 未导出换算函数，故就地实现。
  */
 function hexToHsv(hex: string): Hsv {
   const normalized = normalizeColorHex(hex) ?? DEFAULT_CANVAS_BACKGROUND_HEX

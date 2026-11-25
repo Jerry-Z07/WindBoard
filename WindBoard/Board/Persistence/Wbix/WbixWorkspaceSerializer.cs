@@ -4,18 +4,8 @@ using System.Text.Json;
 namespace WindBoard.Board.Persistence.Wbix
 {
     /// <summary>
-    /// WBIX（WindBoard Interchange）工作区序列化实现。
-    ///
-    /// 文件结构（Zip）：
-    /// - manifest.json
-    /// - pages/page-000.json
-    /// - pages/page-001.json
-    /// - assets/（资源目录，可为空；导出会尝试生成 assets/cover.png 封面图）
-    ///
-    /// 版本说明：
-    /// - v1/v2：strokes 条目为扁平形态（无 Kind）；
-    /// - v3：strokes 条目为 { kind, stroke|shape } 包装形态（InkItemSnapshot，kind 含 stroke/line/rect/ellipse/arrow），
-    ///   读取兼容 v1/v2；形状为 v3 格式内的 kind 扩展（版本不升 4）。
+    /// WBIX（WindBoard Interchange）工作区序列化实现：Zip 内含 manifest.json、pages/page-NNN.json 与 assets/（资源目录，可为空，导出会尝试生成 assets/cover.png 封面）。
+    /// v1/v2 的 strokes 条目为扁平形态（无 Kind）；v3 为 { kind, stroke|shape } 包装形态（InkItemSnapshot，kind 含 stroke/line/rect/ellipse/arrow），读取兼容 v1/v2，形状是 v3 内的 kind 扩展，版本不升 4。
     /// </summary>
     internal sealed partial class WbixWorkspaceSerializer : IBoardWorkspaceSerializer
     {
@@ -47,9 +37,8 @@ namespace WindBoard.Board.Persistence.Wbix
             {
                 PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
                 WriteIndented = true,
-                // 换行是格式契约的一部分（golden 语料锁定的就是 CRLF），因此显式指定，不依赖 Environment.NewLine：
-                // 否则字节形态会随运行平台或 .NET 默认值变化，表现为"测试失败但格式没坏"或"格式悄悄变了"。
-                // 网页端（PWA）实现据此写出的 JSON 必须使用 CRLF，而不是"在 Windows 上碰巧对"。
+                // 换行是格式契约（golden 语料锁定 CRLF），显式指定而不用 Environment.NewLine，否则字节形态随运行平台或 .NET 默认值变化。
+                // 网页端（PWA）写出的 JSON 同样必须使用 CRLF，不能依赖在 Windows 上碰巧正确。
                 NewLine = "\r\n",
                 AllowTrailingCommas = true,
                 ReadCommentHandling = JsonCommentHandling.Skip,

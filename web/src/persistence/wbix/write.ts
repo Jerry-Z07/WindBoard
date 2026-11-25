@@ -15,13 +15,7 @@ import { writePagePayloadJson } from './page-payload.ts'
 import { isSafeZipPath, normalizeZipPath } from './paths.ts'
 
 /**
- * `.wbix` 写出入口。
- *
- * 契约（design §9，对齐桌面 `WbixWorkspaceSerializer.SaveAsync`）：
- * - 固定写 `version = 3`；
- * - zip 条目顺序：全部 `pages/page-XXX.json` → `assets/...` → **`manifest.json` 最后**；
- * - 页 payload 与 manifest 的文本形态由 `json-options` / `f32-format` 逐字符控制；
- * - 空资源写 `"resources": []`。
+ * .wbix 写出入口。契约（design §9，对齐桌面 WbixWorkspaceSerializer.SaveAsync）：固定写 version = 3；zip 条目顺序为全部 pages/page-XXX.json、assets/...、manifest.json 最后；页 payload 与 manifest 的文本形态由 json-options 与 f32-format 逐字符控制；空资源写 "resources": []。
  */
 
 /** 附加资源（P0 阶段不产出内嵌图片，接口预留给 P4 的媒体导入）。 */
@@ -35,10 +29,7 @@ export interface WbixWriteOptions {
   /** `manifest.createdUtc`（默认取当前时间，便于测试固定值）。 */
   createdUtc?: Date
   /**
-   * 直接写入的 `createdUtc` 原始文本（含亚毫秒小数位）。
-   *
-   * 用途：读入桌面写出的文件后再写回时，`Date` 的毫秒精度会丢掉后 4 位小数，
-   * 传 `manifest.createdUtcText` 即可逐字节还原。提供时以本字段为准。
+   * 直接写入的 createdUtc 原始文本（含亚毫秒小数位）。读入桌面写出的文件后再写回时，Date 的毫秒精度会丢掉后 4 位小数，传 manifest.createdUtcText 即可逐字节还原；提供时以本字段为准。
    */
   createdUtcText?: string
   /** 需要写入 `assets/` 的资源。 */
@@ -46,11 +37,7 @@ export interface WbixWriteOptions {
 }
 
 /**
- * zip 压缩级别。
- *
- * 说明：桌面用 `CompressionLevel.Optimal`（.NET 内部约等于级别 6），
- * 但 zip 容器的元数据（时间戳、压缩实现）本来就不保证字节一致，
- * 因此这里只求"体积合理 + 桌面可读"，字节级一致由 JSON 文本层保证。
+ * zip 压缩级别。桌面用 CompressionLevel.Optimal（.NET 内部约等于级别 6），但 zip 容器的元数据（时间戳、压缩实现）本来就不保证字节一致，因此这里只求体积合理且桌面可读，字节级一致由 JSON 文本层保证。
  */
 const ZIP_LEVEL = 6
 

@@ -148,7 +148,7 @@ namespace WindBoard.Settings.Pages
         {
             try
             {
-                // 说明：应用内弹条目前仅由 MainWindow 承载（右上角 InfoBar 栈）。
+                // 应用内弹条目前仅由 MainWindow 承载（右上角 InfoBar 栈）。
                 // 调试页运行在 SettingsWindow 内，因此需要从 App 拿到主窗口引用。
                 var app = Application.Current as global::WindBoard.App;
                 global::WindBoard.MainWindow? mainWindow = app?.TryGetMainWindow();
@@ -184,7 +184,7 @@ namespace WindBoard.Settings.Pages
                 return;
             }
 
-            // 注意：此处故意抛出未处理异常，用于验证 WinUI UnhandledException 链路。
+            // 此处故意抛出未处理异常，用于验证 WinUI UnhandledException 链路。
             // 不要 try/catch，否则会吞掉异常导致测试无效。
             AppLog.Critical("Debug", "用户触发崩溃测试：WinUI UI 线程未处理异常");
             throw new InvalidOperationException("Debug crash test: WinUI UnhandledException");
@@ -197,7 +197,7 @@ namespace WindBoard.Settings.Pages
                 return;
             }
 
-            // 注意：此处故意在新线程抛出未处理异常，用于验证 AppDomain.UnhandledException 链路。
+            // 此处故意在新线程抛出未处理异常，用于验证 AppDomain.UnhandledException 链路。
             // 不要 try/catch，否则会吞掉异常导致测试无效。
             AppLog.Critical("Debug", "用户触发崩溃测试：AppDomain 后台线程未处理异常");
 
@@ -215,7 +215,7 @@ namespace WindBoard.Settings.Pages
 
         /// <summary>
         /// 崩溃测试强确认：要求用户输入 CRASH 才能继续。
-        /// 说明：崩溃测试会写入崩溃报告并退出进程，必须防误触。
+        /// 崩溃测试会写入崩溃报告并退出进程，必须防误触。
         /// </summary>
         private async Task<bool> ConfirmCrashAsync(string scenario)
         {
@@ -295,13 +295,13 @@ namespace WindBoard.Settings.Pages
 
         private static bool IsCrashConfirmTextMatched(string? text)
         {
-            // 说明：Trim + 不区分大小写，避免用户输入 CRASH（大小写/前后空格）导致误判。
+            // Trim 并忽略大小写，避免用户输入 " CRASH " 或 "crash" 时判定失败。
             return string.Equals((text ?? string.Empty).Trim(), "CRASH", StringComparison.OrdinalIgnoreCase);
         }
 
         /// <summary>
         /// 尝试打开文件夹（资源管理器）。
-        /// 说明：该功能属于“调试辅助”，失败不应阻断 UI，仅做提示与日志记录。
+        /// 该功能属于调试辅助，失败不应阻断 UI，仅做提示与日志记录。
         /// </summary>
         private void TryOpenFolder(string friendlyFolderPath, string successMessage)
         {
@@ -320,9 +320,7 @@ namespace WindBoard.Settings.Pages
 
             try
             {
-                // 统一走 shell（与 AboutSettingsPage 的打开约定一致）：
-                // 打包形态下 WinRT Launcher 会把“重定向前的友好路径”交给资源管理器，
-                // 外部进程在真实磁盘上找不到它（系统弹「找不到路径」），而 Launcher 仍返回成功。
+                // 统一走 shell（与 AboutSettingsPage 的打开约定一致）：打包形态下 WinRT Launcher 会把重定向前的友好路径交给资源管理器，外部进程在真实磁盘上找不到它（系统弹「找不到路径」），而 Launcher 仍返回成功。
                 Process.Start(new ProcessStartInfo("explorer.exe", $"\"{visiblePath}\"") { UseShellExecute = true });
 
                 AppLog.Info("Debug", $"已打开文件夹：path='{visiblePath}'");
@@ -402,7 +400,7 @@ namespace WindBoard.Settings.Pages
 
         /// <summary>
         /// 复制路径到剪贴板。
-        /// 说明：打包形态下复制的是外部进程可见路径（与「打开」使用的路径一致）。
+        /// 打包形态下复制的是外部进程可见路径，与「打开」使用的路径一致。
         /// </summary>
         private void TryCopyResolvedPath(string friendlyPath, string target, string successMessage)
         {
@@ -438,11 +436,7 @@ namespace WindBoard.Settings.Pages
 
         /// <summary>
         /// 尝试把剪贴板内容持久化（使其在应用退出后仍可用）。
-        ///
-        /// 失败属非致命：官方语义下 <c>Clipboard.Flush</c> 只负责“让内容在源应用退出后仍可用”，
-        /// 而内容在 <c>Clipboard.SetContent</c> 成功时已经进入剪贴板；实测失败码为
-        /// <c>0x800401D0</c>（<c>CLIPBRD_E_CANT_OPEN</c>，剪贴板被其它进程瞬时占用）。
-        /// 因此这里只记日志，不改写为“操作失败”反馈（避免出现“实际已复制却报失败”的假失败）。
+        /// 失败属非致命：<c>Clipboard.SetContent</c> 成功时内容已进入剪贴板，<c>Clipboard.Flush</c> 只负责让内容在源应用退出后仍可用；实测失败码 <c>0x800401D0</c>（<c>CLIPBRD_E_CANT_OPEN</c>，剪贴板被其它进程瞬时占用），因此只记日志，不反馈为操作失败，避免实际已复制却报失败。
         /// </summary>
         private static void TryFlushClipboard(string value)
         {

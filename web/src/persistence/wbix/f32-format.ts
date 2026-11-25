@@ -1,20 +1,8 @@
 import { WbixError } from './errors.ts'
 
 /**
- * float32 → JSON 文本（逐字符对齐 .NET `System.Text.Json` 的 float 输出）。
- *
- * 依据（Lead 用 .NET 10 探针实测，见 `.trellis/tasks/10-31-web-port/research/01-wbix-format-implementation.md`）：
- * - 输出"最短可往返"十进制，而不是 `G9`：`0x4CEB79A3` 写作 `123456790`（G9 会得到 `123456792`）；
- * - 整数不带小数点（`1`、`123456790`、`16777216`）；
- * - 负零写作 `-0`，正零写作 `0`；
- * - 科学计数法判定阈值固定在 **9**：十进制指数 `e` 满足 `e >= 9` 或 `e < -4` 时用科学计数法，
- *   否则十进制展开。float 的最大指数是 38、最小指数是 -45，所以 `e >= 9` 这个阈值等价于
- *   "整数部分超过 float 的 9 位有效数字"；
- * - 科学计数法形态：大写 `E` + 必写符号 + 至少两位指数（`1E-07`、`1E+09`、`3.4028235E+38`、`1E-45`），
- *   尾数只有一位数字时不带小数点。
- *
- * 与 `Number.prototype.toPrecision` / `toExponential` 的关系：本实现只用它们枚举"位数"，
- * 是否采纳某位数由 `Math.fround(Number(text)) === 值` 判定，因此不依赖 V8 的具体数字格式。
+ * float32 转 JSON 文本（逐字符对齐 .NET System.Text.Json 的 float 输出）。依据 .NET 10 探针实测（见 .trellis/tasks/10-31-web-port/research/01-wbix-format-implementation.md）：输出最短可往返十进制而不是 G9（0x4CEB79A3 写作 123456790，G9 会得到 123456792）；整数不带小数点（1、123456790、16777216）；负零写作 -0、正零写作 0；科学计数法判定阈值固定在 9，十进制指数 e 满足 e >= 9 或 e < -4 时用科学计数法，否则十进制展开（float 最大指数 38、最小 -45，故 e >= 9 等价于整数部分超过 9 位有效数字）；科学计数法形态为大写 E 加必写符号与至少两位指数（1E-07、1E+09、3.4028235E+38、1E-45），尾数只有一位数字时不带小数点。
+ * toPrecision 与 toExponential 只用来枚举位数，是否采纳某位数由 `Math.fround(Number(text)) === 值` 判定，因此不依赖 V8 的具体数字格式。
  */
 
 /** float32 能保证的最长有效十进制位数。 */

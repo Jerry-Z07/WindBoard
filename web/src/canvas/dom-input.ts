@@ -1,19 +1,6 @@
 /**
- * 画布 DOM 输入适配器：把真实 `PointerEvent` / `WheelEvent` / `KeyboardEvent` 转成
- * `BoardController` 的样本结构。
- *
- * 这是 P1 唯一接触 DOM 事件的地方（`board-controller.ts` 本身不读 `window`），因此
- * 「事件语义 → 纯决策」的边界只在这里出现一次。事件类型用 `dom-types.ts` 里的结构化视图，
- * 既能在 node 单测里构造，又能直接接真实 DOM 对象。
- *
- * 关键处理（每条都对应一个浏览器与桌面的差异）：
- * - **坐标**：`clientX/Y - canvasRect` 得到画布内 DIP（桌面指针事件本身就是相对画布的 DIP）；
- * - **合并事件**：`getCoalescedEvents()` 可取回被浏览器合并掉的中间采样点，
- *   逐个喂给控制器以保住笔迹采样密度（桌面每个 `PointerMoved` 都会到达）；
- * - **捕获**：`pointerdown` 时 `setPointerCapture`，保证移出画布仍能收到 `pointermove`
- *   （桌面 `CapturePointer`）；`lostpointercapture` **不当作取消**（桌面 `CaptureLost` 按提交处理）；
- * - **滚轮**：必须 `{ passive: false }` 才能 `preventDefault()`，否则页面会跟着滚动；
- * - **触摸**：画布需要 `touch-action: none`（由调用方的 CSS 提供），否则手势会被浏览器接管。
+ * 画布 DOM 输入适配器：把真实 PointerEvent / WheelEvent / KeyboardEvent 转成 BoardController 的样本结构。这是唯一接触 DOM 事件的地方（board-controller.ts 本身不读 window），因此事件语义到纯决策的边界只在这里出现一次；事件类型用 dom-types.ts 的结构化视图，既能在 node 单测里构造，又能直接接真实 DOM 对象。
+ * 浏览器与桌面的差异处理：坐标用 clientX/Y 减 canvasRect 得到画布内 DIP；getCoalescedEvents() 取回被浏览器合并掉的中间采样点逐个喂给控制器以保住采样密度；pointerdown 时 setPointerCapture 保证移出画布仍收到 pointermove（桌面 CapturePointer），lostpointercapture 不当作取消（桌面 CaptureLost 按提交处理）；滚轮监听必须 `{ passive: false }` 才能 preventDefault，否则页面会跟着滚动；画布需要 touch-action: none（由调用方 CSS 提供），否则手势会被浏览器接管。
  */
 
 import type { BoardController, PointerSample, WheelSample } from './board-controller.ts'
@@ -42,10 +29,7 @@ export interface DomInputHandle {
 }
 
 /**
- * 取缺省的键盘事件源。
- *
- * 用 `globalThis` 而不是直接写 `window`：单测环境（node）没有 `window`，直接引用会抛
- * `ReferenceError`，而类型层面在无 DOM lib 的测试工程里也拿不到 `window` 这个名字。
+ * 取缺省的键盘事件源。用 globalThis 而不是直接写 window：单测环境（node）没有 window，直接引用会抛 ReferenceError，类型层面在无 DOM lib 的测试工程里也拿不到 window 这个名字。
  */
 function defaultKeyTarget(): DomEventSourceLike | null {
   const candidate = (globalThis as { window?: unknown }).window

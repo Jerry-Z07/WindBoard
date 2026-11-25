@@ -72,7 +72,7 @@ namespace WindBoard.Settings
 
         internal static List<float> NormalizeThicknessPresets(IReadOnlyList<float>? presets)
         {
-            // 约定：必须恰好三档；异常情况回退默认值。
+            // 必须恰好三档；异常情况回退默认值。
             if (presets is null || presets.Count != 3)
             {
                 return new List<float>(DefaultThicknessPresets);
