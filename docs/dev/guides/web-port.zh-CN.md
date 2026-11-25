@@ -60,7 +60,7 @@
 | `Interaction/Tools/{Pen,Shape,Eraser,Select}Tool.cs` | `tools/{pen,shape,eraser,select}-tool.ts` | 工具状态机 |
 | `Interaction/{BoardTool,ToolOptions}.cs` | `tools/tool-settings.ts` | 工具枚举与画笔参数 |
 | `Features/Shortcuts/**`、`UI/MainWindow/MainWindow.Shortcuts.cs` | `interaction/shortcuts.ts` | 撤销/重做绑定 + 网页端补充的选择快捷键 |
-| `Features/Dock/**`（`DockItemIds.cs`、排序与显示开关） | `ui/shell/dock-layout.ts`、`settings/model.ts`、`settings/dock-order.ts` | Dock 分组、默认顺序、可拖拽排序 |
+| `Features/Dock/**`（`DockItemIds.cs`、排序/隐藏/就地编辑） | `ui/shell/dock-layout.ts`、`ui/shell/DockEditOverlay.tsx`、`settings/model.ts`、`settings/dock-order.ts` | Dock 分组、默认顺序、可拖拽排序、隐藏项与主界面就地编辑 |
 | `Controls/BoardCanvasControl.xaml{,.cs}`、`BoardCanvasControl.*.cs` | `canvas/{board-controller,dom-input}.ts` + `ui/shell/BoardSurface.tsx` | 命令式画布 + React 外壳 |
 | `Controls/BoardCanvasControl.{SelectionHandles,ShapeProperties}.cs`、`BoardCanvasControl.xaml` 的选择框/手柄 | `render/{selection,selection-handles}.ts`、`ui/overlay/**` | 桌面是 XAML 浮层，网页端用 Canvas 绘制 + DOM 浮层 |
 | `Controls/PageThumbnailControl.xaml.cs` | `render/thumbnail.ts`、`ui/shell/PageThumbnail.tsx` | 页面缩略图 |
@@ -181,7 +181,7 @@
 - 保障：`web/tests/unit/{settings-model,settings-service,settings-file}.test.ts` + `web/tests/conformance/settings-defaults.test.ts`（读 `WindBoard.Tests/Fixtures/settings/defaults.json` 与 `DEFAULT_SETTINGS` 逐字段比对；语料由 `WindBoard.Tests/Settings/SettingsDefaultsGoldenTests.cs` 守护，桌面改默认值 → 桌面语料测试先红 → 重建语料 → 网页端测试再红）。
 - 重建默认值语料：`WINBOARD_REGEN_SETTINGS_GOLDEN=1 dotnet test WindBoard.slnx --filter FullyQualifiedName~SettingsDefaultsGoldenTests`，改动理由写进提交说明。
 - 漂移症状：导入桌面设置后某些项回落默认值（通常是新增字段或归一化规则变了）。
-- 桌面才有意义的项不在网页端暴露 UI，但字段照旧读写（保证设置文件互通）：`general.startupWindowMode`（浏览器无法控制启动窗口形态）、`dock.isShortcutDocksVisible`（v1 不实现快捷 Dock）、`dock.leftOrder` 里的 `minimize`（浏览器没有最小化窗口能力，主 Dock 与 Dock 设置预览都不渲染）。
+- 桌面才有意义的项不在网页端暴露 UI，但字段照旧读写（保证设置文件互通）：`general.startupWindowMode`（浏览器无法控制启动窗口形态）、`dock.isShortcutDocksVisible`（v1 不实现快捷 Dock）、`dock.leftOrder` 里的 `minimize`（浏览器没有最小化窗口能力，主 Dock 与 Dock 编辑层都不渲染）。`dock.hiddenItems` 双端共享：网页端 Dock 渲染会过滤隐藏项，主界面 Dock 编辑层（`ui/shell/DockEditOverlay.tsx`）提供拖动排序与隐藏/恢复入口。
 
 ### 3.9 页面缩略图
 
@@ -214,7 +214,7 @@
 | `Strings/**/*.resw` | 生成物 `i18n/locales/*.generated.ts` | `pnpm i18n` → `pnpm test` |
 | `Settings/**`（模型/归一化/默认值） | `settings/model.ts`、`settings/settings-file.ts` | `pnpm test` |
 | `Features/Shortcuts/**` | `interaction/shortcuts.ts` | `pnpm test` |
-| `Features/Dock/**`（默认顺序/显示开关） | `ui/shell/dock-layout.ts`、`settings/model.ts`、`settings/dock-order.ts` | `pnpm test` → `pnpm e2e` |
+| `Features/Dock/**`（默认顺序/显示开关/编辑层） | `ui/shell/dock-layout.ts`、`ui/shell/DockBar.tsx`、`ui/shell/DockEditOverlay.tsx`、`settings/model.ts`、`settings/dock-order.ts` | `pnpm test` → `pnpm e2e` |
 | `Controls/PageThumbnailControl.xaml.cs` | `render/thumbnail.ts` | `pnpm test` |
 | `Features/Export/**` | `features/export/**` | `pnpm test`（PNG/PDF 结构测试） |
 | `Features/Import/**` | `features/import/wbix-import.ts` | `pnpm test` |
@@ -264,6 +264,7 @@ CI（`.github/workflows/web.yml`）在 push/PR 时自动跑 `lint` → `typechec
 | 元素卡文案走词表、徽标用 Unicode/Fluent 图标、正文不自动换行（只按换行符裁切） | `render/element-card.ts` | 无 Segoe Fluent Icons 与 DirectWrite 排版引擎；`RenderContext2D` 也不暴露 `measureText`，尺寸配色仍按桌面真值 |
 | 设置为模态 `Dialog` + 侧栏，非独立窗口 | `ui/dialogs/SettingsWindow.tsx` | 浏览器只有一个窗口，无法复刻 `AppWindow` |
 | 不渲染「最小化」Dock 项（设置里仍保留该 id）；设置持久化用 `localStorage` | `ui/shell/DockBar.tsx`、`settings/pages/DockPage.tsx`、`settings/service.ts` | 浏览器没有对应能力；导出设置文件另名为 `windboard-settings.json` |
+| 桌面与网页端 Dock 均为主界面就地编辑 + 精简设置页（仅「编辑 Dock」与「恢复默认布局」）；网页端无快捷入口 Dock | `Features/Dock/UI/DockEditOverlay.xaml`、`ui/shell/DockEditOverlay.tsx`、`settings/pages/DockPage.tsx` | 网页端编辑层用 Pointer Events 自己实现拖动（鼠标/触摸/笔），不引入拖拽库；窄屏（≤700px）改为可滚动的纵向分组。`dock.hiddenItems` 字段与归一化规则双端一致；v1 不实现快捷入口 Dock |
 | Dock 文字用 `--wb-dock-text-primary`（89.4% 黑，不随主题） | `styles/tokens.css` | Dock 区强制浅色底板，深色主题下白字会看不见 |
 | 自动保存 / 崩溃恢复 | `persistence/autosave*.ts`、`ui/dialogs/RecoveryDialog.tsx` | 网页端增强，桌面没有；不是移植项 |
 | 不渲染标题栏 | `ui/shell/AppShell.tsx`（原 `TitleBar.tsx` 已删除）、`styles/shell.css` | 桌面的 `TitleBar` 是给无边框窗口做拖拽区与标题显示的；浏览器窗口自带标题栏，PWA 由系统绘制，再画一条白占 32 DIP（手机上是整整一行）。窗口标题仍在 `<title>`/PWA `name` 里，安全区改由 `.wb-body` 的 `padding-top` 承担 |
@@ -290,7 +291,7 @@ CI（`.github/workflows/web.yml`）在 push/PR 时自动跑 `lint` → `typechec
 | `UI/MainWindow/MainWindow.*.cs` 的编排时序（导出/导入/分页/快捷键） | 网页端 `ui/shell/**` 按行为重写，无对账测试 |
 | 设置默认值与归一化规则 | 默认值已由 `WindBoard.Tests/Fixtures/settings/defaults.json` 强制两端一致；**归一化规则**（非法值回落）仍各自单测 |
 | 导出文件命名 / 画幅 / DPI 计算 | `Features/Export/**` 与 `features/export/**` 各自单测 |
-| Dock 默认顺序 | 已包含在设置默认值语料里（四组顺序 + 两个显示开关） |
+| Dock 默认顺序 | 已包含在设置默认值语料里（四组顺序 + 隐藏项 + 快捷入口显示开关） |
 | 快捷键表 | 默认绑定（`Ctrl+Z`/`Ctrl+Y`）在设置语料里；**按键解析与冲突检测**仍各自单测，不锁行为 |
 | WinUI 模板度量（InfoBar、元素卡） | `generic.xaml` 里的值手工抄进 `element-card.ts` / `chrome.css` |
 | 系统强调色 | 桌面取 `SystemAccentColor`，网页固定 `#0078D4`，永远无法自动一致 |

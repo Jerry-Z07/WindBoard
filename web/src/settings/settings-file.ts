@@ -32,12 +32,12 @@ export function serializeSettingsFile(settings: AppSettings): string {
       elementCardTheme: settings.appearance.elementCardTheme,
     },
     dock: {
-      isUndoRedoVisible: settings.dock.isUndoRedoVisible,
       isShortcutDocksVisible: settings.dock.isShortcutDocksVisible,
       leftOrder: [...settings.dock.leftOrder],
       toolsOrder: [...settings.dock.toolsOrder],
       undoRedoOrder: [...settings.dock.undoRedoOrder],
       pagesOrder: [...settings.dock.pagesOrder],
+      hiddenItems: [...settings.dock.hiddenItems],
     },
     writing: {
       pen: {

@@ -1,7 +1,9 @@
 /**
- * Dock 顺序计算（纯函数）。桌面出处：DockSettingsPage.xaml:47-229 的四组 ListView 都启用 CanDragItems 与 CanReorderItems，拖动结束触发 DragItemsCompleted；DockSettingsPage.xaml.cs:395-412（OnDockItemsDragCompleted → PersistOrdersToSettings）把四组当前顺序整体写回 Dock.LeftOrder / Dock.ToolsOrder / Dock.UndoRedoOrder / Dock.PagesOrder；读设置时的兜底规则见 settings/model.ts 的 normalizeDockOrder（剔除未知 id、去重、按默认顺序补齐缺失项），本模块 normalizeOrder 与它同语义，供落盘前自检或外部数据进来时先规整。
+ * Dock 顺序计算（纯函数）。桌面出处：DockEditOverlay.xaml 的四组 ListView 都启用 CanDragItems 与 CanReorderItems，拖动结束触发 DragItemsCompleted；DockEditOverlay.xaml.cs 把四组当前顺序整体写回 Dock.LeftOrder / Dock.ToolsOrder / Dock.UndoRedoOrder / Dock.PagesOrder；读设置时的兜底规则见 settings/model.ts 的 normalizeDockOrder（剔除未知 id、去重、按默认顺序补齐缺失项），本模块 normalizeOrder 与它同语义，供落盘前自检或外部数据进来时先规整。
  * 只做数组怎么变的纯计算，不依赖 React / DOM，便于表驱动单测；所有函数都不修改入参并始终返回新数组，需要判断是否真的变了时用内容比较（isSameOrder），不要用引用比较。
  */
+
+import type { DockItemId } from './model.ts'
 
 /** 下标是否是 `list` 的合法位置（整数且落在 [0, length) 内）。 */
 function isIndexInRange(list: readonly unknown[], index: number): boolean {
@@ -64,4 +66,38 @@ export function isSameOrder(a: readonly string[], b: readonly string[]): boolean
     return false
   }
   return a.every((id, index) => id === b[index])
+}
+
+/**
+ * 把编辑层里重排后的可见项合并回完整顺序：不在网页端渲染的项（`minimize`）保持原下标，
+ * 可见项按新顺序依次填入。写回的 `leftOrder` 因此不会丢掉桌面需要的 id，导出设置文件后桌面仍能还原布局。
+ *
+ * @param full 设置里的完整顺序
+ * @param visible 编辑层里的新顺序（只含 `isRendered` 为 true 的项）
+ * @param isRendered 判断某个 id 是否在网页端渲染
+ */
+export function mergeDockOrder(
+  full: readonly DockItemId[],
+  visible: readonly DockItemId[],
+  isRendered: (id: DockItemId) => boolean,
+): readonly DockItemId[] {
+  let index = 0
+  return full.map((id) => (isRendered(id) ? (visible[index++] ?? id) : id))
+}
+
+/**
+ * 切换一个 Dock 项的隐藏状态。`more` 是设置入口，桌面与网页端都不允许隐藏，
+ * 传它进来时返回内容不变的副本（调用方仍需归一去重与未知项）。
+ */
+export function toggleDockHiddenItem(
+  hidden: readonly DockItemId[],
+  id: DockItemId,
+): readonly DockItemId[] {
+  if (id === 'more') {
+    return [...hidden]
+  }
+  if (hidden.includes(id)) {
+    return hidden.filter((item) => item !== id)
+  }
+  return [...hidden, id]
 }

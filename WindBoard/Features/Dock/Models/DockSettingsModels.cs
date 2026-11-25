@@ -104,9 +104,9 @@ namespace WindBoard.Features.Dock.Models
         public List<string> PagesOrder { get; set; } = new(DockSettingsDefaults.PagesOrder);
 
         /// <summary>
-        /// 撤销/重做区域是否可见。
+        /// 被隐藏的内置项 id。项仍保留在四组顺序列表中，取消隐藏后按原顺序位置恢复。
         /// </summary>
-        public bool IsUndoRedoVisible { get; set; } = true;
+        public List<string> HiddenItems { get; set; } = new();
 
         /// <summary>
         /// 主 Dock 左右两侧的“快捷入口 Dock”是否可见。

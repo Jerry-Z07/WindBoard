@@ -101,7 +101,7 @@ describe('匹配规则（对应 RefreshSearchSuggestions）', () => {
     const targets = Array.from({ length: 12 }, (_, index) =>
       fakeTarget(`anchor-${index + 1}`, 'Settings_Dock_Description'),
     )
-    const results = matchSettingsSearchTargets(targets, '调整 Dock', t)
+    const results = matchSettingsSearchTargets(targets, '拖动排序', t)
 
     expect(results).toHaveLength(MAX_SETTINGS_SEARCH_SUGGESTIONS)
     expect(results.map((result) => result.target.anchor)).toEqual([
@@ -162,5 +162,18 @@ describe('网页端搜索目标清单', () => {
         expect(description.trim().length).toBeGreaterThan(0)
       }
     }
+  })
+
+  it('Dock 页只剩「编辑 Dock」卡片，锚点同步改名', () => {
+    const dockTargets = SETTINGS_SEARCH_TARGETS.filter((target) => target.pageId === 'dock')
+    expect(dockTargets).toHaveLength(1)
+    expect(dockTargets[0]?.cardTitleKey).toBe('Settings_Dock_EditInPlace_Header')
+    expect(dockTargets[0]?.anchor).toBe(SETTINGS_ANCHORS.dockEditInPlace)
+
+    // 搜索「编辑 Dock」能定位到这张卡片（旧撤销/重做开关的文案不再出现在 Dock 页）
+    expect(searchSettings('编辑 Dock', t).map((result) => result.target.cardTitleKey)).toEqual([
+      'Settings_Dock_EditInPlace_Header',
+    ])
+    expect(searchSettings('撤销/重做', t).map((result) => result.target.pageId)).not.toContain('dock')
   })
 })

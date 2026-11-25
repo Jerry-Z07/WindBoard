@@ -471,13 +471,19 @@
     <value>Dock 设置</value>
   </data>
   <data name="Settings_Dock_Description" xml:space="preserve">
-    <value>调整 Dock 内组件的位置与显隐</value>
+    <value>在主界面 Dock 上拖动排序、隐藏项目与管理快捷入口</value>
+  </data>
+  <data name="Settings_Dock_EditInPlace_Header" xml:space="preserve">
+    <value>编辑 Dock</value>
+  </data>
+  <data name="Settings_Dock_EditInPlace_Description" xml:space="preserve">
+    <value>在主界面 Dock 上拖动排序、隐藏项目与管理快捷入口</value>
+  </data>
+  <data name="Settings_Dock_ResetLayout_Description" xml:space="preserve">
+    <value>恢复默认顺序、隐藏项与快捷入口</value>
   </data>
   <data name="Settings_Dock_DragHint" xml:space="preserve">
-    <value>拖动下方按钮可调整顺序；选中后按 Ctrl+左右方向键也能移动，触摸时长按再拖动。</value>
-  </data>
-  <data name="Settings_Dock_ShowUndoRedo_Header" xml:space="preserve">
-    <value>显示撤销/重做区域</value>
+    <value>拖动下方按钮可调整顺序；选中后按 Ctrl+左右方向键也能移动；用眼睛按钮隐藏或恢复。</value>
   </data>
   <data name="Settings_Dock_ShowShortcutDocks_Header" xml:space="preserve">
     <value>显示快捷入口 Dock</value>
@@ -594,6 +600,6 @@
     <value>还没有快捷入口。</value>
   </data>
   <data name="Settings_Dock_ResetConfirm_Content" xml:space="preserve">
-    <value>四组顺序与两个显隐开关恢复默认，快捷入口会被清空。</value>
+    <value>四组顺序、隐藏项与两个显隐开关恢复默认，快捷入口会被清空。</value>
   </data>
 </root>

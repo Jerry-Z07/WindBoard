@@ -37,7 +37,7 @@ var snapshot = AppSettingsService.Instance.Current;
 AppSettingsService.Instance.Update(s =>
 {
     s.General.Camouflage.Enabled = true;
-    s.Dock.IsUndoRedoVisible = isVisible;
+    s.Dock.IsShortcutDocksVisible = true;
 });
 ```
 

@@ -83,7 +83,7 @@ public sealed class SettingsDefaultsGoldenTests
                 ["toolsOrder"] = ToJsonArray(settings.Dock.ToolsOrder),
                 ["undoRedoOrder"] = ToJsonArray(settings.Dock.UndoRedoOrder),
                 ["pagesOrder"] = ToJsonArray(settings.Dock.PagesOrder),
-                ["isUndoRedoVisible"] = settings.Dock.IsUndoRedoVisible,
+                ["hiddenItems"] = ToJsonArray(settings.Dock.HiddenItems),
                 ["isShortcutDocksVisible"] = settings.Dock.IsShortcutDocksVisible,
             },
             ["writing"] = new JsonObject

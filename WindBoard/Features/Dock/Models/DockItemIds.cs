@@ -59,6 +59,17 @@ namespace WindBoard.Features.Dock.Models
             DockItemIds.PageNext,
             DockItemIds.PageAdd,
         ];
+
+        /// <summary>
+        /// 所有合法的内置项 id。用于过滤设置文件里的隐藏项，避免未知 id 进入状态。
+        /// </summary>
+        public static readonly IReadOnlyList<string> All =
+        [
+            .. LeftOrder,
+            .. ToolsOrder,
+            .. UndoRedoOrder,
+            .. PagesOrder,
+        ];
     }
 }
 

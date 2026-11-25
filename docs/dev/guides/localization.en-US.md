@@ -42,7 +42,7 @@ Use it for every user-visible string:
 
 ```xml
 Text="{l10n:Loc Key=Common_Close}"
-Header="{l10n:Loc Key=Settings_Dock_ShowUndoRedo_Header}"
+Header="{l10n:Loc Key=Settings_Dock_ShowShortcutDocks_Header}"
 ```
 
 ## Language Switching

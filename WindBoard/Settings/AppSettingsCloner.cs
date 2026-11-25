@@ -53,7 +53,9 @@ namespace WindBoard.Settings
                     ToolsOrder = new List<string>(settings.Dock?.ToolsOrder ?? DockSettingsDefaults.ToolsOrder),
                     UndoRedoOrder = new List<string>(settings.Dock?.UndoRedoOrder ?? DockSettingsDefaults.UndoRedoOrder),
                     PagesOrder = new List<string>(settings.Dock?.PagesOrder ?? DockSettingsDefaults.PagesOrder),
-                    IsUndoRedoVisible = settings.Dock?.IsUndoRedoVisible ?? true,
+                    HiddenItems = settings.Dock?.HiddenItems is null
+                        ? new List<string>()
+                        : new List<string>(settings.Dock.HiddenItems),
                     IsShortcutDocksVisible = settings.Dock?.IsShortcutDocksVisible ?? false,
                     ShortcutItems = settings.Dock?.ShortcutItems is null
                         ? new List<ShortcutDockItemSettings>()

@@ -127,7 +127,7 @@ describe('reset 与订阅', () => {
   it('reset 后存储文本可被新服务读回默认设置', () => {
     const storage = createMemorySettingsStorage()
     const service = createSettingsService(storage)
-    service.patch({ dock: { isUndoRedoVisible: false } })
+    service.patch({ dock: { hiddenItems: ['import'] } })
     service.reset()
 
     const reloaded = createSettingsService(storage)

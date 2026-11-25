@@ -35,7 +35,7 @@ namespace WindBoard.Settings
             new("appearance", null, static () => L10n.Get("Settings_Appearance_Title")),
             new("appearance", null, static () => L10n.Get("Settings_Background_CanvasBackgroundColor_Title"), static () => L10n.Get("Settings_Background_CanvasBackgroundColor_Description"), "CanvasBackgroundCard"),
             new("appearance", null, static () => L10n.Get("Settings_Appearance_ElementCardTheme_Title"), static () => L10n.Get("Settings_Appearance_ElementCardTheme_Description"), "ElementCardThemeCard"),
-            new("appearance", typeof(DockSettingsPage), static () => L10n.Get("Settings_Dock_Title"), static () => L10n.Get("Settings_Dock_Description"), "UndoRedoVisibleToggleSwitch"),
+            new("appearance", typeof(DockSettingsPage), static () => L10n.Get("Settings_Dock_Title"), static () => L10n.Get("Settings_Dock_Description"), "DockEditEntryCard"),
 
             new("writing", null, static () => L10n.Get("Settings_Writing_Title")),
             new("writing", typeof(PenSettingsPage), static () => L10n.Get("Settings_Pen_Title"), static () => L10n.Get("Settings_Writing_Pen_Description"), "PaletteCountNumberBox"),

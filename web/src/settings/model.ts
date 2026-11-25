@@ -98,8 +98,8 @@ export interface DockSettings {
   readonly toolsOrder: readonly DockItemId[]
   readonly undoRedoOrder: readonly DockItemId[]
   readonly pagesOrder: readonly DockItemId[]
-  /** 是否显示撤销/重做（默认 true）。 */
-  readonly isUndoRedoVisible: boolean
+  /** 被隐藏的内置项 id；仍保留在四组顺序中，恢复后回到原位置（桌面 `dock.hiddenItems`）。 */
+  readonly hiddenItems: readonly DockItemId[]
   /** 是否显示快捷 Dock（网页端 v1 不实现，恒 false）。 */
   readonly isShortcutDocksVisible: boolean
 }
@@ -143,7 +143,7 @@ export const DEFAULT_SETTINGS: AppSettings = Object.freeze({
     toolsOrder: DEFAULT_TOOL_DOCK_ITEMS,
     undoRedoOrder: DEFAULT_UNDO_REDO_DOCK_ITEMS,
     pagesOrder: DEFAULT_PAGE_DOCK_ITEMS,
-    isUndoRedoVisible: true,
+    hiddenItems: Object.freeze([]) as readonly DockItemId[],
     isShortcutDocksVisible: false,
   }),
   writing: Object.freeze({
@@ -258,9 +258,30 @@ export function normalizeDockOrder(value: unknown, defaults: readonly DockItemId
       }
     }
   }
+
   for (const item of defaults) {
     if (!result.includes(item)) {
       result.push(item)
+    }
+  }
+  return result
+}
+
+/**
+ * 归一化隐藏项：过滤空白/未知 id、去重，并剔除 `more`（它是设置入口，桌面与网页端都不允许隐藏）。
+ */
+export function normalizeDockHiddenItems(value: unknown): DockItemId[] {
+  const result: DockItemId[] = []
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      if (
+        typeof item === 'string' &&
+        item !== 'more' &&
+        ALL_DOCK_ITEM_IDS.has(item) &&
+        !result.includes(item as DockItemId)
+      ) {
+        result.push(item as DockItemId)
+      }
     }
   }
   return result
@@ -355,7 +376,7 @@ export function normalizeSettings(raw: unknown): AppSettings {
       toolsOrder: normalizeDockOrder(dock.toolsOrder, DEFAULT_TOOL_DOCK_ITEMS),
       undoRedoOrder: normalizeDockOrder(dock.undoRedoOrder, DEFAULT_UNDO_REDO_DOCK_ITEMS),
       pagesOrder: normalizeDockOrder(dock.pagesOrder, DEFAULT_PAGE_DOCK_ITEMS),
-      isUndoRedoVisible: boolOr(dock.isUndoRedoVisible, true),
+      hiddenItems: normalizeDockHiddenItems(dock.hiddenItems),
       isShortcutDocksVisible: boolOr(dock.isShortcutDocksVisible, false),
     },
     writing: {

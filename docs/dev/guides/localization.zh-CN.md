@@ -43,7 +43,7 @@ xmlns:l10n="using:WindBoard.Localization"
 
 ```xml
 Text="{l10n:Loc Key=Common_Close}"
-Header="{l10n:Loc Key=Settings_Dock_ShowUndoRedo_Header}"
+Header="{l10n:Loc Key=Settings_Dock_ShowShortcutDocks_Header}"
 ```
 
 ## 语言切换

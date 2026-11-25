@@ -29,7 +29,7 @@
       "pageNext",
       "pageAdd"
     ],
-    "isUndoRedoVisible": true,
+    "hiddenItems": [],
     "isShortcutDocksVisible": false
   },
   "writing": {

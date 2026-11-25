@@ -223,6 +223,24 @@ describe('applyDockOrder：按设置里的顺序排列 Dock 项', () => {
     expect(applyDockOrder(items, (id) => id, [])).toEqual(items)
   })
 
+  it('隐藏项被过滤，more 防御性保留', () => {
+    const ordered = applyDockOrder(
+      items,
+      (id) => id,
+      ['more', 'import', 'minimize'],
+      ['import', 'more'],
+    )
+    expect(ordered).toEqual(['more', 'minimize'])
+  })
+
+  it('隐藏列表为空 → 顺序不变', () => {
+    expect(applyDockOrder(items, (id) => id, ['import', 'more', 'minimize'], [])).toEqual([
+      'import',
+      'more',
+      'minimize',
+    ])
+  })
+
   it('不改动传入数组', () => {
     const source = ['more', 'minimize', 'import'] as DockItemId[]
     applyDockOrder(source, (id) => id, ['import', 'more', 'minimize'])

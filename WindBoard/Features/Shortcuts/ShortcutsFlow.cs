@@ -127,7 +127,7 @@ namespace WindBoard.Features.Shortcuts
         private static void OnUndoKeyboardAcceleratorInvoked(ShortcutsMainWindowHost host, KeyboardAcceleratorInvokedEventArgs args)
         {
             // 文本输入控件内优先由控件自身处理 Ctrl+Z（例如导入文字对话框），避免误触撤销画布操作。
-            if (host.IsTextInputFocused())
+            if (host.IsTextInputFocused() || host.IsInteractionBlocked())
             {
                 return;
             }
@@ -143,7 +143,7 @@ namespace WindBoard.Features.Shortcuts
 
         private static void OnRedoKeyboardAcceleratorInvoked(ShortcutsMainWindowHost host, KeyboardAcceleratorInvokedEventArgs args)
         {
-            if (host.IsTextInputFocused())
+            if (host.IsTextInputFocused() || host.IsInteractionBlocked())
             {
                 return;
             }

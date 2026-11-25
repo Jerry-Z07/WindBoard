@@ -48,7 +48,6 @@ describe('默认设置（与桌面 settings.json 首次写出的一致）', () =
 
   it('Dock 默认值', () => {
     expect(DEFAULT_SETTINGS.dock.leftOrder).toEqual([...DEFAULT_LEFT_DOCK_ITEMS])
-    expect(DEFAULT_SETTINGS.dock.isUndoRedoVisible).toBe(true)
     expect(DEFAULT_SETTINGS.dock.isShortcutDocksVisible).toBe(false)
   })
 
@@ -261,13 +260,16 @@ describe('normalizeSettings：整体容错', () => {
           useThicknessSlider: true,
         },
       },
-      dock: { leftOrder: ['import', 'more', 'import'], isUndoRedoVisible: false },
+      dock: {
+        leftOrder: ['import', 'more', 'import'],
+        hiddenItems: ['import', 'more', 'import', 'unknown', 'toolPen'],
+      },
     })
     expect(settings.writing.pen.paletteHexes).toEqual(['#ABC123', null, null])
     expect(settings.writing.pen.thicknessPresets).toEqual([1, 3, 9])
     expect(settings.writing.pen.useThicknessSlider).toBe(true)
     expect(settings.dock.leftOrder).toEqual(['import', 'more', 'minimize'])
-    expect(settings.dock.isUndoRedoVisible).toBe(false)
+    expect(settings.dock.hiddenItems).toEqual(['import', 'toolPen'])
   })
 })
 

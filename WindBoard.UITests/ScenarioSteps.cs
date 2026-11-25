@@ -38,6 +38,26 @@ namespace WindBoard.UITests
             return settingsWindow;
         }
 
+        /// <summary>设置 → 外观 → Dock 设置 → 编辑 Dock，并等待编辑工具栏出现。</summary>
+        public static void EnterDockEditMode(WindBoardApp app)
+        {
+            UiInteraction.BringToFront(app.MainWindow);
+
+            Window settings = OpenSettingsWindow(app);
+            NavigateSettingsPage(app, settings, "SettingsWindow_Nav_Appearance");
+            ClickCard(app, settings, "Appearance_DockSettingsCard");
+            ClickCard(app, settings, "Settings_Dock_EditEntryCard");
+
+            WaitForInMainWindow(app, "Dock_Edit_DoneButton", TimeSpan.FromSeconds(10));
+        }
+
+        /// <summary>点击编辑层工具栏的“完成”，退出就地编辑模式。</summary>
+        public static void ExitDockEditMode(WindBoardApp app)
+        {
+            var doneButton = WaitForInMainWindow(app, "Dock_Edit_DoneButton");
+            UiInteraction.InvokeOrClick(doneButton);
+        }
+
         /// <summary>在设置窗口中切换到指定导航页（按 NavigationViewItem 的 AutomationId）。</summary>
         public static void NavigateSettingsPage(WindBoardApp app, Window settingsWindow, string navigationItemId)
         {

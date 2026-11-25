@@ -10,6 +10,7 @@ import { BoardControllerProvider, ShellActionsProvider } from '../../app/provide
 import type { BoardController } from '../../canvas/board-controller.ts'
 import { BoardSurface } from './BoardSurface.tsx'
 import { DockBar } from './DockBar.tsx'
+import { DockEditOverlay } from './DockEditOverlay.tsx'
 import { ReminderStack } from './ReminderStack.tsx'
 import { useNarrowLayout } from './use-narrow-layout.ts'
 import { SettingsWindow } from '../dialogs/SettingsWindow.tsx'
@@ -23,6 +24,8 @@ export function AppShell(): ReactNode {
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [exportOpen, setExportOpen] = useState(false)
   const [importOpen, setImportOpen] = useState(false)
+  // Dock 就地编辑：编辑期间不渲染正常 Dock，由编辑层铺满内容区拦截画布输入
+  const [dockEditing, setDockEditing] = useState(false)
   // 窄屏（手机）把三段 Dock 合并成一段紧凑栏，否则三段横排会互相覆盖
   const narrow = useNarrowLayout()
 
@@ -52,7 +55,13 @@ export function AppShell(): ReactNode {
           {controller === null ? null : (
             <BoardControllerProvider controller={controller}>
               <ReminderStack />
-              {narrow ? (
+              {dockEditing ? (
+                <DockEditOverlay
+                  onDone={() => {
+                    setDockEditing(false)
+                  }}
+                />
+              ) : narrow ? (
                 <div className="wb-dock-layer wb-dock-layer--narrow">
                   <DockBar placement="narrow" />
                 </div>
@@ -79,6 +88,11 @@ export function AppShell(): ReactNode {
               open={settingsOpen}
               onClose={() => {
                 setSettingsOpen(false)
+              }}
+              onStartDockEdit={() => {
+                // 桌面先关闭设置窗口再进入主窗口编辑模式；两步放在同一次事件里，编辑层当帧出现
+                setSettingsOpen(false)
+                setDockEditing(true)
               }}
             />
             <ExportDialog

@@ -193,6 +193,7 @@ namespace WindBoard.Settings
             settings.ToolsOrder = NormalizeOrder(settings.ToolsOrder, DockSettingsDefaults.ToolsOrder);
             settings.UndoRedoOrder = NormalizeOrder(settings.UndoRedoOrder, DockSettingsDefaults.UndoRedoOrder);
             settings.PagesOrder = NormalizeOrder(settings.PagesOrder, DockSettingsDefaults.PagesOrder);
+            settings.HiddenItems = DockLayoutRules.NormalizeHiddenItems(settings.HiddenItems);
 
             NormalizeShortcutDockSettingsInPlace(settings);
         }

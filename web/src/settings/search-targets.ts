@@ -22,7 +22,7 @@ export const SETTINGS_ANCHORS = {
   shortcutsUndo: 'settings-card-shortcuts-undo',
   shortcutsRedo: 'settings-card-shortcuts-redo',
   shortcutsConflictReminder: 'settings-card-shortcuts-conflict-reminder',
-  dockUndoRedoVisible: 'settings-card-dock-undo-redo-visible',
+  dockEditInPlace: 'settings-card-dock-edit-in-place',
   aboutVersion: 'settings-card-about-version',
   aboutExportSettings: 'settings-card-about-export-settings',
   aboutImportSettings: 'settings-card-about-import-settings',
@@ -121,13 +121,13 @@ export const SETTINGS_SEARCH_TARGETS: readonly SettingsSearchTarget[] = Object.f
     field: 'keyboardShortcuts.conflictReminderEnabled',
   },
 
-  // Dock（桌面 `Features/Dock/UI/DockSettingsPage.xaml`）
+  // Dock（桌面 `Features/Dock/UI/DockSettingsPage.xaml` 的精简页）
   {
     pageId: 'dock',
-    cardTitleKey: 'Settings_Dock_ShowUndoRedo_Header',
-    descriptionKey: 'Web_Settings_DockUndoRedo_Description',
-    anchor: SETTINGS_ANCHORS.dockUndoRedoVisible,
-    field: 'dock.isUndoRedoVisible',
+    cardTitleKey: 'Settings_Dock_EditInPlace_Header',
+    descriptionKey: 'Settings_Dock_EditInPlace_Description',
+    anchor: SETTINGS_ANCHORS.dockEditInPlace,
+    field: 'dock',
   },
 
   // 关于（桌面 `Settings/Pages/AboutSettingsPage.xaml` + `SettingsManagementPage.xaml`）

@@ -215,8 +215,9 @@ public sealed class AppSettingsStoreTests
         Assert.Equal(DockSettingsDefaults.ToolsOrder, settings.Dock.ToolsOrder);
         Assert.Equal(DockSettingsDefaults.UndoRedoOrder, settings.Dock.UndoRedoOrder);
         Assert.Equal(DockSettingsDefaults.PagesOrder, settings.Dock.PagesOrder);
-        Assert.True(settings.Dock.IsUndoRedoVisible);
         Assert.False(settings.Dock.IsShortcutDocksVisible);
+        Assert.NotNull(settings.Dock.HiddenItems);
+        Assert.Empty(settings.Dock.HiddenItems);
         Assert.NotNull(settings.Dock.ShortcutItems);
         Assert.Empty(settings.Dock.ShortcutItems);
     }
@@ -238,7 +239,6 @@ public sealed class AppSettingsStoreTests
                 ToolsOrder = null!,
                 UndoRedoOrder = new List<string> { DockItemIds.Redo, DockItemIds.Undo },
                 PagesOrder = new List<string>(),
-                IsUndoRedoVisible = false,
             },
         };
 
@@ -250,10 +250,33 @@ public sealed class AppSettingsStoreTests
         Assert.Equal(DockSettingsDefaults.ToolsOrder, settings.Dock.ToolsOrder);
         Assert.Equal(new[] { DockItemIds.Redo, DockItemIds.Undo }, settings.Dock.UndoRedoOrder);
         Assert.Equal(DockSettingsDefaults.PagesOrder, settings.Dock.PagesOrder);
-        Assert.False(settings.Dock.IsUndoRedoVisible);
         Assert.False(settings.Dock.IsShortcutDocksVisible);
         Assert.NotNull(settings.Dock.ShortcutItems);
         Assert.Empty(settings.Dock.ShortcutItems);
+    }
+
+    [Fact]
+    public void NormalizeInPlace_NormalizesDockHiddenItems_FiltersMoreUnknownAndDuplicates()
+    {
+        var settings = new AppSettings
+        {
+            Dock = new DockSettings
+            {
+                HiddenItems = new List<string>
+                {
+                    DockItemIds.Import,
+                    " more ",
+                    " unknown ",
+                    DockItemIds.Import,
+                    " toolPen ",
+                    "  ",
+                },
+            },
+        };
+
+        AppSettingsStore.NormalizeInPlace(settings);
+
+        Assert.Equal(new[] { DockItemIds.Import, DockItemIds.ToolPen }, settings.Dock.HiddenItems);
     }
 
     [Fact]

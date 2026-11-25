@@ -140,7 +140,7 @@ function LeftDock(): ReactNode {
   const { t } = useI18n()
   const actions = useShellActions()
   const settings = useSettings()
-  const ordered = applyDockOrder(LEFT_DOCK_ITEMS, (id) => id, settings.dock.leftOrder)
+  const ordered = applyDockOrder(LEFT_DOCK_ITEMS, (id) => id, settings.dock.leftOrder, settings.dock.hiddenItems)
 
   const renderItem = (id: DockItemId): ReactNode => {
     switch (id) {
@@ -228,7 +228,7 @@ function ToolButtons(): ReactNode {
   const settings = useSettings()
   const flyouts = useFlyoutMachine()
   const openFlyout = useOpenFlyout()
-  const ordered = applyDockOrder(TOOL_DOCK_ITEMS, (id) => id, settings.dock.toolsOrder)
+  const ordered = applyDockOrder(TOOL_DOCK_ITEMS, (id) => id, settings.dock.toolsOrder, settings.dock.hiddenItems)
 
   /** 工具按钮点击：先按桌面规则决定面板状态，再切工具（`MainWindow.xaml.cs:252-268` 等）。 */
   const clickTool = (tool: ToolKind): void => {
@@ -322,15 +322,20 @@ function ToolButtons(): ReactNode {
 }
 
 /**
- * 撤销与重做组。桌面把这一组和工具组放在同一块浮层里、用一条 1×30 的分隔线隔开（MainWindow.xaml:522-527）；是否显示由设置项 dock.isUndoRedoVisible 决定，隐藏时连分隔线一起去掉，所以分隔线由调用方按同一开关渲染。
+ * 撤销与重做组。桌面把这一组和工具组放在同一块浮层里、用一条 1×30 的分隔线隔开（MainWindow.xaml:522-527）；两项都被隐藏时整组连分隔线一起去掉，所以分隔线由调用方按可见项数量渲染。
  */
 function UndoRedoButtons(): ReactNode {
   const { t } = useI18n()
   const controller = useBoardController()
   const snapshot = useBoardSnapshot()
   const settings = useSettings()
-  const showUndoRedo = settings.dock.isUndoRedoVisible
   const undoRedoOrder = settings.dock.undoRedoOrder
+  const visible = applyDockOrder(
+    ['undo', 'redo'] as const,
+    (id) => id,
+    undoRedoOrder,
+    settings.dock.hiddenItems,
+  )
 
   const renderUndoRedo = (id: DockItemId): ReactNode => {
     switch (id) {
@@ -366,9 +371,9 @@ function UndoRedoButtons(): ReactNode {
     }
   }
 
-  return !showUndoRedo ? null : (
+  return visible.length === 0 ? null : (
     <div className="wb-dock__undo-redo">
-      {applyDockOrder(['undo', 'redo'] as const, (id) => id, undoRedoOrder).map(renderUndoRedo)}
+      {visible.map(renderUndoRedo)}
     </div>
   )
 }
@@ -376,12 +381,20 @@ function UndoRedoButtons(): ReactNode {
 /** 主 Dock：工具组 + 分隔线 + 撤销 / 重做（`MainWindow.xaml:441-558`）。 */
 function CenterDock(): ReactNode {
   const settings = useSettings()
+  const hidden = settings.dock.hiddenItems
+  const showTools = applyDockOrder(TOOL_DOCK_ITEMS, (id) => id, settings.dock.toolsOrder, hidden).length > 0
+  const showUndoRedo =
+    applyDockOrder(['undo', 'redo'] as const, (id) => id, settings.dock.undoRedoOrder, hidden).length > 0
+
+  if (!showTools && !showUndoRedo) {
+    return null
+  }
 
   return (
     <div className="wb-dock wb-dock--center">
       <ToolButtons />
-      {/* 分隔线 1×30、40% 黑（`MainWindow.xaml:522-527`）；撤销重做整组隐藏时一并隐藏 */}
-      {settings.dock.isUndoRedoVisible ? <div className="wb-dock__separator" aria-hidden /> : null}
+      {/* 分隔线 1×30、40% 黑（`MainWindow.xaml:522-527`）；两侧都有内容时才显示 */}
+      {showTools && showUndoRedo ? <div className="wb-dock__separator" aria-hidden /> : null}
       <UndoRedoButtons />
     </div>
   )
@@ -418,7 +431,7 @@ function RightDock(): ReactNode {
   const indicatorText = usePageIndicatorText()
   const showPager = useShowPagePager()
   const deletion = usePageDeletion()
-  const ordered = applyDockOrder(PAGE_DOCK_ITEMS, (id) => id, settings.dock.pagesOrder)
+  const ordered = applyDockOrder(PAGE_DOCK_ITEMS, (id) => id, settings.dock.pagesOrder, settings.dock.hiddenItems)
 
   const closeFlyout = (): void => {
     flyouts.close()
@@ -505,9 +518,15 @@ function RightDock(): ReactNode {
     }
   }
 
+  // 单页时只折叠翻页三件套，「+」始终可见（否则没有入口新增第二页）；再叠加隐藏项过滤。
+  const renderedIds = ordered.filter((id) => showPager || id === 'pageAdd')
+  if (renderedIds.length === 0) {
+    return null
+  }
+
   return (
     <>
-      <div className="wb-dock wb-dock--pages">{ordered.map(renderItem)}</div>
+      <div className="wb-dock wb-dock--pages">{renderedIds.map(renderItem)}</div>
       {deletion.confirmDialog}
     </>
   )
@@ -521,11 +540,15 @@ function RightDock(): ReactNode {
  */
 function NarrowDock(): ReactNode {
   const settings = useSettings()
+  const hidden = settings.dock.hiddenItems
+  const showTools = applyDockOrder(TOOL_DOCK_ITEMS, (id) => id, settings.dock.toolsOrder, hidden).length > 0
+  const showUndoRedo =
+    applyDockOrder(['undo', 'redo'] as const, (id) => id, settings.dock.undoRedoOrder, hidden).length > 0
 
   return (
     <div className="wb-dock wb-dock--narrow">
       <ToolButtons />
-      {settings.dock.isUndoRedoVisible ? <div className="wb-dock__separator" aria-hidden /> : null}
+      {showTools && showUndoRedo ? <div className="wb-dock__separator" aria-hidden /> : null}
       <UndoRedoButtons />
       <NarrowMoreButton />
     </div>
@@ -563,6 +586,13 @@ function NarrowMoreButton(): ReactNode {
   const controller = useBoardController()
   const snapshot = useBoardSnapshot()
   const indicatorText = usePageIndicatorText()
+  const settings = useSettings()
+  const hidden = settings.dock.hiddenItems
+  const showPagePrev = !hidden.includes('pagePrev')
+  const showPageIndicator = !hidden.includes('pageIndicator')
+  const showPageNext = !hidden.includes('pageNext')
+  const showPageAdd = !hidden.includes('pageAdd')
+  const showPages = showPagePrev || showPageIndicator || showPageNext || showPageAdd
   const [open, setOpen] = useState(false)
   const [pagesOpen, setPagesOpen] = useState(false)
   const deletion = usePageDeletion()
@@ -599,35 +629,45 @@ function NarrowMoreButton(): ReactNode {
         <PopoverSurface style={SURFACE_STYLE}>
           <FluentProvider theme={webLightTheme} style={SURFACE_THEME_STYLE}>
             <div className="wb-sheet">
-              <div className="wb-sheet__pages">
-                <SheetButton
-                  icon={<ChevronLeftRegular fontSize={20} />}
-                  label={t('Common_PreviousPage')}
-                  disabled={snapshot.currentPageIndex <= 0}
-                  onClick={run(() => {
-                    controller.setCurrentPageIndex(snapshot.currentPageIndex - 1)
-                  })}
-                />
-                {/* 页码不可点：点它没有更自然的动作，页面切换用左右两个按钮 + 下面的"页面管理" */}
-                <div className="wb-sheet__indicator" aria-label={t('MainWindow_PageManager_Title')}>
-                  {indicatorText}
+              {showPages ? (
+                <div className="wb-sheet__pages">
+                  {showPagePrev ? (
+                    <SheetButton
+                      icon={<ChevronLeftRegular fontSize={20} />}
+                      label={t('Common_PreviousPage')}
+                      disabled={snapshot.currentPageIndex <= 0}
+                      onClick={run(() => {
+                        controller.setCurrentPageIndex(snapshot.currentPageIndex - 1)
+                      })}
+                    />
+                  ) : null}
+                  {/* 页码不可点：点它没有更自然的动作，页面切换用左右两个按钮 + 下面的"页面管理" */}
+                  {showPageIndicator ? (
+                    <div className="wb-sheet__indicator" aria-label={t('MainWindow_PageManager_Title')}>
+                      {indicatorText}
+                    </div>
+                  ) : null}
+                  {showPageNext ? (
+                    <SheetButton
+                      icon={<ChevronRightRegular fontSize={20} />}
+                      label={t('Common_NextPage')}
+                      disabled={snapshot.currentPageIndex >= snapshot.pageCount - 1}
+                      onClick={run(() => {
+                        controller.setCurrentPageIndex(snapshot.currentPageIndex + 1)
+                      })}
+                    />
+                  ) : null}
+                  {showPageAdd ? (
+                    <SheetButton
+                      icon={<AddRegular fontSize={20} />}
+                      label={t('Web_AddPage')}
+                      onClick={run(() => {
+                        controller.addPage()
+                      })}
+                    />
+                  ) : null}
                 </div>
-                <SheetButton
-                  icon={<ChevronRightRegular fontSize={20} />}
-                  label={t('Common_NextPage')}
-                  disabled={snapshot.currentPageIndex >= snapshot.pageCount - 1}
-                  onClick={run(() => {
-                    controller.setCurrentPageIndex(snapshot.currentPageIndex + 1)
-                  })}
-                />
-                <SheetButton
-                  icon={<AddRegular fontSize={20} />}
-                  label={t('Web_AddPage')}
-                  onClick={run(() => {
-                    controller.addPage()
-                  })}
-                />
-              </div>
+              ) : null}
 
               <div className="wb-sheet__actions">
                 <SheetButton

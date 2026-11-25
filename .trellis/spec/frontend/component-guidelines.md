@@ -100,7 +100,7 @@ BoardCanvas -> _input.CancelActiveToolOperation() / _session.Execute()
 
 ```csharp
 // Lambda write-back
-AppSettingsService.Instance.Update(s => s.Dock.IsUndoRedoVisible = isVisible);
+AppSettingsService.Instance.Update(s => s.Dock.IsShortcutDocksVisible = true);
 // Pass a closure when constructing Flow
 new ExportFlow(_workspace, getViewportState: () => BoardCanvas.GetViewportState(...));
 ```

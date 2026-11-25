@@ -8,11 +8,14 @@
 import { describe, expect, it } from 'vitest'
 import {
   isSameOrder,
+  mergeDockOrder,
   moveItem,
   moveItemDown,
   moveItemUp,
   normalizeOrder,
+  toggleDockHiddenItem,
 } from '../../src/settings/dock-order.ts'
+import type { DockItemId } from '../../src/settings/model.ts'
 
 const LEFT = ['more', 'minimize', 'import'] as const
 
@@ -173,5 +176,59 @@ describe('isSameOrder', () => {
 
   it('两个空数组返回 true', () => {
     expect(isSameOrder([], [])).toBe(true)
+  })
+})
+
+describe('mergeDockOrder：把编辑层的可见项顺序合并回完整顺序', () => {
+  const isWebRendered = (id: DockItemId): boolean => id !== 'minimize'
+
+  it('不渲染的 minimize 保持原下标，可见项依次填入', () => {
+    const full: readonly DockItemId[] = ['more', 'minimize', 'import']
+    expect(mergeDockOrder(full, ['import', 'more'], isWebRendered)).toEqual([
+      'import',
+      'minimize',
+      'more',
+    ])
+  })
+
+  it('可见顺序与原顺序相同时内容不变', () => {
+    const full: readonly DockItemId[] = ['more', 'minimize', 'import']
+    expect(mergeDockOrder(full, ['more', 'import'], isWebRendered)).toEqual(full)
+  })
+
+  it('全部可见的组直接采用新顺序', () => {
+    const full: readonly DockItemId[] = ['undo', 'redo']
+    expect(mergeDockOrder(full, ['redo', 'undo'], isWebRendered)).toEqual(['redo', 'undo'])
+  })
+
+  it('不修改入参，且返回新数组', () => {
+    const full: readonly DockItemId[] = ['more', 'minimize', 'import']
+    const visible: readonly DockItemId[] = ['import', 'more']
+    const output = mergeDockOrder(full, visible, isWebRendered)
+    expect(full).toEqual(['more', 'minimize', 'import'])
+    expect(visible).toEqual(['import', 'more'])
+    expect(output).not.toBe(full)
+  })
+})
+
+describe('toggleDockHiddenItem：隐藏/恢复内置项', () => {
+  it('隐藏未隐藏的项追加到末尾', () => {
+    expect(toggleDockHiddenItem(['undo'], 'redo')).toEqual(['undo', 'redo'])
+  })
+
+  it('恢复已隐藏的项按 id 移除', () => {
+    expect(toggleDockHiddenItem(['undo', 'redo'], 'undo')).toEqual(['redo'])
+  })
+
+  it('more 是设置入口，永远不进入隐藏集合', () => {
+    expect(toggleDockHiddenItem([], 'more')).toEqual([])
+    expect(toggleDockHiddenItem(['undo'], 'more')).toEqual(['undo'])
+  })
+
+  it('不修改入参，且返回新数组', () => {
+    const hidden: readonly DockItemId[] = ['undo']
+    const output = toggleDockHiddenItem(hidden, 'redo')
+    expect(hidden).toEqual(['undo'])
+    expect(output).not.toBe(hidden)
   })
 })

@@ -58,6 +58,12 @@
   <data name="Common_ResetToDefault" xml:space="preserve">
     <value>Reset to default</value>
   </data>
+  <data name="Common_Save" xml:space="preserve">
+    <value>Save</value>
+  </data>
+  <data name="Common_Edit" xml:space="preserve">
+    <value>Edit</value>
+  </data>
   <data name="Common_Delete" xml:space="preserve">
     <value>Delete</value>
   </data>

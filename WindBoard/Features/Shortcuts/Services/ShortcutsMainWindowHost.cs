@@ -24,6 +24,11 @@ namespace WindBoard.Features.Shortcuts.Services
         /// </summary>
         public required Func<bool> IsTextInputFocused { get; init; }
 
+        /// <summary>
+        /// 是否处于模态式交互（如 Dock 就地编辑）：此时全局撤销/重做快捷键不应作用于画布。
+        /// </summary>
+        public required Func<bool> IsInteractionBlocked { get; init; }
+
         public required Func<bool> CanUndo { get; init; }
         public required Action Undo { get; init; }
 

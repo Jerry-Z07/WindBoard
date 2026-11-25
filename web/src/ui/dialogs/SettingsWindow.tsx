@@ -36,6 +36,8 @@ import { SettingsSearchBox } from '../settings/SettingsSearchBox.tsx'
 export interface SettingsWindowProps {
   readonly open: boolean
   readonly onClose: () => void
+  /** Dock 页「编辑 Dock」：关闭设置并在主界面进入编辑模式（桌面 `DockSettingsPage.OnEditDockClicked`）。 */
+  readonly onStartDockEdit: () => void
 }
 
 /** 搜索定位后的高亮时长（1.2s 后移除 class，由 `settings-search.css` 的动画淡出）。 */
@@ -71,7 +73,11 @@ function pageIcon(id: SettingsPageId): ReactElement {
 /**
  * 按 id 渲染页面组件（与 window-model.ts 的页面清单一一对应）。onNavigate 供页面内部跳转到另一页（桌面 Outlook 风格设置页里的跳页卡片，例如外观页的 DockSettingsCard 会 Frame.Navigate(typeof(DockSettingsPage))）。
  */
-function renderPage(id: SettingsPageId, onNavigate: (pageId: SettingsPageId) => void): ReactNode {
+function renderPage(
+  id: SettingsPageId,
+  onNavigate: (pageId: SettingsPageId) => void,
+  onStartDockEdit: () => void,
+): ReactNode {
   switch (id) {
     case 'general':
       return <GeneralPage />
@@ -82,7 +88,7 @@ function renderPage(id: SettingsPageId, onNavigate: (pageId: SettingsPageId) => 
     case 'shortcuts':
       return <ShortcutsPage />
     case 'dock':
-      return <DockPage />
+      return <DockPage onStartDockEdit={onStartDockEdit} />
     case 'about':
       return <AboutPage />
   }
@@ -192,7 +198,9 @@ export function SettingsWindow(props: SettingsWindowProps): ReactNode {
                   {settingsPageDescription(page, t)}
                 </p>
               </header>
-              <div className="wb-settings-page-scroll">{renderPage(pageId, setPageId)}</div>
+              <div className="wb-settings-page-scroll">
+                {renderPage(pageId, setPageId, props.onStartDockEdit)}
+              </div>
             </div>
           </div>
         </DialogBody>

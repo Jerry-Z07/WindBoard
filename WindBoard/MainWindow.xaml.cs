@@ -185,7 +185,13 @@ namespace WindBoard
             BoardCanvas.CanvasBackgroundColor = canvasBackgroundColor;
             BoardCanvas.ElementCardTheme = AppSettingsService.Instance.GetElementCardTheme();
             UpdateCanvasBackgroundBrush(canvasBackgroundColor);
-            ApplyDockSettingsToUi();
+
+            // 编辑期真实 Dock 隐藏，避免设置变更重建正在编辑的列表；退出时统一应用。
+            if (!DockEditOverlay.IsEditing)
+            {
+                ApplyDockSettingsToUi();
+            }
+
             ApplyCamouflageSettingsToWindow();
             ApplyKeyboardShortcutsToUi();
         }

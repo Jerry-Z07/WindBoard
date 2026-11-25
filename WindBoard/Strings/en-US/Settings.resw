@@ -471,13 +471,19 @@
     <value>Dock settings</value>
   </data>
   <data name="Settings_Dock_Description" xml:space="preserve">
-    <value>Adjust positions and visibility of items in the Dock</value>
+    <value>Reorder, hide, and manage shortcuts directly on the Dock</value>
+  </data>
+  <data name="Settings_Dock_EditInPlace_Header" xml:space="preserve">
+    <value>Edit Dock</value>
+  </data>
+  <data name="Settings_Dock_EditInPlace_Description" xml:space="preserve">
+    <value>Reorder, hide, and manage shortcuts directly on the Dock</value>
+  </data>
+  <data name="Settings_Dock_ResetLayout_Description" xml:space="preserve">
+    <value>Restore default order, hidden items, and shortcuts</value>
   </data>
   <data name="Settings_Dock_DragHint" xml:space="preserve">
-    <value>Drag the buttons below to reorder them, or select one and press Ctrl+Left/Right; on touch, press and hold first.</value>
-  </data>
-  <data name="Settings_Dock_ShowUndoRedo_Header" xml:space="preserve">
-    <value>Show Undo/Redo section</value>
+    <value>Drag the buttons below to reorder them, or select one and press Ctrl+Left/Right; use the eye button to hide or restore.</value>
   </data>
   <data name="Settings_Dock_ShowShortcutDocks_Header" xml:space="preserve">
     <value>Show shortcut docks</value>
@@ -594,6 +600,6 @@
     <value>No shortcut entries yet. Add one with the card below.</value>
   </data>
   <data name="Settings_Dock_ResetConfirm_Content" xml:space="preserve">
-    <value>The order of all four groups and both visibility switches return to their defaults. Shortcut entries are cleared.</value>
+    <value>The order of all four groups, hidden items, and both visibility switches return to their defaults. Shortcut entries are cleared.</value>
   </data>
 </root>

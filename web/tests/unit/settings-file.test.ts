@@ -25,6 +25,7 @@ describe('serializeSettingsFile', () => {
     expect(text.endsWith('\n')).toBe(true)
     expect(text).toContain('"languagePreference"')
     expect(text).toContain('"canvasBackgroundHex"')
+    expect(text).toContain('"hiddenItems"')
     // 不输出网页端不支持的桌面分区
     expect(text).not.toContain('diagnostics')
     expect(text).not.toContain('announcements')

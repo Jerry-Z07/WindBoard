@@ -131,10 +131,14 @@ export function buildMoreMenuEntries(isFullscreen: boolean): readonly MoreMenuEn
 /**
  * 按设置里的顺序排列 Dock 项。桌面语义（AppSettingsStore.NormalizeOrder）是过滤未知项、去重保留首次出现、缺失项按默认顺序补齐；这里的输入已经是当前渲染的项，因此只做按 order 依次取走匹配项，未在 order 里出现的项追加到末尾（防御性，正常不会发生）。
  */
+/**
+ * 按设置里的顺序排列 Dock 项，并过滤 `hiddenItems`。`more` 防御性保留：它是设置入口，桌面与网页端都不允许隐藏。
+ */
 export function applyDockOrder<T>(
   items: readonly T[],
   idOf: (item: T) => DockItemId,
   order: readonly DockItemId[],
+  hiddenItems: readonly DockItemId[] = [],
 ): readonly T[] {
   const remaining = [...items]
   const ordered: T[] = []
@@ -145,7 +149,15 @@ export function applyDockOrder<T>(
     }
   }
   ordered.push(...remaining)
-  return ordered
+
+  if (hiddenItems.length === 0) {
+    return ordered
+  }
+
+  return ordered.filter((item) => {
+    const id = idOf(item)
+    return id === 'more' || !hiddenItems.includes(id)
+  })
 }
 
 /** 把页码夹到 `[0, pageCount - 1]`；页数为 0 时返回 0（桌面始终至少一页）。 */
