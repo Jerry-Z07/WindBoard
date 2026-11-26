@@ -456,7 +456,7 @@
     <value>元素卡片主题</value>
   </data>
   <data name="Settings_Appearance_ElementCardTheme_Description" xml:space="preserve">
-    <value>切换白板上导入元素（图片/文件/文本/链接等）的卡片外观</value>
+    <value>切换画布上导入元素（图片/文件/文本/链接等）的卡片外观</value>
   </data>
   <data name="Settings_Appearance_ElementCardTheme_DialogTitle" xml:space="preserve">
     <value>元素卡片主题</value>

@@ -23,7 +23,7 @@
     <value>点擦</value>
   </data>
   <data name="MainWindow_EraserMode_Stroke" xml:space="preserve">
-    <value>笔划擦</value>
+    <value>笔迹擦</value>
   </data>
   <data name="MainWindow_ClearCanvas_Slide" xml:space="preserve">
     <value>滑动清屏</value>

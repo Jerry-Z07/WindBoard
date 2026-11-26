@@ -14,7 +14,7 @@
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <data name="Reminder_Action_OpenDataDirectory" xml:space="preserve">
-    <value>Open data directory</value>
+    <value>Open data folder</value>
   </data>
   <data name="Reminder_Shortcuts_AutoFix_Title" xml:space="preserve">
     <value>Shortcut settings were automatically fixed</value>

@@ -18,6 +18,10 @@ WindBoard 的“用户可见文本”统一提取到资源字典（`.resw`），
   - 缺 key：回退到 `fallback`（若提供）或 key 本身，并通过 `WindBoard.Logging.AppLog` 记录（每个 key 只记录一次）。
   - 部分翻译缺失：某语言已提供部分资源文件，但其中某个 key 仍缺失时，记录“缺少翻译”并回退到默认语言，便于后续补齐。
 
+## 术语
+
+界面用词以 `glossary.zh-CN.md` 为准：同一个概念在中文与英文各只有一个名字，禁用写法与中英对照都在那张表里。新增或修改文案前先查表，表里没有的概念先在表里加一行。
+
 ## C# 用法
 
 统一使用 `L10n.Get / L10n.Format`：
@@ -78,6 +82,7 @@ Header="{l10n:Loc Key=Settings_Dock_ShowShortcutDocks_Header}"
 ## 测试
 
 - 单测：`WindBoard.Tests/Localization/LocalizationKeyAuditTests.cs`
+- 术语：`WindBoard.Tests/Localization/TerminologyAuditTests.cs`（按术语表检查 resw），网页端对应 `web/tests/unit/terminology.test.ts`
   - 扫描 `WindBoard/**/*.xaml` 中 `{l10n:Loc Key=...}` 的 key
   - 扫描 `WindBoard/**/*.cs` 中 `L10n.Get/Format("...")` 的 key
   - 声明所有引用到的 key 都存在于默认语言资源（`Strings/zh-CN/*.resw`）

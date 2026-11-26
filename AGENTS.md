@@ -101,6 +101,7 @@
 ## 相关文档（Docs）
 
 - `docs/dev/guides/localization.zh-CN.md`：本地化约定。
+- `docs/dev/guides/glossary.zh-CN.md`：界面文案术语表（中英对照、禁用写法，两侧测试按它检查）。
 - `docs/dev/guides/wbix.zh-CN.md`：WBIX（`.wbix`）格式说明（含版本兼容契约）。
 - `docs/dev/guides/ink-rendering.zh-CN.md`：笔迹与图形渲染几何规范（绘制顺序、笔宽与半径、端点/连接、箭头翼、常量表）。
 - `docs/dev/guides/web-port.zh-CN.md`：网页端（`web/`）与桌面端的模块映射、双端契约、同步流程与门禁命令。**改桌面主程序前先看这张对应表**。

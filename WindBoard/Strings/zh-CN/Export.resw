@@ -50,7 +50,7 @@
     <value>已导出：{0}</value>
   </data>
   <data name="Export_Completed_Folder_Fmt" xml:space="preserve">
-    <value>已导出到目录：{0}</value>
+    <value>已导出到文件夹：{0}</value>
   </data>
   <data name="Export_FileType_Png" xml:space="preserve">
     <value>PNG 图片</value>
@@ -95,7 +95,7 @@
     <value>内容留白（DIP）</value>
   </data>
   <data name="Export_Padding_Placeholder" xml:space="preserve">
-    <value>边距（DIP）</value>
+    <value>留白（DIP）</value>
   </data>
   <data name="Export_PaddingError_Message" xml:space="preserve">
     <value>留白需要填写 0 或更大的数字。</value>
@@ -134,7 +134,7 @@
     <value>……（共 {0} 个）</value>
   </data>
   <data name="Export_OverwriteFiles_Content_Fmt" xml:space="preserve">
-    <value>目标目录中存在同名文件：{0}
+    <value>目标文件夹中存在同名文件：{0}
 
 将被覆盖的文件：
 {1}</value>
@@ -143,7 +143,7 @@
     <value>导出路径不能为空。</value>
   </data>
   <data name="Export_FolderEmpty_Message" xml:space="preserve">
-    <value>导出目录不能为空。</value>
+    <value>导出文件夹不能为空。</value>
   </data>
   <data name="Export_FilePrefixEmpty_Message" xml:space="preserve">
     <value>文件名前缀不能为空。</value>

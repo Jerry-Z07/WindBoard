@@ -456,7 +456,7 @@
     <value>Element card theme</value>
   </data>
   <data name="Settings_Appearance_ElementCardTheme_Description" xml:space="preserve">
-    <value>Change the appearance of imported element cards (images/files/text/links, etc.) on the board</value>
+    <value>Change the appearance of imported element cards (images/files/text/links, etc.) on the canvas</value>
   </data>
   <data name="Settings_Appearance_ElementCardTheme_DialogTitle" xml:space="preserve">
     <value>Element card theme</value>
@@ -597,7 +597,7 @@
     <value>The operation failed. Details are in the log.</value>
   </data>
   <data name="Settings_Dock_ShortcutItems_Empty" xml:space="preserve">
-    <value>No shortcut entries yet. Add one with the card below.</value>
+    <value>No shortcut entries yet.</value>
   </data>
   <data name="Settings_Dock_ResetConfirm_Content" xml:space="preserve">
     <value>The order of all four groups, hidden items, and both visibility switches return to their defaults. Shortcut entries are cleared.</value>

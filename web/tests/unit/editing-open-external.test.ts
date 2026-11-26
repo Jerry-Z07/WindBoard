@@ -234,7 +234,7 @@ describe('网页端新增文案', () => {
       '网页端无法打开本地文件：a.png',
     )
     expect(formatLocalized(translateZh, WEB_ONLY_OPEN_TEXTS.resourceUnavailableMessage)).toBe(
-      '该附件尚未加载到网页端，暂时无法打开。',
+      '该元素引用的资源尚未加载到网页端，暂时无法打开。',
     )
   })
 })
