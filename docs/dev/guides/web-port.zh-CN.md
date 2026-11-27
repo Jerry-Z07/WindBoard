@@ -160,6 +160,7 @@
 - 网页端：`ui/**`（结构）+ `styles/tokens.css`（颜色、圆角、尺寸）+ `styles/{shell,dock,settings,dialogs,overlay}.css`。
 - 保障：`web/tests/conformance/desktop-tokens.test.ts`：**直接读桌面 XAML 源码**，把 Dock 底板/按钮/页码/页面面板/选择手柄等 20 余个数值与 `styles/*.css` 的令牌逐个比对（颜色按 ARGB→RGBA 换算后比通道）。改桌面数值不同步网页端 → 该测试立刻红。
 - `web/e2e/`（`visual.spec.ts` 8 个用例 / 10 张界面基线截图 + `touch.spec.ts` 3 个触屏用例）+ `web/tests/unit/dock-layout.test.ts`、`web/tests/unit/ui-shell-smoke.test.tsx`（挂载与关键交互冒烟）。未纳入令牌测试的 XAML 数值仍靠人工核对，新增令牌时请顺手加一条规则。
+- 页面管理条目的宽度由面板内容区决定（桌面 ListViewItem 拉伸、网页 `.wb-pages__row` 不设固定宽度），不再维护 240 常量；令牌比对保留面板宽、缩略图高与删除按钮尺寸。
 - 漂移症状：面板尺寸/圆角/选中态颜色不对。
 - **坑（已踩过两次）**：XAML 的 8 位十六进制颜色是 **ARGB**，CSS 的 8 位是 **RGBA**，直接抄会得到完全不同的颜色（`#E4000000` 在浏览器里是不透明红，`#08FFFFFF` 是青色）。所有带 alpha 的颜色必须写成 `rgb(r g b / a%)`。
 - **坑（Fluent UI v9）**：Griffel 用原子类下发 `width`/`height`/`display` 等属性，与单类选择器同权重但注入更晚。覆盖 Fluent 组件自身设置过的属性必须用双类选择器（`.fui-DialogSurface.wb-settings-surface`）。

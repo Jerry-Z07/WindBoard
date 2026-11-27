@@ -1,5 +1,5 @@
 /**
- * 页面管理（缩略图列表加删除）面板内容，桌面出处 MainWindow.xaml:586-678（PagesFlyout）：面板宽 280、最大高 520、圆角 14、内边距 12（:603-608）；标题行加列表、行间距 10（:609-613）；列表项宽 240、圆角 12、1px 描边、内边距 8、下外边距 8（:633-640），桌面没有固定行高，由内容撑开（头部 24 加间距 6 加缩略图 104 加内边距 16）；头部为 14 号 SemiBold 页码加右侧 24×24 删除按钮（圆角 7、图标 12 号，:641-663）；缩略图高 104、底色为画布背景（:665-669）；点击切换页、点删除按钮删页（MainWindow.Pages.cs 的 OnPagesListItemClick / OnDeletePageClicked）。
+ * 页面管理（缩略图列表加删除）面板内容，桌面出处 MainWindow.xaml:586-678（PagesFlyout）：面板宽 280、最大高 520、圆角 14、内边距 12（:603-608）；标题行加列表、行间距 10（:609-613）；列表项铺满内容区（左右各 12）、圆角 12、1px 描边、内边距 8、下外边距 8（:633-640），桌面没有固定行高，由内容撑开（头部 24 加间距 6 加缩略图 104 加内边距 16）；头部为 14 号 SemiBold 页码加右侧 24×24 删除按钮（圆角 7、图标 12 号，:641-663）；缩略图高 104、宽度随条目自适应、底色为画布背景（:665-669）；点击切换页、点删除按钮删页（MainWindow.Pages.cs 的 OnPagesListItemClick / OnDeletePageClicked）。
  * 缩略图由 PageThumbnail 用 Canvas2D 绘制（算法见 render/thumbnail.ts，照搬桌面 PageThumbnailControl 的折线近似）；本组件只渲染面板内容，锚点与开合由 DockBar 的 Fluent Popover 负责。
  */
 
@@ -27,8 +27,6 @@ export function PagesFlyout(props: PagesFlyoutProps): ReactNode {
   const settings = useSettings()
   const { t } = useI18n()
   const pages = Array.from({ length: snapshot.pageCount }, (_unused, index) => index)
-  // 缩略图尺寸：列表项宽 240 减去左右内边距 8×2（`MainWindow.xaml:633-640,665`），高固定 104
-  const thumbnailWidth = 224
   const thumbnailHeight = 104
   const canvasBackground = settings.appearance.canvasBackgroundHex
 
@@ -81,7 +79,6 @@ export function PagesFlyout(props: PagesFlyoutProps): ReactNode {
               <div className="wb-pages__thumb">
                 <PageThumbnail
                   items={controller.workspace.pages[index].session.document.items}
-                  widthDip={thumbnailWidth}
                   heightDip={thumbnailHeight}
                   background={canvasBackground}
                 />

@@ -211,16 +211,6 @@ const LENGTH_RULES: readonly LengthRule[] = [
   },
   {
     kind: 'length',
-    cssVar: '--wb-pages-flyout-row-width',
-    cssFile: CSS.dock,
-    xaml: XAML.mainWindow,
-    marker: 'x:Name="PagesListView"',
-    where: 'after',
-    pattern: /Width="(\d+)"/,
-    what: '页面条目宽度',
-  },
-  {
-    kind: 'length',
     cssVar: '--wb-pages-flyout-thumbnail-size',
     xaml: XAML.mainWindow,
     marker: 'controls:PageThumbnailControl',

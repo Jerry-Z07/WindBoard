@@ -643,14 +643,14 @@
                                         <!-- 去掉 ListViewItem 默认左右 Padding，避免内容被裁剪（尤其是右侧删除按钮） -->
                                         <Style TargetType="ListViewItem">
                                             <Setter Property="Padding" Value="0" />
-                                            <Setter Property="HorizontalContentAlignment" Value="Center" />
+                                            <!-- 条目铺满面板内容宽度，左右各留 12，与标题对齐 -->
+                                            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
                                         </Style>
                                     </ListView.ItemContainerStyle>
 
                                     <ListView.ItemTemplate>
                                         <DataTemplate>
                                             <Border
-                                                Width="240"
                                                 Background="{ThemeResource SystemControlBackgroundBaseLowBrush}"
                                                 BorderBrush="{ThemeResource SystemControlForegroundBaseMediumLowBrush}"
                                                 BorderThickness="1"

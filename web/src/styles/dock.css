@@ -10,19 +10,14 @@
  * - 色板：`MainWindow.xaml:254-279` + `App.xaml:78-93`（44×44、圆角 22、间距 14）
  * - 粗细：`MainWindow.xaml:282-298` + `App.xaml:60-74`（44×44、圆角 10）
  * - 擦除：`MainWindow.xaml:338-429`（宽 232、卡片内边距 12/10、滑动条 232×52、把手 44）
- * - 页面：`MainWindow.xaml:603-676`（宽 280、项宽 240、缩略图高 104、删除 24×24）
+ * - 页面：`MainWindow.xaml:603-676`（宽 280、条目铺满内容区、缩略图高 104、删除 24×24）
  */
 
 /* ===== 本模块新增的令牌 ===== */
 
-/*
- * `tokens.css` 只收了 Dock 骨架与页面面板的对外尺寸，面板**内部**的两个尺寸在这里补：
- * - 色板 / 粗细预设 / 形状项统一 44×44（`App.xaml:60-93` 的两个共享 ToggleButton 样式）；
- * - 页面列表项宽 240（`MainWindow.xaml:634`）。
- */
+/* `tokens.css` 只收了 Dock 骨架与页面面板的对外尺寸，色板 / 粗细预设 / 形状项统一 44×44 在这里补（`App.xaml:60-93` 的两个共享 ToggleButton 样式）。 */
 :root {
   --wb-swatch-size: 44px;
-  --wb-pages-flyout-row-width: 240px;
 }
 
 /* ===== Dock 内部结构补充 ===== */
@@ -318,17 +313,14 @@
 }
 
 /*
- * 列表项：宽 240、圆角 12、1px 描边、内边距 8、下外边距 8（`MainWindow.xaml:633-640`）。
- *
- * `box-sizing: border-box` 必须显式声明：XAML 的 `Width="240"` 含 padding 与 border，
- * 而 CSS 默认是 content-box——不声明就会变成 240+16+2，撑出横向滚动条。
+ * 列表项：铺满面板内容宽度、圆角 12、1px 描边、内边距 8、下外边距 8（`MainWindow.xaml:633-640`）。
+ * `box-sizing: border-box` 让内边距与描边计入条目的 100% 宽度，避免撑出横向滚动条。
  */
 .wb-pages__row {
   display: flex;
   flex-direction: column;
   gap: 6px;
   box-sizing: border-box;
-  width: var(--wb-pages-flyout-row-width);
   padding: 8px;
   margin-bottom: 8px;
   border: 1px solid var(--wb-dock-separator-color);
@@ -397,10 +389,10 @@
   background: var(--wb-canvas-background);
 }
 
-/* 缩略图画布：尺寸由组件按 DIP 指定，这里只兜住圆角裁切 */
+/* 缩略图画布：宽度跟随列表项内容区，高度由组件按 DIP 指定 */
 .wb-pages__thumb-canvas {
   display: block;
-  max-width: 100%;
+  width: 100%;
 }
 
 /*
@@ -515,9 +507,4 @@
 .wb-sheet__pages-panel .wb-flyout--pages {
   width: 100%;
   max-width: var(--wb-pages-flyout-width);
-}
-
-.wb-sheet__pages-panel .wb-pages__row {
-  width: 100%;
-  max-width: var(--wb-pages-flyout-row-width);
 }
