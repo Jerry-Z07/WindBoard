@@ -212,6 +212,21 @@ jobs:
             ) -join "`n"
           }
 
+          # 网页端日志是可选的，只并入 GitHub Release 正文，不进入 latest.json，
+          # 避免桌面端应用内更新弹窗混入网页端变更。
+          $webChangelogZhPath = Join-Path $customNotesDir "$tag.web.zh-CN.md"
+          $webChangelogEnPath = Join-Path $customNotesDir "$tag.web.en-US.md"
+          $webChangelogZh = $null
+          $webChangelogEn = $null
+
+          if (Test-Path $webChangelogZhPath) {
+            $webChangelogZh = (Get-Content -Path $webChangelogZhPath -Raw -Encoding UTF8).Trim()
+          }
+
+          if (Test-Path $webChangelogEnPath) {
+            $webChangelogEn = (Get-Content -Path $webChangelogEnPath -Raw -Encoding UTF8).Trim()
+          }
+
           # 迁移提示：置顶写入 changelog，从而同时进入 Release 正文与 latest.json 的 changelog
           # （旧 Inno 安装版客户端会读取 changelog 展示；其下载按钮仍只识别便携版 zip 资产）。
           $migrationNoticeZh = @(
@@ -265,17 +280,25 @@ jobs:
             $releaseAssetRows
           ) -join "`n"
 
-          $releaseNotes = @(
+          $releaseNoteParts = @(
             $releaseAssetTable
             ''
             '---'
             ''
             $changelogZh
-            ''
-            '---'
-            ''
-            $changelogEn
-          ) -join "`n"
+          )
+
+          if (![string]::IsNullOrWhiteSpace($webChangelogZh)) {
+            $releaseNoteParts += @('', '---', '', $webChangelogZh)
+          }
+
+          $releaseNoteParts += @('', '---', '', $changelogEn)
+
+          if (![string]::IsNullOrWhiteSpace($webChangelogEn)) {
+            $releaseNoteParts += @('', '---', '', $webChangelogEn)
+          }
+
+          $releaseNotes = $releaseNoteParts -join "`n"
           $releaseNotesPath = Join-Path $dist 'release-notes.md'
           $releaseNotes.Trim() | Set-Content -Path $releaseNotesPath -Encoding UTF8
 

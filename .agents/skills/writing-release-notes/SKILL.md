@@ -49,8 +49,13 @@ description: Use when writing or updating release notes for a new version, or wh
 
 每条格式：
 ```
-- <emoji> <type>: <描述>
+- <emoji> <type>: [影响范围] <描述>
 ```
+
+**影响范围：**
+- 每条必须标注，不能省略
+- 中文用 `[桌面端]`、`[网页端]`、`[桌面端、网页端]`；英文用 `[Desktop]`、`[Web]`、`[Desktop & Web]`
+- 按实际生效范围标注：只改桌面就写桌面端，两端同步实现才写两端
 
 **描述原则：**
 - 面向用户，不说"代码做了什么"，而说"修复/新增了什么"
@@ -60,8 +65,8 @@ description: Use when writing or updating release notes for a new version, or wh
 
 **示例：**
 ```
-- 🐛 fix: 修复框选命中判断，从仅 AABB 判断改为基于笔迹几何与压感宽度计算，避免误选斜线和压感笔迹
-- ✨ feat: 添加应用数据清理功能，启动时自动清理过期的下载安装包与旧版本图标缓存
+- 🐛 fix: [桌面端] 修复框选命中判断，从仅 AABB 判断改为基于笔迹几何与压感宽度计算，避免误选斜线和压感笔迹
+- ✨ feat: [网页端] 支持自动保存与恢复，刷新或重新打开页面后可继续上一次的书写
 ```
 
 ### 5. 排序
@@ -76,30 +81,51 @@ description: Use when writing or updating release notes for a new version, or wh
 
 ### 6. 文件格式
 
-同时生成中文和英文两个文件，放在 `docs/release-notes/` 目录下：
+按端拆分文件，放在 `docs/release-notes/` 目录下：
 
-- `v<版本号>.zh-CN.md`
-- `v<版本号>.en-US.md`
+- 桌面端：`v<版本号>.zh-CN.md`、`v<版本号>.en-US.md`
+  - 写入 `latest.json`，会显示在桌面端应用内更新弹窗与 GitHub Release 正文
+  - 两端共有的变更写在这里，标 `[桌面端、网页端]`
+- 网页端：`v<版本号>.web.zh-CN.md`、`v<版本号>.web.en-US.md`
+  - 只并入 GitHub Release 正文，不进入 `latest.json`
+  - 只写网页端独有的新增、修复与变更，避免与桌面端日志重复
 
 **中文模板：**
 ```markdown
-# 更新内容（v<版本号>）
+# 更新内容（桌面端 v<版本号>）
 
-- ✨ feat: ...
-- 🐛 fix: ...
-- ⚡ perf: ...
-- ♻️ refactor: ...
+- ✨ feat: [影响范围] ...
+- 🐛 fix: [影响范围] ...
+- ⚡ perf: [影响范围] ...
+- ♻️ refactor: [影响范围] ...
 
 ```
 
 **英文模板：**
 ```markdown
-# Release Notes (v<版本号>)
+# Release Notes (Desktop v<版本号>)
 
-- ✨ feat: ...
-- 🐛 fix: ...
-- ⚡ perf: ...
-- ♻️ refactor: ...
+- ✨ feat: [Scope] ...
+- 🐛 fix: [Scope] ...
+- ⚡ perf: [Scope] ...
+- ♻️ refactor: [Scope] ...
+
+```
+
+**网页端模板：**
+```markdown
+# 更新内容（网页端 v<版本号>）
+
+- ✨ feat: [网页端] ...
+- 🐛 fix: [网页端] ...
+
+```
+
+```markdown
+# Release Notes (Web v<版本号>)
+
+- ✨ feat: [Web] ...
+- 🐛 fix: [Web] ...
 
 ```
 
@@ -110,3 +136,5 @@ description: Use when writing or updating release notes for a new version, or wh
 | 直接复制 commit message 作为条目 | 转化为面向用户的描述 |
 | 记录所有 refactor 提交 | 仅记录用户可感知的重构 |
 | 将一个 commit 的多个修复混为一条 | 拆分为独立条目，方便用户检索 |
+| 条目未标注影响范围 | 每条都写清作用于桌面端、网页端或两端 |
+| 把网页端独有的变更写进桌面端日志 | 写入 `.web.*.md`，避免混入桌面端应用内更新弹窗 |

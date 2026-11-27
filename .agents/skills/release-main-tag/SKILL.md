@@ -77,6 +77,8 @@ if ($enText -notmatch [regex]::Escape($tag) -and $enText -notmatch [regex]::Esca
 }
 ```
 
+网页端日志可选：`docs/release-notes/$tag.web.zh-CN.md` 与 `.web.en-US.md` 不参与上面的校验；存在时只会并入 GitHub Release 正文，不会进入 `latest.json`。
+
 ### 4) Merge source into target
 
 ```bash
