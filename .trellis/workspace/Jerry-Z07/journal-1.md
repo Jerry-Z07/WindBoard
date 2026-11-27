@@ -870,3 +870,26 @@ Dock 设置改为设置页入口 + 主界面就地编辑：拖动排序、逐条
 ### Status
 
 [OK] **Completed**
+
+
+## Session 23: 远程公告源与隐私政策更新
+<!-- trellis-session: v=2 fp=7499685aaa84ec6b -->
+
+**Date**: 2026-11-28
+**Task**: 远程公告源与隐私政策更新
+**Branch**: `develop`
+
+### Summary
+
+设置窗口公告改由仓库 announcements.json 远程下发（校验/缓存/镜像兜底/已关闭去重），初始为空列表；同步更新隐私政策与规范文档，准备 v2.11.1 发版
+
+### Git Commits
+
+| Hash | Message |
+|------|---------|
+| `106cd5e` | feat(settings): 公告改为远程 announcements.json 下发 |
+| `dcfcb17` | docs(privacy): 补充公告拉取的网络访问说明 |
+
+### Status
+
+[OK] **Completed**

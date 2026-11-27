@@ -8,8 +8,8 @@
 
 <!-- @@@auto:current-status -->
 - **Active File**: `journal-1.md`
-- **Total Sessions**: 22
-- **Last Active**: 2026-11-26
+- **Total Sessions**: 23
+- **Last Active**: 2026-11-28
 <!-- @@@/auto:current-status -->
 
 ---
@@ -19,7 +19,7 @@
 <!-- @@@auto:active-documents -->
 | File | Lines | Status |
 |------|-------|--------|
-| `journal-1.md` | ~872 | Active |
+| `journal-1.md` | ~895 | Active |
 <!-- @@@/auto:active-documents -->
 
 ---
@@ -29,6 +29,7 @@
 <!-- @@@auto:session-history -->
 | # | Date | Title | Commits | Branch |
 |---|------|-------|---------|--------|
+| 23 | 2026-11-28 | 远程公告源与隐私政策更新 | `106cd5e`, `dcfcb17` | `develop` |
 | 22 | 2026-11-26 | Dock 就地编辑与撤销/重做显隐收敛 | `c605675` | `develop` |
 | 21 | 2026-09-23 | 崩溃提示窗口高 DPI 显示修复与布局重设计 | `281cdb0`, `4191e99` | `develop` |
 | 20 | 2026-09-23 | 打包形态下调试页打开配置与日志文件修复 | `0273eb7` | `develop` |
