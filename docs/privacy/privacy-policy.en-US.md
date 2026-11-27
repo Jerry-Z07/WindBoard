@@ -55,9 +55,9 @@ All network requests use HTTPS and **contain no credentials or identifiers that 
 | Scenario | Target service | Trigger | Data sent |
 | --- | --- | --- | --- |
 | Checking for updates | `github.com` (release metadata of the WindBoard repository) | You trigger it manually, or it runs automatically after launch according to your settings (set "Automatically check for updates" to "Never" to disable) | App name and version in the request header; no personal data |
-| Downloading an update | `github.com` or a mirror acceleration service | You confirm an update download | Same as above |
+| Downloading an update | `github.com` | You confirm an update download | Same as above |
 | Download source speed test | Same as above | When you run the download-source speed test manually in Settings (the discontinued legacy installer build ran it once on first launch) | Same as above |
-| Fetching in-app announcements | `raw.githubusercontent.com` (the WindBoard repository) or a mirror acceleration service | After launch and when the Settings window opens, the App checks the local cache lifetime (6 hours by default) and requests only when it has expired | App name and version in the request header; no personal data |
+| Fetching in-app announcements | `raw.githubusercontent.com` (the WindBoard repository) | After launch and when the Settings window opens, the App checks the local cache lifetime (6 hours by default) and requests only when it has expired | App name and version in the request header; no personal data |
 | Fetching Dock link icons | The site of a web address you entered in the Dock | When you add a "link" type Dock shortcut, or when the App reloads the Dock (for example at startup) | Requests to that site's home page and icon address |
 | Opening external links | Your default browser | When you click a link inside the App (for example a GitHub release page or a Microsoft Store page) | Handled by the browser under its own policy |
 
@@ -70,7 +70,6 @@ Notes:
 
 - We **do not** sell, rent, or otherwise share your personal information with third parties, because we do not hold it.
 - **GitHub**: update checks, update downloads, and announcement fetching are served by GitHub (GitHub, Inc.). As a service provider, GitHub may log your IP address and request metadata under its own privacy policy. We are not involved in those logs and **cannot access them**.
-- **Mirror acceleration services**: when direct access to GitHub is restricted, the App may download update packages or fetch announcements through third-party mirrors (`gh-proxy.top`, `ghm.078465.xyz`). These mirrors are operated by independent third parties and may also log access. You can pin the official GitHub source for update downloads in Settings; announcement fetching has no separate switch.
 - **Microsoft Store**: installing, updating, and licensing the App through Microsoft Store are handled by Microsoft and are subject to Microsoft's own privacy policy.
 
 ## 6. Data security

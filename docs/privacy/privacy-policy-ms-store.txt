@@ -48,7 +48,7 @@ WindBoard（轻风白板）隐私政策 / WindBoard Privacy Policy
 
 本应用不进行任何后台数据上报。以下是本应用全部的网络访问情形，所有请求均使用 HTTPS，且不包含任何可识别你身份的凭据或标识符：
 
-1. 获取应用公告：本应用在启动后与打开设置窗口时，会检查本地公告缓存的有效期（默认 6 小时）；到期时会访问 GitHub（raw.githubusercontent.com，必要时经镜像加速服务）获取公告内容。请求头仅包含应用名称与版本号，不含个人数据。
+1. 获取应用公告：本应用在启动后与打开设置窗口时，会检查本地公告缓存的有效期（默认 6 小时）；到期时会访问 GitHub（raw.githubusercontent.com）获取公告内容。请求头仅包含应用名称与版本号，不含个人数据。
 2. 获取 Dock 链接图标：当你在 Dock 中添加“链接”类型的快捷方式时，或本应用重新加载 Dock（例如启动）时，本应用会访问你所填写的网址所在站点，请求该站点的首页及其图标地址，以便显示这个链接的图标。如果你从不添加“链接”类型的快捷方式，本应用不会请求任何第三方网站。
 3. 打开外部链接：当你点击本应用内的外部链接（例如 Microsoft Store 页面）时，本应用会将该链接交由系统默认浏览器打开，之后的访问行为由浏览器按其自身的隐私政策处理。
 4. 本应用的更新由 Microsoft Store 提供：本应用不会向开发者服务器或其它第三方服务器发起更新检查、更新包下载、下载源测速或安装请求。
@@ -57,9 +57,8 @@ WindBoard（轻风白板）隐私政策 / WindBoard Privacy Policy
 
 1. 我们不会出售、出租或以任何方式向第三方共享你的个人信息，因为我们并不持有这些信息。
 2. GitHub：公告拉取由 GitHub（GitHub, Inc.）提供。作为服务提供方，GitHub 可能记录你的 IP 地址与请求日志，这些日志由 GitHub 依其自身隐私政策处理，我们不参与也无法访问。
-3. 镜像加速服务：当直连 GitHub 受限时，本应用可能通过第三方镜像（gh-proxy.top、ghm.078465.xyz）拉取公告。这些镜像由独立第三方运营，其同样可能记录访问日志。
-4. Microsoft Store：通过 Microsoft Store 获取、安装、更新与许可本应用时，相关数据处理由 Microsoft 负责，适用 Microsoft 自身的隐私政策。
-5. 你指定的网站：当你使用 Dock 链接图标功能时，请求会直接发送到你所填写网址的站点，该站点可能按照其自身政策记录访问日志。
+3. Microsoft Store：通过 Microsoft Store 获取、安装、更新与许可本应用时，相关数据处理由 Microsoft 负责，适用 Microsoft 自身的隐私政策。
+4. 你指定的网站：当你使用 Dock 链接图标功能时，请求会直接发送到你所填写网址的站点，该站点可能按照其自身政策记录访问日志。
 
 六、数据安全
 
@@ -139,7 +138,7 @@ You may inspect, copy, or delete these files at any time. Crash reports and logs
 
 The App does not report data in the background. The following are all of the App's network access scenarios. All requests use HTTPS and contain no credentials or identifiers that could identify you:
 
-4.1 Fetching in-app announcements: after launch and when the Settings window opens, the App checks the lifetime of the local announcement cache (6 hours by default) and, when it has expired, contacts GitHub (raw.githubusercontent.com, or a mirror acceleration service when needed) to fetch announcements. The request header contains only the app name and version, with no personal data.
+4.1 Fetching in-app announcements: after launch and when the Settings window opens, the App checks the lifetime of the local announcement cache (6 hours by default) and, when it has expired, contacts GitHub (raw.githubusercontent.com) to fetch announcements. The request header contains only the app name and version, with no personal data.
 4.2 Fetching Dock link icons: when you add a "link" type shortcut in the Dock, or when the App reloads the Dock (for example at startup), the App contacts the site of the web address you entered and requests that site's home page and icon address, so that the link's icon can be displayed. If you never add a "link" type shortcut, the App contacts no third-party websites.
 4.3 Opening external links: when you click an external link inside the App (for example a Microsoft Store page), the App hands the link to your default browser; subsequent access is handled by the browser under its own privacy policy.
 4.4 Updates are provided by Microsoft Store: the App does not send update checks, update package downloads, download-source speed tests, or installation requests to developer servers or any other third-party servers.
@@ -148,9 +147,8 @@ The App does not report data in the background. The following are all of the App
 
 5.1 We do not sell, rent, or otherwise share your personal information with third parties, because we do not hold it.
 5.2 GitHub: announcement fetching is served by GitHub (GitHub, Inc.). As a service provider, GitHub may log your IP address and request metadata under its own privacy policy. We are not involved in those logs and cannot access them.
-5.3 Mirror acceleration services: when direct access to GitHub is restricted, the App may fetch announcements through third-party mirrors (gh-proxy.top, ghm.078465.xyz). These mirrors are operated by independent third parties and may also log access.
-5.4 Microsoft Store: acquiring, installing, updating, and licensing the App through Microsoft Store are handled by Microsoft and are subject to Microsoft's own privacy policy.
-5.5 Websites you specify: when you use the Dock link icon feature, the request goes directly to the site of the web address you entered, and that site may log access under its own policy.
+5.3 Microsoft Store: acquiring, installing, updating, and licensing the App through Microsoft Store are handled by Microsoft and are subject to Microsoft's own privacy policy.
+5.4 Websites you specify: when you use the Dock link icon feature, the request goes directly to the site of the web address you entered, and that site may log access under its own policy.
 
 6. Data security
 
