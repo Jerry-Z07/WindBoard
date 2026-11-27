@@ -3,8 +3,8 @@
 # WindBoard Privacy Policy
 
 **Effective date: September 19, 2026**
-**Last updated: September 19, 2026**
-**Policy version: 1.0**
+**Last updated: November 28, 2026**
+**Policy version: 1.1**
 
 This Privacy Policy applies to the Windows desktop application **WindBoard** (the "App"), developed and published by **Jerry Z07** ("we", "us"). It applies to all versions of the App distributed through any channel, including Microsoft Store and GitHub Releases, and to all markets in which the App is published.
 
@@ -13,7 +13,7 @@ This Privacy Policy applies to the Windows desktop application **WindBoard** (th
 - The App **requires no account** and never asks you for identity information.
 - The App **does not collect or upload your personal information** and contains no advertising, analytics, or telemetry components.
 - Your whiteboard content, settings, and diagnostics **stay on your own device**; we cannot access them.
-- The App accesses the network only for **update checking/downloading** and for **web addresses that you explicitly provide**.
+- The App accesses the network only for **update checking/downloading**, **fetching in-app announcements**, and for **web addresses that you explicitly provide**.
 
 ## 2. Information we do not collect
 
@@ -38,6 +38,7 @@ The App stores the data it needs locally to provide its features and to help dia
 | `Logs\Crashes\` | Crash reports (exception type and stack trace, app version, process ID, processor architecture, .NET and Windows versions, install form and related directory paths) | Diagnose crash causes |
 | `camouflage\` | A copy of the icon file you selected for the camouflage feature | Customize the App's appearance |
 | `downloads\` | Update package download cache | Avoid repeated downloads |
+| `announcements.cache.json` | The most recently fetched announcements, fetch time, and cache validation data | Keep showing announcements offline or when a request fails, and avoid repeated requests |
 | Any location you choose | Workspace files (`.wbix`), PNG/PDF exports, and imported files that you save yourself | Fully under your control |
 
 Storage locations:
@@ -56,19 +57,20 @@ All network requests use HTTPS and **contain no credentials or identifiers that 
 | Checking for updates | `github.com` (release metadata of the WindBoard repository) | You trigger it manually, or it runs automatically after launch according to your settings (set "Automatically check for updates" to "Never" to disable) | App name and version in the request header; no personal data |
 | Downloading an update | `github.com` or a mirror acceleration service | You confirm an update download | Same as above |
 | Download source speed test | Same as above | When you run the download-source speed test manually in Settings (the discontinued legacy installer build ran it once on first launch) | Same as above |
+| Fetching in-app announcements | `raw.githubusercontent.com` (the WindBoard repository) or a mirror acceleration service | After launch and when the Settings window opens, the App checks the local cache lifetime (6 hours by default) and requests only when it has expired | App name and version in the request header; no personal data |
 | Fetching Dock link icons | The site of a web address you entered in the Dock | When you add a "link" type Dock shortcut, or when the App reloads the Dock (for example at startup) | Requests to that site's home page and icon address |
 | Opening external links | Your default browser | When you click a link inside the App (for example a GitHub release page or a Microsoft Store page) | Handled by the browser under its own policy |
 
 Notes:
 
-- **Microsoft Store builds** are updated by Microsoft Store; the App does not send update-check or download requests to GitHub.
+- **Microsoft Store builds** are updated by Microsoft Store; the App does not send update-check or download requests to GitHub. Announcement fetching is not affected by the install form and still requests GitHub as described above.
 - Dock link icons are an optional enhancement: if you never add a "link" type shortcut, the App contacts no third-party websites.
 
 ## 5. Third-party services and data sharing
 
 - We **do not** sell, rent, or otherwise share your personal information with third parties, because we do not hold it.
-- **GitHub**: update checks and update downloads are served by GitHub (GitHub, Inc.). As a service provider, GitHub may log your IP address and request metadata under its own privacy policy. We are not involved in those logs and **cannot access them**.
-- **Mirror acceleration services**: when direct access to GitHub is restricted, the App may download update packages through third-party mirrors (`gh-proxy.top`, `ghm.078465.xyz`). These mirrors are operated by independent third parties and may also log access. If you prefer not to use them, you can pin the official GitHub source in the App settings.
+- **GitHub**: update checks, update downloads, and announcement fetching are served by GitHub (GitHub, Inc.). As a service provider, GitHub may log your IP address and request metadata under its own privacy policy. We are not involved in those logs and **cannot access them**.
+- **Mirror acceleration services**: when direct access to GitHub is restricted, the App may download update packages or fetch announcements through third-party mirrors (`gh-proxy.top`, `ghm.078465.xyz`). These mirrors are operated by independent third parties and may also log access. You can pin the official GitHub source for update downloads in Settings; announcement fetching has no separate switch.
 - **Microsoft Store**: installing, updating, and licensing the App through Microsoft Store are handled by Microsoft and are subject to Microsoft's own privacy policy.
 
 ## 6. Data security
@@ -79,8 +81,8 @@ Notes:
 
 ## 7. Data retention, deletion, and your controls
 
-- **Turn off network features**: set "Automatically check for updates" to "Never" in Settings; the App will then stop sending automatic update-check requests (a manual check still requires network access).
-- **View and delete local data**: open the data folder described above to inspect or delete its contents. Deleting `%LocalAppData%\WindBoard` (or `data\` next to the program in the portable build) removes all local data.
+- **Turn off network features**: set "Automatically check for updates" to "Never" in Settings; the App will then stop sending automatic update-check requests (a manual check still requires network access). Announcement fetching has no separate switch; offline or on request failure the App uses the local cache, and shows no announcement when no cache exists.
+- **View and delete local data**: open the data folder described above to inspect or delete its contents. Deleting `%LocalAppData%\WindBoard` (or `data\` next to the program in the portable build) removes all local data. Deleting `announcements.cache.json` clears the local announcement cache.
 - **Uninstall**: after uninstalling, Microsoft Store builds are cleaned up by the system, including package-private data; for the portable build, simply delete the program folder.
 - **Feedback you provide**: if you share logs or crash reports via GitHub Issues, we handle only what you voluntarily disclose, and you may ask us to remove that content at any time.
 
