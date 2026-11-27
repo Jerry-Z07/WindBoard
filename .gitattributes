@@ -31,6 +31,7 @@
 *.vcxproj text eol=crlf
 *.iss     text eol=crlf
 *.isl     text eol=crlf
+*.resw    text eol=crlf
 
 # 二进制文件不做行尾转换（`binary` 是 `-text -diff` 的别名）
 *.png binary
