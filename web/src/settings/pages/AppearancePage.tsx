@@ -3,6 +3,7 @@
  * 卡片右侧只是当前值预览（20×20 圆角色块加 HEX 文本、主题名），本身不可编辑，点击入口由卡片承担。
  */
 
+import { Color20Regular, Eye20Regular, Grid20Regular } from '@fluentui/react-icons'
 import type { ReactNode } from 'react'
 import { useState } from 'react'
 import { useSettings } from '../../app/hooks.ts'
@@ -38,6 +39,7 @@ export function AppearancePage(props: AppearancePageProps): ReactNode {
         title={t('Settings_Background_CanvasBackgroundColor_Title')}
         description={t('Settings_Background_CanvasBackgroundColor_Description')}
         anchor={SETTINGS_ANCHORS.appearanceCanvasBackground}
+        icon={<Color20Regular />}
         onClick={() => {
           setColorDialogOpen(true)
         }}
@@ -53,6 +55,7 @@ export function AppearancePage(props: AppearancePageProps): ReactNode {
         title={t('Settings_Dock_Title')}
         description={t('Settings_Dock_Description')}
         anchor={SETTINGS_ANCHORS.appearanceDockSettings}
+        icon={<Grid20Regular />}
         onClick={() => {
           props.onNavigate?.('dock')
         }}
@@ -62,6 +65,7 @@ export function AppearancePage(props: AppearancePageProps): ReactNode {
         title={t('Settings_Appearance_ElementCardTheme_Title')}
         description={t('Settings_Appearance_ElementCardTheme_Description')}
         anchor={SETTINGS_ANCHORS.appearanceElementCardTheme}
+        icon={<Eye20Regular />}
         onClick={() => {
           setThemeDialogOpen(true)
         }}

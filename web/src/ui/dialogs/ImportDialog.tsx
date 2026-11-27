@@ -16,7 +16,7 @@ import {
   MessageBarBody,
   Text,
 } from '@fluentui/react-components'
-import { ArrowImportRegular, DismissRegular, FolderOpenRegular } from '@fluentui/react-icons'
+import { ArrowImportRegular, Dismiss20Regular, FolderOpenRegular } from '@fluentui/react-icons'
 import { useBoardController, useReminderService } from '../../app/hooks.ts'
 import { useI18n } from '../../i18n/context.ts'
 import { applyImportedWorkspace, parseWbixForImport } from '../../features/import/wbix-import.ts'
@@ -123,7 +123,7 @@ function ImportDialogForm(props: { readonly onClose: () => void }): ReactNode {
         action={
           <Button
             appearance="subtle"
-            icon={<DismissRegular />}
+            icon={<Dismiss20Regular />}
             aria-label={t('Common_Close')}
             disabled={busy}
             onClick={props.onClose}

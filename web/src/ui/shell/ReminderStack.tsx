@@ -4,7 +4,7 @@
  */
 
 import {
-  DismissRegular,
+  Dismiss16Regular,
   ErrorCircleRegular,
   InfoRegular,
   WarningRegular,
@@ -56,7 +56,7 @@ function ReminderCard(props: ReminderCardProps): ReactNode {
           props.onDismiss(props.reminder.id)
         }}
       >
-        <DismissRegular aria-hidden="true" />
+        <Dismiss16Regular aria-hidden="true" />
       </button>
     </div>
   )

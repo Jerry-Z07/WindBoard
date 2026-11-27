@@ -36,7 +36,7 @@
 
 /*
  * 工具栏：桌面是 Dock 上方居中的浅色窄条（Padding 12,8、圆角 14、0.95 不透明度）。
- * 文字与控件都强制浅色主题（组件外层包了 `webLightTheme`）。
+ * 文字与控件都强制浅色主题（组件外层包了 `winuiLightThemeForced`）。
  */
 .wb-dock-edit__toolbar {
   align-self: center;
@@ -189,6 +189,12 @@
 
 .wb-dock-edit__badge:hover {
   background: #dcdcdc;
+}
+
+.wb-dock-edit__badge:focus-visible {
+  outline: 2px solid CanvasText;
+  outline-offset: 1px;
+  box-shadow: inset 0 0 0 1px var(--wb-focus-inner);
 }
 
 /* 「更多」的锁图标：不可隐藏，只做提示（桌面 `LockIconVisibility` + Tooltip） */

@@ -14,8 +14,8 @@
 import {
   Button,
   FluentProvider,
-  webLightTheme,
 } from '@fluentui/react-components'
+import { winuiLightThemeForced } from '../../app/theme.ts'
 import {
   AddRegular,
   ArrowImportRegular,
@@ -267,7 +267,7 @@ export function DockEditOverlay(props: DockEditOverlayProps): ReactNode {
       aria-modal="true"
       aria-label={t('Settings_Dock_EditInPlace_Header')}
     >
-      <FluentProvider theme={webLightTheme} style={THEME_STYLE}>
+      <FluentProvider theme={winuiLightThemeForced} style={THEME_STYLE}>
         <div className="wb-dock-edit__bottom">
           <div className="wb-dock-edit__toolbar" role="toolbar" aria-label={t('Settings_Dock_EditInPlace_Header')}>
             <p className="wb-dock-edit__hint">{t('Dock_Edit_Hint')}</p>

@@ -72,3 +72,52 @@
 | 是否需要"桌面端批量把 `.wbi` 转 `.wbix`"的小工具 | 建议做，成本低 | P4 开始前 |
 | 首版是否必须支持 iPad 触控书写 | 默认桌面优先，触屏做兼容性适配 | P5 开始前 |
 | 视觉回归的参考截图如何取得 | 用 `WindBoard.UITests`（FlaUI）自动截图，需交互桌面 | P0 定方案，P5 落地 |
+
+## 视觉体系统一（P11，2026-11-27）
+
+### Goal
+
+网页端当前同时存在两套视觉语言：设置窗口/对话框使用 Fluent UI v9 的 Web 默认主题（Segoe UI、白色平面、`#0F6CBD` 品牌蓝），Dock/浮层使用手写 CSS 模拟桌面 WinUI 3。目标是让网页端收敛为**一套与桌面 WinUI 3 一致的视觉体系**，只改视觉，不改交互、布局与数据契约。
+
+### 已确认事实
+
+- Fluent UI v9 的 `fontFamilyBase` 默认是 `Segoe UI`，`webLightTheme` 的品牌色是 `#0F6CBD`，中性底色是 `#FFFFFF`/`#FAFAFA`；这些是 Fluent 2 Web 的值，不是 WinUI 3。
+- 桌面 WinUI 3 使用 Segoe UI Variable；主题字典（Light）为 `SolidBackgroundFillColorBase #F3F3F3`、`CardBackgroundFillColorDefault #B3FFFFFF`、`CardStrokeColorDefault #0F000000`、`TextFillColorPrimary #E4000000`、`ControlCornerRadius 4`、`OverlayCornerRadius 8`。
+- 桌面 `SettingsCard` 模板：`Padding 16`、`MinHeight 68`、`CornerRadius = ControlCornerRadius`、`HeaderIcon 20`、`Description 12`。
+- 桌面 `ContentDialog`：背景 `SolidBackgroundFillColorBase`、`Padding 24`、标题下边距 12、按钮间距 8、`MaxWidth 548`。
+- 网页端现有三套蓝：`#0F6CBD`（Fluent 主题）、`#1976D2`（Dock 选中，桌面 `MainWindow.xaml` 固定值）、`#0078D4`（选择框，桌面 `SystemAccentColor` 默认值）。后两者是桌面有意设计，不是漂移；只有 `#0F6CBD` 是 Fluent Web 带入的。
+- 社区包 `@pstrikez/fluent-winui-theme` 0.2.0 是唯一直接做 Fluent v9 → WinUI 3 的方案；令牌值与桌面主题字典一致，但 0.2.0、单维护者、peer 锁 Fluent `~9.74.4`（本项目 9.75.0）、2.46 MB、字体走 CDN，不适合直接依赖。
+
+### 需求
+
+1. **主题层**：新增网页端 WinUI 3 主题模块，App、Dock、浮层、覆盖层统一使用；不再有零散的 `webLightTheme`/`webDarkTheme`。
+2. **令牌层**：建立 WinUI 语义的窗口/卡片/描边/控件填充令牌；文字色收敛到一套；强调色**按用途分层**：设置/对话框的强调按钮使用 WinUI `AccentFillColorDefault`（默认蓝调色板的 dark1 `#0067C0` 浅色 / light2 `#4CC2FF` 深色），选区保持桌面 `SystemAccentColor` 基线 `#0078D4`，Dock 选中保持桌面固定 `#1976D2`；三者不互相替换。
+3. **字体**：正文使用 Segoe UI Variable，Windows 10 回退 Segoe UI；不打包字体、不依赖 CDN；中文回退 Microsoft YaHei UI。
+4. **设置窗口**：设置对话框、左侧导航、设置卡片、图标按 WinUI 3 规格调整；卡片 16 内边距、68 最小高度、4px 圆角、20px 图标；导航项 36px 高、16px 图标；页面标题按 WinUI Title 字号 28/36。
+5. **对话框**：导出/导入/确认/取色器/恢复对话框按 WinUI `ContentDialog` 规格：背景 `SolidBackgroundFillColorBase`、8px 圆角、24px 内边距、标题 20/28、按钮间距 8。
+6. **Dock 与浮层**：保留桌面自定义的 14px 底板、10px 按钮、0.85 透明度、强制浅色；只统一强调色与内部 Fluent 控件（Slider/Radio/SpinButton/Menu/Popover）的视觉。
+7. **参考实现移植**：从 `@pstrikez/fluent-winui-theme`（MIT）移植 WinUI 令牌字典和必要的组件规则，保留署名；不引入该包依赖、不引入 Meslo 字体、不加载微软 CDN。
+8. **文档**：更新 `docs/dev/guides/web-port.zh-CN.md`，登记主题层、强调色分层与“不伪造 Mica”的有意偏差。
+
+### 非目标
+
+- 不改桌面端 XAML、`generic.xaml` 或桌面视觉。
+- 不实现真正的 Mica/亚克力，不伪造壁纸材质；设置窗口使用 `SolidBackgroundFillColorBase` 实心底色。
+- 不读取系统强调色（浏览器无此能力）。
+- 不重写整套 WinUI 控件，不替换 Fluent 的交互/无障碍实现。
+- 不改 Dock/浮层的布局与交互行为；不改画布渲染、WBIX、设置模型。
+- 不做高对比度主题与 RTL（保持现状）。
+- 不新增 `package.json` 依赖。
+
+### 验收标准
+
+- AC14：`web/src` 中除主题模块外零 `webLightTheme`/`webDarkTheme` 导入；Fluent Web 的 `#0F6CBD` 字面量清零；`#1976D2`（Dock 选中）与 `#0078D4`（选区）仍按桌面职责保留，但只能出现在主题/令牌模块。
+- AC15：设置卡片、导航、对话框的度量与颜色逐条对上 WinUI 主题字典与 `SettingsCard`/`ContentDialog` 模板；浅色/深色两套都成立。
+- AC16：计算样式字体族以 `Segoe UI Variable` 开头，Windows 10 回退 `Segoe UI`；页面不发起字体网络请求。
+- AC17：Dock 的 60×52、14px 底板、10px 按钮、0.85 透明度、强制浅色不变；窄屏（≤700px）布局不变。
+- AC18：`pnpm lint`、`pnpm typecheck`、`pnpm test`、`pnpm build`、`pnpm e2e` 全绿；视觉基线按预期重建并在提交说明给出理由。
+- AC19：移植文件保留 MIT NOTICE 与来源注释；`package.json` 与 `pnpm-lock.yaml` 不新增依赖。
+
+### 开放问题
+
+无。已确认采用“移植参考实现”而不是直接依赖。

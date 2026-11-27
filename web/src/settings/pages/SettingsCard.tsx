@@ -17,6 +17,8 @@ export interface SettingsCardProps {
   readonly anchor?: string
   /** 点击整张卡片的动作（对应桌面 `IsClickEnabled="True"`）；不传则是静态卡片。 */
   readonly onClick?: () => void
+  /** 卡片头部图标（对应桌面 `SettingsCard.HeaderIcon`，20px）。 */
+  readonly icon?: ReactNode
   readonly children?: ReactNode
 }
 
@@ -34,10 +36,17 @@ export function SettingsCard(props: SettingsCardProps): ReactNode {
     props.children === undefined ? null : (
       <div className="wb-settings-card__control">{props.children}</div>
     )
+  const icon =
+    props.icon === undefined ? null : (
+      <span className="wb-settings-card__icon" aria-hidden>
+        {props.icon}
+      </span>
+    )
 
   if (props.onClick === undefined) {
     return (
       <div className="wb-settings-card" id={props.anchor} data-anchor={props.anchor}>
+        {icon}
         {text}
         {control}
       </div>
@@ -54,6 +63,7 @@ export function SettingsCard(props: SettingsCardProps): ReactNode {
       data-anchor={props.anchor}
       onClick={props.onClick}
     >
+      {icon}
       {text}
       {control}
     </button>

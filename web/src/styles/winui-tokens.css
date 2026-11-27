@@ -1,0 +1,130 @@
+/**
+ * WinUI 3 语义令牌（Light / Dark）。
+ *
+ * 来源：`@pstrikez/fluent-winui-theme@0.2.0`（MIT，见 `styles/winui/NOTICE.md`）
+ * 的 `--winui-*` 字典，并逐条对照本机 WinUI 2.6.4 `generic.xaml` 的 Light/Dark 字典。
+ * 只移植颜色/圆角/强调色，不移植参考包的字体、AppShell、toaster 或组件包装层。
+ *
+ * `data-theme` 由 `App.tsx` 写入，与 FluentProvider 的主题同源；这里不再单独
+ * 订阅 `prefers-color-scheme`，避免两套判定在边界上不同步。
+ */
+
+:root {
+  /* ===== SolidBackgroundFillColor 阶梯 ===== */
+  --winui-solid-background-fill-base: #f3f3f3;
+  --winui-solid-background-fill-secondary: #eeeeee;
+  --winui-solid-background-fill-tertiary: #f9f9f9;
+  --winui-solid-background-fill-quarternary: #ffffff;
+
+  /* ===== 卡片 / 描边 ===== */
+  --winui-card-background-fill-default: rgb(255 255 255 / 70.2%);
+  --winui-card-stroke-default: rgb(0 0 0 / 5.9%);
+  /* XAML #66757575 是 ARGB：A=0x66、RGB=#757575；CSS 必须写成 rgb()，不能直接抄。 */
+  --winui-surface-stroke-default: rgb(117 117 117 / 40%);
+  --winui-surface-stroke-flyout: rgb(0 0 0 / 5.9%);
+
+  /* ===== 控件填充 / 描边 ===== */
+  --winui-control-fill-default: rgb(255 255 255 / 70.2%);
+  --winui-control-fill-secondary: rgb(249 249 249 / 50.2%);
+  --winui-control-fill-tertiary: rgb(249 249 249 / 30.2%);
+  --winui-control-fill-input-active: #ffffff;
+  --winui-control-stroke-default: rgb(0 0 0 / 5.9%);
+  --winui-control-stroke-secondary: rgb(0 0 0 / 16.1%);
+  --winui-control-strong-stroke-default: rgb(0 0 0 / 44.7%);
+  --winui-divider-stroke-default: rgb(0 0 0 / 5.9%);
+
+  /* ===== 文本 ===== */
+  --winui-text-fill-primary: rgb(0 0 0 / 89.4%);
+  --winui-text-fill-secondary: rgb(0 0 0 / 62%);
+  --winui-text-fill-tertiary: rgb(0 0 0 / 44.7%);
+  --winui-text-fill-disabled: rgb(0 0 0 / 36.1%);
+  --winui-text-fill-inverse: #ffffff;
+  --winui-text-on-accent-fill-primary: #ffffff;
+
+  /* ===== 微妙填充（按钮/列表项悬停） ===== */
+  --winui-subtle-fill-transparent: transparent;
+  --winui-subtle-fill-secondary: rgb(0 0 0 / 3.5%);
+  --winui-subtle-fill-tertiary: rgb(0 0 0 / 2.3%);
+
+  /* ===== 焦点双描边 ===== */
+  --winui-focus-stroke-inner: rgb(255 255 255 / 70.2%);
+  --winui-focus-stroke-outer: rgb(0 0 0 / 89.4%);
+
+  /* ===== 遮罩 ===== */
+  --winui-smoke-fill-default: rgb(0 0 0 / 30.2%);
+
+  /* ===== 圆角 ===== */
+  --winui-control-corner-radius: 4px;
+  --winui-overlay-corner-radius: 8px;
+
+  /* ===== 默认蓝强调色调色板（Windows 默认强调色 #0078D4） ===== */
+  --winui-system-accent: #0078d4;
+  --winui-system-accent-dark-1: #0067c0;
+  --winui-system-accent-dark-1-rgb: 0 103 192;
+  --winui-system-accent-dark-2: #003e92;
+  --winui-system-accent-dark-3: #001a68;
+  --winui-system-accent-light-2: #4cc2ff;
+  --winui-system-accent-light-2-rgb: 76 194 255;
+  --winui-system-accent-light-3: #99ebff;
+
+  /* 强调填充：浅色用 dark-1，保证白字对比度；深色在下方切到 light-2。 */
+  --winui-accent-fill-default: var(--winui-system-accent-dark-1);
+  --winui-accent-fill-secondary: rgb(var(--winui-system-accent-dark-1-rgb) / 90%);
+  --winui-accent-fill-tertiary: rgb(var(--winui-system-accent-dark-1-rgb) / 80%);
+  --winui-accent-text-fill-primary: var(--winui-system-accent-dark-2);
+  --winui-accent-text-fill-secondary: var(--winui-system-accent-dark-3);
+  --winui-accent-text-fill-tertiary: var(--winui-system-accent-dark-1);
+  --winui-accent-tint-fill-default: #ebf3fa;
+  --winui-accent-tint-fill-secondary: #e0edf7;
+  --winui-accent-tint-fill-tertiary: #d6e7f5;
+  --winui-accent-tint-stroke: #b3d1ec;
+}
+
+:root[data-theme='dark'] {
+  --winui-solid-background-fill-base: #202020;
+  --winui-solid-background-fill-secondary: #1c1c1c;
+  --winui-solid-background-fill-tertiary: #282828;
+  --winui-solid-background-fill-quarternary: #2c2c2c;
+
+  --winui-card-background-fill-default: rgb(255 255 255 / 5.1%);
+  --winui-card-stroke-default: rgb(0 0 0 / 9.8%);
+  /* XAML #66757575 是 ARGB：A=0x66、RGB=#757575；CSS 必须写成 rgb()，不能直接抄。 */
+  --winui-surface-stroke-default: rgb(117 117 117 / 40%);
+  --winui-surface-stroke-flyout: rgb(0 0 0 / 20%);
+
+  --winui-control-fill-default: rgb(255 255 255 / 5.9%);
+  --winui-control-fill-secondary: rgb(255 255 255 / 8.2%);
+  --winui-control-fill-tertiary: rgb(255 255 255 / 3.1%);
+  --winui-control-fill-input-active: rgb(30 30 30 / 70.2%);
+  --winui-control-stroke-default: rgb(255 255 255 / 7.1%);
+  --winui-control-stroke-secondary: rgb(255 255 255 / 9.4%);
+  --winui-control-strong-stroke-default: rgb(255 255 255 / 54.9%);
+  --winui-divider-stroke-default: rgb(255 255 255 / 8.2%);
+
+  --winui-text-fill-primary: #ffffff;
+  --winui-text-fill-secondary: rgb(255 255 255 / 77.3%);
+  --winui-text-fill-tertiary: rgb(255 255 255 / 52.9%);
+  --winui-text-fill-disabled: rgb(255 255 255 / 36.5%);
+  --winui-text-fill-inverse: #000000;
+  --winui-text-on-accent-fill-primary: #000000;
+
+  --winui-subtle-fill-transparent: transparent;
+  --winui-subtle-fill-secondary: rgb(255 255 255 / 5.9%);
+  --winui-subtle-fill-tertiary: rgb(255 255 255 / 3.9%);
+
+  --winui-focus-stroke-inner: rgb(0 0 0 / 70.2%);
+  --winui-focus-stroke-outer: #ffffff;
+
+  --winui-smoke-fill-default: rgb(0 0 0 / 30.2%);
+
+  --winui-accent-fill-default: var(--winui-system-accent-light-2);
+  --winui-accent-fill-secondary: rgb(var(--winui-system-accent-light-2-rgb) / 90%);
+  --winui-accent-fill-tertiary: rgb(var(--winui-system-accent-light-2-rgb) / 80%);
+  --winui-accent-text-fill-primary: var(--winui-system-accent-light-3);
+  --winui-accent-text-fill-secondary: var(--winui-system-accent-light-3);
+  --winui-accent-text-fill-tertiary: var(--winui-system-accent-light-2);
+  --winui-accent-tint-fill-default: #30414a;
+  --winui-accent-tint-fill-secondary: #334b58;
+  --winui-accent-tint-fill-tertiary: #355667;
+  --winui-accent-tint-stroke: #3d7b9b;
+}

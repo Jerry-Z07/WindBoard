@@ -16,12 +16,30 @@
  * **布局视口**撑宽（实测打开内嵌页面列表后从 360 涨到 427），而 `position: fixed; inset: 0`
  * 的外壳以布局视口为准，会跟着一起变宽，整块 Dock 被推着右移，右侧按钮直接出界。
  */
+/* `color-scheme` 必须落在根元素上，浏览器才会同步原生滚动条、表单控件与初始画布底色。 */
+:root {
+  color-scheme: light dark;
+}
+
+:root[data-theme='light'] {
+  color-scheme: light;
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+}
+
 html,
 body {
   height: 100%;
   margin: 0;
   overflow: hidden;
   overscroll-behavior: none;
+  /*
+   * 不启用 `font-size-adjust`：本项目只用系统字体，没有 Web Font 换字导致的 CLS；
+   * 而 `from-font` 会按 Segoe UI Variable 的 x-height 缩放中文回退字体，
+   * 改变 WinUI 视觉基线里的 CJK 字号（实测只影响文字像素）。
+   */
 }
 
 .wb-app {
@@ -31,10 +49,6 @@ body {
   flex-direction: column;
   overflow: hidden;
   background: var(--wb-canvas-background);
-  /* 整窗禁止选中/拖拽，避免写画时选中文字或触发原生拖影 */
-  user-select: none;
-  -webkit-user-select: none;
-  touch-action: none;
 }
 
 /* ===== 画布区 ===== */
@@ -52,6 +66,9 @@ body {
 .wb-surface {
   position: absolute;
   inset: 0;
+  /* 只禁止画布区的文字选中/拖拽；设置与对话框在 `.wb-surface` 之外，保持可选中。 */
+  user-select: none;
+  -webkit-user-select: none;
   /* 画布尺寸被渲染层钉成整设备像素（可能比布局盒多出不到 1px），这里裁掉溢出 */
   overflow: hidden;
 }
@@ -85,6 +102,9 @@ body {
 /* ===== 底部 Dock 层（`MainWindow.xaml:54-70`） ===== */
 .wb-dock-layer {
   position: absolute;
+  /* Dock 是应用 chrome，不允许选中文字；设置/对话框不受影响。 */
+  user-select: none;
+  -webkit-user-select: none;
   left: calc(var(--wb-overlay-margin) + env(safe-area-inset-left, 0px));
   right: calc(var(--wb-overlay-margin) + env(safe-area-inset-right, 0px));
   bottom: calc(var(--wb-overlay-margin) + env(safe-area-inset-bottom, 0px));
@@ -137,7 +157,8 @@ body {
   align-items: center;
   gap: var(--wb-dock-gap);
   padding: var(--wb-dock-padding);
-  /* 底板 0.85 不透明度只作用于背景，不影响内部图标/文字（桌面用单独 Border 实现） */
+  /* 不支持 color-mix 的浏览器退回不透明底板，避免背景直接消失。 */
+  background: var(--wb-dock-plate-color);
   background: color-mix(in srgb, var(--wb-dock-plate-color) 85%, transparent);
   border-radius: var(--wb-dock-plate-radius);
   /* Dock 里只有按钮（`.wb-dock-button` 用 `color: inherit`），文字走 `DefaultButtonStyle`
@@ -184,6 +205,15 @@ body {
 
 .wb-dock-button:disabled {
   opacity: 0.4;
+}
+
+/* WinUI 焦点双描边：外圈 2px 黑、内圈 1px 白（深色反转）。 */
+.wb-dock-button:focus-visible,
+.wb-sheet-button:focus-visible {
+  /* CanvasText 跟随 color-scheme，并在强制色彩模式下自动换成系统文字色。 */
+  outline: 2px solid CanvasText;
+  outline-offset: 1px;
+  box-shadow: inset 0 0 0 1px var(--wb-focus-inner);
 }
 
 .wb-dock-button__icon {

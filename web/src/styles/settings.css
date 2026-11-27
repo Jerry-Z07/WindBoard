@@ -22,10 +22,12 @@
   height: min(640px, calc(100vh - 48px));
   max-width: none;
   max-height: none;
-  /* 设置窗口正文的继承色：Fluent 默认 `--colorNeutralForeground1`（#242424），
-     桌面 `SettingsWindow` 里的普通 TextBlock / SettingsCard 标题走 WinUI
-     `TextFillColorPrimary`（#E4000000 = 89.4% 黑）。统一成后者，
-     没有显式 color 的文本（页标题、小节标题、卡片标题）随之对齐。 */
+  /* ContentDialog/窗口底色：WinUI `SolidBackgroundFillColorBase`，不是 Fluent 的白底。 */
+  background-color: var(--wb-surface-base);
+  border: 1px solid var(--wb-surface-stroke);
+  border-radius: var(--winui-overlay-corner-radius);
+  /* 设置窗口正文的继承色：桌面 `SettingsWindow` 里的普通 TextBlock / SettingsCard 标题
+     走 WinUI `TextFillColorPrimary`（#E4000000 = 89.4% 黑）。 */
   color: var(--wb-text-primary);
 }
 
@@ -75,32 +77,49 @@
   flex: 0 0 180px;
   padding: 4px 8px 12px;
   overflow-y: auto;
-  border-right: 1px solid var(--colorNeutralStroke2, #e0e0e0);
+  border-right: 1px solid var(--winui-divider-stroke-default);
 }
 
 .wb-settings-nav__item {
   position: relative;
   justify-content: flex-start;
   width: 100%;
-  min-height: 40px;
+  min-height: 36px;
+  border-radius: var(--winui-control-corner-radius);
   font-weight: 400;
 }
 
-.wb-settings-nav__item[aria-current='page'] {
-  background-color: var(--colorNeutralBackground1Selected, #ebebeb);
-  font-weight: 600;
+/*
+ * WinUI `NavigationViewItemForeground` 在未选中时也是 `TextFillColorPrimary`
+ * （generic.xaml:1595/7321），不是 Fluent subtle Button 默认的
+ * `colorNeutralForeground2`（62% 黑）。用双类选择器压过 Griffel 原子类。
+ */
+.wb-settings-nav .wb-settings-nav__item {
+  color: var(--wb-text-primary);
 }
 
-/* WinUI NavigationView 的选中指示条 */
+.wb-settings-nav .wb-settings-nav__item:hover {
+  color: var(--wb-text-primary);
+}
+
+.wb-settings-nav .wb-settings-nav__item:active {
+  color: var(--wb-text-secondary);
+}
+
+.wb-settings-nav__item[aria-current='page'] {
+  background-color: var(--winui-subtle-fill-secondary);
+}
+
+/* WinUI NavigationView 的选中指示条：3px 宽、16px 高、圆角 2。 */
 .wb-settings-nav__item[aria-current='page']::before {
   content: '';
   position: absolute;
   left: 0;
-  top: 25%;
-  bottom: 25%;
+  top: calc(50% - 8px);
   width: 3px;
+  height: 16px;
   border-radius: 2px;
-  background-color: var(--colorBrandBackground, #0f6cbd);
+  background-color: var(--wb-accent-fill);
 }
 
 /* ===== 右侧内容 ===== */
@@ -119,9 +138,9 @@
 
 .wb-settings-page-header__title {
   margin: 0;
-  font-size: 18px;
+  font-size: 28px;
   font-weight: 600;
-  line-height: 24px;
+  line-height: 36px;
 }
 
 /* 页头说明（网页端新增，桌面 `SettingsWindow.xaml` 的 NavigationView `AlwaysShowHeader="False"` 没有页头）：
@@ -151,11 +170,25 @@
 .wb-settings-card {
   display: flex;
   align-items: center;
-  gap: 16px;
-  padding: 12px 16px;
-  background-color: var(--colorNeutralBackground1, #ffffff);
-  border: 1px solid var(--colorNeutralStroke2, #e0e0e0);
-  border-radius: 8px;
+  gap: 0;
+  box-sizing: border-box;
+  min-height: 68px;
+  padding: 16px;
+  background-color: var(--wb-surface-card);
+  border: 1px solid var(--wb-card-stroke);
+  border-radius: var(--winui-control-corner-radius);
+}
+
+/* 桌面 SettingsCard.HeaderIcon：最大 20×20，右边距 20，顶部微调 2。 */
+.wb-settings-card__icon {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  margin: 2px 20px 0 0;
+  color: var(--wb-text-primary);
 }
 
 /* 可点击卡片：桌面 `SettingsCard IsClickEnabled="True"`（整张卡片是按钮，右侧放"当前值预览"）。
@@ -168,17 +201,25 @@
 }
 
 .wb-settings-card--clickable:hover {
-  background-color: var(--colorNeutralBackground1Hover, #f5f5f5);
+  background-color: var(--winui-control-fill-secondary);
+  border-color: var(--winui-control-stroke-secondary);
 }
 
 .wb-settings-card--clickable:active {
-  background-color: var(--colorNeutralBackground1Pressed, #e0e0e0);
+  background-color: var(--winui-control-fill-tertiary);
+  border-color: var(--winui-control-stroke-default);
+}
+
+.wb-settings-card--clickable:focus-visible {
+  outline: 2px solid CanvasText;
+  outline-offset: 1px;
+  box-shadow: inset 0 0 0 1px var(--wb-focus-inner);
 }
 
 .wb-settings-card__text {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 0;
   flex: 1 1 auto;
   min-width: 0;
 }
@@ -217,9 +258,9 @@
 
 .wb-settings-section__title {
   margin: 0;
-  font-size: 16px;
+  font-size: 20px;
   font-weight: 600;
-  line-height: 22px;
+  line-height: 28px;
 }
 
 .wb-settings-section__body {
@@ -235,8 +276,8 @@
    即 `TextFillColorPrimary` × 0.75，而不是另一个灰色。 */
 .wb-settings-hint {
   margin: 4px 0 0;
-  font-size: 12px;
-  line-height: 16px;
+  font-size: 14px;
+  line-height: 20px;
   color: var(--wb-text-primary);
   opacity: 0.75;
 }
@@ -244,8 +285,8 @@
 /* 错误提示：属状态色（桌面走 `SystemFillColorCritical`），本次不并入 TextFillColor 体系，
    仍用 Fluent 的 `--colorPaletteRedForeground1` 以便深浅色主题自动切换。 */
 .wb-settings-error {
-  font-size: 12px;
-  line-height: 16px;
+  font-size: 14px;
+  line-height: 20px;
   color: var(--colorPaletteRedForeground1, #c50f1f);
 }
 
@@ -268,8 +309,8 @@
 .wb-settings-color-preview {
   width: 20px;
   height: 20px;
-  border: 1px solid var(--colorNeutralStroke1, #d1d1d1);
-  border-radius: 4px;
+  border: 1px solid var(--winui-control-stroke-default);
+  border-radius: var(--winui-control-corner-radius);
   flex: 0 0 auto;
 }
 
@@ -292,9 +333,9 @@
   flex-wrap: wrap;
   gap: 12px;
   padding: 12px 16px;
-  background-color: var(--colorNeutralBackground2, #fafafa);
-  border: 1px solid var(--colorNeutralStroke2, #e0e0e0);
-  border-radius: 8px;
+  background-color: var(--winui-solid-background-fill-secondary);
+  border: 1px solid var(--wb-card-stroke);
+  border-radius: var(--winui-overlay-corner-radius);
 }
 
 .wb-settings-palette__slot {
@@ -309,14 +350,14 @@
 .wb-settings-palette__swatch {
   width: 32px;
   height: 32px;
-  border: 1px solid var(--colorNeutralStroke1, #d1d1d1);
+  border: 1px solid var(--winui-control-stroke-default);
   border-radius: 50%;
   /* 空色块（未设置颜色）用斜线底纹表示 */
   background-image: linear-gradient(
     45deg,
     transparent 45%,
-    var(--colorNeutralStroke2, #e0e0e0) 45%,
-    var(--colorNeutralStroke2, #e0e0e0) 55%,
+    var(--winui-control-stroke-default) 45%,
+    var(--winui-control-stroke-default) 55%,
     transparent 55%
   );
 }
@@ -354,8 +395,8 @@
   /* 这是个普通按钮（桌面 `PenSettingsPage.xaml:178-181` 的"清除"按钮），
      前景 = ButtonForeground = `TextFillColorPrimary` */
   color: var(--wb-text-primary);
-  background-color: var(--colorNeutralBackground1, #ffffff);
-  border: 1px solid var(--colorNeutralStroke2, #e0e0e0);
+  background-color: var(--wb-surface-card);
+  border: 1px solid var(--wb-card-stroke);
   border-radius: 50%;
   cursor: pointer;
 }
@@ -376,8 +417,9 @@
 }
 
 .wb-settings-thickness__label {
-  font-size: 12px;
-  /* 档位标签（网页端新增）→ 次要文本 */
+  font-size: 14px;
+  line-height: 20px;
+  /* 档位标签 → 次要文本 */
   color: var(--wb-text-secondary);
 }
 
@@ -404,9 +446,11 @@
   justify-content: space-between;
   gap: 24px;
   padding: 8px 16px;
-  font-size: 13px;
-  border: 1px solid var(--colorNeutralStroke2, #e0e0e0);
-  border-radius: 8px;
+  font-size: 14px;
+  line-height: 20px;
+  background-color: var(--wb-surface-card);
+  border: 1px solid var(--wb-card-stroke);
+  border-radius: var(--winui-control-corner-radius);
 }
 
 /* 快捷键文本：桌面 `ShortcutsSettingsPage.xaml:48-50` 等处是默认前景 + `Opacity="0.75"`
@@ -438,7 +482,7 @@
     padding: 0 12px 8px;
     overflow-x: auto;
     border-right: 0;
-    border-bottom: 1px solid var(--colorNeutralStroke2, #e0e0e0);
+    border-bottom: 1px solid var(--winui-divider-stroke-default);
   }
 
   .wb-settings-nav__item {
@@ -458,6 +502,10 @@
   .wb-settings-card {
     flex-wrap: wrap;
     gap: 8px;
+  }
+
+  .wb-settings-card__icon {
+    display: none;
   }
 
   .wb-settings-card__text {

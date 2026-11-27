@@ -277,6 +277,12 @@
   cursor: grabbing;
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .wb-slide__thumb {
+    transition: none;
+  }
+}
+
 /* 空页时整条置灰、不可拖（`ClearCanvasSlideController.UpdateEnabledState`） */
 .wb-slide[data-disabled='true'] {
   opacity: 0.55;
@@ -369,6 +375,15 @@
 
 .wb-pages__delete:hover {
   background: rgb(0 0 0 / 8%);
+}
+
+.wb-palette__swatch:focus-visible,
+.wb-thickness__preset:focus-visible,
+.wb-shape__item:focus-visible,
+.wb-pages__delete:focus-visible {
+  outline: 2px solid CanvasText;
+  outline-offset: 1px;
+  box-shadow: inset 0 0 0 1px var(--wb-focus-inner);
 }
 
 /* 缩略图：高 104、底色为画布背景（`MainWindow.xaml:665-669`） */

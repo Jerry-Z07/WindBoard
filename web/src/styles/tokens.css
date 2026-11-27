@@ -36,10 +36,31 @@
    * 只有显式写了 `SystemControlForegroundBaseHighBrush`（`SystemBaseHighColor` = `#FF000000`）
    * 的地方才是纯黑——两者不要混用（见 `--wb-dock-foreground`）。
    */
-  --wb-text-primary: rgb(0 0 0 / 89.4%); /* TextFillColorPrimary = #E4000000 */
-  --wb-text-secondary: rgb(0 0 0 / 62%); /* TextFillColorSecondary = #9E000000 */
-  --wb-text-tertiary: rgb(0 0 0 / 44.7%); /* TextFillColorTertiary = #72000000 */
-  --wb-text-disabled: rgb(0 0 0 / 36.1%); /* TextFillColorDisabled = #5C000000 */
+  --wb-text-primary: var(--winui-text-fill-primary);
+  --wb-text-secondary: var(--winui-text-fill-secondary);
+  --wb-text-tertiary: var(--winui-text-fill-tertiary);
+  --wb-text-disabled: var(--winui-text-fill-disabled);
+
+  /* ===== WinUI 3 语义表面（值来自 `winui-tokens.css`） ===== */
+  --wb-surface-base: var(--winui-solid-background-fill-base);
+  --wb-surface-card: var(--winui-card-background-fill-default);
+  --wb-card-stroke: var(--winui-card-stroke-default);
+  --wb-control-fill: var(--winui-control-fill-default);
+  --wb-control-stroke: var(--winui-control-stroke-default);
+  --wb-surface-stroke: var(--winui-surface-stroke-default);
+  --wb-focus-inner: var(--winui-focus-stroke-inner);
+  --wb-focus-outer: var(--winui-focus-stroke-outer);
+
+  /*
+   * 强调色按用途分层（详见 docs/dev/guides/web-port.zh-CN.md）：
+   * - `--wb-accent-selection`：选区/手柄，桌面用 SystemAccentColor，默认 #0078D4；
+   * - `--wb-accent-fill`：设置/对话框的强调按钮/开关/滑块，WinUI AccentFillColorDefault；
+   * - `--wb-dock-checked`：Dock 选中，桌面固定 #1976D2，二者不可互换。
+   */
+  --wb-accent-selection: #0078d4;
+  --wb-accent-fill: var(--winui-accent-fill-default);
+  /* 让原生 checkbox/radio/range/color 等浏览器控件跟随 WinUI 强调色。 */
+  accent-color: var(--wb-accent-fill);
 
   /* ===== Dock 底板 ===== */
   /* `MainWindow.xaml:76-79`：CornerRadius 14 + Opacity 0.85 */
@@ -99,8 +120,9 @@
    */
   --wb-dock-hover: rgb(255 255 255 / 7.8%); /* ButtonBackgroundPointerOver = #14FFFFFF */
   --wb-dock-pressed: rgb(255 255 255 / 13.3%); /* ButtonBackgroundPressed = #22FFFFFF */
-  --wb-dock-checked: #1976d2; /* ToggleButtonBackgroundChecked */
-  --wb-dock-checked-foreground: #ffffff; /* TextOnAccentFillColorPrimaryBrush */
+  /* 桌面 `MainWindow.xaml:69-73` 固定 #1976D2，不是 WinUI AccentFillColor；不要并入 accent fill。 */
+  --wb-dock-checked: #1976d2;
+  --wb-dock-checked-foreground: #ffffff;
 
   /* ===== 页面 Dock（`MainWindow.xaml:687-737`） ===== */
   --wb-page-button-size: 52px;
@@ -118,11 +140,5 @@
   --wb-selection-handle-color: #ffffff;
 }
 
-/* 深色主题的文本前景。WinUI `generic.xaml:2024-2027` 的 Dark 字典：
-   Primary #FFFFFF / Secondary #C5FFFFFF / Tertiary #87FFFFFF / Disabled #5DFFFFFF */
-:root[data-theme='dark'] {
-  --wb-text-primary: #ffffff;
-  --wb-text-secondary: rgb(255 255 255 / 77.3%);
-  --wb-text-tertiary: rgb(255 255 255 / 52.9%);
-  --wb-text-disabled: rgb(255 255 255 / 36.5%);
-}
+/* 深色主题的 WinUI 语义颜色由 `winui-tokens.css` 的 `[data-theme='dark']` 切换；
+   `--wb-text-*` 已是它的别名，这里不再重复维护一套深色值。 */

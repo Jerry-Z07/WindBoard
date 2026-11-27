@@ -164,6 +164,31 @@
 - **坑（已踩过两次）**：XAML 的 8 位十六进制颜色是 **ARGB**，CSS 的 8 位是 **RGBA**，直接抄会得到完全不同的颜色（`#E4000000` 在浏览器里是不透明红，`#08FFFFFF` 是青色）。所有带 alpha 的颜色必须写成 `rgb(r g b / a%)`。
 - **坑（Fluent UI v9）**：Griffel 用原子类下发 `width`/`height`/`display` 等属性，与单类选择器同权重但注入更晚。覆盖 Fluent 组件自身设置过的属性必须用双类选择器（`.fui-DialogSurface.wb-settings-surface`）。
 
+**WinUI 3 视觉层（P11）**：组件层不再直接使用 Fluent v9 的 `webLightTheme`/`webDarkTheme`，而是：
+
+- `styles/winui-tokens.css` 提供 `--winui-*` 的 Light/Dark 字典（`SolidBackgroundFillColor*`、`CardFill/Stroke`、`AccentFillColor*`、焦点双描边、4/8px 圆角）；
+- `app/theme.ts` 用 `winuiLightTheme`/`winuiDarkTheme` 把 Fluent Theme token 重指到上述变量，并把 `fontFamilyBase` 设为系统字体栈；
+- `styles/winui-controls.css` 只覆盖主题管不到的 Fluent 几何/表面属性，全部使用双类选择器。
+
+这些令牌与规则移植自 `@pstrikez/fluent-winui-theme@0.2.0`（MIT，来源与许可全文见 `web/src/styles/winui/NOTICE.md`），**不把该包加入依赖**。强调色按用途分层，不要“统一成一个蓝”：
+
+| 用途 | 值 | 出处 |
+|---|---|---|
+| 设置/对话框的强调按钮、开关、滑块 | `AccentFillColorDefault`：浅色 `#0067C0`、深色 `#4CC2FF` | WinUI 默认蓝调色板 |
+| 选区/手柄 | `SystemAccentColor` 默认 `#0078D4` | 桌面 `BoardCanvasControl.xaml` |
+| Dock 选中 | `#1976D2` | 桌面 `MainWindow.xaml:69-73` 固定值 |
+
+设置窗口**不伪造 Mica**：浏览器拿不到桌面壁纸与材质，窗口底使用 `SolidBackgroundFillColorBase`（浅色 `#F3F3F3`、深色 `#202020`）。字体只使用系统栈（Segoe UI Variable → Segoe UI），不打包、不请求 CDN，保证离线 PWA 与 Windows 10 回退。
+
+无障碍与浏览器 UI 约定：
+
+- `color-scheme` 在 `:root` 跟随 `data-theme`，原生滚动条、表单控件与主题同步。
+- 设置导航未选中项使用 `TextFillColorPrimary`（WinUI `NavigationViewItemForeground`），不要沿用 Fluent subtle Button 默认的 `colorNeutralForeground2`；选中态靠背景与 3×16 指示条表达，不加粗（WinUI `FontWeight="Normal"`）。
+- `user-select: none` 与 `touch-action: none` 只作用于画布和 Dock 编辑层；设置/对话框保持文字可选中、内容可触摸滚动。
+- 自定义焦点环用 `outline: 2px solid CanvasText` + `outline-offset`；`CanvasText` 跟随 `color-scheme`，强制色彩模式下自动换成系统色。`accent-color` 指向 WinUI 强调色。
+- 不启用 `font-size-adjust`：本项目没有 Web Font 换字导致的 CLS，而 `from-font` 会按 Segoe UI Variable 的 x-height 缩放中文回退字体，改变 WinUI 基线里的 CJK 字号。
+- 字号暂按 WinUI 有效像素（`px`）固定，页面缩放会整体缩放；不响应浏览器“默认字号”偏好。若要支持系统文本缩放，需要单独把自定义 CSS 与 Fluent `fontSizeBase*`/`lineHeightBase*` 换成 `rem`/无单位并重跑视觉基线。
+
 ### 3.7 文案
 
 - 事实源：`WindBoard/Strings/<locale>/*.resw`（桌面唯一事实源）+ `WindBoard/Localization/`。
@@ -271,6 +296,10 @@ CI（`.github/workflows/web.yml`）在 push/PR 时自动跑 `lint` → `typechec
 | 窄屏（≤700px）改用单段紧凑栏，页面组与导入/导出/设置/全屏收进「更多」浮层 | `ui/shell/use-narrow-layout.ts`、`ui/shell/DockBar.tsx`、`styles/shell.css`、`styles/dock.css` | 桌面窗口放得下三段 Dock；360px 下三段实测 198+395+62，互相压叠且按钮点不到 |
 | 安全区内边距 `env(safe-area-inset-*)` + `viewport-fit=cover` | `index.html`、`styles/shell.css` | 刘海屏/圆角屏会遮挡标题栏与 Dock；桌面无此概念 |
 | 窄屏设置卡片改为纵向堆叠 | `styles/settings.css` | 360px 下控件会把标题区挤成 0 宽（实测竖排一字一行） |
+| 强调色按用途分层：设置/对话框 `AccentFillColorDefault`、选区 `#0078D4`、Dock `#1976D2` | `styles/winui-tokens.css`、`app/theme.ts`、`styles/tokens.css` | 浏览器读不到系统强调色；三者对应桌面不同用途，不能互相替换 |
+| 不伪造 Mica，设置窗口用 `SolidBackgroundFillColorBase` | `styles/settings.css`、`styles/winui-tokens.css` | 浏览器无法获取桌面壁纸/材质；这是有意的实心降级 |
+| 字体只用系统栈（Segoe UI Variable → Segoe UI），不打包、不请求 CDN | `app/theme.ts` | 离线 PWA 不能依赖网络字体；Windows 10 自动回退 |
+| 移植 `@pstrikez/fluent-winui-theme@0.2.0` 的令牌与组件规则 | `styles/winui-tokens.css`、`styles/winui-controls.css`、`styles/winui/NOTICE.md` | MIT；只移植令牌/规则，不引入依赖、字体、AppShell 或组件包装层 |
 
 ## 7. 已知受限项
 

@@ -5,13 +5,13 @@
 
 import { Button, Dialog, DialogBody, DialogSurface, DialogTitle } from '@fluentui/react-components'
 import {
-  Dismiss24Regular,
-  Grid24Regular,
-  Info24Regular,
-  Keyboard24Regular,
-  PaintBrush24Regular,
-  Pen24Regular,
-  Settings24Regular,
+  Dismiss20Regular,
+  Grid16Regular,
+  Info16Regular,
+  Keyboard16Regular,
+  PaintBrush16Regular,
+  Pen16Regular,
+  Settings16Regular,
 } from '@fluentui/react-icons'
 import { useEffect, useRef, useState, type ReactElement, type ReactNode } from 'react'
 import { useI18n } from '../../i18n/context.ts'
@@ -56,17 +56,17 @@ interface PendingSearchTarget {
 function pageIcon(id: SettingsPageId): ReactElement {
   switch (id) {
     case 'general':
-      return <Settings24Regular />
+      return <Settings16Regular />
     case 'appearance':
-      return <PaintBrush24Regular />
+      return <PaintBrush16Regular />
     case 'writing':
-      return <Pen24Regular />
+      return <Pen16Regular />
     case 'shortcuts':
-      return <Keyboard24Regular />
+      return <Keyboard16Regular />
     case 'dock':
-      return <Grid24Regular />
+      return <Grid16Regular />
     case 'about':
-      return <Info24Regular />
+      return <Info16Regular />
   }
 }
 
@@ -167,7 +167,7 @@ export function SettingsWindow(props: SettingsWindowProps): ReactNode {
             <SettingsSearchBox onSelect={handleSearchSelect} />
             <Button
               appearance="subtle"
-              icon={<Dismiss24Regular />}
+              icon={<Dismiss20Regular />}
               aria-label={t('Web_CloseSettings')}
               onClick={props.onClose}
             />

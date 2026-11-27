@@ -21,7 +21,7 @@ import {
   ProgressBar,
   Text,
 } from '@fluentui/react-components'
-import { ArrowExportRegular, DismissRegular } from '@fluentui/react-icons'
+import { ArrowExportRegular, Dismiss20Regular } from '@fluentui/react-icons'
 import { useBoardController, useBoardSnapshot, useReminderService, useSettings } from '../../app/hooks.ts'
 import { useI18n, type Translator } from '../../i18n/context.ts'
 import { formatLocalized } from '../../i18n/message.ts'
@@ -228,7 +228,7 @@ function ExportDialogForm(props: { readonly onClose: () => void }): ReactNode {
           // `Common_Close` = "关闭"（`Common.resw:50-52`）；桌面 ContentDialog 的关闭按钮由系统提供。
           <Button
             appearance="subtle"
-            icon={<DismissRegular />}
+            icon={<Dismiss20Regular />}
             aria-label={t('Common_Close')}
             disabled={busy}
             onClick={props.onClose}

@@ -971,6 +971,101 @@ P0~P5 完成后，`docs/dev/guides/web-port.zh-CN.md` 的 §7.1 列出了一批�
 
 ---
 
+## P11 视觉体系统一：移植 WinUI 3 主题（2026-11-27）
+
+用户反馈（原文）："当前项目网页端设计存在问题：风格杂糅。大部分风格是 win10 那种 fluent design，这与我们当前项目的 winui3 设计不符，需要调整。"
+
+### 决策
+
+- 不直接依赖 `@pstrikez/fluent-winui-theme@0.2.0`：0.2.0、单维护者、3 stars、每周 13 次下载、peer 锁 `@fluentui/react-components ~9.74.4`（本项目 9.75.0）、解包 2.46 MB、自带 Meslo 字体并从微软 CDN 拉 Segoe UI Variable，不适合作为核心 UI 依赖。
+- 以 MIT 方式移植它的 `--winui-*` 令牌字典与必要的 Fluent 组件覆盖；保留 `NOTICE` 与来源注释，不引入 AppShell/GradientBackground/toaster，不新增 `package.json` 依赖。
+- 只改 `web/`；不改桌面 XAML、WBIX、渲染、输入、设置模型。
+
+### P11.1 主题地基（先做，独立可回滚）
+
+- [x] 新增 `web/src/styles/winui-tokens.css`：Light/Dark 两套 `--winui-*` 字典，值按 `design.md` §14.3；文件头注明来源 `@pstrikez/fluent-winui-theme@0.2.0`、MIT、上游 commit 与 `generic.xaml` 出处。
+- [x] 新增 `web/src/app/theme.ts`：`winuiLightTheme`、`winuiDarkTheme`、`winuiLightThemeForced`；映射表按 `design.md` §14.4；`fontFamilyBase` 使用系统字体栈。
+- [x] `web/src/App.tsx` 改用 `winuiLightTheme/winuiDarkTheme`；`DockBar.tsx`、`SelectionActionBar.tsx`、`ShapePropertiesPanel.tsx` 的嵌套 Provider 改用 `winuiLightThemeForced`。
+- [x] `web/src/styles/tokens.css`：文字色别名到 `--winui-text-fill-*`；新增 `--wb-accent-selection: #0078D4`（选区）与 `--wb-accent-fill: var(--winui-accent-fill-default)`（设置/对话框控件）；保留 `--wb-dock-checked: #1976D2`；删除与 `--winui-*` 重复的颜色字面量；Dock 几何常量保持不变。
+- [x] 新增 `web/tests/unit/winui-theme.test.ts`：断言三套主题存在、关键 token 指向正确的 `--winui-*`、没有遗漏的 Fluent 品牌色；断言 `package.json` 未新增参考包。
+- 验收：`pnpm typecheck && pnpm test`；页面能启动，Dock 仍强制浅色，深色系统下设置窗口跟随深色。
+
+### P11.2 设置窗口
+
+- [x] `SettingsWindow.tsx`：导航图标 24 → 16；标题 20/28；关闭按钮 20 图标；页头标题 28/36、描述 12/16。
+- [x] `SettingsCard.tsx` 增加可选 `icon`；六个设置页按桌面 `HeaderIcon` 语义补图标（常规/外观/书写/快捷键/Dock/关于）。
+- [x] `settings.css`：`.wb-settings-surface` 背景 `--winui-solid-background-fill-base`；卡片 16 内边距、68 最小高、4px 圆角、Card 填充/描边；导航项 36px、4px 圆角、3×16 指示条，未选中文字用 `TextFillColorPrimary`；搜索框/下拉/开关随主题。
+- [x] `settings-search.css`：建议列表 8px 圆角、卡片表面、14/12 字号；高亮动画改用 `--winui-accent-*`。
+- 验收：设置六页在浅色/深色下与桌面截图结构一致；窄屏（≤720px）不回归。
+
+### P11.3 对话框
+
+- [x] `dialogs.css`：`.wb-dialog` 背景 `--winui-solid-background-fill-base`、8px 圆角、24 内边距、标题 20/28、按钮间距 8；导出/导入/确认/取色器/元素主题/恢复对话框统一。
+- [x] 输入框、下拉、按钮、开关的视觉由 `winui-controls.css` + 主题 token 统一；只在几何与 Fluent 内部布局冲突时写双类覆盖。
+- 验收：导出对话框表单密度、主按钮、取消按钮、输入框聚焦态与 WinUI ContentDialog 一致。
+
+### P11.4 Dock、浮层与覆盖层
+
+- [x] `dock.css`：`--wb-dock-checked` 保持桌面固定 `#1976D2`（不并入 accent fill）；选中底纹/描边继续按 #1976D2 的透明度变体；其余 14/10 圆角、60×52、0.85、强制浅色不变。
+- [x] `overlay.css`：选中项 Dock 与形状属性浮层的文字/交互态改用 `--winui-*`；不改变 14px 底板与 8px 偏移。
+- [x] `chrome.css`：提醒条 severity 色保留 WinUI 原值；信息级图标色改为 `--winui-accent-fill-default`。
+- [x] `winui-controls.css`：覆盖 `Button`、`DialogSurface`、`Input`、`Dropdown`、`SpinButton`、`MenuPopover`、`MenuItem`、`Card`、`Tooltip`；`Switch`/`Slider`/`Radio` 由主题 token 生效。
+- 验收：暗色系统下 Dock 仍是浅色；笔/橡皮/形状/页面面板的控件不再出现 Fluent 品牌蓝 `#0F6CBD`，改用 WinUI `AccentFillColorDefault`；Dock 选中仍是桌面 `#1976D2`；菜单/弹出层为 8px 圆角、无 Fluent 投影。
+
+### P11.5 图标、焦点与文档
+
+- [x] 图标尺寸统一：设置导航 16、卡片 20、对话框关闭 20、Dock 20；不引入 24px 图标。
+- [x] `:focus-visible` 双描边：Dock 按钮、sheet 按钮、设置卡片、浮层控件；Fluent 组件用 `colorStrokeFocus1/2`。
+- [x] 更新 `docs/dev/guides/web-port.zh-CN.md` §3.6/§6：登记主题层、强调色分层、不伪造 Mica、移植来源与 MIT 署名。
+- [x] 新增 `web/src/styles/winui/NOTICE.md`：MIT 全文/链接、上游版本 `0.2.0`、commit、移植范围。
+
+### P11.6 验证与门禁
+
+提交前在 `web/` 下执行：
+
+```powershell
+pnpm lint
+pnpm typecheck
+pnpm test
+pnpm build
+pnpm e2e
+```
+
+- [x] `pnpm e2e` 首次会因字体/表面变化出现差异；逐张确认是预期变更后再 `pnpm e2e:update`，并在提交说明列出重建的基线。
+- [x] 手工检查：浅色/深色设置窗口、导出/导入/确认对话框、笔/橡皮/形状/页面面板、Dock 选中态、键盘焦点、1200×800 与 360×732。
+- [x] `git diff --check`；确认 `package.json`/`pnpm-lock.yaml` 无变化。
+- 验收：AC14–AC19。
+
+### P11 完成记录（2026-11-27）
+
+- **主题地基**：新增 `web/src/styles/winui-tokens.css`（Light/Dark `--winui-*` 字典）、`web/src/app/theme.ts`（`winuiLightTheme`/`winuiDarkTheme`/`winuiLightThemeForced`）、`web/src/styles/winui-controls.css`；`App.tsx`、Dock/浮层/覆盖层的嵌套 Provider 全部改用 WinUI 主题。`tokens.css` 的文字/表面令牌别名到 `--winui-*`，保留 Dock 几何常量与桌面固定色。
+- **强调色分层**：设置/对话框用 `AccentFillColorDefault`（浅色 `#0067C0`、深色 `#4CC2FF`）；选区保留 `#0078D4`；Dock 选中保留 `#1976D2`。没有把三套蓝强行统一，因为后两者是桌面明确写死的值。
+- **设置窗口**：导航图标 16、导航项 36px、设置卡片 16px 内边距 / 68px 最小高 / 4px 圆角 / 20px 图标、页面标题 28/36、对话框底 `SolidBackgroundFillColorBase`；六个设置页补齐桌面语义的卡片图标。
+- **对话框**：`DialogSurface` 统一为 `SolidBackgroundFillColorBase`、8px 圆角、SurfaceStroke 边框；导出/导入/确认/取色器/恢复对话框随 WinUI 主题；关闭图标 20、InfoBar 关闭图标 16。
+- **Dock/浮层**：尺寸、14/10 圆角、0.85 透明度、强制浅色全部不变；只换内部 Fluent 控件主题与菜单/弹出层表面。
+- **参考实现**：`@pstrikez/fluent-winui-theme@0.2.0` 的令牌与规则移植说明在 `web/src/styles/winui/NOTICE.md`；`package.json`/`pnpm-lock.yaml` 未新增依赖。
+- **验证**：`pnpm lint` 0 errors（1 条 `BoardSurface` 存量 warning）、`pnpm typecheck` 0、`pnpm test` **63 文件 / 1483 例**、`pnpm build` 通过、`pnpm e2e` **20 例**通过（重建 `settings-general.png` 与 `dialog-export.png` 两张基线）。浅色/深色设置窗口与导出对话框已人工截图核对。
+- **有意偏差**：不伪造 Mica（设置窗口用实心底色）；固定默认蓝调色板（浏览器读不到系统强调色）；字体只用系统栈，不打包/不请求 CDN。均已登记到 `docs/dev/guides/web-port.zh-CN.md` §3.6/§6。
+
+### Modern Web Guidance 审查（2026-11-27）
+
+- 已修：`:root` 补 `color-scheme`（跟随 `data-theme`）；`user-select: none`/`touch-action: none` 从 `.wb-app` 下放到画布与 Dock 层，设置/对话框恢复文字选中与触摸滚动；自定义焦点环改用 `CanvasText`；补 `prefers-reduced-motion`、`accent-color` 与 `color-mix` 的不透明回退。
+- 已修（左列对比度）：设置导航未选中项从 Fluent subtle Button 的 `colorNeutralForeground2`（62% 黑）改为 WinUI `NavigationViewItemForeground` 的 `TextFillColorPrimary`（89.4% 黑）；选中态不加粗（WinUI `FontWeight="Normal"`），只靠背景与 3×16 指示条。计算色实测 `rgba(0,0,0,0.894)`，浅色下对比度约 15:1。
+- 有意不采用：
+  - `font-size-adjust: from-font`：系统字体没有 Web Font 换字导致的 CLS，且它会按 Segoe UI Variable 的 x-height 缩放中文回退字体，实测只改变文字像素、破坏 WinUI 基线。
+  - 原生 `<dialog>`：Fluent Dialog 已提供 `role="dialog"`、`aria-modal`、焦点陷阱、Esc 与 inert 背景；换原生需要重写整个弹窗层。
+  - `@layer`：Fluent Griffel 以未分层样式注入，放进 layer 会失去优先级；继续用双类选择器（见 web-port 指南 §3.6）。
+  - 完整 Forced Colors：项目明确排除高对比度；焦点环已用 `CanvasText`，完整高对比度样式留作后续。
+- 待办（可选）：字号仍为 `px`；若要响应浏览器默认字号，需要把自定义 CSS 与 Fluent `fontSizeBase*`/`lineHeightBase*` 换成 `rem`/无单位并重跑视觉基线。
+
+### 回滚点
+
+- P11.1 完成后是一个独立回滚点：若主题层出现全局回归，删除 `winui-tokens.css`、`theme.ts`、`winui-theme.test.ts`，恢复 `App.tsx` 与三个嵌套 Provider 的旧导入即可。
+- P11.2/P11.3/P11.4 按区域独立提交；某一区域回滚不影响主题层。
+- 不涉及数据格式与设置模型，回滚不需要迁移。
+
+---
+
 ## 依赖与顺序
 
 ```

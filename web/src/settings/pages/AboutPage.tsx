@@ -13,7 +13,12 @@ import {
   MessageBar,
   MessageBarBody,
 } from '@fluentui/react-components'
-import { ArrowExport24Regular, ArrowImport24Regular, ArrowReset24Regular } from '@fluentui/react-icons'
+import {
+  ArrowExport20Regular,
+  ArrowImport20Regular,
+  ArrowReset20Regular,
+  Info20Regular,
+} from '@fluentui/react-icons'
 import { useState, type ReactNode } from 'react'
 import { useReminderService, useSettings, useSettingsService } from '../../app/hooks.ts'
 import { useI18n } from '../../i18n/context.ts'
@@ -115,6 +120,7 @@ export function AboutPage(): ReactNode {
         title={t('Settings_About_Version')}
         description={t('Web_Settings_Version_Description')}
         anchor={SETTINGS_ANCHORS.aboutVersion}
+        icon={<Info20Regular />}
       >
         <code className="wb-settings-version">{WEB_VERSION}</code>
       </SettingsCard>
@@ -129,8 +135,9 @@ export function AboutPage(): ReactNode {
           title={t('Settings_About_SettingsManagement_Export_Title')}
           description={t('Web_Settings_ExportSettings_Description')}
           anchor={SETTINGS_ANCHORS.aboutExportSettings}
+          icon={<ArrowExport20Regular />}
         >
-          <Button icon={<ArrowExport24Regular />} disabled={busy} onClick={handleExportSettings}>
+          <Button icon={<ArrowExport20Regular />} disabled={busy} onClick={handleExportSettings}>
             {t('Settings_About_SettingsManagement_Export_Title')}
           </Button>
         </SettingsCard>
@@ -139,8 +146,9 @@ export function AboutPage(): ReactNode {
           title={t('Settings_About_SettingsManagement_Import_Title')}
           description={t('Web_Settings_ImportSettings_Description')}
           anchor={SETTINGS_ANCHORS.aboutImportSettings}
+          icon={<ArrowImport20Regular />}
         >
-          <Button icon={<ArrowImport24Regular />} disabled={busy} onClick={handleImportSettings}>
+          <Button icon={<ArrowImport20Regular />} disabled={busy} onClick={handleImportSettings}>
             {t('Settings_About_SettingsManagement_Import_Title')}
           </Button>
         </SettingsCard>
@@ -149,10 +157,11 @@ export function AboutPage(): ReactNode {
           title={t('Settings_About_SettingsManagement_Reset_Title')}
           description={t('Settings_About_SettingsManagement_Reset_Description')}
           anchor={SETTINGS_ANCHORS.aboutResetSettings}
+          icon={<ArrowReset20Regular />}
         >
           <Button
             appearance="primary"
-            icon={<ArrowReset24Regular />}
+            icon={<ArrowReset20Regular />}
             onClick={() => {
               setResetConfirmOpen(true)
             }}

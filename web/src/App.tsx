@@ -3,7 +3,8 @@
  */
 
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
-import { FluentProvider, webDarkTheme, webLightTheme } from '@fluentui/react-components'
+import { FluentProvider, type Theme } from '@fluentui/react-components'
+import { winuiDarkTheme, winuiLightTheme } from './app/theme.ts'
 import { AppServicesProvider } from './app/providers.tsx'
 import { createAppServices, disposeAppServices } from './app/services.ts'
 import { I18nProvider } from './i18n/I18nProvider.tsx'
@@ -23,7 +24,7 @@ function prefersDarkScheme(): boolean {
 /**
  * 跟随系统主题选 App 级 Fluent 主题。必须订阅 matchMedia 的 change 事件：桌面 WinUI 在系统切深浅色时会实时跟随，网页端若只在挂载时读一次，用户改了系统主题后界面会一直停在旧主题。
  */
-function useSystemTheme(): typeof webLightTheme {
+function useSystemTheme(): Theme {
   const [isDark, setIsDark] = useState(prefersDarkScheme)
 
   useEffect(() => {
@@ -48,7 +49,7 @@ function useSystemTheme(): typeof webLightTheme {
     document.documentElement.dataset.theme = isDark ? 'dark' : 'light'
   }, [isDark])
 
-  return isDark ? webDarkTheme : webLightTheme
+  return isDark ? winuiDarkTheme : winuiLightTheme
 }
 
 /** 应用根组件。 */

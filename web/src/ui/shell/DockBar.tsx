@@ -1,6 +1,6 @@
 /**
  * 底部 Dock：三块浮层（左入口组、中部工具组、右侧页面组）。桌面出处：三块浮层对齐左中右并强制 RequestedTheme="Light"（MainWindow.xaml:54-70）、左 Dock（:82-160）、主 Dock 含工具与分隔线与撤销重做（:441-558）、页面 Dock（:685-737），按钮样式 DockButtonStyle 见 App.xaml:20-28。
- * 两个还原点：整块 Dock 包一层 FluentProvider theme={webLightTheme}，不受 App 级深色主题影响（桌面靠 RequestedTheme="Light"）；开合由 planToolButtonClick（ui/flyouts/flyout-machine.ts）算好后驱动受控 Popover，不用 PopoverTrigger 的默认开合。
+ * 两个还原点：整块 Dock 包一层 FluentProvider theme={winuiLightThemeForced}，不受 App 级深色主题影响（桌面靠 RequestedTheme="Light"）；开合由 planToolButtonClick（ui/flyouts/flyout-machine.ts）算好后驱动受控 Popover，不用 PopoverTrigger 的默认开合。
  */
 
 import { useState, type ReactElement, type ReactNode } from 'react'
@@ -15,8 +15,8 @@ import {
   Popover,
   PopoverSurface,
   PopoverTrigger,
-  webLightTheme,
 } from '@fluentui/react-components'
+import { winuiLightThemeForced } from '../../app/theme.ts'
 import {
   AddRegular,
   ArrowExportRegular,
@@ -127,7 +127,7 @@ export function DockBar(props: DockBarProps): ReactNode {
     )
 
   return (
-    <FluentProvider theme={webLightTheme} className="wb-dock-theme" style={THEME_STYLE}>
+    <FluentProvider theme={winuiLightThemeForced} className="wb-dock-theme" style={THEME_STYLE}>
       {content}
     </FluentProvider>
   )
@@ -198,7 +198,7 @@ function MoreButton(): ReactNode {
       </MenuTrigger>
       <MenuPopover>
         {/* 菜单挂在 body 上，会脱离 Dock 的浅色主题，这里补一层，避免深色系统下变成深色菜单 */}
-        <FluentProvider theme={webLightTheme} style={SURFACE_THEME_STYLE}>
+        <FluentProvider theme={winuiLightThemeForced} style={SURFACE_THEME_STYLE}>
           <MenuList>
             {entries.map((entry) =>
               entry.kind === 'divider' ? (
@@ -304,7 +304,7 @@ function ToolButtons(): ReactNode {
       >
         <PopoverTrigger disableButtonEnhancement>{button}</PopoverTrigger>
         <PopoverSurface style={SURFACE_STYLE}>
-          <FluentProvider theme={webLightTheme} style={SURFACE_THEME_STYLE}>
+          <FluentProvider theme={winuiLightThemeForced} style={SURFACE_THEME_STYLE}>
             {tool === 'pen' ? (
               <PenFlyout onClose={closeFlyout} />
             ) : tool === 'eraser' ? (
@@ -484,7 +484,7 @@ function RightDock(): ReactNode {
           >
             <PopoverTrigger disableButtonEnhancement>{indicatorButton}</PopoverTrigger>
             <PopoverSurface style={SURFACE_STYLE}>
-              <FluentProvider theme={webLightTheme} style={SURFACE_THEME_STYLE}>
+              <FluentProvider theme={winuiLightThemeForced} style={SURFACE_THEME_STYLE}>
                 <PagesFlyout onClose={closeFlyout} onRequestDeletePage={deletion.requestDeletePage} />
               </FluentProvider>
             </PopoverSurface>
@@ -627,7 +627,7 @@ function NarrowMoreButton(): ReactNode {
           <DockButton icon={<MoreHorizontalRegular fontSize={20} />} title={t('Common_More')} />
         </PopoverTrigger>
         <PopoverSurface style={SURFACE_STYLE}>
-          <FluentProvider theme={webLightTheme} style={SURFACE_THEME_STYLE}>
+          <FluentProvider theme={winuiLightThemeForced} style={SURFACE_THEME_STYLE}>
             <div className="wb-sheet">
               {showPages ? (
                 <div className="wb-sheet__pages">

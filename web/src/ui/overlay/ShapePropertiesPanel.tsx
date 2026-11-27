@@ -4,7 +4,8 @@
  */
 
 import type { ReactNode } from 'react'
-import { FluentProvider, SpinButton, webLightTheme } from '@fluentui/react-components'
+import { FluentProvider, SpinButton } from '@fluentui/react-components'
+import { winuiLightThemeForced } from '../../app/theme.ts'
 import { useI18n } from '../../i18n/context.ts'
 import type { OverlayAnchorDip } from './SelectionActionBar.tsx'
 import type { ShapePropertyField, ShapePropertyFieldId } from './shape-property-fields.ts'
@@ -40,7 +41,7 @@ export function ShapePropertiesPanel(props: ShapePropertiesPanelProps): ReactNod
   return (
     <div className="wb-overlay-anchor" style={{ transform: `translate(${anchor.x}px, ${anchor.y}px)` }}>
       {/* 桌面 `RequestedTheme="Light"`：浮层强制浅色，不受应用主题影响 */}
-      <FluentProvider theme={webLightTheme} style={TRANSPARENT_THEME_STYLE}>
+      <FluentProvider theme={winuiLightThemeForced} style={TRANSPARENT_THEME_STYLE}>
         <div className="wb-shape-props">
           {fields.map((field) => (
             <div key={field.id} className="wb-shape-props__field">

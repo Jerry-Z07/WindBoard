@@ -5,7 +5,8 @@
 
 import { ArrowUndoRegular, ArrowUpRegular, CopyRegular, DeleteRegular } from '@fluentui/react-icons'
 import type { ReactNode } from 'react'
-import { FluentProvider, webLightTheme } from '@fluentui/react-components'
+import { FluentProvider } from '@fluentui/react-components'
+import { winuiLightThemeForced } from '../../app/theme.ts'
 import { useI18n } from '../../i18n/context.ts'
 import { DockButton } from '../shell/DockButton.tsx'
 import {
@@ -65,7 +66,7 @@ export function SelectionActionBar(props: SelectionActionBarProps): ReactNode {
   return (
     <div className="wb-overlay-anchor" style={{ transform: `translate(${anchor.x}px, ${anchor.y}px)` }}>
       {/* 桌面 `RequestedTheme="Light"`：Dock 强制浅色，不受应用主题影响 */}
-      <FluentProvider theme={webLightTheme} style={TRANSPARENT_THEME_STYLE}>
+      <FluentProvider theme={winuiLightThemeForced} style={TRANSPARENT_THEME_STYLE}>
         <div
           className="wb-selection-actions"
           role="toolbar"

@@ -5,6 +5,7 @@
  */
 
 import { Button } from '@fluentui/react-components'
+import { ArrowReset20Regular, Edit20Regular } from '@fluentui/react-icons'
 import { useState, type ReactNode } from 'react'
 import { useSettingsService } from '../../app/hooks.ts'
 import { useI18n } from '../../i18n/context.ts'
@@ -34,6 +35,7 @@ export function DockPage(props: DockPageProps): ReactNode {
         title={t('Settings_Dock_EditInPlace_Header')}
         description={t('Settings_Dock_EditInPlace_Description')}
         anchor={SETTINGS_ANCHORS.dockEditInPlace}
+        icon={<Edit20Regular />}
         onClick={props.onStartDockEdit}
       />
 
@@ -41,6 +43,7 @@ export function DockPage(props: DockPageProps): ReactNode {
       <SettingsCard
         title={t('Settings_Dock_ResetLayout_Button')}
         description={t('Settings_Dock_ResetLayout_Description')}
+        icon={<ArrowReset20Regular />}
       >
         <Button
           onClick={() => {

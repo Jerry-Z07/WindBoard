@@ -4,6 +4,7 @@
  */
 
 import { Button, Input, Switch } from '@fluentui/react-components'
+import { Alert20Regular, ArrowRedo20Regular, ArrowUndo20Regular } from '@fluentui/react-icons'
 import { useState, type ReactNode } from 'react'
 import { useSettings, useSettingsService } from '../../app/hooks.ts'
 import { useI18n } from '../../i18n/context.ts'
@@ -42,6 +43,8 @@ const MOUSE_GESTURES = [
 /** 单个快捷键编辑器属性。 */
 interface ShortcutEditorProps {
   readonly title: string
+  /** 卡片头部图标（桌面 `SettingsCard.HeaderIcon`）。 */
+  readonly icon: ReactNode
   /** 卡片的搜索锚点（`SETTINGS_ANCHORS` 里的值）。 */
   readonly anchor: string
   readonly binding: string
@@ -93,6 +96,7 @@ function ShortcutEditor(props: ShortcutEditorProps): ReactNode {
       title={props.title}
       description={t('Web_Settings_Shortcut_Description')}
       anchor={props.anchor}
+      icon={props.icon}
     >
       <div className="wb-settings-shortcut">
         <Input
@@ -169,6 +173,7 @@ export function ShortcutsPage(): ReactNode {
       <SettingsSection title={t('Settings_Shortcuts_Keyboard_SectionTitle')}>
         <ShortcutEditor
           title={t('Settings_Shortcuts_Undo_Title')}
+          icon={<ArrowUndo20Regular />}
           anchor={SETTINGS_ANCHORS.shortcutsUndo}
           binding={undo}
           otherTitle={t('Settings_Shortcuts_Redo_Title')}
@@ -179,6 +184,7 @@ export function ShortcutsPage(): ReactNode {
         />
         <ShortcutEditor
           title={t('Settings_Shortcuts_Redo_Title')}
+          icon={<ArrowRedo20Regular />}
           anchor={SETTINGS_ANCHORS.shortcutsRedo}
           binding={redo}
           otherTitle={t('Settings_Shortcuts_Undo_Title')}
@@ -191,6 +197,7 @@ export function ShortcutsPage(): ReactNode {
           title={t('Settings_Shortcuts_ConflictReminder_Header')}
           description={t('Web_Settings_ConflictReminder_Description')}
           anchor={SETTINGS_ANCHORS.shortcutsConflictReminder}
+          icon={<Alert20Regular />}
         >
           <Switch
             checked={conflictReminderEnabled}

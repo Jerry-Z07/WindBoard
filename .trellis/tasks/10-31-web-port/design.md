@@ -346,3 +346,166 @@ C# 侧不新增项目：dump 生成器放在 `WindBoard.Tests/Board/Persistence/
 ## 13. 阶段划分
 
 详见 `implement.md`：P0 契约先行 → P1 画布内核 → P2 选择与多页 → P3 UI 外壳 → P4 文件能力 → P5 打磨。每个阶段有独立可验收的产物，P0 不通过不进入 P1。
+
+## 14. 视觉体系统一（P11，2026-11-27）
+
+### 14.1 结论：移植参考实现，不引入运行时依赖
+
+官方没有 WinUI 3 的 Web 主题：`@fluentui/react-components` v9 是 Fluent 2 的 Web 实现，`fontFamilyBase` 默认 `Segoe UI`、品牌色 `#0F6CBD`、中性底色 `#FFFFFF/#FAFAFA`；WinUI 3 的 Segoe UI Variable、4/8px 圆角、Mica 与控件度量只存在于 XAML。
+
+社区包 `@pstrikez/fluent-winui-theme@0.2.0` 是唯一直接做 Fluent v9 → WinUI 3 的包，令牌值与桌面主题字典逐条一致，但：
+
+- 0.2.0，2026-10 发布，API 明确标注 1.0 前不稳定；
+- 每周 13 次下载、GitHub 3 stars、0 fork、单维护者；
+- peer 锁 `@fluentui/react-components ~9.74.4`，本项目是 9.75.0，直接依赖必须降级并锁死；
+- 解包 2.46 MB，自带 Meslo 字体，`base.css` 从微软 CDN 拉 Segoe UI Variable；
+- 要求所有组件改从它的 `fluentComponents` 包装命名空间导入，并附带 AppShell / GradientBackground 等我们不需要的层。
+
+因此只移植它的 **WinUI 令牌字典**与**必要的组件规则**（MIT，保留 NOTICE 与来源链接），不把包加入 `package.json`。
+
+### 14.2 三层结构
+
+```
+styles/winui-tokens.css     --winui-* 原始令牌字典（Light/Dark；移植值 + 来源注释）
+        ↓ var()
+app/theme.ts                winuiLightTheme / winuiDarkTheme / winuiLightThemeForced
+        ↓ FluentProvider      把 Fluent Theme token 重指到 --winui-*
+styles/winui-controls.css   针对 Fluent 组件类的几何/填充/描边/焦点覆盖（双类选择器）
+        ↓
+styles/tokens.css           --wb-*：桌面自定义几何与 Dock/浮层常量；文字色别名到 --winui-*
+```
+
+约束：
+
+- `--winui-*` 是主题语义色的唯一事实源；`tokens.css` 只保留桌面固定色（Dock 选中、选区基线）与几何常量，不再新增 Fluent 色字面量。
+- `--wb-dock-*` 保持独立：Dock 强制浅色，不能引用会随主题翻转的令牌。
+- `theme.ts` 的 token 值写成 `var(--winui-*)`；若某个 Fluent 组件不解析嵌套 `var()`，退回字面值并在测试中锁定。
+- `winui-tokens.css` 用 `[data-theme='dark']` 切换，与 `App.tsx` 现有的 `document.documentElement.dataset.theme` 同源，不再单独订阅 `prefers-color-scheme`。
+
+### 14.3 令牌表（Light / Dark）
+
+| 令牌 | Light | Dark |
+|---|---|---|
+| `--winui-solid-background-fill-base` | `#F3F3F3` | `#202020` |
+| `--winui-solid-background-fill-secondary` | `#EEEEEE` | `#1C1C1C` |
+| `--winui-solid-background-fill-tertiary` | `#F9F9F9` | `#282828` |
+| `--winui-solid-background-fill-quarternary` | `#FFFFFF` | `#2C2C2C` |
+| `--winui-card-background-fill-default` | `rgb(255 255 255 / 70.2%)` | `rgb(255 255 255 / 5.1%)` |
+| `--winui-card-stroke-default` | `rgb(0 0 0 / 5.9%)` | `rgb(0 0 0 / 9.8%)` |
+| `--winui-control-fill-default` | `rgb(255 255 255 / 70.2%)` | `rgb(255 255 255 / 5.9%)` |
+| `--winui-control-stroke-default` | `rgb(0 0 0 / 5.9%)` | `rgb(255 255 255 / 7.1%)` |
+| `--winui-divider-stroke-default` | `rgb(0 0 0 / 5.9%)` | `rgb(255 255 255 / 8.2%)` |
+| `--winui-text-fill-primary` | `rgb(0 0 0 / 89.4%)` | `#FFFFFF` |
+| `--winui-text-fill-secondary` | `rgb(0 0 0 / 62%)` | `rgb(255 255 255 / 77.3%)` |
+| `--winui-text-fill-tertiary` | `rgb(0 0 0 / 44.7%)` | `rgb(255 255 255 / 52.9%)` |
+| `--winui-text-fill-disabled` | `rgb(0 0 0 / 36.1%)` | `rgb(255 255 255 / 36.5%)` |
+| `--winui-focus-stroke-inner` | `rgb(255 255 255 / 70.2%)` | `rgb(0 0 0 / 70.2%)` |
+| `--winui-focus-stroke-outer` | `rgb(0 0 0 / 89.4%)` | `#FFFFFF` |
+| `--winui-smoke-fill-default` | `rgb(0 0 0 / 30.2%)` | 同左（WinUI 两套共用） |
+| `--winui-control-corner-radius` | `4px` | `4px` |
+| `--winui-overlay-corner-radius` | `8px` | `8px` |
+| `--winui-system-accent` | `#0078D4` | `#0078D4` |
+| `--winui-system-accent-dark-1` / `-rgb` | `#0067C0` / `0 103 192` | 同左 |
+| `--winui-system-accent-dark-2` | `#003E92` | 同左 |
+| `--winui-system-accent-dark-3` | `#001A68` | 同左 |
+| `--winui-system-accent-light-2` / `-rgb` | `#4CC2FF` / `76 194 255` | 同左 |
+| `--winui-system-accent-light-3` | `#99EBFF` | 同左 |
+| `--winui-accent-fill-default` | `var(--winui-system-accent-dark-1)` | `var(--winui-system-accent-light-2)` |
+| `--winui-accent-fill-secondary` | `rgb(0 103 192 / 90%)` | `rgb(76 194 255 / 90%)` |
+| `--winui-accent-fill-tertiary` | `rgb(0 103 192 / 80%)` | `rgb(76 194 255 / 80%)` |
+| `--winui-accent-text-fill-primary` | `var(--winui-system-accent-dark-2)` | `var(--winui-system-accent-light-3)` |
+| `--winui-accent-tint-fill-default` | `#EBF3FA` | `#30414A` |
+| `--winui-accent-tint-fill-secondary` | `#E0EDF7` | `#334B58` |
+| `--winui-accent-tint-fill-tertiary` | `#D6E7F5` | `#355667` |
+| `--winui-accent-tint-stroke` | `#B3D1EC` | `#3D7B9B` |
+
+`#0078D4` 是 Windows 默认强调色基线；浏览器读不到用户系统强调色，因此固定为默认蓝调色板，并登记为有意偏差（与现有 `render/selection.ts` 的约定一致）。
+
+**强调色按用途分层，不做“一刀切”**：
+
+- 设置/对话框的强调按钮、开关、滑块、选中态 → `AccentFillColorDefault`，浅色用 `dark-1 #0067C0`、深色用 `light-2 #4CC2FF`；文字用 `accent-text-fill-primary`（浅色 `dark-2 #003E92`、深色 `light-3 #99EBFF`）。
+- 选区边框/手柄 → 桌面 `SystemAccentColor` 基线 `#0078D4`，保留 `--wb-accent-selection`。
+- Dock 选中 → 桌面 `MainWindow.xaml` 固定 `#1976D2`，保留 `--wb-dock-checked`，不并入 accent fill。
+
+这三者职责不同，不能互相替换；Fluent Web 的 `#0F6CBD` 是唯一必须清掉的蓝。
+
+### 14.4 Fluent Theme 映射
+
+| Fluent token | 映射到 |
+|---|---|
+| `colorNeutralBackground1` | `--winui-solid-background-fill-quarternary` |
+| `colorNeutralBackground2` | `--winui-solid-background-fill-tertiary` |
+| `colorNeutralBackground3` | `--winui-solid-background-fill-base` |
+| `colorNeutralBackground4` | `--winui-solid-background-fill-secondary` |
+| `colorNeutralForeground1/2/3` | `--winui-text-fill-primary/secondary/tertiary` |
+| `colorNeutralForegroundDisabled` | `--winui-text-fill-disabled` |
+| `colorBrandBackground` | `--winui-accent-fill-default` |
+| `colorBrandBackgroundHover` | `--winui-accent-fill-secondary` |
+| `colorBrandBackgroundPressed` | `--winui-accent-fill-tertiary` |
+| `colorBrandBackground2` / `2Hover` / `2Pressed` | `--winui-accent-tint-fill-default` / `secondary` / `tertiary` |
+| `colorBrandForeground1` / `colorBrandForegroundLink` | `--winui-accent-text-fill-primary` |
+| `colorBrandForeground2` | `--winui-accent-text-fill-primary` |
+| `colorCompoundBrandBackground` / `Hover` / `Pressed` | `--winui-accent-fill-default` / `secondary` / `tertiary` |
+| `colorCompoundBrandForeground1` | `--winui-accent-text-fill-primary` |
+| `colorBrandStroke1` / `colorCompoundBrandStroke` | `--winui-accent-fill-default` |
+| `colorBrandStroke2` | `--winui-accent-tint-stroke` |
+| `colorNeutralForegroundOnBrand` | `#FFFFFF`（WinUI `TextOnAccentFillColorPrimary`） |
+| `colorStrokeFocus1` / `colorStrokeFocus2` | `--winui-focus-stroke-inner/outer` |
+| `colorBackgroundOverlay` | `--winui-smoke-fill-default` |
+| `borderRadiusMedium` | `--winui-control-corner-radius`（4px） |
+| `borderRadiusLarge` / `borderRadiusXLarge` | `--winui-overlay-corner-radius`（8px） |
+| `shadow2/4/8`（含 Brand） | `0 0 rgba(0,0,0,0)`（WinUI 内联面不投影；保留 16/28/64 给浮层） |
+| `fontFamilyBase` | `'Segoe UI Variable', 'Segoe UI', system-ui, sans-serif` |
+
+注意 `colorNeutralBackground1` 在 Fluent 里是“主表面”，在 WinUI 里最接近的是 `SolidBackgroundFillColorQuarternary`（白/深灰），不是 `Base`（窗口底）。设置窗口/ContentDialog 的底色必须单独用 `--winui-solid-background-fill-base` 覆盖，不能靠 `colorNeutralBackground1` 自动得到。
+
+### 14.5 组件策略
+
+- **不做**包装命名空间；直接给现有 Fluent 组件套主题 + CSS 覆盖。
+- `winui-controls.css` 只覆盖实际用到的组件：`Button`、`DialogSurface`、`Input`、`Textarea`、`Dropdown`、`Combobox`、`SpinButton`、`MenuPopover`、`MenuItem`、`Card`、`Tooltip`；`Switch`/`Slider`/`Radio` 由主题 token 生效。每个选择器用双类（如 `.fui-Button.fui-Button`）压过 Griffel 原子类，禁止用单类碰 Fluent 自身设置过的属性。
+- `DialogSurface`：背景 `--winui-solid-background-fill-base`、圆角 8、`padding: 0`（内层自己排 24）、边框 `--winui-surface-stroke-default`；标题 20/28 SemiBold、下边距 12；按钮行间距 8。
+- `SettingsCard`：继续用自定义 `div`/`button`，不引入 Toolkit Web 端替代品；CSS 改为 16 内边距、68 最小高、4px 圆角、`--winui-card-background-fill-default`、`--winui-card-stroke-default`、20px 头部图标。`SettingsCard.tsx` 增加可选 `icon` 属性，六个设置页按桌面 `HeaderIcon` 语义补图标。
+- `NavigationView`：`SettingsWindow.tsx` 的导航图标从 `*24Regular` 改为 `*16Regular`；导航项 `min-height: 36px`、4px 圆角、选中指示条 3px 宽、16px 高、`--winui-accent-fill-default`；选中底色 `--winui-subtle-fill-secondary`（`rgb(0 0 0 / 3.5%)`）。
+- **Dock/浮层保持现状尺寸与固定色**：`.wb-dock` 14px 底板、按钮 10px、60×52、0.85 透明度、强制浅色；`--wb-dock-checked` 继续是桌面固定 `#1976D2`，不并入 accent fill。`DockBar`、`SelectionActionBar`、`ShapePropertiesPanel` 的嵌套 `FluentProvider` 统一用 `winuiLightThemeForced`，让 Slider/Radio/SpinButton/Menu 等内部控件走 WinUI 主题。
+- **Mica**：不伪造。设置窗口底用 `--winui-solid-background-fill-base`；卡片用 `--winui-card-background-fill-default` 叠在上面，视觉上等价 WinUI 的“浅色实心底 + 半透明卡片”。
+- **字体**：不打包、不 @font-face、不请求微软 CDN。Windows 11 命中 Segoe UI Variable，Windows 10/非 Windows 回退 Segoe UI/system-ui；中文由系统回退到 Microsoft YaHei UI。
+- **焦点**：把 `colorStrokeFocus1/2` 映射到 WinUI 双描边；自定义按钮（Dock、sheet、settings card）补 `:focus-visible` 双描边；Fluent 组件依赖其 focus indicator token。
+- **动效**：沿用 Fluent 的 duration/curve；本次不改动效，避免扩大回归面。
+
+### 14.6 文件清单
+
+新增：
+
+- `web/src/styles/winui-tokens.css`
+- `web/src/styles/winui-controls.css`
+- `web/src/app/theme.ts`
+- `web/src/styles/winui/NOTICE.md`（MIT 署名与上游版本/commit）
+- `web/tests/unit/winui-theme.test.ts`
+
+修改：
+
+- `web/src/App.tsx`
+- `web/src/ui/shell/DockBar.tsx`
+- `web/src/ui/overlay/SelectionActionBar.tsx`
+- `web/src/ui/overlay/ShapePropertiesPanel.tsx`
+- `web/src/ui/dialogs/SettingsWindow.tsx`
+- `web/src/settings/pages/SettingsCard.tsx` 与六个设置页（补图标）
+- `web/src/styles/tokens.css`
+- `web/src/styles/settings.css`
+- `web/src/styles/dialogs.css`
+- `web/src/styles/settings-search.css`
+- `web/src/styles/dock.css`
+- `web/src/styles/overlay.css`
+- `web/src/styles/chrome.css`
+- `docs/dev/guides/web-port.zh-CN.md`
+
+不改：桌面 `WindBoard/**`、`package.json`、`pnpm-lock.yaml`、WBIX/渲染/输入/设置模型。
+
+### 14.7 兼容、回滚与风险
+
+- 无数据/格式变化；回滚只需删除新增文件、恢复 `App.tsx` 与三个嵌套 Provider 的旧主题导入、还原 CSS。
+- `e2e` 视觉基线会因字体度量（拉丁/数字）与表面颜色变化而重建；中文由系统字体渲染，字形不变。基线变更理由写进提交说明。
+- Fluent 9.75.0 锁定；升级 Fluent 时必须重跑 `pnpm e2e`，因为覆盖依赖 `.fui-*` 类名。
+- 若 `theme.ts` 的 `var(--winui-*)` 在某个组件里不生效，改用字面值并在 `winui-theme.test.ts` 里锁定；不要为了一个组件引入整包参考实现。
+- 高对比度模式不在本次范围；WinUI 高对比度资源不移植。
+- 移植代码的 MIT 署名必须保留；不要复制参考包的 AppShell、字体、toaster 或 Meslo 字体。

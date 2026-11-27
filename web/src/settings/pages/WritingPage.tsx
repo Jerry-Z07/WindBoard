@@ -3,7 +3,7 @@
  */
 
 import { Button, SpinButton, Switch } from '@fluentui/react-components'
-import { Add24Regular, Delete24Regular } from '@fluentui/react-icons'
+import { Add24Regular, Color20Regular, Delete24Regular, Options20Regular } from '@fluentui/react-icons'
 import type { ReactNode } from 'react'
 import { useSettings, useSettingsService } from '../../app/hooks.ts'
 import { useI18n } from '../../i18n/context.ts'
@@ -76,6 +76,7 @@ export function WritingPage(): ReactNode {
           MAX_PALETTE_SLOTS,
         )}
         anchor={SETTINGS_ANCHORS.writingPaletteCount}
+        icon={<Color20Regular />}
       >
         <div className="wb-settings-palette-actions">
           <Button
@@ -136,6 +137,7 @@ export function WritingPage(): ReactNode {
       <SettingsCard
         title={t('Settings_Pen_UseThicknessSlider_Header')}
         anchor={SETTINGS_ANCHORS.writingThicknessSlider}
+        icon={<Options20Regular />}
       >
         <Switch
           checked={pen.useThicknessSlider}

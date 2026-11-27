@@ -3,6 +3,7 @@
  */
 
 import { Dropdown, Option } from '@fluentui/react-components'
+import { Globe20Regular } from '@fluentui/react-icons'
 import type { ReactNode } from 'react'
 import { useSettings, useSettingsService } from '../../app/hooks.ts'
 import { useI18n, type Translator } from '../../i18n/context.ts'
@@ -48,6 +49,7 @@ export function GeneralPage(): ReactNode {
         title={t('Settings_General_Language_Title')}
         description={t('Settings_General_Language_Description')}
         anchor={SETTINGS_ANCHORS.generalLanguage}
+        icon={<Globe20Regular />}
       >
         <Dropdown
           aria-label={t('Settings_General_Language_Title')}

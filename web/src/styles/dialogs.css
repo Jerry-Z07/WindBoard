@@ -17,9 +17,12 @@
   --wb-dialog-gap: 10px;
   width: min(var(--wb-dialog-width), calc(100vw - 48px));
   max-width: none;
-  /* 对话框正文的继承色：Fluent 默认用 `--colorNeutralForeground1`（#242424），
-     桌面 ContentDialog 里的普通 TextBlock 走 WinUI `TextFillColorPrimary`（#E4000000）；
-     这里统一成后者，子元素里没有显式 color 的文本（标题、正文）随之对齐。 */
+  /* WinUI ContentDialog：背景 SolidBackgroundFillColorBase、8px 圆角、SurfaceStroke 边框。 */
+  background-color: var(--wb-surface-base);
+  border: 1px solid var(--wb-surface-stroke);
+  border-radius: var(--winui-overlay-corner-radius);
+  /* 对话框正文的继承色：桌面 ContentDialog 里的普通 TextBlock 走 WinUI
+     `TextFillColorPrimary`（#E4000000）；这里统一成后者。 */
   color: var(--wb-text-primary);
 }
 
@@ -56,8 +59,8 @@
 .wb-dialog__hint {
   color: var(--wb-text-primary);
   opacity: 0.85;
-  font-size: 12px;
-  line-height: 1.45;
+  font-size: 14px;
+  line-height: 20px;
 }
 
 /* 默认文件名：等宽显示，便于与桌面 "WindBoard-2026-11-01-1530.png" 逐字符比对。
@@ -116,7 +119,8 @@
 /* 确认框正文：桌面是 `ContentDialog` 里的普通 TextBlock（没写 Foreground）→ `TextFillColorPrimary` */
 .wb-dialog__confirm-content {
   color: var(--wb-text-primary);
-  line-height: 1.5;
+  font-size: 14px;
+  line-height: 20px;
   /* 桌面风险提示是多段文本（`Import.resw` 的 `Import_Risk_*` 带空行），保留换行 */
   white-space: pre-line;
 }
