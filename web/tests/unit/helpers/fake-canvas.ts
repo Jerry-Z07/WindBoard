@@ -16,12 +16,22 @@ import type {
 import type { DomCanvasLike, DomEventListener, DomRectLike } from '../../../src/canvas/dom-types.ts'
 import { FakeContext2D } from './fake-2d-context.ts'
 
+/** 假宿主元素（画布的父元素）：渲染句柄从它读取可用尺寸，也把它交给 ResizeObserver。 */
+export interface FakeLayoutHost {
+  clientWidth: number
+  clientHeight: number
+  getBoundingClientRect?: () => CanvasLayoutRect
+}
+
 /** 假画布。 */
 export class FakeCanvas implements RenderCanvas, DomCanvasLike {
   clientWidth: number
   clientHeight: number
   width = 0
   height = 0
+
+  /** 父元素；`null` 表示没有父元素（渲染句柄退回画布自身的布局读数）。 */
+  parentElement: FakeLayoutHost | null = null
 
   /** 画布左上角在视口中的位置（`getBoundingClientRect` 用）。 */
   rectLeft = 0

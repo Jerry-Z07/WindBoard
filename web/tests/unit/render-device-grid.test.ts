@@ -19,8 +19,12 @@ import {
   type BoardRenderHandle,
   type RenderSources,
 } from '../../src/render/render-handle.ts'
-import { installFakeBrowserClock, type FakeBrowserClock } from './helpers/fake-browser.ts'
-import { FakeCanvas } from './helpers/fake-canvas.ts'
+import {
+  installFakeBrowserClock,
+  installFakeResizeObserver,
+  type FakeBrowserClock,
+} from './helpers/fake-browser.ts'
+import { FakeCanvas, type FakeLayoutHost } from './helpers/fake-canvas.ts'
 import { createDocument, createViewport } from './helpers/render-fixtures.ts'
 
 const cleanups: Array<() => void> = []
@@ -45,6 +49,8 @@ interface HarnessOptions {
   rectWidth?: number
   rectHeight?: number
   rectTop?: number
+  /** 画布宿主（父元素）；缺省表示没有父元素，尺寸从画布自身读取。 */
+  host?: FakeLayoutHost
 }
 
 /** 造一个「假画布 + 假浏览器时钟 + 渲染句柄」夹具；布局矩形可单独指定小数尺寸。 */
@@ -69,6 +75,7 @@ function createHarness(options: HarnessOptions = {}): Harness {
   if (options.rectTop !== undefined) {
     canvas.rectTop = options.rectTop
   }
+  canvas.parentElement = options.host ?? null
   const viewport = createViewport({ x: canvas.clientWidth, y: canvas.clientHeight })
   const sources: RenderSources = {
     document: createDocument(),
@@ -250,5 +257,71 @@ describe('渲染句柄的设备像素对齐', () => {
     handle.renderNow()
     expect(sources.viewport.sizeDip.x).toBe(900)
     expect(canvas.width).toBe(900)
+  })
+})
+
+describe('渲染句柄的宿主尺寸跟随', () => {
+  interface MutableHost extends FakeLayoutHost {
+    rectWidth: number
+    rectHeight: number
+  }
+
+  /** 可改尺寸的假宿主：矩形带小数，`clientWidth/clientHeight` 同步变化。 */
+  function createHost(width: number, height: number): MutableHost {
+    return {
+      clientWidth: width,
+      clientHeight: height,
+      rectWidth: width,
+      rectHeight: height,
+      getBoundingClientRect() {
+        return { left: 0, top: 0, width: this.rectWidth, height: this.rectHeight }
+      },
+    }
+  }
+
+  it('宿主变大后按宿主尺寸重新分配，画布铺满新视口（全屏/窗口缩放）', () => {
+    const host = createHost(1000, 600)
+    const { handle, canvas, sources } = createHarness({
+      dpr: 1,
+      rectWidth: 1000,
+      rectHeight: 600,
+      host,
+    })
+    handle.renderNow()
+    expect(canvas.style.width).toBe('1000px')
+
+    // 进入全屏：宿主变大，画布自身的 CSS 尺寸仍钉在旧值上（模拟真实 DOM 的布局结果）
+    host.clientWidth = 1400
+    host.clientHeight = 900
+    host.rectWidth = 1400
+    host.rectHeight = 900
+    handle.renderNow()
+
+    expect(canvas.width).toBe(1400)
+    expect(canvas.height).toBe(900)
+    expect(canvas.style.width).toBe('1400px')
+    expect(canvas.style.height).toBe('900px')
+    expect(sources.viewport.sizeDip).toEqual({ x: 1400, y: 900 })
+  })
+
+  it('宿主尺寸变化触发重排（ResizeObserver 观察宿主而不是画布）', () => {
+    const resize = installFakeResizeObserver()
+    cleanups.push(() => {
+      resize.restore()
+    })
+    const host = createHost(1000, 600)
+    const { handle, canvas, clock } = createHarness({ host })
+    handle.renderNow()
+    expect(resize.targets[0]).toBe(host)
+
+    host.clientWidth = 1400
+    host.clientHeight = 900
+    host.rectWidth = 1400
+    host.rectHeight = 900
+    resize.trigger()
+    expect(clock.pendingFrames()).toBe(1)
+    clock.advance()
+    expect(canvas.style.width).toBe('1400px')
+    expect(canvas.style.height).toBe('900px')
   })
 })

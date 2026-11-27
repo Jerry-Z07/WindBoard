@@ -136,6 +136,8 @@ export function createBoardRenderHandle(
   let surface: SceneSurface = { pixelWidth: 1, pixelHeight: 1, devicePixelRatio: 1 }
   /** 已经写进画布内联样式的位移（CSS 像素），用于把 `getBoundingClientRect()` 读数还原成布局原点。 */
   let appliedTranslate: Vec2 = { x: 0, y: 0 }
+  /** 画布可用尺寸的来源与尺寸观察目标：宿主父元素，无父元素时退回画布自身。 */
+  const layoutTarget = resolveLayoutTarget(canvas)
 
   /**
    * 一帧：同步尺寸 → 清理轮廓缓存 → （静态层）场景加实时预览 → 覆盖层；静态层缓存启用时场景只在指纹变化时重画，其余帧只做一次 1:1 贴图。
@@ -196,25 +198,29 @@ export function createBoardRenderHandle(
   }
 
   /**
-   * 同步后备存储尺寸、CSS 尺寸与设备像素对齐，并把视口尺寸喂给视口。clientWidth/clientHeight 是四舍五入的整数，DPR 1.25/1.5 下会与设备像素差 1 行，整张画布被缩放约 0.1% 后重采样；画布落在半设备像素上时 Chromium 还会对合成层双线性重采样（https://issues.chromium.org/40431598），表现为网页笔迹比桌面糊。
+   * 同步后备存储尺寸、CSS 尺寸与设备像素对齐，并把视口尺寸喂给视口。可用尺寸取自宿主父元素（见 layoutTarget），不能用画布自身的读数：下面的对齐会把画布的 CSS 尺寸钉成具体设备像素，写回后画布不再跟随 width/height: 100% 的布局伸缩，读自身只能得到旧尺寸。
+   * clientWidth/clientHeight 是四舍五入的整数，DPR 1.25/1.5 下会与设备像素差 1 行，整张画布被缩放约 0.1% 后重采样；画布落在半设备像素上时 Chromium 还会对合成层双线性重采样（https://issues.chromium.org/40431598），表现为网页笔迹比桌面糊。
    * 因此按 getBoundingClientRect() 的小数尺寸算整数设备像素，把 CSS 尺寸钉成设备像素 / DPR，再用 translate 补原点（见 computeDeviceGridAlignment）；尺寸为 0 时沿用视口已有尺寸，只有像素尺寸真的变化才写 canvas.width/height。
    */
   function syncSurface(): void {
-    const measured = readCanvasLayoutRect(canvas)
-    if (!(measured.width > 0 && measured.height > 0)) {
+    const available = readLayoutRect(layoutTarget)
+    if (!(available.width > 0 && available.height > 0)) {
       const sizeDip = sources.viewport.sizeDip
       const devicePixelRatio = resolveCanvasDevicePixelRatio(readDevicePixelRatio(), sizeDip)
       applySurface(computeBackingStoreSize(sizeDip, devicePixelRatio), devicePixelRatio)
       return
     }
 
+    // 可用尺寸必须取宿主（父元素）：画布 CSS 尺寸已被钉成具体设备像素，不再跟随布局伸缩，
+    // 读画布自身只会得到上一帧的旧尺寸（全屏/窗口缩放后下方与右侧整块失效）。
     // `getBoundingClientRect()` 含上一帧写入的位移，先还原成真实布局原点，
     // 否则每帧都会把位移当成布局变化，对齐结果反复横跳。
+    const measured = readLayoutRect(canvas)
     const layout: CanvasLayoutRect = {
       left: measured.left - appliedTranslate.x,
       top: measured.top - appliedTranslate.y,
-      width: measured.width,
-      height: measured.height,
+      width: available.width,
+      height: available.height,
     }
     const devicePixelRatio = resolveCanvasDevicePixelRatio(readDevicePixelRatio(), {
       x: layout.width,
@@ -256,7 +262,7 @@ export function createBoardRenderHandle(
   }
 
   const scheduler = createFrameScheduler({ maxFps, draw: renderFrame })
-  const resizeObserver = observeCanvasResize(canvas, () => {
+  const resizeObserver = observeCanvasResize(layoutTarget, () => {
     scheduler.request()
   })
 
@@ -422,13 +428,20 @@ export function snapToDevicePixel(offsetDip: number, devicePixelRatio: number): 
   return (Math.round(deviceOffset) - deviceOffset) / devicePixelRatio
 }
 
-/** 读画布的小数布局矩形；实现不支持时退回整数 `clientWidth/clientHeight`。 */
-function readCanvasLayoutRect(canvas: RenderCanvas): CanvasLayoutRect {
-  const rect = canvas.getBoundingClientRect?.()
+/** 能提供布局读数的元素（画布本身，或作为可用尺寸来源的宿主父元素）。 */
+interface LayoutElement {
+  readonly clientWidth: number
+  readonly clientHeight: number
+  readonly getBoundingClientRect?: () => CanvasLayoutRect
+}
+
+/** 读元素的小数布局矩形；实现不支持时退回整数 `clientWidth/clientHeight`。 */
+function readLayoutRect(element: LayoutElement): CanvasLayoutRect {
+  const rect = element.getBoundingClientRect?.()
   if (rect !== undefined) {
     return rect
   }
-  return { left: 0, top: 0, width: canvas.clientWidth, height: canvas.clientHeight }
+  return { left: 0, top: 0, width: element.clientWidth, height: element.clientHeight }
 }
 
 /** 把对齐结果写进内联样式；返回本次实际生效的位移。 */
@@ -464,7 +477,7 @@ function readDevicePixelRatio(): number | undefined {
 
 /** `ResizeObserver` 的最小结构视图（避免在渲染层出现 DOM 类型名）。 */
 interface CanvasResizeObserver {
-  observe(target: RenderCanvas): void
+  observe(target: LayoutElement): void
   disconnect(): void
 }
 
@@ -472,18 +485,19 @@ interface CanvasResizeObserver {
 type CanvasResizeObserverConstructor = new (callback: () => void) => CanvasResizeObserver
 
 /**
- * 观察尺寸变化的元素：画布尺寸已被渲染层写成具体设备像素网格（见 syncSurface），不再跟随 width: 100% 的布局伸缩，必须观察父元素；离屏画布、单测假画布这类没有父元素的场景退回观察画布自身。
+ * 取画布的宿主父元素：画布尺寸已被渲染层写成具体设备像素网格（见 syncSurface），不再跟随 width: 100% 的布局伸缩，可用尺寸与尺寸变化都必须看父元素；离屏画布、单测假画布这类没有父元素的场景退回画布自身。
+ * 约束：宿主与画布同原点且无内边距（`BoardSurface` 的 `.wb-surface` 即如此），否则读到的宽高会多出边框/内边距。
  */
-function resolveResizeTarget(canvas: RenderCanvas): RenderCanvas {
+function resolveLayoutTarget(canvas: RenderCanvas): LayoutElement {
   const parent = (canvas as { readonly parentElement?: unknown }).parentElement
-  return typeof parent === 'object' && parent !== null ? (parent as RenderCanvas) : canvas
+  return typeof parent === 'object' && parent !== null ? (parent as LayoutElement) : canvas
 }
 
 /**
- * 监听画布 CSS 尺寸变化，环境没有 ResizeObserver 时返回 null；此时 renderFrame 每次绘制仍会同步尺寸，调用方只需在窗口尺寸变化后自行 requestRender()。
+ * 监听宿主尺寸变化，环境没有 ResizeObserver 时返回 null；此时 renderFrame 每次绘制仍会同步尺寸，调用方只需在尺寸变化后自行 requestRender()。
  */
 function observeCanvasResize(
-  canvas: RenderCanvas,
+  target: LayoutElement,
   onChange: () => void,
 ): CanvasResizeObserver | null {
   const scope = globalThis as unknown as {
@@ -494,6 +508,6 @@ function observeCanvasResize(
     return null
   }
   const observer = new ResizeObserverConstructor(onChange)
-  observer.observe(resolveResizeTarget(canvas))
+  observer.observe(target)
   return observer
 }
