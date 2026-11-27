@@ -1,0 +1,6 @@
+{"file": ".trellis/spec/backend/quality-guidelines.md", "reason": "检查服务/解析器的可测试性、命名与禁用模式"}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "检查 WinUI 与本地化规范、InfoBar 使用方式"}
+{"file": ".trellis/spec/backend/error-handling.md", "reason": "核对失败降级与日志是否覆盖全部网络/解析分支"}
+{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "核对窗口退订、线程切换与 code-behind 结构"}
+{"file": "docs/dev/guides/localization.zh-CN.md", "reason": "核对 resw 清理与生成物一致性"}
+{"file": "docs/dev/guides/glossary.zh-CN.md", "reason": "核对公告文案术语与禁用写法（若保留任何界面文案）"}

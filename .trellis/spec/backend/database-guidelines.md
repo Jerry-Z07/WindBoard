@@ -127,6 +127,13 @@ UI and file format are decoupled: the UI only cares about `BoardWorkspaceSnapsho
 - **Read tolerance**: fall back to defaults when reading fails or JSON is corrupted so startup is not affected
 - **Snapshot cloning**: `AppSettingsCloner.Clone` performs a deep copy to prevent external mutation of internal state
 
+### Remote announcement cache
+
+- Content source: repository-root `announcements.json`, fetched by `AppAnnouncementService` (GitHub raw first, mirror prefixes as transport fallback).
+- Last-known-good cache: `{AppDataPaths.RootDirectory}/announcements.cache.json`, holding the raw JSON plus `etag` / `lastModified` / `fetchedAtUtc`; write with `.tmp` + `File.Move(overwrite: true)`.
+- The cache is never trusted structurally: every load re-runs `AppAnnouncementPayloadParser`, and any invalid item rejects the whole payload while keeping the previous snapshot.
+- Dismissed state stays in `settings.json` (`announcements.dismissedIds`); the cache file is disposable and safe to delete.
+
 ---
 
 ## Path Infrastructure

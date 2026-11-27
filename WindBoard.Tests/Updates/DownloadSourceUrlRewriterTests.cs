@@ -26,6 +26,21 @@ public sealed class DownloadSourceUrlRewriterTests
     }
 
     [Fact]
+    public void Rewrite_Should_Prefix_Mirror_For_Raw_Githubusercontent_Url()
+    {
+        const string original = "https://raw.githubusercontent.com/Jerry-Z07/WindBoard/main/announcements.json";
+
+        string github = DownloadSourceUrlRewriter.Rewrite(original, DownloadSourceId.Github);
+        Assert.Equal(original, github);
+
+        string ghProxy = DownloadSourceUrlRewriter.Rewrite(original, DownloadSourceId.GhProxy);
+        Assert.Equal("https://gh-proxy.top/" + original, ghProxy);
+
+        string zeroSeven = DownloadSourceUrlRewriter.Rewrite(original, DownloadSourceId.ZeroSeven);
+        Assert.Equal("https://ghm.078465.xyz/" + original, zeroSeven);
+    }
+
+    [Fact]
     public void Rewrite_Should_Not_Change_Non_Github_Url()
     {
         const string original = "https://example.com/file.bin";

@@ -1,0 +1,8 @@
+{"file": ".trellis/spec/backend/error-handling.md", "reason": "公告拉取/解析失败必须降级且不阻断启动，需遵循 Result/Try 模式与异常处理约定"}
+{"file": ".trellis/spec/backend/logging-guidelines.md", "reason": "新增 Announcements 日志类别，需确认 Warn/Debug 使用场景与低频路径要求"}
+{"file": ".trellis/spec/backend/database-guidelines.md", "reason": "缓存文件落盘位置、原子写与 AppDataPaths 约定"}
+{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "SettingsWindow code-behind 直接操作 InfoBar 的既有模式与事件订阅约定"}
+{"file": ".trellis/spec/frontend/hook-guidelines.md", "reason": "后台线程 Changed 事件需经 DispatcherQueue 回 UI 线程"}
+{"file": ".trellis/spec/frontend/state-management.md", "reason": "公告快照作为单例服务状态，UI 只读消费"}
+{"file": "docs/dev/guides/localization.zh-CN.md", "reason": "删除 resw key、远端文案例外与 L10n 回退规则"}
+{"file": "docs/dev/guides/web-port.zh-CN.md", "reason": "公告为桌面独有能力，需更新网页端同步义务说明"}

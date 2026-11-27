@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using Microsoft.UI;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
@@ -69,6 +70,7 @@ namespace WindBoard.Settings
         private string? _pendingBringIntoViewElementName;
         private Type? _pendingBringIntoViewPageType;
         private AppAnnouncement? _currentAnnouncement;
+        private bool _isClosed;
 
         internal static SettingsWindow? Active { get; private set; }
 
@@ -94,21 +96,30 @@ namespace WindBoard.Settings
             ConfigureTitleBar();
             RebuildSearchTargets();
             UpdateCurrentPageTitle();
+
+            // 先订阅再取快照：启动预热可能恰好在这两步之间完成刷新，后订阅会丢掉这次通知。
+            AppAnnouncementService.Instance.Changed += OnAnnouncementsChanged;
             UpdateAnnouncementBar();
 
             Active = this;
             Closed += (_, _) =>
             {
+                _isClosed = true;
+
                 if (ReferenceEquals(Active, this))
                 {
                     Active = null;
                 }
 
+                AppAnnouncementService.Instance.Changed -= OnAnnouncementsChanged;
                 DebugToolsGate.Changed -= OnDebugToolsGateChanged;
             };
 
             DebugToolsGate.Changed += OnDebugToolsGateChanged;
             UpdateDebugNavItemVisibility();
+
+            // 公告拉取不阻塞窗口展示：服务内部捕获全部异常，结果经 Changed 事件回到本窗口。
+            _ = AppAnnouncementService.Instance.RefreshIfStaleAsync();
 
             // 首次打开时默认进入“常规”。
             NavView.Loaded += (_, _) =>
@@ -488,10 +499,22 @@ namespace WindBoard.Settings
             }
         }
 
+        private void OnAnnouncementsChanged(object? sender, EventArgs e)
+        {
+            // 服务可能在后台线程触发事件，回到 UI 线程再读控件。
+            _ = DispatcherQueue.TryEnqueue(UpdateAnnouncementBar);
+        }
+
         private void UpdateAnnouncementBar()
         {
-            AppAnnouncement? announcement = AppAnnouncementCatalog.SelectNext(
-                AppAnnouncementCatalog.All,
+            // 窗口关闭前已排队的回调仍会执行，此时不再操作已卸载的控件。
+            if (_isClosed)
+            {
+                return;
+            }
+
+            AppAnnouncement? announcement = AppAnnouncementSelector.SelectNext(
+                AppAnnouncementService.Instance.Current,
                 AppSettingsService.Instance.GetDismissedAnnouncementIds());
 
             if (announcement is null)
@@ -501,16 +524,19 @@ namespace WindBoard.Settings
                 return;
             }
 
+            AppAnnouncementText text = announcement.ResolveText(CultureInfo.CurrentUICulture.Name);
+
             _currentAnnouncement = announcement;
             AnnouncementBar.Severity = announcement.Severity;
-            AnnouncementBar.Title = announcement.TitleProvider();
-            AnnouncementBar.Message = announcement.MessageProvider();
+            AnnouncementBar.Title = text.Title;
+            AnnouncementBar.Message = text.Message;
 
-            Func<string>? actionButtonProvider = announcement.ActionButtonProvider;
-            AnnouncementActionButton.Content = actionButtonProvider is null ? string.Empty : actionButtonProvider();
-            AnnouncementActionButton.Visibility = actionButtonProvider is null
-                ? Visibility.Collapsed
-                : Visibility.Visible;
+            bool hasAction = announcement.Action != AppAnnouncementAction.None
+                && !string.IsNullOrWhiteSpace(text.ActionText);
+            AnnouncementActionButton.Content = hasAction ? text.ActionText : string.Empty;
+            AnnouncementActionButton.Visibility = hasAction
+                ? Visibility.Visible
+                : Visibility.Collapsed;
 
             AnnouncementBar.IsOpen = true;
         }
