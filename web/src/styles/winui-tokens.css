@@ -9,7 +9,13 @@
  * 订阅 `prefers-color-scheme`，避免两套判定在边界上不同步。
  */
 
-:root {
+/*
+ * 浅色字典同时挂在 `.wb-winui-light` 上：桌面用 `RequestedTheme="Light"` 的子树（Dock、画布浮层）
+ * 在深色 App 主题下仍必须是浅色。它的 `FluentProvider` 只是把 Fluent token 指回 `var(--winui-*)`，
+ * 若不在子树内重新声明，深色 `:root` 的白字会漏进浅色底板。
+ */
+:root,
+.wb-winui-light {
   /* ===== SolidBackgroundFillColor 阶梯 ===== */
   --winui-solid-background-fill-base: #f3f3f3;
   --winui-solid-background-fill-secondary: #eeeeee;

@@ -82,6 +82,25 @@ body {
   cursor: crosshair;
 }
 
+/*
+ * 擦除光标贴图（桌面 `BoardCanvasControl.xaml:47-51` 的 EraserCursorImage）：
+ * 48×72 DIP、中心对齐指针，可见性由 `data-visible` 控制，位置由脚本写 transform。
+ */
+.wb-eraser-cursor {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 48px;
+  height: 72px;
+  visibility: hidden;
+  pointer-events: none;
+  user-select: none;
+}
+
+.wb-eraser-cursor[data-visible='true'] {
+  visibility: visible;
+}
+
 /* ===== 右上提醒栈（`MainWindow.xaml:43-49`） ===== */
 .wb-reminder-stack {
   position: absolute;

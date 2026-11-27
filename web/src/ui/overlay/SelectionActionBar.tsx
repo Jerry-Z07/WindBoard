@@ -66,7 +66,7 @@ export function SelectionActionBar(props: SelectionActionBarProps): ReactNode {
   return (
     <div className="wb-overlay-anchor" style={{ transform: `translate(${anchor.x}px, ${anchor.y}px)` }}>
       {/* 桌面 `RequestedTheme="Light"`：Dock 强制浅色，不受应用主题影响 */}
-      <FluentProvider theme={winuiLightThemeForced} style={TRANSPARENT_THEME_STYLE}>
+      <FluentProvider theme={winuiLightThemeForced} className="wb-winui-light" style={TRANSPARENT_THEME_STYLE}>
         <div
           className="wb-selection-actions"
           role="toolbar"

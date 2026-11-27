@@ -4,6 +4,7 @@
  */
 
 import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, type ReactNode } from 'react'
+import eraserCursorUrl from '../../assets/eraser-cursor.svg?url'
 import {
   createBoardController,
   type BoardController,
@@ -97,6 +98,7 @@ export function BoardSurface(props: BoardSurfaceProps): ReactNode {
   translateRef.current = t
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
   const overlayHostRef = useRef<HTMLDivElement | null>(null)
+  const eraserCursorRef = useRef<HTMLImageElement | null>(null)
   const [controller, setController] = useState<BoardController | null>(null)
   const snapshot = useControllerSnapshot(controller)
   const [metrics, setMetrics] = useState<OverlayMetrics>(ZERO_METRICS)
@@ -158,6 +160,97 @@ export function BoardSurface(props: BoardSurfaceProps): ReactNode {
   useEffect(() => {
     controller?.setBackground(background)
   }, [controller, background])
+
+  /**
+   * 擦除光标：桌面把 48×72 的 `Assets/Eraser.svg` 画在指针中心（`BoardCanvasControl.EraserCursor.cs:163-200`）：
+   * 鼠标/触摸只在按下时显示，触控笔悬停即显示，点擦与整笔擦共用同一贴图。
+   * 位置直接写 transform 而不进 React 状态，避免每个 pointermove 触发整棵树重渲染。
+   */
+  const eraserCursorTool = snapshot?.tool ?? null
+  useEffect(() => {
+    const canvas = canvasRef.current
+    const cursor = eraserCursorRef.current
+    if (canvas === null || cursor === null) {
+      return
+    }
+
+    if (eraserCursorTool !== 'eraser') {
+      cursor.dataset.visible = 'false'
+      return
+    }
+
+    let pointerType: string | null = null
+    let pointerOver = false
+    let inContact = false
+
+    const applyVisibility = (): void => {
+      const visible = pointerType === 'pen' ? pointerOver : pointerType !== null && inContact
+      cursor.dataset.visible = visible ? 'true' : 'false'
+    }
+
+    const updatePosition = (event: PointerEvent): void => {
+      const rect = canvas.getBoundingClientRect()
+      cursor.style.transform = `translate(${event.clientX - rect.left}px, ${event.clientY - rect.top}px) translate(-50%, -50%)`
+    }
+
+    const onPointerMove = (event: PointerEvent): void => {
+      pointerType = event.pointerType
+      pointerOver = true
+      inContact = event.buttons !== 0
+      updatePosition(event)
+      applyVisibility()
+    }
+
+    const onPointerDown = (event: PointerEvent): void => {
+      pointerType = event.pointerType
+      pointerOver = true
+      inContact = true
+      updatePosition(event)
+      applyVisibility()
+    }
+
+    const onPointerUp = (event: PointerEvent): void => {
+      pointerType = event.pointerType
+      inContact = false
+      updatePosition(event)
+      applyVisibility()
+    }
+
+    const onPointerCancel = (): void => {
+      inContact = false
+      applyVisibility()
+    }
+
+    const onPointerLeave = (): void => {
+      pointerOver = false
+      applyVisibility()
+    }
+
+    const onCaptureLost = (): void => {
+      pointerOver = false
+      inContact = false
+      applyVisibility()
+    }
+
+    canvas.addEventListener('pointerenter', onPointerMove)
+    canvas.addEventListener('pointermove', onPointerMove)
+    canvas.addEventListener('pointerdown', onPointerDown)
+    canvas.addEventListener('pointerup', onPointerUp)
+    canvas.addEventListener('pointercancel', onPointerCancel)
+    canvas.addEventListener('pointerleave', onPointerLeave)
+    canvas.addEventListener('lostpointercapture', onCaptureLost)
+
+    return () => {
+      canvas.removeEventListener('pointerenter', onPointerMove)
+      canvas.removeEventListener('pointermove', onPointerMove)
+      canvas.removeEventListener('pointerdown', onPointerDown)
+      canvas.removeEventListener('pointerup', onPointerUp)
+      canvas.removeEventListener('pointercancel', onPointerCancel)
+      canvas.removeEventListener('pointerleave', onPointerLeave)
+      canvas.removeEventListener('lostpointercapture', onCaptureLost)
+      cursor.dataset.visible = 'false'
+    }
+  }, [eraserCursorTool])
 
   /**
    * 开发期调试句柄：把控制器挂到 window 上，供 DevTools 与性能脚本操作。只在 import.meta.env.DEV 下存在，生产构建里整段被摇掉；1 万笔迹压测需要批量灌入笔迹并直接读帧时间，靠模拟指针事件造数据既慢又失真。
@@ -399,6 +492,16 @@ export function BoardSurface(props: BoardSurfaceProps): ReactNode {
     // 少掉的那条缝露出的就是这里的内联背景色，不会出现异色细线。
     <div className="wb-surface" style={{ background }}>
       <canvas ref={canvasRef} className="wb-surface__canvas" />
+      {/* 擦除光标贴图（桌面 `BoardCanvasControl.xaml:47-51` 的 EraserCursorImage） */}
+      <img
+        ref={eraserCursorRef}
+        className="wb-eraser-cursor"
+        src={eraserCursorUrl}
+        alt=""
+        aria-hidden
+        data-visible="false"
+        draggable={false}
+      />
       {/* P2.3 覆盖层：桌面这两块是 XAML 浮层（`BoardCanvasControl.xaml:74-168`），
           选择框与手柄则由 canvas 自己绘制。 */}
       <div ref={overlayHostRef} className="wb-overlay-host">

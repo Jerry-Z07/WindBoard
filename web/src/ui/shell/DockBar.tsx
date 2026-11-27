@@ -127,7 +127,7 @@ export function DockBar(props: DockBarProps): ReactNode {
     )
 
   return (
-    <FluentProvider theme={winuiLightThemeForced} className="wb-dock-theme" style={THEME_STYLE}>
+    <FluentProvider theme={winuiLightThemeForced} className="wb-dock-theme wb-winui-light" style={THEME_STYLE}>
       {content}
     </FluentProvider>
   )
@@ -198,7 +198,7 @@ function MoreButton(): ReactNode {
       </MenuTrigger>
       <MenuPopover>
         {/* 菜单挂在 body 上，会脱离 Dock 的浅色主题，这里补一层，避免深色系统下变成深色菜单 */}
-        <FluentProvider theme={winuiLightThemeForced} style={SURFACE_THEME_STYLE}>
+        <FluentProvider theme={winuiLightThemeForced} className="wb-winui-light" style={SURFACE_THEME_STYLE}>
           <MenuList>
             {entries.map((entry) =>
               entry.kind === 'divider' ? (
@@ -304,7 +304,7 @@ function ToolButtons(): ReactNode {
       >
         <PopoverTrigger disableButtonEnhancement>{button}</PopoverTrigger>
         <PopoverSurface style={SURFACE_STYLE}>
-          <FluentProvider theme={winuiLightThemeForced} style={SURFACE_THEME_STYLE}>
+          <FluentProvider theme={winuiLightThemeForced} className="wb-winui-light" style={SURFACE_THEME_STYLE}>
             {tool === 'pen' ? (
               <PenFlyout onClose={closeFlyout} />
             ) : tool === 'eraser' ? (
@@ -484,7 +484,7 @@ function RightDock(): ReactNode {
           >
             <PopoverTrigger disableButtonEnhancement>{indicatorButton}</PopoverTrigger>
             <PopoverSurface style={SURFACE_STYLE}>
-              <FluentProvider theme={winuiLightThemeForced} style={SURFACE_THEME_STYLE}>
+              <FluentProvider theme={winuiLightThemeForced} className="wb-winui-light" style={SURFACE_THEME_STYLE}>
                 <PagesFlyout onClose={closeFlyout} onRequestDeletePage={deletion.requestDeletePage} />
               </FluentProvider>
             </PopoverSurface>
@@ -627,7 +627,7 @@ function NarrowMoreButton(): ReactNode {
           <DockButton icon={<MoreHorizontalRegular fontSize={20} />} title={t('Common_More')} />
         </PopoverTrigger>
         <PopoverSurface style={SURFACE_STYLE}>
-          <FluentProvider theme={winuiLightThemeForced} style={SURFACE_THEME_STYLE}>
+          <FluentProvider theme={winuiLightThemeForced} className="wb-winui-light" style={SURFACE_THEME_STYLE}>
             <div className="wb-sheet">
               {showPages ? (
                 <div className="wb-sheet__pages">
