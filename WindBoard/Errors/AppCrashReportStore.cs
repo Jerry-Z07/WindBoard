@@ -9,12 +9,8 @@ using WindBoard.Persistence;
 namespace WindBoard.Errors
 {
     /// <summary>
-    /// 崩溃报告存储（落盘到日志目录下的 Crashes/）。
-    ///
-    /// 设计目标：
-    /// - 任何时候都尽量“写得出来”，失败也不能再抛异常；
-    /// - 可注入目录，便于单元测试；
-    /// - 报告为纯文本，便于用户复制/分享。
+    /// 崩溃报告存储，落盘到日志目录下的 Crashes/，纯文本便于用户复制分享。
+    /// 写入失败不得再抛异常；目录可注入以便单元测试。
     /// </summary>
     internal static class AppCrashReportStore
     {
@@ -62,7 +58,7 @@ namespace WindBoard.Errors
                 int pid = TryGetProcessId();
 
                 string stamp = nowUtc.ToString("yyyyMMdd_HHmmss", CultureInfo.InvariantCulture);
-                // 说明：同一进程在同一秒内可能发生多次崩溃（例如异常连锁/重入）。
+                // 同一进程在同一秒内可能发生多次崩溃（例如异常连锁/重入）。
                 // 为避免文件名冲突导致覆盖旧报告，这里增加一个随机熵（Guid）。
                 string unique = Guid.NewGuid().ToString("N");
                 string fileName = $"crash_{stamp}_{pid}_{unique}.txt";
@@ -81,7 +77,7 @@ namespace WindBoard.Errors
             }
             catch (Exception ex)
             {
-                // 注意：此处只返回错误，不要再向外抛（全局异常处理链路必须“吞得住”）。
+                // 此处只返回错误，不要再向外抛（全局异常处理链路必须“吞得住”）。
                 error = ex;
                 return false;
             }
@@ -89,18 +85,14 @@ namespace WindBoard.Errors
 
         private static int TryGetProcessId()
         {
-            // CA1837：Environment.ProcessId 由运行时直接取当前进程 id（不经 Process 对象、不抛异常）；
-            // 原实现的两层 try/catch（Process.GetCurrentProcess() 兜底 → 0）为不可达代码，故直接移除。
-            // 调用点仍有外层 try/catch 兜底（见上方 TryWrite 的 catch），崩溃链路不会因此新增异常出口。
+            // CA1837：Environment.ProcessId 由运行时直接取当前进程 id，不经 Process 对象也不抛异常。
+            // 异常出口仍由上方 TryWrite 的 catch 兜底。
             return Environment.ProcessId;
         }
 
         private static string GetCrashDirectory(string? logDirectoryOverride)
         {
-            // 说明：
-            // - 优先使用注入目录（测试使用）；
-            // - 其次使用当前日志目录（便携版/安装版由 AppDataPaths 决定）；
-            // - 最后回退到 LocalAppData 旧策略，避免空路径导致写到意外位置。
+            // 目录按序取用：注入目录（测试）、当前日志目录（便携版/安装版由 AppDataPaths 决定）、LocalAppData 旧策略，避免空路径写到意外位置。
 
             if (!string.IsNullOrWhiteSpace(logDirectoryOverride))
             {
@@ -141,7 +133,7 @@ namespace WindBoard.Errors
             string reportFilePath,
             string crashDirectory)
         {
-            // 说明：报告内容应稳定、可读、可复制；避免依赖 JSON 以降低出错概率。
+            // 报告内容应稳定、可读、可复制；避免依赖 JSON 以降低出错概率。
             // CA1305：显式传入 CurrentCulture，与默认插值行为完全一致（报告值多为字符串/整数）。
             var sb = new StringBuilder(capacity: 4096);
 

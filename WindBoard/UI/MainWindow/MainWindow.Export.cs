@@ -41,7 +41,7 @@ namespace WindBoard
                     getFallbackViewportSizeDip: () =>
                     {
                         // 使用当前画布控件的实际尺寸作为“空页面导出尺寸”的兜底。
-                        // 注意：ActualWidth/ActualHeight 的单位是 DIP。
+                        // ActualWidth/ActualHeight 的单位是 DIP。
                         float w = (float)Math.Max(1.0, BoardCanvas.ActualWidth);
                         float h = (float)Math.Max(1.0, BoardCanvas.ActualHeight);
                         return new Vector2(w, h);

@@ -1,10 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <root>
-  <!--
-    说明：
-    - 本文件为 zh-CN 语言资源（按功能拆分）。
-    - Key 前缀：Common_*
-  -->
+  <!-- zh-CN 语言资源，Key 前缀 Common_* -->
   <resheader name="resmimetype">
     <value>text/microsoft-resx</value>
   </resheader>
@@ -22,6 +18,9 @@
   </data>
   <data name="Common_Cancel" xml:space="preserve">
     <value>取消</value>
+  </data>
+  <data name="Common_Canceling" xml:space="preserve">
+    <value>正在取消…</value>
   </data>
   <data name="Common_Settings" xml:space="preserve">
     <value>设置</value>
@@ -58,6 +57,12 @@
   </data>
   <data name="Common_ResetToDefault" xml:space="preserve">
     <value>恢复默认</value>
+  </data>
+  <data name="Common_Save" xml:space="preserve">
+    <value>保存</value>
+  </data>
+  <data name="Common_Edit" xml:space="preserve">
+    <value>编辑</value>
   </data>
   <data name="Common_Delete" xml:space="preserve">
     <value>删除</value>

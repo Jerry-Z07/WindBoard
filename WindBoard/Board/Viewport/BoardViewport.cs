@@ -8,9 +8,8 @@ namespace WindBoard.Board.Viewport
         private const float MinZoom = 0.05f;
         private const float MaxZoom = 32.0f;
 
-        // 导出场景需要更大的缩放范围：
-        // - 固定分辨率导出可能需要极小缩放（内容很大）或极大缩放（内容很小）；
-        // - 交互缩放仍使用 MinZoom/MaxZoom，避免用户误操作导致视图不可控。
+        // 导出场景需要更大的缩放范围：固定分辨率导出可能要求极小缩放（内容很大）或极大缩放（内容很小）。
+        // 交互缩放仍使用 MinZoom/MaxZoom，避免误操作导致视图不可控。
         private const float ExportMinZoom = 0.0001f;
         private const float ExportMaxZoom = 4096.0f;
 
@@ -26,8 +25,7 @@ namespace WindBoard.Board.Viewport
         /// 设置相机与缩放（导出/恢复视图等“非交互”场景使用）。
         /// </summary>
         /// <remarks>
-        /// 注意：交互（平移/缩放）仍建议使用 <see cref="PanByScreenDelta"/> 与 <see cref="ZoomAboutScreenPoint"/>，
-        /// 以便复用其边界与锚点逻辑。
+        /// 交互（平移/缩放）应使用 <see cref="PanByScreenDelta"/> 与 <see cref="ZoomAboutScreenPoint"/>，以复用其边界与锚点逻辑。
         /// </remarks>
         internal void SetView(Vector2 cameraWorld, float zoom)
         {

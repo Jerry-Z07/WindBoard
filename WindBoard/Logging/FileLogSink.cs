@@ -8,11 +8,7 @@ namespace WindBoard.Logging
 {
     /// <summary>
     /// 写入到“按天滚动”的日志文件。
-    /// 
-    /// 设计目标：
-    /// - 写文件失败不能影响主流程（日志系统必须“尽力而为”）
-    /// - 支持最小级别过滤
-    /// - 保留最近 N 天日志，避免无限增长
+    /// 写文件失败不能影响主流程（尽力而为），支持最小级别过滤，保留最近 N 天避免无限增长。
     /// </summary>
     internal sealed class FileLogSink : IDisposable
     {
@@ -130,7 +126,7 @@ namespace WindBoard.Logging
 
         private void TryOpenWriterLocked(DateTimeOffset now, string? date = null)
         {
-            // 注意：该方法要求调用方已持有 _gate 锁。
+            // 该方法要求调用方已持有 _gate 锁。
             if (!_options.FileEnabled)
             {
                 _disabled = true;

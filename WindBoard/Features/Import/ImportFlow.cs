@@ -16,6 +16,7 @@ using WindBoard.Features.Import.Services;
 using WindBoard.Features.Import.Wbi;
 using WindBoard.Localization;
 using WindBoard.Logging;
+using WindBoard.Reminders;
 using WindBoard.UI.Common;
 
 namespace WindBoard.Features.Import
@@ -207,17 +208,15 @@ namespace WindBoard.Features.Import
 
             try
             {
-                await DialogHelpers.RunBusyAsync(xamlRoot, L10n.Get("Import_Wbix_Busy_Title"), L10n.Get("Import_Wbix_Busy_Message"), async () =>
+                await DialogHelpers.RunBusyAsync(xamlRoot, L10n.Get("Import_Wbix_Busy_Title"), L10n.Get("Import_Wbix_Busy_Message"), async cancellationToken =>
                 {
                     BoardWorkspaceSnapshot snapshot = await Task.Run(async () =>
                     {
                         await using var stream = new FileStream(file.Path, FileMode.Open, FileAccess.Read, FileShare.Read);
-                        return await serializer.LoadAsync(stream);
-                    });
+                        return await serializer.LoadAsync(stream, cancellationToken);
+                    }, cancellationToken);
 
-                    // 说明：
-                    // - WBIX 页面可能包含图片等元素；元素像素解码属于耗时操作，应放在后台线程完成；
-                    // - 解码失败不应阻断导入，渲染端会降级为占位卡片。
+                    // WBIX 页面的元素图像解码耗时，放到后台线程执行；解码失败不阻断导入，渲染端降级为占位卡片。
                     List<BoardPage> pages = await Task.Run(async () =>
                     {
                         List<BoardPage> created = BoardWorkspaceSnapshotApplier.CreatePages(snapshot);
@@ -255,10 +254,14 @@ namespace WindBoard.Features.Import
                     _workspace.SetCurrentIndex(targetIndex);
                 }, logTag: "Import");
             }
+            catch (OperationCanceledException)
+            {
+                AppLog.Info("WBIX", $"用户取消导入：'{file.Path}'");
+            }
             catch (Exception ex)
             {
                 AppLog.Error("WBIX", $"导入失败：'{file.Path}'", ex);
-                await DialogHelpers.ShowMessageAsync(xamlRoot, L10n.Get("Import_Failed_Title"), L10n.Get("Import_Wbix_ParseFailed_Message"));
+                await DialogHelpers.ShowMessageAsync(xamlRoot, L10n.Get("Import_Failed_Title"), L10n.Format("Import_Wbix_ParseFailed_Fmt", file.Path));
             }
         }
 
@@ -330,9 +333,9 @@ namespace WindBoard.Features.Import
 
             try
             {
-                await DialogHelpers.RunBusyAsync(xamlRoot, L10n.Get("Import_Wbix_Busy_Title"), L10n.Get("Import_Wbix_Busy_Message"), async () =>
+                await DialogHelpers.RunBusyAsync(xamlRoot, L10n.Get("Import_Wbix_Busy_Title"), L10n.Get("Import_Wbix_Busy_Message"), async cancellationToken =>
                 {
-                    WbiWorkspaceImportResult importResult = await Task.Run(() => importer.ImportAsync(file.Path));
+                    WbiWorkspaceImportResult importResult = await Task.Run(() => importer.ImportAsync(file.Path, cancellationToken));
                     if (!importResult.Success)
                     {
                         throw new InvalidDataException(importResult.ErrorMessage ?? L10n.Get("Import_Wbix_ParseFailed_Message"));
@@ -372,10 +375,14 @@ namespace WindBoard.Features.Import
                     _workspace.SetCurrentIndex(targetIndex);
                 }, logTag: "Import");
             }
+            catch (OperationCanceledException)
+            {
+                AppLog.Info("WBI", $"用户取消导入：'{file.Path}'");
+            }
             catch (Exception ex)
             {
                 AppLog.Error("WBI", $"导入失败：'{file.Path}'", ex);
-                await DialogHelpers.ShowMessageAsync(xamlRoot, L10n.Get("Import_Failed_Title"), L10n.Get("Import_Wbix_ParseFailed_Message"));
+                await DialogHelpers.ShowMessageAsync(xamlRoot, L10n.Get("Import_Failed_Title"), L10n.Format("Import_Wbix_ParseFailed_Fmt", file.Path));
                 return;
             }
 
@@ -391,12 +398,25 @@ namespace WindBoard.Features.Import
 
             int take = Math.Min(8, missingResources.Count);
             string detail = string.Join(Environment.NewLine, missingResources.GetRange(0, take));
-            string more = missingResources.Count > take ? $"{Environment.NewLine}…（还有 {missingResources.Count - take} 项，详见日志）" : string.Empty;
+            string more = missingResources.Count > take
+                ? Environment.NewLine + L10n.Format("Import_MissingResources_More_Fmt", missingResources.Count - take)
+                : string.Empty;
 
-            await DialogHelpers.ShowMessageAsync(
-                xamlRoot,
-                L10n.Get("Import_Tip_Title"),
-                $"导入完成，但有部分资源未找到或无法读取：{Environment.NewLine}{detail}{more}");
+            var dialog = new ContentDialog
+            {
+                Title = L10n.Get("Import_Tip_Title"),
+                Content = L10n.Get("Import_MissingResources_Header") + Environment.NewLine + detail + more,
+                SecondaryButtonText = L10n.Get("Common_OpenLogDirectory"),
+                CloseButtonText = L10n.Get("Common_Close"),
+                DefaultButton = ContentDialogButton.Close,
+                XamlRoot = xamlRoot,
+            };
+
+            // 缺失清单之外的信息只在日志里，因此把日志目录的入口放在这张提示上。
+            if (await dialog.ShowAsync() == ContentDialogResult.Secondary)
+            {
+                AppReminderActionExecutor.TryExecute(AppReminderClickAction.OpenLogsDirectory);
+            }
         }
 
         private static async Task<bool> ConfirmReplaceCurrentPageRiskAsync(XamlRoot xamlRoot)

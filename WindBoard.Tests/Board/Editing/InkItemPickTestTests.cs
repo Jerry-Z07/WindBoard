@@ -9,7 +9,6 @@ namespace WindBoard.Tests.Board.Editing;
 
 public sealed class InkItemPickTestTests
 {
-    // 点击重叠区域时应优先选中“更靠上”的条目（列表末尾）
     [Fact]
     public void HitTestTopMostInkItem_PrefersLastItem()
     {
@@ -22,7 +21,6 @@ public sealed class InkItemPickTestTests
         Assert.Same(b, hit);
     }
 
-    // 远离笔迹时不应命中（Stroke 分支）
     [Fact]
     public void IsStrokeHitByPoint_ReturnsFalse_WhenFarAway()
     {
@@ -50,7 +48,6 @@ public sealed class InkItemPickTestTests
         Assert.False(InkItemPickTest.IsStrokeHitByPoint(stroke, new Vector2(0, 10), toleranceWorld: 0.0f));
     }
 
-    // 非 Stroke 条目走通用路径：点位于包围盒内（含容差）即命中
     [Fact]
     public void IsInkItemHitByPoint_HitsNonStrokeItem_WhenPointInsideBoundsWithTolerance()
     {
@@ -61,7 +58,6 @@ public sealed class InkItemPickTestTests
         Assert.False(InkItemPickTest.IsInkItemHitByPoint(item, new Vector2(11.0f, 5.0f), toleranceWorld: 0.0f));
     }
 
-    // 非 Stroke 条目：无有效包围盒（空矩形）时不命中
     [Fact]
     public void IsInkItemHitByPoint_MissesNonStrokeItem_WhenBoundsEmpty()
     {
@@ -70,7 +66,6 @@ public sealed class InkItemPickTestTests
         Assert.False(InkItemPickTest.IsInkItemHitByPoint(item, Vector2.Zero, toleranceWorld: 5.0f));
     }
 
-    // 混合列表（Stroke + 非 Stroke 替身）：点选按类型分发，返回最上层命中条目
     [Fact]
     public void HitTestTopMostInkItem_DispatchesByItemType_WhenMixed()
     {

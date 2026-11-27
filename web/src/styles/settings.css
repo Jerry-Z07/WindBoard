@@ -1,0 +1,525 @@
+/**
+ * 设置窗口样式（P3.5）。
+ *
+ * 目标：用 Fluent UI v9 组件 + 少量布局规则贴近桌面 WinUI 观感
+ * （桌面是独立 `SettingsWindow` + `NavigationView` + `SettingsCard`，
+ * 见 `WindBoard/Settings/SettingsWindow.xaml` 与 `WindBoard/Settings/Pages` 下的各页 xaml）。
+ * 文字色统一用 `tokens.css` 的 WinUI 语义令牌 `--wb-text-*`（对应桌面 `TextFillColor*Brush`，
+ * 见 `generic.xaml:7750-7753`），其余颜色取 FluentProvider 注入的 token，避免写死颜色。
+ */
+
+/* ===== 窗口骨架 ===== */
+
+/*
+ * 尺寸按桌面窗口的量级定（900 × 640）；视口不足时收缩，避免小屏溢出。
+ *
+ * 选择器写成 `.fui-DialogSurface.wb-settings-surface`：Fluent v9 用原子类（如 `.r1u3t6p6`）
+ * 下发 `width` / `max-width: 600px` / `height`，与单类选择器同权重但注入在静态样式表之后，
+ * 单类写法会被它盖掉（表现：窗口被压到 600 宽、铺满全高、关闭按钮跑到面板外）。
+ */
+.fui-DialogSurface.wb-settings-surface {
+  width: min(900px, calc(100vw - 48px));
+  height: min(640px, calc(100vh - 48px));
+  max-width: none;
+  max-height: none;
+  /* ContentDialog/窗口底色：WinUI `SolidBackgroundFillColorBase`，不是 Fluent 的白底。 */
+  background-color: var(--wb-surface-base);
+  border: 1px solid var(--wb-surface-stroke);
+  border-radius: var(--winui-overlay-corner-radius);
+  /* 设置窗口正文的继承色：桌面 `SettingsWindow` 里的普通 TextBlock / SettingsCard 标题
+     走 WinUI `TextFillColorPrimary`（#E4000000 = 89.4% 黑）。 */
+  color: var(--wb-text-primary);
+}
+
+/*
+ * `fui-DialogBody` 也是 Fluent 的组件级元素：它自带 `display: grid` 与三列
+ * `grid-template-columns`（标题 / 内容 / 动作），单类选择器同样会被原子类盖掉，
+ * 表现是右侧内容被塞进 244px 的第二列。这里显式提高权重改成纵向 flex。
+ */
+.fui-DialogBody.wb-settings-body {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  gap: 0;
+  padding: 0;
+}
+
+/*
+ * 标题行由 `SettingsWindow` 自己用 flex 排（标题 + 搜索框 + 关闭按钮），所以这里
+ * 不再需要给 `DialogTitle` 的 `action` 槽位做绝对定位，也不留右侧内边距。
+ */
+.wb-settings-title {
+  /* Fluent 的 DialogTitle 是 content-box，网格里被拉满会因左右 padding 溢出面板 */
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  margin: 0;
+  padding: 0;
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 28px;
+}
+
+.wb-settings-layout {
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+/* ===== 左侧导航（桌面 NavigationView） ===== */
+
+.wb-settings-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 0 0 180px;
+  padding: 4px 8px 12px;
+  overflow-y: auto;
+  border-right: 1px solid var(--winui-divider-stroke-default);
+}
+
+.wb-settings-nav__item {
+  position: relative;
+  justify-content: flex-start;
+  width: 100%;
+  min-height: 36px;
+  border-radius: var(--winui-control-corner-radius);
+  font-weight: 400;
+}
+
+/*
+ * WinUI `NavigationViewItemForeground` 在未选中时也是 `TextFillColorPrimary`
+ * （generic.xaml:1595/7321），不是 Fluent subtle Button 默认的
+ * `colorNeutralForeground2`（62% 黑）。用双类选择器压过 Griffel 原子类。
+ */
+.wb-settings-nav .wb-settings-nav__item {
+  color: var(--wb-text-primary);
+}
+
+.wb-settings-nav .wb-settings-nav__item:hover {
+  color: var(--wb-text-primary);
+}
+
+.wb-settings-nav .wb-settings-nav__item:active {
+  color: var(--wb-text-secondary);
+}
+
+.wb-settings-nav__item[aria-current='page'] {
+  background-color: var(--winui-subtle-fill-secondary);
+}
+
+/* WinUI NavigationView 的选中指示条：3px 宽、16px 高、圆角 2。 */
+.wb-settings-nav__item[aria-current='page']::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: calc(50% - 8px);
+  width: 3px;
+  height: 16px;
+  border-radius: 2px;
+  background-color: var(--wb-accent-fill);
+}
+
+/* ===== 右侧内容 ===== */
+
+.wb-settings-content {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+}
+
+.wb-settings-page-header {
+  padding: 8px 24px 0;
+}
+
+.wb-settings-page-header__title {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 600;
+  line-height: 36px;
+}
+
+/* 页头说明（网页端新增，桌面 `SettingsWindow.xaml` 的 NavigationView `AlwaysShowHeader="False"` 没有页头）：
+   按 WinUI 的"次要文本"取色 `TextFillColorSecondary`（`generic.xaml:7751`），
+   而不是 Fluent Web 的 `--colorNeutralForeground3`（#616161）。 */
+.wb-settings-page-header__description {
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: var(--wb-text-secondary);
+}
+
+.wb-settings-page-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 12px 24px 24px;
+}
+
+.wb-settings-page {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* ===== 设置卡片（对应 WinUI SettingsCard） ===== */
+
+.wb-settings-card {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  box-sizing: border-box;
+  min-height: 68px;
+  padding: 16px;
+  background-color: var(--wb-surface-card);
+  border: 1px solid var(--wb-card-stroke);
+  border-radius: var(--winui-control-corner-radius);
+}
+
+/* 桌面 SettingsCard.HeaderIcon：最大 20×20，右边距 20，顶部微调 2。 */
+.wb-settings-card__icon {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  margin: 2px 20px 0 0;
+  color: var(--wb-text-primary);
+}
+
+/* 可点击卡片：桌面 `SettingsCard IsClickEnabled="True"`（整张卡片是按钮，右侧放"当前值预览"）。
+   按钮默认继承浏览器的 button 样式，这里把卡片外观与交互态补齐。 */
+.wb-settings-card--clickable {
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+}
+
+.wb-settings-card--clickable:hover {
+  background-color: var(--winui-control-fill-secondary);
+  border-color: var(--winui-control-stroke-secondary);
+}
+
+.wb-settings-card--clickable:active {
+  background-color: var(--winui-control-fill-tertiary);
+  border-color: var(--winui-control-stroke-default);
+}
+
+.wb-settings-card--clickable:focus-visible {
+  outline: 2px solid CanvasText;
+  outline-offset: 1px;
+  box-shadow: inset 0 0 0 1px var(--wb-focus-inner);
+}
+
+.wb-settings-card__text {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.wb-settings-card__title {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
+}
+
+/* 卡片描述：桌面 `SettingsCard.Description` 由 CommunityToolkit 模板取
+   `TextFillColorSecondaryBrush`（`CommunityToolkit.WinUI.Controls.SettingsControls.pri` 内含
+   Primary/Secondary/Disabled 三个画刷名，Description 用 Secondary）→ `generic.xaml:7751` #9E000000 */
+.wb-settings-card__description {
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--wb-text-secondary);
+}
+
+.wb-settings-card__control {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  flex: 0 0 auto;
+}
+
+/* ===== 分组标题 ===== */
+
+.wb-settings-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.wb-settings-section__title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 28px;
+}
+
+.wb-settings-section__body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* ===== 通用文本 ===== */
+
+/* 提示行：桌面的设置页提示都是默认前景 + `Opacity="0.75"`
+   （`ShortcutsSettingsPage.xaml:15-17`、`DockSettingsPage.xaml:35-38`、`PenSettingsPage.xaml:200`），
+   即 `TextFillColorPrimary` × 0.75，而不是另一个灰色。 */
+.wb-settings-hint {
+  margin: 4px 0 0;
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--wb-text-primary);
+  opacity: 0.75;
+}
+
+/* 错误提示：属状态色（桌面走 `SystemFillColorCritical`），本次不并入 TextFillColor 体系，
+   仍用 Fluent 的 `--colorPaletteRedForeground1` 以便深浅色主题自动切换。 */
+.wb-settings-error {
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--colorPaletteRedForeground1, #c50f1f);
+}
+
+/* 版本号：桌面 `AboutSettingsPage.xaml:46-49` 是 `Opacity="0.75"` 的默认前景文本 */
+.wb-settings-version {
+  font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  font-size: 13px;
+  color: var(--wb-text-primary);
+  opacity: 0.75;
+}
+
+/* 卡片右侧的"当前值预览"（桌面 `StackPanel Orientation="Horizontal" Spacing="8"`） */
+.wb-settings-value {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* 桌面 `AppearanceSettingsPage.xaml:70-77`：色块 20×20、圆角 4、描边 1 */
+.wb-settings-color-preview {
+  width: 20px;
+  height: 20px;
+  border: 1px solid var(--winui-control-stroke-default);
+  border-radius: var(--winui-control-corner-radius);
+  flex: 0 0 auto;
+}
+
+/* 桌面预览文本 `Opacity="0.75"`（`AppearanceSettingsPage.xaml:82`、`BackgroundSettingsPage.xaml:43`）
+   = `TextFillColorPrimary` × 0.75 */
+.wb-settings-value__text {
+  color: var(--wb-text-primary);
+  opacity: 0.75;
+}
+
+/* ===== 书写：色板 ===== */
+
+.wb-settings-palette-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.wb-settings-palette {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 12px 16px;
+  background-color: var(--winui-solid-background-fill-secondary);
+  border: 1px solid var(--wb-card-stroke);
+  border-radius: var(--winui-overlay-corner-radius);
+}
+
+.wb-settings-palette__slot {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  width: 56px;
+}
+
+.wb-settings-palette__swatch {
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--winui-control-stroke-default);
+  border-radius: 50%;
+  /* 空色块（未设置颜色）用斜线底纹表示 */
+  background-image: linear-gradient(
+    45deg,
+    transparent 45%,
+    var(--winui-control-stroke-default) 45%,
+    var(--winui-control-stroke-default) 55%,
+    transparent 55%
+  );
+}
+
+/* 原生取色器覆盖在色块上，视觉上"点色块即改色" */
+.wb-settings-palette__picker {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 0;
+  transform: translateX(-50%);
+  opacity: 0;
+  cursor: pointer;
+}
+
+.wb-settings-palette__hex {
+  font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  font-size: 10px;
+  /* 色块下方的色值标签（网页端新增，桌面设置页没有）→ 按次要文本取色 */
+  color: var(--wb-text-secondary);
+}
+
+.wb-settings-palette__clear {
+  position: absolute;
+  top: -4px;
+  right: 2px;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  font-size: 12px;
+  line-height: 14px;
+  /* 这是个普通按钮（桌面 `PenSettingsPage.xaml:178-181` 的"清除"按钮），
+     前景 = ButtonForeground = `TextFillColorPrimary` */
+  color: var(--wb-text-primary);
+  background-color: var(--wb-surface-card);
+  border: 1px solid var(--wb-card-stroke);
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+/* ===== 书写：三档粗细 ===== */
+
+.wb-settings-thickness {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.wb-settings-thickness__item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 132px;
+}
+
+.wb-settings-thickness__label {
+  font-size: 14px;
+  line-height: 20px;
+  /* 档位标签 → 次要文本 */
+  color: var(--wb-text-secondary);
+}
+
+/* ===== 快捷键 ===== */
+
+.wb-settings-shortcut {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.wb-settings-gesture-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.wb-settings-gesture-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 8px 16px;
+  font-size: 14px;
+  line-height: 20px;
+  background-color: var(--wb-surface-card);
+  border: 1px solid var(--wb-card-stroke);
+  border-radius: var(--winui-control-corner-radius);
+}
+
+/* 快捷键文本：桌面 `ShortcutsSettingsPage.xaml:48-50` 等处是默认前景 + `Opacity="0.75"`
+   （`TextFillColorPrimary` × 0.75），不是另一种灰 */
+.wb-settings-gesture-list code {
+  font-family: ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  font-size: 12px;
+  color: var(--wb-text-primary);
+  opacity: 0.75;
+}
+
+/* ===== 关于：重置确认 ===== */
+
+.wb-settings-confirm {
+  width: min(420px, calc(100vw - 48px));
+}
+
+/* ===== 窄屏：导航改为顶部横向（对应桌面 NavigationView 的 Top 模式） ===== */
+
+@media (max-width: 720px) {
+  .wb-settings-layout {
+    flex-direction: column;
+  }
+
+  .wb-settings-nav {
+    flex: 0 0 auto;
+    flex-direction: row;
+    gap: 4px;
+    padding: 0 12px 8px;
+    overflow-x: auto;
+    border-right: 0;
+    border-bottom: 1px solid var(--winui-divider-stroke-default);
+  }
+
+  .wb-settings-nav__item {
+    width: auto;
+    white-space: nowrap;
+  }
+
+  .wb-settings-nav__item[aria-current='page']::before {
+    display: none;
+  }
+
+  /*
+   * 卡片在窄屏改成纵向堆叠：桌面卡片的控件（下拉/开关）是固定宽度、贴右对齐，
+   * 手机 360 宽时控件会占掉整行，把左侧标题区挤到 0 宽（实测标题竖排成一字一行）。
+   * 这里让标题行独占第一行、控件换到第二行并拉满宽。
+   */
+  .wb-settings-card {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .wb-settings-card__icon {
+    display: none;
+  }
+
+  .wb-settings-card__text {
+    flex: 1 1 100%;
+  }
+
+  .wb-settings-card__control {
+    flex: 1 1 100%;
+    align-items: stretch;
+    min-width: 0;
+  }
+
+  /* 可点击卡片右侧的"当前值"同样换行，避免被压窄 */
+  .wb-settings-card--clickable {
+    align-items: flex-start;
+  }
+}

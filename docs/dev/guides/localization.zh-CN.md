@@ -1,6 +1,6 @@
 # 本地化（Localization）
 
-本文档约定 WindBoard 的“用户可见文本”如何统一提取到资源字典（`.resw`），并通过 WinUI 3 / MRT Core 编译进 PRI 资源索引：未打包形态（便携版 / 开发运行）为 `<TargetName>.pri`（本项目即 `WindBoard.pri`），打包（MSIX / Store）形态为包根的 `resources.pri`。
+WindBoard 的“用户可见文本”统一提取到资源字典（`.resw`），并通过 WinUI 3 / MRT Core 编译进 PRI 资源索引：未打包形态（便携版 / 开发运行）为 `<TargetName>.pri`（本项目即 `WindBoard.pri`），打包（MSIX / Store）形态为包根的 `resources.pri`。
 
 ## 资源位置
 
@@ -11,14 +11,16 @@
 - XAML 入口：`WindBoard/Localization/LocExtension.cs`
 - 构建期语言/Feature 元数据生成：`WindBoard/Build/GenerateLocalizationMetadata.ps1`
 
-说明：
-
-- 当前提供 `zh-CN`（简体中文，默认）与 `en-US`（英文）。后续新增其它语言时，按相同结构新增语言目录（例如 `ja-JP`）。
-- 运行时按 key 的第一个前缀段选择功能资源文件（例如 `Settings_*` -> `Settings.resw`），并从 PRI 资源索引读取：未打包形态显式读取 `WindBoard.pri`，打包形态由 `ResourceManager` 自动加载包根 `resources.pri`。
+- 当前提供 `zh-CN`（简体中文，默认）与 `en-US`（英文）两种语言。新增其它语言时，按相同结构新建语言目录（例如 `ja-JP`）。
+- 运行时按 key 的第一个前缀段选择功能资源文件（例如 `Settings_*` -> `Settings.resw`）。文本从 PRI 资源索引读取：未打包形态显式读取 `WindBoard.pri`，打包形态由 `ResourceManager` 自动加载包根 `resources.pri`。
 - 缺语言/缺 key 的回退策略：
   - 缺语言：自动回退到默认 `zh-CN`。
   - 缺 key：回退到 `fallback`（若提供）或 key 本身，并通过 `WindBoard.Logging.AppLog` 记录（每个 key 只记录一次）。
-  - 部分翻译缺失：若某语言已提供了部分资源文件，但某个 key 仍缺失，则会记录“缺少翻译”并回退到默认语言，便于后续补齐。
+  - 部分翻译缺失：某语言已提供部分资源文件，但其中某个 key 仍缺失时，记录“缺少翻译”并回退到默认语言，便于后续补齐。
+
+## 术语
+
+界面用词以 `glossary.zh-CN.md` 为准：同一个概念在中文与英文各只有一个名字，禁用写法与中英对照都在那张表里。新增或修改文案前先查表，表里没有的概念先在表里加一行。
 
 ## C# 用法
 
@@ -41,11 +43,11 @@ string message = L10n.Format("Export_Completed_File_Fmt", filePath);
 xmlns:l10n="using:WindBoard.Localization"
 ```
 
-然后对用户可见文本统一使用：
+用户可见文本统一使用：
 
 ```xml
 Text="{l10n:Loc Key=Common_Close}"
-Header="{l10n:Loc Key=Settings_Dock_ShowUndoRedo_Header}"
+Header="{l10n:Loc Key=Settings_Dock_ShowShortcutDocks_Header}"
 ```
 
 ## 语言切换
@@ -61,7 +63,7 @@ Header="{l10n:Loc Key=Settings_Dock_ShowUndoRedo_Header}"
 实现要点：
 
 - `L10n` 基于 `CultureInfo.CurrentUICulture` 读取资源；启动时会先加载设置并在创建任何 UI 前应用语言偏好（避免 XAML MarkupExtension 使用旧语言）。
-- 设置页运行中切换语言会立即写入设置并尝试应用，但**已加载的界面文本通常不会自动刷新**，因此约定提示用户重启应用后完全生效。
+- 设置页运行中切换语言会立即写入设置并尝试应用，但**已加载的界面文本通常不会自动刷新**，因此按约定提示用户重启应用，重启后才完全生效。
 
 ## 新增语言步骤
 
@@ -69,8 +71,7 @@ Header="{l10n:Loc Key=Settings_Dock_ShowUndoRedo_Header}"
 2. 逐项翻译资源值（Key 不变；文件按功能拆分）
 3. 运行 `dotnet test WindBoard.slnx` 确认本地化 Key 审计通过
 
-说明：
-- 设置页会从构建期根据 `Strings/**/*.resw` 生成的元数据里动态枚举“已提供资源”的语言；
+- 设置页动态枚举“已提供资源”的语言，数据来自构建期根据 `Strings/**/*.resw` 生成的元数据；
 - 下拉框显示文案使用 `CultureInfo` 的 `NativeName`（并附带 `CultureName`），因此不需要为每种语言额外新增本地化 key。
 
 验证步骤：
@@ -81,6 +82,7 @@ Header="{l10n:Loc Key=Settings_Dock_ShowUndoRedo_Header}"
 ## 测试
 
 - 单测：`WindBoard.Tests/Localization/LocalizationKeyAuditTests.cs`
+- 术语：`WindBoard.Tests/Localization/TerminologyAuditTests.cs`（按术语表检查 resw），网页端对应 `web/tests/unit/terminology.test.ts`
   - 扫描 `WindBoard/**/*.xaml` 中 `{l10n:Loc Key=...}` 的 key
   - 扫描 `WindBoard/**/*.cs` 中 `L10n.Get/Format("...")` 的 key
   - 声明所有引用到的 key 都存在于默认语言资源（`Strings/zh-CN/*.resw`）

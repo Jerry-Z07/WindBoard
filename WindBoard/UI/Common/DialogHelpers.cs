@@ -1,4 +1,5 @@
 using System;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -43,14 +44,33 @@ namespace WindBoard.UI.Common
         }
 
         /// <summary>
-        /// 显示“忙碌”对话框并执行指定异步操作。
+        /// 显示确认对话框，返回用户是否选择了主按钮。
+        /// </summary>
+        internal static async Task<bool> ShowConfirmAsync(XamlRoot xamlRoot, string title, string message, string primaryButtonText, string closeButtonText)
+        {
+            ArgumentNullException.ThrowIfNull(xamlRoot);
+
+            var dialog = new ContentDialog
+            {
+                Title = title,
+                Content = message,
+                PrimaryButtonText = primaryButtonText,
+                CloseButtonText = closeButtonText,
+                DefaultButton = ContentDialogButton.Close,
+                XamlRoot = xamlRoot,
+            };
+
+            return await dialog.ShowAsync() == ContentDialogResult.Primary;
+        }
+
+        /// <summary>
+        /// 显示“忙碌”对话框并执行指定异步操作，用户可通过关闭按钮请求取消。
         /// </summary>
         /// <remarks>
-        /// 说明：
-        /// - 该方法不会吞掉 <paramref name="action"/> 的异常，调用方应自行捕获并提示用户；
-        /// - Hide() 失败不应影响流程：记录日志后忽略。
+        /// 该方法不会吞掉 <paramref name="action"/> 的异常，调用方应自行捕获并提示用户；Hide() 失败不应影响流程，记录日志后忽略。
+        /// 取消请求通过 <see cref="CancellationToken"/> 传递，对话框在 <paramref name="action"/> 真正停下后才关闭。
         /// </remarks>
-        internal static async Task RunBusyAsync(XamlRoot xamlRoot, string title, string message, Func<Task> action, string logTag)
+        internal static async Task RunBusyAsync(XamlRoot xamlRoot, string title, string message, Func<CancellationToken, Task> action, string logTag)
         {
             ArgumentNullException.ThrowIfNull(xamlRoot);
 
@@ -81,13 +101,30 @@ namespace WindBoard.UI.Common
             {
                 Title = title,
                 Content = content,
+                CloseButtonText = L10n.Get("Common_Cancel"),
                 XamlRoot = xamlRoot,
+            };
+
+            using var cancellation = new CancellationTokenSource();
+
+            dialog.CloseButtonClick += (_, args) =>
+            {
+                // 取消是请求：先让 action 观察 token，等它返回后由 finally 关闭对话框，避免界面已关闭但仍在写文件。
+                args.Cancel = true;
+
+                if (cancellation.IsCancellationRequested)
+                {
+                    return;
+                }
+
+                cancellation.Cancel();
+                dialog.CloseButtonText = L10n.Get("Common_Canceling");
             };
 
             var _ = dialog.ShowAsync();
             try
             {
-                await action();
+                await action(cancellation.Token);
             }
             finally
             {

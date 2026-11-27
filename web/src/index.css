@@ -1,0 +1,24 @@
+/* 全局基础样式（P0 最小集合）。主题令牌与组件样式在 P3 阶段按桌面版对齐后建立。 */
+
+:root {
+  color-scheme: light dark;
+  font: 16px/1.5 system-ui, 'Segoe UI', 'Microsoft YaHei UI', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+}
+
+body {
+  background: Canvas;
+  color: CanvasText;
+}
+
+#root {
+  height: 100%;
+}

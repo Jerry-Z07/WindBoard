@@ -8,7 +8,6 @@ namespace WindBoard.Tests.Board.Commands;
 
 public sealed class ClearCommandTests
 {
-    // Do：会清空笔迹；Undo：会恢复快照
     [Fact]
     public void Do_ClearsStrokes_Undo_RestoresSnapshot()
     {

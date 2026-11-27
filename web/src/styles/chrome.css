@@ -1,0 +1,246 @@
+/**
+ * 提醒栈样式（P3.4）。
+ *
+ * 布局骨架在 `shell.css`（`.wb-reminder-stack`），这里只放视觉细节。
+ *
+ * 标题栏不在网页端渲染（见 `AppShell.tsx` 顶部说明），原先的视觉细节随组件一起删除。
+ *
+ * 颜色来源约定：
+ * - 提醒卡片的严重级配色**按 WinUI `InfoBar` 的真实取色**写成 CSS 变量（`--wb-reminder-*`），
+ *   浅色/深色两套值分别取自 `generic.xaml` 的 Light / Dark 主题字典；
+ * - 品牌色（信息级的图标色）在桌面来自用户主题色 `SystemAccentColor`，无法写死，
+ *   网页端用 Fluent 品牌色令牌代替，随主题变化；
+ * - 其余中性色（焦点描边等）继续用 `FluentProvider` 注入的 CSS 变量。
+ *
+ * 尺寸来源：
+ * - 提醒栈外边距 14 / 条目间距 10 / 最大宽 420：`tokens.css`（桌面 `MainWindow.xaml:43-49`）；
+ * - 提醒卡片内部度量：**逐条取自 WinUI 3 `InfoBar` 的默认模板**，出处见下方每条规则上的注释。
+ *   引用文件为 `~/.nuget/packages/microsoft.windowsappsdk.winui/2.6.4/lib/native/Microsoft.UI/Themes/generic.xaml`
+ *   （下称 `generic.xaml`）。
+ */
+
+/* ===== 提醒栈卡片（P3.4，对齐 WinUI InfoBar 默认模板） ===== */
+
+/*
+ * 卡片外框与整体度量。
+ *
+ * - 圆角 4：`generic.xaml:22232` 的 `CornerRadius="{ThemeResource ControlCornerRadius}"`，
+ *   而 `ControlCornerRadius` 在浅色/深色字典里都是 `4,4,4,4`（`generic.xaml:8132`、`:2403`）；
+ * - 描边 1px：`InfoBarBorderThickness`（`generic.xaml:2751`），画刷为 `CardStrokeColorDefaultBrush`
+ *   （`generic.xaml:2750`）；
+ * - 最小高度 48：`InfoBarMinHeight`（`generic.xaml:38363`），用在模板的 `Grid MinHeight` 上（`:22333`）；
+ * - 左内边距 16：`InfoBarContentRootPadding = 16,0,0,0`（`generic.xaml:38372`）；
+ *   右内边距由关闭按钮自带的 `Margin=5` 提供（`:38391`），所以这里写 0；
+ * - 正文字号 14：`InfoBarMessageFontSize`（`generic.xaml:38361`）；行高 20 是 WinUI 14 号正文
+ *   的默认行高（`TextBlock` 未显式设置行高时按字号取默认行距）。
+ */
+.wb-reminder {
+  /*
+   * ⚠️ 换算坑：XAML 的 8 位色是 **ARGB**（`#AARRGGBB`），CSS 的 8 位色是 **RGBA**（`#RRGGBBAA`），
+   * 抄过来会得到完全不同的颜色（`#E4000000` 会变成"不透明红"、`#80F6F6F6` 会变成青色）。
+   * 所以这里一律先取 alpha 百分比再写成 `rgb(r g b / a%)`，注释里保留 XAML 原值便于对账。
+   */
+  /* 默认（信息级）配色，见下方 `[data-severity]` 覆盖 */
+  /* SystemFillColorAttentionBackground #80F6F6F6 → alpha 0x80 = 50.2% */
+  --wb-reminder-surface: rgb(246 246 246 / 50.2%);
+  --wb-reminder-icon-color: var(--wb-accent-fill);
+  /* TextFillColorPrimary：浅色 #E4000000（generic.xaml:7750，alpha 0xE4 = 89.4%）、深色 #FFFFFF（:2024） */
+  --wb-reminder-text: rgb(0 0 0 / 89.4%);
+  /* CardStrokeColorDefault：浅色 #0F000000（generic.xaml:7791，alpha 0x0F = 5.9%）、深色 #19000000（:2065） */
+  --wb-reminder-border: rgb(0 0 0 / 5.9%);
+
+  display: flex;
+  align-items: flex-start;
+  min-height: 48px;
+  padding: 0 0 0 16px;
+  border: 1px solid var(--wb-reminder-border);
+  border-radius: 4px;
+  background: var(--wb-reminder-surface);
+  color: var(--wb-reminder-text);
+  font-size: 14px;
+  line-height: 20px;
+}
+
+/*
+ * 严重级配色：模板用 VisualState 切换 `ContentRoot.Background`、`IconBackground.Foreground`
+ * （`generic.xaml:22263-22293`），画刷在主题字典里定义（`:2735-2746` 浅色、`:8464-` 深色）。
+ *
+ * 浅色取值：
+ * - 信息 = `SystemFillColorAttentionBackground` = `#80F6F6F6`（`generic.xaml:7825`）；
+ * - 警告 = `SystemFillColorCautionBackground` = `#FFF4CE`（`:7827`），图标 `SystemFillColorCaution` = `#9D5D00`（`:7821`）；
+ * - 错误 = `SystemFillColorCriticalBackground` = `#FDE7E9`（`:7828`），图标 `SystemFillColorCritical` = `#C42B1C`（`:7822`）；
+ * - 成功 = `SystemFillColorSuccessBackground` = `#DFF6DD`（`:7826`），图标 `SystemFillColorSuccess` = `#0F7B0F`（`:7820`）。
+ *
+ * 信息级的图标色在桌面是 `SystemFillColorAttentionBrush`，它指向用户的 `SystemAccentColor`
+ * （`generic.xaml:7909`），不是固定值，因此这里用 Fluent 品牌色令牌代替。
+ */
+.wb-reminder[data-severity='informational'] {
+  /* SystemFillColorAttentionBackground #80F6F6F6 → alpha 0x80 = 50.2% */
+  --wb-reminder-surface: rgb(246 246 246 / 50.2%);
+  --wb-reminder-icon-color: var(--wb-accent-fill);
+}
+
+.wb-reminder[data-severity='warning'] {
+  --wb-reminder-surface: #fff4ce;
+  --wb-reminder-icon-color: #9d5d00;
+}
+
+.wb-reminder[data-severity='error'] {
+  --wb-reminder-surface: #fde7e9;
+  --wb-reminder-icon-color: #c42b1c;
+}
+
+/* 桌面 `MapInfoBarSeverity`（`MainWindow.Reminders.cs:114-122`）只产出信息/警告/错误三级，
+ * 成功级不会出现；这里补上模板里的第四级配色，保持与 WinUI 资源表一致（当前无调用方）。 */
+.wb-reminder[data-severity='success'] {
+  --wb-reminder-surface: #dff6dd;
+  --wb-reminder-icon-color: #0f7b0f;
+}
+
+/*
+ * 深色主题：与 `App.tsx` 的 `useSystemTheme()`（`matchMedia('(prefers-color-scheme: dark)')`）
+ * 同一判定条件，因此不会与 `FluentProvider` 的主题脱节。
+ * 取值全部来自 `generic.xaml` 的 Dark 主题字典。
+ */
+@media (prefers-color-scheme: dark) {
+  .wb-reminder {
+    --wb-reminder-text: #ffffff;
+    /* CardStrokeColorDefault（Dark）#19000000 → alpha 0x19 = 9.8% */
+    --wb-reminder-border: rgb(0 0 0 / 9.8%);
+  }
+
+  .wb-reminder[data-severity='informational'] {
+    /* SystemFillColorAttentionBackground（generic.xaml:2099）#08FFFFFF → alpha 0x08 = 3.1% */
+    --wb-reminder-surface: rgb(255 255 255 / 3.1%);
+  }
+
+  .wb-reminder[data-severity='warning'] {
+    /* CautionBackground #433519（:2101）/ Caution #FCE100（:2095） */
+    --wb-reminder-surface: #433519;
+    --wb-reminder-icon-color: #fce100;
+  }
+
+  .wb-reminder[data-severity='error'] {
+    /* CriticalBackground #442726（:2102）/ Critical #FF99A4（:2096） */
+    --wb-reminder-surface: #442726;
+    --wb-reminder-icon-color: #ff99a4;
+  }
+
+  .wb-reminder[data-severity='success'] {
+    /* SuccessBackground #393D1B（:2100）/ Success #6CCB5F（:2094） */
+    --wb-reminder-surface: #393d1b;
+    --wb-reminder-icon-color: #6ccb5f;
+  }
+
+  /* 关闭按钮悬停/按下（SubtleFillColorSecondary #0FFFFFFF / Tertiary #0AFFFFFF，generic.xaml:2045-2046） */
+  .wb-reminder__close:hover {
+    background: rgb(255 255 255 / 5.9%);
+  }
+
+  .wb-reminder__close:active {
+    background: rgb(255 255 255 / 3.9%);
+  }
+}
+
+/*
+ * 严重级图标。
+ *
+ * - 尺寸 16：`InfoBarIconFontSize`（`generic.xaml:38374`）；
+ * - 外边距 `0,16,14,16`：`InfoBarIconMargin`（`generic.xaml:38373`），左边 0 由卡片
+ *   `padding-left: 16` 承担，这里只写右/上/下。
+ *
+ * 桌面用 Segoe Fluent Icons 画"实心圆 + 符号"两层字形（模板里的 `IconBackground` + `StandardIcon`，
+ * `generic.xaml:22348-22349`）；网页端沿用 Fluent React 图标（矢量、跨平台可用），只对齐尺寸与颜色。
+ */
+.wb-reminder__icon {
+  display: flex;
+  flex: 0 0 auto;
+  width: 16px;
+  height: 16px;
+  margin: 16px 14px 16px 0;
+  font-size: 16px;
+  line-height: 1;
+  color: var(--wb-reminder-icon-color);
+}
+
+/*
+ * 文本区。
+ *
+ * - 上外边距 14：`InfoBarTitleVerticalOrientationMargin = 0,14,0,0`（`generic.xaml:38379`）；
+ * - 右外边距 16：`InfoBarPanelMargin = 0,0,16,0`（`generic.xaml:38375`）；
+ * - 标题与正文间距 4：`InfoBarMessageVerticalOrientationMargin = 0,4,0,0`（`generic.xaml:38381`）。
+ *
+ * 提醒栈最大宽 420（`MainWindow.xaml:43-49`），远小于 `InfoBarPanel` 切换横排所需的宽度，
+ * 桌面在这种宽度下会走"纵向"排版（标题在上、正文在下），因此这里按纵向间距实现。
+ */
+.wb-reminder__content {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  margin: 14px 16px 0 0;
+}
+
+/* 标题 14 号 SemiBold：`InfoBarTitleFontSize`（generic.xaml:38359）+ `InfoBarTitleFontWeight`（:38360） */
+.wb-reminder__title {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
+}
+
+/* 正文 14 号 Normal：`InfoBarMessageFontSize`（generic.xaml:38361）+ `InfoBarMessageFontWeight`（:38362） */
+.wb-reminder__message {
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 20px;
+  /* 长单词/长 URL 不撑破卡片；保留消息里自带的换行 */
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+/*
+ * 关闭按钮（对应桌面 `InfoBar.IsClosable = true`，`MainWindow.Reminders.cs:42`）。
+ *
+ * - 38×38：`InfoBarCloseButtonSize`（`generic.xaml:38364`），由 `InfoBarCloseButtonStyle` 的
+ *   `Width`/`Height` 设置（`:38387-38388`）；
+ * - 外边距 5：同一样式的 `Margin=5`（`:38391`）；
+ * - 圆角 4：`DefaultButtonStyle` 的 `CornerRadius` 取 `ControlCornerRadius`；
+ * - 图标 16：`InfoBarCloseButtonGlyphSize`（`generic.xaml:38365`）；
+ * - 底色透明、文字色 `TextFillColorPrimary`：模板把关闭按钮的 `ButtonBackground` / `ButtonForeground`
+ *   覆盖成 `AppBarButtonBackground`（透明）/ `AppBarButtonForeground`（= `TextFillColorPrimaryBrush`，
+ *   `generic.xaml:7392`）；
+ * - 悬停 `SubtleFillColorSecondary` = `#09000000`（`generic.xaml:7771`）、
+ *   按下 `SubtleFillColorTertiary` = `#06000000`（`:7772`）。
+ */
+.wb-reminder__close {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  margin: 5px;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--wb-reminder-text);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.wb-reminder__close:hover {
+  background: rgb(0 0 0 / 3.5%);
+}
+
+.wb-reminder__close:active {
+  background: rgb(0 0 0 / 2.3%);
+}
+
+.wb-reminder__close:focus-visible {
+  outline: 2px solid CanvasText;
+  outline-offset: 1px;
+  box-shadow: inset 0 0 0 1px var(--wb-focus-inner);
+}

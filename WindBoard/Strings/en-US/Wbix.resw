@@ -1,10 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <root>
-  <!--
-    说明：
-    - 本文件为 en-US 语言资源（按功能拆分）。
-    - Key 前缀：Wbix_*
-  -->
+  <!-- en-US 语言资源，Key 前缀 Wbix_* -->
   <resheader name="resmimetype">
     <value>text/microsoft-resx</value>
   </resheader>
@@ -46,5 +42,17 @@
   </data>
   <data name="Wbix_PageParseFailed_Fmt" xml:space="preserve">
     <value>Failed to parse WBIX page: {0}.</value>
+  </data>
+  <data name="Wbix_Media_Image" xml:space="preserve">
+    <value>Image</value>
+  </data>
+  <data name="Wbix_Media_Audio" xml:space="preserve">
+    <value>Audio</value>
+  </data>
+  <data name="Wbix_Media_Video" xml:space="preserve">
+    <value>Video</value>
+  </data>
+  <data name="Wbix_Media_File" xml:space="preserve">
+    <value>File</value>
   </data>
 </root>

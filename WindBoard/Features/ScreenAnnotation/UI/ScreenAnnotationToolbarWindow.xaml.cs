@@ -80,8 +80,7 @@ namespace WindBoard.Features.ScreenAnnotation.UI
         /// 在窗口首次显示（<see cref="Window.Activate"/>）之前完成原生窗口与透明背景配置。
         /// </summary>
         /// <remarks>
-        /// 必须前置到显示之前：WinUI 顶层窗口在未挂透明 backdrop 时会以主题底色绘制首帧
-        /// （浅色主题为白），若推迟到首次 Activated 再配置，用户会先看到一个未配置的白底窗口。
+        /// 必须前置到显示之前：WinUI 顶层窗口未挂透明 backdrop 时会以主题底色绘制首帧（浅色主题为白），推迟到首次 Activated 再配置会先露出未配置的白底窗口。
         /// </remarks>
         internal bool TryInitializeForDisplay()
         {
@@ -131,11 +130,7 @@ namespace WindBoard.Features.ScreenAnnotation.UI
         /// <summary>
         /// 同步形状工具图标的描边笔刷（自绘 Path 不像 FontIcon 经内容前景继承跟随选中视觉状态）。
         /// </summary>
-        /// <remarks>
-        /// 工具栏为恒亮主题（根 Grid RequestedTheme=Light）：非选中=BaseHigh（黑），选中=纯白。
-        /// 与主白板 <c>MainWindow.UpdateShapeIconStroke</c> 同构；触发点：ShapeButton.Loaded 与
-        /// <see cref="SetSelectedMode"/>（选中切换）。
-        /// </remarks>
+        /// <remarks>与主白板 <c>MainWindow.UpdateShapeIconStroke</c> 同构：根 Grid RequestedTheme=Light，非选中为 BaseHigh（黑），选中为纯白；触发点为 ShapeButton.Loaded 与 <see cref="SetSelectedMode"/>。</remarks>
         private void UpdateShapeIconStroke()
         {
             bool isChecked = ShapeButton.IsChecked == true;

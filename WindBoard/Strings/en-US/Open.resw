@@ -1,10 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <root>
-  <!--
-    说明：
-    - 本文件为 en-US 语言资源（按功能拆分）。
-    - Key 前缀：Open_*
-  -->
+  <!-- en-US 语言资源，Key 前缀 Open_* -->
   <resheader name="resmimetype">
     <value>text/microsoft-resx</value>
   </resheader>

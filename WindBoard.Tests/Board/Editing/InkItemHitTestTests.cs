@@ -10,7 +10,7 @@ namespace WindBoard.Tests.Board.Editing;
 
 public sealed class InkItemHitTestTests
 {
-    // Stroke 分支：折线线段距离算法应经接口分发正常命中
+    // 擦除命中经接口分发到 Stroke 的线段距离算法。
     [Fact]
     public void IsInkItemHitByEraserSegment_HitsStroke_WhenEraserCrossesSegment()
     {
@@ -27,7 +27,6 @@ public sealed class InkItemHitTestTests
         Assert.True(hit);
     }
 
-    // 非 Stroke 条目走通用路径：擦除轨迹 AABB 与条目包围盒相交即命中
     [Fact]
     public void IsInkItemHitByEraserSegment_HitsNonStrokeItem_WhenBoundsOverlapEraserAabb()
     {
@@ -42,7 +41,6 @@ public sealed class InkItemHitTestTests
         Assert.True(hit);
     }
 
-    // 非 Stroke 条目：无交集时不命中
     [Fact]
     public void IsInkItemHitByEraserSegment_MissesNonStrokeItem_WhenBoundsFarAway()
     {
@@ -57,7 +55,6 @@ public sealed class InkItemHitTestTests
         Assert.False(hit);
     }
 
-    // 非 Stroke 条目：无有效包围盒（空矩形）时不命中
     [Fact]
     public void IsInkItemHitByEraserSegment_MissesNonStrokeItem_WhenBoundsEmpty()
     {

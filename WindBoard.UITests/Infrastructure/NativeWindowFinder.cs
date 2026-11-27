@@ -5,9 +5,8 @@ using System.Runtime.InteropServices;
 namespace WindBoard.UITests.Infrastructure
 {
     /// <summary>
-    /// Win32 顶层窗口枚举（EnumWindows）。
-    /// 背景：Windows 11 的新版文件对话框（IFileDialog）不暴露在 UIA 桌面树的条件搜索结果中
-    /// （desktop.FindAllDescendants 扫不到），必须经 Win32 句柄定位后再转成 UIA 元素操作。
+    /// Win32 顶层窗口枚举（EnumWindows）：Win11 新版文件对话框（IFileDialog）不暴露在 UIA 桌面树的条件搜索结果中（desktop.FindAllDescendants 扫不到），
+    /// 必须经 Win32 句柄定位后再转成 UIA 元素操作。
     /// </summary>
     internal static class NativeWindowFinder
     {
@@ -104,9 +103,8 @@ namespace WindBoard.UITests.Infrastructure
         }
 
         /// <summary>
-        /// 枚举指定类名、排除给定窗口的可见顶层窗口。
-        /// 说明：WinUI 弹层（ContentDialog 等）宿主 HWND 与主窗口类名相同，但 GW_OWNER
-        /// 关系实测并不可靠（可能为 0），因此按“同 class + 排除主窗口”定位。
+        /// 枚举指定类名、排除给定窗口的可见顶层窗口：WinUI 弹层（ContentDialog 等）宿主 HWND 与主窗口类名相同，
+        /// 但 GW_OWNER 关系实测并不可靠（可能为 0），因此按“同 class + 排除主窗口”定位。
         /// </summary>
         public static IReadOnlyList<nint> FindWindowsByClassName(string className, nint excludeHwnd)
         {
@@ -152,10 +150,8 @@ namespace WindBoard.UITests.Infrastructure
         }
 
         /// <summary>
-        /// 查找系统文件对话框句柄。
-        /// 说明：WinUI 3（Windows App SDK）的文件选择器对话框由 Shell 侧进程承载
-        /// （实测 pid 与被测应用不同），因此不能按进程过滤；改用
-        /// “类名 #32770 + owner 为指定窗口”为主条件，标题匹配作兜底。
+        /// 查找系统文件对话框句柄：WinUI 3 的文件选择器对话框由 Shell 侧进程承载（实测 pid 与被测应用不同），
+        /// 故不能按进程过滤，改用“类名 #32770 + owner 为指定窗口”为主条件，标题匹配作兜底。
         /// </summary>
         public static nint? FindFileDialogHandle(nint ownerWindowHandle, IReadOnlyCollection<string> fallbackTitles)
         {
@@ -171,7 +167,7 @@ namespace WindBoard.UITests.Infrastructure
                 candidates.Add((hWnd, GetWindowTitle(hWnd)));
             }
 
-            // 1) owner 关系：IFileDialog 模态归属主窗口。
+            // owner 关系：IFileDialog 模态归属主窗口。
             foreach (var (handle, _) in candidates)
             {
                 if (GetWindow(handle, GW_OWNER) == ownerWindowHandle)
@@ -180,7 +176,7 @@ namespace WindBoard.UITests.Infrastructure
                 }
             }
 
-            // 2) 标题兜底（覆盖 owner 解析差异）。
+            // 标题兜底（覆盖 owner 解析差异）。
             foreach (var (handle, title) in candidates)
             {
                 foreach (string fallbackTitle in fallbackTitles)

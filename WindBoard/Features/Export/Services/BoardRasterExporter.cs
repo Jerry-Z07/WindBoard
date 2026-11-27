@@ -157,12 +157,7 @@ namespace WindBoard.Features.Export.Services
                 pixelHeight = Math.Max(1, (int)Math.Ceiling(heightDip * dpi / 96.0f));
             }
 
-            // 3) 创建 WIC 位图（32bppPBGRA），并创建“WIC 位图渲染目标”在其上绘制。
-            // 
-            // 注意：
-            // - 不使用 CreateBitmapFromWicBitmap 的原因：该 API 更偏向“从 WIC 载入位图作为资源”，
-            //   在某些驱动/实现下可能不会把绘制结果回写到原始 IWICBitmap，从而导致导出全白/全透明。
-            // - CreateWicBitmapRenderTarget 是 Direct2D 官方提供的“写回 WIC 位图”的通道，更稳定。
+            // 用 CreateWicBitmapRenderTarget 写回 WIC 位图：CreateBitmapFromWicBitmap 面向从 WIC 载入位图作资源，部分驱动下不回写绘制结果，导致导出全白或全透明。
             IWICBitmap wicBitmap = _wicFactory.CreateBitmap((uint)pixelWidth, (uint)pixelHeight, Vortice.WIC.PixelFormat.Format32bppPBGRA, BitmapCreateCacheOption.CacheOnLoad);
             try
             {
@@ -216,9 +211,8 @@ namespace WindBoard.Features.Export.Services
         {
             var document = new BoardDocument();
 
-            // 快照 → 域重建（含 Bounds 重算）收敛于 BoardInkItemCodec 单点：
-            // 离屏导出依赖 Bounds 做可见裁剪，重建语义与主链路（Applier）保持一致；
-            // 条目按快照顺序填充，保持 z-order 与文件一致。
+            // 快照到域重建（含 Bounds 重算）收敛于 BoardInkItemCodec，重建语义与主链路 Applier 一致。
+            // 离屏导出依赖 Bounds 做可见裁剪；条目按快照顺序填充，保持 z-order 与文件一致。
             document.InkItems.AddRange(BoardInkItemCodec.ToItemList(page.Strokes));
 
             return document;
@@ -278,9 +272,7 @@ namespace WindBoard.Features.Export.Services
 
         private static byte[] ExtractRgbBytes(IWICBitmap bitmap, int pixelWidth, int pixelHeight, CancellationToken cancellationToken)
         {
-            // 说明：
-            // - 这里以 32bppPBGRA 为输入（Direct2D 常见输出）；
-            // - PDF 里使用 DeviceRGB，因此导出为紧密排列的 RGB（无 alpha）。
+            // 输入为 32bppPBGRA（Direct2D 常见输出），PDF 使用 DeviceRGB，因此导出为紧密排列的无 alpha RGB。
             using IWICBitmapLock bmpLock = bitmap.Lock(new System.Drawing.Rectangle(0, 0, pixelWidth, pixelHeight), BitmapLockFlags.Read);
 
             DataRectangle data = bmpLock.Data;
@@ -303,7 +295,7 @@ namespace WindBoard.Features.Export.Services
                 int dstRowIndex = y * pixelWidth * 3;
 
                 // 逐像素转换：BGRA → RGB（忽略 alpha）。
-                // 说明：为了避免逐像素 Marshal.ReadByte 的高开销，这里按行拷贝到托管缓冲区再转换。
+                // 为了避免逐像素 Marshal.ReadByte 的高开销，这里按行拷贝到托管缓冲区再转换。
                 Marshal.Copy(srcRow, bgraRow, 0, rowBytes);
                 for (int x = 0; x < pixelWidth; x++)
                 {

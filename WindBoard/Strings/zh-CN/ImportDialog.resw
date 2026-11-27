@@ -1,10 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <root>
-  <!--
-    说明：
-    - 本文件为 zh-CN 语言资源（按功能拆分）。
-    - Key 前缀：ImportDialog_*
-  -->
+  <!-- zh-CN 语言资源，Key 前缀 ImportDialog_* -->
   <resheader name="resmimetype">
     <value>text/microsoft-resx</value>
   </resheader>
@@ -78,7 +74,7 @@
     <value>清空</value>
   </data>
   <data name="ImportDialog_Queue_EmptyHint" xml:space="preserve">
-    <value>队列为空，先从左侧添加内容。</value>
+    <value>还没有添加内容。</value>
   </data>
   <data name="ImportDialog_RemoveFromQueue" xml:space="preserve">
     <value>从队列移除</value>

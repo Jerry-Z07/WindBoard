@@ -22,10 +22,7 @@ namespace WindBoard.Updates
 
         /// <summary>
         /// 空闲超时：一段时间无任何下载进度则视为“卡死”，主动取消并切换源。
-        /// 
-        /// 说明：
-        /// - 默认 20 秒；
-        /// - 设为 <see cref="Timeout.InfiniteTimeSpan"/> 或 &lt;= 0 表示禁用空闲超时。
+        /// 默认 20 秒；设为 <see cref="Timeout.InfiniteTimeSpan"/> 或 &lt;= 0 表示禁用空闲超时。
         /// </summary>
         public TimeSpan IdleTimeout { get; init; } = TimeSpan.FromSeconds(20);
     }

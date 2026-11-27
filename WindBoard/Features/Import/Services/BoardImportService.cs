@@ -301,7 +301,7 @@ namespace WindBoard.Features.Import.Services
             }
             catch (Exception ex)
             {
-                // 说明：像素解码属于“可选增强”，失败不应阻断导入。
+                // 像素解码属于“可选增强”，失败不应阻断导入。
                 AppLog.Warn("Import", $"图片解码失败：'{file.Path}'", ex);
             }
 

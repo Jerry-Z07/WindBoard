@@ -46,9 +46,7 @@ namespace WindBoard.Reminders
 
             try
             {
-                // 说明：
-                // - 有些路径在第一次保存设置/写日志前可能尚未创建；
-                // - 创建失败也不影响“尝试打开”，因为 Explorer 仍可能定位到父目录。
+                // 有些路径在第一次保存设置/写日志前可能尚未创建；创建失败也不影响“尝试打开”，因为 Explorer 仍可能定位到父目录。
                 Directory.CreateDirectory(dir);
             }
             catch (Exception ex)

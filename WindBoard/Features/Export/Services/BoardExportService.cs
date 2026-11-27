@@ -16,11 +16,8 @@ using Windows.UI;
 namespace WindBoard.Features.Export.Services
 {
     /// <summary>
-    /// 导出服务（PNG / PDF / WBIX）。
-    /// 
-    /// 说明：
-    /// - 导出通常是耗时操作，这里统一在后台线程执行（Task.Run）；
-    /// - 输入建议使用 <see cref="BoardWorkspaceSnapshot"/>，避免导出过程中 UI 继续编辑导致数据竞争。
+    /// 导出服务（PNG / PDF / WBIX）：导出耗时，统一在后台线程执行（Task.Run）。
+    /// 输入使用 <see cref="BoardWorkspaceSnapshot"/>，避免导出过程中 UI 继续编辑造成数据竞争。
     /// </summary>
     internal sealed class BoardExportService : IBoardExportService
     {
@@ -28,6 +25,8 @@ namespace WindBoard.Features.Export.Services
 
         private const long MaxEmbeddedImageBytes = 32L * 1024 * 1024;
         private const long MaxTotalEmbeddedImageBytes = 256L * 1024 * 1024;
+
+        private const string TempFileSuffix = ".part";
 
         public Task ExportWbixAsync(BoardWorkspaceSnapshot snapshot, string filePath, CancellationToken cancellationToken = default)
         {
@@ -42,10 +41,8 @@ namespace WindBoard.Features.Export.Services
             {
                 cancellationToken.ThrowIfCancellationRequested();
 
-                // 资源列表（封面 + 页面元素资源等）：用于后续导入/文件列表中快速识别内容与增强可移植性。
-                // 说明：
-                // - 封面图属于“可选资源”，即使生成失败也不应阻断 WBIX 导出；
-                // - 图片资源属于“可选增强”：尽量内嵌到 assets/，提高跨机可用性。
+                // 资源列表（封面与页面元素资源等）用于导入或文件列表快速识别内容，并增强可移植性。
+                // 封面与图片资源都是可选项：封面生成失败不阻断 WBIX 导出，图片尽量内嵌到 assets/ 以提高跨机可用性。
                 List<WbixResourceFile> resources = new();
                 if (TryCreateWbixCoverResource(snapshot, cancellationToken, out WbixResourceFile? cover)
                     && cover is not null)
@@ -55,8 +52,11 @@ namespace WindBoard.Features.Export.Services
 
                 TryAddWbixEmbeddedImageResources(snapshot, resources, cancellationToken);
 
-                await using var stream = new FileStream(filePath, FileMode.Create, FileAccess.Write, FileShare.None);
-                await _wbixSerializer.SaveAsync(snapshot, stream, resources, cancellationToken).ConfigureAwait(false);
+                await WriteAtomicallyAsync(filePath, async tempPath =>
+                {
+                    await using var stream = new FileStream(tempPath, FileMode.Create, FileAccess.Write, FileShare.None);
+                    await _wbixSerializer.SaveAsync(snapshot, stream, resources, cancellationToken).ConfigureAwait(false);
+                }).ConfigureAwait(false);
             }, cancellationToken);
         }
 
@@ -144,7 +144,7 @@ namespace WindBoard.Features.Export.Services
                 throw new ArgumentException(L10n.Get("Export_PathEmpty_Message"), nameof(filePath));
             }
 
-            return Task.Run(() =>
+            return Task.Run(async () =>
             {
                 cancellationToken.ThrowIfCancellationRequested();
 
@@ -164,8 +164,44 @@ namespace WindBoard.Features.Export.Services
                     throw new InvalidOperationException(L10n.Get("Export_NoPagesSelected_Message"));
                 }
 
-                BoardPdfExporter.Export(pages, filePath, options, cancellationToken);
+                await WriteAtomicallyAsync(filePath, tempPath =>
+                {
+                    BoardPdfExporter.Export(pages, tempPath, options, cancellationToken);
+                    return Task.CompletedTask;
+                }).ConfigureAwait(false);
             }, cancellationToken);
+        }
+
+        /// <summary>
+        /// 写同目录临时文件，成功后替换目标文件；取消或失败时删除临时文件，目标位置不留半成品。
+        /// </summary>
+        private static async Task WriteAtomicallyAsync(string filePath, Func<string, Task> write)
+        {
+            string tempPath = filePath + TempFileSuffix;
+            try
+            {
+                await write(tempPath).ConfigureAwait(false);
+                File.Move(tempPath, filePath, overwrite: true);
+            }
+            finally
+            {
+                TryDeleteTempFile(tempPath);
+            }
+        }
+
+        private static void TryDeleteTempFile(string tempPath)
+        {
+            try
+            {
+                if (File.Exists(tempPath))
+                {
+                    File.Delete(tempPath);
+                }
+            }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+            {
+                AppLog.Warn("Export", $"临时文件清理失败：'{tempPath}'", ex);
+            }
         }
 
         private static bool TryCreateWbixCoverResource(BoardWorkspaceSnapshot snapshot, CancellationToken cancellationToken, out WbixResourceFile? coverResource)

@@ -18,9 +18,8 @@ namespace WindBoard.Features.Import.Services
 
             raw = raw.Trim();
 
-            // 仅允许 http/https：
-            // - 没写 scheme（例如 example.com）时，默认补 https://
-            // - 写了 scheme（包含 ://）但不是 http(s) 时，直接拒绝，避免把 ftp:// 等错误拼接成 https://ftp://...
+            // 仅允许 http/https：没写 scheme（例如 example.com）时补 https://。
+            // 已带 :// 但不是 http(s) 时直接拒绝，避免把 ftp:// 拼成 https://ftp://。
             if (raw.Contains("://", StringComparison.Ordinal))
             {
                 if (!raw.StartsWith("http://", StringComparison.OrdinalIgnoreCase)

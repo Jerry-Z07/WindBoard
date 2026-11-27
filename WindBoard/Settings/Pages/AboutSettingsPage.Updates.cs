@@ -156,10 +156,8 @@ namespace WindBoard.Settings.Pages
                 resultDialog.Resources["ContentDialogMaxWidth"] = 1240d;
             }
 
-            // 响应式高度：弹窗打开后缩窗时重算 MaxHeight，避免内容再次被截断；Closed 时退订避免悬挂订阅。
-            // 注意：XamlRoot 没有 SizeChanged 事件，尺寸变化通知走 Changed；
-            // 且 WinUI 3 的 XamlRootChangedEventArgs 不携带新尺寸（仅 IsAvailable/Theme 等标志），
-            // 这里直接读取当前 XamlRoot.Size，非尺寸变化触发时重算结果相同，无副作用。
+            // 响应式高度：弹窗打开后缩窗时重算 MaxHeight，避免内容被截断；Closed 时退订避免悬挂订阅。
+            // XamlRoot 没有 SizeChanged 事件，尺寸变化走 Changed；WinUI 3 的 XamlRootChangedEventArgs 也不携带新尺寸，故直接读当前 XamlRoot.Size，非尺寸变化触发时重算结果相同。
             void OnXamlRootChanged(XamlRoot sender, XamlRootChangedEventArgs args)
             {
                 UpdateScrollAreaMaxHeight(scrollViewers, layoutPlan.UseTwoColumnLayout, sender.Size.Height);

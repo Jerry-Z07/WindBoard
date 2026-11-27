@@ -5,13 +5,8 @@ using WindBoard.Localization;
 namespace WindBoard.Features.Export.Services
 {
     /// <summary>
-    /// 页码范围解析器（1 基输入 → 0 基索引）。
-    /// 
-    /// 支持格式示例：
-    /// - 1
-    /// - 1,3,5
-    /// - 2-6
-    /// - 1,3-5,8
+    /// 页码范围解析器，输入 1 基页码并输出 0 基索引。
+    /// 支持单页、逗号分隔（1,3,5）、区间（2-6）及其组合（1,3-5,8）。
     /// </summary>
     internal static class PageRangeParser
     {
@@ -20,9 +15,7 @@ namespace WindBoard.Features.Export.Services
             pageIndices = new List<int>();
             errorMessage = string.Empty;
 
-            // 设计说明：
-            // - 导出页选择属于用户输入，容错与报错信息比“极致性能”更重要；
-            // - 这里使用 SortedSet 去重 + 排序，避免重复页导致重复导出，也保证输出稳定。
+            // 页选择来自用户输入，容错与报错信息优先于性能；SortedSet 去重并排序，避免重复页重复导出并保证输出稳定。
             var indices = new SortedSet<int>();
 
             bool ok = true;

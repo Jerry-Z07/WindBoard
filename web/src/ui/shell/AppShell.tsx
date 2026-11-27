@@ -1,0 +1,115 @@
+/**
+ * 应用外壳：把画布、提醒栈、Dock 与窗口级对话框摆到桌面的对应位置，结构对应 MainWindow.xaml 的 Row1 Grid（BoardCanvasControl、右上 ReminderBannerStackPanel 外边距 14,14,14,0、底部 Grid 外边距 14,0,14,14 且强制浅色，内含左中右三块 Dock）。
+ * 不渲染标题栏：桌面的 TitleBar（MainWindow.xaml:25-37）给无边框窗口做拖拽区与标题显示，浏览器窗口自带标题栏、PWA 由系统绘制，再画一条只白占 32 DIP（手机上是一整行），窗口标题仍在 title 与 PWA name 里。Dock 三块浮层分别对齐左中右，主 Dock 才能始终以窗口居中，不能用等距 flex 代替。
+ */
+
+import { useMemo, useState, type ReactNode } from 'react'
+import { useFullscreen } from '../../app/use-fullscreen.ts'
+import type { ShellActions } from '../../app/contexts.ts'
+import { BoardControllerProvider, ShellActionsProvider } from '../../app/providers.tsx'
+import type { BoardController } from '../../canvas/board-controller.ts'
+import { BoardSurface } from './BoardSurface.tsx'
+import { DockBar } from './DockBar.tsx'
+import { DockEditOverlay } from './DockEditOverlay.tsx'
+import { ReminderStack } from './ReminderStack.tsx'
+import { useNarrowLayout } from './use-narrow-layout.ts'
+import { SettingsWindow } from '../dialogs/SettingsWindow.tsx'
+import { ExportDialog } from '../dialogs/ExportDialog.tsx'
+import { ImportDialog } from '../dialogs/ImportDialog.tsx'
+
+/** 应用外壳。 */
+export function AppShell(): ReactNode {
+  const { isFullscreen, toggle: toggleFullscreen } = useFullscreen()
+  const [controller, setController] = useState<BoardController | null>(null)
+  const [settingsOpen, setSettingsOpen] = useState(false)
+  const [exportOpen, setExportOpen] = useState(false)
+  const [importOpen, setImportOpen] = useState(false)
+  // Dock 就地编辑：编辑期间不渲染正常 Dock，由编辑层铺满内容区拦截画布输入
+  const [dockEditing, setDockEditing] = useState(false)
+  // 窄屏（手机）把三段 Dock 合并成一段紧凑栏，否则三段横排会互相覆盖
+  const narrow = useNarrowLayout()
+
+  const actions = useMemo<ShellActions>(
+    () => ({
+      isFullscreen,
+      openSettings: () => {
+        setSettingsOpen(true)
+      },
+      openExport: () => {
+        setExportOpen(true)
+      },
+      openImport: () => {
+        setImportOpen(true)
+      },
+      toggleFullscreen,
+    }),
+    [isFullscreen, toggleFullscreen],
+  )
+
+  return (
+    <ShellActionsProvider value={actions}>
+      <div className="wb-app">
+        <div className="wb-body">
+          <BoardSurface onControllerChange={setController} />
+          {/* 工具栏依赖控制器存在，而控制器要等画布元素挂载后才创建，所以这层先不渲染。 */}
+          {controller === null ? null : (
+            <BoardControllerProvider controller={controller}>
+              <ReminderStack />
+              {dockEditing ? (
+                <DockEditOverlay
+                  onDone={() => {
+                    setDockEditing(false)
+                  }}
+                />
+              ) : narrow ? (
+                <div className="wb-dock-layer wb-dock-layer--narrow">
+                  <DockBar placement="narrow" />
+                </div>
+              ) : (
+                <div className="wb-dock-layer">
+                  <DockBar placement="left" />
+                  <div className="wb-dock-layer__center">
+                    <DockBar placement="center" />
+                  </div>
+                  <DockBar placement="right" />
+                </div>
+              )}
+            </BoardControllerProvider>
+          )}
+        </div>
+        {/*
+          窗口级对话框同样依赖控制器（导出要读当前页快照、导入要写工作区），
+          必须一起放进 provider；放在 provider 外面会让 `useBoardController` 抛错、
+          整个应用白屏。
+        */}
+        {controller === null ? null : (
+          <BoardControllerProvider controller={controller}>
+            <SettingsWindow
+              open={settingsOpen}
+              onClose={() => {
+                setSettingsOpen(false)
+              }}
+              onStartDockEdit={() => {
+                // 桌面先关闭设置窗口再进入主窗口编辑模式；两步放在同一次事件里，编辑层当帧出现
+                setSettingsOpen(false)
+                setDockEditing(true)
+              }}
+            />
+            <ExportDialog
+              open={exportOpen}
+              onClose={() => {
+                setExportOpen(false)
+              }}
+            />
+            <ImportDialog
+              open={importOpen}
+              onClose={() => {
+                setImportOpen(false)
+              }}
+            />
+          </BoardControllerProvider>
+        )}
+      </div>
+    </ShellActionsProvider>
+  )
+}

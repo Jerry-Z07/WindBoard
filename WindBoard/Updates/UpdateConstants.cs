@@ -7,7 +7,7 @@ namespace WindBoard.Updates
     /// </summary>
     internal static class UpdateConstants
     {
-        // 说明：当前更新源与发布工作流强绑定（GitHub Releases 的 latest.json）。
+        // 当前更新源与发布工作流强绑定（GitHub Releases 的 latest.json）。
         // 如需迁移到自建更新源，可在此处集中修改。
         internal const string RepoOwner = "Jerry-Z07";
         internal const string RepoName = "WindBoard";
@@ -18,10 +18,8 @@ namespace WindBoard.Updates
         internal static string ReleaseLatestPageUrl =>
             $"https://github.com/{RepoOwner}/{RepoName}/releases/latest";
 
-        // Microsoft Store 产品 ID（Partner Center「Product identity」中的 Store ID）：
-        // 单一配置点，供“更新由 Store 托管”卡片打开商店页面使用。
-        // release.yml 中的 vars.MSIX_STORE_PRODUCT_ID 只影响发布说明里的链接，此处影响应用内跳转，
-        // 两者取值需保持一致（见仓库变量列表）。
+        // Microsoft Store 产品 ID（Partner Center「Product identity」中的 Store ID），单一配置点，供“更新由 Store 托管”卡片打开商店页面使用。
+        // release.yml 中的 vars.MSIX_STORE_PRODUCT_ID 只影响发布说明里的链接，此处影响应用内跳转，两者取值需保持一致（见仓库变量列表）。
         internal const string StoreProductId = "9NGWWJ9WGKBX";
 
         /// <summary>

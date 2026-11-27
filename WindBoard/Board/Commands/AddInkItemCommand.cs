@@ -8,8 +8,7 @@ namespace WindBoard.Board.Commands
     /// 向笔迹层添加一个绘制条目（可撤销）。
     /// </summary>
     /// <remarks>
-    /// 由原 <c>AddStrokeCommand</c> 泛化而来（design A）：实现本身类型无关（Insert/Remove），
-    /// 折线笔迹（<see cref="WindBoard.Board.Stroke"/>）与形状（<see cref="BoardShape"/>）共用同一命令。
+    /// 实现与条目类型无关（Insert/Remove），折线笔迹（<see cref="WindBoard.Board.Stroke"/>）与形状（<see cref="BoardShape"/>）共用同一命令。
     /// </remarks>
     internal sealed class AddInkItemCommand(IBoardInkItem item) : IBoardCommand
     {

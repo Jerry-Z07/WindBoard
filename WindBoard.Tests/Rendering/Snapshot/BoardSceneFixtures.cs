@@ -12,8 +12,7 @@ namespace WindBoard.Tests.Rendering.Snapshot;
 /// 快照场景构造工厂：集中管理文档/笔迹/形状/元素卡片与视口参数的构造逻辑。
 /// </summary>
 /// <remarks>
-/// 约定：所有场景内容围绕世界坐标原点布置，默认相机对准原点、缩放 1，
-/// 使场景稳定落在快照中心区域；场景变更属于基准变更，须重建基准并说明理由。
+/// 所有场景内容围绕世界坐标原点布置，默认相机对准原点、缩放 1，使场景稳定落在快照中心区域；场景变更属于基准变更，须重建基准并说明理由。
 /// </remarks>
 internal static class BoardSceneFixtures
 {

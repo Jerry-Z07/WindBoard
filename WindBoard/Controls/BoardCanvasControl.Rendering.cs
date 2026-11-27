@@ -256,10 +256,8 @@ namespace WindBoard.Controls
 
             SelectionDockBorder.Visibility = Visibility.Visible;
 
-            // 置顶/取消置顶：
-            // - 未置顶：按钮执行置顶；
-            // - 已置顶：若“最近一次命令”正好是该次置顶，则按钮可再次点击撤销（取消置顶）。
-            //   说明：置顶本质是一次“改变绘制顺序”的命令，撤销只能对 Undo 栈顶生效，避免误撤销其它操作。
+            // 未置顶时按钮执行置顶；已置顶且最近一次命令正是该次置顶时，按钮可再次点击撤销。
+            // 置顶是一次改变绘制顺序的命令，撤销只对 Undo 栈顶生效，以免误撤销其它操作。
             if (SelectionBringToFrontButton is not null)
             {
                 bool isTopMost = false;

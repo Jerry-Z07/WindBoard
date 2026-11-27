@@ -9,7 +9,6 @@ namespace WindBoard.Tests.Board;
 
 public sealed class StrokeInkItemContractTests
 {
-    // Id：创建时生成且全局唯一（用于笔迹层条目标识）
     [Fact]
     public void Id_IsUnique_AcrossStrokes()
     {
@@ -21,7 +20,6 @@ public sealed class StrokeInkItemContractTests
         Assert.NotEqual(a.Id, b.Id);
     }
 
-    // BoundsWorld：与 BoundsMin/BoundsMax 保持一致（无 Bounds 时为空矩形）
     [Fact]
     public void BoundsWorld_MatchesBoundsMinAndMax_WhenComputed()
     {
@@ -36,7 +34,6 @@ public sealed class StrokeInkItemContractTests
         Assert.Equal(stroke.BoundsMax.Y, stroke.BoundsWorld.Bottom);
     }
 
-    // BoundsWorld：无有效 Bounds 时返回空矩形
     [Fact]
     public void BoundsWorld_ReturnsEmptyRect_WhenBoundsMissing()
     {
@@ -47,7 +44,6 @@ public sealed class StrokeInkItemContractTests
         Assert.Equal(0.0f, stroke.BoundsWorld.Height);
     }
 
-    // Translate：接口契约与 Stroke.Translate 行为一致（Points 与 Bounds 同步平移）
     [Fact]
     public void Translate_MovesPointsAndBounds_ViaInterface()
     {

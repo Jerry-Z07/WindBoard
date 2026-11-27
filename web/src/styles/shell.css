@@ -1,0 +1,298 @@
+/**
+ * 应用外壳布局样式。
+ *
+ * 结构对应 `WindBoard/MainWindow.xaml` 的两行 Grid：
+ * ```
+ * （桌面 Row 0 的 TitleBar 在网页端不渲染，画布直接铺满）
+ * Row 1  BoardSurface + 右上提醒栈 + 底部 Dock（三块分别左/居中/右对齐）
+ * ```
+ * 尺寸与颜色一律来自 `tokens.css`，这里只负责摆放。
+ */
+
+/*
+ * 外壳独占整个视口，文档本身永远不滚动。
+ *
+ * `overflow: hidden` 不只为了挡滚动条：移动端 `width=device-width` 下，内容溢出会把
+ * **布局视口**撑宽（实测打开内嵌页面列表后从 360 涨到 427），而 `position: fixed; inset: 0`
+ * 的外壳以布局视口为准，会跟着一起变宽，整块 Dock 被推着右移，右侧按钮直接出界。
+ */
+/* `color-scheme` 必须落在根元素上，浏览器才会同步原生滚动条、表单控件与初始画布底色。 */
+:root {
+  color-scheme: light dark;
+}
+
+:root[data-theme='light'] {
+  color-scheme: light;
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+  overscroll-behavior: none;
+  /*
+   * 不启用 `font-size-adjust`：本项目只用系统字体，没有 Web Font 换字导致的 CLS；
+   * 而 `from-font` 会按 Segoe UI Variable 的 x-height 缩放中文回退字体，
+   * 改变 WinUI 视觉基线里的 CJK 字号（实测只影响文字像素）。
+   */
+}
+
+.wb-app {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--wb-canvas-background);
+}
+
+/* ===== 画布区 ===== */
+.wb-body {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  /* 安全区：装上 PWA 后 iOS 的刘海/状态栏会盖住页面顶部。原来由标题栏吸收这条内边距，
+     标题栏去掉后改由这里承担——绝对定位的子元素以 padding box 定位，画布与浮层会一起
+     让开刘海，上方留出的窄条由 `.wb-app` 的画布底色填充，与画布无缝。
+     桌面上 `env(safe-area-inset-top)` 恒为 0，等于没有这条规则。 */
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+.wb-surface {
+  position: absolute;
+  inset: 0;
+  /* 只禁止画布区的文字选中/拖拽；设置与对话框在 `.wb-surface` 之外，保持可选中。 */
+  user-select: none;
+  -webkit-user-select: none;
+  /* 画布尺寸被渲染层钉成整设备像素（可能比布局盒多出不到 1px），这里裁掉溢出 */
+  overflow: hidden;
+}
+
+.wb-surface__canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  /* 触摸设备上禁止浏览器接管手势（桌面无此概念，属浏览器必需项） */
+  touch-action: none;
+  cursor: crosshair;
+}
+
+/*
+ * 擦除光标贴图（桌面 `BoardCanvasControl.xaml:47-51` 的 EraserCursorImage）：
+ * 48×72 DIP、中心对齐指针，可见性由 `data-visible` 控制，位置由脚本写 transform。
+ */
+.wb-eraser-cursor {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 48px;
+  height: 72px;
+  visibility: hidden;
+  pointer-events: none;
+  user-select: none;
+}
+
+.wb-eraser-cursor[data-visible='true'] {
+  visibility: visible;
+}
+
+/* ===== 右上提醒栈（`MainWindow.xaml:43-49`） ===== */
+.wb-reminder-stack {
+  position: absolute;
+  top: calc(var(--wb-overlay-margin) + env(safe-area-inset-top, 0px));
+  right: calc(var(--wb-overlay-margin) + env(safe-area-inset-right, 0px));
+  display: flex;
+  flex-direction: column;
+  gap: var(--wb-reminder-stack-gap);
+  width: min(var(--wb-reminder-stack-width), calc(100% - 2 * var(--wb-overlay-margin)));
+  pointer-events: none;
+  z-index: 20;
+}
+
+.wb-reminder-stack > * {
+  pointer-events: auto;
+}
+
+/* ===== 底部 Dock 层（`MainWindow.xaml:54-70`） ===== */
+.wb-dock-layer {
+  position: absolute;
+  /* Dock 是应用 chrome，不允许选中文字；设置/对话框不受影响。 */
+  user-select: none;
+  -webkit-user-select: none;
+  left: calc(var(--wb-overlay-margin) + env(safe-area-inset-left, 0px));
+  right: calc(var(--wb-overlay-margin) + env(safe-area-inset-right, 0px));
+  bottom: calc(var(--wb-overlay-margin) + env(safe-area-inset-bottom, 0px));
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  /* 三块浮层各自对齐左/中/右；中间块绝对居中，保证主 Dock 始终以窗口居中 */
+  z-index: 30;
+  pointer-events: none;
+}
+
+.wb-dock-layer > * {
+  pointer-events: auto;
+}
+
+.wb-dock-layer__center {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  transform: translateX(-50%);
+}
+
+/*
+ * 中等宽度（701~900）：三段仍并排，但中段不再"绝对居中"。
+ *
+ * 中段宽 395、左段 198，视口 <819 时 `left:50%` 的中心块会压在左段上（实测 800 宽时
+ * 左段右端 212、中段左端 203，直接盖住 9px，按钮点不到）。改成不脱流后三块首尾相接、
+ * 整体居中，700 宽以上就完全不重叠。
+ */
+@media (max-width: 900px) and (min-width: 701px) {
+  .wb-dock-layer {
+    justify-content: center;
+    gap: 8px;
+  }
+
+  .wb-dock-layer__center {
+    position: static;
+    transform: none;
+  }
+}
+
+/* 窄屏（≤700）的单段紧凑栏：整段居中，不再有左/中/右三段 */
+.wb-dock-layer--narrow {
+  justify-content: center;
+}
+
+/* ===== Dock 底板与按钮 ===== */
+.wb-dock {
+  display: flex;
+  align-items: center;
+  gap: var(--wb-dock-gap);
+  padding: var(--wb-dock-padding);
+  /* 不支持 color-mix 的浏览器退回不透明底板，避免背景直接消失。 */
+  background: var(--wb-dock-plate-color);
+  background: color-mix(in srgb, var(--wb-dock-plate-color) 85%, transparent);
+  border-radius: var(--wb-dock-plate-radius);
+  /* Dock 里只有按钮（`.wb-dock-button` 用 `color: inherit`），文字走 `DefaultButtonStyle`
+     的 `TextFillColorPrimary`（89.4% 黑），不是浮层那种纯黑 */
+  color: var(--wb-dock-button-foreground);
+}
+
+.wb-dock__separator {
+  width: 1px;
+  height: var(--wb-dock-separator-size);
+  background: var(--wb-dock-separator-color);
+  flex: 0 0 auto;
+}
+
+.wb-dock-button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--wb-dock-label-gap);
+  min-width: var(--wb-dock-button-width);
+  min-height: var(--wb-dock-button-height);
+  padding: var(--wb-dock-button-padding-y) var(--wb-dock-button-padding-x);
+  border: 0;
+  border-radius: var(--wb-dock-button-radius);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: default;
+}
+
+.wb-dock-button:hover {
+  background: var(--wb-dock-hover);
+}
+
+.wb-dock-button:active {
+  background: var(--wb-dock-pressed);
+}
+
+.wb-dock-button[aria-pressed='true'] {
+  background: var(--wb-dock-checked);
+  color: var(--wb-dock-checked-foreground);
+}
+
+.wb-dock-button:disabled {
+  opacity: 0.4;
+}
+
+/* WinUI 焦点双描边：外圈 2px 黑、内圈 1px 白（深色反转）。 */
+.wb-dock-button:focus-visible,
+.wb-sheet-button:focus-visible {
+  /* CanvasText 跟随 color-scheme，并在强制色彩模式下自动换成系统文字色。 */
+  outline: 2px solid CanvasText;
+  outline-offset: 1px;
+  box-shadow: inset 0 0 0 1px var(--wb-focus-inner);
+}
+
+.wb-dock-button__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--wb-dock-icon-size);
+  height: var(--wb-dock-icon-size);
+  font-size: var(--wb-dock-icon-size);
+  line-height: 1;
+}
+
+.wb-dock-button__label {
+  font-size: var(--wb-dock-label-size);
+  line-height: 1;
+  white-space: nowrap;
+}
+
+/* 页面 Dock：按钮是正方形图标按钮，指示器更宽、字号 12 半粗（`MainWindow.xaml:687-737`） */
+.wb-dock--pages .wb-dock-button {
+  min-width: var(--wb-page-button-size);
+  padding: 0;
+}
+
+.wb-dock__page-indicator {
+  min-width: var(--wb-page-indicator-width);
+  font-size: var(--wb-page-indicator-size);
+  font-weight: 600;
+}
+
+/*
+ * ===== 窄屏（≤700）的紧凑 Dock =====
+ *
+ * 触摸目标 44×44（Material 最小 48、Apple HIG 44；这里取 44 是因为 360 宽扣掉两侧 8 的
+ * 外边距后只剩 344，7 个按钮 × 44 + 间距 24 + 内边距 8 = 340 刚好放得下）。
+ * 文字全部隐藏——44 高的按钮塞不下"图标 20 + 文字 11 + 间距 3"，
+ * 隐藏后无障碍名回落到按钮的 `title`（工具与撤销重做都已带上）。
+ */
+@media (max-width: 700px) {
+  :root {
+    --wb-overlay-margin: 8px;
+    --wb-dock-padding: 4px;
+    --wb-dock-gap: 4px;
+    --wb-dock-button-width: 44px;
+    --wb-dock-button-height: 44px;
+    --wb-dock-button-padding-x: 0px;
+    --wb-dock-button-padding-y: 0px;
+    --wb-dock-separator-size: 24px;
+  }
+
+  .wb-dock-button__label {
+    display: none;
+  }
+
+  .wb-dock-button {
+    gap: 0;
+  }
+
+  /* 提醒条在窄屏占满整行，避免被压到只剩一半宽 */
+  .wb-reminder-stack {
+    top: calc(var(--wb-overlay-margin) + env(safe-area-inset-top, 0px));
+  }
+}

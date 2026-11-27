@@ -16,9 +16,7 @@
         <Grid>
         <ScrollViewer>
             <StackPanel Style="{StaticResource SettingsPageRootStackPanelStyle}">
-                <!--
-                    顶层入口建议以“卡片网格”呈现：窗口较宽时左右两列，较窄时自动变为单列，避免右侧留白。
-                -->
+                <!-- 入口卡片用网格：窗口够宽时两列，变窄后单列。 -->
                 <Grid x:Name="CardsGrid" Style="{StaticResource SettingsPageCardGridStyle}">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />

@@ -7,6 +7,7 @@ using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text;
 using WindBoard.Features.Camouflage.Models;
+using WindBoard.Localization;
 using WindBoard.Logging;
 using WindBoard.Persistence;
 using WindBoard.Settings;
@@ -14,10 +15,7 @@ using WindBoard.Settings;
 namespace WindBoard.Features.Camouflage.Services
 {
     /// <summary>
-    /// 伪装服务：
-    /// - 根据设置生成窗口标题与图标结果
-    /// - 从 exe/图片生成 .ico 缓存
-    /// - 生成/更新桌面快捷方式
+    /// 伪装服务：按设置生成窗口标题与图标结果，从 exe 或图片生成 .ico 缓存，并生成或更新桌面快捷方式。
     /// </summary>
     internal sealed class CamouflageService
     {
@@ -44,9 +42,7 @@ namespace WindBoard.Features.Camouflage.Services
 
         internal static string ComputeCamouflageShortcutSettingsSignature(bool enabled, string? title, string? sourcePath, string? iconCachePath)
         {
-            // 说明：
-            // - 签名用于判断“伪装配置是否变化”，以便在用户修改设置后自动刷新一次桌面快捷方式；
-            // - 同时用于避免每次启动都生成快捷方式（减少对桌面的干扰）。
+            // 签名用于判断伪装配置是否变化：变化后自动刷新一次桌面快捷方式，同时避免每次启动都生成而干扰桌面。
             string payload = string.Join(
                 "\n",
                 enabled ? "1" : "0",
@@ -127,7 +123,7 @@ namespace WindBoard.Features.Camouflage.Services
             {
                 Directory.CreateDirectory(_cacheDir);
 
-                // 说明：默认图标缓存文件名携带版本号，避免“升级后仍沿用旧缓存”导致图标不更新。
+                // 默认图标缓存文件名携带版本号，避免“升级后仍沿用旧缓存”导致图标不更新。
                 string version = global::WindBoard.AppInfo.Version;
                 string fileName = string.IsNullOrWhiteSpace(version) || string.Equals(version, "unknown", StringComparison.OrdinalIgnoreCase)
                     ? DefaultIconFileName
@@ -222,7 +218,7 @@ namespace WindBoard.Features.Camouflage.Services
                 string exePath = ResolveShortcutExecutablePath(Environment.ProcessPath, AppContext.BaseDirectory);
                 if (string.IsNullOrWhiteSpace(exePath))
                 {
-                    errorMessage = "无法获取程序路径。";
+                    errorMessage = L10n.Get("Settings_Camouflage_Error_ExePathMissing");
                     return false;
                 }
 
@@ -254,7 +250,7 @@ namespace WindBoard.Features.Camouflage.Services
             catch (Exception ex)
             {
                 AppLog.Error("Camouflage", "更新桌面快捷方式失败", ex);
-                errorMessage = ex.Message;
+                errorMessage = L10n.Get("Settings_Camouflage_Error_Unexpected");
                 return false;
             }
             finally
@@ -314,9 +310,7 @@ namespace WindBoard.Features.Camouflage.Services
 
         private static string GetDesktopShortcutPath(string desktopDir, string title, string exePath)
         {
-            // 说明：
-            // - 快捷方式“外显命名”主要由文件名决定；这里用标题生成 .lnk 文件名。
-            // - 为避免覆盖用户桌面上同名的其它快捷方式，若检测到同名 .lnk 且不指向当前程序，自动追加后缀。
+            // 快捷方式的外显名由文件名决定，这里用标题生成 .lnk 文件名；同名 .lnk 若不指向当前程序则追加后缀，避免覆盖用户桌面已有的快捷方式。
             string baseName = SanitizeShortcutFileName(title);
 
             for (int attempt = 0; attempt < 20; attempt++)
@@ -479,7 +473,7 @@ namespace WindBoard.Features.Camouflage.Services
             {
                 if (string.IsNullOrWhiteSpace(sourcePath) || !File.Exists(sourcePath))
                 {
-                    errorMessage = "文件不存在。";
+                    errorMessage = L10n.Get("Settings_Camouflage_Error_SourceMissing");
                     return false;
                 }
 
@@ -501,7 +495,7 @@ namespace WindBoard.Features.Camouflage.Services
 
                 if (bitmap is null)
                 {
-                    errorMessage = "无法读取图标/图片。";
+                    errorMessage = L10n.Get("Settings_Camouflage_Error_IconUnreadable");
                     cachePath = string.Empty;
                     return false;
                 }
@@ -518,7 +512,7 @@ namespace WindBoard.Features.Camouflage.Services
                 AppLog.Warn("Camouflage", $"构建图标缓存失败：source='{sourcePath}'", ex);
                 cachePath = string.Empty;
                 previewBytes = null;
-                errorMessage = ex.Message;
+                errorMessage = L10n.Get("Settings_Camouflage_Error_Unexpected");
                 return false;
             }
         }

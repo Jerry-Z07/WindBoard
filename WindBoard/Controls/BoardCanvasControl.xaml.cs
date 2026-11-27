@@ -46,9 +46,8 @@ namespace WindBoard.Controls
         private bool _wasPreviewing;
         private float _lastRenderedZoom = float.NaN;
 
-        // “选中项 Dock - 置顶”支持再次点击撤销：
-        // - 仅当“最近一次 Undo 栈栈顶命令”就是该置顶命令时才允许撤销，避免误撤销其它操作。
-        // - 同时记录目标对象，避免切换选中后仍然显示“取消置顶”导致误操作。
+        // “选中项 Dock 置顶”支持再次点击撤销：仅当最近一次 Undo 栈栈顶就是该置顶命令时允许，避免误撤销其它操作。
+        // 同时记录目标对象，切换选中后不再显示“取消置顶”以免误操作。
         private IBoardCommand? _lastSelectionDockBringToFrontCommand;
         private IBoardInkItem[]? _lastSelectionDockBringToFrontItems;
         private BoardElement? _lastSelectionDockBringToFrontElement;
@@ -158,10 +157,8 @@ namespace WindBoard.Controls
         /// 绘制参数（工具/颜色/粗细/压感）。
         /// </summary>
         /// <remarks>
-        /// - Tool 分量变化沿用原 Tool 切换语义（结束当前动作/清除选择/通知 UI）；
-        ///   颜色/粗细/压感分量变化仅做值同步（仅影响后续新建笔迹），不触碰活动会话；
-        /// - 不做整体相等短路：record struct 相等含 Color4 浮点位级比较，
-        ///   不应作为副作用同步的依据（值同步本身无副作用，可安全重复执行）。
+        /// - Tool 分量变化沿用原 Tool 切换语义（结束当前动作/清除选择/通知 UI）；颜色/粗细/压感变化只做值同步，仅影响后续新建笔迹，不触碰活动会话。
+        /// - 不做整体相等短路：record struct 相等含 Color4 浮点位级比较，不应作为副作用同步的依据；值同步本身无副作用，可安全重复执行。
         /// </remarks>
         internal ToolOptions ToolOptions
         {
@@ -221,11 +218,7 @@ namespace WindBoard.Controls
         }
 
         /// <summary>
-        /// 绑定编辑会话（用于多页面切换）。
-        /// 
-        /// 注意：
-        /// - 需要重新创建 <see cref="BoardInputController"/>，因为它在构造时持有会话引用。
-        /// - 切换时会终止当前交互，避免指针捕获/临时状态残留。
+        /// 绑定编辑会话（用于多页面切换）：需重建 <see cref="BoardInputController"/>，它在构造时持有会话引用；切换时终止当前交互，避免指针捕获或临时状态残留。
         /// </summary>
         internal void BindSession(BoardSession session)
         {
@@ -430,10 +423,7 @@ namespace WindBoard.Controls
                 return;
             }
 
-            // 背景色变更需要同时影响：
-            // - 正常 Render 的清屏色
-            // - 背景缓存（cached background）的清屏色
-            // - 平移滚动优化时的脏区填充色
+            // 背景色需同时作用到正常 Render 的清屏色、背景缓存的清屏色与平移滚动脏区填充色。
             _renderer.ClearColor = ToColor4(_canvasBackgroundColor);
             _renderer.InvalidateCachedBackground();
         }

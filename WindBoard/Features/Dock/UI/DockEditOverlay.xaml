@@ -1,0 +1,513 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UserControl
+    x:Class="WindBoard.Features.Dock.UI.DockEditOverlay"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:l10n="using:WindBoard.Localization"
+    xmlns:local="using:WindBoard.Features.Dock.UI"
+    IsTabStop="True"
+    KeyDown="OnOverlayKeyDown"
+    RequestedTheme="Light"
+    Visibility="Collapsed">
+
+    <UserControl.Resources>
+        <Style x:Key="DockEditListViewItemStyle" TargetType="ListViewItem">
+            <Setter Property="MinWidth" Value="60" />
+            <Setter Property="MinHeight" Value="52" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Margin" Value="2,0" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <Setter Property="VerticalContentAlignment" Value="Stretch" />
+        </Style>
+
+        <Style x:Key="DockEditItemBorderStyle" TargetType="Border">
+            <Setter Property="Width" Value="60" />
+            <Setter Property="Height" Value="52" />
+            <Setter Property="CornerRadius" Value="10" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="VerticalAlignment" Value="Stretch" />
+        </Style>
+
+        <Style x:Key="DockEditAddButtonStyle" TargetType="Button" BasedOn="{StaticResource DockButtonStyle}">
+            <Setter Property="MinWidth" Value="60" />
+            <Setter Property="MinHeight" Value="52" />
+            <Setter Property="Padding" Value="8,6" />
+            <Setter Property="BorderBrush" Value="{ThemeResource SystemControlForegroundBaseMediumLowBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="10" />
+        </Style>
+
+        <Style x:Key="DockEditBadgeButtonStyle" TargetType="Button">
+            <Setter Property="Width" Value="24" />
+            <Setter Property="Height" Value="24" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="CornerRadius" Value="12" />
+            <Setter Property="Background" Value="{ThemeResource SystemControlBackgroundChromeMediumBrush}" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+        </Style>
+
+        <DataTemplate x:Key="DockEditItemTemplate" x:DataType="local:DockEditItemViewModel">
+            <Border Style="{StaticResource DockEditItemBorderStyle}">
+                <Grid>
+                    <StackPanel
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center"
+                        Opacity="{x:Bind ItemOpacity, Mode=OneWay}"
+                        Orientation="Vertical">
+                        <ContentPresenter
+                            Width="20"
+                            Height="20"
+                            HorizontalAlignment="Center"
+                            Content="{x:Bind Icon}" />
+                        <TextBlock
+                            Margin="0,3,0,0"
+                            FontSize="11"
+                            HorizontalAlignment="Center"
+                            Text="{x:Bind Title}" />
+                    </StackPanel>
+
+                    <Rectangle
+                        Margin="1"
+                        RadiusX="10"
+                        RadiusY="10"
+                        Stroke="{ThemeResource SystemControlForegroundBaseMediumLowBrush}"
+                        StrokeDashArray="4,2"
+                        StrokeThickness="1"
+                        Visibility="{x:Bind HiddenOutlineVisibility, Mode=OneWay}" />
+
+                    <Button
+                        Style="{StaticResource DockEditBadgeButtonStyle}"
+                        HorizontalAlignment="Right"
+                        VerticalAlignment="Top"
+                        Visibility="{x:Bind HideButtonVisibility, Mode=OneWay}"
+                        Tag="{x:Bind}"
+                        Click="OnHideItemClicked"
+                        AutomationProperties.AutomationId="{x:Bind HideAutomationId}"
+                        AutomationProperties.Name="{l10n:Loc Key=Dock_Edit_Hide_Tooltip}"
+                        ToolTipService.ToolTip="{l10n:Loc Key=Dock_Edit_Hide_Tooltip}">
+                        <FontIcon FontSize="12" Glyph="&#xE738;" />
+                    </Button>
+
+                    <Button
+                        Style="{StaticResource DockEditBadgeButtonStyle}"
+                        HorizontalAlignment="Right"
+                        VerticalAlignment="Top"
+                        Visibility="{x:Bind RestoreButtonVisibility, Mode=OneWay}"
+                        Tag="{x:Bind}"
+                        Click="OnRestoreItemClicked"
+                        AutomationProperties.AutomationId="{x:Bind RestoreAutomationId}"
+                        AutomationProperties.Name="{l10n:Loc Key=Dock_Edit_Restore_Tooltip}"
+                        ToolTipService.ToolTip="{l10n:Loc Key=Dock_Edit_Restore_Tooltip}">
+                        <FontIcon FontSize="12" Glyph="&#xE710;" />
+                    </Button>
+
+                    <FontIcon
+                        Margin="5"
+                        FontSize="11"
+                        HorizontalAlignment="Right"
+                        VerticalAlignment="Top"
+                        Glyph="&#xE72E;"
+                        Opacity="0.55"
+                        Visibility="{x:Bind LockIconVisibility}"
+                        ToolTipService.ToolTip="{l10n:Loc Key=Dock_Edit_CannotHideMore_Tooltip}" />
+                </Grid>
+            </Border>
+        </DataTemplate>
+
+        <DataTemplate x:Key="ShortcutDockEditItemTemplate" x:DataType="local:ShortcutDockEditItemViewModel">
+            <Border Style="{StaticResource DockEditItemBorderStyle}">
+                <Border.ContextFlyout>
+                    <MenuFlyout>
+                        <MenuFlyoutItem
+                            Click="OnEditShortcutMenuClicked"
+                            Tag="{x:Bind}"
+                            Text="{l10n:Loc Key=Common_Edit}" />
+                        <MenuFlyoutSeparator />
+                        <MenuFlyoutItem
+                            Click="OnMoveShortcutLeftClicked"
+                            Tag="{x:Bind}"
+                            Text="{l10n:Loc Key=Common_Left}" />
+                        <MenuFlyoutItem
+                            Click="OnMoveShortcutRightClicked"
+                            Tag="{x:Bind}"
+                            Text="{l10n:Loc Key=Common_Right}" />
+                        <MenuFlyoutSeparator />
+                        <MenuFlyoutItem
+                            Click="OnDeleteShortcutMenuClicked"
+                            Tag="{x:Bind}"
+                            Text="{l10n:Loc Key=Common_Delete}" />
+                    </MenuFlyout>
+                </Border.ContextFlyout>
+                <Grid>
+                    <StackPanel
+                        HorizontalAlignment="Center"
+                        VerticalAlignment="Center"
+                        Orientation="Vertical">
+                        <IconSourceElement IconSource="{x:Bind IconSource}" />
+                        <TextBlock
+                            MaxWidth="56"
+                            Margin="0,3,0,0"
+                            FontSize="11"
+                            HorizontalAlignment="Center"
+                            Text="{x:Bind Title}"
+                            TextTrimming="CharacterEllipsis"
+                            TextWrapping="NoWrap" />
+                    </StackPanel>
+
+                    <Button
+                        Style="{StaticResource DockEditBadgeButtonStyle}"
+                        HorizontalAlignment="Right"
+                        VerticalAlignment="Top"
+                        Tag="{x:Bind}"
+                        Click="OnRemoveShortcutClicked"
+                        AutomationProperties.Name="{l10n:Loc Key=Common_Delete}"
+                        ToolTipService.ToolTip="{l10n:Loc Key=Common_Delete}">
+                        <FontIcon FontSize="10" Glyph="&#xE711;" />
+                    </Button>
+                </Grid>
+            </Border>
+        </DataTemplate>
+    </UserControl.Resources>
+
+    <!-- 遮罩铺满内容区并拦截画布输入；Dock 编辑层沿底部与真实 Dock 同位置呈现。 -->
+    <Grid Background="#33000000">
+        <Grid Margin="14,0,14,14" VerticalAlignment="Bottom">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <Border
+                Grid.Row="0"
+                Margin="0,0,0,8"
+                Padding="12,8"
+                HorizontalAlignment="Center"
+                Background="{ThemeResource SystemControlBackgroundChromeMediumLowBrush}"
+                CornerRadius="14"
+                Opacity="0.95">
+                <StackPanel Spacing="8">
+                    <TextBlock
+                        Opacity="0.75"
+                        Text="{l10n:Loc Key=Dock_Edit_Hint}"
+                        TextWrapping="WrapWholeWords" />
+
+                    <StackPanel Orientation="Horizontal" Spacing="12">
+                        <StackPanel Orientation="Horizontal" Spacing="4">
+                            <TextBlock
+                                VerticalAlignment="Center"
+                                Opacity="0.75"
+                                Text="{l10n:Loc Key=Dock_Edit_ShortcutDocks_Label}" />
+                            <ToggleSwitch
+                                x:Name="ShortcutDocksVisibleToggle"
+                                AutomationProperties.AutomationId="Dock_Edit_ShortcutVisibleToggle"
+                                Header="{x:Null}"
+                                OffContent="{l10n:Loc Key=Common_Hide}"
+                                OnContent="{l10n:Loc Key=Common_Show}"
+                                Toggled="OnShortcutDocksVisibleToggled" />
+                        </StackPanel>
+
+                        <Button
+                            x:Name="ResetButton"
+                            AutomationProperties.AutomationId="Dock_Edit_ResetButton"
+                            Click="OnResetClicked"
+                            Content="{l10n:Loc Key=Common_ResetToDefault}" />
+
+                        <Button
+                            x:Name="DoneButton"
+                            AutomationProperties.AutomationId="Dock_Edit_DoneButton"
+                            Click="OnDoneClicked"
+                            Content="{l10n:Loc Key=Dock_Edit_Done}"
+                            Style="{StaticResource AccentButtonStyle}" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <RelativePanel Grid.Row="1">
+                <!-- 左侧内置 Dock -->
+                <Grid
+                    HorizontalAlignment="Left"
+                    VerticalAlignment="Bottom"
+                    RelativePanel.AlignBottomWithPanel="True"
+                    RelativePanel.AlignLeftWithPanel="True">
+                    <Border
+                        Background="{ThemeResource SystemControlBackgroundChromeMediumLowBrush}"
+                        CornerRadius="14"
+                        Opacity="0.85" />
+                    <ListView
+                        x:Name="LeftItemsListView"
+                        AutomationProperties.AutomationId="Dock_Edit_LeftItemsList"
+                        AllowDrop="True"
+                        CanDragItems="True"
+                        CanReorderItems="True"
+                        DragItemsCompleted="OnDockItemsDragCompleted"
+                        ItemContainerStyle="{StaticResource DockEditListViewItemStyle}"
+                        ItemTemplate="{StaticResource DockEditItemTemplate}"
+                        ItemsSource="{x:Bind LeftItems, Mode=OneWay}"
+                        KeyDown="OnDockItemsKeyDown"
+                        Margin="5"
+                        ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                        ScrollViewer.VerticalScrollBarVisibility="Disabled"
+                        SelectionMode="Single"
+                        Tag="left">
+                        <ListView.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <ItemsStackPanel Orientation="Horizontal" />
+                            </ItemsPanelTemplate>
+                        </ListView.ItemsPanel>
+                    </ListView>
+                </Grid>
+
+                <!-- 左侧快捷入口编辑区 -->
+                <Grid
+                    x:Name="LeftShortcutDockGroup"
+                    Margin="0,0,8,0"
+                    AllowDrop="True"
+                    DragOver="OnShortcutDropTargetDragOver"
+                    Drop="OnShortcutDropTargetDrop"
+                    RelativePanel.AlignBottomWith="MainEditDock"
+                    RelativePanel.LeftOf="MainEditDock"
+                    Tag="left">
+                    <Border
+                        Background="{ThemeResource SystemControlBackgroundChromeMediumLowBrush}"
+                        CornerRadius="14"
+                        Opacity="0.85" />
+                    <StackPanel Margin="5" Orientation="Horizontal" Spacing="4">
+                        <ListView
+                            x:Name="LeftShortcutItemsListView"
+                            AutomationProperties.AutomationId="Dock_Edit_LeftShortcutsList"
+                            AllowDrop="True"
+                            CanDragItems="True"
+                            DragItemsStarting="OnShortcutDragItemsStarting"
+                            DragOver="OnShortcutDragOver"
+                            Drop="OnShortcutDrop"
+                            ItemClick="OnShortcutItemClick"
+                            ItemContainerStyle="{StaticResource DockEditListViewItemStyle}"
+                            ItemTemplate="{StaticResource ShortcutDockEditItemTemplate}"
+                            ItemsSource="{x:Bind LeftShortcutItems, Mode=OneWay}"
+                            IsItemClickEnabled="True"
+                            ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                            ScrollViewer.VerticalScrollBarVisibility="Disabled"
+                            SelectionMode="Single"
+                            Tag="left">
+                            <ListView.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <ItemsStackPanel Orientation="Horizontal" />
+                                </ItemsPanelTemplate>
+                            </ListView.ItemsPanel>
+                        </ListView>
+
+                        <Button
+                            x:Name="AddLeftShortcutButton"
+                            AutomationProperties.AutomationId="Dock_Edit_AddShortcutLeft"
+                            Style="{StaticResource DockEditAddButtonStyle}"
+                            ToolTipService.ToolTip="{l10n:Loc Key=Dock_Edit_AddShortcut_Tooltip}">
+                            <Button.Flyout>
+                                <MenuFlyout>
+                                    <MenuFlyoutItem Click="OnAddShortcutMenuItemClicked" Tag="left:file" Text="{l10n:Loc Key=Common_File}">
+                                        <MenuFlyoutItem.Icon>
+                                            <SymbolIcon Symbol="OpenFile" />
+                                        </MenuFlyoutItem.Icon>
+                                    </MenuFlyoutItem>
+                                    <MenuFlyoutItem Click="OnAddShortcutMenuItemClicked" Tag="left:link" Text="{l10n:Loc Key=Common_Link}">
+                                        <MenuFlyoutItem.Icon>
+                                            <SymbolIcon Symbol="Link" />
+                                        </MenuFlyoutItem.Icon>
+                                    </MenuFlyoutItem>
+                                    <MenuFlyoutItem Click="OnAddShortcutMenuItemClicked" Tag="left:program" Text="{l10n:Loc Key=Common_Program}">
+                                        <MenuFlyoutItem.Icon>
+                                            <SymbolIcon Symbol="AllApps" />
+                                        </MenuFlyoutItem.Icon>
+                                    </MenuFlyoutItem>
+                                </MenuFlyout>
+                            </Button.Flyout>
+                            <StackPanel Orientation="Vertical">
+                                <SymbolIcon Symbol="Add" />
+                                <TextBlock
+                                    Margin="0,3,0,0"
+                                    FontSize="11"
+                                    HorizontalAlignment="Center"
+                                    Text="{l10n:Loc Key=Common_Add}" />
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+                </Grid>
+
+                <!-- 主 Dock 编辑区 -->
+                <Grid
+                    x:Name="MainEditDock"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Bottom"
+                    RelativePanel.AlignBottomWithPanel="True"
+                    RelativePanel.AlignHorizontalCenterWithPanel="True">
+                    <Border
+                        Background="{ThemeResource SystemControlBackgroundChromeMediumLowBrush}"
+                        CornerRadius="14"
+                        Opacity="0.85" />
+                    <StackPanel Margin="5" Orientation="Horizontal" Spacing="4">
+                        <ListView
+                            x:Name="ToolsItemsListView"
+                            AutomationProperties.AutomationId="Dock_Edit_ToolsList"
+                            AllowDrop="True"
+                            CanDragItems="True"
+                            CanReorderItems="True"
+                            DragItemsCompleted="OnDockItemsDragCompleted"
+                            ItemContainerStyle="{StaticResource DockEditListViewItemStyle}"
+                            ItemTemplate="{StaticResource DockEditItemTemplate}"
+                            ItemsSource="{x:Bind ToolsItems, Mode=OneWay}"
+                            KeyDown="OnDockItemsKeyDown"
+                            ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                            ScrollViewer.VerticalScrollBarVisibility="Disabled"
+                            SelectionMode="Single"
+                            Tag="tools">
+                            <ListView.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <ItemsStackPanel Orientation="Horizontal" />
+                                </ItemsPanelTemplate>
+                            </ListView.ItemsPanel>
+                        </ListView>
+
+                        <Rectangle
+                            Width="1"
+                            Height="30"
+                            VerticalAlignment="Center"
+                            Fill="{ThemeResource SystemControlForegroundBaseMediumLowBrush}" />
+
+                        <ListView
+                            x:Name="UndoRedoItemsListView"
+                            AutomationProperties.AutomationId="Dock_Edit_UndoRedoList"
+                            AllowDrop="True"
+                            CanDragItems="True"
+                            CanReorderItems="True"
+                            DragItemsCompleted="OnDockItemsDragCompleted"
+                            ItemContainerStyle="{StaticResource DockEditListViewItemStyle}"
+                            ItemTemplate="{StaticResource DockEditItemTemplate}"
+                            ItemsSource="{x:Bind UndoRedoItems, Mode=OneWay}"
+                            KeyDown="OnDockItemsKeyDown"
+                            ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                            ScrollViewer.VerticalScrollBarVisibility="Disabled"
+                            SelectionMode="Single"
+                            Tag="undoRedo">
+                            <ListView.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <ItemsStackPanel Orientation="Horizontal" />
+                                </ItemsPanelTemplate>
+                            </ListView.ItemsPanel>
+                        </ListView>
+                    </StackPanel>
+                </Grid>
+
+                <!-- 右侧快捷入口编辑区 -->
+                <Grid
+                    x:Name="RightShortcutDockGroup"
+                    Margin="8,0,0,0"
+                    AllowDrop="True"
+                    DragOver="OnShortcutDropTargetDragOver"
+                    Drop="OnShortcutDropTargetDrop"
+                    RelativePanel.AlignBottomWith="MainEditDock"
+                    RelativePanel.RightOf="MainEditDock"
+                    Tag="right">
+                    <Border
+                        Background="{ThemeResource SystemControlBackgroundChromeMediumLowBrush}"
+                        CornerRadius="14"
+                        Opacity="0.85" />
+                    <StackPanel Margin="5" Orientation="Horizontal" Spacing="4">
+                        <ListView
+                            x:Name="RightShortcutItemsListView"
+                            AutomationProperties.AutomationId="Dock_Edit_RightShortcutsList"
+                            AllowDrop="True"
+                            CanDragItems="True"
+                            DragItemsStarting="OnShortcutDragItemsStarting"
+                            DragOver="OnShortcutDragOver"
+                            Drop="OnShortcutDrop"
+                            ItemClick="OnShortcutItemClick"
+                            ItemContainerStyle="{StaticResource DockEditListViewItemStyle}"
+                            ItemTemplate="{StaticResource ShortcutDockEditItemTemplate}"
+                            ItemsSource="{x:Bind RightShortcutItems, Mode=OneWay}"
+                            IsItemClickEnabled="True"
+                            ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                            ScrollViewer.VerticalScrollBarVisibility="Disabled"
+                            SelectionMode="Single"
+                            Tag="right">
+                            <ListView.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <ItemsStackPanel Orientation="Horizontal" />
+                                </ItemsPanelTemplate>
+                            </ListView.ItemsPanel>
+                        </ListView>
+
+                        <Button
+                            x:Name="AddRightShortcutButton"
+                            AutomationProperties.AutomationId="Dock_Edit_AddShortcutRight"
+                            Style="{StaticResource DockEditAddButtonStyle}"
+                            ToolTipService.ToolTip="{l10n:Loc Key=Dock_Edit_AddShortcut_Tooltip}">
+                            <Button.Flyout>
+                                <MenuFlyout>
+                                    <MenuFlyoutItem Click="OnAddShortcutMenuItemClicked" Tag="right:file" Text="{l10n:Loc Key=Common_File}">
+                                        <MenuFlyoutItem.Icon>
+                                            <SymbolIcon Symbol="OpenFile" />
+                                        </MenuFlyoutItem.Icon>
+                                    </MenuFlyoutItem>
+                                    <MenuFlyoutItem Click="OnAddShortcutMenuItemClicked" Tag="right:link" Text="{l10n:Loc Key=Common_Link}">
+                                        <MenuFlyoutItem.Icon>
+                                            <SymbolIcon Symbol="Link" />
+                                        </MenuFlyoutItem.Icon>
+                                    </MenuFlyoutItem>
+                                    <MenuFlyoutItem Click="OnAddShortcutMenuItemClicked" Tag="right:program" Text="{l10n:Loc Key=Common_Program}">
+                                        <MenuFlyoutItem.Icon>
+                                            <SymbolIcon Symbol="AllApps" />
+                                        </MenuFlyoutItem.Icon>
+                                    </MenuFlyoutItem>
+                                </MenuFlyout>
+                            </Button.Flyout>
+                            <StackPanel Orientation="Vertical">
+                                <SymbolIcon Symbol="Add" />
+                                <TextBlock
+                                    Margin="0,3,0,0"
+                                    FontSize="11"
+                                    HorizontalAlignment="Center"
+                                    Text="{l10n:Loc Key=Common_Add}" />
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+                </Grid>
+
+                <!-- 右侧页面 Dock -->
+                <Grid
+                    HorizontalAlignment="Right"
+                    VerticalAlignment="Bottom"
+                    RelativePanel.AlignBottomWithPanel="True"
+                    RelativePanel.AlignRightWithPanel="True">
+                    <Border
+                        Background="{ThemeResource SystemControlBackgroundChromeMediumLowBrush}"
+                        CornerRadius="14"
+                        Opacity="0.85" />
+                    <ListView
+                        x:Name="PagesItemsListView"
+                        AutomationProperties.AutomationId="Dock_Edit_PagesList"
+                        AllowDrop="True"
+                        CanDragItems="True"
+                        CanReorderItems="True"
+                        DragItemsCompleted="OnDockItemsDragCompleted"
+                        ItemContainerStyle="{StaticResource DockEditListViewItemStyle}"
+                        ItemTemplate="{StaticResource DockEditItemTemplate}"
+                        ItemsSource="{x:Bind PagesItems, Mode=OneWay}"
+                        KeyDown="OnDockItemsKeyDown"
+                        Margin="5"
+                        ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                        ScrollViewer.VerticalScrollBarVisibility="Disabled"
+                        SelectionMode="Single"
+                        Tag="pages">
+                        <ListView.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <ItemsStackPanel Orientation="Horizontal" />
+                            </ItemsPanelTemplate>
+                        </ListView.ItemsPanel>
+                    </ListView>
+                </Grid>
+            </RelativePanel>
+        </Grid>
+    </Grid>
+</UserControl>

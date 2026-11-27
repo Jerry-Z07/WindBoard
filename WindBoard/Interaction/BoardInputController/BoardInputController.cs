@@ -58,9 +58,7 @@ namespace WindBoard.Interaction
             _session = session;
             _viewport = viewport;
 
-            // 工具上下文与注册表：随控制器生命周期创建。
-            // 注册动作发生在画布初始化时序内（控制器由 BoardCanvasControl 创建），
-            // 集中在构造函数注册内置工具可避免多处创建点遗漏注册导致工具静默失效。
+            // 工具上下文与注册表随控制器生命周期创建，内置工具集中在此注册，避免多处创建点漏注册导致工具静默失效。
             _context = new BoardInputContext(viewport, session);
             _context.FrameInvalidated += () => FrameInvalidated?.Invoke();
             _toolRegistry.Register(new PenTool());
@@ -104,9 +102,7 @@ namespace WindBoard.Interaction
         /// 解析当前活动会话应使用的工具 id（注册表查询前的统一入口）。
         /// </summary>
         /// <remarks>
-        /// 既有回退行为：Select 工具在"禁用选择"场景按画笔处理。按下/移动/提交/取消
-        /// 四条调度路径统一经此解析，保证"Select 回退画笔"在会话全程一致（否则
-        /// Begin 以画笔建立、Commit 却解析到 SelectTool，笔迹会被静默丢弃）。
+        /// 回退规则：Select 工具在"禁用选择"场景按画笔处理；按下、移动、提交、取消四条路径统一经此解析，保证会话全程一致，否则 Commit 会解析到 SelectTool 使笔迹被静默丢弃。
         /// </remarks>
         private BoardTool ResolveActiveToolId()
         {
@@ -153,8 +149,7 @@ namespace WindBoard.Interaction
         /// 当前活动预览条目（工具会话进行中的未提交内容：笔迹或形状）。
         /// </summary>
         /// <remarks>
-        /// 预览条目由工具内聚维护，经 <see cref="BoardInputContext.PreviewItem"/> 挂载点暴露；
-        /// 渲染层的预览通道（overlay/书写缓存/全分辨率判定）统一按此泛化入口消费。
+        /// 预览条目由工具内聚维护，经 <see cref="BoardInputContext.PreviewItem"/> 挂载点暴露，渲染层的 overlay、书写缓存与全分辨率判定统一按此泛化入口消费。
         /// </remarks>
         public IBoardInkItem? ActiveItem => _context.PreviewItem;
 
@@ -162,8 +157,7 @@ namespace WindBoard.Interaction
         /// 当前选中的条目（选择工具）。
         /// </summary>
         /// <remarks>
-        /// 兼容单选场景：当且仅当选中一条条目（笔迹/形状）时返回该条目；多选时返回 null。
-        /// 多选请使用 <see cref="SelectedItems"/>。选中集由 <see cref="SelectTool"/> 内聚维护。
+        /// 兼容单选场景：仅当选中一条条目（笔迹或形状）时返回该条目，多选时返回 null；多选使用 <see cref="SelectedItems"/>，选中集由 <see cref="SelectTool"/> 内聚维护。
         /// </remarks>
         public IBoardInkItem? SelectedItem => _selectTool.SelectedItem;
 
@@ -252,8 +246,7 @@ namespace WindBoard.Interaction
         /// 形状工具提交成功（新形状已入命令栈）后抛出，携带新形状。
         /// </summary>
         /// <remarks>
-        /// 控制器只负责路由结果，是否消费（例如自动切换工具并选中）由宿主决定；
-        /// 屏幕批注等不订阅的宿主行为不受影响。
+        /// 控制器只负责路由结果，是否消费（例如自动切换工具并选中）由宿主决定，不订阅的宿主（如屏幕批注）行为不受影响。
         /// </remarks>
         public event Action<BoardShape>? ShapeCommitted;
 

@@ -1,6 +1,6 @@
 # WBIX (WindBoard Interchange) Format Specification (v3)
 
-This document describes WindBoard's private exchange format `.wbix` to facilitate subsequent development, adaptation, and extension (e.g., export/import of page content like images, videos).
+`.wbix` is WindBoard's private exchange format, described below for later development, adaptation, and extension (e.g., export/import of page content such as images and videos).
 
 ## 1. Overview
 
@@ -14,7 +14,7 @@ WBIX is a whiteboard workspace file carried within a **Zip container**:
 Design goals:
 
 - **Readable and extensible**: Clear structure for easy debugging and migration.
-- **Forward extension points**: Future page elements (images/videos/sticky notes/shapes, etc.) are reserved via `resources` and `elements`.
+- **Forward extension points**: `resources` and `elements` reserve room for future page elements (images/videos/sticky notes/shapes, etc.).
 - **Stable page identity**: Each page has a stable `id` for easy resource referencing and cross-version adaptation.
 
 ## 2. Package Directory Structure
@@ -34,10 +34,8 @@ assets/
   ...                    (Reserved: may store video/audio resources in the future)
 ```
 
-Explanation:
-
 - `manifest.json`: Manifest and index (version, page list, resource list, current page, etc.).
-- `pages/page-XXX.json`: Data for each page (strokes + elements; v1/v2 strokes use a flat shape, v3 uses Kind-tagged wrapper items).
+- `pages/page-XXX.json`: Data for each page (strokes + elements; v1/v2 strokes use a flat shape, v3 strokes use Kind-tagged wrapper items).
 - `assets/`: Directory for resource binary files (mainly `cover.png` and embedded element images under `assets/elements/`).
 
 ## 3. manifest.json
@@ -82,11 +80,11 @@ The current export attempts to generate a cover image of the first page:
   - `contentType`: `"image/png"`
   - `meta`: Contains `role=cover`, `pageIndex=0`, `pixelWidth`, `pixelHeight` (convenient for subsequent UI list display)
 
-Note: The cover image is an **optional resource**; the import side should allow its absence and handle degradation (e.g., display a default thumbnail).
+The cover image is an **optional resource**; the import side should allow its absence and degrade (e.g., display a default thumbnail).
 
 ### 3.3 Example (manifest.json)
 
-The following example is for illustrating the field structure (IDs/times will vary by file):
+The example shows field structure only (IDs and times vary by file):
 
 ```json
 {
@@ -114,7 +112,7 @@ The following example is for illustrating the field structure (IDs/times will va
 Page files correspond to `WbixPagePayload`:
 
 - `id`: Page ID (consistent with the `pages` entry in the manifest).
-- `strokes`: Ink item list (main data; each entry carries a Kind tag since v3, reading is compatible with the flat shape of v1/v2).
+- `strokes`: Ink item list (main data; since v3 each entry carries a Kind tag, and reads accept the v1/v2 flat shape).
 - `elements`: Page element list (text/link/media/file; import should ignore unknown `type` for forward compatibility).
 
 ### 4.1 strokes (Ink Items) Structure (v3)
@@ -131,14 +129,14 @@ Each entry in `strokes` corresponds to `InkItemSnapshot` (flat + Kind discrimina
 - `baseSize`: Base size of the stroke (diameter in world coordinates, unit consistent with page coordinates).
 - `enablePressure`: Whether pressure sensitivity is enabled (if true, pen width adjusts based on `pressure`).
 
-> v1/v2 compatibility note: strokes entries in old files use a "flat" shape (`points`/`colorRgba`/`baseSize`/`enablePressure` located directly on the entry object, without the `kind`/`stroke` wrapper). The reader treats flat entries as `kind=stroke`; the v3 writer always outputs the wrapper shape.
+> v1/v2 compatibility: strokes entries in old files use a "flat" shape (`points`/`colorRgba`/`baseSize`/`enablePressure` located directly on the entry object, without the `kind`/`stroke` wrapper). The reader treats flat entries as `kind=stroke`; the v3 writer always outputs the wrapper shape.
 
 Each entry in `points` corresponds to `StrokePointSnapshot`:
 
 - `position`: Point position (`Vector2`: `x/y`, world coordinates, unit consistent with canvas logical coordinates).
 - `pressure`: Pressure sensitivity (typically 0~1, can be fixed to 1 if pressure is not enabled).
 
-> Coordinate note: WBIX records "world coordinates (DIP approximate)", not screen pixel coordinates. Actual display is determined by viewport and rendering logic after import.
+> WBIX records "world coordinates (DIP approximate)", not screen pixel coordinates. After import, viewport and rendering logic determine the actual display.
 
 ### 4.2 elements (Page elements)
 
@@ -169,12 +167,12 @@ Each item in `elements` corresponds to `WbixPageElement`:
 #### 4.2.4 media
 
 - `type=media`
-- `data.kind`: `image` / `video` / `audio`
-- `data.displayName`: Display name (usually a file name)
-- `data.sourcePath`: Optional source path (used for external references; embedded images usually set this to null to avoid leaking local absolute paths)
-- `data.resourceId`: Optional resource reference (points to `manifest.resources[].id`; used for embedded images, etc.)
+- `data.kind`: `image` / `video` / `audio`.
+- `data.displayName`: Display name (usually a file name).
+- `data.sourcePath`: Optional source path (used for external references; embedded images usually set this to null to avoid leaking local absolute paths).
+- `data.resourceId`: Optional resource reference (points to `manifest.resources[].id`; used for embedded images, etc.).
 
-> Note: When `resourceId` is present, import should resolve `manifest.resources` and extract the asset from the Zip entry path.
+> When `resourceId` is present, import should resolve `manifest.resources` to the path and extract the asset from the Zip entry.
 
 ### 4.3 Example (page-000.json)
 
@@ -230,13 +228,13 @@ Each item in `elements` corresponds to `WbixPageElement`:
 Current reading logic constraints (v3):
 
 - `format` must be `"wbix"` (case-insensitive).
-- `version` must be between `1~3` (greater than 3 is considered unsupported).
+- `version` must fall in `1~3`; greater than 3 is unsupported.
 - Pages are loaded in the order sorted by `manifest.pages[].index` to ensure stable order.
-- `strokes` entries accept both the v3 wrapper shape and the v1/v2 flat shape (missing kind is treated as `stroke`); entries with unknown `kind` are skipped with a Warn log.
+- `strokes` entries accept both the v3 wrapper shape and the v1/v2 flat shape (missing kind is treated as `stroke`); the reader skips entries with an unknown `kind` and logs a Warn.
 
 ## 6. Security and Robustness Suggestions (Import Side)
 
-WBIX is external input, so the import side is advised to:
+WBIX is external input, so the import side should:
 
 - Limit the size of single files, total size, and the number of entries after decompression to prevent zip bombs.
 - Validate `resources[].path` and `pages[].path` to disallow path traversal (e.g., `../`).

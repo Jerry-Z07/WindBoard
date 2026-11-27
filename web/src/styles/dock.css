@@ -1,0 +1,510 @@
+/**
+ * Dock 与弹出面板样式（P3.2 / P3.3）。
+ *
+ * 通用 Dock 底板/按钮样式在 `shell.css`（`.wb-dock*`），本文件只放**本模块专属**规则：
+ * 面板外框、色板网格、粗细预设、滑动清屏、页面列表。
+ *
+ * 所有尺寸/颜色都来自 `tokens.css` 或直接标注桌面出处，不要在组件里另写魔法数字。
+ * 桌面出处速查：
+ * - 面板外框：`MainWindow.xaml:225-234`（圆角 14、1px 描边、浅色背景）
+ * - 色板：`MainWindow.xaml:254-279` + `App.xaml:78-93`（44×44、圆角 22、间距 14）
+ * - 粗细：`MainWindow.xaml:282-298` + `App.xaml:60-74`（44×44、圆角 10）
+ * - 擦除：`MainWindow.xaml:338-429`（宽 232、卡片内边距 12/10、滑动条 232×52、把手 44）
+ * - 页面：`MainWindow.xaml:603-676`（宽 280、条目铺满内容区、缩略图高 104、删除 24×24）
+ */
+
+/* ===== 本模块新增的令牌 ===== */
+
+/* `tokens.css` 只收了 Dock 骨架与页面面板的对外尺寸，色板 / 粗细预设 / 形状项统一 44×44 在这里补（`App.xaml:60-93` 的两个共享 ToggleButton 样式）。 */
+:root {
+  --wb-swatch-size: 44px;
+}
+
+/* ===== Dock 内部结构补充 ===== */
+
+/* 无弹出面板的槽位（选择工具）：只用来承载按钮，不参与视觉 */
+.wb-dock__slot {
+  display: flex;
+}
+
+/* 撤销/重做整组：桌面是独立的横向 StackPanel，间距同为 4（`MainWindow.xaml:529`） */
+.wb-dock__undo-redo {
+  display: flex;
+  align-items: center;
+  gap: var(--wb-dock-gap);
+}
+
+/* 页面指示器：文字 12 号 SemiBold（`MainWindow.xaml:707-712`），覆盖按钮默认的 11 号 */
+.wb-dock__page-indicator .wb-dock-button__label {
+  font-size: var(--wb-page-indicator-size);
+  font-weight: 600;
+}
+
+/* ===== 弹出面板外框 ===== */
+
+.wb-flyout {
+  /* 浅色底板 `SystemControlBackgroundChromeMediumLowBrush` = #F2F2F2（与 Dock 底板同源）。
+     默认文字前景是 WinUI 的 `TextFillColorPrimary`（89.4% 黑，`generic.xaml:1103`），
+     只有显式写了 `SystemControlForegroundBaseHighBrush` 的 TextBlock 才是纯黑。 */
+  color: var(--wb-dock-text-primary);
+  box-sizing: border-box;
+}
+
+/*
+ * 带外框的面板（笔 / 形状 / 页面管理）：圆角 14 + 1px 描边 + 浅色底
+ * （`MainWindow.xaml:225-234`、`:456-461`、`:603-608`）。
+ *
+ * 橡皮面板**不用**这个类：桌面里它是无外框的 StackPanel，两个子卡片各自带框
+ * （`MainWindow.xaml:338-346`、`:386-391`）。
+ */
+.wb-flyout--panel {
+  background: var(--wb-dock-plate-color);
+  border: 1px solid var(--wb-dock-separator-color);
+  border-radius: var(--wb-dock-plate-radius);
+  /* 面板整体圆角裁切，避免内部悬停色溢出圆角 */
+  overflow: hidden;
+}
+
+/* 笔面板标题：14 号 SemiBold、不透明度 0.85、Margin 16,12,16,10（`MainWindow.xaml:242-248`）。
+   桌面这里显式写了 `Foreground="{ThemeResource SystemControlForegroundBaseHighBrush}"`
+   + `Opacity="0.85"`，所以是纯黑 × 0.85，而不是默认的 89.4% 黑。 */
+.wb-flyout__title {
+  margin: 12px 16px 10px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--wb-dock-foreground);
+  opacity: 0.85;
+}
+
+/* 标题下的 1px 分隔线 `#1A000000`（`MainWindow.xaml:250`） */
+.wb-flyout__divider {
+  height: 1px;
+  background: rgb(0 0 0 / 10%);
+}
+
+/* 内容区 Padding 14 / Spacing 12（`MainWindow.xaml:252`） */
+.wb-flyout__body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px;
+}
+
+/* 分组（"粗细" 之类的小标题 + 内容） */
+.wb-flyout__group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* 小标题：默认 14 号、不透明度 0.75（`MainWindow.xaml:283`）。
+   桌面这个 TextBlock **没写 Foreground**，因此是默认前景 `TextFillColorPrimary` × 0.75，
+   颜色由 `.wb-flyout` 继承下来（不要改成纯黑）。 */
+.wb-flyout__label {
+  font-size: 14px;
+  opacity: 0.75;
+}
+
+/* ===== 色板（`MainWindow.xaml:254-279`） ===== */
+
+.wb-palette {
+  display: grid;
+  gap: 14px;
+  justify-content: start;
+  align-content: start;
+}
+
+.wb-palette__swatch {
+  width: var(--wb-swatch-size);
+  height: var(--wb-swatch-size);
+  padding: 0;
+  border-radius: 50%;
+  /* 未选中描边 `#1F000000`（`MainWindow.xaml:270`），选中描边 `#1976D2`（`:274`） */
+  border: 2px solid rgb(0 0 0 / 12%);
+  background-clip: padding-box;
+  cursor: default;
+}
+
+.wb-palette__swatch:hover {
+  border-color: rgb(0 0 0 / 20%);
+}
+
+.wb-palette__swatch[aria-pressed='true'] {
+  border-color: var(--wb-dock-checked);
+}
+
+/* ===== 粗细预设（`MainWindow.xaml:282-298`） ===== */
+
+.wb-thickness {
+  display: flex;
+  gap: 14px;
+}
+
+.wb-thickness__preset {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--wb-swatch-size);
+  height: var(--wb-swatch-size);
+  padding: 0;
+  border: 0;
+  border-radius: var(--wb-dock-button-radius);
+  background: transparent;
+  /* 桌面这几个 ToggleButton 没覆盖 Foreground → ButtonForeground = TextFillColorPrimary */
+  color: var(--wb-dock-text-primary);
+  cursor: default;
+}
+
+.wb-thickness__preset:hover {
+  background: rgb(0 0 0 / 6%);
+}
+
+.wb-thickness__preset[aria-pressed='true'] {
+  /* 选中态 `#331976D2`（`MainWindow.xaml:290`） */
+  background: rgb(25 118 210 / 20%);
+}
+
+/* ===== 形状面板（`MainWindow.xaml:456-497`） ===== */
+
+.wb-flyout--shape {
+  display: flex;
+  gap: 8px;
+  padding: 12px;
+}
+
+.wb-shape__item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--wb-swatch-size);
+  height: var(--wb-swatch-size);
+  padding: 0;
+  border: 0;
+  border-radius: var(--wb-dock-button-radius);
+  background: transparent;
+  /* 同上：ButtonForeground = TextFillColorPrimary */
+  color: var(--wb-dock-text-primary);
+  cursor: default;
+}
+
+.wb-shape__item:hover {
+  background: rgb(0 0 0 / 6%);
+}
+
+/* 与粗细预设同源的选中态（桌面复用同一套 ToggleButton 资源） */
+.wb-shape__item[aria-pressed='true'] {
+  background: rgb(25 118 210 / 20%);
+}
+
+/* ===== 橡皮面板（`MainWindow.xaml:338-429`） ===== */
+
+.wb-flyout--eraser {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 232px;
+}
+
+/* 擦除模式卡：圆角 14、1px 描边、内边距 12/10、浅色底（`MainWindow.xaml:341-346`） */
+.wb-flyout__card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  background: var(--wb-dock-plate-color);
+  border: 1px solid var(--wb-dock-separator-color);
+  border-radius: var(--wb-dock-plate-radius);
+}
+
+/* 卡片内标题 12 号、不透明度 0.85（`MainWindow.xaml:362-366`）。
+   桌面这里同样显式写了 `SystemControlForegroundBaseHighBrush` + `Opacity="0.85"` → 纯黑 × 0.85。 */
+.wb-flyout--eraser .wb-flyout__label {
+  font-size: 12px;
+  color: var(--wb-dock-foreground);
+  opacity: 0.85;
+}
+
+/* 滑动清屏条：232 × 52、圆角 14、1px 描边（`MainWindow.xaml:386-391`） */
+.wb-slide {
+  position: relative;
+  height: 52px;
+  border: 1px solid var(--wb-dock-separator-color);
+  border-radius: var(--wb-dock-plate-radius);
+  background: var(--wb-dock-plate-color);
+}
+
+/* 文案 15 号 SemiBold，居中（`MainWindow.xaml:392-399`）。
+   桌面显式写了 `Foreground="{ThemeResource SystemControlForegroundBaseHighBrush}"` → 纯黑。 */
+.wb-slide__text {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--wb-dock-foreground);
+  pointer-events: none;
+}
+
+/* 把手 44×44、圆角 22、左边距 6、底色 #F2F2F2、图标 #6B6B6B（`MainWindow.xaml:402-428`） */
+.wb-slide__thumb {
+  position: absolute;
+  top: 4px;
+  left: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--wb-dock-separator-color);
+  border-radius: 22px;
+  background: var(--wb-dock-plate-color);
+  color: #6b6b6b;
+  cursor: grab;
+  /* 触摸设备上不让浏览器把手势当成滚动 */
+  touch-action: none;
+  /* 松手回弹（桌面是 160ms 的 CubicEase EaseOut，`ClearCanvasSlideController.cs:14,138-160`） */
+  transition: transform 160ms cubic-bezier(0.215, 0.61, 0.355, 1);
+}
+
+.wb-slide__thumb:active {
+  cursor: grabbing;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wb-slide__thumb {
+    transition: none;
+  }
+}
+
+/* 空页时整条置灰、不可拖（`ClearCanvasSlideController.UpdateEnabledState`） */
+.wb-slide[data-disabled='true'] {
+  opacity: 0.55;
+}
+
+.wb-slide[data-disabled='true'] .wb-slide__thumb {
+  pointer-events: none;
+}
+
+/* ===== 页面管理面板（`MainWindow.xaml:603-676`） ===== */
+
+.wb-flyout--pages {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: var(--wb-pages-flyout-width);
+  max-height: 520px;
+  padding: 12px;
+}
+
+/* 标题 16 号 SemiBold（`MainWindow.xaml:610-613`） */
+.wb-flyout__heading {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.wb-pages {
+  display: flex;
+  flex-direction: column;
+  /* 桌面 `HorizontalScrollBarVisibility="Disabled"`（`MainWindow.xaml:615`）：只允许纵向滚动 */
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+/*
+ * 列表项：铺满面板内容宽度、圆角 12、1px 描边、内边距 8、下外边距 8（`MainWindow.xaml:633-640`）。
+ * `box-sizing: border-box` 让内边距与描边计入条目的 100% 宽度，避免撑出横向滚动条。
+ */
+.wb-pages__row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  box-sizing: border-box;
+  padding: 8px;
+  margin-bottom: 8px;
+  border: 1px solid var(--wb-dock-separator-color);
+  border-radius: 12px;
+  background: rgb(0 0 0 / 3%);
+  cursor: default;
+}
+
+/* 当前页高亮（桌面是 ListView 的选中项） */
+.wb-pages__row[data-selected='true'] {
+  border-color: var(--wb-dock-checked);
+  background: rgb(25 118 210 / 10%);
+}
+
+/* 头部行高 24（`MainWindow.xaml:641`） */
+.wb-pages__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 24px;
+}
+
+/* 页码 14 号 SemiBold（`MainWindow.xaml:643-646`） */
+.wb-pages__number {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+/* 删除按钮 24×24、圆角 7、图标 12（`MainWindow.xaml:648-662`） */
+.wb-pages__delete {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--wb-pages-flyout-delete-size);
+  height: var(--wb-pages-flyout-delete-size);
+  padding: 0;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  /* 桌面是普通 Button（`MainWindow.xaml:648-662`），前景 = ButtonForeground = TextFillColorPrimary */
+  color: var(--wb-dock-text-primary);
+  cursor: default;
+}
+
+.wb-pages__delete:hover {
+  background: rgb(0 0 0 / 8%);
+}
+
+.wb-palette__swatch:focus-visible,
+.wb-thickness__preset:focus-visible,
+.wb-shape__item:focus-visible,
+.wb-pages__delete:focus-visible {
+  outline: 2px solid CanvasText;
+  outline-offset: 1px;
+  box-shadow: inset 0 0 0 1px var(--wb-focus-inner);
+}
+
+/* 缩略图：高 104、底色为画布背景（`MainWindow.xaml:665-669`） */
+.wb-pages__thumb {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: var(--wb-pages-flyout-thumbnail-size);
+  overflow: hidden;
+  border-radius: 8px;
+  background: var(--wb-canvas-background);
+}
+
+/* 缩略图画布：宽度跟随列表项内容区，高度由组件按 DIP 指定 */
+.wb-pages__thumb-canvas {
+  display: block;
+  width: 100%;
+}
+
+/*
+ * ===== 窄屏「更多」浮层（网页端新增） =====
+ *
+ * 外观沿用弹出面板：浅色底 + 1px 描边 + 圆角 14（`.wb-flyout--panel` 同款令牌），
+ * 但内容是"页面行 + 动作网格 + 可展开的页面管理"，与桌面任何一种浮层都不对应。
+ */
+.wb-sheet {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  background: var(--wb-dock-plate-color);
+  border: 1px solid var(--wb-dock-separator-color);
+  border-radius: var(--wb-dock-plate-radius);
+  color: var(--wb-dock-text-primary);
+  box-sizing: border-box;
+}
+
+.wb-sheet__pages {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+}
+
+.wb-sheet__indicator {
+  min-width: 52px;
+  text-align: center;
+  font-size: var(--wb-page-indicator-size);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.wb-sheet__actions {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2px;
+  padding-top: 8px;
+  border-top: 1px solid rgb(0 0 0 / 10%);
+}
+
+/* 触摸目标 48×48：手机上的最小可点尺寸（Material 48dp / Apple HIG 44pt） */
+.wb-sheet-button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  min-width: 48px;
+  min-height: 48px;
+  padding: 6px 4px;
+  border: 0;
+  border-radius: var(--wb-dock-button-radius);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: default;
+  box-sizing: border-box;
+}
+
+.wb-sheet-button:hover {
+  background: var(--wb-dock-hover);
+}
+
+.wb-sheet-button:active {
+  background: var(--wb-dock-pressed);
+}
+
+.wb-sheet-button:disabled {
+  opacity: 0.4;
+}
+
+.wb-sheet-button__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--wb-dock-icon-size);
+  height: var(--wb-dock-icon-size);
+  font-size: var(--wb-dock-icon-size);
+  line-height: 1;
+}
+
+.wb-sheet-button__label {
+  font-size: var(--wb-dock-label-size);
+  line-height: 1;
+  white-space: nowrap;
+}
+
+/* 内嵌的页面管理面板：屏幕矮时自己滚动，不要把整个浮层撑出视口 */
+.wb-sheet__pages-panel {
+  max-height: 40vh;
+  overflow-y: auto;
+}
+
+/*
+ * 窄屏浮层不能超过视口：内嵌的页面管理面板是固定 280 宽（桌面 `MainWindow.xaml:603`），
+ * 与浮层内边距相加会顶到屏幕边缘，进而把布局视口撑宽（见 `shell.css` 的 html/body 规则）。
+ * 这里让面板在浮层内自适应收窄，窄过 280 时才真的变小。
+ *
+ * 宽度必须**固定**：浮层内的页面管理面板是展开/收起切换的，若浮层宽度随之变化，
+ * Fluent 会按旧尺寸算好位置再塞进更大的内容，右边缘瞬间冲出视口——移动端 Chrome 遇到
+ * 内容溢出会把布局视口撑宽且不再收回（实测 360 → 413，外壳与 Dock 一起被推着变宽）。
+ * 固定宽后，展开面板只改变高度，不触发横向重排。
+ */
+.wb-sheet {
+  width: min(288px, calc(100vw - 32px));
+  max-width: calc(100vw - 16px);
+}
+
+.wb-sheet__pages-panel .wb-flyout--pages {
+  width: 100%;
+  max-width: var(--wb-pages-flyout-width);
+}

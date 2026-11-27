@@ -65,9 +65,7 @@ namespace WindBoard.Features.Dock.Models
         public string? DisplayName { get; set; }
 
         /// <summary>
-        /// 路径或网址：
-        /// - 文件/程序：本地路径（例如 C:\a\b.txt 或 C:\a\app.exe）
-        /// - 链接：http/https URL
+        /// 本地路径（文件或程序）或 http/https 网址。
         /// </summary>
         public string Path { get; set; } = string.Empty;
 
@@ -106,9 +104,9 @@ namespace WindBoard.Features.Dock.Models
         public List<string> PagesOrder { get; set; } = new(DockSettingsDefaults.PagesOrder);
 
         /// <summary>
-        /// 撤销/重做区域是否可见。
+        /// 被隐藏的内置项 id。项仍保留在四组顺序列表中，取消隐藏后按原顺序位置恢复。
         /// </summary>
-        public bool IsUndoRedoVisible { get; set; } = true;
+        public List<string> HiddenItems { get; set; } = new();
 
         /// <summary>
         /// 主 Dock 左右两侧的“快捷入口 Dock”是否可见。

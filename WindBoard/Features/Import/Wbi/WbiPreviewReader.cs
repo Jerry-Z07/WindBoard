@@ -9,11 +9,8 @@ using WindBoard.Logging;
 namespace WindBoard.Features.Import.Wbi
 {
     /// <summary>
-    /// WBI 预读：用于导入对话框的“快速预览”。
-    /// 
-    /// 说明：
-    /// - WBI 属于旧格式兼容输入，预读失败应返回 null，并记录日志；
-    /// - WBI 没有封面资源，这里仅读取 manifest.json。
+    /// WBI 预读，供导入对话框快速预览：只读取 manifest.json，因为 WBI 没有封面资源。
+    /// WBI 属于旧格式兼容输入，预读失败返回 null 并记录日志。
     /// </summary>
     internal static class WbiPreviewReader
     {

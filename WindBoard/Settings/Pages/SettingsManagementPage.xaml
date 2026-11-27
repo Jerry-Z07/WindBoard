@@ -19,6 +19,11 @@
                     IsIconVisible="True"
                     Severity="Informational" />
 
+                <ProgressBar
+                    x:Name="SettingsManagementProgressBar"
+                    IsIndeterminate="True"
+                    Visibility="Collapsed" />
+
                 <controls:SettingsCard
                     x:Name="ExportSettingsCard"
                     IsClickEnabled="True"

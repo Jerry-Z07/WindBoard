@@ -8,8 +8,7 @@ namespace WindBoard.Board.Commands
     /// 删除指定绘制条目（可撤销）。
     /// </summary>
     /// <remarks>
-    /// 由原 <c>RemoveStrokeCommand</c> 泛化而来（design A）：Delete 键 / 选择 Dock 删除
-    /// 需同时覆盖折线笔迹与形状，实现与类型无关。
+    /// 实现与条目类型无关，Delete 键与选择 Dock 删除同时覆盖折线笔迹与形状。
     /// </remarks>
     internal sealed class RemoveInkItemCommand(IBoardInkItem item) : IBoardCommand
     {

@@ -1,0 +1,256 @@
+/**
+ * Dock 就地编辑层样式（对应桌面 `Features/Dock/UI/DockEditOverlay.xaml`）。
+ *
+ * 遮罩铺满内容区并拦截画布输入；底部工具栏在 Dock 上方，编辑项沿用 Dock 的尺寸、
+ * 圆角与浅色底板令牌（`tokens.css` / `dock.css`），因此正常 Dock 的视觉基线不受影响。
+ * 宽屏三块布局与真实 Dock 一致，窄屏（≤700px，与 `use-narrow-layout.ts` 同断点）
+ * 改为可滚动的纵向分组，保证 360px 可用。
+ */
+
+/* ===== 遮罩 ===== */
+
+.wb-dock-edit {
+  position: absolute;
+  inset: 0;
+  z-index: 40;
+  /* 桌面遮罩 `#33000000`（约 20% 黑） */
+  background: rgb(0 0 0 / 20%);
+  color: var(--wb-dock-text-primary);
+  /* 编辑层拦截画布输入，触摸从空白处开始也不滚动页面 */
+  touch-action: none;
+}
+
+/* ===== 底部：工具栏 + 编辑 Dock ===== */
+
+.wb-dock-edit__bottom {
+  position: absolute;
+  left: calc(var(--wb-overlay-margin) + env(safe-area-inset-left, 0px));
+  right: calc(var(--wb-overlay-margin) + env(safe-area-inset-right, 0px));
+  bottom: calc(var(--wb-overlay-margin) + env(safe-area-inset-bottom, 0px));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  max-height: calc(100% - 16px);
+}
+
+/*
+ * 工具栏：桌面是 Dock 上方居中的浅色窄条（Padding 12,8、圆角 14、0.95 不透明度）。
+ * 文字与控件都强制浅色主题（组件外层包了 `winuiLightThemeForced`）。
+ */
+.wb-dock-edit__toolbar {
+  align-self: center;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  box-sizing: border-box;
+  max-width: 100%;
+  padding: 12px;
+  border-radius: var(--wb-dock-plate-radius);
+  background: color-mix(in srgb, var(--wb-dock-plate-color) 95%, transparent);
+  color: var(--wb-dock-text-primary);
+}
+
+.wb-dock-edit__hint {
+  margin: 0;
+  font-size: 12px;
+  line-height: 16px;
+  /* 桌面提示行是默认前景 × 0.75 */
+  opacity: 0.75;
+}
+
+.wb-dock-edit__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+/* ===== 三块布局（宽屏） ===== */
+
+.wb-dock-edit__row {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 0;
+  padding: 2px 0;
+  display: grid;
+  /* 中间块自动宽度，两侧各占一半剩余空间：与真实 Dock 的「左 / 居中 / 右」一致 */
+  grid-template-columns: 1fr auto 1fr;
+  align-items: end;
+  /* 中等宽度下多页时三块可能超出可用宽度，横向滚动兜底，避免右侧被裁掉 */
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.wb-dock-edit__plate--left {
+  justify-self: start;
+}
+
+.wb-dock-edit__plate--center {
+  justify-self: center;
+}
+
+.wb-dock-edit__plate--right {
+  justify-self: end;
+}
+
+/* ===== 编辑项 ===== */
+
+.wb-dock-edit__list {
+  display: flex;
+  align-items: center;
+  gap: var(--wb-dock-gap);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* 项固定 60×52（桌面 `DockEditItemBorderStyle`），圆角复用 Dock 按钮的 10 */
+.wb-dock-edit__item {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--wb-dock-label-gap);
+  box-sizing: border-box;
+  width: 60px;
+  height: 52px;
+  border: 1px dashed transparent;
+  border-radius: var(--wb-dock-button-radius);
+  color: var(--wb-dock-text-primary);
+  cursor: grab;
+  user-select: none;
+  /* Pointer Events 需要独占指针，拖动期间不让浏览器接管滚动/缩放手势 */
+  touch-action: none;
+}
+
+.wb-dock-edit__item:hover {
+  background: var(--wb-dock-hover);
+}
+
+.wb-dock-edit__item:active {
+  cursor: grabbing;
+}
+
+/* 隐藏项：保留原位，虚线加降低透明度（桌面 `HiddenOutlineVisibility` + `ItemOpacity`） */
+.wb-dock-edit__item--hidden {
+  opacity: 0.45;
+  border-color: var(--wb-dock-separator-color);
+}
+
+.wb-dock-edit__item--dragging {
+  opacity: 0.55;
+  border-style: dashed;
+  border-color: var(--wb-dock-separator-color);
+  cursor: grabbing;
+}
+
+/* 落点高亮：拖动时指针下方的那一项 */
+.wb-dock-edit__item--over {
+  outline: 2px dashed var(--wb-dock-checked);
+  outline-offset: 1px;
+}
+
+.wb-dock-edit__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--wb-dock-icon-size);
+  height: var(--wb-dock-icon-size);
+  font-size: var(--wb-dock-icon-size);
+  line-height: 1;
+}
+
+.wb-dock-edit__label {
+  font-size: var(--wb-dock-label-size);
+  line-height: 1;
+  white-space: nowrap;
+}
+
+/* 隐藏/恢复徽标：桌面 24×24、圆角 12、`SystemControlBackgroundChromeMediumBrush` */
+.wb-dock-edit__badge {
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  border-radius: 12px;
+  background: #e6e6e6;
+  color: var(--wb-dock-text-primary);
+  cursor: pointer;
+}
+
+.wb-dock-edit__badge:hover {
+  background: #dcdcdc;
+}
+
+.wb-dock-edit__badge:focus-visible {
+  outline: 2px solid CanvasText;
+  outline-offset: 1px;
+  box-shadow: inset 0 0 0 1px var(--wb-focus-inner);
+}
+
+/* 「更多」的锁图标：不可隐藏，只做提示（桌面 `LockIconVisibility` + Tooltip） */
+.wb-dock-edit__lock {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--wb-dock-text-primary);
+  opacity: 0.55;
+}
+
+/* ===== 窄屏：可滚动的纵向分组 ===== */
+
+@media (max-width: 700px) {
+  .wb-dock-edit__bottom {
+    gap: 6px;
+    max-height: calc(100% - 12px);
+  }
+
+  .wb-dock-edit__toolbar {
+    width: 100%;
+    padding: 10px;
+  }
+
+  .wb-dock-edit__row--narrow {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    overflow-x: hidden;
+    overflow-y: auto;
+    /* 纵向分组本身要能滚动，覆盖遮罩上的 touch-action: none */
+    touch-action: pan-y;
+  }
+
+  .wb-dock-edit__group {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .wb-dock-edit__group-title {
+    margin: 0;
+    padding-left: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    opacity: 0.75;
+  }
+
+  /* 每组最多 4 个 60 宽的项，360px 下不需要横向滚动，但仍兜底 */
+  .wb-dock-edit__row--narrow .wb-dock {
+    justify-content: flex-start;
+    overflow-x: auto;
+  }
+}

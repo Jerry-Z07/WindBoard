@@ -10,9 +10,8 @@ using WindBoard.Settings;
 namespace WindBoard.Updates
 {
     /// <summary>
-    /// 下载源测速：
-    /// - 通过下载一个小文件（默认 latest.json）测量耗时
-    /// - 用于自动选择最快镜像源
+    /// 下载源测速。
+    /// 通过下载一个小文件（默认 latest.json）测量耗时，用于自动选择最快镜像源。
     /// </summary>
     internal static class DownloadSourceSpeedTester
     {

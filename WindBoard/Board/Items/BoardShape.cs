@@ -8,8 +8,7 @@ namespace WindBoard.Board.Items
     /// 两点式几何形状的种类（阶段二 R5：直线/矩形/椭圆/箭头）。
     /// </summary>
     /// <remarks>
-    /// 序列化与 Codec 的字符串映射集中在 <see cref="WindBoard.Board.Persistence.BoardInkItemCodec"/>，
-    /// 枚举本身不承载文件格式语义。
+    /// 序列化的字符串映射集中在 <see cref="WindBoard.Board.Persistence.BoardInkItemCodec"/>，枚举本身不承载文件格式语义。
     /// </remarks>
     internal enum BoardShapeKind
     {
@@ -30,13 +29,10 @@ namespace WindBoard.Board.Items
     /// 两点式几何形状（阶段二形状域模型，design A）。
     /// </summary>
     /// <remarks>
-    /// 设计决策：本期形状全部为两点式（状态完全同构：Start/End/Color/Width），差异只在
-    /// "渲染与命中的几何解释"，因此用单个类 + <see cref="BoardShapeKind"/> 枚举承载，不拆子类
-    /// （避免命令/选择快照/序列化/属性面板全部引入类型分支）。
-    /// - 颜色/线宽取创建时的画笔参数（R6）；不支持压感；
-    /// - <see cref="BoundsWorld"/> = AABB(Start, End) 外扩半宽（与 Stroke 的半宽语义一致），
-    ///   任何几何/线宽变更路径都会重算，保证包围盒始终一致；
-    /// - 矩形/椭圆域内不强制归一化存储（保留 Start/End 原始方向，读侧按 Min/Max 规范化）。
+    /// 形状全部为两点式（状态同构：Start/End/Color/Width），差异只在渲染与命中的几何解释，故用单个类加 <see cref="BoardShapeKind"/> 枚举承载，避免命令、选择快照、序列化与属性面板引入类型分支。
+    /// - 颜色/线宽取创建时的画笔参数，不支持压感。
+    /// - <see cref="BoundsWorld"/> 为 AABB(Start, End) 外扩半宽，与 Stroke 的半宽语义一致，任何几何/线宽变更都会重算。
+    /// - 矩形/椭圆域内不强制归一化存储，保留 Start/End 原始方向，读侧按 Min/Max 规范化。
     /// </remarks>
     internal sealed class BoardShape : IBoardInkItem
     {
@@ -92,8 +88,7 @@ namespace WindBoard.Board.Items
         /// 重设两点几何并重算包围盒。
         /// </summary>
         /// <remarks>
-        /// 统一入口：工具预览推进（ShapeTool）、命令 Apply（UpdateShapeGeometryCommand）、
-        /// 快照重建（BoardInkItemCodec.BuildShape）均经此更新，保证 Bounds 单点重算。
+        /// 统一入口：工具预览推进（ShapeTool）、命令 Apply（UpdateShapeGeometryCommand）与快照重建（BoardInkItemCodec.BuildShape）都经此更新，保证 Bounds 单点重算。
         /// </remarks>
         internal void SetGeometry(Vector2 start, Vector2 end)
         {

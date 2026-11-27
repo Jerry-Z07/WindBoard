@@ -4,9 +4,7 @@ using WindBoard.Board.Elements;
 namespace WindBoard.Board.Commands
 {
     /// <summary>
-    /// 将指定元素置顶：
-    /// - 若元素在“笔迹下层”，则移动到“笔迹上层”（跨层置顶）；
-    /// - 若元素已在“笔迹上层”，则移动到列表末尾（同层置顶）。
+    /// 将指定元素置顶：在笔迹下层时移到笔迹上层（跨层置顶），已在笔迹上层时移到列表末尾（同层置顶）。
     /// </summary>
     internal sealed class BringElementToFrontCommand(BoardElement element) : IBoardCommand
     {

@@ -5,6 +5,7 @@ using System.Reflection;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using WindBoard.Features.Dock.Models;
 using WindBoard.Settings;
 using Xunit;
 
@@ -13,6 +14,27 @@ namespace WindBoard.Tests.Settings;
 [Collection(ProcessGlobalLanguageState.CollectionName)]
 public sealed class AppSettingsServiceTests
 {
+    [Fact]
+    public void GetDockSettingsSnapshot_CopiesHiddenItems()
+    {
+        string root = CreateTempDirectory();
+        try
+        {
+            AppSettingsService service = CreateService(Path.Combine(root, "data", "settings.json"));
+            service.Update(settings => settings.Dock.HiddenItems.Add(DockItemIds.Import));
+
+            DockSettings snapshot = service.GetDockSettingsSnapshot();
+            Assert.Equal(new[] { DockItemIds.Import }, snapshot.HiddenItems);
+
+            snapshot.HiddenItems.Add(DockItemIds.ToolPen);
+            Assert.Single(service.GetDockSettingsSnapshot().HiddenItems);
+        }
+        finally
+        {
+            DeleteDirectory(root);
+        }
+    }
+
     [Fact]
     public async Task ExportToFileAsync_WritesCurrentSettingsSnapshotToSelectedJson()
     {

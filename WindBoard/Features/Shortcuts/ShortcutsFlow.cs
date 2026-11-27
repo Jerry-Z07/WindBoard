@@ -9,10 +9,8 @@ using WindBoard.Logging;
 namespace WindBoard.Features.Shortcuts
 {
     /// <summary>
-    /// Shortcuts 功能编排：
-    /// - 读取快捷键设置快照
-    /// - 应用到主窗口（KeyboardAccelerator 绑定）
-    /// - 触发一次性提醒（快捷键非法/冲突自动修复）
+    /// Shortcuts 功能编排：读取快捷键设置快照并应用到主窗口（KeyboardAccelerator 绑定）。
+    /// 快捷键非法或冲突被自动修复时触发一次性提醒。
     /// </summary>
     internal sealed class ShortcutsFlow
     {
@@ -129,7 +127,7 @@ namespace WindBoard.Features.Shortcuts
         private static void OnUndoKeyboardAcceleratorInvoked(ShortcutsMainWindowHost host, KeyboardAcceleratorInvokedEventArgs args)
         {
             // 文本输入控件内优先由控件自身处理 Ctrl+Z（例如导入文字对话框），避免误触撤销画布操作。
-            if (host.IsTextInputFocused())
+            if (host.IsTextInputFocused() || host.IsInteractionBlocked())
             {
                 return;
             }
@@ -145,7 +143,7 @@ namespace WindBoard.Features.Shortcuts
 
         private static void OnRedoKeyboardAcceleratorInvoked(ShortcutsMainWindowHost host, KeyboardAcceleratorInvokedEventArgs args)
         {
-            if (host.IsTextInputFocused())
+            if (host.IsTextInputFocused() || host.IsInteractionBlocked())
             {
                 return;
             }

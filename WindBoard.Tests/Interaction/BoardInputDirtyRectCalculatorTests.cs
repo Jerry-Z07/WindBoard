@@ -9,7 +9,6 @@ namespace WindBoard.Tests.Interaction;
 
 public sealed class BoardInputDirtyRectCalculatorTests
 {
-    // 单点会按笔宽与额外 Padding 扩展
     [Fact]
     public void UpdatePendingStrokeDirtyRect_ExpandsByPenWidthAndExtraPadding_WhenSinglePoint()
     {
@@ -41,7 +40,6 @@ public sealed class BoardInputDirtyRectCalculatorTests
         AssertEx.Equal(57.0f, rect.Bottom);
     }
 
-    // 两点会使用上一点屏幕坐标并合并已有 Rect
     [Fact]
     public void UpdatePendingStrokeDirtyRect_UsesPreviousScreenPointAndMergesExistingRect_WhenTwoPoints()
     {
@@ -72,11 +70,8 @@ public sealed class BoardInputDirtyRectCalculatorTests
         Assert.NotNull(pending);
         Rect rect = pending!.Value;
 
-        // viewport size=1 => center=(0.5,0.5)，zoom=1、camera=0
-        // prevScreen=(1.5,2.5)，latestScreen=(3.5,4.5)
-        // widthFactor=clamp((0.5+1.0)/2=0.75)=0.75
-        // halfWidthWorld=10*0.75/2=3.75 => padding=2+3.75=5.75
-        // 线段包围盒扩展后：left=-4.25 top=-3.25 right=9.25 bottom=10.25
+        // 视口 size=1 → center=(0.5,0.5)，zoom=1、camera=0；prevScreen=(1.5,2.5)、latestScreen=(3.5,4.5)。
+        // widthFactor=clamp((0.5+1.0)/2)=0.75 → halfWidthWorld=10*0.75/2=3.75 → padding=2+3.75=5.75；包围盒 left=-4.25 top=-3.25 right=9.25 bottom=10.25。
         AssertEx.Equal(-4.25f, rect.Left);
         AssertEx.Equal(-3.25f, rect.Top);
         AssertEx.Equal(9.25f, rect.Right);

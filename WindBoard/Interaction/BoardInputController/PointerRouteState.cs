@@ -30,11 +30,8 @@ namespace WindBoard.Interaction
     /// pointerId 分配/互斥/释放，以及触摸触点集合与触摸手势目标。
     /// </summary>
     /// <remarks>
-    /// 纯状态容器（不依赖 WinUI 控件与事件参数，测试环境可直接构造），由
-    /// <see cref="BoardInputController"/> 持有、事件处理器只做转发；独立成类使
-    /// pointerId 的分配、互斥与释放时序可被单元测试覆盖。
-    /// 各 Begin/End 方法与控制器原内联赋值一一对应，不做额外校验（互斥由控制器
-    /// 在按下路径经 <see cref="HasActivePointerCapture"/> 闸门保证）。
+    /// 纯状态容器，不依赖 WinUI 控件与事件参数，测试环境可直接构造；由 <see cref="BoardInputController"/> 持有、事件处理器只做转发，独立成类使 pointerId 的分配、互斥与释放时序可被单元测试覆盖。
+    /// 各 Begin/End 方法与控制器原内联赋值一一对应，不做额外校验，互斥由控制器在按下路径经 <see cref="HasActivePointerCapture"/> 闸门保证。
     /// </remarks>
     internal sealed class PointerRouteState
     {

@@ -118,3 +118,16 @@ appsettings.*.Local.json
 # End
 
 .codegraph/
+
+# web/（WindBoard Web PWA 子项目，由 pnpm 管理；web/.gitignore 已覆盖同类项，
+# 这里按路径再兜一层，避免根目录规则缺失时把依赖/构建产物带进版本库）
+web/node_modules/
+web/dist/
+web/.interop/
+# playwright-cli 的会话日志与快照（调试用，不入库）
+.playwright-cli/
+
+# deja 会话记忆工具的本地状态（工具生成，不入库）
+.deja/
+
+web/e2e/__screenshots__/

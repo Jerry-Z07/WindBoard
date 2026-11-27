@@ -10,9 +10,8 @@ using WindBoard.Settings;
 namespace WindBoard.Features.Camouflage
 {
     /// <summary>
-    /// Camouflage 功能编排：
-    /// - 将伪装设置应用到窗口标题/图标
-    /// - 在设置发生变化时自动更新一次桌面快捷方式（启动时不自动生成）
+    /// Camouflage 功能编排：把伪装设置应用到窗口标题与图标，设置变化时自动更新一次桌面快捷方式。
+    /// 启动时不生成快捷方式，只在设置变化后更新。
     /// </summary>
     internal sealed class CamouflageFlow : IDisposable
     {
@@ -53,7 +52,7 @@ namespace WindBoard.Features.Camouflage
 
         public void Dispose()
         {
-            // 说明：DispatcherQueueTimer 不要求显式 Dispose，这里统一 stop + 解除 pending，
+            // DispatcherQueueTimer 不要求显式 Dispose，这里统一 stop + 解除 pending，
             // 避免在窗口关闭后仍触发 Tick 访问 AppSettingsService。
             CancelPendingShortcutUpdate();
 
@@ -79,7 +78,7 @@ namespace WindBoard.Features.Camouflage
             TryApplyWindowIcon(result);
 
             // 桌面快捷方式：仅在设置“发生修改”时自动更新一次；每次启动不再自动生成。
-            // 说明：BuildResult 可能触发“缓存重建并写回设置”，因此这里要重新取一次快照用于签名。
+            // BuildResult 可能触发“缓存重建并写回设置”，因此这里要重新取一次快照用于签名。
             CamouflageSettingsSnapshot signatureSnapshot = AppSettingsService.Instance.GetCamouflageSettingsSnapshot();
             string currentSignature = CamouflageService.Instance.GetCamouflageShortcutSettingsSignature(signatureSnapshot);
             if (isStartup)

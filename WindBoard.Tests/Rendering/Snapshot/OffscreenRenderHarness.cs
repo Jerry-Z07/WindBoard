@@ -18,13 +18,9 @@ namespace WindBoard.Tests.Rendering.Snapshot;
 /// 离屏渲染 harness：WARP 软件 D3D11 设备 + D2D 设备上下文 + 离屏位图，渲染后读回 BGRA 像素。
 /// </summary>
 /// <remarks>
-/// 设备创建顺序与主程序 <c>DxSwapChainPanelRenderer.CreateDeviceResources</c> 保持一致
-/// （D3D11 设备 → IDXGIDevice → D2D 工厂 → D2D 设备 → 设备上下文），仅两处不同：
-/// - 设备类型固定为 <see cref="DriverType.Warp"/>（软件光栅化，无 GPU/显示器依赖，CI 可跑）；
-/// - 渲染目标为 DXGI surface 支撑的离屏 D2D 位图（而非交换链面板）。
-/// 与主程序同走 D2D device context 路径，<see cref="BoardSceneRenderer"/> 内部的
-/// <c>WithOptionalDeviceContext2</c> / DrawInk / InkStyle 分支行为一致，保证快照保真。
-/// 96 DPI 下 1 DIP = 1 像素，快照尺寸即 DIP 尺寸。
+/// 设备创建顺序与主程序 <c>DxSwapChainPanelRenderer.CreateDeviceResources</c> 保持一致（D3D11 设备 → IDXGIDevice → D2D 工厂 → D2D 设备 → 设备上下文），仅两处不同：
+/// 设备类型固定为 <see cref="DriverType.Warp"/>（软件光栅化，无 GPU/显示器依赖，CI 可跑），渲染目标是 DXGI surface 支撑的离屏 D2D 位图而非交换链面板。
+/// 与主程序同走 D2D device context 路径，<see cref="BoardSceneRenderer"/> 内部的 <c>WithOptionalDeviceContext2</c> / DrawInk / InkStyle 分支行为一致，保证快照保真；96 DPI 下 1 DIP = 1 像素，快照尺寸即 DIP 尺寸。
 /// </remarks>
 internal sealed class OffscreenRenderHarness : IDisposable
 {
@@ -105,9 +101,8 @@ internal sealed class OffscreenRenderHarness : IDisposable
         _targetTexture = _d3dDevice.CreateTexture2D(targetDesc);
 
         using IDXGISurface targetSurface = _targetTexture.QueryInterface<IDXGISurface>();
-        // bitmapProperties 传 null：由 D2D 从 surface 推断像素格式（B8G8R8A8_UNorm/Premultiplied），
-        // DPI 默认 96（与上下文 SetDpi 一致）。显式指定 Target 选项的属性组反而触发 E_INVALIDARG
-        // （实测；与 OneMore 等成熟离屏实现一致，DXGI surface 支撑的位图可直接 SetTarget）。
+        // bitmapProperties 传 null：格式由 D2D 从 surface 推断（B8G8R8A8_UNorm/Premultiplied），DPI 默认 96，与上下文 SetDpi 一致。
+        // 显式指定 Target 选项的属性组反而触发 E_INVALIDARG（实测），DXGI surface 支撑的位图可直接 SetTarget。
         _targetBitmap = _d2dContext.CreateBitmapFromDxgiSurface(targetSurface, null);
         _d2dContext.Target = _targetBitmap;
 

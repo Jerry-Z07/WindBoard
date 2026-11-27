@@ -13,7 +13,9 @@ using Microsoft.UI.Xaml.Shapes;
 using Windows.UI;
 using WindBoard.Board.Editing;
 using WindBoard.Interaction;
+using WindBoard.Localization;
 using WindBoard.Settings;
+using WindBoard.UI.Common;
 
 namespace WindBoard
 {
@@ -123,6 +125,13 @@ namespace WindBoard
             }
         }
 
+        private void OnPagesFlyoutOpened(object? sender, object e)
+        {
+            // 打开后把焦点交给列表：否则键盘用户停在触发按钮上，方向键无法进入页面项。
+            SelectCurrentPageInListView();
+            PagesListView.Focus(FocusState.Programmatic);
+        }
+
         private void OnPagesListItemClick(object sender, ItemClickEventArgs e)
         {
             if (_isUpdatingPageSelection)
@@ -144,7 +153,7 @@ namespace WindBoard
             _workspace.SetCurrentIndex(index);
         }
 
-        private void OnDeletePageClicked(object sender, RoutedEventArgs e)
+        private async void OnDeletePageClicked(object sender, RoutedEventArgs e)
         {
             if (sender is not FrameworkElement element || element.Tag is not PageListItem item)
             {
@@ -152,6 +161,23 @@ namespace WindBoard
             }
 
             if (item.Page is not BoardPage page)
+            {
+                return;
+            }
+
+            XamlRoot? xamlRoot = TryGetDialogXamlRoot();
+            if (xamlRoot is null)
+            {
+                return;
+            }
+
+            bool confirmed = await DialogHelpers.ShowConfirmAsync(
+                xamlRoot,
+                L10n.Get("MainWindow_DeletePage_Button"),
+                L10n.Format("MainWindow_DeletePage_Confirm_Fmt", item.Number),
+                L10n.Get("Common_Delete"),
+                L10n.Get("Common_Cancel"));
+            if (!confirmed)
             {
                 return;
             }

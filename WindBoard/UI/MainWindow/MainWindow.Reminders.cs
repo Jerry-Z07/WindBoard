@@ -2,6 +2,7 @@ using System;
 using System.Threading.Tasks;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using WindBoard.Localization;
 using WindBoard.Logging;
 using WindBoard.Reminders;
 
@@ -44,25 +45,13 @@ namespace WindBoard
 
             if (message.ClickAction != AppReminderClickAction.None)
             {
-                // 说明：
-                // - 允许点击弹条触发动作（例如打开数据目录）；
-                // - 为避免“点击关闭按钮也触发打开”，这里跳过 Button 触发源（InfoBar 关闭按钮为 Button）。
-                bar.Tapped += (_, e) =>
+                // 动作挂在 ActionButton 上：可键盘聚焦，也不会和关闭按钮的点击混在一起。
+                var actionButton = new Button
                 {
-                    try
-                    {
-                        if (e.OriginalSource is Button)
-                        {
-                            return;
-                        }
-
-                        AppReminderActionExecutor.TryExecute(message.ClickAction);
-                    }
-                    catch (Exception ex)
-                    {
-                        AppLog.Warn("Reminders", "处理应用内弹条点击动作失败", ex);
-                    }
+                    Content = GetReminderActionText(message.ClickAction),
                 };
+                actionButton.Click += (_, _) => AppReminderActionExecutor.TryExecute(message.ClickAction);
+                bar.ActionButton = actionButton;
             }
 
             // 新消息放到最上方，避免重要提醒被旧消息压住。
@@ -74,14 +63,18 @@ namespace WindBoard
                 ReminderBannerStackPanel.Children.RemoveAt(ReminderBannerStackPanel.Children.Count - 1);
             }
 
-            TimeSpan autoDismissDelay = message.Severity switch
+            // 带动作的弹条要等用户操作，不自动关闭。
+            if (message.ClickAction == AppReminderClickAction.None)
             {
-                AppReminderSeverity.Error => TimeSpan.FromSeconds(10),
-                AppReminderSeverity.Warning => TimeSpan.FromSeconds(8),
-                _ => TimeSpan.FromSeconds(6),
-            };
+                TimeSpan autoDismissDelay = message.Severity switch
+                {
+                    AppReminderSeverity.Error => TimeSpan.FromSeconds(10),
+                    AppReminderSeverity.Warning => TimeSpan.FromSeconds(8),
+                    _ => TimeSpan.FromSeconds(6),
+                };
 
-            _ = AutoDismissBannerAsync(bar, autoDismissDelay);
+                _ = AutoDismissBannerAsync(bar, autoDismissDelay);
+            }
         }
 
         private async Task AutoDismissBannerAsync(InfoBar bar, TimeSpan delay)
@@ -119,6 +112,13 @@ namespace WindBoard
                 AppReminderSeverity.Error => InfoBarSeverity.Error,
                 _ => InfoBarSeverity.Informational,
             };
+        }
+
+        private static string GetReminderActionText(AppReminderClickAction action)
+        {
+            return action == AppReminderClickAction.OpenAppDataRootDirectory
+                ? L10n.Get("Reminder_Action_OpenDataDirectory")
+                : L10n.Get("Common_OpenLogDirectory");
         }
     }
 }

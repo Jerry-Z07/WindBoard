@@ -12,15 +12,10 @@ namespace WindBoard.Interaction.Tools
     /// 两点式形状工具（阶段二 R5，design B）：一个类按 (BoardTool id, BoardShapeKind kind) 注册 4 个实例。
     /// </summary>
     /// <remarks>
-    /// - Begin：读取 <see cref="ToolOptions"/> 快照（颜色/粗细；压感忽略，R6），创建
-    ///   <see cref="BoardShape"/> 挂 <see cref="BoardInputContext.PreviewItem"/>（语义同 PenTool）；
-    /// - Move：更新 End → <see cref="BoardShape.SetGeometry"/> → 请求"旧 ∪ 新几何 AABB"的增量脏矩形
-    ///   （屏幕 DIP，机制与 PenTool 等价）；
-    /// - End：退化几何（起点终点几乎重合，即点击未拖动）丢弃不提交；否则经
-    ///   <see cref="AddInkItemCommand"/> 提交（撤销/重做语义不变），并把结果记入
-    ///   <see cref="LastCommittedShape"/> 供控制器抛事件（本类不切工具、不设置选中，保持无 UI 依赖）；
-    /// - Cancel：清空（预览挂载点与脏矩形由控制器统一清理）；
-    /// - 高频路径（指针事件内）禁止日志。
+    /// - Begin 读取 <see cref="ToolOptions"/> 快照（颜色、粗细，压感忽略），创建 <see cref="BoardShape"/> 挂到 <see cref="BoardInputContext.PreviewItem"/>，语义同 PenTool。
+    /// - Move 更新 End 后经 <see cref="BoardShape.SetGeometry"/> 请求旧、新几何 AABB 的增量脏矩形（屏幕 DIP），机制与 PenTool 等价。
+    /// - End 丢弃退化几何（点击未拖动），否则经 <see cref="AddInkItemCommand"/> 提交并把结果记入 <see cref="LastCommittedShape"/> 供控制器抛事件；本类不切工具、不设置选中，保持无 UI 依赖。
+    /// - Cancel 只清空自身，预览挂载点与脏矩形由控制器统一清理；高频指针路径禁止日志。
     /// </remarks>
     internal sealed class ShapeTool : IBoardTool
     {
@@ -131,9 +126,7 @@ namespace WindBoard.Interaction.Tools
         /// 请求"旧 ∪ 新几何 AABB"的增量脏矩形（屏幕 DIP）。
         /// </summary>
         /// <remarks>
-        /// 形状 Move 是"整体几何替换"而非逐点追加（与 PenTool 的线段增量不同）：
-        /// 端点可能回退，因此新矩形必须与旧矩形取并集，避免旧位置残影。
-        /// BoundsWorld 已含线宽半宽外扩，屏幕化后仅再叠加额外 padding。
+        /// 形状 Move 是整体几何替换（PenTool 为逐点追加），端点可能回退，故新矩形必须与旧矩形取并集以避免旧位置残影；BoundsWorld 已含线宽半宽外扩，屏幕化后仅再叠加额外 padding。
         /// </remarks>
         private static void UpdatePendingDirtyRect(BoardInputContext context, Rect oldBoundsWorld, Rect newBoundsWorld)
         {

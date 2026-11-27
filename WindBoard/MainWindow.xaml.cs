@@ -67,9 +67,8 @@ namespace WindBoard
             // 与 XAML 默认值对齐：默认像素擦除。
             BoardCanvas.Eraser = _pixelEraser;
 
-            // 初始画笔颜色同步：取色板第一个可解析颜色作为初始色（默认 #FFFFFF 白）。
-            // 与批注层（ScreenAnnotationSessionHost.ResolveDefaultPenColor）保持同一约定；
-            // 缺省画笔参数为黑色，而默认画布为深色（#2E2F33），黑笔在深色画布上不可见（开箱不可画的缺陷）。
+            // 初始画笔颜色取色板第一个可解析颜色（默认 #FFFFFF 白），与批注层 ScreenAnnotationSessionHost.ResolveDefaultPenColor 同一约定。
+            // 缺省画笔参数为黑色，而默认画布为深色（#2E2F33），黑笔在深色画布上不可见。
             ApplyInitialPenColor();
 
             BoardCanvas.CommandStateChanged += (_, _) => UpdateCommandStates();
@@ -186,7 +185,13 @@ namespace WindBoard
             BoardCanvas.CanvasBackgroundColor = canvasBackgroundColor;
             BoardCanvas.ElementCardTheme = AppSettingsService.Instance.GetElementCardTheme();
             UpdateCanvasBackgroundBrush(canvasBackgroundColor);
-            ApplyDockSettingsToUi();
+
+            // 编辑期真实 Dock 隐藏，避免设置变更重建正在编辑的列表；退出时统一应用。
+            if (!DockEditOverlay.IsEditing)
+            {
+                ApplyDockSettingsToUi();
+            }
+
             ApplyCamouflageSettingsToWindow();
             ApplyKeyboardShortcutsToUi();
         }
@@ -339,9 +344,7 @@ namespace WindBoard
 
         private void ApplyPenFlyoutSettings()
         {
-            // 每次打开 Flyout 时按设置重建一次：
-            // - 色板数量 3~24 可变，且允许空色块
-            // - 粗细可在“三档预设 / 滑条”之间切换
+            // 每次打开 Flyout 时按设置重建：色板数量 3~24 可变且允许空色块，粗细可在三档预设与滑条之间切换。
             PenSettingsSnapshot snapshot = AppSettingsService.Instance.GetPenSettingsSnapshot();
 
             ApplyPenPaletteToFlyout(snapshot.PaletteHexes);
@@ -351,15 +354,7 @@ namespace WindBoard
         /// <summary>
         /// 同步形状工具图标的描边笔刷（自绘 Path 无法像 FontIcon 那样经内容前景继承跟随视觉状态）。
         /// </summary>
-        /// <remarks>
-        /// 对齐字体图标的两个行为：
-        /// - 选中=纯白（与选中态字体图标前景一致，选中背景为固定的 accent 蓝）；
-        /// - 非选中=按按钮 <see cref="FrameworkElement.ActualTheme"/> 取 BaseHigh 值
-        ///   （亮主题=黑、暗主题=白）。注意不能从 Application.Current.Resources 取主题笔刷：
-        ///   那按应用级主题解析，而图标所在区域可能被元素级 RequestedTheme 覆盖，
-        ///   字体图标正是按元素实际主题渲染的。
-        /// 触发点：按钮 Loaded（初始）、ActualThemeChanged（主题切换）、ApplyToolSelection（选中切换）。
-        /// </remarks>
+        /// <remarks>与字体图标对齐：选中为纯白（选中背景为固定 accent 蓝），非选中按按钮 <see cref="FrameworkElement.ActualTheme"/> 取 BaseHigh 值（亮主题黑、暗主题白）；不能从 Application.Current.Resources 取主题笔刷，那按应用级主题解析，而图标按元素级 RequestedTheme 渲染。触发点为 Loaded、ActualThemeChanged、ApplyToolSelection。</remarks>
         private void UpdateShapeIconStroke()
         {
             bool isChecked = ShapeToolToggleButton.IsChecked == true;
@@ -381,10 +376,7 @@ namespace WindBoard
         /// 初始画笔颜色同步：取色板第一个可解析颜色写入 ToolOptions
         /// （与批注层 ScreenAnnotationSessionHost.ResolveDefaultPenColor 同一约定）。
         /// </summary>
-        /// <remarks>
-        /// 仅在启动时执行一次；此后颜色以用户在笔面板的选择为准（当前选中值不持久化约定不变）。
-        /// 调色板全部为空块时保持画布控件默认值（不做兜底扩展）。
-        /// </remarks>
+        /// <remarks>仅在启动时执行一次，此后颜色以用户在笔面板的选择为准（当前选中值不持久化）；调色板全部为空块时保持画布控件默认值，不做兜底扩展。</remarks>
         private void ApplyInitialPenColor()
         {
             PenSettingsSnapshot snapshot = AppSettingsService.Instance.GetPenSettingsSnapshot();
@@ -781,9 +773,8 @@ namespace WindBoard
 
         private void MinimizeWindow()
         {
-            // WinUI 3 桌面端没有直接的 Window.Minimize：
-            // 1) 普通窗口（Overlapped Presenter）时可直接调用 OverlappedPresenter.Minimize。
-            // 2) 临时全屏等模式下 Presenter 不是 OverlappedPresenter，会导致最小化按钮无效；这里增加 Win32 兜底。
+            // WinUI 3 桌面端没有直接的 Window.Minimize：普通窗口（OverlappedPresenter）可直接调用 OverlappedPresenter.Minimize。
+            // 临时全屏等模式下 Presenter 不是 OverlappedPresenter，最小化按钮会失效，这里增加 Win32 兜底。
             try
             {
                 AppWindow? appWindow = TryGetAppWindow();
@@ -825,29 +816,9 @@ namespace WindBoard
             await StartImportAsync();
         }
 
-
-        private async Task ShowNotImplementedDialogAsync(string featureName)
-        {
-            XamlRoot? xamlRoot = TryGetDialogXamlRoot();
-            if (xamlRoot is null)
-            {
-                return;
-            }
-
-            var dialog = new ContentDialog
-            {
-                Title = L10n.Get("MainWindow_FeatureWip_Title"),
-                Content = L10n.Format("MainWindow_FeatureWip_Content_Fmt", featureName),
-                CloseButtonText = L10n.Get("Common_Close"),
-                XamlRoot = xamlRoot,
-            };
-
-            await dialog.ShowAsync();
-        }
-
         /// <summary>
         /// 取得用于展示 ContentDialog 的 XamlRoot（WinUI 3 中 ContentDialog 必须指定 XamlRoot）。
-        /// 说明：供主窗口内部与启动阶段的应用级流程（如旧安装版数据迁移）共用，避免各调用点各写一套回退逻辑。
+        /// 供主窗口内部与启动阶段的应用级流程（如旧安装版数据迁移）共用，避免各调用点各写一套回退逻辑。
         /// </summary>
         internal XamlRoot? TryGetDialogXamlRoot()
         {

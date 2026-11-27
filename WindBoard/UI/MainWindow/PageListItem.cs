@@ -4,10 +4,7 @@ namespace WindBoard
 {
     /// <summary>
     /// 页面列表项（用于 UI 绑定）。
-    /// 
-    /// 说明：
-    /// - 为避免把内部模型类型直接暴露给 XAML 绑定，这里用 <see cref="object"/> 承载页面实例。
-    /// - UI 通过 <see cref="Number"/> 展示页码，通过 <see cref="Page"/> 传递给缩略图控件/事件处理。
+    /// 用 <see cref="object"/> 承载页面实例以避免把内部模型类型暴露给 XAML 绑定；UI 通过 <see cref="Number"/> 展示页码，通过 <see cref="Page"/> 传递给缩略图控件与事件处理。
     /// </summary>
     public sealed class PageListItem
     {

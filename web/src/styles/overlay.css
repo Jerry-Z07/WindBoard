@@ -1,0 +1,109 @@
+/**
+ * 画布覆盖层（P2.3）：形状属性浮层与选中项 Dock。
+ *
+ * 桌面出处：`WindBoard/Controls/BoardCanvasControl.xaml:74-168`。
+ * 两块的容器规格完全相同：
+ * - 背景 `SystemControlBackgroundChromeMediumLowBrush` = `#F2F2F2`（与 Dock 底板同源，用 `--wb-dock-plate-color`）；
+ * - 圆角 14（`--wb-dock-plate-radius`）、整体 `Opacity=0.85`（`--wb-dock-plate-opacity`）；
+ * - `RequestedTheme="Light"` → 组件内包一层 `FluentProvider theme={winuiLightThemeForced}`（见对应 .tsx）；
+ * - 定位：锚点是**选择框下沿中心**的屏幕 DIP，浮层水平居中、垂直 +8
+ *   （`BoardCanvasControl.Rendering.cs:225`、`:232` 的 `bounds.Bottom + 8.0`）。
+ */
+
+/* ===== 锚点容器 ===== */
+
+/*
+ * 覆盖层宿主：铺满画布容器、不拦手势，里面的 `.wb-overlay-anchor` 都是相对它绝对定位。
+ * 放在 canvas 之上但 `pointer-events: none`，所以画布交互不受影响（浮层自己再打开 pointer-events）。
+ */
+.wb-overlay-host {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+/*
+ * 外层只负责平移：`transform: translate(x, y)` 由组件按锚点写入。
+ * `pointer-events: none` 让空白的锚点容器不挡住画布交互（桌面用空 Canvas 承载同样的目的），
+ * 真正的浮层再打开 `pointer-events`。
+ */
+.wb-overlay-anchor {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  /* 浮层不参与画布手势（桌面同样如此） */
+  touch-action: none;
+}
+
+/* ===== 共用底板 ===== */
+
+.wb-selection-actions,
+.wb-shape-props {
+  /* 水平居中于锚点，并下移 8px（Rendering.cs:225/232） */
+  transform: translate(-50%, 8px);
+  pointer-events: auto;
+  background: var(--wb-dock-plate-color);
+  border-radius: var(--wb-dock-plate-radius);
+  opacity: var(--wb-dock-plate-opacity);
+}
+
+/* ===== 选中项 Dock（xaml:118-168） ===== */
+
+/*
+ * `StackPanel Orientation="Horizontal" Spacing="4" Margin="5"`：
+ * 内边距 5、按钮间距 4，直接复用 `--wb-dock-padding` / `--wb-dock-gap`。
+ */
+.wb-selection-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--wb-dock-gap);
+  padding: var(--wb-dock-padding);
+  /*
+   * 按钮的悬停/按下色：主 Dock 把 `ButtonBackgroundPointerOver/Pressed` 覆盖成了
+   * `#14FFFFFF` / `#22FFFFFF`（白色叠加，适配深色 Dock 底板，`MainWindow.xaml:58-68`），
+   * 但那套覆盖只在主 Dock 的资源作用域内生效。选中项 Dock 在作用域外，用的是 WinUI 浅色默认值
+   * `SubtleFillColorSecondary` = `#09000000`、`SubtleFillColorTertiary` = `#06000000`
+   * （`generic.xaml:7771-7772`），所以这里就地覆盖这两个令牌，按钮本身仍复用 `DockButton`。
+   */
+  --wb-dock-hover: rgb(0 0 0 / 3.5%);
+  --wb-dock-pressed: rgb(0 0 0 / 2.3%);
+}
+
+/* ===== 形状属性浮层（xaml:74-114） ===== */
+
+/* `StackPanel Orientation="Horizontal" Spacing="12" Margin="12,8"`：内边距 8/12、间距 12 */
+.wb-shape-props {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  padding: 8px 12px;
+}
+
+/* 每组 `StackPanel Orientation="Vertical" Spacing="2"` */
+.wb-shape-props__field {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/* 标签：`FontSize="11" Opacity="0.75"`（xaml:82、:96） */
+.wb-shape-props__label {
+  font-size: 11px;
+  line-height: 15px;
+  opacity: 0.75;
+  color: var(--wb-dock-foreground);
+}
+
+/*
+ * 数值输入：桌面 `NumberBox Width=200 MinHeight=44 Padding="6,2"`
+ * （xaml:86-93、:100-107）。
+ *
+ * Fluent 的 `SpinButton` 自带输入框内边距，`Padding="6,2"` 只影响文字与边框的间距，
+ * 这里用 `--wb-shape-props-field-*` 表达"宽 200、高 44"这两个可测的约束；
+ * 内边距交给 Fluent 的默认值（强改会破坏 SpinButton 内部布局）。
+ */
+.wb-shape-props__spin {
+  width: 200px;
+  min-height: 44px;
+}

@@ -1,10 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <root>
-  <!--
-    说明：
-    - 本文件为 en-US 语言资源（按功能拆分）。
-    - Key 前缀：Common_*
-  -->
+  <!-- en-US 语言资源，Key 前缀 Common_* -->
   <resheader name="resmimetype">
     <value>text/microsoft-resx</value>
   </resheader>
@@ -22,6 +18,9 @@
   </data>
   <data name="Common_Cancel" xml:space="preserve">
     <value>Cancel</value>
+  </data>
+  <data name="Common_Canceling" xml:space="preserve">
+    <value>Canceling…</value>
   </data>
   <data name="Common_Settings" xml:space="preserve">
     <value>Settings</value>
@@ -59,6 +58,12 @@
   <data name="Common_ResetToDefault" xml:space="preserve">
     <value>Reset to default</value>
   </data>
+  <data name="Common_Save" xml:space="preserve">
+    <value>Save</value>
+  </data>
+  <data name="Common_Edit" xml:space="preserve">
+    <value>Edit</value>
+  </data>
   <data name="Common_Delete" xml:space="preserve">
     <value>Delete</value>
   </data>
@@ -78,13 +83,13 @@
     <value>Something went wrong</value>
   </data>
   <data name="Common_CrashDialog_Body" xml:space="preserve">
-    <value>The app encountered an unhandled exception and needs to exit. You can copy diagnostics or open the log directory for troubleshooting.</value>
+    <value>The app encountered an unhandled exception and needs to exit. You can copy diagnostics or open the log folder for troubleshooting.</value>
   </data>
   <data name="Common_DiagnosticsCopied" xml:space="preserve">
     <value>Diagnostics copied</value>
   </data>
   <data name="Common_OpenLogDirectory" xml:space="preserve">
-    <value>Open log directory</value>
+    <value>Open log folder</value>
   </data>
   <data name="Common_BringToFront" xml:space="preserve">
     <value>Bring to front</value>

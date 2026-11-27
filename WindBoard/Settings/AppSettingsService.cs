@@ -12,12 +12,7 @@ using WindBoard.Logging;
 namespace WindBoard.Settings
 {
     /// <summary>
-    /// 应用级设置服务（单例）。
-    /// 
-    /// 职责：
-    /// - 启动时加载设置
-    /// - 运行时提供更新入口并广播变更事件
-    /// - 对高频更新做保存防抖，减少频繁写磁盘
+    /// 应用级设置服务（单例）：启动时加载设置，运行时提供更新入口并广播变更事件，对高频更新做保存防抖以减少写磁盘。
     /// </summary>
     internal sealed class AppSettingsService
     {
@@ -288,7 +283,7 @@ namespace WindBoard.Settings
         {
             lock (_gate)
             {
-                // 注意：DockSettings 内包含引用类型列表，这里返回“深拷贝快照”，避免外部误改内部状态。
+                // DockSettings 内包含引用类型列表，这里返回深拷贝快照，避免外部误改内部状态。
                 List<ShortcutDockItemSettings> shortcutItems = new();
                 if (Current.Dock?.ShortcutItems is not null)
                 {
@@ -315,7 +310,7 @@ namespace WindBoard.Settings
                     ToolsOrder = new List<string>(Current.Dock?.ToolsOrder ?? DockSettingsDefaults.ToolsOrder),
                     UndoRedoOrder = new List<string>(Current.Dock?.UndoRedoOrder ?? DockSettingsDefaults.UndoRedoOrder),
                     PagesOrder = new List<string>(Current.Dock?.PagesOrder ?? DockSettingsDefaults.PagesOrder),
-                    IsUndoRedoVisible = Current.Dock?.IsUndoRedoVisible ?? true,
+                    HiddenItems = new List<string>(Current.Dock?.HiddenItems ?? new List<string>()),
                     IsShortcutDocksVisible = Current.Dock?.IsShortcutDocksVisible ?? false,
                     ShortcutItems = shortcutItems,
                 };
@@ -500,9 +495,7 @@ namespace WindBoard.Settings
             AppSettings snapshot;
             lock (_gate)
             {
-                // 这里只做“快照”，不在这里做归一化：
-                // - 归一化由 Update/Load 保证；
-                // - 落盘前 Store.Save 会再次归一化兜底。
+                // 这里只做快照；归一化由 Update/Load 保证，落盘前 Store.Save 会再次归一化兜底。
                 snapshot = AppSettingsCloner.Clone(Current);
             }
 
@@ -513,9 +506,8 @@ namespace WindBoard.Settings
         {
             lock (_gate)
             {
-                // 高频 Update 如果用 CancellationToken + Task.Delay 做防抖，
-                // 频繁取消会抛出 TaskCanceledException（即使被 catch，调试输出仍会提示“异常已引发”）。
-                // 这里改为 Timer 防抖：仅在一段时间内没有新的更新时才触发保存，不产生取消异常噪音。
+                // 防抖改用 Timer：高频 Update 若用 CancellationToken + Task.Delay，频繁取消会抛 TaskCanceledException，即使 catch 住调试输出仍提示异常已引发。
+                // Timer 在静默一段时间后才触发保存，不产生取消异常噪音。
                 _saveDebounceTimer ??= new Timer(
                     static state => ((AppSettingsService)state!).OnSaveDebounceTimerTick(),
                     this,

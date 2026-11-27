@@ -7,8 +7,7 @@ namespace WindBoard.Features.ScreenAnnotation.Services
     /// 屏幕批注运行态窗口状态。
     /// </summary>
     /// <remarks>
-    /// PassThrough 不直接映射到 <see cref="BoardTool.Select"/>，
-    /// 这里只记录“当前是否穿透”以及“最近一次绘图工具”，供窗口层切换命中测试时使用。
+    /// PassThrough 不映射到 <see cref="BoardTool.Select"/>，这里只记录当前是否穿透与最近一次绘图工具，供窗口层切换命中测试。
     /// </remarks>
     internal sealed class ScreenAnnotationWindowState
     {

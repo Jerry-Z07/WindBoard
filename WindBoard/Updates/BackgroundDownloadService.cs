@@ -11,10 +11,8 @@ using WindBoard.Settings;
 namespace WindBoard.Updates
 {
     /// <summary>
-    /// 后台下载服务：
-    /// - 支持进度回调
-    /// - 失败时按下载源顺序轮询切换
-    /// - 支持 .part 断点续传（Range）
+    /// 后台下载服务。
+    /// 支持进度回调，失败时按下载源顺序轮询切换，支持 .part 断点续传（Range）。
     /// </summary>
     internal static partial class BackgroundDownloadService
     {

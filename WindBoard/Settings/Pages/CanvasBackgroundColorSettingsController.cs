@@ -9,10 +9,8 @@ using Windows.UI;
 namespace WindBoard.Settings.Pages
 {
     /// <summary>
-    /// "画布背景颜色"设置的 UI 协调器：
-    /// - 负责预览区与弹窗（ColorPicker ⇄ HEX）的同步；
-    /// - 订阅设置变更并刷新 UI；
-    /// - 处理"可预览但可撤销"：取消弹窗时回退到打开前的颜色。
+    /// 画布背景颜色设置的 UI 协调器：同步预览区与弹窗（ColorPicker ⇄ HEX），订阅设置变更刷新 UI。
+    /// 弹窗取消时回退到打开前的颜色（可预览但可撤销）。
     /// </summary>
     internal sealed class CanvasBackgroundColorSettingsController
     {
@@ -50,8 +48,7 @@ namespace WindBoard.Settings.Pages
         {
             ArgumentNullException.ThrowIfNull(ui);
 
-            // CA2208：paramName 须为方法真实参数。ArgumentNullException.ThrowIfNull 以
-            // CallerArgumentExpression（如 "ui.DispatcherQueue"）作为参数名，能准确标识哪个 UI 引用为空。
+            // CA2208 要求 paramName 为方法真实参数：ThrowIfNull 以 CallerArgumentExpression（如 "ui.DispatcherQueue"）作为参数名，能准确标识哪个 UI 引用为空。
             // UiRefs 为 init-only 自动属性，重复访问幂等，先校验后赋值等价于原 ?? throw 写法。
             ArgumentNullException.ThrowIfNull(ui.DispatcherQueue);
             ArgumentNullException.ThrowIfNull(ui.GetXamlRoot);

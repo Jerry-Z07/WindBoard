@@ -69,9 +69,8 @@ namespace WindBoard.UITests.Infrastructure
         }
 
         /// <summary>
-        /// 激活元素：优先 InvokePattern（不经鼠标、不依赖窗口在前台——E2E 的被测窗口
-        /// 由后台进程启动，常被前台锁压在其它应用之下）；无 Invoke 模式或取模式异常
-        /// （如自定义 peer 声明与实现不符抛 InvalidCastException）时回退鼠标点击。
+        /// 激活元素：优先 InvokePattern（不经鼠标，E2E 被测窗口由后台进程启动、常被前台锁压在其它应用之下）；
+        /// 无 Invoke 模式或取模式异常（如自定义 peer 声明与实现不符抛 InvalidCastException）时回退鼠标点击。
         /// </summary>
         public static void InvokeOrClick(AutomationElement element)
         {
@@ -116,11 +115,8 @@ namespace WindBoard.UITests.Infrastructure
         }
 
         /// <summary>
-        /// 把窗口强制带到前台。
-        /// 说明：E2E 由后台进程（testhost）启动被测应用，Windows 前台锁（SetForegroundWindow
-        /// 的调用限制）会把新窗口压在当前前台应用之下；而系统文件选择器（IFileDialog）只在
-        /// 宿主窗口激活时才显示，ContentDialog 按钮的鼠标点击也需要窗口无遮挡。
-        /// 采用经典 ALT 键技巧：先模拟一次 ALT 按下/抬起解除前台锁，再调用 Focus。
+        /// 把窗口强制带到前台：E2E 由后台进程（testhost）启动被测应用，Windows 前台锁（SetForegroundWindow 的调用限制）会把新窗口压在其它应用之下，
+        /// 而系统文件选择器（IFileDialog）只在宿主窗口激活时才显示。采用经典 ALT 键技巧：先模拟 ALT 按下/抬起解除前台锁，再调用 Focus。
         /// </summary>
         public static void BringToFront(Window window)
         {
@@ -172,9 +168,8 @@ namespace WindBoard.UITests.Infrastructure
         }
 
         /// <summary>
-        /// 限深广度优先查找指定 ControlType 的可见后代。
-        /// 背景：Win11 文件对话框对全深度 FindAllDescendants 会触发 UIA 内部超时
-        /// （UIA_E_TIMEOUT，约 12.5s），浅层逐层遍历可规避。
+        /// 限深广度优先查找指定 ControlType 的可见后代：Win11 文件对话框对全深度 FindAllDescendants 会触发
+        /// UIA 内部超时（UIA_E_TIMEOUT，约 12.5s），浅层逐层遍历可规避。
         /// </summary>
         public static AutomationElement? FindVisibleDescendantLimitedDepth(
             AutomationElement root,
@@ -338,10 +333,8 @@ namespace WindBoard.UITests.Infrastructure
         }
 
         /// <summary>
-        /// 查找系统文件对话框。
-        /// Win11 的新版 IFileDialog 不出现在 UIA 桌面树的条件搜索结果中，且对话框由
-        /// Shell 侧进程承载（pid 与被测应用不同，实测），因此用 Win32 EnumWindows 按
-        /// “owner 为主窗口”定位句柄（标题匹配兜底），再转成 FlaUI 窗口。
+        /// 查找系统文件对话框：Win11 新版 IFileDialog 不出现在 UIA 桌面树的条件搜索结果中，且对话框由 Shell 侧进程承载（pid 与被测应用不同，实测），
+        /// 因此用 Win32 EnumWindows 按“owner 为主窗口”定位句柄（标题匹配兜底），再转成 FlaUI 窗口。
         /// </summary>
         public static Window? TryFindFileDialog(WindBoardApp app)
         {

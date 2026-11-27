@@ -1,0 +1,216 @@
+{
+  "id": "11111111-1111-4111-8111-111111111111",
+  "strokes": [
+    {
+      "kind": "stroke",
+      "stroke": {
+        "points": [
+          {
+            "position": {
+              "x": 10.5,
+              "y": 20.25
+            },
+            "pressure": 0.5
+          },
+          {
+            "position": {
+              "x": 12,
+              "y": 24
+            },
+            "pressure": 0.8
+          },
+          {
+            "position": {
+              "x": -3.75,
+              "y": 41.5
+            },
+            "pressure": 1
+          }
+        ],
+        "colorRgba": {
+          "x": 0.1,
+          "y": 0.2,
+          "z": 0.3,
+          "w": 1
+        },
+        "baseSize": 3.25,
+        "enablePressure": true
+      }
+    },
+    {
+      "kind": "line",
+      "shape": {
+        "start": {
+          "x": 0,
+          "y": 0
+        },
+        "end": {
+          "x": 100,
+          "y": 50.5
+        },
+        "colorRgba": {
+          "x": 1,
+          "y": 0,
+          "z": 0,
+          "w": 1
+        },
+        "width": 2
+      }
+    },
+    {
+      "kind": "rect",
+      "shape": {
+        "start": {
+          "x": 160.25,
+          "y": -40
+        },
+        "end": {
+          "x": 260.5,
+          "y": 20.75
+        },
+        "colorRgba": {
+          "x": 0,
+          "y": 0.8,
+          "z": 0.4,
+          "w": 0.5
+        },
+        "width": 3
+      }
+    },
+    {
+      "kind": "ellipse",
+      "shape": {
+        "start": {
+          "x": -60,
+          "y": 90
+        },
+        "end": {
+          "x": -10.5,
+          "y": 130.25
+        },
+        "colorRgba": {
+          "x": 0.25,
+          "y": 0.5,
+          "z": 0.75,
+          "w": 1
+        },
+        "width": 1.5
+      }
+    },
+    {
+      "kind": "arrow",
+      "shape": {
+        "start": {
+          "x": 300,
+          "y": 300
+        },
+        "end": {
+          "x": 420.5,
+          "y": 360.25
+        },
+        "colorRgba": {
+          "x": 1,
+          "y": 1,
+          "z": 0,
+          "w": 1
+        },
+        "width": 2.5
+      }
+    }
+  ],
+  "elements": [
+    {
+      "type": "text",
+      "data": {
+        "id": "33333333-3333-4333-8333-333333333333",
+        "layer": "belowInk",
+        "positionWorld": {
+          "x": -120.5,
+          "y": 60.25
+        },
+        "sizeWorld": {
+          "x": 320,
+          "y": 180
+        },
+        "order": 0,
+        "text": "\u4F60\u597D\uFF0CWindBoard \u003Cb\u003E\u0026\u003C/b\u003E \u0022\u5F15\u53F7\u0022 \uD83D\uDE00"
+      }
+    },
+    {
+      "type": "link",
+      "data": {
+        "id": "44444444-4444-4444-8444-444444444444",
+        "layer": "belowInk",
+        "positionWorld": {
+          "x": 40,
+          "y": -80
+        },
+        "sizeWorld": {
+          "x": 240.5,
+          "y": 120
+        },
+        "order": 1,
+        "url": "https://example.com/\u753B\u677F?a=1\u0026b=2",
+        "title": null
+      }
+    },
+    {
+      "type": "media",
+      "data": {
+        "id": "55555555-5555-4555-8555-555555555555",
+        "layer": "aboveInk",
+        "positionWorld": {
+          "x": 200,
+          "y": 200
+        },
+        "sizeWorld": {
+          "x": 400,
+          "y": 300
+        },
+        "order": 0,
+        "kind": "image",
+        "sourcePath": null,
+        "displayName": "photo.png",
+        "resourceId": "res-image-0001"
+      }
+    },
+    {
+      "type": "media",
+      "data": {
+        "id": "66666666-6666-4666-8666-666666666666",
+        "layer": "aboveInk",
+        "positionWorld": {
+          "x": -300,
+          "y": 12.5
+        },
+        "sizeWorld": {
+          "x": 480,
+          "y": 270
+        },
+        "order": 1,
+        "kind": "video",
+        "sourcePath": "D:/media/clip.mp4",
+        "displayName": "clip.mp4",
+        "resourceId": null
+      }
+    },
+    {
+      "type": "file",
+      "data": {
+        "id": "77777777-7777-4777-8777-777777777777",
+        "layer": "aboveInk",
+        "positionWorld": {
+          "x": 0,
+          "y": 0
+        },
+        "sizeWorld": {
+          "x": 320,
+          "y": 180
+        },
+        "order": 2,
+        "sourcePath": "D:/docs/\u62A5\u544A.docx",
+        "displayName": "\u62A5\u544A.docx"
+      }
+    }
+  ]
+}

@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!-- zh-CN 语言资源，Key 前缀 Dock_* -->
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="Dock_Edit_Done" xml:space="preserve">
+    <value>完成</value>
+  </data>
+  <data name="Dock_Edit_Hint" xml:space="preserve">
+    <value>拖动排序；减号隐藏，加号恢复。</value>
+  </data>
+  <data name="Dock_Edit_ShortcutDocks_Label" xml:space="preserve">
+    <value>快捷入口</value>
+  </data>
+  <data name="Dock_Edit_Hide_Tooltip" xml:space="preserve">
+    <value>隐藏</value>
+  </data>
+  <data name="Dock_Edit_Restore_Tooltip" xml:space="preserve">
+    <value>恢复</value>
+  </data>
+  <data name="Dock_Edit_CannotHideMore_Tooltip" xml:space="preserve">
+    <value>「更多」是设置入口，不能隐藏</value>
+  </data>
+  <data name="Dock_Edit_AddShortcut_Tooltip" xml:space="preserve">
+    <value>添加快捷入口</value>
+  </data>
+  <data name="Dock_Edit_MaxShortcuts_Hint" xml:space="preserve">
+    <value>最多 5 个快捷入口</value>
+  </data>
+  <data name="Dock_Edit_ShortcutDialog_Title" xml:space="preserve">
+    <value>编辑快捷入口</value>
+  </data>
+  <data name="Dock_Edit_ShortcutPathRequired_Message" xml:space="preserve">
+    <value>路径或网址不能为空。</value>
+  </data>
+  <data name="Dock_Edit_ShortcutFull_Message" xml:space="preserve">
+    <value>快捷入口已达上限，无法继续添加。</value>
+  </data>
+</root>

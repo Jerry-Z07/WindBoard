@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <!-- `viewport-fit=cover` 让 PWA 铺满刘海屏；安全区内边距由 `styles/shell.css` 的 env() 处理 -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <!-- PWA：可安装、可离线。`theme-color` 取品牌蓝，与 Dock 选中态同一色 -->
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <meta name="theme-color" content="#1976D2" />
+    <!-- iOS Safari 不读 manifest 的图标与显示模式，这几条私有 meta 仍需保留 -->
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="轻风白板" />
+    <!-- 白板是"应用"而非"文档"：禁用电话号码自动识别 -->
+    <meta name="format-detection" content="telephone=no" />
+    <meta name="color-scheme" content="light dark" />
+    <!-- 标题与桌面一致（`WindBoard/Strings/zh-CN/MainWindow.resw` 的 `MainWindow_Title`） -->
+    <title>轻风白板</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

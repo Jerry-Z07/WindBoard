@@ -13,8 +13,7 @@ namespace WindBoard.Board
         /// 笔迹层条目集合（折线笔迹与未来的几何形状按创建顺序交错叠放）。
         /// </summary>
         /// <remarks>
-        /// 阶段一统一抽象（R1）：通过 <see cref="IBoardInkItem"/> 承载不同绘制条目类型，
-        /// 渲染/命中/擦除按条目类型单点分发。
+        /// 不同绘制条目类型经 <see cref="IBoardInkItem"/> 统一承载，渲染/命中/擦除按类型单点分发。
         /// </remarks>
         public List<IBoardInkItem> InkItems { get; } = new();
 
@@ -33,8 +32,7 @@ namespace WindBoard.Board
     /// 折线笔迹（点集 + 颜色/粗细/压感）。
     /// </summary>
     /// <remarks>
-    /// 实现 <see cref="IBoardInkItem"/>：作为笔迹层条目接入文档集合与统一分发点，
-    /// 折线语义（<see cref="Points"/> 点集）保持不变。
+    /// 实现 <see cref="IBoardInkItem"/> 接入笔迹层集合与统一分发点，折线语义（<see cref="Points"/> 点集）保持不变。
     /// </remarks>
     internal sealed class Stroke : IBoardInkItem
     {

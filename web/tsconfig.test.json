@@ -1,0 +1,35 @@
+{
+  "compilerOptions": {
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.test.tsbuildinfo",
+    "target": "es2023",
+    /*
+     * 组件级冒烟测试（`tests/unit/ui-*.test.tsx`，jsdom + @testing-library/react）需要 DOM 类型
+     * 与 JSX 支持。纯函数测试不受影响——它们仍然只用 `ES2023` 那套 API，不碰 DOM。
+     */
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "jsx": "react-jsx",
+    /*
+     * `vite/client` 提供 `import.meta.env` 的类型：测试会 typecheck 到被导入的 `src/**`
+     * （如 `BoardSurface.tsx` 里的 `import.meta.env.DEV` 调试句柄），只给 node 类型会报
+     * `Property 'env' does not exist on type 'ImportMeta'`。
+     */
+    "types": ["node", "vite/client"],
+    "skipLibCheck": true,
+
+    /* Bundler mode（测试由 vitest 转译，与 app 保持一致的解析策略） */
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "verbatimModuleSyntax": true,
+    "moduleDetection": "force",
+    "noEmit": true,
+
+    /* Linting */
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "erasableSyntaxOnly": true,
+    "noFallthroughCasesInSwitch": true
+  },
+  "include": ["tests"]
+}

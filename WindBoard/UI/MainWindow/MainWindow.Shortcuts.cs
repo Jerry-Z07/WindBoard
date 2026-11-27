@@ -48,6 +48,7 @@ namespace WindBoard
                 Window = this,
                 Root = root,
                 IsTextInputFocused = IsTextInputFocused,
+                IsInteractionBlocked = () => DockEditOverlay.IsEditing,
                 CanUndo = () => BoardCanvas.CanUndo,
                 Undo = () => BoardCanvas.Undo(),
                 CanRedo = () => BoardCanvas.CanRedo,

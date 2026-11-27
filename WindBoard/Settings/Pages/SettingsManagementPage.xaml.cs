@@ -208,6 +208,11 @@ namespace WindBoard.Settings.Pages
             {
                 ResetSettingsCard.IsEnabled = !isBusy;
             }
+
+            if (SettingsManagementProgressBar is not null)
+            {
+                SettingsManagementProgressBar.Visibility = isBusy ? Visibility.Visible : Visibility.Collapsed;
+            }
         }
 
         private void ShowSettingsManagementFeedback(InfoBarSeverity severity, string message)

@@ -40,10 +40,8 @@ namespace WindBoard.Features.Import.Wbi
     }
 
     /// <summary>
-    /// 旧格式 WBI（.wbi）工作区导入器：
-    /// - 读取 Zip + JSON（snake_case）；
-    /// - 从 ISF 解析笔迹并转换为新版本 Stroke；
-    /// - 将附件映射为新版本元素卡片（图片/视频/文本/链接）。
+    /// 旧格式 WBI（.wbi）工作区导入器：读取 Zip 与 snake_case JSON，从 ISF 解析笔迹并转换为新版本 Stroke。
+    /// 附件映射为新版本元素卡片（图片、视频、文本、链接）。
     /// </summary>
     internal sealed class WbiWorkspaceImporter
     {
@@ -346,14 +344,14 @@ namespace WindBoard.Features.Import.Wbi
             string path = att.FilePath ?? string.Empty;
             if (!string.IsNullOrWhiteSpace(path) && !File.Exists(path))
             {
-                missingResources.Add($"视频文件不存在：{path}");
+                missingResources.Add(L10n.Format("Import_MissingVideo_Fmt", path));
             }
 
             return new BoardMediaElement
             {
                 Kind = BoardMediaKind.Video,
                 SourcePath = path,
-                DisplayName = string.IsNullOrWhiteSpace(path) ? "视频" : Path.GetFileName(path),
+                DisplayName = string.IsNullOrWhiteSpace(path) ? L10n.Get("Import_Media_Video") : Path.GetFileName(path),
             };
         }
 
@@ -363,7 +361,7 @@ namespace WindBoard.Features.Import.Wbi
             CancellationToken cancellationToken = context.CancellationToken;
 
             string? sourcePath = null;
-            string displayName = "图片";
+            string displayName = L10n.Get("Import_Media_Image");
 
             if (manifest.IncludeImageAssets && !string.IsNullOrWhiteSpace(att.AssetFile))
             {
@@ -390,7 +388,7 @@ namespace WindBoard.Features.Import.Wbi
                 }
                 else
                 {
-                    context.MissingResources.Add($"缺少内嵌图片资源：{assetEntryPath}");
+                    context.MissingResources.Add(L10n.Format("Import_MissingImageAsset_Fmt", assetEntryPath));
                 }
             }
             else if (!string.IsNullOrWhiteSpace(att.FilePath))
@@ -400,7 +398,7 @@ namespace WindBoard.Features.Import.Wbi
 
                 if (!File.Exists(att.FilePath))
                 {
-                    context.MissingResources.Add($"图片文件不存在：{att.FilePath}");
+                    context.MissingResources.Add(L10n.Format("Import_MissingImage_Fmt", att.FilePath));
                 }
             }
 

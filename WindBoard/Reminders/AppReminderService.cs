@@ -7,10 +7,8 @@ using WindBoard.Reminders.Channels;
 namespace WindBoard.Reminders
 {
     /// <summary>
-    /// 统一提醒服务：
-    /// - 窗口化优先走 Windows Toast；
-    /// - Toast 失败则降级为应用内右上角弹条；
-    /// - 全屏模式（未来）：直接走右上角弹条（此处预留）。
+    /// 统一提醒服务：窗口化优先走 Windows Toast，Toast 失败则降级为应用内右上角弹条。
+    /// 全屏模式（未来）：直接走右上角弹条（此处预留）。
     /// </summary>
     internal sealed class AppReminderService
     {

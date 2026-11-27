@@ -7,19 +7,13 @@ using System.Text.Json;
 namespace WindBoard.UITests.Infrastructure
 {
     /// <summary>
-    /// 设置文件隔离（方案 B，零主工程改动）：
-    /// 每个用例启动应用前备份并移除 settings.json（应用将以默认设置启动），
-    /// 用例结束后恢复原文件，保证幂等且不污染用户真实设置数据。
-    ///
-    /// 覆盖两个候选位置：
-    /// - 便携版判定命中时：{exe 目录}\data\settings.json（从构建输出启动的典型路径）
-    /// - 兜底：%LocalAppData%\WindBoard\settings.json（安装版/便携 data 不可写）
-    ///
-    /// 安全加固（2026-09，实测依据：xUnit v2 在 InitializeAsync 抛出时不会调用 DisposeAsync）：
-    /// - 备份同时落盘到 %TEMP%\windboard-uitests\settings-backup.json，测试进程被强杀/崩溃后仍可人工恢复；
-    /// - 每次 SaveAndClear 前先恢复上次运行残留的备份文件（自愈），避免用户设置长期停留在丢失状态；
-    /// - Restore 时删除“测试期间新建”的 settings.json，保证环境零残留。
+    /// 设置文件隔离（方案 B，零主工程改动）：每个用例启动前备份并移除 settings.json（以默认设置启动），用例结束后恢复，保证幂等且不污染用户真实设置。
+    /// 覆盖两个候选位置：便携版判定命中时 {exe 目录}\data\settings.json，兜底 %LocalAppData%\WindBoard\settings.json。
     /// </summary>
+    /// <remarks>
+    /// xUnit v2 在 InitializeAsync 抛出时不会调用 DisposeAsync，故备份同时落盘 %TEMP%\windboard-uitests\settings-backup.json，测试进程被强杀后仍可人工恢复；
+    /// SaveAndClear 前先恢复上次运行残留的备份（自愈），Restore 时删除测试期间新建的 settings.json，保证环境零残留。
+    /// </remarks>
     public static class SettingsBackup
     {
         private static readonly object Gate = new();

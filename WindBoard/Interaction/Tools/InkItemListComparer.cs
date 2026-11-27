@@ -7,8 +7,7 @@ namespace WindBoard.Interaction.Tools
     /// 绘制条目列表的引用级比较（用于快照前后判断"是否实际发生变化"）。
     /// </summary>
     /// <remarks>
-    /// 原控制器 <c>IsSameStrokeList</c> 的共享化：擦除快照（<see cref="IBoardInkItem"/> 列表）与
-    /// 选择集（<see cref="WindBoard.Board.Stroke"/> 列表）都经 IReadOnlyList 协变传入。
+    /// 擦除快照（<see cref="IBoardInkItem"/> 列表）与选择集（<see cref="WindBoard.Board.Stroke"/> 列表）都经 IReadOnlyList 协变传入。
     /// </remarks>
     internal static class InkItemListComparer
     {

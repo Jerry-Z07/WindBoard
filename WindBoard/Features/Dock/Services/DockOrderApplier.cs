@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using WindBoard.Features.Dock.Models;
 
 namespace WindBoard.Features.Dock.Services
 {
@@ -10,7 +11,11 @@ namespace WindBoard.Features.Dock.Services
     /// </summary>
     internal static class DockOrderApplier
     {
-        internal static void Apply(StackPanel panel, IReadOnlyList<string> order, IReadOnlyDictionary<string, UIElement> elementsById)
+        internal static void Apply(
+            StackPanel panel,
+            IReadOnlyList<string> order,
+            IReadOnlyDictionary<string, UIElement> elementsById,
+            IReadOnlySet<string> hiddenIds)
         {
             ArgumentNullException.ThrowIfNull(panel);
 
@@ -18,10 +23,12 @@ namespace WindBoard.Features.Dock.Services
 
             ArgumentNullException.ThrowIfNull(elementsById);
 
-            // 归一化已保证 order 只包含合法项并补齐缺失项，这里按 order 进行重排即可。
+            ArgumentNullException.ThrowIfNull(hiddenIds);
+
+            // 归一化已保证 order 只包含合法项并补齐缺失项，这里按可见顺序进行重排即可。
             panel.Children.Clear();
 
-            foreach (string id in order)
+            foreach (string id in DockLayoutRules.FilterVisibleOrder(order, hiddenIds))
             {
                 if (elementsById.TryGetValue(id, out UIElement? element))
                 {

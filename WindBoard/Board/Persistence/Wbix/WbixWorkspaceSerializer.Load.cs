@@ -42,10 +42,9 @@ namespace WindBoard.Board.Persistence.Wbix
                 throw new InvalidDataException(L10n.Format("Wbix_FormatMismatch_Fmt", manifest.Format));
             }
 
-            if (manifest.Version <= 0 || manifest.Version > CurrentVersion)
-            {
-                throw new InvalidDataException(L10n.Format("Wbix_VersionNotSupported_Fmt", manifest.Version));
-            }
+            // 版本契约：按 manifest.version 分派页读取器。
+            // 时序与旧版本门禁一致——format 校验之后、任何页被读取之前，因此「版本非法但 pages 为空」的文件同样被拒绝。
+            IWbixPageReader pageReader = WbixPageReaderRegistry.For(manifest.Version);
 
             Dictionary<string, WbixResourceEntry> resourcesById = BuildResourceIndex(manifest.Resources);
             var loadContext = new WbixLoadContext(archive, resourcesById);
@@ -59,30 +58,7 @@ namespace WindBoard.Board.Persistence.Wbix
             foreach (WbixManifestPage pageEntry in sortedPages)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-
-                string pagePath = NormalizeZipPath(pageEntry.Path);
-                if (!IsSafeZipPath(pagePath, requiredPrefix: $"{PagesFolder}/"))
-                {
-                    throw new InvalidDataException(L10n.Format("Wbix_MissingPageFile_Fmt", pageEntry.Path));
-                }
-
-                ZipArchiveEntry? pageZipEntry = archive.GetEntry(pagePath);
-                if (pageZipEntry is null)
-                {
-                    throw new InvalidDataException(L10n.Format("Wbix_MissingPageFile_Fmt", pageEntry.Path));
-                }
-
-                WbixPagePayload payload;
-                await using (Stream pageStream = pageZipEntry.Open())
-                {
-                    payload = await JsonSerializer.DeserializeAsync<WbixPagePayload>(pageStream, JsonOptions, cancellationToken).ConfigureAwait(false)
-                        ?? throw new InvalidDataException(L10n.Format("Wbix_PageParseFailed_Fmt", pagePath));
-                }
-
-                IReadOnlyList<InkItemSnapshot> strokes = payload.Strokes ?? Array.Empty<InkItemSnapshot>();
-                (IReadOnlyList<BoardElementSnapshot> below, IReadOnlyList<BoardElementSnapshot> above) = loadContext.ParseElements(payload.Elements);
-
-                pages.Add(new BoardPageSnapshot(payload.Id, strokes, below, above));
+                pages.Add(await pageReader.ReadPageAsync(loadContext, pageEntry, cancellationToken).ConfigureAwait(false));
             }
 
             int currentIndex = Math.Clamp(manifest.CurrentIndex, 0, Math.Max(0, pages.Count - 1));
@@ -101,6 +77,8 @@ namespace WindBoard.Board.Persistence.Wbix
         {
             private readonly ZipArchive _archive;
             private readonly IReadOnlyDictionary<string, WbixResourceEntry> _resourcesById;
+            private readonly Dictionary<InkItemReadMode, JsonSerializerOptions> _pageJsonOptions = new();
+            private readonly WbixLegacyFlatItemWarningGate _legacyFlatWarnGate = new();
 
             private string? _extractFolder;
             private long _extractedBytes;
@@ -109,6 +87,37 @@ namespace WindBoard.Board.Persistence.Wbix
             {
                 _archive = archive ?? throw new ArgumentNullException(nameof(archive));
                 _resourcesById = resourcesById ?? throw new ArgumentNullException(nameof(resourcesById));
+            }
+
+            /// <summary>
+            /// 当前文件对应的 Zip 归档（页读取器按路径取条目）。
+            /// </summary>
+            public ZipArchive Archive => _archive;
+
+            /// <summary>
+            /// 取得指定读模式下用于反序列化页面文件的 JSON 选项（同一上下文内每种模式只创建一次）。
+            /// </summary>
+            public JsonSerializerOptions GetPageJsonOptions(InkItemReadMode readMode)
+            {
+                if (_pageJsonOptions.TryGetValue(readMode, out JsonSerializerOptions? options))
+                {
+                    return options;
+                }
+
+                options = CreateJsonOptions(readMode, OnUnexpectedLegacyFlatItem);
+                _pageJsonOptions[readMode] = options;
+                return options;
+            }
+
+            /// <summary>
+            /// v3 文件出现扁平笔迹条目的兜底告警：每个文件最多一条，避免超大文件刷日志。
+            /// </summary>
+            private void OnUnexpectedLegacyFlatItem()
+            {
+                if (_legacyFlatWarnGate.TryEnter())
+                {
+                    AppLog.Warn("WBIX", "v3 文件的笔迹条目中出现扁平形态，已按 kind='stroke' 兼容读取。");
+                }
             }
 
             public (IReadOnlyList<BoardElementSnapshot> below, IReadOnlyList<BoardElementSnapshot> above) ParseElements(IReadOnlyList<WbixPageElement>? elements)
@@ -253,7 +262,11 @@ namespace WindBoard.Board.Persistence.Wbix
                 sourcePath ??= string.Empty;
                 if (string.IsNullOrWhiteSpace(displayName))
                 {
-                    displayName = kind == BoardMediaKind.Image ? "图片" : kind == BoardMediaKind.Audio ? "音频" : "视频";
+                    displayName = kind == BoardMediaKind.Image
+                        ? L10n.Get("Wbix_Media_Image")
+                        : kind == BoardMediaKind.Audio
+                            ? L10n.Get("Wbix_Media_Audio")
+                            : L10n.Get("Wbix_Media_Video");
                 }
 
                 return new BoardMediaElementSnapshot(id, pos, size, order, kind, sourcePath, displayName);
@@ -265,7 +278,7 @@ namespace WindBoard.Board.Persistence.Wbix
                 string sourcePath = TryGetString(data, "sourcePath") ?? string.Empty;
                 if (string.IsNullOrWhiteSpace(displayName))
                 {
-                    displayName = string.IsNullOrWhiteSpace(sourcePath) ? "文件" : (Path.GetFileName(sourcePath) ?? string.Empty);
+                    displayName = string.IsNullOrWhiteSpace(sourcePath) ? L10n.Get("Wbix_Media_File") : (Path.GetFileName(sourcePath) ?? string.Empty);
                 }
 
                 return new BoardFileElementSnapshot(id, pos, size, order, sourcePath, displayName);

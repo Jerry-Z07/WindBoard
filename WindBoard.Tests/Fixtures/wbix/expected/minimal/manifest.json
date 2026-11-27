@@ -1,0 +1,17 @@
+{
+  "format": "wbix",
+  "version": 3,
+  "createdUtc": "<createdUtc>",
+  "currentIndex": 0,
+  "pages": [
+    {
+      "id": "99999999-9999-4999-8999-999999999999",
+      "index": 0,
+      "path": "pages/page-000.json"
+    }
+  ],
+  "resources": [],
+  "viewportCameraWorld": null,
+  "viewportZoom": null,
+  "viewportSizeDip": null
+}

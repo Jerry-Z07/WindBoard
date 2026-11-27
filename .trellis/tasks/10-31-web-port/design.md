@@ -1,0 +1,511 @@
+# 技术设计：WindBoard Web
+
+> 事实源：`research/01-wbix-format-implementation.md`（文件格式）、`research/02-rendering-interaction-spec.md`（渲染与输入）、`research/03-ui-inventory.md`（界面清单）、`research/04-web-stack-research.md`（技术选型）。
+>
+> **本文是立项期设计记录，§3 的目录草图与实现已有偏差**（见 §3 末尾的「实际落地与草图的差异」）。
+> 当前**权威**的模块映射、双端契约与同步流程以 `docs/dev/guides/web-port.zh-CN.md` 为准；
+> 阶段进展与踩坑记录见同目录 `implement.md`。
+
+## 1. 设计原则
+
+1. **桌面版是唯一规格来源**。所有几何、常量、交互阈值以 C# 源码为准；`docs/assets/images/` 下的截图是历史版本，不作为依据。
+2. **域模型零 DOM 依赖**。`board/`、`ink/geometry.ts`、`persistence/`、`features/export` 的纯计算部分不 import React、不碰 `window`，以便用 vitest 做纯逻辑测试（对应桌面 `WindBoard.Tests` 的定位）。
+3. **命令式画布 + 声明式外壳**。canvas 由普通类持有，绝不放进 React 状态；React 只负责标题栏、Dock、弹出面板、设置窗口。
+4. **互操作先于功能**。P0 阶段先打通双端 `.wbix` 一致性测试台，再写任何绘画代码——格式错了，后面全部白做。
+5. **可降级**。所有浏览器专有能力（FSA、`file_handlers`、OPFS）必须有通用回退路径，回退后功能仍完整（体验略降）。
+
+## 2. 分层映射
+
+| 桌面（C#） | Web（TS） | 备注 |
+|---|---|---|
+| `Board/BoardDocument` | `board/model/document.ts` | 笔迹/形状/元素列表，列表顺序即 z 序 |
+| `Board/Editing/BoardSession` | `board/session.ts` | `IBoardCommand` → `Command { do, undo }` |
+| `Board/Editing/BoardWorkspace` | `board/model/workspace.ts` | 多页，恒 ≥1 页 |
+| `Board/Viewport/BoardViewport` | `board/viewport.ts` | 纯函数，缩放 0.05~32 |
+| `Board/Elements/*` | `board/model/element.ts` | 文本/链接/媒体/文件元素卡 |
+| `Rendering/Board/BoardSceneRenderer` | `ink/scene-renderer.ts` | Canvas2D |
+| `Rendering/DxSwapChainPanelRenderer` | `ink/frame-scheduler.ts` | rAF + 脏区 + 运动降质 |
+| `Interaction/BoardInputController` | `interaction/pointer-router.ts` | 指针路由决策表 |
+| `Interaction/Tools/*` | `interaction/tools/*.ts` | 笔/形状/橡皮/选择 |
+| `Controls/BoardCanvasControl` | `ui/shell/BoardSurface.tsx` + `ink/canvas-host.ts` | React 壳 + 命令式 canvas |
+| `MainWindow.*` | `ui/shell/*` | 标题栏/Dock/提醒栈 |
+| `Board/Persistence/Wbix` | `persistence/wbix/*` | 互操作核心 |
+| `Features/Export|Import` | `features/export|import` | PNG/PDF/WBIX |
+| `Settings/*` | `settings/*` | 模型 + 服务 + 页面 |
+| `AppSettingsService` | `settings/service.ts` | 单例 + 事件订阅 |
+| `L10n` + `.resw` | `i18n/*`（构建期生成） | 见 §11 |
+
+## 3. 目录结构
+
+```
+web/
+├─ package.json  pnpm-lock.yaml  vite.config.ts  tsconfig.json  index.html
+├─ .editorconfig                 # 覆盖根配置：web 用 LF、2 空格
+├─ public/  manifest.webmanifest  icons/
+├─ src/
+│  ├─ main.tsx  app/App.tsx
+│  ├─ board/     model/{document,page,workspace,stroke,shape,element,ids}.ts
+│  │             viewport.ts  session.ts  commands/*.ts
+│  ├─ ink/       geometry.ts  outline.ts  scene-renderer.ts  rasterizer.ts  frame-scheduler.ts
+│  ├─ interaction/ pointer-router.ts  gesture.ts  hit-test.ts  tools/{pen,shape,eraser,select}.ts
+│  ├─ persistence/ wbix/{json-options,f32-format,manifest,page-payload,ink-codec,paths,read,write,errors}.ts
+│  │               autosave.ts  settings-store.ts
+│  ├─ features/  export/{png,pdf,flow,names}.ts  import/flow.ts  dock/{items,order}.ts
+│  ├─ platform/  io.ts  fs-access.ts  download.ts  launch-queue.ts
+│  ├─ settings/  model.ts  service.ts  pages/*.tsx
+│  ├─ i18n/      index.ts  zh-CN.json  en-US.json   # 生成物，提交入库
+│  ├─ ui/        shell/{TitleBar,Dock,ReminderStack,BoardSurface}.tsx
+│  │             flyouts/{Pen,Eraser,Shape,Pages,More}.tsx
+│  │             canvas/{SelectionOverlay,ShapeQuickPanel,SelectionActions}.tsx
+│  │             dialogs/{ExportDialog,ImportDialog,SettingsWindow}.tsx
+│  └─ styles/    tokens.css  shell.css
+├─ tests/
+│  ├─ fixtures/  wbix/*.wbix  model/*.json  canonical/*.json
+│  ├─ unit/**/*.test.ts        conformance/*.test.ts
+└─ scripts/      gen-i18n.mjs  interop.mjs  verify.mjs
+```
+
+> **实际落地与上面草图的差异**（P0–P3 实现后回填）：
+> - `board/model/*.ts` 实际为 `board/model/{stroke,shape,element,workspace,ids}.ts` + `board/{document,page,workspace,session,commands,viewport,snapshot}.ts`；
+> - `ink/scene-renderer.ts` / `frame-scheduler.ts` 实际落在 `render/{scene,elements,frame-scheduler,render-handle}.ts`；
+> - 工具在 `tools/{pen,shape,eraser,tool-settings}.ts`（未走 `interaction/tools/`）；
+> - `Controls/BoardCanvasControl` 的对应物是 `canvas/{board-controller,dom-input,dom-types}.ts` + `ui/shell/BoardSurface.tsx`；
+> - 新增 `app/`（services / contexts / providers / hooks 四件套）与 `styles/`（tokens / shell / chrome / dock / settings / dialogs）。
+
+`web/` 不加入 `WindBoard.slnx`，桌面构建与测试完全不受影响（AC10）。
+
+## 4. 技术选型
+
+| 关注点 | 选择 | 理由 |
+|---|---|---|
+| UI 框架 | React 19 + TypeScript | Fluent UI v9 的官方载体就是 React；生态最成熟 |
+| 设计系统 | `@fluentui/react-components` 9.x（MIT） | Fluent 2 与 WinUI 3 同一设计语言，控件近乎 1:1 映射 |
+| 构建 | Vite | 冷启动快，PWA 插件成熟 |
+| 画布 | Canvas2D（无 WebGL） | 需要的是精确几何与正确性，不是纹理笔刷；数千笔迹足够 |
+| ZIP | `fflate`（MIT，~8kB） | 流式、体积小；`.wbix` 是内存内小包，无需 zip.js |
+| PDF | `pdf-lib`（MIT） | 每页一张整页位图，能力足够；API 稳定 |
+| PWA | `vite-plugin-pwa`（MIT，Workbox） | 生成 SW 与预缓存清单，符合"SW 静默更新"决策 |
+| 测试 | vitest（单元）+ Playwright（视觉回归/端到端） | 与 Vite 同栈；Playwright 可截图对比 |
+| 状态 | 无全局状态库 | 域模型自带订阅；设置用单例 + `useSyncExternalStore` |
+
+版本在 P0 一次性冻结进 `package.json`，本文不承诺具体小版本。依赖许可证全部为 MIT/BSD/Apache-2.0，不引入 tldraw（其许可证禁止生产使用）。
+
+## 5. 关键设计决策
+
+### D1 画布不进 React 状态
+`CanvasHost` 类持有 `<canvas>`、`BoardSceneRenderer`、`FrameScheduler`，订阅 `BoardSession` 的变更事件后自行标脏重绘。React 只渲染覆盖层（选择框、手柄、操作条、形状快捷面板）。**理由**：pointermove 每帧触发 React 重渲染会拖垮书写延迟；桌面版同样是命令式渲染。
+
+### D2 笔迹几何：世界空间骨架 + 屏幕空间轮廓
+桌面用 ID2D1Ink（贝塞尔骨架 + 圆头笔尖逐段插值半径），Canvas2D 没有等价物，因此：
+- **骨架**（权威数据）：`points[{x, y, pressure}]` + `baseSize` + `enablePressure`，与 `.wbix` 完全一致，不做任何平滑或重采样。
+- **轮廓**：把骨架展开为填充多边形（圆头折线 / 变宽胶囊链）。展开容差按当前缩放取 0.25 屏幕像素，缓存按 `ceil(log2(zoom))` 分桶；缩放跨桶时重建该笔迹的 `Path2D`。
+- **理由**：单点笔迹必须是实心圆、变宽段必须线性插值、端帽必须圆头——只有填充轮廓能同时满足；`stroke()` 无法表达变宽。分桶缓存保证 1 万笔迹时平移/缩放仍然流畅（AC9）。
+
+### D3 双端 float32 一致性
+`.wbix` 中所有坐标/尺寸/压感都是 `float`（`System.Numerics.Vector2/4`）。TS 的 number 是 double，必须：
+- **读**：每个 float 字段过 `Math.fround`。
+- **写**：输出 float32 的**最短往返十进制**（`f32Format`），并与 .NET 的 `float.ToString("R")` 逐字符对齐（含指数写法 `1E-07`）。
+
+### D4 JSON 文本形态对齐（尽力）
+序列化器未设置 `Encoder`，因此桌面写出的非 ASCII（如中文元素文本、`displayName`）会被转义成 `\uXXXX`。互操作本身不需要这一条（任何 JSON 解析器都能读 raw UTF-8），但**对齐后可以做逐字节 diff**，让格式漂移在测试里立刻暴露。因此：
+- 缩进 2 空格、LF、无尾随换行、`null` 成员照常输出、camelCase；
+- 字符串按 `JavaScriptEncoder.Default` 的规则转义（非 ASCII + `< > & ' + "`）；
+- 字节级一致列为 P0 的**目标**，语义级一致是**硬性要求**。二者冲突时以语义为准。
+
+### D5 帧调度：全量重绘 + 包围盒剔除 + 运动降质
+浏览器没有 `Present1` 脏矩形，改用：
+1. 每帧 `ctx.setTransform(world→screen)`，遍历可见笔迹按 `Path2D` 填充（包围盒剔除）；
+2. 书写中只重绘当前笔迹所在矩形（`clip` + 局部 `clearRect`），静止时再全量校正一次；
+3. 平移/缩放进行中按 0.95 降采样渲染（对应桌面 `BoardCanvasControl.xaml.cs:550-588` 的 1.0/0.95/0.25 分档），空闲 150ms 后恢复 1.0。
+若 P5 实测不达标，再引入分块位图缓存（设计已预留 `frame-scheduler` 抽象）。
+
+### D6 输入路由：一张决策表
+`pointer-router.ts` 把桌面 `PointerRoutingDecisions.cs` 的判断顺序照搬为纯函数 `decide(ctx): Action`，`ctx = {pointerType, button, buttons, modifiers, activePointers, tool, phase}`。**理由**：路由是回归重灾区，做成纯函数后可以用表驱动测试逐条覆盖桌面分支。
+
+### D7 文件能力抽象为 PlatformIO
+```ts
+interface PlatformIO {
+  saveFile(name: string, data: Blob, accept: FilePickerAcceptType[]): Promise<'saved' | 'cancelled'>;
+  openFiles(accept: FilePickerAcceptType[], multiple: boolean): Promise<File[]>;
+  pickDirectory(): Promise<DirHandle | null>;
+  writeInto(dir: DirHandle, relPath: string, data: Blob): Promise<void>;
+}
+```
+- Chromium：File System Access API（`showSaveFilePicker` / `showDirectoryPicker`），用户取消抛 `AbortError` 视为 `'cancelled'`（不是错误）。
+- Firefox/Safari：`<a download>` + `<input type=file>`；多文件 PNG 导出降级为**逐个下载 + ZIP 打包**（一次 `.zip` 而非散落文件）。
+- 拖拽打开全平台可用，作为主要入口之一。
+
+### D8 自动保存用 OPFS，元数据用 IndexedDB
+OPFS 存每页的 `.wbix` 分片快照（worker 内 `createSyncAccessHandle`），IndexedDB 存工作区索引、设置、最近打开列表。自动保存节流 2s，页面 `visibilitychange`/`pagehide` 时强制落盘。**理由**：OPFS 适合大二进制，IndexedDB 适合小结构化数据；两者都是本地优先 PWA 的标准组合。
+
+### D9 不做 Dock 快捷入口与屏幕批注
+浏览器无法启动外部程序，快捷 Dock 天然不可实现；屏幕批注需要覆盖其他应用，`getDisplayMedia` 语义不同。二者在 v1 中移除，设置页对应项不出现（不留死 UI）。Dock 的拖拽排序对**左 Dock / 工具 / 页面 Dock** 三组保留。
+
+### D10 设置文件兼容桌面版
+桌面设置导出格式在 P0 阶段读取 `Settings/` 源码确认（字段名、容器结构、版本字段）。Web 端设置模型字段名与桌面一致，导入时按字段白名单合并、忽略未知字段、缺失字段取默认值；导出时写出桌面能读的完整结构。**理由**：用户决策要求"保留且兼容桌面版设置文件"。
+
+### D11 版本契约：读侧分派（升级现有实现）
+**现状问题**：`version` 只做 `1..3` 门禁（`WbixWorkspaceSerializer.Load.cs:45`），解析完全不看版本，靠形态嗅探兜住三种形态。后果是版本号**不提供任何保护**，将来需要 v4 时没有落点。
+
+**设计**：
+- 引入 `IWbixPageReader { int MinVersion; int MaxVersion; ValueTask<BoardPageSnapshot> ReadPageAsync(...); }`（实现取**版本区间**而非单值 `SupportedVersion`：v1/v2 形态相同，用区间可省掉一个几乎相同的 reader，且区间不重叠即可保证唯一命中）
+  - `WbixPageReaderV1V2`（1..2）：扁平形态（`points`/`colorRgba`/`baseSize`/`enablePressure` 直接在条目根上）
+  - `WbixPageReaderV3`（3..3）：包装形态（`{kind, stroke|shape}`），**允许**扁平条目兜底并 Warn 一次（保持今天的行为）
+  - 公共逻辑在 `WbixPageReaderBase`：路径规范化 → 安全校验 → 取 Zip 条目 → 按读模式反序列化 → 元素解析
+- `WbixPageReaderRegistry.For(version)` 选择解析器；未知版本沿用既有文案 `Wbix_VersionNotSupported_Fmt` 抛 `InvalidDataException`
+- 写侧只写 `CurrentVersion`（`WbixWorkspaceSerializer.cs:22`）
+- `InkItemSnapshotJsonConverter` 增加读模式（`LegacyFlat` / `Wrapped`），由 `JsonSerializerOptions` 实例注入，**不改公开 API**
+
+**为什么保留 v3 的扁平兜底**：这是唯一的跨版本宽容，成本为零，且能救活"manifest 写 3 但条目是旧形态"的畸形文件。v4 起不得复用该兜底。
+
+**新增破坏性变更的流程**：新增一个 reader + 提升 `CurrentVersion` + 补 golden 文件。既有 reader 一行不改。
+
+**兼容性**：对外行为与今天等价（同一批文件读出来逐字段相同），因此 AC10 成立。
+
+### D12 字节级固化：golden 语料
+**问题**：50 个 `.wbix` 相关测试全是"写→读回来对不对"，没有一个锁定"写出来的字节长什么样"。任何人改模型、加 `[JsonIgnore]`、或 .NET 升级调整浮点格式化，都不会有测试失败。
+
+**设计**：`WindBoard.Tests/Fixtures/wbix/` 作为**单一事实源**：
+
+```
+model/*.json           语言中立文档描述（人工编写，覆盖边界）
+expected/entries.txt   期望的 zip 条目名与顺序（逐行）
+expected/*.golden.json 各条目解压后的期望文本
+*.wbix                 桌面版真实导出（v1/v2/v3 各若干）
+```
+
+断言三件事：条目名与顺序、每条解压文本**逐字节**相等、`createdUtc` 格式符合预期。
+
+**字节形态的四个必须显式钉死的点**（P0 实测得出，都是"不写下来就会漂移"的地方）：
+- **行分隔符固定 CRLF**：`JsonSerializer` 的缩进换行在 Windows 上取 `Environment.NewLine`，即平台偶然；写侧显式设 `JsonSerializerOptions.NewLine = "\r\n"`，把 CRLF 变成格式契约而不是平台产物。文件末尾**无**尾随换行。
+- **浮点是 float32 最短往返**，不是 `G9`：`4CEB79A3` 的 G9 是 `123456792`，实际写出 `123456790`；整数不带小数点（`1000000`、`12`）；`-0` 保留负号；科学计数法判定为 `e >= 9` 或 `e < -4`（`e` 为最短表示的十进制指数），指数形如 `1E+09`/`1E-45`（大写 `E`、正号必写、至少两位）。
+- **`createdUtc` 小数位 0~7 位可变**（STJ 去掉末尾 0），偏移恒为 `+00:00` 而非 `Z`。
+- **非 ASCII 与 HTML 敏感字符一律大写 `\uXXXX`**：`<`→`\u003C`、`&`→`\u0026`、`"`→`\u0022`（不是 `\"`）、emoji 拆代理对。
+
+两个必须绕开的非确定性：
+- `CreatedUtc` 直接取 `DateTimeOffset.UtcNow`（`.Save.cs:138`），**无可注入时钟** → 测试内先正则校验格式，再把该值替换为固定串后比对。不为此改动生产代码。
+- zip 条目时间戳每次不同 → 只比解压内容，不比 zip 原始字节。
+
+**同一批语料同时供 web 端 conformance 使用**（web 通过相对路径读取），避免两份 fixture 各自漂移。
+
+### D13 运行时用双精度，读入时按 f32 量化
+**问题**：WBIX 的数值是 float32，写侧按 f32 最短往返输出。若网页端内部用 f32（`Math.fround`）逐点存储，每次指针采样都要多两次舍入，且与 JS 原生的双精度运算叠加后反而引入额外误差；若内部用双精度而读写时不做量化，则"写出→读回"的值与内存中的值不一致（`0.2` 读回变成 `0.20000000298023224`），往返测试会假失败。
+
+**设计**：
+- **内存中保留双精度**（`number`），不做 `Math.fround` 传播。
+- **写入时**由 `src/persistence/wbix/f32-format.ts` 的 `formatF32()` 先 `Math.fround` 再取最短往返文本；**读入时**不需要额外量化——文本本身就是 f32 最短往返表示，`JSON.parse` 得到的双精度数恰好等于该 f32 值。即"内存值 = 磁盘值的 f32 语义"，与桌面版 `float` 字段一致。
+- 由此产生的偏差上限为 f32 的相对精度（约 1e-7）。在 zoom 0.05~32 的范围内，10^4 世界单位上的误差也远小于 1 DIP，不影响观感；但**涉及数值相等的测试必须按 f32 精度比较**（`web/tests/unit/board-roundtrip.test.ts` 的 `froundDeep()` 就是这个用途）。
+- 不做"全部 fround"的替代方案：它会让每个采样点都付舍入成本，且 `Math.fround` 不保证与 .NET 的 f32 解析结果在边界值上逐位一致，反而更难解释差异来源。
+
+### D14 UI 层落地：令牌取 WinUI 主题字典，服务与 React 解耦
+**问题**：UI 还原最容易走偏的地方是把"看起来差不多"当成规格。桌面的尺寸/颜色分散在 `MainWindow.xaml`、`App.xaml` 的样式与 WinUI 主题资源里，靠目测抄会把偏差固化进代码。
+
+**设计**：
+- **令牌来源必须是主题字典，不是截图**：Dock 底板色 `#F2F2F2`、前景 `#000000`、分隔线 40% 黑，均取自 WinUI `generic.xaml` 的 **Light** 字典（`SystemChromeMediumLowColor` / `SystemBaseHighColor` / `SystemBaseMediumLowColor`）；交互态取 `MainWindow.xaml:57-70` 的资源覆盖（hover `#14FFFFFF`、pressed `#22FFFFFF`、checked `#1976D2` + 白字）。全部集中在 `src/styles/tokens.css` 并逐条注明桌面出处。
+- **两个易错常量**：底板圆角是 **14**（`Border.CornerRadius`），按钮圆角是 **10**（`App.xaml` 的 `DockButtonStyle`）——不是同一个值。
+- **主题分层**：App 级 `FluentProvider` 跟随系统深浅色（对应桌面 `MicaBackdrop` 跟随系统）；**底部 Dock 强制浅色**（桌面 `MainWindow.xaml:54` 的 `RequestedTheme="Light"`），在 Dock 内部再包一层 `webLightTheme`；画布背景独立由设置 `appearance.canvasBackgroundHex` 决定。三者互不影响。
+- **服务不依赖 React**：设置/提醒/面板状态机都是纯 TS 单例（对应桌面 `AppSettingsService` / `AppReminderService` 静态单例），React 侧只有 `contexts.ts` + `providers.tsx` + `hooks.ts` 三个薄文件，用 `useSyncExternalStore` 订阅快照。好处是这些服务能在 node 环境直接测，且不会出现"同一设置两个真源"。
+- **组件测试策略**：`vitest` 跑在 node 环境（`environment: 'node'`，只收集 `tests/**/*.test.ts`），**不做组件单测**——组件只允许包含布局与绑定，所有可判定逻辑（Dock 布局、面板开合、提醒队列、设置归一化、导出参数）必须落在纯 `.ts` 模块并由单测覆盖。组件本身的观感差异交给 P5.1 的 Playwright 视觉回归。
+- **已知验证缺口**：桌面参考图无法自动获取——`PrintWindow(PW_RENDERFULLCONTENT)` 能抓到标题栏与画布，但抓不到 XAML 叠加层（Dock、弹出面板），全屏截图又会干扰用户桌面。因此 P3 的验收依据是"令牌与 XAML 数值逐条对齐"，而非像素比对；像素级的对照留到 P5.1（届时以离屏渲染的网页截图为基础做回归）。
+
+## 6. 域模型契约
+
+```ts
+type F32 = number;                     // 已在边界 fround 过
+interface StrokePoint { x: F32; y: F32; pressure: F32 }
+interface Stroke {
+  kind: 'stroke';
+  points: StrokePoint[];
+  colorRgba: { x: F32; y: F32; z: F32; w: F32 };
+  baseSize: F32;
+  enablePressure: boolean;
+}
+type ShapeKind = 'line' | 'rect' | 'ellipse' | 'arrow';
+interface Shape {
+  kind: ShapeKind;
+  start: { x: F32; y: F32 }; end: { x: F32; y: F32 };
+  colorRgba: { x: F32; y: F32; z: F32; w: F32 };
+  width: F32;
+}
+type InkItem = Stroke | Shape;
+type Layer = 'belowInk' | 'aboveInk';
+interface BoardElement {
+  id: string; layer: Layer; order: number;
+  positionWorld: { x: F32; y: F32 }; sizeWorld: { x: F32; y: F32 };
+  type: 'text' | 'link' | 'media' | 'file';
+  text?: string; url?: string; title?: string; kind?: string;
+  sourcePath?: string; displayName?: string; resourceId?: string;
+}
+interface BoardPage { id: string; ink: InkItem[]; elements: BoardElement[]; session: BoardSession }
+interface Command { do(doc: BoardDocument): void; undo(doc: BoardDocument): void }
+```
+
+命令粒度与桌面严格一致：一笔/一个形状 = 一条 `AddItem`；**一次橡皮手势 = 一条 `ReplaceStrokes`**；一次选择变换 = 一条 `Composite`；清屏 = 一条 `Clear`。撤销栈每页独立、无上限、执行时清空重做栈。
+
+## 7. 渲染契约
+
+| 项 | 规则 | 来源 |
+|---|---|---|
+| 坐标 | `screen = (world − camera)·zoom + viewportSize/2` | `BoardViewport.cs:59-71` |
+| 背景 | 纯色，默认 `#2E2F33`；无网格/纸张/点阵 | `BoardCanvasControl.xaml.cs:38` |
+| 绘制顺序 | belowInk 元素 → 笔迹（列表序）→ aboveInk 元素 → 实时预览 | `BoardSceneRenderer.cs:267-292` |
+| 单点笔迹 | 实心圆，`r = max(0.5, baseSize·wf/2)` | `:452-457` |
+| 笔宽 | `wf = enablePressure ? clamp(pressure, .1, 1) : 1` | `:1048-1052` |
+| 折线 | 相邻点直连，半径线性插值，圆头圆角，miter 2.0 | `:1338-1358` |
+| 箭头 | 两条 3×width、±30° 的翼 | `:414-415` |
+| 手柄 | 8 个 14 DIP 白色方块 | `BoardCanvasControl.xaml:55-72` |
+| 光标 | 橡皮 48×72 DIP 椭圆 | 桌面常量 |
+
+## 8. 输入契约
+
+| 场景 | 行为 | 来源 |
+|---|---|---|
+| 笔 / 鼠标左键 | 绘制（世界距离 > `0.5/zoom` 才追加点） | `PenTool.cs:25,93-119` |
+| 鼠标右键拖拽 | 平移画布 | `PointerRoutingDecisions.cs:74-101` |
+| 滚轮 | 以光标为锚点缩放，`f = 1.1^(Δ/120)`，夹 0.05~32 | `BoardInputController.Manipulation.cs:129-132` |
+| 水平滚轮 | 平移 `−Δ·1.0` DIP | 同上 |
+| 单指触摸 | 绘制 / 框选 / 移动选择 | `:119-143` |
+| 2 指以上 | 平移 + 缩放（在选区上则变换选区） | `:195-240` |
+| 选择工具 + Ctrl/Shift 滚轮 | 缩放 / 旋转选区（5°/格） | `:63-95` |
+| 双击元素 | 500ms 内、位移 ≤10 DIP 则打开 | `BoardInputController.Open.cs:19-37` |
+| 抬笔 | 点数 ≤1 的笔迹丢弃 | `:154-187` |
+| 掌拒 | `pointerType === 'pen'` 活动时忽略 `touch` | 桌面同策略 |
+| 快捷键 | 仅 `Ctrl+Z` / `Ctrl+Y`，可改绑，须含 Ctrl 或 Alt，输入框聚焦时忽略 | `ShortcutsFlow.cs:62-79` |
+
+采样：优先 `pointerrawupdate`，回退 `getCoalescedEvents()`；鼠标 `pressure` 固定按 0.5（与 WinUI 一致），触摸按下视为 1。
+
+## 9. WBIX 互操作契约
+
+**写出**（固定 v3）：`manifest.json`（最后写）+ `pages/page-{i:000}.json` + `assets/cover.png` + `assets/elements/{elementId:N}{ext}`；`null` 成员输出；`format="wbix"`、`version=3`、`createdUtc` 用 UTC ISO-8601。
+
+**读入**：按 `manifest.pages[].index` 排序；路径规范化 `\`→`/`、必须 `pages/` 前缀、禁 `..`；容忍并跳过（不中断）单个坏元素、未知元素类型、未知 ink kind、`strokes:null`、不安全资源路径；`kind` 缺省视为 `stroke`；v1/v2 扁平条目按"有 `points` 即 stroke、否则按 shape 嗅探"包装。致命错误（缺 manifest、`format` 不符、version 越界、页 payload 为 null）抛 `InvalidDataException` 等价错误。解析器按 `version` 分派（见 D11）：v1/v2 → 扁平解析器；v3 → 包装解析器，允许扁平条目兜底并 Warn 一次。
+
+**一致性测试台**（P0 交付物）：
+
+语料放在 `WindBoard.Tests/Fixtures/wbix/`（见 D12），web 端通过相对路径读取同一份，**不复制**：
+
+```
+model/*.json              语言中立文档描述（人工编写，覆盖边界）
+*.wbix                    桌面版真实导出（v1/v2/v3 各若干），作为读入语料
+expected/entries.txt      期望 zip 条目名与顺序
+expected/*.golden.json    期望的解压文本（字节级）
+```
+
+web 侧只在自己的 `.interop/` 下写生成物（`produced/*.wbix`、各类 dump），不污染语料目录。
+
+`web/scripts/interop.mjs` 按序执行五步并逐项 diff：
+
+| 步骤 | 执行方 | 内容 |
+|---|---|---|
+| A | TS | 读语料 `.wbix` → 规范化 dump |
+| B | C# | 读同一批 → 规范化 dump；A 与 B 必须相等 |
+| C | TS | 由 `model/*.json` 写 `produced/*.wbix` |
+| D | C# | 读 `produced/*.wbix` → dump；与 model 的期望 dump 相等 |
+| E | C# | 重新写出 `produced-cs/*.wbix`；TS 读回 → dump 与 D 相等 |
+
+D12 的字节级 golden 断言是同一套语料的另一面：C# 写出的文本必须**逐字节**等于 `expected/*.golden.json`，TS 写出同理。这样"语义相等"和"字节相等"各有独立判据，不会互相掩盖。
+
+**比对的边界（两条，必须在 dump 里实现）**：
+- **只比"解压后的条目文本 + 条目名与顺序"，不比 zip 压缩字节、不比整包 SHA**。压缩级别（.NET `CompressionLevel.Optimal` vs fflate level 6）与 zlib 实现版本都不属格式契约，锁整包哈希只会制造假失败。
+- **`media` 元素的 `sourcePath` 不参与比对**。桌面读包会把内嵌资源提取到临时文件并把 `sourcePath` 改写成该临时路径——这是平台相关的运行时行为，不是格式语义。dump 对 media 只保留 `resourceId` / `type` / `meta` / `displayName` / `positionWorld` / `sizeWorld` / `layer` / `order`。同理 `createdUtc` 只比存在性与格式，不比具体值（无可注入时钟）。
+
+**dump 规范化**：对象键按序数排序、数组保序、所有数值输出为 float32 最短往返文本；dump 由**域模型**（而非原始 JSON）导出，这样比较的是"两端读出来理解成什么"，而不是"两端解析器碰巧怎么存"。
+
+C# 侧不新增项目：dump 生成器放在 `WindBoard.Tests/Board/Persistence/WbixInteropDumpTests.cs`，通过环境变量 `WINDBOARD_WBIX_INTEROP_DIR` 接收目录，由脚本以 `dotnet test --filter` 触发。**理由**：不改变现有解决方案结构（AGENTS.md 要求），测试项目已引用主工程且可访问 `internal`。
+
+## 10. 测试策略
+
+| 层级 | 工具 | 覆盖 |
+|---|---|---|
+| 单元 | vitest | 视口数学、轮廓展开、命中测试、命令栈、f32 格式化、JSON 转义、路径校验 |
+| 互操作 | vitest + dotnet test | §9 的五步 diff |
+| 视觉 | Playwright 截图 | Dock 尺寸/间距、弹出面板、设置页；参考图由桌面版在固定窗口尺寸下截取 |
+| 端到端 | Playwright | 打开 `.wbix` → 书写 → 撤销 → 导出 → 重新打开；离线（`context.setOffline`） |
+| 手工 | 真机 | Surface Pen / iPad Safari 压感与掌拒 |
+
+渲染快照的容差：结构与布局要求像素级接近（Mica/亚克力区域除外，那部分用不透明近似，只比对结构）。
+
+## 11. 设置与本地化
+
+- **设置模型**：字段名与桌面一致；分组 常规 / 外观 / 书写（笔 + 橡皮 + 形状）/ 快捷键 / Dock / 关于。移除：伪装、自动更新检查、Debug 崩溃测试、屏幕批注、托盘与开机启动。
+- **本地化**：`scripts/gen-i18n.mjs` 读取 `WindBoard/Strings/{zh-CN,en-US}/*.resw`，合并为 `src/i18n/{lang}.json`（key 原样保留，含 `Common_` 等前缀）。生成物提交入库；单元测试断言两种语言 key 集合相等且与 `.resw` 同步（对应桌面 `LocalizationKeyAuditTests`）。
+
+## 12. 风险与缓解
+
+| 风险 | 影响 | 缓解 |
+|---|---|---|
+| float32 文本格式与 .NET 不一致 | 语义相等但字节不等，diff 失效 | P0 先实测 `float.ToString("R")` 的真实输出并建表，覆盖 0.1/1e-7/1e38/1/3 等边界 |
+| 变宽轮廓在 zoom 32 时出现折角 | 视觉与桌面不一致 | 轮廓容差按屏幕像素定义 + 分桶重建；P1 用桌面渲染快照做对比 |
+| 1 万笔迹重绘掉帧 | AC9 不达标 | 包围盒剔除 + Path2D 缓存；预留分块位图（D5） |
+| 浏览器不支持 FSA | 导出体验降级 | PlatformIO 回退；多页 PNG 降级为 ZIP |
+| `file_handlers` 仅 Chromium | 双击打开不可用 | 拖拽打开作为主入口，双击作为渐进增强 |
+| 桌面设置格式未调研 | D10 无法落地 | P0 读 `Settings/` 源码确认，列入 P4 前置 |
+| 版本分派重构引入读取回归 | 既有文件读不出来 | 分派前后对同一批语料做逐字段比对；既有 50 个测试与新增 golden 同时把关；v3 保留扁平兜底 |
+| 桌面端被无意改动 | AC10 失败 | 只允许"结构变化 + 行为不变"：读侧分派、新增测试与文档。行为等价性由既有 50 个测试 + 31 张快照 + 新增 golden 三重把关 |
+
+## 13. 阶段划分
+
+详见 `implement.md`：P0 契约先行 → P1 画布内核 → P2 选择与多页 → P3 UI 外壳 → P4 文件能力 → P5 打磨。每个阶段有独立可验收的产物，P0 不通过不进入 P1。
+
+## 14. 视觉体系统一（P11，2026-11-27）
+
+### 14.1 结论：移植参考实现，不引入运行时依赖
+
+官方没有 WinUI 3 的 Web 主题：`@fluentui/react-components` v9 是 Fluent 2 的 Web 实现，`fontFamilyBase` 默认 `Segoe UI`、品牌色 `#0F6CBD`、中性底色 `#FFFFFF/#FAFAFA`；WinUI 3 的 Segoe UI Variable、4/8px 圆角、Mica 与控件度量只存在于 XAML。
+
+社区包 `@pstrikez/fluent-winui-theme@0.2.0` 是唯一直接做 Fluent v9 → WinUI 3 的包，令牌值与桌面主题字典逐条一致，但：
+
+- 0.2.0，2026-10 发布，API 明确标注 1.0 前不稳定；
+- 每周 13 次下载、GitHub 3 stars、0 fork、单维护者；
+- peer 锁 `@fluentui/react-components ~9.74.4`，本项目是 9.75.0，直接依赖必须降级并锁死；
+- 解包 2.46 MB，自带 Meslo 字体，`base.css` 从微软 CDN 拉 Segoe UI Variable；
+- 要求所有组件改从它的 `fluentComponents` 包装命名空间导入，并附带 AppShell / GradientBackground 等我们不需要的层。
+
+因此只移植它的 **WinUI 令牌字典**与**必要的组件规则**（MIT，保留 NOTICE 与来源链接），不把包加入 `package.json`。
+
+### 14.2 三层结构
+
+```
+styles/winui-tokens.css     --winui-* 原始令牌字典（Light/Dark；移植值 + 来源注释）
+        ↓ var()
+app/theme.ts                winuiLightTheme / winuiDarkTheme / winuiLightThemeForced
+        ↓ FluentProvider      把 Fluent Theme token 重指到 --winui-*
+styles/winui-controls.css   针对 Fluent 组件类的几何/填充/描边/焦点覆盖（双类选择器）
+        ↓
+styles/tokens.css           --wb-*：桌面自定义几何与 Dock/浮层常量；文字色别名到 --winui-*
+```
+
+约束：
+
+- `--winui-*` 是主题语义色的唯一事实源；`tokens.css` 只保留桌面固定色（Dock 选中、选区基线）与几何常量，不再新增 Fluent 色字面量。
+- `--wb-dock-*` 保持独立：Dock 强制浅色，不能引用会随主题翻转的令牌。
+- `theme.ts` 的 token 值写成 `var(--winui-*)`；若某个 Fluent 组件不解析嵌套 `var()`，退回字面值并在测试中锁定。
+- `winui-tokens.css` 用 `[data-theme='dark']` 切换，与 `App.tsx` 现有的 `document.documentElement.dataset.theme` 同源，不再单独订阅 `prefers-color-scheme`。
+
+### 14.3 令牌表（Light / Dark）
+
+| 令牌 | Light | Dark |
+|---|---|---|
+| `--winui-solid-background-fill-base` | `#F3F3F3` | `#202020` |
+| `--winui-solid-background-fill-secondary` | `#EEEEEE` | `#1C1C1C` |
+| `--winui-solid-background-fill-tertiary` | `#F9F9F9` | `#282828` |
+| `--winui-solid-background-fill-quarternary` | `#FFFFFF` | `#2C2C2C` |
+| `--winui-card-background-fill-default` | `rgb(255 255 255 / 70.2%)` | `rgb(255 255 255 / 5.1%)` |
+| `--winui-card-stroke-default` | `rgb(0 0 0 / 5.9%)` | `rgb(0 0 0 / 9.8%)` |
+| `--winui-control-fill-default` | `rgb(255 255 255 / 70.2%)` | `rgb(255 255 255 / 5.9%)` |
+| `--winui-control-stroke-default` | `rgb(0 0 0 / 5.9%)` | `rgb(255 255 255 / 7.1%)` |
+| `--winui-divider-stroke-default` | `rgb(0 0 0 / 5.9%)` | `rgb(255 255 255 / 8.2%)` |
+| `--winui-text-fill-primary` | `rgb(0 0 0 / 89.4%)` | `#FFFFFF` |
+| `--winui-text-fill-secondary` | `rgb(0 0 0 / 62%)` | `rgb(255 255 255 / 77.3%)` |
+| `--winui-text-fill-tertiary` | `rgb(0 0 0 / 44.7%)` | `rgb(255 255 255 / 52.9%)` |
+| `--winui-text-fill-disabled` | `rgb(0 0 0 / 36.1%)` | `rgb(255 255 255 / 36.5%)` |
+| `--winui-focus-stroke-inner` | `rgb(255 255 255 / 70.2%)` | `rgb(0 0 0 / 70.2%)` |
+| `--winui-focus-stroke-outer` | `rgb(0 0 0 / 89.4%)` | `#FFFFFF` |
+| `--winui-smoke-fill-default` | `rgb(0 0 0 / 30.2%)` | 同左（WinUI 两套共用） |
+| `--winui-control-corner-radius` | `4px` | `4px` |
+| `--winui-overlay-corner-radius` | `8px` | `8px` |
+| `--winui-system-accent` | `#0078D4` | `#0078D4` |
+| `--winui-system-accent-dark-1` / `-rgb` | `#0067C0` / `0 103 192` | 同左 |
+| `--winui-system-accent-dark-2` | `#003E92` | 同左 |
+| `--winui-system-accent-dark-3` | `#001A68` | 同左 |
+| `--winui-system-accent-light-2` / `-rgb` | `#4CC2FF` / `76 194 255` | 同左 |
+| `--winui-system-accent-light-3` | `#99EBFF` | 同左 |
+| `--winui-accent-fill-default` | `var(--winui-system-accent-dark-1)` | `var(--winui-system-accent-light-2)` |
+| `--winui-accent-fill-secondary` | `rgb(0 103 192 / 90%)` | `rgb(76 194 255 / 90%)` |
+| `--winui-accent-fill-tertiary` | `rgb(0 103 192 / 80%)` | `rgb(76 194 255 / 80%)` |
+| `--winui-accent-text-fill-primary` | `var(--winui-system-accent-dark-2)` | `var(--winui-system-accent-light-3)` |
+| `--winui-accent-tint-fill-default` | `#EBF3FA` | `#30414A` |
+| `--winui-accent-tint-fill-secondary` | `#E0EDF7` | `#334B58` |
+| `--winui-accent-tint-fill-tertiary` | `#D6E7F5` | `#355667` |
+| `--winui-accent-tint-stroke` | `#B3D1EC` | `#3D7B9B` |
+
+`#0078D4` 是 Windows 默认强调色基线；浏览器读不到用户系统强调色，因此固定为默认蓝调色板，并登记为有意偏差（与现有 `render/selection.ts` 的约定一致）。
+
+**强调色按用途分层，不做“一刀切”**：
+
+- 设置/对话框的强调按钮、开关、滑块、选中态 → `AccentFillColorDefault`，浅色用 `dark-1 #0067C0`、深色用 `light-2 #4CC2FF`；文字用 `accent-text-fill-primary`（浅色 `dark-2 #003E92`、深色 `light-3 #99EBFF`）。
+- 选区边框/手柄 → 桌面 `SystemAccentColor` 基线 `#0078D4`，保留 `--wb-accent-selection`。
+- Dock 选中 → 桌面 `MainWindow.xaml` 固定 `#1976D2`，保留 `--wb-dock-checked`，不并入 accent fill。
+
+这三者职责不同，不能互相替换；Fluent Web 的 `#0F6CBD` 是唯一必须清掉的蓝。
+
+### 14.4 Fluent Theme 映射
+
+| Fluent token | 映射到 |
+|---|---|
+| `colorNeutralBackground1` | `--winui-solid-background-fill-quarternary` |
+| `colorNeutralBackground2` | `--winui-solid-background-fill-tertiary` |
+| `colorNeutralBackground3` | `--winui-solid-background-fill-base` |
+| `colorNeutralBackground4` | `--winui-solid-background-fill-secondary` |
+| `colorNeutralForeground1/2/3` | `--winui-text-fill-primary/secondary/tertiary` |
+| `colorNeutralForegroundDisabled` | `--winui-text-fill-disabled` |
+| `colorBrandBackground` | `--winui-accent-fill-default` |
+| `colorBrandBackgroundHover` | `--winui-accent-fill-secondary` |
+| `colorBrandBackgroundPressed` | `--winui-accent-fill-tertiary` |
+| `colorBrandBackground2` / `2Hover` / `2Pressed` | `--winui-accent-tint-fill-default` / `secondary` / `tertiary` |
+| `colorBrandForeground1` / `colorBrandForegroundLink` | `--winui-accent-text-fill-primary` |
+| `colorBrandForeground2` | `--winui-accent-text-fill-primary` |
+| `colorCompoundBrandBackground` / `Hover` / `Pressed` | `--winui-accent-fill-default` / `secondary` / `tertiary` |
+| `colorCompoundBrandForeground1` | `--winui-accent-text-fill-primary` |
+| `colorBrandStroke1` / `colorCompoundBrandStroke` | `--winui-accent-fill-default` |
+| `colorBrandStroke2` | `--winui-accent-tint-stroke` |
+| `colorNeutralForegroundOnBrand` | `#FFFFFF`（WinUI `TextOnAccentFillColorPrimary`） |
+| `colorStrokeFocus1` / `colorStrokeFocus2` | `--winui-focus-stroke-inner/outer` |
+| `colorBackgroundOverlay` | `--winui-smoke-fill-default` |
+| `borderRadiusMedium` | `--winui-control-corner-radius`（4px） |
+| `borderRadiusLarge` / `borderRadiusXLarge` | `--winui-overlay-corner-radius`（8px） |
+| `shadow2/4/8`（含 Brand） | `0 0 rgba(0,0,0,0)`（WinUI 内联面不投影；保留 16/28/64 给浮层） |
+| `fontFamilyBase` | `'Segoe UI Variable', 'Segoe UI', system-ui, sans-serif` |
+
+注意 `colorNeutralBackground1` 在 Fluent 里是“主表面”，在 WinUI 里最接近的是 `SolidBackgroundFillColorQuarternary`（白/深灰），不是 `Base`（窗口底）。设置窗口/ContentDialog 的底色必须单独用 `--winui-solid-background-fill-base` 覆盖，不能靠 `colorNeutralBackground1` 自动得到。
+
+### 14.5 组件策略
+
+- **不做**包装命名空间；直接给现有 Fluent 组件套主题 + CSS 覆盖。
+- `winui-controls.css` 只覆盖实际用到的组件：`Button`、`DialogSurface`、`Input`、`Textarea`、`Dropdown`、`Combobox`、`SpinButton`、`MenuPopover`、`MenuItem`、`Card`、`Tooltip`；`Switch`/`Slider`/`Radio` 由主题 token 生效。每个选择器用双类（如 `.fui-Button.fui-Button`）压过 Griffel 原子类，禁止用单类碰 Fluent 自身设置过的属性。
+- `DialogSurface`：背景 `--winui-solid-background-fill-base`、圆角 8、`padding: 0`（内层自己排 24）、边框 `--winui-surface-stroke-default`；标题 20/28 SemiBold、下边距 12；按钮行间距 8。
+- `SettingsCard`：继续用自定义 `div`/`button`，不引入 Toolkit Web 端替代品；CSS 改为 16 内边距、68 最小高、4px 圆角、`--winui-card-background-fill-default`、`--winui-card-stroke-default`、20px 头部图标。`SettingsCard.tsx` 增加可选 `icon` 属性，六个设置页按桌面 `HeaderIcon` 语义补图标。
+- `NavigationView`：`SettingsWindow.tsx` 的导航图标从 `*24Regular` 改为 `*16Regular`；导航项 `min-height: 36px`、4px 圆角、选中指示条 3px 宽、16px 高、`--winui-accent-fill-default`；选中底色 `--winui-subtle-fill-secondary`（`rgb(0 0 0 / 3.5%)`）。
+- **Dock/浮层保持现状尺寸与固定色**：`.wb-dock` 14px 底板、按钮 10px、60×52、0.85 透明度、强制浅色；`--wb-dock-checked` 继续是桌面固定 `#1976D2`，不并入 accent fill。`DockBar`、`SelectionActionBar`、`ShapePropertiesPanel` 的嵌套 `FluentProvider` 统一用 `winuiLightThemeForced`，让 Slider/Radio/SpinButton/Menu 等内部控件走 WinUI 主题。
+- **Mica**：不伪造。设置窗口底用 `--winui-solid-background-fill-base`；卡片用 `--winui-card-background-fill-default` 叠在上面，视觉上等价 WinUI 的“浅色实心底 + 半透明卡片”。
+- **字体**：不打包、不 @font-face、不请求微软 CDN。Windows 11 命中 Segoe UI Variable，Windows 10/非 Windows 回退 Segoe UI/system-ui；中文由系统回退到 Microsoft YaHei UI。
+- **焦点**：把 `colorStrokeFocus1/2` 映射到 WinUI 双描边；自定义按钮（Dock、sheet、settings card）补 `:focus-visible` 双描边；Fluent 组件依赖其 focus indicator token。
+- **动效**：沿用 Fluent 的 duration/curve；本次不改动效，避免扩大回归面。
+
+### 14.6 文件清单
+
+新增：
+
+- `web/src/styles/winui-tokens.css`
+- `web/src/styles/winui-controls.css`
+- `web/src/app/theme.ts`
+- `web/src/styles/winui/NOTICE.md`（MIT 署名与上游版本/commit）
+- `web/tests/unit/winui-theme.test.ts`
+
+修改：
+
+- `web/src/App.tsx`
+- `web/src/ui/shell/DockBar.tsx`
+- `web/src/ui/overlay/SelectionActionBar.tsx`
+- `web/src/ui/overlay/ShapePropertiesPanel.tsx`
+- `web/src/ui/dialogs/SettingsWindow.tsx`
+- `web/src/settings/pages/SettingsCard.tsx` 与六个设置页（补图标）
+- `web/src/styles/tokens.css`
+- `web/src/styles/settings.css`
+- `web/src/styles/dialogs.css`
+- `web/src/styles/settings-search.css`
+- `web/src/styles/dock.css`
+- `web/src/styles/overlay.css`
+- `web/src/styles/chrome.css`
+- `docs/dev/guides/web-port.zh-CN.md`
+
+不改：桌面 `WindBoard/**`、`package.json`、`pnpm-lock.yaml`、WBIX/渲染/输入/设置模型。
+
+### 14.7 兼容、回滚与风险
+
+- 无数据/格式变化；回滚只需删除新增文件、恢复 `App.tsx` 与三个嵌套 Provider 的旧主题导入、还原 CSS。
+- `e2e` 视觉基线会因字体度量（拉丁/数字）与表面颜色变化而重建；中文由系统字体渲染，字形不变。基线变更理由写进提交说明。
+- Fluent 9.75.0 锁定；升级 Fluent 时必须重跑 `pnpm e2e`，因为覆盖依赖 `.fui-*` 类名。
+- 若 `theme.ts` 的 `var(--winui-*)` 在某个组件里不生效，改用字面值并在 `winui-theme.test.ts` 里锁定；不要为了一个组件引入整包参考实现。
+- 高对比度模式不在本次范围；WinUI 高对比度资源不移植。
+- 移植代码的 MIT 署名必须保留；不要复制参考包的 AppShell、字体、toaster 或 Meslo 字体。

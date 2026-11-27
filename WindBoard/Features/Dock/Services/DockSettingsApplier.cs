@@ -29,23 +29,38 @@ namespace WindBoard.Features.Dock.Services
 
             _tryGetDialogXamlRoot = tryGetDialogXamlRoot ?? throw new ArgumentNullException(nameof(tryGetDialogXamlRoot));
 
-            DockOrderApplier.Apply(host.LeftDockPanel, dock.LeftOrder, host.LeftDockElementsById);
-            DockOrderApplier.Apply(host.ToolsDockPanel, dock.ToolsOrder, host.ToolsDockElementsById);
-            DockOrderApplier.Apply(host.UndoRedoDockPanel, dock.UndoRedoOrder, host.UndoRedoDockElementsById);
-            DockOrderApplier.Apply(host.PagesDockPanel, dock.PagesOrder, host.PagesDockElementsById);
+            HashSet<string> hiddenIds = new(dock.HiddenItems ?? new List<string>(), StringComparer.Ordinal);
 
-            Visibility undoRedoVisibility = dock.IsUndoRedoVisible ? Visibility.Visible : Visibility.Collapsed;
-            host.UndoRedoSeparator.Visibility = undoRedoVisibility;
-            host.UndoRedoDockPanel.Visibility = undoRedoVisibility;
+            DockOrderApplier.Apply(host.LeftDockPanel, dock.LeftOrder, host.LeftDockElementsById, hiddenIds);
+            DockOrderApplier.Apply(host.ToolsDockPanel, dock.ToolsOrder, host.ToolsDockElementsById, hiddenIds);
+            DockOrderApplier.Apply(host.UndoRedoDockPanel, dock.UndoRedoOrder, host.UndoRedoDockElementsById, hiddenIds);
+            DockOrderApplier.Apply(host.PagesDockPanel, dock.PagesOrder, host.PagesDockElementsById, hiddenIds);
+
+            int visibleTools = DockLayoutRules.FilterVisibleOrder(dock.ToolsOrder, hiddenIds).Count;
+            int visibleUndoRedo = DockLayoutRules.FilterVisibleOrder(dock.UndoRedoOrder, hiddenIds).Count;
+            bool showUndoRedo = visibleUndoRedo > 0;
+
+            // 分隔线只在两侧都有内容时才有意义；整组隐藏后不留孤立竖线。
+            host.UndoRedoSeparator.Visibility = showUndoRedo && visibleTools > 0
+                ? Visibility.Visible
+                : Visibility.Collapsed;
+            host.UndoRedoDockPanel.Visibility = showUndoRedo ? Visibility.Visible : Visibility.Collapsed;
+
+            bool showMainDock = visibleTools > 0 || showUndoRedo;
+            // 容器保留可见以稳定左右快捷入口 Dock 的 RelativePanel 锚点；只隐藏底板与内容。
+            host.MainDockBackground.Visibility = showMainDock ? Visibility.Visible : Visibility.Collapsed;
+            host.MainDockContentPanel.Visibility = showMainDock ? Visibility.Visible : Visibility.Collapsed;
+            host.PagesDockContainer.Visibility = DockLayoutRules.FilterVisibleOrder(dock.PagesOrder, hiddenIds).Count > 0
+                ? Visibility.Visible
+                : Visibility.Collapsed;
 
             ApplyShortcutDocksToUi(host, dock);
         }
 
         private void ApplyShortcutDocksToUi(DockMainWindowHost host, DockSettings dock)
         {
-            // 快捷入口 Dock（主 Dock 左右两侧）：
-            // - 这里采用“重建按钮”方式，避免维护复杂的增量更新逻辑；
-            // - 图标加载为异步：先展示 fallback，再异步替换为文件/网站图标。
+            // 快捷入口 Dock（主 Dock 左右两侧）采用重建按钮的方式，避免维护复杂的增量更新逻辑。
+            // 图标异步加载：先展示 fallback，再替换为文件或网站图标。
             _shortcutDockApplyVersion++;
             int applyVersion = _shortcutDockApplyVersion;
 
@@ -183,7 +198,7 @@ namespace WindBoard.Features.Dock.Services
             return button;
         }
 
-        private static Symbol GetShortcutFallbackSymbol(ShortcutDockItemSettings item)
+        internal static Symbol GetShortcutFallbackSymbol(ShortcutDockItemSettings item)
         {
             if (string.Equals(item.Type, ShortcutDockItemTypes.Link, StringComparison.Ordinal))
             {
@@ -198,7 +213,7 @@ namespace WindBoard.Features.Dock.Services
             return Symbol.OpenFile;
         }
 
-        private static string GetShortcutTitle(ShortcutDockItemSettings item)
+        internal static string GetShortcutTitle(ShortcutDockItemSettings item)
         {
             if (!string.IsNullOrWhiteSpace(item.DisplayName))
             {

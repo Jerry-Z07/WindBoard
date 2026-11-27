@@ -8,13 +8,8 @@ using Vortice.Mathematics;
 namespace WindBoard.Board.Editing
 {
     /// <summary>
-    /// 绘制条目“框选”命中测试（按条目类型单点分发，纯计算逻辑）。
-    ///
-    /// 设计目标：
-    /// - 选择工具使用矩形框选命中最上层对象；
-    /// - 逻辑不依赖 UI/渲染，便于单元测试；
-    /// - 折线笔迹的“线段/端点与矩形真实距离”算法保留为 Stroke 分支，
-    ///   其它条目类型走“世界包围盒 AABB 相交”通用路径。
+    /// 绘制条目“框选”命中测试，按条目类型单点分发，返回与矩形相交的最上层对象。
+    /// 折线笔迹按“线段/端点与矩形真实距离”判定，其它条目类型走“世界包围盒 AABB 相交”；纯计算逻辑。
     /// </summary>
     internal static class InkItemRectSelectTest
     {

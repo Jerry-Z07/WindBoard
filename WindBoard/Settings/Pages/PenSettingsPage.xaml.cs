@@ -97,9 +97,7 @@ namespace WindBoard.Settings.Pages
 
         private void RebuildPalettePreview(IReadOnlyList<string?> paletteHexes)
         {
-            // 说明：
-            // - 色板数量允许 3~24；
-            // - UI 需自适应：根据数量计算列数（最少 3 列，最多 6 列），并自动换行。
+            // 色板数量允许 3~24；按数量计算列数（最少 3 列、最多 6 列）并自动换行。
             PalettePreviewGrid.Children.Clear();
             PalettePreviewGrid.RowDefinitions.Clear();
             PalettePreviewGrid.ColumnDefinitions.Clear();

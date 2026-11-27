@@ -90,7 +90,6 @@ public sealed class EraserToolTests
 
         Assert.True(tool.IsErasing);
         Assert.Equal(1, eraser.CallCount);
-        // 屏幕点 (60,60) → 世界 (10,10)。
         AssertEx.Equal(10.0f, eraser.LastFromWorld.X);
         AssertEx.Equal(10.0f, eraser.LastFromWorld.Y);
         AssertEx.Equal(10.0f, eraser.LastToWorld.X);
@@ -118,7 +117,6 @@ public sealed class EraserToolTests
         tool.Move(Input(context, new Vector2(65.0f, 60.0f)));
 
         Assert.Equal(2, eraser.CallCount);
-        // 线段：上一位置 (10,10) → 当前 (15,10)。
         AssertEx.Equal(10.0f, eraser.LastFromWorld.X);
         AssertEx.Equal(15.0f, eraser.LastToWorld.X);
     }
@@ -182,7 +180,6 @@ public sealed class EraserToolTests
         tool.Cancel();
 
         Assert.False(tool.IsErasing);
-        // 恢复擦除前快照，且不写入撤销栈。
         Assert.Single(session.Document.InkItems);
         Assert.False(session.CanUndo);
     }

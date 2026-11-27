@@ -36,9 +36,7 @@ namespace WindBoard.Features.Camouflage.UI
 
         private void InitializeIconBuildTimer()
         {
-            // 图标生成涉及文件 IO + 图像解码，避免每次击键都触发：
-            // - 文本框变更只做“调度”
-            // - 用户停顿一小段时间后再生成缓存与预览
+            // 图标生成涉及文件 IO 与图像解码，文本框变更只做调度，用户停顿后再生成缓存与预览。
             _iconBuildTimer = DispatcherQueue.CreateTimer();
             _iconBuildTimer.Interval = TimeSpan.FromMilliseconds(450);
             _iconBuildTimer.IsRepeating = false;
@@ -280,9 +278,8 @@ namespace WindBoard.Features.Camouflage.UI
 
                 AppLog.Debug("Settings/Camouflage", $"已选择图标来源：'{path}', exists={File.Exists(path)}");
 
-                // 关键：不要只依赖 TextChanged 事件来落盘。
-                // 在某些 WinUI 运行时组合下，代码里设置 Text 可能不会触发 TextChanged，
-                // 导致 SourcePath 未更新，随后 RebuildIconCacheAndPreviewAsync 更新 IconCachePath 时会把 UI 同步回旧值。
+                // 不能只靠 TextChanged 落盘：部分 WinUI 运行时组合下，代码里设置 Text 不会触发该事件。
+                // 那样 SourcePath 不会更新，随后 RebuildIconCacheAndPreviewAsync 写入 IconCachePath 时会把 UI 同步回旧值。
                 AppSettingsService.Instance.Update(s =>
                 {
                     s.General.Camouflage.SourcePath = path;

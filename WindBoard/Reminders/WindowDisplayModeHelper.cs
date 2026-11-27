@@ -6,9 +6,7 @@ namespace WindBoard.Reminders
 {
     /// <summary>
     /// 窗口显示模式判定（全屏/窗口化等）。
-    /// 
-    /// 说明：目前 WindBoard 还没有完整的“全屏模式”入口，这里先预留判断逻辑；
-    /// 后续只需要改这里即可切换“全屏走弹条”策略。
+    /// 目前 WindBoard 还没有完整的“全屏模式”入口，这里先预留判断逻辑；后续只需要改这里即可切换“全屏走弹条”策略。
     /// </summary>
     internal static class WindowDisplayModeHelper
     {

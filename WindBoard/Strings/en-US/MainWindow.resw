@@ -1,10 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <root>
-  <!--
-    说明：
-    - 本文件为 en-US 语言资源（按功能拆分）。
-    - Key 前缀：MainWindow_*
-  -->
+  <!-- en-US 语言资源，Key 前缀 MainWindow_* -->
   <resheader name="resmimetype">
     <value>text/microsoft-resx</value>
   </resheader>
@@ -38,16 +34,28 @@
   <data name="MainWindow_PageIndicator_Default" xml:space="preserve">
     <value>1 / 1</value>
   </data>
-  <data name="MainWindow_FeatureWip_Title" xml:space="preserve">
-    <value>Coming soon</value>
-  </data>
-  <data name="MainWindow_FeatureWip_Content_Fmt" xml:space="preserve">
-    <value>{0} is not implemented yet. The entry is reserved and will be completed later.</value>
-  </data>
   <data name="MainWindow_ScreenAnnotationStartFailed_Title" xml:space="preserve">
     <value>Unable to enter screen annotation</value>
   </data>
   <data name="MainWindow_ScreenAnnotationStartFailed_Content_Fmt" xml:space="preserve">
     <value>Failed to enter screen annotation. Reason: {0}</value>
+  </data>
+  <data name="MainWindow_AddPage_Button" xml:space="preserve">
+    <value>Add page</value>
+  </data>
+  <data name="MainWindow_DeletePage_Button" xml:space="preserve">
+    <value>Delete page</value>
+  </data>
+  <data name="MainWindow_DeletePage_Confirm_Fmt" xml:space="preserve">
+    <value>Page {0} will be removed from the workspace. Its content cannot be restored.</value>
+  </data>
+  <data name="MainWindow_ClearCanvas_Action" xml:space="preserve">
+    <value>Clear canvas</value>
+  </data>
+  <data name="MainWindow_ClearCanvas_Confirm" xml:space="preserve">
+    <value>Everything on this page will be cleared and cannot be undone.</value>
+  </data>
+  <data name="MainWindow_ClearCanvas_Empty_Hint" xml:space="preserve">
+    <value>The canvas is empty.</value>
   </data>
 </root>

@@ -8,7 +8,6 @@ namespace WindBoard.Tests.Board.Commands;
 
 public sealed class UpdateStrokePointsCommandTests
 {
-    // Do/Undo 应能正确回放笔迹点列与包围盒
     [Fact]
     public void Do_Undo_UpdatesPointsAndBounds()
     {

@@ -8,10 +8,7 @@ namespace WindBoard.Settings
 {
     /// <summary>
     /// 设置对象的深拷贝辅助。
-    ///
-    /// 说明：
-    /// - 主要用于“保存快照”：避免并发保存时引用被外部修改。
-    /// - 该拷贝不负责做归一化（例如修正非法 HEX），归一化由 Store/Service 统一处理。
+    /// 用于保存快照，避免并发保存时引用被外部修改；不做归一化（如修正非法 HEX），归一化由 Store/Service 统一处理。
     /// </summary>
     internal static class AppSettingsCloner
     {
@@ -56,7 +53,9 @@ namespace WindBoard.Settings
                     ToolsOrder = new List<string>(settings.Dock?.ToolsOrder ?? DockSettingsDefaults.ToolsOrder),
                     UndoRedoOrder = new List<string>(settings.Dock?.UndoRedoOrder ?? DockSettingsDefaults.UndoRedoOrder),
                     PagesOrder = new List<string>(settings.Dock?.PagesOrder ?? DockSettingsDefaults.PagesOrder),
-                    IsUndoRedoVisible = settings.Dock?.IsUndoRedoVisible ?? true,
+                    HiddenItems = settings.Dock?.HiddenItems is null
+                        ? new List<string>()
+                        : new List<string>(settings.Dock.HiddenItems),
                     IsShortcutDocksVisible = settings.Dock?.IsShortcutDocksVisible ?? false,
                     ShortcutItems = settings.Dock?.ShortcutItems is null
                         ? new List<ShortcutDockItemSettings>()

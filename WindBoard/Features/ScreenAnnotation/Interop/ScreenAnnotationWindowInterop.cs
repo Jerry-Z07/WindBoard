@@ -584,11 +584,7 @@ namespace WindBoard.Features.ScreenAnnotation.Interop
         /// 解析本次 <c>SetWindowPos</c> 是否附带 <c>SWP_SHOWWINDOW</c>。
         /// </summary>
         /// <remarks>
-        /// <c>SWP_SHOWWINDOW</c> 会直接显示窗口，因此只在窗口已经可见时才附带：
-        /// 屏幕批注窗口在首次显示前需要保持隐藏完成配置（透明 backdrop / 无边框 / 层级），
-        /// 否则会在内容未渲染、样式未就绪时被提前显示出来。
-        /// 官方文档中应用窗口框架样式变更所需的最小组合为
-        /// <c>SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED</c>，不包含该标志。
+        /// <c>SWP_SHOWWINDOW</c> 会直接显示窗口，只在窗口已可见时才附带：批注窗口首次显示前需保持隐藏完成配置（透明 backdrop、无边框、层级），否则会在内容未渲染时被提前显示；官方文档给出的框架样式变更最小组合 <c>SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED</c> 不含该标志。
         /// </remarks>
         private static uint ResolveShowWindowFlag(IntPtr hwnd)
         {

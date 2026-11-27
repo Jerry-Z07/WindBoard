@@ -5,8 +5,7 @@ using Xunit;
 namespace WindBoard.Tests.UI.Common;
 
 /// <summary>
-/// FileSavePicker 预创建占位文件判据测试。
-/// 覆盖：占位文件（0 字节 + 创建时间在调用窗口内）、用户选中的既有文件、容差边界与时钟回拨。
+/// 覆盖占位文件（0 字节 + 创建时间在调用窗口内）、用户选中的既有文件、容差边界与时钟回拨。
 /// </summary>
 public sealed class SaveFilePickerPlaceholderTests
 {

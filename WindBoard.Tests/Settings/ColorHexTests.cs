@@ -6,7 +6,6 @@ namespace WindBoard.Tests.Settings;
 
 public sealed class ColorHexTests
 {
-    // 支持井号 RGB 格式
     [Fact]
     public void TryParse_SupportsRgbWithLeadingHash()
     {
@@ -19,7 +18,6 @@ public sealed class ColorHexTests
         Assert.Equal(0x33, color.B);
     }
 
-    // 支持无井号 RGB 格式
     [Fact]
     public void TryParse_SupportsRgbWithoutLeadingHash()
     {
@@ -32,7 +30,6 @@ public sealed class ColorHexTests
         Assert.Equal(0x33, color.B);
     }
 
-    // 支持 ARGB 格式
     [Fact]
     public void TryParse_SupportsArgb()
     {
@@ -45,7 +42,6 @@ public sealed class ColorHexTests
         Assert.Equal(0x33, color.B);
     }
 
-    // 统一输出大写 RGB
     [Fact]
     public void ToHexRgb_OutputsUppercaseRgb()
     {
@@ -55,7 +51,6 @@ public sealed class ColorHexTests
         Assert.Equal("#2E2F33", ColorHex.ToHexRgb(color));
     }
 
-    // 非法输入回退默认值
     [Fact]
     public void NormalizeToHexRgbOrDefault_FallsBackToDefault_WhenInvalidInput()
     {

@@ -164,9 +164,7 @@ namespace WindBoard.Board.Persistence.Wbix
                     continue;
                 }
 
-                // 约定：BoardExportService 会把内嵌图片资源写入 meta：
-                // - role=elementImage
-                // - elementId={Guid}
+                // 约定：BoardExportService 把内嵌图片资源写入 meta，role=elementImage，elementId={Guid}。
                 if (!file.Meta.TryGetValue("role", out string? role) || !string.Equals(role, "elementImage", StringComparison.OrdinalIgnoreCase))
                 {
                     continue;

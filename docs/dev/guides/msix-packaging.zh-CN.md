@@ -1,6 +1,6 @@
 # MSIX 打包与发布（Microsoft Store）
 
-本文档说明 WindBoard 的打包工程：如何从同一个工程产出 **Microsoft Store 的 MSIX 包** 与 **GitHub Releases 的便携版 zip**，以及身份、签名、视觉资产、提交形态与已知限制。
+WindBoard 用同一个工程产出 **Microsoft Store 的 MSIX 包** 与 **GitHub Releases 的便携版 zip**，并涉及身份、签名、视觉资产、提交形态与已知限制。
 
 面向终端用户的**安装形态**已从 Inno Setup 安装包切换为 Microsoft Store 的 MSIX；GitHub Releases 只提供便携版 zip。
 
@@ -52,7 +52,7 @@
 | 回退 | `$(VersionPrefix)` 不是 3 段或 4 段全数字时（含空值），不改写、沿用源清单的既有版本号 |
 | 非打包路径 | 不执行该 Target，`dotnet build WindBoard.slnx` 行为不变 |
 
-注意：`$(IntermediateOutputPath)` 在项目体求值阶段可能尚未定义，路径必须在 Target 内计算，否则中间产物会落到源码树。
+`$(IntermediateOutputPath)` 在项目体求值阶段可能尚未定义，路径必须在 Target 内计算，否则中间产物会落到源码树。
 
 ### 未签名测试包开关（`-p:WindBoardUnsignedTest=true`）
 
@@ -74,9 +74,9 @@ Add-AppxPackage -Path "<...>\WindBoard_2.9.0.0_x64.msix" -AllowUnsigned
 
 要点：
 
-- **生效条件**：`WindBoardPackage=Msix` 与 `WindBoardUnsignedTest=true` **同时**成立。缺任一个（含默认构建、普通 MSIX 打包）`Identity/@Publisher` 完全不被改写，输出与引入该开关前一致。
+- **生效条件**：`WindBoardPackage=Msix` 与 `WindBoardUnsignedTest=true` **同时**成立。缺任一个（含默认构建、普通 MSIX 打包）`Identity/@Publisher` 保持原值，输出与引入该开关前一致。
 - **配套关系**：该开关只负责在清单 `Identity/@Publisher` 原值后追加官方要求的 OID（`OID.2.25.311729368913984317654407730594956997722=1`，读自源清单的原值、不硬编码）；`Add-AppxPackage -AllowUnsigned` 只负责安装时跳过签名校验。两者必须成对使用：带 OID 的包用普通 `Add-AppxPackage`、或不带 OID 的包用 `-AllowUnsigned`，都装不上。
-- **提交 Store 前必须不带该参数**：官方明确此类 OID 只用于测试、准备分发前必须移除；带该 OID（或 `Publisher` 与 Partner Center 分配值不一致）的包会被 Store 拒收。开关生效时构建日志会打印醒目中文警告，可用于自检产包命令。
+- **提交 Store 前必须不带该参数**：官方明确此类 OID 只用于测试，准备分发前必须移除；带该 OID（或 `Publisher` 与 Partner Center 分配值不一致）的包会被 Store 拒收。开关生效时构建日志会打印醒目中文警告，可用于自检产包命令。
 - 改写结果与版本号注入一样落在 `$(IntermediateOutputPath)` 的中间清单里，**源清单不会被写入该 OID**（也不应在源清单里手写它）。
 - **切换开关不会把旧 OID 带进新产物**：打包 targets 把上传用的 msix 暂存在 `$(OutDir)Upload\` 下并对其做增量判断，而该开关只改变清单内容、不改变文件名，因此若在同一工作区里「先带开关产包、再不带开关产包」，Upload 下的旧 msix 会被 bundle/`.msixupload` 直接复用（日志无提示）。`WindBoard_InjectMsixManifestIdentity` 会在打包管线开始前清掉 `$(OutDir)Upload\`，强制按当前清单重建（目录不存在时无操作，CI 干净工作区不受影响）。
 
@@ -92,7 +92,7 @@ Add-AppxPackage -Path "<...>\WindBoard_2.9.0.0_x64.msix" -AllowUnsigned
 2. 把发布产物补入 `@(PackagingOutputs)`，但**排除**与主程序 payload 同名的文件（两者同为 self-contained，运行时文件同名，重复进包会让 `makeappx` 因包内重名失败），并排除 `*.pdb` 与 culture 目录下的 `*.resources.dll`（后者在 Appx PRI 生成时会产生 `PRI263` 警告）；
 3. 结果与「便携版把两个自包含发布合并到同一目录」一致，且 CrashReporter 不依赖用户机器上已安装的 .NET 运行时（包内 `WindBoard.CrashReporter.runtimeconfig.json` 使用 `includedFrameworks`）。
 
-`MSIX` 构建在源码树生成的 `WindBoard/BundleArtifacts/` 已加入 `.gitignore`。
+`MSIX` 构建会在源码树里生成 `WindBoard/BundleArtifacts/`，该目录已加入 `.gitignore`。
 
 ## 本地产包
 
@@ -140,11 +140,11 @@ Get-Content unpacked\WindBoard.CrashReporter.runtimeconfig.json
 (Get-Item unpacked\resources.pri).Length
 ```
 
-> **警告（2026-09-23 实测）**：在长期存在的主工作树里产包时，`obj` 下的陈旧中间产物会导致 Appx PRI **不再合并** WinUI 资源——构建**零告警**，但注册后应用启动即崩：
+> **警告（2026-09-23 实测）**：在长期存在的主工作树里产包时，`obj` 下的陈旧中间产物会导致 Appx PRI **不再合并** WinUI 资源，构建**零告警**，但注册后应用启动即崩：
 > `XamlParseException: Cannot locate resource from 'ms-appx:///Microsoft.UI.Xaml/Themes/themeresources.xaml'`。
 > 同一条命令在干净工作树（或清理 `obj`/`bin` 后）产出 `resources.pri` ≈ 2,376,232 B，运行正常。产包后请先执行上面第 5 步断言，再解包注册。
 
-> **警告**：`Remove-AppxPackage` **不会**保留应用数据——实测会连同 `%LOCALAPPDATA%\Packages\<PFN>\LocalCache\Local\WindBoard`（`settings.json`、`Logs`、`camouflage`）一起删除。做松散布局验证前请先备份该目录，验证后由用户从 Store 重装再回填。
+> **警告**：`Remove-AppxPackage` **不会**保留应用数据：实测会连同 `%LOCALAPPDATA%\Packages\<PFN>\LocalCache\Local\WindBoard`（`settings.json`、`Logs`、`camouflage`）一起删除。做松散布局验证前请先备份该目录，验证后由用户从 Store 重装再回填。
 
 ## Store 提交
 
@@ -180,7 +180,7 @@ Partner Center 会校验包内打包工具版本（历史上曾以 “uses an un
 - 提交前按官方建议自跑 **WACK**（Windows App Certification Kit）：视觉资产的 `targetsize`/`scale` 尺寸即由 WACK 与 Partner Center 校验。
 - `TargetDeviceFamily` 为 `Windows.Desktop`，`MinVersion=10.0.19041.0`、`MaxVersionTested=10.0.26100.0`（与 csproj 对齐）。
 - `Properties/Logo`、`Square150x150Logo`、`Square44x44Logo` 分别引用 `Assets\Msix\StoreLogo.png`、`Assets\Msix\Square150x150Logo.png`、`Assets\Msix\Square44x44Logo.png`。
-- **版本号**：`Identity/@Version` 在打包时由发布版本号注入（见上「MSIX 版本号（`Identity/@Version`）注入」），CI 上即 tag 版本；每次提交 Store 仍需保证版本号递增（Review 会拒绝同版本重复提交）。
+- **版本号**：`Identity/@Version` 在打包时由发布版本号注入（见上「MSIX 版本号（`Identity/@Version`）注入」），CI 上取的就是 tag 版本；每次提交 Store 仍需保证版本号递增（Review 会拒绝同版本重复提交）。
 
 ## 视觉资产（`Assets/Msix/`）
 
@@ -197,7 +197,7 @@ pwsh -NoLogo -NoProfile -File WindBoard/Build/GenerateMsixVisualAssets.ps1 -Forc
 
 产出（提交进仓库）：`Square44x44Logo.png` + `targetsize-{16,24,32,44,48,64,256}`（含 `_altform-unplated`）、`Square150x150Logo.png` + `scale-{100,200,400}`、`StoreLogo.png` + `scale-{100,200,400}`。
 
-注意：该脚本**不挂进构建流程**（不增加 `dotnet build WindBoard.slnx` 的依赖），仅在图标变更时人工执行一次；`Assets\Msix\**.png` 只在 `-p:WindBoardPackage=Msix` 时作为 `Content` 进入输出。
+该脚本**不挂进构建流程**（不增加 `dotnet build WindBoard.slnx` 的依赖），仅在图标变更时人工执行一次；`Assets\Msix\**.png` 只在 `-p:WindBoardPackage=Msix` 时作为 `Content` 进入输出。
 
 ## 已知限制与未验证项
 
@@ -205,7 +205,7 @@ pwsh -NoLogo -NoProfile -File WindBoard/Build/GenerateMsixVisualAssets.ps1 -Forc
 - **外部进程解析不了应用友好路径**：所谓「runtime merge 到真实 AppData 视图」只在**应用进程内**成立，因此把 `%LOCALAPPDATA%\WindBoard\...` 这类友好路径直接交给资源管理器 / 默认关联程序会弹「找不到路径」（而 `Launcher.Launch*Async` 仍返回成功，易于误判）。凡要交给外部进程的路径都必须先经 `WindBoard/Persistence/AppDataVisiblePathResolver` 映射为 `<LocalCache>\Local\...`，并以 shell 打开（目录 `explorer.exe "<dir>"`、文件 `Process.Start(new ProcessStartInfo(path) { UseShellExecute = true })`）；映射失败必须给出带路径的失败反馈并写 `AppLog.Warn`，不得静默回退到友好路径。
 - **仍未验证**：走 `Add-AppxPackage` 的签名/未签名安装路径需管理员或信任证书，旧版真实数据的读取（`V6`）与包内 CrashReporter 启动（`V7`）等仍待具备管理员权限的环境补测。
 - **包体**：MSIX 为 self-contained（.NET + Windows App SDK 均自包含），x64 上传包约 100 MB，与便携版 zip 同量级。
-- 打包形态的运行时适配（形态探测、更新通道、迁移）不在本文档范围。
+- 打包形态的运行时适配（形态探测、更新通道、迁移）不在范围内。
 
 ## 回滚
 

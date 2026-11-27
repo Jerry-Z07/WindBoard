@@ -11,12 +11,10 @@ namespace WindBoard.Interaction.Tools
     /// 工具运行上下文：工具与外部环境（视口/文档/会话/渲染通知/绘制参数）的唯一通信面。
     /// </summary>
     /// <remarks>
-    /// - 由 <see cref="WindBoard.Interaction.BoardInputController"/> 创建并持有，
-    ///   与控制器生命周期一致（会话切换时随控制器重建）；
-    /// - <see cref="PreviewItem"/>：预览项挂载点，活动笔迹等"未提交"条目经此暴露给渲染层，
-    ///   语义与原 <c>BoardInputController.ActiveStroke</c> 等价；
-    /// - 脏矩形：增量书写时的局部重绘区域经此暂存，由渲染层消费；
-    /// - <see cref="ToolOptions"/>：绘制参数挂载点（design C 节），参数仅在工具 Begin 时读取一次。
+    /// - 由 <see cref="WindBoard.Interaction.BoardInputController"/> 创建并持有，与控制器生命周期一致，会话切换时随控制器重建。
+    /// - <see cref="PreviewItem"/> 是预览项挂载点，活动笔迹等未提交条目经此暴露给渲染层，语义与原 <c>BoardInputController.ActiveStroke</c> 等价。
+    /// - 脏矩形：增量书写时的局部重绘区域经此暂存，由渲染层消费。
+    /// - <see cref="ToolOptions"/> 是绘制参数挂载点，参数仅在工具 Begin 时读取一次。
     /// </remarks>
     internal sealed class BoardInputContext
     {
@@ -50,8 +48,7 @@ namespace WindBoard.Interaction.Tools
         /// 预览项挂载点：当前工具的未提交绘制条目（渲染层绘制"活动笔迹"的数据源）。
         /// </summary>
         /// <remarks>
-        /// 工具在 <see cref="IBoardTool.Begin"/> 时写入、End/Cancel 时清除；
-        /// 控制器在调度 Cancel 后兜底清除。
+        /// 工具在 <see cref="IBoardTool.Begin"/> 时写入、End/Cancel 时清除；控制器在调度 Cancel 后兜底清除。
         /// </remarks>
         public IBoardInkItem? PreviewItem { get; set; }
 

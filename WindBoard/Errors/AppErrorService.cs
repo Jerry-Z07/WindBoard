@@ -12,13 +12,12 @@ using WindBoard.Reminders;
 namespace WindBoard.Errors
 {
     /// <summary>
-    /// 应用统一错误处理中心：
-    /// - 未处理异常：落盘崩溃报告 + 拉起独立 CrashReporter 并退出；
-    /// - 已捕获异常：统一记录日志，并可选展示用户提示（提醒一次）。
+    /// 应用统一错误处理中心：未处理异常落盘崩溃报告、拉起独立 CrashReporter 后退出。
+    /// 已捕获异常统一记录日志，并可选展示用户提示（只提醒一次）。
     /// </summary>
     internal sealed class AppErrorService
     {
-        // 说明：命令行总长有限（Windows 上限 32767 字符），而异常消息长度不可控，
+        // 命令行总长有限（Windows 上限 32767 字符），而异常消息长度不可控，
         // 传给崩溃窗口的摘要参数需截断；截断只影响摘要展示，完整消息仍在崩溃报告文件中。
         private const int MaxExceptionMessageChars = 2000;
 
@@ -247,7 +246,7 @@ namespace WindBoard.Errors
 
         private static string BuildDefaultSignature(string category, string message, Exception ex)
         {
-            // 说明：签名用于“提醒一次”去重，口径要稳定，避免把可变信息（路径/时间）纳入导致去重失效。
+            // 签名用于“提醒一次”去重，口径要稳定，避免把可变信息（路径/时间）纳入导致去重失效。
             string type = ex.GetType().Name;
             return $"Err:{category}:{type}:{message}";
         }
@@ -284,7 +283,7 @@ namespace WindBoard.Errors
 
         private bool TryLaunchCrashReporter(AppCrashReport? report, AppCrashSource source, Exception? exception, object? exceptionObject)
         {
-            // 说明：该方法位于“崩溃链路”，必须极其保守：任何异常都不得冒泡。
+            // 该方法位于“崩溃链路”，必须极其保守：任何异常都不得冒泡。
             // 返回值语义：true 表示 CrashReporter 已经启动（或此前已启动）；false 表示未启动。
 
             try
@@ -362,7 +361,7 @@ namespace WindBoard.Errors
 
         /// <summary>
         /// 构造传给崩溃窗口的异常类型名。
-        /// 说明：AppDomain.UnhandledException 允许抛出非 Exception 对象，故需要 exceptionObject 兜底。
+        /// AppDomain.UnhandledException 允许抛出非 Exception 对象，故需要 exceptionObject 兜底。
         /// </summary>
         private static string GetExceptionTypeName(Exception? exception, object? exceptionObject)
         {
@@ -370,11 +369,8 @@ namespace WindBoard.Errors
         }
 
         /// <summary>
-        /// 把异常消息归一化为单行摘要参数。
-        /// 规则（见 design.md §2.2）：
-        /// 1. 换行折叠为空格：崩溃窗口按「异常消息：&lt;单行&gt;」排版，消息内换行会破坏该结构；
-        /// 2. 截断到 <see cref="MaxExceptionMessageChars"/>：Windows 命令行总长有上限，而消息长度不可控，
-        ///    截断只影响摘要展示，完整消息仍在崩溃报告文件中。
+        /// 把异常消息归一化为单行摘要参数（见 design.md §2.2）：换行折叠为空格，因为崩溃窗口按「异常消息：&lt;单行&gt;」排版。
+        /// 截断到 <see cref="MaxExceptionMessageChars"/>，因为 Windows 命令行总长有上限；截断只影响摘要，完整消息仍在崩溃报告文件中。
         /// </summary>
         internal static string NormalizeSingleLine(string? message)
         {
@@ -462,7 +458,7 @@ namespace WindBoard.Errors
             }
         }
 
-        // 说明：用于封装一次性标记位（Interlocked + Volatile），让主流程更聚焦于业务编排。
+        // 用于封装一次性标记位（Interlocked + Volatile），让主流程更聚焦于业务编排。
         private sealed class OneTimeGate
         {
             private int _opened;
@@ -482,7 +478,7 @@ namespace WindBoard.Errors
 
         private static string GetLogsDirectoryForCrashReporter()
         {
-            // 说明：优先使用当前日志目录（由 AppLog/AppDataPaths 决定），失败时再回退到 LocalAppData。
+            // 优先使用当前日志目录（由 AppLog/AppDataPaths 决定），失败时再回退到 LocalAppData。
             try
             {
                 string dir = (AppLog.LogDirectory ?? string.Empty).Trim();

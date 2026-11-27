@@ -1,0 +1,12 @@
+{
+  "zh-CN": {
+    "Web_OpenLocalFileUnsupported_Fmt": "网页端无法打开本地文件：{0}",
+    "Web_OpenResourceUnavailable": "该元素引用的资源尚未加载到网页端，暂时无法打开。",
+    "Web_OpenElementFailed_Message": "无法打开元素"
+  },
+  "en-US": {
+    "Web_OpenLocalFileUnsupported_Fmt": "The web app cannot open local files: {0}",
+    "Web_OpenResourceUnavailable": "The resource this element references is not loaded in the web app yet, so it cannot be opened.",
+    "Web_OpenElementFailed_Message": "Cannot open the element"
+  }
+}

@@ -5,9 +5,7 @@ using WindBoard.Board.Elements;
 namespace WindBoard.Board.Commands
 {
     /// <summary>
-    /// 更新元素变换：
-    /// - 平移：PositionWorld
-    /// - 缩放：SizeWorld（可选）
+    /// 更新元素变换：平移写 PositionWorld，缩放写 SizeWorld（可选）。
     /// </summary>
     internal sealed class UpdateElementTransformCommand(
         BoardElement element,

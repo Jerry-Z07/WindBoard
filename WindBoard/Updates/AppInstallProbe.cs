@@ -9,11 +9,8 @@ using WindBoard.Persistence;
 namespace WindBoard.Updates
 {
     /// <summary>
-    /// 当前运行实例的安装形态探测：
-    /// - 优先做“包身份”探测（MSIX/Store 版）：packaged 进程直接判定，注册表/卸载器探测在包内不可用
-    /// - 其次读取安装包写入的注册表标记（可区分 -fd）
-    /// - 若标记缺失（旧版本安装包），则尝试通过 Inno Setup 卸载器文件做兜底判断
-    /// - 都无法判断时，视为便携版（可下载 zip）
+    /// 当前运行实例的安装形态探测。
+    /// 优先做“包身份”探测（MSIX/Store 版）：packaged 进程直接判定，注册表与卸载器探测在包内不可用；其次读取安装包写入的注册表标记（可区分 -fd），标记缺失（旧版本安装包）时尝试通过 Inno Setup 卸载器文件兜底，都无法判断时视为便携版（可下载 zip）。
     /// </summary>
     internal static class AppInstallProbe
     {
@@ -38,11 +35,7 @@ namespace WindBoard.Updates
 
         /// <summary>
         /// 当前进程是否具有包身份（MSIX/packaged）。
-        ///
-        /// 说明：必须用 Win32 <c>GetCurrentPackageFullName</c> 判定，不能用 <c>Windows.ApplicationModel.Package.Current</c>：
-        /// 本探测会经 <see cref="ProbeNoLog"/> 在“极早期”（AppLog 尚未配置）被 AppDataPaths 调用，
-        /// 此时拉起 WinRT 激活有初始化顺序风险；Win32 API 无激活、开销极低（非打包进程返回 APPMODEL_ERROR_NO_PACKAGE）。
-        /// 结果缓存：该探测会被多次调用。
+        /// 必须用 Win32 <c>GetCurrentPackageFullName</c> 判定，不能用 <c>Windows.ApplicationModel.Package.Current</c>：本探测会经 <see cref="ProbeNoLog"/> 在“极早期”（AppLog 尚未配置）被 AppDataPaths 调用，此时拉起 WinRT 激活有初始化顺序风险；Win32 API 无激活、开销极低（非打包进程返回 APPMODEL_ERROR_NO_PACKAGE）。结果缓存，该探测会被多次调用。
         /// </summary>
         internal static bool IsPackagedProcess()
         {
@@ -61,10 +54,7 @@ namespace WindBoard.Updates
 
         /// <summary>
         /// 探测安装形态（不输出日志）。
-        /// 
-        /// 说明：
-        /// - 该方法用于“非常早期”的路径选择场景（例如日志/设置默认路径），避免在 AppLog 尚未完成配置时发生递归初始化。
-        /// - 发生异常时会直接走兜底策略，不记录 AppLog。
+        /// 用于“非常早期”的路径选择场景（例如日志/设置默认路径），避免在 AppLog 尚未完成配置时发生递归初始化；发生异常时直接走兜底策略，不记录 AppLog。
         /// </summary>
         internal static AppInstallProbeResult ProbeNoLog()
         {
@@ -72,12 +62,8 @@ namespace WindBoard.Updates
         }
 
         /// <summary>
-        /// 读取旧 Inno 安装版写入的安装目录标记（<c>HKLM\SOFTWARE\WindBoard\InstallDir</c>）。
-        ///
-        /// 说明：
-        /// - 打包（MSIX）进程读 HKLM 得到的是“包内 hive + 系统 hive”的合并视图，允许读取；
-        /// - 但该值**不能**作为形态判定依据（同 <see cref="ProbeCore"/> 的取舍），仅用于迁移提示里展示旧安装路径；
-        /// - 读取失败只影响展示：记录日志后返回空字符串。
+        /// 读取旧 Inno 安装版写入的安装目录标记（<c>HKLM\\SOFTWARE\\WindBoard\\InstallDir</c>）。
+        /// 打包（MSIX）进程读 HKLM 得到的是“包内 hive + 系统 hive”的合并视图，允许读取；该值不能作为形态判定依据（同 <see cref="ProbeCore"/> 的取舍），仅用于迁移提示里展示旧安装路径；读取失败只影响展示，记录日志后返回空字符串。
         /// </summary>
         internal static string TryReadInstallerRegistryInstallDir()
         {
@@ -179,10 +165,7 @@ namespace WindBoard.Updates
         /// <summary>
         /// 安装形态判定（纯逻辑，便于单元测试）。
         /// </summary>
-        /// <param name="isPackagedProcess">
-        /// 是否具有包身份（MSIX/packaged）。该值为探测所得的“已发生事实”，由调用方注入，
-        /// 以便单测覆盖 <see cref="AppInstallKind.Msix"/> 分支（真实 API 结果无法在测试中伪造）。
-        /// </param>
+        /// <param name="isPackagedProcess">是否具有包身份（MSIX/packaged）。该值为探测所得的“已发生事实”，由调用方注入，以便单测覆盖 <see cref="AppInstallKind.Msix"/> 分支（真实 API 结果无法在测试中伪造）。</param>
         internal static AppInstallProbeResult ComputeProbeResult(
             string productRootDirectory,
             bool isPackagedProcess,
@@ -243,9 +226,7 @@ namespace WindBoard.Updates
         {
             try
             {
-                // 传空缓冲区只为取判定结果：
-                // - packaged 进程：返回 ERROR_SUCCESS 或 ERROR_INSUFFICIENT_BUFFER（需要缓冲区）
-                // - 非打包进程：返回 APPMODEL_ERROR_NO_PACKAGE
+                // 传空缓冲区只为取判定结果：packaged 进程返回 ERROR_SUCCESS 或 ERROR_INSUFFICIENT_BUFFER（需要缓冲区），非打包进程返回 APPMODEL_ERROR_NO_PACKAGE。
                 uint length = 0;
                 int result = GetCurrentPackageFullName(ref length, IntPtr.Zero);
                 if (result == AppModelErrorNoPackage)

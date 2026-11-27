@@ -8,12 +8,8 @@ using Vortice.Mathematics;
 namespace WindBoard.Board.Editing
 {
     /// <summary>
-    /// 绘制条目“点选”命中测试（按条目类型单点分发，纯计算逻辑）。
-    ///
-    /// 设计目标：
-    /// - 选择工具需要在“点击/触摸”位置命中最上层对象；
-    /// - 逻辑独立于 UI/渲染，便于单元测试；
-    /// - 折线笔迹的折线段距离算法保留为 Stroke 分支，其它条目类型走 Bounds 通用路径。
+    /// 绘制条目“点选”命中测试，按条目类型单点分发，返回点击/触摸位置下的最上层对象。
+    /// 折线笔迹按折线段距离判定，其它条目类型走 Bounds 通用路径；纯计算逻辑，不依赖 UI 与渲染。
     /// </summary>
     internal static class InkItemPickTest
     {

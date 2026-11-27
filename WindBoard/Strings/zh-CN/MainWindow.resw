@@ -1,10 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <root>
-  <!--
-    说明：
-    - 本文件为 zh-CN 语言资源（按功能拆分）。
-    - Key 前缀：MainWindow_*
-  -->
+  <!-- zh-CN 语言资源，Key 前缀 MainWindow_* -->
   <resheader name="resmimetype">
     <value>text/microsoft-resx</value>
   </resheader>
@@ -27,7 +23,7 @@
     <value>点擦</value>
   </data>
   <data name="MainWindow_EraserMode_Stroke" xml:space="preserve">
-    <value>笔划擦</value>
+    <value>笔迹擦</value>
   </data>
   <data name="MainWindow_ClearCanvas_Slide" xml:space="preserve">
     <value>滑动清屏</value>
@@ -38,16 +34,28 @@
   <data name="MainWindow_PageIndicator_Default" xml:space="preserve">
     <value>1 / 1</value>
   </data>
-  <data name="MainWindow_FeatureWip_Title" xml:space="preserve">
-    <value>功能开发中</value>
-  </data>
-  <data name="MainWindow_FeatureWip_Content_Fmt" xml:space="preserve">
-    <value>{0} 功能暂未实现，已预留入口，后续会逐步补齐。</value>
-  </data>
   <data name="MainWindow_ScreenAnnotationStartFailed_Title" xml:space="preserve">
     <value>无法进入屏幕批注</value>
   </data>
   <data name="MainWindow_ScreenAnnotationStartFailed_Content_Fmt" xml:space="preserve">
     <value>进入屏幕批注失败。原因：{0}</value>
+  </data>
+  <data name="MainWindow_AddPage_Button" xml:space="preserve">
+    <value>添加页面</value>
+  </data>
+  <data name="MainWindow_DeletePage_Button" xml:space="preserve">
+    <value>删除页面</value>
+  </data>
+  <data name="MainWindow_DeletePage_Confirm_Fmt" xml:space="preserve">
+    <value>第 {0} 页会从工作区移除，内容无法恢复。</value>
+  </data>
+  <data name="MainWindow_ClearCanvas_Action" xml:space="preserve">
+    <value>清空画布</value>
+  </data>
+  <data name="MainWindow_ClearCanvas_Confirm" xml:space="preserve">
+    <value>当前页的内容会全部清空，且无法撤销。</value>
+  </data>
+  <data name="MainWindow_ClearCanvas_Empty_Hint" xml:space="preserve">
+    <value>画布为空，无需清空。</value>
   </data>
 </root>

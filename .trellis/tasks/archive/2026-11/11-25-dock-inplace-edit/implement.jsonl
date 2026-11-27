@@ -1,0 +1,6 @@
+{"file": ".trellis/spec/frontend/component-guidelines.md", "reason": "WinUI 组件结构、事件处理、x:Bind/INotifyPropertyChanged 现状与文案约定"}
+{"file": ".trellis/spec/frontend/state-management.md", "reason": "设置通过 AppSettingsService.Update 更新、Changed 广播与 UI 本地状态约定"}
+{"file": ".trellis/spec/frontend/quality-guidelines.md", "reason": "禁用模式、原生控件优先、测试与审查清单"}
+{"file": ".trellis/spec/frontend/winui-dependencies.md", "reason": "ContentDialog/XamlRoot 自适应、ShowAsync 异常路径与依赖契约"}
+{"file": ".trellis/spec/backend/database-guidelines.md", "reason": "设置持久化、归一化与兼容契约"}
+{"file": "docs/dev/guides/web-port.zh-CN.md", "reason": "Features/Dock 与网页端映射、同步义务与门禁命令"}

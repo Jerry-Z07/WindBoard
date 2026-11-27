@@ -51,9 +51,7 @@ namespace WindBoard.Persistence
 
         /// <summary>
         /// 自身数据目录与旧安装版数据目录是否路径重合。
-        ///
-        /// MSIX 虚拟化下“读取先私有位置、未命中回落真实目录”（design.md §1.2），路径重合时无法凭路径判断
-        /// 读到的是自身文件还是旧文件；该情况不按“老用户”处理（继续走弹窗：确认则导入、取消仅写 marker，均无副作用）。
+        /// MSIX 虚拟化下“读取先私有位置、未命中回落真实目录”（design.md §1.2），路径重合时无法凭路径判断读到的是自身文件还是旧文件；该情况不按“老用户”处理，继续走弹窗：确认则导入、取消仅写 marker，均无副作用。
         /// </summary>
         internal bool OwnSettingsFileSharedWithLegacyData { get; init; }
 
@@ -103,7 +101,7 @@ namespace WindBoard.Persistence
 
         /// <summary>
         /// 旧设置的归一化问题数量。
-        /// 说明：这里只统计（供日志）；真正的修复与用户提示仍走既有导入链路（<c>AppSettingsService.ImportFromFileAsync</c>）。
+        /// 这里只统计（供日志）；真正的修复与用户提示仍走既有导入链路（<c>AppSettingsService.ImportFromFileAsync</c>）。
         /// </summary>
         internal int NormalizationIssueCount { get; init; }
 
@@ -231,13 +229,8 @@ namespace WindBoard.Persistence
     }
 
     /// <summary>
-    /// 旧 Inno 安装版数据迁移（MSIX 形态首次运行）：
-    /// - 决策：<see cref="InstallerMigrationPolicy"/>（纯逻辑，可单测）；
-    /// - 薄壳：采集事实、只读旧 settings.json（不写回旧目录）、复用既有导入链路写入自身数据目录、写迁移标记。
-    ///
-    /// 说明：
-    /// - 本类不做 UI（弹窗在 UI 层），也不依赖注册表判定形态；
-    /// - 任何失败都只记录日志，不阻断启动。
+    /// 旧 Inno 安装版数据迁移（MSIX 形态首次运行）：决策在 <see cref="InstallerMigrationPolicy"/>（纯逻辑，可单测），本类是薄壳，采集事实、只读旧 settings.json（不写回旧目录）、复用既有导入链路写入自身数据目录、写迁移标记。
+    /// 本类不做 UI（弹窗在 UI 层），也不依赖注册表判定形态；任何失败都只记录日志，不阻断启动。
     /// </summary>
     internal sealed class InstallerMigrationService
     {
@@ -255,7 +248,7 @@ namespace WindBoard.Persistence
 
         /// <summary>
         /// 采集“已发生事实”并给出迁移决策。
-        /// 注意：只有 MSIX 形态才会触碰文件系统（便携版/旧安装版零 I/O、行为不变）。
+        /// 只有 MSIX 形态才会触碰文件系统（便携版/旧安装版零 I/O、行为不变）。
         /// </summary>
         internal InstallerMigrationEvaluation Evaluate()
         {
@@ -292,11 +285,8 @@ namespace WindBoard.Persistence
         }
 
         /// <summary>
-        /// 导入旧版设置：
-        /// - 只读旧 settings.json，写入自身（虚拟化）数据目录，绝不写回旧目录；
-        /// - 复用 <see cref="AppSettingsService.ImportFromFileAsync"/>（整包替换 + 归一化 + 语言同步 + 原子落盘），
-        ///   确认后设置即时生效，不新增一套反序列化/保存实现；
-        /// - 成功后写迁移标记；失败只记录日志（不写 marker，下次启动可重试）。
+        /// 导入旧版设置：只读旧 settings.json，写入自身（虚拟化）数据目录，绝不写回旧目录。
+        /// 复用 <see cref="AppSettingsService.ImportFromFileAsync"/>（整包替换 + 归一化 + 语言同步 + 原子落盘），确认后设置即时生效；成功后写迁移标记，失败只记录日志（不写 marker，下次启动可重试）。
         /// </summary>
         /// <returns>true 表示已导入；false 表示未导入（调用方可保持静默，用户不受影响）。</returns>
         internal async Task<bool> TryImportAsync(string legacySettingsFilePath, CancellationToken cancellationToken = default)

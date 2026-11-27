@@ -102,9 +102,8 @@ namespace WindBoard.UITests.Infrastructure
         }
 
         /// <summary>
-        /// 结束应用：向主窗口发送 WM_CLOSE（走正常退出路径），超时再强杀。
-        /// 说明：不用 FlaUI Application.Close——它在 Launch 早期缓存主窗口句柄，
-        /// WinUI 窗口晚创建时句柄为 0 导致静默失效（实测 Close 后进程不退出）。
+        /// 结束应用：向主窗口发送 WM_CLOSE（走正常退出路径），超时再强杀。不用 FlaUI Application.Close：
+        /// 它在 Launch 早期缓存主窗口句柄，WinUI 窗口晚创建时句柄为 0，导致 Close 静默失效（实测 Close 后进程不退出）。
         /// </summary>
         public void Quit()
         {

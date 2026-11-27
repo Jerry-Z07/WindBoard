@@ -10,12 +10,8 @@ using WindBoard.Persistence;
 namespace WindBoard.Settings
 {
     /// <summary>
-    /// JSON 设置文件的读写与归一化。
-    /// 
-    /// 设计点：
-    /// - 读取失败/JSON 损坏时回退默认值，避免影响启动
-    /// - 保存使用临时文件替换，降低写入中断导致文件损坏的概率
-    /// - 所有设置在加载/更新后都会做一次“归一化”，确保内存态与落盘态可用
+    /// JSON 设置文件的读写与归一化：读取失败或 JSON 损坏时回退默认值以免影响启动，保存用临时文件替换以降低写入中断导致文件损坏的概率。
+    /// 所有设置在加载与更新后都会归一化一次，保证内存态与落盘态可用。
     /// </summary>
     internal sealed class AppSettingsStore
     {
@@ -197,17 +193,14 @@ namespace WindBoard.Settings
             settings.ToolsOrder = NormalizeOrder(settings.ToolsOrder, DockSettingsDefaults.ToolsOrder);
             settings.UndoRedoOrder = NormalizeOrder(settings.UndoRedoOrder, DockSettingsDefaults.UndoRedoOrder);
             settings.PagesOrder = NormalizeOrder(settings.PagesOrder, DockSettingsDefaults.PagesOrder);
+            settings.HiddenItems = DockLayoutRules.NormalizeHiddenItems(settings.HiddenItems);
 
             NormalizeShortcutDockSettingsInPlace(settings);
         }
 
         private static void NormalizeShortcutDockSettingsInPlace(DockSettings settings)
         {
-            // 快捷入口 Dock：
-            // - 允许空 Path（便于设置页先“添加”，再补齐内容）
-            // - 统一修正 Side/Type/IconSource 到合法值
-            // - 保证 Id 稳定存在（用于编辑项定位）
-            // - 限制最多 5 个
+            // 快捷入口 Dock：允许空 Path 便于设置页先添加再补齐内容；Side/Type/IconSource 统一修正到合法值；保证 Id 稳定存在以便定位编辑项；最多 5 个。
             settings.ShortcutItems ??= new List<ShortcutDockItemSettings>();
 
             var normalized = new List<ShortcutDockItemSettings>(capacity: 5);
@@ -285,9 +278,7 @@ namespace WindBoard.Settings
 
         private static string NormalizeUpdateCheckIntervalOrDefault(string? value)
         {
-            // 说明：
-            // - 允许用户手动编辑 settings.json
-            // - 非法/空值回退为默认（每周）
+            // 允许用户手工编辑 settings.json；非法或空值回退默认（每周）。
             if (UpdateCheckIntervalParser.TryParse(value, out UpdateCheckInterval interval))
             {
                 return UpdateCheckIntervalParser.ToSettingValue(interval);
@@ -298,18 +289,13 @@ namespace WindBoard.Settings
 
         private static string NormalizeLanguagePreferenceOrDefault(string? value)
         {
-            // 说明：
-            // - 允许用户手动编辑 settings.json
-            // - 允许大小写不敏感/简写/zh_CN 形式
-            // - 非法/空值回退为默认（跟随系统）
+            // 允许用户手工编辑 settings.json，接受大小写不敏感、简写与 zh_CN 形式；非法或空值回退默认（跟随系统）。
             return AppLanguagePreferenceParser.NormalizeOrDefault(value);
         }
 
         private static string NormalizeStartupWindowModeOrDefault(string? value)
         {
-            // 说明：
-            // - 允许用户手动编辑 settings.json
-            // - 非法/空值回退为默认（窗口化）
+            // 允许用户手工编辑 settings.json；非法或空值回退默认（窗口化）。
             if (StartupWindowModeParser.TryParse(value, out StartupWindowMode mode))
             {
                 return StartupWindowModeParser.ToSettingValue(mode);
@@ -320,9 +306,7 @@ namespace WindBoard.Settings
 
         private static string NormalizeDownloadSourcePolicyOrDefault(string? value)
         {
-            // 说明：
-            // - 允许用户手动编辑 settings.json
-            // - 非法/空值回退为默认（auto）
+            // 允许用户手工编辑 settings.json；非法或空值回退默认（auto）。
             if (DownloadSourcePolicyParser.TryParse(value, out DownloadSourcePolicy policy))
             {
                 return DownloadSourcePolicyParser.ToSettingValue(policy);
@@ -333,9 +317,7 @@ namespace WindBoard.Settings
 
         private static string NormalizeDownloadSourceIdOrDefault(string? value)
         {
-            // 说明：
-            // - 允许用户手动编辑 settings.json
-            // - 非法/空值回退为默认（github）
+            // 允许用户手工编辑 settings.json；非法或空值回退默认（github）。
             if (DownloadSourceIdParser.TryParse(value, out DownloadSourceId id))
             {
                 return DownloadSourceIdParser.ToSettingValue(id);
@@ -355,15 +337,12 @@ namespace WindBoard.Settings
 
         private static void NormalizeKeyboardShortcutsInPlace(KeyboardShortcutsSettings settings, SettingsNormalizationReport? report)
         {
-            // 快捷键归一化：
-            // - null -> string.Empty
-            // - 允许空字符串表示禁用（不会自动回填）
-            // - 非空则必须是“合法组合键”（并写回为规范格式）
+            // 快捷键归一化：null 转 string.Empty；空字符串表示禁用，不自动回填；非空必须是合法组合键并写回规范格式。
             settings.Undo = NormalizeKeyboardShortcutOrDisable(slot: "Undo", settings.Undo, KeyboardShortcutsDefaults.Undo, report);
             settings.Redo = NormalizeKeyboardShortcutOrDisable(slot: "Redo", settings.Redo, KeyboardShortcutsDefaults.Redo, report);
 
             // 去重冲突：按 Undo -> Redo 的顺序处理。
-            // 约定：同一组合键不允许绑定多个动作；后出现者自动清空（禁用）。
+            // 同一组合键不允许绑定多个动作，后出现者自动清空（禁用）。
             if (!string.IsNullOrEmpty(settings.Undo))
             {
                 if (string.Equals(settings.Redo, settings.Undo, StringComparison.Ordinal))
@@ -427,7 +406,7 @@ namespace WindBoard.Settings
 
         private static void NormalizeLoggingSettingsInPlace(LoggingSettings settings)
         {
-            // 说明：日志设置大多会被用户手工编辑，因此这里做“宽松解析 + 强归一化”。
+            // 日志设置大多由用户手工编辑，因此这里做宽松解析与强归一化。
             settings.MinimumLevel = (settings.MinimumLevel ?? string.Empty).Trim();
             if (!AppLogLevelParser.TryParse(settings.MinimumLevel, out AppLogLevel level))
             {
@@ -476,10 +455,7 @@ namespace WindBoard.Settings
 
         private static List<string> NormalizeOrder(IEnumerable<string>? order, IReadOnlyList<string> defaults)
         {
-            // 目标：
-            // - 过滤未知项
-            // - 去重（保留首次出现）
-            // - 补齐缺失项（按默认顺序追加）
+            // 过滤未知项、去重（保留首次出现）、按默认顺序补齐缺失项。
             HashSet<string> allowed = new(defaults, StringComparer.Ordinal);
             HashSet<string> seen = new(StringComparer.Ordinal);
             List<string> normalized = new();

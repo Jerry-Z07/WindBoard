@@ -164,9 +164,7 @@ namespace WindBoard.Features.ScreenAnnotation.UI
         /// 在窗口首次显示（<see cref="Window.Activate"/>）之前完成原生窗口与透明背景配置。
         /// </summary>
         /// <remarks>
-        /// 必须前置到显示之前：WinUI 顶层窗口在未挂透明 backdrop 时会以主题底色绘制首帧
-        /// （浅色主题为白），若推迟到首次 Activated 再配置，用户会先看到一个未配置的白底窗口；
-        /// 主窗口处于全屏时该窗口还会与全屏呈现切换叠加，白闪更明显。
+        /// 必须前置到显示之前：WinUI 顶层窗口未挂透明 backdrop 时会以主题底色绘制首帧（浅色主题为白），推迟到首次 Activated 再配置会先露出未配置的白底窗口；主窗口全屏时还会与全屏呈现切换叠加，白闪更明显。
         /// </remarks>
         internal bool TryInitializeForDisplay()
         {

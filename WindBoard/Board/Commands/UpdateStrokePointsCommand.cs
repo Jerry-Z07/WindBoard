@@ -5,11 +5,7 @@ using WindBoard.Board;
 namespace WindBoard.Board.Commands
 {
     /// <summary>
-    /// 用“点列快照”更新某条笔迹。
-    ///
-    /// 适用场景：
-    /// - 选择工具对笔迹做平移/缩放/旋转；
-    /// - 未来导入/编辑对笔迹做几何变换（保持撤销/重做一致）。
+    /// 用“点列快照”更新某条笔迹：选择工具的平移/缩放/旋转与导入后的几何变换都走此命令，撤销/重做按快照恢复。
     /// </summary>
     internal sealed class UpdateStrokePointsCommand : IBoardCommand
     {

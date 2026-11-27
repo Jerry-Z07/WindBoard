@@ -6,15 +6,8 @@ using WindBoard.Board.Items;
 namespace WindBoard.Board.Editing
 {
     /// <summary>
-    /// 像素级（局部）擦除：
-    /// - 把笔迹视为“带宽度的折线”，橡皮擦输入为“线段 + 半径”（世界坐标）。
-    /// - 通过对命中的笔迹做采样 + 二分求边界，把被擦到的部分裁掉，并生成若干段新的笔迹。
-    ///
-    /// 说明：
-    /// - 这里的“像素级”并非对最终像素缓冲做 mask，而是对笔迹几何数据进行分段裁剪；
-    ///   对用户视觉效果而言，它表现为“可擦掉笔迹局部”的橡皮擦。
-    /// - 为了保证撤销/重做与快照机制正确工作，本实现不会原地修改现有 Stroke 对象，
-    ///   只会通过“删除/替换/分割”生成新的 Stroke 实例。
+    /// 像素级（局部）擦除：笔迹视为“带宽度的折线”，输入为线段加半径（世界坐标），采样加二分求边界后裁掉命中部分并生成若干保留段。
+    /// 裁剪作用于笔迹几何，不对像素缓冲做 mask；不原地修改 Stroke，只以删除/替换/分割产生新实例，保证撤销/重做与快照正确。
     /// </summary>
     internal sealed class PixelStrokeEraser : IBoardEraser
     {
@@ -60,9 +53,7 @@ namespace WindBoard.Board.Editing
                     continue;
                 }
 
-                // 擦除路由按条目类型分流：
-                // - 折线笔迹可分割 → 像素级裁剪，生成若干保留段；
-                // - 其它条目（阶段二形状等）不可分割 → 命中即整笔删除。
+                // 擦除路由按条目类型分流：折线笔迹可分割，走像素级裁剪生成若干保留段；其它条目不可分割，命中即整笔删除。
                 if (item is Stroke stroke)
                 {
                     List<Stroke> keptSegments = EraseSingleStroke(stroke, fromWorld, toWorld, radiusWorld);
@@ -167,9 +158,7 @@ namespace WindBoard.Board.Editing
 
         private static Vector2 ComputeMaxEraserInvWorld(Stroke stroke, Vector2 eraserRadiusWorld)
         {
-            // 采样阶段使用“最大可能半径”做快速过滤：
-            // - 橡皮擦半径可能是椭圆（X/Y 不同），这里分别取上界；
-            // - 再加上笔迹自身的最大半宽，得到“擦除胶囊体”的最宽上界。
+            // 采样阶段用最大可能半径快速过滤：橡皮擦半径可能为椭圆（X/Y 不同），分别取上界，再加笔迹最大半宽得到“擦除胶囊体”的最宽上界。
             float maxHalfWidth = GetMaxHalfStrokeWidthWorld(stroke);
             Vector2 maxRadius = new(
                 Math.Max(0.0f, eraserRadiusWorld.X) + maxHalfWidth,

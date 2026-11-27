@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
@@ -18,6 +19,7 @@ namespace WindBoard
     public sealed partial class MainWindow
     {
         private DockFlow? _dockFlow;
+        private bool _dockEditOverlayWired;
 
         private static void UpdateCanvasBackgroundBrush(Color color)
         {
@@ -53,9 +55,61 @@ namespace WindBoard
             }
         }
 
+        /// <summary>
+        /// 进入 Dock 编辑模式：由精简设置页的“编辑 Dock”卡片调用。
+        /// </summary>
+        internal void EnterDockEditMode()
+        {
+            try
+            {
+                if (DockEditOverlay.IsEditing)
+                {
+                    Activate();
+                    return;
+                }
+
+                if (AppWindow.Presenter is OverlappedPresenter { State: OverlappedPresenterState.Minimized } presenter)
+                {
+                    presenter.Restore();
+                }
+
+                Activate();
+
+                if (!_dockEditOverlayWired)
+                {
+                    DockEditOverlay.EditModeExited += OnDockEditOverlayExited;
+                    _dockEditOverlayWired = true;
+                }
+
+                DockLayer.Visibility = Visibility.Collapsed;
+                DockEditOverlay.EnterEditMode(WinRT.Interop.WindowNative.GetWindowHandle(this));
+            }
+            catch (Exception ex)
+            {
+                DockLayer.Visibility = Visibility.Visible;
+                AppLog.Error("Dock", "进入 Dock 编辑模式失败。", ex);
+            }
+        }
+
+        private void OnDockEditOverlayExited(object? sender, EventArgs e)
+        {
+            try
+            {
+                ApplyDockSettingsToUi();
+            }
+            catch (Exception ex)
+            {
+                AppLog.Error("Dock", "退出 Dock 编辑模式时应用设置失败。", ex);
+            }
+            finally
+            {
+                DockLayer.Visibility = Visibility.Visible;
+            }
+        }
+
         private DockMainWindowHost CreateDockHost()
         {
-            // 注意：这里是 MainWindow 与 Dock Feature 的桥接层，负责提供 Dock 所需的 UI 引用。
+            // 这里是 MainWindow 与 Dock Feature 的桥接层，负责提供 Dock 所需的 UI 引用。
             return new DockMainWindowHost
             {
                 LeftDockPanel = LeftDockPanel,
@@ -91,6 +145,10 @@ namespace WindBoard
                     [DockItemIds.PageNext] = PageNextButton,
                     [DockItemIds.PageAdd] = AddButton,
                 },
+
+                MainDockBackground = MainDockBackground,
+                MainDockContentPanel = MainDockContentPanel,
+                PagesDockContainer = PagesDockBorder,
 
                 LeftShortcutDockContainer = LeftShortcutDockContainer,
                 RightShortcutDockContainer = RightShortcutDockContainer,
