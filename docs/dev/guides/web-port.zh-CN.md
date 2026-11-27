@@ -24,6 +24,7 @@
 | 桌面能力 | 网页端处理 |
 |---|---|
 | 窗口伪装（Camouflage）、托盘、开机启动 | 不做，设置里不出现 |
+| 设置窗口壳层公告（`SettingsWindow` 的 `InfoBar`，内容来自仓库根 `announcements.json`） | 不做，设置里不出现 |
 | 屏幕批注（ScreenAnnotation） | 不做 |
 | 自动检查更新、下载源选择 | 由 Service Worker 静默更新替代，设置页不出现 |
 | 「更多」菜单里的「屏幕批注」「退出」 | 菜单只保留 设置 / 导出 / 全屏 |

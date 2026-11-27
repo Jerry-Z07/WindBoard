@@ -5,8 +5,9 @@ using WindBoard.Settings;
 namespace WindBoard.Updates
 {
     /// <summary>
-    /// GitHub 下载链接改写。
+    /// GitHub 链接改写。
     /// Github 源保持原链接，镜像源为镜像前缀加原链接（例如 https://gh-proxy.top/https://github.com/...）。
+    /// 支持 github.com 与 raw.githubusercontent.com 两种原链接。
     /// </summary>
     internal static class DownloadSourceUrlRewriter
     {
@@ -39,14 +40,20 @@ namespace WindBoard.Updates
             }
 
             // 只对 GitHub 原链接做镜像拼接，避免把非 GitHub 链接误拼到镜像域名下。
-            // 当前项目主要使用 github.com/release 附件链接。
-            if (!url.StartsWith("https://github.com/", StringComparison.OrdinalIgnoreCase))
+            // 更新包走 github.com/release 附件，公告走 raw.githubusercontent.com。
+            if (!IsMirrorableGithubUrl(url))
             {
                 return url;
             }
 
             string prefix = GetPrefix(sourceId);
             return prefix + url;
+        }
+
+        private static bool IsMirrorableGithubUrl(string url)
+        {
+            return url.StartsWith("https://github.com/", StringComparison.OrdinalIgnoreCase)
+                || url.StartsWith("https://raw.githubusercontent.com/", StringComparison.OrdinalIgnoreCase);
         }
 
         internal static IReadOnlyList<DownloadSourceId> BuildFailoverOrder(DownloadSourceId preferred)

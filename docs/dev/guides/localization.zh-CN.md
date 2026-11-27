@@ -12,6 +12,7 @@ WindBoard 的“用户可见文本”统一提取到资源字典（`.resw`），
 - 构建期语言/Feature 元数据生成：`WindBoard/Build/GenerateLocalizationMetadata.ps1`
 
 - 当前提供 `zh-CN`（简体中文，默认）与 `en-US`（英文）两种语言。新增其它语言时，按相同结构新建语言目录（例如 `ja-JP`）。
+- 例外：设置窗口壳层公告的文案由仓库根 `announcements.json` 按语言下发，不进入 `.resw` / PRI；至少提供 `zh-CN`，客户端按父语言链回退到 `zh-CN`（见 `AppAnnouncementPayloadParser` 与 `AppAnnouncement.ResolveText`）。
 - 运行时按 key 的第一个前缀段选择功能资源文件（例如 `Settings_*` -> `Settings.resw`）。文本从 PRI 资源索引读取：未打包形态显式读取 `WindBoard.pri`，打包形态由 `ResourceManager` 自动加载包根 `resources.pri`。
 - 缺语言/缺 key 的回退策略：
   - 缺语言：自动回退到默认 `zh-CN`。

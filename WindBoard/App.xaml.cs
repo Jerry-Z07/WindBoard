@@ -147,6 +147,9 @@ namespace WindBoard
             LogStartupEnvironmentInfo(_window);
             _window.Activate();
 
+            // 公告拉取不阻塞启动：服务内部捕获全部异常，结果由设置窗口按需消费。
+            _ = AppAnnouncementService.Instance.RefreshIfStaleAsync();
+
             try
             {
                 if (_window is MainWindow mainWindow)
